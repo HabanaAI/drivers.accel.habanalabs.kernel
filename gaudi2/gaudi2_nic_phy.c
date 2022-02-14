@@ -1598,6 +1598,38 @@ static int fw_tuning(struct hl_device *hdev, u32 port, int lane, bool pam4)
 	return 0;
 }
 
+static void print_taps_after_tuning(struct hl_device *hdev, u32 port)
+{
+	u32 card_location, tx_pre2, tx_pre1, tx_main, tx_post1, tx_post2;
+	int lane;
+
+	card_location = hdev->nic.card_location;
+
+	for (lane = 0 ; lane < 2 ; lane++) {
+		tx_pre2 = (NIC_PHY_RREG32_LANE(mmNIC0_SERDES0_LANE0_REGISTER_0PA5) &
+				NIC0_SERDES0_LANE0_REGISTER_0PA5_TX_PRE_2_MASK) >>
+				NIC0_SERDES0_LANE0_REGISTER_0PA5_TX_PRE_2_SHIFT;
+		tx_pre1 = (NIC_PHY_RREG32_LANE(mmNIC0_SERDES0_LANE0_REGISTER_0PA7) &
+				NIC0_SERDES0_LANE0_REGISTER_0PA7_TX_PRE_1_MASK) >>
+				NIC0_SERDES0_LANE0_REGISTER_0PA7_TX_PRE_1_SHIFT;
+		tx_main = (NIC_PHY_RREG32_LANE(mmNIC0_SERDES0_LANE0_REGISTER_0PA9) &
+				NIC0_SERDES0_LANE0_REGISTER_0PA9_TX_MAIN_MASK) >>
+				NIC0_SERDES0_LANE0_REGISTER_0PA9_TX_MAIN_SHIFT;
+		tx_post1 = (NIC_PHY_RREG32_LANE(mmNIC0_SERDES0_LANE0_REGISTER_0PAB) &
+				NIC0_SERDES0_LANE0_REGISTER_0PAB_TX_POST_1_MASK) >>
+				NIC0_SERDES0_LANE0_REGISTER_0PAB_TX_POST_1_SHIFT;
+		tx_post2 = (NIC_PHY_RREG32_LANE(mmNIC0_SERDES0_LANE0_REGISTER_0PAD) &
+				NIC0_SERDES0_LANE0_REGISTER_0PAD_TX_POST_2_MASK) >>
+				NIC0_SERDES0_LANE0_REGISTER_0PAD_TX_POST_2_SHIFT;
+
+		dev_dbg(hdev->dev,
+			"Card %u Port %u lane %d tx taps after F/W tuning: pre2 %d, pre1 %d, main %d, post1 %d, post2 %d\n",
+			card_location, port, lane,
+			twos_to_int(tx_pre2, 8), twos_to_int(tx_pre1, 8), twos_to_int(tx_main, 8),
+			twos_to_int(tx_post1, 8), twos_to_int(tx_post2, 8));
+	}
+}
+
 static void do_fw_tuning(struct hl_nic_port *nic_port)
 {
 	struct gaudi2_nic_port *gaudi2_nic = nic_port->nic_specific;
@@ -1644,6 +1676,7 @@ static void do_fw_tuning(struct hl_nic_port *nic_port)
 				return;
 
 		nic_port->phy_fw_tuned = true;
+		dev_dbg(hdev->dev, "Card %u Port %u: F/W tuning passed\n", card_location, port);
 
 		/* If we got link up event - print it now when PHY is ready */
 		if (nic_port->pcs_link)
@@ -1651,9 +1684,8 @@ static void do_fw_tuning(struct hl_nic_port *nic_port)
 
 		mutex_unlock(&nic_port->control_lock);
 
+		print_taps_after_tuning(hdev, port);
 		nic_port->retry_cnt = 0;
-
-		dev_dbg(hdev->dev, "Card %u Port %u: F/W tuning passed\n", card_location, port);
 
 		if (hdev->nic.phy_show_ber) {
 			dev_dbg(hdev->dev,
