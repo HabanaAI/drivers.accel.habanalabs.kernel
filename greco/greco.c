@@ -97,14 +97,140 @@ MODULE_FIRMWARE(GRECO_LINUX_FW_FILE);
 
 /* RAZWI initiator coordinates */
 
-#define RAZWI_INITIATOR_X_SHIFT		0
-#define RAZWI_INITIATOR_X_MASK		0xF
-#define RAZWI_INITIATOR_Y_SHIFT		4
-#define RAZWI_INITIATOR_Y_MASK		0xF
+#define RAZWI_GET_AXUSER_XY(x) \
+	((x & 0xF8000FF0) >> 4)
 
-#define RAZWI_INITIATOR_ID_X_Y(x, y) \
-	((((y) & RAZWI_INITIATOR_Y_MASK) << RAZWI_INITIATOR_Y_SHIFT) | \
-		(((x) & RAZWI_INITIATOR_X_MASK) << RAZWI_INITIATOR_X_SHIFT))
+#define RAZWI_INITIATOR_AXUER_L_X_SHIFT		0
+#define RAZWI_INITIATOR_AXUER_L_X_MASK		0xF
+#define RAZWI_INITIATOR_AXUER_L_Y_SHIFT		4
+#define RAZWI_INITIATOR_AXUER_L_Y_MASK		0xF
+
+#define RAZWI_INITIATOR_AXUER_H_X_SHIFT		23
+#define RAZWI_INITIATOR_AXUER_H_X_MASK		0xF
+#define RAZWI_INITIATOR_AXUER_H_Y_SHIFT		27
+#define RAZWI_INITIATOR_AXUER_H_Y_MASK		0x1
+
+#define RAZWI_INITIATOR_ID_X_Y_LOW(x, y) \
+	((((y) & RAZWI_INITIATOR_AXUER_L_Y_MASK) << RAZWI_INITIATOR_AXUER_L_Y_SHIFT) | \
+		(((x) & RAZWI_INITIATOR_AXUER_L_X_MASK) << RAZWI_INITIATOR_AXUER_L_X_SHIFT))
+
+#define RAZWI_INITIATOR_ID_X_Y_HIGH(x, y) \
+	((((y) & RAZWI_INITIATOR_AXUER_H_Y_MASK) << RAZWI_INITIATOR_AXUER_H_Y_SHIFT) | \
+		(((x) & RAZWI_INITIATOR_AXUER_H_X_MASK) << RAZWI_INITIATOR_AXUER_H_X_SHIFT))
+
+#define RAZWI_INITIATOR_ID_X_Y(xl, yl, xh, yh) \
+	(RAZWI_INITIATOR_ID_X_Y_LOW(xl, yl) | RAZWI_INITIATOR_ID_X_Y_HIGH(xh, yh))
+
+#define DEC_RAZWI_HBW_AW_HI_ADDR (mmDCORE0_TPCIF_RTR0_CTRL_DEC_RAZWI_HBW_AW_HI_ADDR - \
+					mmDCORE0_TPCIF_RTR0_CTRL_BASE)
+#define DEC_RAZWI_HBW_AW_LO_ADDR (mmDCORE0_TPCIF_RTR0_CTRL_DEC_RAZWI_HBW_AW_LO_ADDR - \
+					mmDCORE0_TPCIF_RTR0_CTRL_BASE)
+#define DEC_RAZWI_HBW_AW_SET (mmDCORE0_TPCIF_RTR0_CTRL_DEC_RAZWI_HBW_AW_SET - \
+					mmDCORE0_TPCIF_RTR0_CTRL_BASE)
+#define DEC_RAZWI_HBW_AR_HI_ADDR (mmDCORE0_TPCIF_RTR0_CTRL_DEC_RAZWI_HBW_AR_HI_ADDR - \
+					mmDCORE0_TPCIF_RTR0_CTRL_BASE)
+#define DEC_RAZWI_HBW_AR_LO_ADDR (mmDCORE0_TPCIF_RTR0_CTRL_DEC_RAZWI_HBW_AR_LO_ADDR - \
+					mmDCORE0_TPCIF_RTR0_CTRL_BASE)
+#define DEC_RAZWI_HBW_AR_SET (mmDCORE0_TPCIF_RTR0_CTRL_DEC_RAZWI_HBW_AR_SET - \
+					mmDCORE0_TPCIF_RTR0_CTRL_BASE)
+#define DEC_RAZWI_LBW_AW_ADDR (mmDCORE0_TPCIF_RTR0_CTRL_DEC_RAZWI_LBW_AW_ADDR - \
+					mmDCORE0_TPCIF_RTR0_CTRL_BASE)
+#define DEC_RAZWI_LBW_AW_SET (mmDCORE0_TPCIF_RTR0_CTRL_DEC_RAZWI_LBW_AW_SET - \
+					mmDCORE0_TPCIF_RTR0_CTRL_BASE)
+#define DEC_RAZWI_LBW_AR_ADDR (mmDCORE0_TPCIF_RTR0_CTRL_DEC_RAZWI_LBW_AR_ADDR - \
+					mmDCORE0_TPCIF_RTR0_CTRL_BASE)
+#define DEC_RAZWI_LBW_AR_SET (mmDCORE0_TPCIF_RTR0_CTRL_DEC_RAZWI_LBW_AR_SET - \
+					mmDCORE0_TPCIF_RTR0_CTRL_BASE)
+
+struct greco_razwi_info {
+	u32 axuser_xy;
+	u32 rtr_ctrl;
+	u16 eng_id;
+	char *eng_name;
+};
+
+static struct greco_razwi_info razwi_info[] = {
+		{RAZWI_INITIATOR_ID_X_Y(1, 2, 3, 0), mmDCON0_HBW_RTR_IF1_RTR_CTRL_BASE,
+				GRECO_DCORE0_ENGINE_ID_DEC_0, "D0_DEC0"},
+		{RAZWI_INITIATOR_ID_X_Y(10, 2, 8, 0), mmDCON1_HBW_RTR_IF1_RTR_CTRL_BASE,
+				GRECO_DCORE1_ENGINE_ID_DEC_0, "D1_DEC0"},
+		{RAZWI_INITIATOR_ID_X_Y(2, 2, 2, 0), mmDCORE0_TPCIF_RTR0_CTRL_BASE,
+				GRECO_DCORE0_ENGINE_ID_TPC_0, "D0_TPC0"},
+		{RAZWI_INITIATOR_ID_X_Y(2, 2, 2, 1), mmDCORE0_TPCIF_RTR0_CTRL_BASE,
+				GRECO_DCORE0_ENGINE_ID_TPC_1, "D0_TPC1"},
+		{RAZWI_INITIATOR_ID_X_Y(3, 2, 3, 1), mmDCORE0_TPCIF_RTR1_CTRL_BASE,
+				GRECO_DCORE0_ENGINE_ID_TPC_2, "D0_TPC2"},
+		{RAZWI_INITIATOR_ID_X_Y(4, 2, 4, 1), mmDCORE0_TPCIF_RTR2_CTRL_BASE,
+				GRECO_DCORE0_ENGINE_ID_TPC_3, "D0_TPC3"},
+		{RAZWI_INITIATOR_ID_X_Y(5, 2, 5, 1), mmDCORE0_TPCIF_RTR3_CTRL_BASE,
+				GRECO_DCORE0_ENGINE_ID_TPC_4, "D0_TPC4"},
+		{RAZWI_INITIATOR_ID_X_Y(6, 2, 6, 1), mmDCORE1_TPCIF_RTR0_CTRL_BASE,
+				GRECO_DCORE1_ENGINE_ID_TPC_4, "D1_TPC4"},
+		{RAZWI_INITIATOR_ID_X_Y(7, 2, 7, 1), mmDCORE1_TPCIF_RTR1_CTRL_BASE,
+				GRECO_DCORE1_ENGINE_ID_TPC_3, "D1_TPC3"},
+		{RAZWI_INITIATOR_ID_X_Y(8, 2, 8, 1), mmDCORE1_TPCIF_RTR2_CTRL_BASE,
+				GRECO_DCORE1_ENGINE_ID_TPC_2, "D1_TPC2"},
+		{RAZWI_INITIATOR_ID_X_Y(9, 2, 9, 1), mmDCORE1_TPCIF_RTR3_CTRL_BASE,
+				GRECO_DCORE1_ENGINE_ID_TPC_1, "D1_TPC1"},
+		{RAZWI_INITIATOR_ID_X_Y(9, 2, 9, 0), mmDCORE1_TPCIF_RTR3_CTRL_BASE,
+				GRECO_DCORE1_ENGINE_ID_TPC_0, "D1_TPC0"},
+		{RAZWI_INITIATOR_ID_X_Y(2, 7, 0, 0), mmDCORE0_MMEIF_RTR0_CTRL_BASE,
+				GRECO_DCORE0_ENGINE_ID_MME, "D0_MME"},
+		{RAZWI_INITIATOR_ID_X_Y(3, 7, 0, 0), mmDCORE0_MMEIF_RTR1_CTRL_BASE,
+				GRECO_DCORE0_ENGINE_ID_MME, "D0_MME"},
+		{RAZWI_INITIATOR_ID_X_Y(4, 7, 0, 0), mmDCORE0_MMEIF_RTR2_CTRL_BASE,
+				GRECO_DCORE0_ENGINE_ID_MME, "D0_MME"},
+		{RAZWI_INITIATOR_ID_X_Y(5, 7, 0, 0), mmDCORE0_MMEIF_RTR3_CTRL_BASE,
+				GRECO_DCORE0_ENGINE_ID_MME, "D0_MME"},
+		{RAZWI_INITIATOR_ID_X_Y(6, 7, 0, 0), mmDCORE1_MMEIF_RTR0_CTRL_BASE,
+				GRECO_DCORE1_ENGINE_ID_MME, "D1_MME"},
+		{RAZWI_INITIATOR_ID_X_Y(7, 7, 0, 0), mmDCORE1_MMEIF_RTR1_CTRL_BASE,
+				GRECO_DCORE1_ENGINE_ID_MME, "D1_MME"},
+		{RAZWI_INITIATOR_ID_X_Y(8, 7, 0, 0), mmDCORE1_MMEIF_RTR2_CTRL_BASE,
+				GRECO_DCORE1_ENGINE_ID_MME, "D1_MME"},
+		{RAZWI_INITIATOR_ID_X_Y(9, 7, 0, 0), mmDCORE1_MMEIF_RTR3_CTRL_BASE,
+				GRECO_DCORE1_ENGINE_ID_MME, "D1_MME"},
+		{RAZWI_INITIATOR_ID_X_Y(1, 7, 0, 1), mmDCON1_HBW_RTR_IF0_RTR_CTRL_BASE,
+				GRECO_DCORE0_ENGINE_ID_PDMA_0, "D0_PDMA0"},
+		{RAZWI_INITIATOR_ID_X_Y(1, 7, 0, 0), mmDCON1_HBW_RTR_IF0_RTR_CTRL_BASE,
+				GRECO_DCORE0_ENGINE_ID_PDMA_1, "D0_PDMA1"},
+		{RAZWI_INITIATOR_ID_X_Y(10, 7, 11, 1), mmDCON3_HBW_RTR_IF0_RTR_CTRL_BASE,
+				GRECO_DCORE1_ENGINE_ID_PDMA_0, "D1_PDMA0"},
+		{RAZWI_INITIATOR_ID_X_Y(10, 7, 11, 0), mmDCON3_HBW_RTR_IF0_RTR_CTRL_BASE,
+				GRECO_DCORE1_ENGINE_ID_PDMA_1, "D1_PDMA1"},
+		{RAZWI_INITIATOR_ID_X_Y(1, 7, 1, 0), mmDCON1_HBW_RTR_IF0_RTR_CTRL_BASE,
+				GRECO_ENGINE_ID_SIZE, "KDMA0"}, /* KDMA0 */
+		{RAZWI_INITIATOR_ID_X_Y(10, 7, 10, 0), mmDCON3_HBW_RTR_IF0_RTR_CTRL_BASE,
+				GRECO_ENGINE_ID_SIZE, "KDMA1"}, /* KDMA1 */
+		{RAZWI_INITIATOR_ID_X_Y(1, 2, 0, 1), mmDCON0_HBW_RTR_IF0_RTR_CTRL_BASE,
+				GRECO_ENGINE_ID_SIZE, "DDMA0"}, /* DDMA0 */
+		{RAZWI_INITIATOR_ID_X_Y(10, 2, 11, 11), mmDCON3_HBW_RTR_IF0_RTR_CTRL_BASE,
+				GRECO_ENGINE_ID_SIZE, "DDMA1"}, /* DDMA1 */
+		{RAZWI_INITIATOR_ID_X_Y(1, 2, 1, 0), mmDCON0_HBW_RTR_IF1_RTR_CTRL_BASE,
+				GRECO_ENGINE_ID_SIZE, "PMMU"}, /* PMMU */
+		{RAZWI_INITIATOR_ID_X_Y(1, 2, 0, 0), mmDCON0_HBW_RTR_IF1_RTR_CTRL_BASE,
+				GRECO_ENGINE_ID_SIZE, "PCIE"}, /* PCIE_IF */
+		{RAZWI_INITIATOR_ID_X_Y(1, 7, 1, 1), mmDCON1_HBW_RTR_IF1_RTR_CTRL_BASE,
+				GRECO_ENGINE_ID_SIZE, "SM0"}, /* SM0 */
+		{RAZWI_INITIATOR_ID_X_Y(11, 7, 11, 1), mmDCON3_HBW_RTR_IF1_RTR_CTRL_BASE,
+				GRECO_ENGINE_ID_SIZE, "SM1"}, /* SM1 */
+		{RAZWI_INITIATOR_ID_X_Y(1, 2, 1, 1), mmDCON0_HBW_RTR_IF1_RTR_CTRL_BASE,
+				GRECO_ENGINE_ID_SIZE, "HMMU0"}, /* HMMU0 */
+		{RAZWI_INITIATOR_ID_X_Y(10, 2, 10, 1), mmDCON2_HBW_RTR_IF1_RTR_CTRL_BASE,
+				GRECO_ENGINE_ID_SIZE, "HMMU1"}, /* HMMU1 */
+		{RAZWI_INITIATOR_ID_X_Y(1, 7, 1, 1), mmDCON1_HBW_RTR_IF1_RTR_CTRL_BASE,
+				GRECO_ENGINE_ID_SIZE, "HMMU2"}, /* HMMU2 */
+		{RAZWI_INITIATOR_ID_X_Y(10, 7, 10, 1), mmDCON3_HBW_RTR_IF1_RTR_CTRL_BASE,
+				GRECO_ENGINE_ID_SIZE, "HMMU3"}, /* HMMU3 */
+		{RAZWI_INITIATOR_ID_X_Y(1, 7, 0, 1), mmDCON1_HBW_RTR_IF1_RTR_CTRL_BASE,
+				GRECO_DCORE0_ENGINE_ID_ROT, "D0_ROT"},
+		{RAZWI_INITIATOR_ID_X_Y(10, 7, 11, 1), mmDCON3_HBW_RTR_IF1_RTR_CTRL_BASE,
+				GRECO_DCORE1_ENGINE_ID_ROT, "D1_ROT"},
+		{RAZWI_INITIATOR_ID_X_Y(2, 2, 10, 1), mmDCON2_HBW_RTR_IF1_RTR_CTRL_BASE,
+				GRECO_ENGINE_ID_SIZE, "CPU"}, /* CPU */
+		{RAZWI_INITIATOR_ID_X_Y(10, 2, 11, 0), mmDCON2_HBW_RTR_IF1_RTR_CTRL_BASE,
+				GRECO_ENGINE_ID_SIZE, "PSOC"} /* PSOC */
+};
 
 #define IS_QM_IDLE(qm_glbl_sts0, qm_cgm_sts) \
 	((((qm_glbl_sts0) & (QM_IDLE_MASK)) == (QM_IDLE_MASK)) && \
@@ -427,16 +553,16 @@ greco_vdec_interrupts_cause[GRECO_NUM_OF_VDEC_INTR_CAUSE] = {
 
 static const u32
 greco_tpc_initiator_coordinates[DCORE_NUM_OF_TPCS * NUM_OF_DCORES] = {
-	RAZWI_INITIATOR_ID_X_Y(2, 0),
-	RAZWI_INITIATOR_ID_X_Y(2, 1),
-	RAZWI_INITIATOR_ID_X_Y(3, 1),
-	RAZWI_INITIATOR_ID_X_Y(4, 1),
-	RAZWI_INITIATOR_ID_X_Y(5, 1),
-	RAZWI_INITIATOR_ID_X_Y(6, 1),
-	RAZWI_INITIATOR_ID_X_Y(7, 1),
-	RAZWI_INITIATOR_ID_X_Y(8, 1),
-	RAZWI_INITIATOR_ID_X_Y(9, 1),
-	RAZWI_INITIATOR_ID_X_Y(9, 0),
+	RAZWI_INITIATOR_ID_X_Y_LOW(2, 0),
+	RAZWI_INITIATOR_ID_X_Y_LOW(2, 1),
+	RAZWI_INITIATOR_ID_X_Y_LOW(3, 1),
+	RAZWI_INITIATOR_ID_X_Y_LOW(4, 1),
+	RAZWI_INITIATOR_ID_X_Y_LOW(5, 1),
+	RAZWI_INITIATOR_ID_X_Y_LOW(6, 1),
+	RAZWI_INITIATOR_ID_X_Y_LOW(7, 1),
+	RAZWI_INITIATOR_ID_X_Y_LOW(8, 1),
+	RAZWI_INITIATOR_ID_X_Y_LOW(9, 1),
+	RAZWI_INITIATOR_ID_X_Y_LOW(9, 0),
 };
 
 static const u32
@@ -5798,10 +5924,66 @@ static void greco_print_irq_info(struct hl_device *hdev, u16 event_type)
 		event_type, desc);
 }
 
-static void greco_print_psoc_razwi_interrupt_info(struct hl_device *hdev,
-						char *razwi_module,
-						u32 razwi_reg)
+static void greco_handle_psoc_razwi_info(struct hl_device *hdev, u32 razwi_reg, u64 *event_mask)
 {
+	u32 axuser_xy = RAZWI_GET_AXUSER_XY(razwi_reg), addr_hi = 0, addr_lo = 0;
+	u64 base;
+	int i;
+
+	for (i = 0 ; i < ARRAY_SIZE(razwi_info) ; i++) {
+		if (axuser_xy != razwi_info[i].axuser_xy)
+			continue;
+
+		base = razwi_info[i].rtr_ctrl;
+
+		if (RREG32(base + DEC_RAZWI_HBW_AW_SET)) {
+			addr_hi = RREG32(base + DEC_RAZWI_HBW_AW_HI_ADDR);
+			addr_lo = RREG32(base + DEC_RAZWI_HBW_AW_LO_ADDR);
+			dev_err(hdev->dev,
+				"PSOC HBW AW RAZWI: %s, address (aligned to 128 byte): 0x%llX\n",
+				razwi_info[i].eng_name, ((u64)addr_hi << 32) + addr_lo);
+			hl_handle_razwi(hdev, ((u64)addr_hi << 32) + addr_lo, &razwi_info[i].eng_id,
+					1, HL_RAZWI_HBW | HL_RAZWI_WRITE, event_mask);
+		}
+
+		if (RREG32(base + DEC_RAZWI_HBW_AR_SET)) {
+			addr_hi = RREG32(base + DEC_RAZWI_HBW_AR_HI_ADDR);
+			addr_lo = RREG32(base + DEC_RAZWI_HBW_AR_LO_ADDR);
+			dev_err(hdev->dev,
+				"PSOC HBW AR RAZWI: %s, address (aligned to 128 byte): 0x%llX\n",
+				razwi_info[i].eng_name, ((u64)addr_hi << 32) + addr_lo);
+			hl_handle_razwi(hdev, ((u64)addr_hi << 32) + addr_lo, &razwi_info[i].eng_id,
+					1, HL_RAZWI_HBW | HL_RAZWI_READ, event_mask);
+		}
+
+		if (RREG32(base + DEC_RAZWI_LBW_AW_SET)) {
+			addr_lo = RREG32(base + DEC_RAZWI_LBW_AW_ADDR);
+			dev_err(hdev->dev,
+				"PSOC LBW AW RAZWI: %s, address (aligned to 128 byte): 0x%X\n",
+				razwi_info[i].eng_name, addr_lo);
+			hl_handle_razwi(hdev, addr_lo, &razwi_info[i].eng_id,
+					1, HL_RAZWI_LBW | HL_RAZWI_WRITE, event_mask);
+		}
+
+		if (RREG32(base + DEC_RAZWI_LBW_AR_SET)) {
+			addr_lo = RREG32(base + DEC_RAZWI_LBW_AR_ADDR);
+			dev_err(hdev->dev,
+				"PSOC LBW AR RAZWI: %s, address (aligned to 128 byte): 0x%X\n",
+				razwi_info[i].eng_name, addr_lo);
+			hl_handle_razwi(hdev, addr_lo, &razwi_info[i].eng_id,
+					1, HL_RAZWI_LBW | HL_RAZWI_READ, event_mask);
+		}
+
+		return;
+	}
+}
+
+static void greco_print_psoc_razwi_interrupt_info(struct hl_device *hdev, char *razwi_module,
+							u32 razwi_reg, u64 *event_mask)
+{
+	if (!razwi_reg)
+		return;
+
 	dev_err_ratelimited(hdev->dev,
 		"PSOC RAZWI %s interrupt: mask %d, AR %d, AW %d, AXUSER_L 0x%x AXUSER_H 0x%x\n",
 		razwi_module,
@@ -5815,12 +5997,15 @@ static void greco_print_psoc_razwi_interrupt_info(struct hl_device *hdev,
 				PSOC_GLOBAL_CONF_RAZWI_SHARED_AXUSER_L_SHIFT,
 		(razwi_reg & PSOC_GLOBAL_CONF_RAZWI_SHARED_AXUSER_H_MASK) >>
 				PSOC_GLOBAL_CONF_RAZWI_SHARED_AXUSER_H_SHIFT);
+
+	greco_handle_psoc_razwi_info(hdev, razwi_reg, event_mask);
+
 }
 
 /*
  * PSOC RAZWI interrupt occurs only when trying to access a reserved address
  */
-static void greco_ack_psoc_razwi_event(struct hl_device *hdev)
+static void greco_ack_psoc_razwi_event(struct hl_device *hdev, u64 *event_mask)
 {
 	u32 razwi_shared, razwi_dcore0, razwi_dcore1, razwi_int;
 
@@ -5838,9 +6023,9 @@ static void greco_ack_psoc_razwi_event(struct hl_device *hdev)
 	razwi_dcore0 = RREG32(mmPSOC_GLOBAL_CONF_RAZWI_DCORE0);
 	razwi_dcore1 = RREG32(mmPSOC_GLOBAL_CONF_RAZWI_DCORE1);
 
-	greco_print_psoc_razwi_interrupt_info(hdev, "SHARED", razwi_shared);
-	greco_print_psoc_razwi_interrupt_info(hdev, "DCORE0", razwi_dcore0);
-	greco_print_psoc_razwi_interrupt_info(hdev, "DCORE1", razwi_dcore1);
+	greco_print_psoc_razwi_interrupt_info(hdev, "SHARED", razwi_shared, event_mask);
+	greco_print_psoc_razwi_interrupt_info(hdev, "DCORE0", razwi_dcore0, event_mask);
+	greco_print_psoc_razwi_interrupt_info(hdev, "DCORE1", razwi_dcore1, event_mask);
 
 	/* Clear Interrupts */
 	WREG32(mmPSOC_GLOBAL_CONF_RAZWI_INTERRUPT, razwi_int);
@@ -6860,7 +7045,7 @@ void greco_handle_eqe(struct hl_device *hdev, struct hl_eq_entry *eq_entry)
 		goto reset_device;
 
 	case GRECO_EVENT_PSOC63_RAZWI_OR_PID_MIN_MAX_INTERRUPT:
-		greco_ack_psoc_razwi_event(hdev);
+		greco_ack_psoc_razwi_event(hdev, &event_mask);
 		event_mask |= HL_NOTIFIER_EVENT_USER_ENGINE_ERR;
 		break;
 
