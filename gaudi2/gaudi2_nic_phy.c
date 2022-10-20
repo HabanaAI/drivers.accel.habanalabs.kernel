@@ -1514,17 +1514,10 @@ static void print_ber(struct hl_nic_port *nic_port, int lane, bool pam4)
 	_print_ber(nic_port, lane, total_cnt, error_cnt);
 }
 
-static void lane_reset(struct hl_device *hdev, u32 port, int lane)
-{
-	NIC_PHY_WREG32(mmNIC0_SERDES0_REGISTER_9815, 0xa000 | lane);
-	msleep(50);
-}
-
 static void check_pcs_link(struct hl_nic_port *nic_port)
 {
 	struct hl_device *hdev = nic_port->hdev;
 	u32 card_location, port, mac_gnrl_sts;
-	int lane;
 
 	card_location = hdev->nic.card_location;
 	port = nic_port->port;
@@ -1557,13 +1550,10 @@ static void check_pcs_link(struct hl_nic_port *nic_port)
 	nic_port->retry_cnt++;
 
 	if (nic_port->retry_cnt == NIC_PHY_PCS_LINK_CNT) {
-		dev_dbg(hdev->dev, "Card %u Port %u: lanes reset due to PCS link cnt\n",
+		dev_dbg(hdev->dev, "Card %u Port %u: PHY reconfig due to PCS link cnt\n",
 			card_location, port);
 
-		for (lane = 0 ; lane < 2 ; lane++)
-			lane_reset(hdev, port, lane);
-
-		nic_port->retry_cnt = 0;
+		hl_nic_phy_port_reconfig(nic_port);
 	}
 }
 
