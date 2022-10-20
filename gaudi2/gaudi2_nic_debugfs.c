@@ -335,9 +335,13 @@ void gaudi2_nic_debugfs_print_fec_stats(struct hl_nic_port *nic_port)
 
 	gaudi2_nic_get_mac_fec_stats(nic_port, data);
 
-	dev_info(hdev->dev,
-		"Card %u Port %u: corrected_accumulated %llu uncorrected_accumulated %llu pre_fec_SER: %llue-%llu post_fec_SER: %llue-%llu\n",
-		card_location, port, data[FEC_CW_CORRECTED_ACCUM], data[FEC_CW_UNCORRECTED_ACCUM],
-		data[FEC_PRE_FEC_SER_INT], data[FEC_PRE_FEC_SER_EXP],
-		data[FEC_POST_FEC_SER_INT], data[FEC_POST_FEC_SER_EXP]);
+	if (nic_port->pcs_link) {
+		dev_info(hdev->dev,
+			"Card %u Port %u: pre_fec_SER: %llue-%llu post_fec_SER: %llue-%llu\n",
+			card_location, port,
+			data[FEC_PRE_FEC_SER_INT], data[FEC_PRE_FEC_SER_EXP],
+			data[FEC_POST_FEC_SER_INT], data[FEC_POST_FEC_SER_EXP]);
+	} else {
+		dev_info(hdev->dev, "Card %u Port %u: Link is down\n", card_location, port);
+	}
 }
