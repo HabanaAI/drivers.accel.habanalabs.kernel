@@ -65,6 +65,7 @@
 #include "arc_dup_eng_masks.h"
 #include "qman_arc_aux_masks.h"
 #include "pcie_wrap_masks.h"
+#include "pcie_dbi_masks.h"
 #include "pcie_wrap_dbi_access_masks.h"
 #include "pcie_wrap_dbi_gw_m0_masks.h"
 #include "pcie_wrap_dbi_gw_m1_masks.h"

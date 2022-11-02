@@ -44,6 +44,13 @@
  */
 #define CPU_BOOT_DEV_STS0_D2D_INIT_EN		30
 
+/* A DUMMY block isn't a regular block, but in fact a block with a manually
+ * configured block response, and used by PCIE 'Fabric Serialization' feature.
+ * Although listed in SOL, it has no 'specs' record associated to it.
+ * It's configured for DIE0 only, since DIE1 PCIE/features are disabled.
+ */
+#define mmD0_PIF_DUMMY_LBW_BLK_BASE		0xC41C000ull
+
 struct hl_pldm_eqe_work {
 	struct work_struct	eq_work;
 	struct hl_device	*hdev;
@@ -2308,6 +2315,74 @@ static void gaudi3_init_credits(struct hl_device *hdev)
 {
 	gaudi3_init_n2r_credits(hdev);
 	gaudi3_init_r2c_credits(hdev);
+}
+
+/* Since PCIE blocks don't reset following a reset, every stage we'll go through
+ * will be with 'Fabric Initialization' enabled, which was proven to fail the HW
+ * init flow. Hence, we must manually reset this feature prior to any reset.
+ */
+void gaudi3_fabric_serialization_fini_fw_config(struct hl_device *hdev)
+{
+	/* TODO (SW-108260): Temporary allow those configs for SIM_GAUDI3_ARC */
+	if ((hdev->fw_components & FW_TYPE_BOOT_CPU) && (hdev->asic_type != ASIC_GAUDI3_SIM_ARC))
+		return;
+
+	/* Disable Early Write (B)Response (Enable immediate fake mesh response) */
+	WREG32(mmD0_PCIE_WRAP_BASE + mmPCIE_WRAP_PCIE_WR_BUF_0, 0x0);
+
+	/* Disable Write Cache Override */
+	WREG32(mmD0_PCIE_DBI_SIG_BASE + mmPCIE_DBI_COHERENCY_CONTROL_3_OFF, 0x0);
+
+	/* 1. Disable LBW Write/s 'Fabric Serialization'.
+	 * 2. Disable the 1st Serialization Region (8 possible LBW regions).
+	 */
+	WREG32(mmD0_PCIE_WRAP_BASE + mmPCIE_WRAP_ONE_IN_FLIGHT, 0x0);
+
+	/* Reset the 1st Serialization Region (8 possible LBW regions) */
+	WREG32(mmD0_PCIE_WRAP_BASE + mmPCIE_WRAP_LBW_SERIALIZATION_REGION_START_0, 0x0);
+	WREG32(mmD0_PCIE_WRAP_BASE + mmPCIE_WRAP_LBW_SERIALIZATION_REGION_END_0, 0x0);
+
+	/* Reset the response value for dummy LBW transactions */
+	WREG32(mmD0_PCIE_WRAP_BASE + mmPCIE_WRAP_DUMMY_LBW_REGION_RESP, 0xF);
+}
+
+/* Naturally, all FW configurations should go under gaudi3_fw_config.
+ * 'Fabric Serialization Enhancement', however, is an exception as it might
+ * alter PCIE reordering rules. Hence, we should make sure it's called long
+ * after the HW has already been initialized.
+ */
+void gaudi3_fabric_serialization_init_fw_config(struct hl_device *hdev)
+{
+	/* TODO (SW-108260): Temporary allow those configs for SIM_GAUDI3_ARC */
+	if ((hdev->fw_components & FW_TYPE_BOOT_CPU) && (hdev->asic_type != ASIC_GAUDI3_SIM_ARC))
+		return;
+
+	/* Enable Early Write (B)Response (Enable immediate fake mesh response) */
+	WREG32(mmD0_PCIE_WRAP_BASE + mmPCIE_WRAP_PCIE_WR_BUF_0,
+			FIELD_PREP(PCIE_WRAP_PCIE_WR_BUF_VAL_M, 0x1));
+
+	/* Enable Write Cache Override */
+	WREG32(mmD0_PCIE_DBI_SIG_BASE + mmPCIE_DBI_COHERENCY_CONTROL_3_OFF,
+			FIELD_PREP(PCIE_DBI_COHERENCY_CONTROL_3_OFF_CFG_MSTR_AWCACHE_MODE_M, 0xF) |
+			FIELD_PREP(PCIE_DBI_COHERENCY_CONTROL_3_OFF_CFG_MSTR_AWCACHE_VALUE_M, 0x1));
+
+	/* 1. Enable LBW Write/s 'Fabric Serialization'.
+	 * 2. Enable the 1st Serialization Region (8 possible LBW regions).
+	 */
+	WREG32(mmD0_PCIE_WRAP_BASE + mmPCIE_WRAP_ONE_IN_FLIGHT,
+			FIELD_PREP(PCIE_WRAP_ONE_IN_FLIGHT_HBW_BLOCK_LBW_EN_M, 0x1) |
+			FIELD_PREP(PCIE_WRAP_ONE_IN_FLIGHT_LBW_SERIAL_REGION0_EN_M, 0x1));
+
+	/* Configure the 1st Serialization Region (8 possible LBW regions) */
+	WREG32(mmD0_PCIE_WRAP_BASE + mmPCIE_WRAP_LBW_SERIALIZATION_REGION_START_0,
+			FIELD_PREP(PCIE_WRAP_LBW_SERIALIZATION_REGION_START_ADDR_M,
+					mmD0_PIF_DUMMY_LBW_BLK_BASE));
+	WREG32(mmD0_PCIE_WRAP_BASE + mmPCIE_WRAP_LBW_SERIALIZATION_REGION_END_0,
+			FIELD_PREP(PCIE_WRAP_LBW_SERIALIZATION_REGION_END_ADDR_M,
+					mmD0_PIF_DUMMY_LBW_BLK_BASE + sizeof(u32)));
+
+	/* Configure the response value for dummy LBW transactions */
+	WREG32(mmD0_PCIE_WRAP_BASE + mmPCIE_WRAP_DUMMY_LBW_REGION_RESP, 0x0);
 }
 
 void gaudi3_fw_config(struct hl_device *hdev)
