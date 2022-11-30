@@ -2153,6 +2153,10 @@ static char *hl_events[HL_TRACE_NUM_EVENTS] __initdata = {
 	[HL_TRACE_COMMS_SEND_CMD] = "habanalabs_comms_send_cmd",
 	[HL_TRACE_COMMS_WAIT_STAT] = "habanalabs_comms_wait_status",
 	[HL_TRACE_COMMS_WAIT_STAT_DONE] = "habanalabs_comms_wait_status_done",
+	[HL_TRACE_RREG32] = "habanalabs_rreg32",
+	[HL_TRACE_WREG32] = "habanalabs_wreg32",
+	[HL_TRACE_ELBI_READ] = "habanalabs_elbi_read",
+	[HL_TRACE_ELBI_WRITE] = "habanalabs_elbi_write",
 };
 
 static char hl_event_filename_buffer[HL_EVENT_FILE_MAX_NAME_LEN] __initdata;
