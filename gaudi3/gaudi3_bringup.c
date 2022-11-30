@@ -857,8 +857,7 @@ int gaudi3_set_cache_mode(struct hl_device *hdev)
 	if ((gaudi3->hw_cap_initialized & HW_CAP_SET_CACHE_MODE_MASK) == HW_CAP_SET_CACHE_MODE_MASK)
 		return 0;
 
-	/* If preboot simulator exist- he will perform those configs- skip */
-	if ((hdev->fw_components & FW_TYPE_BOOT_CPU) && (hdev->asic_type == ASIC_GAUDI3_SIM_ARC))
+	if (hdev->fw_components & FW_TYPE_BOOT_CPU)
 		return 0;
 
 	ctx.fn = gaudi3_set_cache_mode_cslice;
@@ -2861,31 +2860,38 @@ void gaudi3_enable_interrupt_aggr_msgs(struct hl_device *hdev)
 		WREG32(mmD0_CPU_INT_AGG_SHARED_SEI_INT_MSG_BASE +
 				mmINT_AGG_SHARED_SEI_INT_MSG_MSG_PENDING + offset, 1);
 
-		/* PSOC aggregators */
-		msix_addr = CFG_BAR_BASE - LBW_BASE + mmD0_PCIE_MSIX_BASE;
-
-		for (i = 0 ; i < PSOC_INTR_AGGR_NUM_OF_AGGR_BLOCKS ; i++) {
-			offset = die * DIE_OFFSET + i * PARC_INTR_BLOCK_OFFSET;
-			WREG32(mmD0_PARC_INT_AGGR_UART_COMB_BASE +
-					mmINT_AGG_PSOC_UART_COMB_MSG_CFG + offset, 0x1);
-			WREG32(mmD0_PARC_INT_AGGR_UART_COMB_BASE +
-					mmINT_AGG_PSOC_UART_COMB_MSG_ADDR + offset, msix_addr);
-			WREG32(mmD0_PARC_INT_AGGR_UART_COMB_BASE +
-					mmINT_AGG_PSOC_UART_COMB_MSG_DATA + offset, irq++);
-		}
-
-		/* Unmask MSG2WIRE PSOC0 and SH_HD
-		 * All msgs that comes from shared/HDECORE aggregator will pass through
-		 * this MSG2WIRE_SH_HD mask, and events of the PSOC will pass
-		 * through MSG2WIRE_PSOC_0/1 block.
-		 * Note that no need to unmask ARCs masks since we're not
-		 * targeting the messages to ARCs but to PCIe MSIx
+		/* PSOC aggregators
+		 * Skip setting up PSOC aggregators if FW exist since those
+		 * event will pass through the EQ handler and we don't want to receive it twice.
 		 */
-		offset = die * DIE_OFFSET;
-		WREG32(mmD0_PARC_MSG2WIRE_PSOC_0_BASE + mmMSG2WIRE_PSOC_0_MASK_0 + offset, 0);
-		WREG32(mmD0_PARC_MSG2WIRE_PSOC_0_BASE + mmMSG2WIRE_PSOC_0_MASK_1 + offset, 0);
-		WREG32(mmD0_PARC_MSG2WIRE_SH_HD_BASE + mmMSG2WIRE_SH_HD_MASK_0 + offset, 0);
-		WREG32(mmD0_PARC_MSG2WIRE_SH_HD_BASE + mmMSG2WIRE_SH_HD_MASK_1 + offset, 0);
+		if (hdev->fw_components == (FW_TYPE_PREBOOT_CPU | FW_TYPE_BOOT_CPU)) {
+			msix_addr = CFG_BAR_BASE - LBW_BASE + mmD0_PCIE_MSIX_BASE;
+
+			for (i = 0 ; i < PSOC_INTR_AGGR_NUM_OF_AGGR_BLOCKS ; i++) {
+				offset = die * DIE_OFFSET + i * PARC_INTR_BLOCK_OFFSET;
+				WREG32(mmD0_PARC_INT_AGGR_UART_COMB_BASE +
+					mmINT_AGG_PSOC_UART_COMB_MSG_CFG + offset, 0x1);
+				WREG32(mmD0_PARC_INT_AGGR_UART_COMB_BASE +
+					mmINT_AGG_PSOC_UART_COMB_MSG_ADDR + offset, msix_addr);
+				WREG32(mmD0_PARC_INT_AGGR_UART_COMB_BASE +
+					mmINT_AGG_PSOC_UART_COMB_MSG_DATA + offset, irq++);
+			}
+
+			/* Unmask MSG2WIRE PSOC0 and SH_HD
+			 * All msgs that comes from shared/HDECORE aggregator will pass through
+			 * this MSG2WIRE_SH_HD mask, and events of the PSOC will pass
+			 * through MSG2WIRE_PSOC_0/1 block.
+			 * Note that no need to unmask ARCs masks since we're not
+			 * targeting the messages to ARCs but to PCIe MSIx
+			 */
+			offset = die * DIE_OFFSET;
+			WREG32(mmD0_PARC_MSG2WIRE_PSOC_0_BASE + mmMSG2WIRE_PSOC_0_MASK_0 +
+											offset, 0);
+			WREG32(mmD0_PARC_MSG2WIRE_PSOC_0_BASE + mmMSG2WIRE_PSOC_0_MASK_1 +
+											offset, 0);
+			WREG32(mmD0_PARC_MSG2WIRE_SH_HD_BASE + mmMSG2WIRE_SH_HD_MASK_0 + offset, 0);
+			WREG32(mmD0_PARC_MSG2WIRE_SH_HD_BASE + mmMSG2WIRE_SH_HD_MASK_1 + offset, 0);
+		}
 	}
 }
 

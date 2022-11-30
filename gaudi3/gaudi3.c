@@ -106,11 +106,14 @@ MODULE_FIRMWARE(GAUDI3_BOOT_FIT_FILE);
 #define GAUDI3_PLDM_PSOC_HARD_RESET_TIMEOUT_MSEC	25000		/* 25s */
 #define GAUDI3_CPU_RESET_WAIT_MSEC			100		/* 100ms */
 #define GAUDI3_MSG_TO_CPU_TIMEOUT_USEC			4000000		/* 4s */
+#define GAUDI3_PLDM_MSG_TO_CPU_TIMEOUT_USEC		300000000	/* 300s */
 
 #define GAUDI3_QMAN_TEST_WAIT_USEC			100000		/* 100ms */
 #define GAUDI3_PLDM_QMAN_TEST_WAIT_USEC			1000000		/* 1s */
 
 #define GAUDI3_WAIT_FOR_BL_TIMEOUT_USEC			25000000	/* 25s */
+
+#define GAUDI3_PLDM_WAIT_FOR_BL_TIMEOUT_USEC		3600000000	/* 3600s */
 
 #define GAUDI3_VDEC_TIMEOUT_USEC			10000		/* 10ms */
 #define GAUDI3_PLDM_VDEC_TIMEOUT_USEC			1000000		/* 1s */
@@ -3209,6 +3212,8 @@ int gaudi3_set_fixed_properties(struct hl_device *hdev)
 	prop->supports_odp = true;
 
 	prop->hbw_flush_reg = mmD0_PCIE_WRAP_SPECIAL_BASE + mmPCIE_WRAP_SPECIAL_GLBL_SPARE_0;
+
+	prop->wait_sram_avail_no_linux = true;
 
 	nic_prop->max_hw_qps_num = NIC_HW_MAX_QP_NUM;
 	nic_prop->max_qps_num = ELEMENT_COUNT(NIC_MAX_GEN_QP_NUM);
@@ -7151,6 +7156,13 @@ int gaudi3_init_cpu_queues(struct hl_device *hdev, u32 cpu_timeout)
 	struct hl_eq *eq;
 	int err;
 
+	if (hdev->pldm) {
+		if (hdev->fw_components & (FW_TYPE_BOOT_CPU | FW_TYPE_PREBOOT_CPU))
+			cpu_timeout = GAUDI3_PLDM_FIT_CPU_TIMEOUT_USEC;
+		else
+			cpu_timeout = GAUDI3_PLDM_CPU_TIMEOUT_USEC;
+	}
+
 	if (!hdev->cpu_queues_enable)
 		return 0;
 
@@ -10591,7 +10603,9 @@ int gaudi3_send_cpu_message(struct hl_device *hdev, u32 *msg, u16 len,
 		return 0;
 	}
 
-	if (!timeout)
+	if (hdev->pldm)
+		timeout = GAUDI3_PLDM_MSG_TO_CPU_TIMEOUT_USEC;
+	else if (!timeout)
 		timeout = GAUDI3_MSG_TO_CPU_TIMEOUT_USEC;
 
 	return hl_fw_send_cpu_message(hdev, GAUDI3_QUEUE_ID_CPU_PQ, msg, len, timeout, result);
@@ -10786,10 +10800,14 @@ void gaudi3_init_firmware_loader(struct hl_device *hdev)
 	fw_loader->sram_bar_id = SRAM_DRAM_BAR_ID;
 	fw_loader->dram_bar_id = SRAM_DRAM_BAR_ID;
 
-	if (hdev->pldm)
-		fw_loader->cpu_timeout = GAUDI3_PLDM_CPU_TIMEOUT_USEC;
-	else
+	if (hdev->pldm) {
+		if (hdev->fw_components & (FW_TYPE_BOOT_CPU | FW_TYPE_PREBOOT_CPU))
+			fw_loader->cpu_timeout = GAUDI3_PLDM_FIT_CPU_TIMEOUT_USEC;
+		else
+			fw_loader->cpu_timeout = GAUDI3_PLDM_CPU_TIMEOUT_USEC;
+	} else {
 		fw_loader->cpu_timeout = GAUDI3_CPU_TIMEOUT_USEC;
+	}
 
 	dynamic_loader = &hdev->fw_loader.dynamic_loader;
 
@@ -10807,7 +10825,10 @@ void gaudi3_init_firmware_loader(struct hl_device *hdev)
 	dyn_regs->cpu_cmd_status_to_host =
 				cpu_to_le32(mmD0_PSOC_GLOBAL_CONF_BASE + mmCPU_CMD_STATUS_TO_HOST);
 
-	dynamic_loader->wait_for_bl_timeout = GAUDI3_WAIT_FOR_BL_TIMEOUT_USEC;
+	if (hdev->pldm)
+		dynamic_loader->wait_for_bl_timeout = GAUDI3_PLDM_WAIT_FOR_BL_TIMEOUT_USEC;
+	else
+		dynamic_loader->wait_for_bl_timeout = GAUDI3_WAIT_FOR_BL_TIMEOUT_USEC;
 }
 
 static int gaudi3_gen_sync_to_engine_map(struct hl_device *hdev,

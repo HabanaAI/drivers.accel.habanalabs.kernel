@@ -2748,6 +2748,7 @@ out:
 static int hl_fw_dynamic_init_cpu(struct hl_device *hdev,
 					struct fw_load_mgr *fw_loader)
 {
+	struct asic_fixed_properties *prop = &hdev->asic_prop;
 	struct cpu_dyn_regs *dyn_regs;
 	int rc, fw_error_rc;
 
@@ -2844,6 +2845,13 @@ static int hl_fw_dynamic_init_cpu(struct hl_device *hdev,
 		goto protocol_err;
 	}
 
+	if (!prop->wait_sram_avail_no_linux)
+		goto linux_fit;
+
+	rc = hl_fw_dynamic_wait_for_boot_fit_active(hdev, fw_loader);
+	if (rc)
+		goto protocol_err;
+linux_fit:
 	/*
 	 * when testing FW load (without Linux) on PLDM we don't want to
 	 * wait until boot fit is active as it may take several hours.
@@ -2852,10 +2860,6 @@ static int hl_fw_dynamic_init_cpu(struct hl_device *hdev,
 	 */
 	if (hdev->pldm && !(hdev->fw_components & FW_TYPE_LINUX))
 		return 0;
-
-	rc = hl_fw_dynamic_wait_for_boot_fit_active(hdev, fw_loader);
-	if (rc)
-		goto protocol_err;
 
 	/* Enable DRAM scrambling before Linux boot and after successful
 	 *  UBoot

@@ -2952,6 +2952,12 @@ void gaudi3_init_scrambler(struct hl_device *hdev)
 	if ((gaudi3->hw_cap_initialized & HW_CAP_SCRAMBLER_MASK) == HW_CAP_SCRAMBLER_MASK)
 		return;
 
+	/* If we have FIT then preboot is still alive at this point and driver shouldn't
+	 * do sram scrambling, FW will do those configs later on.
+	 */
+	if (hdev->fw_components & FW_TYPE_BOOT_CPU)
+		return;
+
 	dev_dbg(hdev->dev, "SCRAMBLING version: %s\n", SCRAMBLING_VERSION);
 
 	if (hdev->asic_prop.num_functional_hbms == 8)
