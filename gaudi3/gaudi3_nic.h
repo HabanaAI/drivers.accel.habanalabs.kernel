@@ -66,7 +66,7 @@ static_assert(IS_POWER_OF_2(NIC_RAW_ELEM_SIZE));
 /* Number of available QPs must not exceed NIC_HW_MAX_QP_NUM */
 static_assert(NIC_MAX_QP_NUM <= NIC_HW_MAX_QP_NUM);
 
-#define NIC_MAX_WQ_ARRAY_TYPE	HL_NIC_USER_COLL_WQ_RECV
+#define NIC_MAX_WQ_ARRAY_TYPE	HL_NIC_USER_COLL_SCALE_OUT_WQ_RECV
 
 /* The '*_SIZE' defines are per NIC port */
 /* TODO: change to gaudi3 values */
@@ -274,8 +274,10 @@ enum db_fifo_type_hw {
 
 #define GAUDI3_TXE_WQ_RDMA_IDX(port)		(RDMA_OFFSET + ELEMENT_OFFSET((port), TXE_SQ_NUM))
 #define GAUDI3_RXE_WQ_RDMA_IDX(port)		(RDMA_OFFSET + ELEMENT_OFFSET((port), RXE_WQ_NUM))
-#define GAUDI3_TXE_COLL_WQ_RDMA_IDX(port)	(GAUDI3_TXE_WQ_RDMA_IDX(port) + 1)
-#define GAUDI3_RXE_COLL_WQ_RDMA_IDX(port)	(GAUDI3_RXE_WQ_RDMA_IDX(port) + 1)
+#define GAUDI3_TXE_COLL_WQ_RDMA_IDX(port)		(GAUDI3_TXE_WQ_RDMA_IDX(port) + 1)
+#define GAUDI3_RXE_COLL_WQ_RDMA_IDX(port)		(GAUDI3_RXE_WQ_RDMA_IDX(port) + 1)
+#define GAUDI3_TXE_COLL_SCALE_OUT_WQ_RDMA_IDX(port)	(GAUDI3_TXE_COLL_WQ_RDMA_IDX(port) + 1)
+#define GAUDI3_RXE_COLL_SCALE_OUT_WQ_RDMA_IDX(port)	(GAUDI3_RXE_COLL_WQ_RDMA_IDX(port) + 1)
 
 #define MAC_GLOB_STAT_TX_NUM	REG_NUM((mmD0_NIC0_MAC_GLOB_STAT_TX3_BASE + \
 					mmNIC_MAC_GLOB_STAT_TX3_ETHERSTATSPKTS_7) - \

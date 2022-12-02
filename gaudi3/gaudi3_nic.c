@@ -1417,6 +1417,8 @@ static int gaudi3_nic_port_hw_init(struct hl_nic_port *nic_port)
 	nic_port->qp_idx_offset = ELEMENT_OFFSET(port, NIC_MAX_GEN_QP_NUM);
 	nic_port->coll_qp_idx_offset =
 			GAUDI3_MIN_COLL_QP_ID + ELEMENT_OFFSET(port, NIC_MAX_COLL_QP_NUM);
+	nic_port->scale_out_coll_qp_idx_offset = nic_port->coll_qp_idx_offset +
+							NIC_MAX_NON_SCALE_OUT_COLL_CONNS;
 
 	return 0;
 
@@ -2287,7 +2289,6 @@ static int gaudi3_nic_set_req_qp_ctx(struct hl_device *hdev,
 				struct hl_nic_req_conn_ctx_in *in,
 				struct hl_qp *qp)
 {
-	u32 congestion_wnd, log_wq_size, port = in->port, priority;
 	struct gaudi3_qpc_requester req_qpc;
 	struct gaudi3_nic_port *gaudi3_nic;
 	struct hl_nic *nic = &hdev->nic;
@@ -2296,11 +2297,12 @@ static int gaudi3_nic_set_req_qp_ctx(struct hl_device *hdev,
 	struct gaudi3_device *gaudi3;
 	struct hl_nic_port *nic_port;
 	struct hl_aux_dev *aux_dev;
-	u32 encap_id;
+	u32 congestion_wnd, log_wq_size, port, priority, encap_id, wq_base_addr, wq_idx;
 	bool loopback, plain_rdma;
 	u8 mac[ETH_ALEN], cqn;
 	int logical_port, rc;
 
+	port = in->port;
 	aux_dev = &nic->en_aux_dev;
 	aux_ops = aux_dev->aux_ops;
 	nic_port = &nic->nic_ports[port];
@@ -2376,12 +2378,20 @@ static int gaudi3_nic_set_req_qp_ctx(struct hl_device *hdev,
 	REQ_QPC_SET_LOCAL_WQ_LOG_SZ(req_qpc, log_wq_size);
 
 	if (qp->is_coll) {
-		REQ_QPC_SET_WQ_BASE_ADDR(req_qpc, GAUDI3_TXE_COLL_WQ_RDMA_IDX(port));
-		REQ_QPC_SET_WQ_IDX(req_qpc, qp->qp_id - nic_port->coll_qp_idx_offset);
+		if (hl_nic_is_scale_out_coll_type(qp->coll_conn_type)) {
+			wq_base_addr = GAUDI3_TXE_COLL_SCALE_OUT_WQ_RDMA_IDX(port);
+			wq_idx = qp->qp_id - nic_port->scale_out_coll_qp_idx_offset;
+		} else {
+			wq_base_addr = GAUDI3_TXE_COLL_WQ_RDMA_IDX(port);
+			wq_idx = qp->qp_id - nic_port->coll_qp_idx_offset;
+		}
 	} else {
-		REQ_QPC_SET_WQ_BASE_ADDR(req_qpc, GAUDI3_TXE_WQ_RDMA_IDX(port));
-		REQ_QPC_SET_WQ_IDX(req_qpc, qp->qp_id - nic_port->qp_idx_offset);
+		wq_base_addr = GAUDI3_TXE_WQ_RDMA_IDX(port);
+		wq_idx = qp->qp_id - nic_port->qp_idx_offset;
 	}
+
+	REQ_QPC_SET_WQ_BASE_ADDR(req_qpc, wq_base_addr);
+	REQ_QPC_SET_WQ_IDX(req_qpc, wq_idx);
 
 	/* In case the user didn't specify MTU, set the one from netdev.
 	 * If there is no netdev, use the default value.
@@ -2512,6 +2522,8 @@ static int gaudi3_nic_set_res_qp_ctx(struct hl_device *hdev,
 	}
 
 	if (in->rdv) {
+		u32 num_of_wq_entries;
+
 		if (!in->wq_peer_size) {
 			dev_dbg(hdev->dev, "wq_peer_size cannot be 0 for an rdv QP\n");
 			return -EINVAL;
@@ -2520,18 +2532,25 @@ static int gaudi3_nic_set_res_qp_ctx(struct hl_device *hdev,
 		/* TODO: SW-84552: num_of_wq_entries is changed from user_wq_arr_(un)set and hence
 		 * need to add proper locking
 		 */
-		if (!qp->is_coll && (in->wq_peer_size > nic_port->num_of_wq_entries)) {
-			dev_dbg(hdev->dev,
-				"wq_peer_size (0x%x) cannot be bigger than WQ entries number (0x%x)\n",
-				in->wq_peer_size, nic_port->num_of_wq_entries);
-			return -EINVAL;
-		}
+		if (qp->is_coll) {
+			num_of_wq_entries =
+				nic->coll_props[qp->coll_conn_type].num_of_coll_wq_entries;
 
-		if (qp->is_coll && (in->wq_peer_size > nic->num_of_coll_wq_entries)) {
-			dev_dbg(hdev->dev,
-				"wq_peer_size (0x%x) cannot be bigger than collective WQ entries number (0x%x)\n",
-				in->wq_peer_size, nic->num_of_coll_wq_entries);
-			return -EINVAL;
+			if (in->wq_peer_size > num_of_wq_entries) {
+				dev_dbg(hdev->dev,
+					"wq_peer_size (0x%x) cannot be bigger than collective WQ entries number (0x%x)\n",
+					in->wq_peer_size, num_of_wq_entries);
+				return -EINVAL;
+			}
+		} else {
+			num_of_wq_entries = nic_port->num_of_wq_entries;
+
+			if (in->wq_peer_size > num_of_wq_entries) {
+				dev_dbg(hdev->dev,
+					"wq_peer_size (0x%x) cannot be bigger than WQ entries number (0x%x)\n",
+					in->wq_peer_size, num_of_wq_entries);
+				return -EINVAL;
+			}
 		}
 	}
 
@@ -2599,9 +2618,10 @@ static int gaudi3_nic_set_res_qp_ctx(struct hl_device *hdev,
 
 	if (in->conn_peer) {
 		struct hl_qp *peer_qp;
+		u32 peer_wq_base_addr, peer_wq_idx;
 
 		peer_qp = qp->is_coll ?
-				hl_nic_get_qp_from_collective_conn(nic_port, in->conn_peer) :
+				hl_nic_get_qp_from_coll_conn_id(nic_port, in->conn_peer) :
 				idr_find(&nic_port->qp_ids, in->conn_peer);
 
 		if (IS_ERR_OR_NULL(peer_qp)) {
@@ -2611,15 +2631,21 @@ static int gaudi3_nic_set_res_qp_ctx(struct hl_device *hdev,
 		}
 
 		if (qp->is_coll) {
-			RES_QPC_SET_PEER_WQ_BASE_ADDR(res_qpc, GAUDI3_TXE_COLL_WQ_RDMA_IDX(port));
-			RES_QPC_SET_PEER_WQ_IDX(res_qpc,
-				peer_qp->qp_id - nic_port->coll_qp_idx_offset);
+			if (hl_nic_is_scale_out_coll_type(qp->coll_conn_type)) {
+				peer_wq_base_addr = GAUDI3_TXE_COLL_SCALE_OUT_WQ_RDMA_IDX(port);
+				peer_wq_idx = peer_qp->qp_id -
+						nic_port->scale_out_coll_qp_idx_offset;
+			} else {
+				peer_wq_base_addr = GAUDI3_TXE_COLL_WQ_RDMA_IDX(port);
+				peer_wq_idx = peer_qp->qp_id - nic_port->coll_qp_idx_offset;
+			}
 		} else {
-			RES_QPC_SET_PEER_WQ_BASE_ADDR(res_qpc, GAUDI3_TXE_WQ_RDMA_IDX(port));
-			RES_QPC_SET_PEER_WQ_IDX(res_qpc,
-				peer_qp->qp_id - nic_port->qp_idx_offset);
+			peer_wq_base_addr = GAUDI3_TXE_WQ_RDMA_IDX(port);
+			peer_wq_idx = peer_qp->qp_id - nic_port->qp_idx_offset;
 		}
 
+		RES_QPC_SET_PEER_WQ_BASE_ADDR(res_qpc, peer_wq_base_addr);
+		RES_QPC_SET_PEER_WQ_IDX(res_qpc, peer_wq_idx);
 		RES_QPC_SET_PEER_QP(res_qpc, peer_qp->qp_id);
 		RES_QPC_SET_PEER_WQ_GRAN(res_qpc, in->wq_peer_granularity);
 		RES_QPC_SET_PEER_WQ_LOG_SIZE(res_qpc, ilog2(in->wq_peer_size));
@@ -3201,7 +3227,11 @@ static void gaudi3_user_get_app_params(struct hl_device *hdev,
 	out->speed = nic_port->speed;
 	out->nic_macro_idx = nic_port->nic_macro->idx;
 	out->nic_phys_port_idx = get_lane_offset(gaudi3_nic);
-	out->max_num_of_coll_qps = ELEMENT_COUNT(NIC_MAX_COLL_QP_NUM);
+	out->base_coll_qp_idx = GAUDI3_MIN_COLL_QP_ID;
+	out->base_scale_out_coll_qp_idx = GAUDI3_MIN_COLL_QP_ID + NIC_MAX_NON_SCALE_OUT_COLL_CONNS;
+	out->max_num_of_coll_qps = NIC_MAX_NON_SCALE_OUT_COLL_CONNS;
+	out->max_num_of_scale_out_coll_qps = ELEMENT_COUNT(NIC_MAX_COLL_QP_NUM) -
+						NIC_MAX_NON_SCALE_OUT_COLL_CONNS;
 	out->coll_qps_offset = ELEMENT_OFFSET(port, NIC_MAX_COLL_QP_NUM);
 }
 
@@ -3540,6 +3570,10 @@ static int gaudi3_nic_port_sw_init(struct hl_nic_port *nic_port)
 	wq_arr_props[HL_NIC_USER_WQ_RECV].idx = GAUDI3_RXE_WQ_RDMA_IDX(port);
 	wq_arr_props[HL_NIC_USER_COLL_WQ_SEND].idx = GAUDI3_TXE_COLL_WQ_RDMA_IDX(port);
 	wq_arr_props[HL_NIC_USER_COLL_WQ_RECV].idx = GAUDI3_RXE_COLL_WQ_RDMA_IDX(port);
+	wq_arr_props[HL_NIC_USER_COLL_SCALE_OUT_WQ_SEND].idx =
+						GAUDI3_TXE_COLL_SCALE_OUT_WQ_RDMA_IDX(port);
+	wq_arr_props[HL_NIC_USER_COLL_SCALE_OUT_WQ_RECV].idx =
+						GAUDI3_RXE_COLL_SCALE_OUT_WQ_RDMA_IDX(port);
 
 	rc = gaudi3_nic_alloc_rings_resources(gaudi3_nic);
 	if (rc) {
@@ -5051,7 +5085,7 @@ bool is_coll_qp_in_reset(struct hl_nic_port *nic_port, u32 qpn)
 	struct hl_device *hdev;
 	struct hl_nic *nic;
 	struct hl_qp *qp;
-	u32 port, real_port, coll_qp_id;
+	u32 port, real_port, coll_qp_id, coll_conn_type;
 	bool rc = true;
 
 	hdev = nic_port->hdev;
@@ -5076,7 +5110,11 @@ bool is_coll_qp_in_reset(struct hl_nic_port *nic_port, u32 qpn)
 		coll_qp_id = qpn;
 	}
 
-	coll_qp = idr_find(&nic->coll_qp_ids, coll_qp_id);
+	coll_conn_type =
+		(coll_qp_id >= (GAUDI3_MIN_COLL_QP_ID + NIC_MAX_NON_SCALE_OUT_COLL_CONNS)) ?
+		HL_NIC_COLL_CONN_TYPE_SCALE_OUT : HL_NIC_COLL_CONN_TYPE_NON_SCALE_OUT;
+
+	coll_qp = idr_find(&nic->coll_props[coll_conn_type].coll_qp_ids, coll_qp_id);
 	if (IS_ERR_OR_NULL(coll_qp)) {
 		dev_dbg(hdev->dev,
 			"Failed to find matching collective QP %u, port %u\n",
@@ -5162,10 +5200,16 @@ static u32 gaudi3_nic_get_coll_qps_offset(struct hl_nic_port *nic_port)
 	return ELEMENT_OFFSET(port, NIC_MAX_COLL_QP_NUM);
 }
 
-static void gaudi3_nic_get_coll_qp_id_range(struct hl_device *hdev, u32 *min_id, u32 *max_id)
+static void gaudi3_nic_get_coll_qp_id_range(struct hl_device *hdev, u32 *min_id, u32 *max_id,
+						bool is_scale_out_conn)
 {
-	*min_id = GAUDI3_MIN_COLL_QP_ID;
-	*max_id = GAUDI3_MAX_COLL_QP_ID;
+	if (is_scale_out_conn) {
+		*min_id = GAUDI3_MIN_COLL_QP_ID + NIC_MAX_NON_SCALE_OUT_COLL_CONNS;
+		*max_id = GAUDI3_MAX_COLL_QP_ID;
+	} else {
+		*min_id = GAUDI3_MIN_COLL_QP_ID;
+		*max_id = GAUDI3_MIN_COLL_QP_ID + NIC_MAX_NON_SCALE_OUT_COLL_CONNS - 1;
+	}
 }
 
 static bool gaudi3_nic_is_coll_conn_id(struct hl_device *hdev, u32 conn_id)

@@ -715,7 +715,7 @@ static int hl_nic_ib_verify_qp_id(struct hl_aux_dev *aux_dev, u32 qp_id, u32 por
 
 	if (is_coll) {
 		hl_nic_cfg_lock_all(hdev);
-		qp = hl_nic_get_qp_from_collective_conn(nic_port, qp_id);
+		qp = hl_nic_get_qp_from_coll_conn_id(nic_port, qp_id);
 	} else {
 		port_funcs->cfg_lock(nic_port);
 		qp = idr_find(&nic_port->qp_ids, qp_id);
@@ -1512,48 +1512,49 @@ void hl_nic_cfg_unlock_all(struct hl_device *hdev)
 }
 
 /* This function must be called after taking cfg_lock for all the ports */
-struct hl_qp *hl_nic_get_qp_from_collective_conn(struct hl_nic_port *nic_port, u32 conn_id)
+static struct hl_coll_qp *get_coll_qp_from_conn_id(struct hl_nic_port *nic_port, u32 conn_id)
 {
-	struct hl_device *hdev = nic_port->hdev;
 	struct hl_nic_port_funcs *port_funcs;
-	struct hl_nic *nic = &hdev->nic;
 	struct hl_coll_qp *coll_qp;
-	u32 port, coll_conn_id;
+	struct hl_device *hdev;
+	struct hl_nic *nic;
+	u32 coll_conn_id, coll_conn_type;
 
+	hdev = nic_port->hdev;
+	nic = &hdev->nic;
 	port_funcs = hdev->asic_funcs->nic_funcs->port_funcs;
-	port = nic_port->port;
+
+	coll_conn_type = (conn_id >= nic_port->scale_out_coll_qp_idx_offset) ?
+		HL_NIC_COLL_CONN_TYPE_SCALE_OUT : HL_NIC_COLL_CONN_TYPE_NON_SCALE_OUT;
 
 	coll_conn_id = conn_id - port_funcs->get_coll_qps_offset(nic_port);
-	coll_qp = idr_find(&nic->coll_qp_ids, coll_conn_id);
+
+	coll_qp = idr_find(&nic->coll_props[coll_conn_type].coll_qp_ids, coll_conn_id);
+
+	return coll_qp;
+}
+
+/* This function must be called after taking cfg_lock for all the ports */
+struct hl_qp *hl_nic_get_qp_from_coll_conn_id(struct hl_nic_port *nic_port, u32 conn_id)
+{
+	struct hl_device *hdev = nic_port->hdev;
+	struct hl_coll_qp *coll_qp;
+	u32 port = nic_port->port;
+
+	coll_qp = get_coll_qp_from_conn_id(nic_port, conn_id);
 	if (IS_ERR_OR_NULL(coll_qp)) {
 		dev_dbg(hdev->dev,
-			"Failed to find matching collective QP for handle %d, port %u\n",
-			coll_conn_id, port);
+			"Failed to find matching collective QP for conn_id %u, port %u\n",
+			conn_id, port);
 		return NULL;
 	}
 
 	return coll_qp->qps_array[port];
 }
 
-/* This function must be called after taking cfg_lock for all the ports */
-static struct hl_coll_qp *get_coll_qp_from_qp(struct hl_qp *qp)
+bool hl_nic_is_scale_out_coll_type(u32 coll_conn_type)
 {
-	struct hl_nic_port_funcs *port_funcs;
-	struct hl_nic_port *nic_port;
-	struct hl_coll_qp *coll_qp;
-	struct hl_device *hdev;
-	struct hl_nic *nic;
-	u32 coll_conn_id;
-
-	nic_port = qp->nic_port;
-	hdev = nic_port->hdev;
-	nic = &hdev->nic;
-	port_funcs = hdev->asic_funcs->nic_funcs->port_funcs;
-
-	coll_conn_id = qp->qp_id - port_funcs->get_coll_qps_offset(nic_port);
-	coll_qp = idr_find(&nic->coll_qp_ids, coll_conn_id);
-
-	return coll_qp;
+	return coll_conn_type == HL_NIC_COLL_CONN_TYPE_SCALE_OUT;
 }
 
 static void hl_nic_get_qp_id_range(struct hl_nic_port *nic_port, u32 *min_id, u32 *max_id)
@@ -1569,14 +1570,21 @@ static void hl_nic_get_qp_id_range(struct hl_nic_port *nic_port, u32 *min_id, u3
 	*max_id = min(nic_port->qp_idx_offset + nic_port->num_of_wqs - 1, *max_id);
 }
 
-static void hl_nic_get_coll_qp_id_range(struct hl_device *hdev, u32 *min_id, u32 *max_id)
+static void hl_nic_get_coll_qp_id_range(struct hl_device *hdev, u32 *min_id, u32 *max_id,
+					bool is_scale_out_conn)
 {
-	hdev->asic_funcs->nic_funcs->get_coll_qp_id_range(hdev, min_id, max_id);
+	struct hl_nic *nic = &hdev->nic;
+	u32 coll_conn_type;
+
+	hdev->asic_funcs->nic_funcs->get_coll_qp_id_range(hdev, min_id, max_id, is_scale_out_conn);
+
+	coll_conn_type = is_scale_out_conn ?
+		HL_NIC_COLL_CONN_TYPE_SCALE_OUT : HL_NIC_COLL_CONN_TYPE_NON_SCALE_OUT;
 
 	/* Take the minimum between the max id supported by the port and the max id supported by
 	 * the WQs number the user asked to allocate.
 	 */
-	*max_id = min(*min_id + hdev->nic.num_of_coll_wqs - 1, *max_id);
+	*max_id = min(*min_id + nic->coll_props[coll_conn_type].num_of_coll_wqs - 1, *max_id);
 }
 
 static void hl_nic_qp_do_release(struct hl_qp *qp)
@@ -1593,10 +1601,13 @@ static void hl_nic_qp_do_release(struct hl_qp *qp)
 
 	port_funcs->qp_pre_destroy(qp);
 
-	if (qp->is_coll)
-		qp->coll_qp->qps_array[nic_port->port] = NULL;
-	else
+	if (qp->is_coll) {
+		struct hl_coll_qp *coll_qp = get_coll_qp_from_conn_id(nic_port, qp->qp_id);
+
+		coll_qp->qps_array[nic_port->port] = NULL;
+	} else {
 		idr_replace(&qp->nic_port->qp_ids, NULL, qp->qp_id);
+	}
 
 	/* drain the Req QP now in order to make sure that accesses to the WQ will not
 	 * be performed from this point on.
@@ -1709,7 +1720,8 @@ error_exit:
 }
 
 static int alloc_coll_qp(struct hl_device *hdev, struct hl_ctx *ctx,
-				struct hl_nic_alloc_conn_out *out)
+				struct hl_nic_alloc_coll_conn_in *in,
+				struct hl_nic_alloc_coll_conn_out *out)
 {
 	struct hl_nic_port_funcs *port_funcs;
 	struct hl_nic_funcs *nic_funcs;
@@ -1717,11 +1729,12 @@ static int alloc_coll_qp(struct hl_device *hdev, struct hl_ctx *ctx,
 	struct hl_coll_qp *coll_qp;
 	struct hl_nic *nic;
 	struct hl_qp *qp;
-	u32 min_id, max_id, port, _port;
+	u32 min_id, max_id, port, _port, coll_conn_type;
 	u8 max_num_of_ports;
+	bool is_scale_out_conn;
 	int id, rc;
 
-	if (!out) {
+	if (!in || !out) {
 		dev_dbg(hdev->dev, "Missing parameters for allocating a NIC collective QP\n");
 		return -EINVAL;
 	}
@@ -1756,11 +1769,17 @@ static int alloc_coll_qp(struct hl_device *hdev, struct hl_ctx *ctx,
 	coll_qp->hdev = hdev;
 	atomic_set(&coll_qp->num_of_initialized_qps, 0);
 
-	hl_nic_get_coll_qp_id_range(hdev, &min_id, &max_id);
+	is_scale_out_conn = in->is_scale_out;
+
+	hl_nic_get_coll_qp_id_range(hdev, &min_id, &max_id, is_scale_out_conn);
+
+	coll_conn_type = is_scale_out_conn ?
+		HL_NIC_COLL_CONN_TYPE_SCALE_OUT : HL_NIC_COLL_CONN_TYPE_NON_SCALE_OUT;
 
 	hl_nic_cfg_lock_all(hdev);
 
-	id = idr_alloc(&nic->coll_qp_ids, coll_qp, min_id, max_id + 1, GFP_KERNEL);
+	id = idr_alloc(&nic->coll_props[coll_conn_type].coll_qp_ids, coll_qp, min_id,
+			max_id + 1, GFP_KERNEL);
 	if (id < 0) {
 		dev_dbg(hdev->dev, "Failed to allocate coll QP\n");
 		rc = id;
@@ -1768,6 +1787,7 @@ static int alloc_coll_qp(struct hl_device *hdev, struct hl_ctx *ctx,
 	}
 
 	coll_qp->id = id;
+	coll_qp->coll_conn_type = coll_conn_type;
 
 	for (port = 0 ; port < max_num_of_ports ; port++) {
 		if (!(hdev->nic_ports_mask & BIT(port)))
@@ -1782,8 +1802,8 @@ static int alloc_coll_qp(struct hl_device *hdev, struct hl_ctx *ctx,
 		coll_qp->qps_array[port] = qp;
 		nic_port = &hdev->nic.nic_ports[port];
 
-		qp->coll_qp = coll_qp;
 		qp->is_coll = true;
+		qp->coll_conn_type = coll_conn_type;
 		qp->nic_port = nic_port;
 		qp->port = port;
 		qp->ctx = ctx;
@@ -1795,7 +1815,10 @@ static int alloc_coll_qp(struct hl_device *hdev, struct hl_ctx *ctx,
 
 		qp->qp_id = id + port_funcs->get_coll_qps_offset(nic_port);
 
-		atomic_inc(&nic_port->num_of_allocated_coll_qps);
+		if (is_scale_out_conn)
+			atomic_inc(&nic_port->num_of_allocated_scale_out_coll_qps);
+		else
+			atomic_inc(&nic_port->num_of_allocated_coll_qps);
 	}
 
 	hl_nic_cfg_unlock_all(hdev);
@@ -1814,20 +1837,44 @@ free_qps:
 			continue;
 
 		nic_port = &hdev->nic.nic_ports[_port];
-		atomic_dec(&nic_port->num_of_allocated_coll_qps);
+
+		if (is_scale_out_conn)
+			atomic_dec(&nic_port->num_of_allocated_scale_out_coll_qps);
+		else
+			atomic_dec(&nic_port->num_of_allocated_coll_qps);
 
 		qp = coll_qp->qps_array[port];
 		coll_qp->qps_array[port] = NULL;
 		kfree(qp);
 	}
 
-	idr_remove(&nic->coll_qp_ids, coll_qp->id);
+	idr_remove(&nic->coll_props[coll_conn_type].coll_qp_ids, coll_qp->id);
 cfg_unlock_all:
 	hl_nic_cfg_unlock_all(hdev);
 	kfree(coll_qp->qps_array);
 	kfree(coll_qp);
 
 	return rc;
+}
+
+u32 hl_nic_get_wq_array_type(bool is_send, bool is_coll, bool is_scale_out_conn)
+{
+	u32 type;
+
+	if (is_send)
+		if (is_coll)
+			type = is_scale_out_conn ?
+				HL_NIC_USER_COLL_SCALE_OUT_WQ_SEND : HL_NIC_USER_COLL_WQ_SEND;
+		else
+			type = HL_NIC_USER_WQ_SEND;
+	else
+		if (is_coll)
+			type = is_scale_out_conn ?
+				HL_NIC_USER_COLL_SCALE_OUT_WQ_RECV : HL_NIC_USER_COLL_WQ_RECV;
+		else
+			type = HL_NIC_USER_WQ_RECV;
+
+	return type;
 }
 
 static int alloc_and_map_wq(struct hl_nic_port *nic_port, struct hl_qp *qp, u32 n_wq, bool is_swq)
@@ -1841,20 +1888,26 @@ static int alloc_and_map_wq(struct hl_nic_port *nic_port, struct hl_qp *qp, u32 
 	struct hl_mem_mgr *mmg = &ctx->hpriv->mem_mgr;
 	struct hl_mmap_mem_buf *buf;
 	u64 wq_arr_size, wq_size;
-	u32 wq_arr_type, wqe_size, qp_offset;
+	u32 wq_arr_type, wqe_size, qp_idx_offset, wq_idx;
+	bool is_coll, is_scale_out_conn;
 	int rc;
 
 	hdev = nic_port->hdev;
 	nic_props = &hdev->asic_prop.nic_props;
 
-	qp_offset = qp->qp_id -
-			(qp->coll_qp ? nic_port->coll_qp_idx_offset : nic_port->qp_idx_offset);
+	is_coll = qp->is_coll;
+	is_scale_out_conn = hl_nic_is_scale_out_coll_type(qp->coll_conn_type);
 
-	if (is_swq)
-		wq_arr_type = qp->coll_qp ? HL_NIC_USER_COLL_WQ_SEND : HL_NIC_USER_WQ_SEND;
-	else
-		wq_arr_type = qp->coll_qp ? HL_NIC_USER_COLL_WQ_RECV : HL_NIC_USER_WQ_RECV;
+	if (is_coll) {
+		qp_idx_offset = is_scale_out_conn ? nic_port->scale_out_coll_qp_idx_offset :
+						nic_port->coll_qp_idx_offset;
+	} else {
+		qp_idx_offset = nic_port->qp_idx_offset;
+	}
 
+	wq_idx = qp->qp_id - qp_idx_offset;
+
+	wq_arr_type = hl_nic_get_wq_array_type(is_swq, is_coll, is_scale_out_conn);
 	wq_arr_props = &nic_port->wq_arr_props[wq_arr_type];
 	wqe_size = is_swq ? nic_port->swqe_size : nic_props->rwqe_size;
 
@@ -1868,7 +1921,7 @@ static int alloc_and_map_wq(struct hl_nic_port *nic_port, struct hl_qp *qp, u32 
 		 * In general, it's HW requirement to leave holes in a WQ array if corresponding QP
 		 * indexes are allocated on another WQ array.
 		 */
-		mem_data.device_va = wq_arr_props->dva_base + wq_arr_props->wq_size * qp_offset;
+		mem_data.device_va = wq_arr_props->dva_base + wq_arr_props->wq_size * wq_idx;
 
 		/* Check for out of range. */
 		if (mem_data.device_va + mem_data.size >
@@ -1903,10 +1956,9 @@ static int alloc_and_map_wq(struct hl_nic_port *nic_port, struct hl_qp *qp, u32 
 
 		 /* Get offset into kernel buffer block pre-allocated for SWQ. */
 		mem_data.in.host_map_data.kernel_address =
-				(void *) (mem->kernel_address + wq_size * qp_offset);
+				(void *) (mem->kernel_address + wq_size * wq_idx);
 
-		mem_data.in.host_map_data.bus_address =
-				(mem->bus_address + wq_size * qp_offset);
+		mem_data.in.host_map_data.bus_address = (mem->bus_address + wq_size * wq_idx);
 
 		/* Check for out of range. */
 		if ((u64) mem_data.in.host_map_data.kernel_address + mem_data.size >
@@ -1994,7 +2046,7 @@ static int set_req_qp_ctx(struct hl_device *hdev, struct hl_nic_req_conn_ctx_in 
 			goto cfg_unlock;
 		}
 
-		qp = hl_nic_get_qp_from_collective_conn(nic_port, in->conn_id);
+		qp = hl_nic_get_qp_from_coll_conn_id(nic_port, in->conn_id);
 	} else {
 		port_funcs->cfg_lock(nic_port);
 		qp = idr_find(&nic_port->qp_ids, in->conn_id);
@@ -2051,7 +2103,9 @@ static int set_req_qp_ctx(struct hl_device *hdev, struct hl_nic_req_conn_ctx_in 
 	}
 
 	/* verify that size does not exceed wq_array size */
-	max_wq_size = qp->is_coll ? hdev->nic.num_of_coll_wq_entries : nic_port->num_of_wq_entries;
+	max_wq_size = qp->is_coll ?
+			nic->coll_props[qp->coll_conn_type].num_of_coll_wq_entries :
+			nic_port->num_of_wq_entries;
 
 	if (wq_size > max_wq_size) {
 		dev_dbg(hdev->dev,
@@ -2062,8 +2116,10 @@ static int set_req_qp_ctx(struct hl_device *hdev, struct hl_nic_req_conn_ctx_in 
 	}
 
 	if (qp->is_coll) {
-		swq_arr_props = &nic_port->wq_arr_props[HL_NIC_USER_COLL_WQ_SEND];
-		rwq_arr_props = &nic_port->wq_arr_props[HL_NIC_USER_COLL_WQ_RECV];
+		struct hl_coll_properties *coll_props = &nic->coll_props[qp->coll_conn_type];
+
+		swq_arr_props = &nic_port->wq_arr_props[coll_props->swq_type];
+		rwq_arr_props = &nic_port->wq_arr_props[coll_props->rwq_type];
 	} else {
 		swq_arr_props = &nic_port->wq_arr_props[HL_NIC_USER_WQ_SEND];
 		rwq_arr_props = &nic_port->wq_arr_props[HL_NIC_USER_WQ_RECV];
@@ -2186,7 +2242,7 @@ static int set_res_qp_ctx(struct hl_device *hdev, struct hl_ctx *ctx,
 			goto unlock_cfg;
 		}
 
-		qp = hl_nic_get_qp_from_collective_conn(nic_port, in->conn_id);
+		qp = hl_nic_get_qp_from_coll_conn_id(nic_port, in->conn_id);
 	} else {
 		port_funcs->cfg_lock(nic_port);
 		qp = idr_find(&nic_port->qp_ids, in->conn_id);
@@ -2218,6 +2274,8 @@ static int set_res_qp_ctx(struct hl_device *hdev, struct hl_ctx *ctx,
 	}
 
 	if (is_coll_conn) {
+		struct hl_coll_qp *coll_qp = get_coll_qp_from_conn_id(nic_port, qp->qp_id);
+
 		rc = port_funcs->register_qp(nic_port, qp->qp_id, ctx->asid);
 		if (rc) {
 			dev_dbg(hdev->dev,
@@ -2226,7 +2284,7 @@ static int set_res_qp_ctx(struct hl_device *hdev, struct hl_ctx *ctx,
 			goto unlock_cfg;
 		}
 
-		atomic_inc(&qp->coll_qp->num_of_initialized_qps);
+		atomic_inc(&coll_qp->num_of_initialized_qps);
 	}
 
 	/* sanity test the port IDs */
@@ -2257,8 +2315,10 @@ static int set_res_qp_ctx(struct hl_device *hdev, struct hl_ctx *ctx,
 
 unregister_coll_qp:
 	if (is_coll_conn) {
+		struct hl_coll_qp *coll_qp = get_coll_qp_from_conn_id(nic_port, qp->qp_id);
+
 		port_funcs->unregister_qp(nic_port, qp->qp_id);
-		atomic_dec(&qp->coll_qp->num_of_initialized_qps);
+		atomic_dec(&coll_qp->num_of_initialized_qps);
 	}
 unlock_cfg:
 	if (is_coll_conn)
@@ -2299,7 +2359,7 @@ static void hl_nic_coll_qp_free(struct hl_coll_qp *coll_qp)
 		hl_nic_qp_do_release(coll_qp->qps_array[port]);
 	}
 
-	idr_remove(&nic->coll_qp_ids, coll_qp->id);
+	idr_remove(&nic->coll_props[coll_qp->coll_conn_type].coll_qp_ids, coll_qp->id);
 	kfree(coll_qp->qps_array);
 	kfree(coll_qp);
 }
@@ -2313,6 +2373,7 @@ static void qp_destroy_work(struct work_struct *work)
 	struct hl_nic_port_funcs *port_funcs = hdev->asic_funcs->nic_funcs->port_funcs;
 	struct hl_nic_qpc_drain_attr drain_attr;
 	struct hl_nic_qpc_reset_attr rst_attr;
+	struct hl_coll_properties *coll_props;
 	struct hl_ctx *ctx = qp->ctx;
 	struct hl_mem_mgr *mmg = &ctx->hpriv->mem_mgr;
 	int rc;
@@ -2342,7 +2403,7 @@ static void qp_destroy_work(struct work_struct *work)
 		port_funcs->cfg_lock(nic_port);
 
 	if (qp->is_coll) {
-		struct hl_coll_qp *coll_qp = get_coll_qp_from_qp(qp);
+		struct hl_coll_qp *coll_qp = get_coll_qp_from_conn_id(nic_port, qp->qp_id);
 
 		/* If the coll_qp is NULL, meaning it was freed in previous run of this thread,
 		 * no addtional action needs to be done here and we can continue with the common
@@ -2366,8 +2427,10 @@ static void qp_destroy_work(struct work_struct *work)
 	port_funcs->unregister_qp(nic_port, qp->qp_id);
 
 	if (qp->is_coll) {
-		swq_arr_props = &nic_port->wq_arr_props[HL_NIC_USER_COLL_WQ_SEND];
-		rwq_arr_props = &nic_port->wq_arr_props[HL_NIC_USER_COLL_WQ_RECV];
+		coll_props = &hdev->nic.coll_props[qp->coll_conn_type];
+
+		swq_arr_props = &nic_port->wq_arr_props[coll_props->swq_type];
+		rwq_arr_props = &nic_port->wq_arr_props[coll_props->rwq_type];
 	} else {
 		swq_arr_props = &nic_port->wq_arr_props[HL_NIC_USER_WQ_SEND];
 		rwq_arr_props = &nic_port->wq_arr_props[HL_NIC_USER_WQ_RECV];
@@ -2394,12 +2457,17 @@ static void qp_destroy_work(struct work_struct *work)
 	}
 
 	if (qp->is_coll) {
-		if (atomic_dec_and_test(&nic_port->num_of_allocated_coll_qps)) {
+		atomic_t *num_of_allocated_coll_qps =
+						hl_nic_is_scale_out_coll_type(qp->coll_conn_type) ?
+						&nic_port->num_of_allocated_scale_out_coll_qps :
+						&nic_port->num_of_allocated_coll_qps;
+
+		if (atomic_dec_and_test(num_of_allocated_coll_qps)) {
 			if (swq_arr_props->under_unset)
-				__user_wq_arr_unset(nic_port, HL_NIC_USER_COLL_WQ_SEND, qp->ctx);
+				__user_wq_arr_unset(nic_port, coll_props->swq_type, qp->ctx);
 
 			if (rwq_arr_props->under_unset)
-				__user_wq_arr_unset(nic_port, HL_NIC_USER_COLL_WQ_RECV, qp->ctx);
+				__user_wq_arr_unset(nic_port, coll_props->rwq_type, qp->ctx);
 		}
 	} else {
 		idr_remove(&nic_port->qp_ids, qp->qp_id);
@@ -2439,7 +2507,7 @@ static void qps_drain_async_work(struct hl_device *hdev)
 	struct hl_nic_properties *nic_props = &hdev->asic_prop.nic_props;
 	struct hl_nic_port *nic_port;
 	struct hl_nic *nic = &hdev->nic;
-	int i, num_gen_qps, num_coll_qps;
+	int i, num_gen_qps, num_coll_qps, num_scale_out_coll_qps;
 
 	/* wait for the workers to complete */
 	for (i = 0 ; i < nic_props->max_num_of_ports ; i++) {
@@ -2458,6 +2526,12 @@ static void qps_drain_async_work(struct hl_device *hdev)
 		if (num_coll_qps)
 			dev_warn(hdev->dev, "Port %d still has %d collective QPs alive\n",
 				i, num_coll_qps);
+
+		num_scale_out_coll_qps =
+			atomic_read(&nic_port->num_of_allocated_scale_out_coll_qps);
+		if (num_scale_out_coll_qps)
+			dev_warn(hdev->dev, "Port %d still has %d scale-out collective QPs alive\n",
+				i, num_scale_out_coll_qps);
 	}
 }
 
@@ -2513,7 +2587,7 @@ static int destroy_qp(struct hl_device *hdev, struct hl_nic_destroy_conn_in *in)
 	/* prevent reentrancy by locking the whole process of destroy_qp */
 	if (is_coll_conn) {
 		hl_nic_cfg_lock_all(hdev);
-		qp = hl_nic_get_qp_from_collective_conn(nic_port, in->conn_id);
+		qp = hl_nic_get_qp_from_coll_conn_id(nic_port, in->conn_id);
 	} else {
 		port_funcs->cfg_lock(nic_port);
 		qp = idr_find(&nic_port->qp_ids, in->conn_id);
@@ -2587,7 +2661,7 @@ static void qps_destroy(struct hl_device *hdev)
 	struct hl_nic *nic = &hdev->nic;
 	struct hl_coll_qp *coll_qp;
 	struct hl_qp *qp;
-	int qp_id, i;
+	int qp_id, i, coll_conn_type;
 
 	/* destroy the QPs */
 	for (i = 0 ; i < nic_props->max_num_of_ports ; i++) {
@@ -2611,16 +2685,18 @@ static void qps_destroy(struct hl_device *hdev)
 
 	hl_nic_cfg_lock_all(hdev);
 
-	idr_for_each_entry(&nic->coll_qp_ids, coll_qp, qp_id) {
-		if (IS_ERR_OR_NULL(coll_qp))
-			continue;
-
-		for (i = 0 ; i < nic_props->max_num_of_ports ; i++) {
-			if (!(hdev->nic_ports_mask & BIT(i)))
+	for (coll_conn_type = 0 ; coll_conn_type < HL_NIC_COLL_CONN_TYPE_MAX ; coll_conn_type++) {
+		idr_for_each_entry(&nic->coll_props[coll_conn_type].coll_qp_ids, coll_qp, qp_id) {
+			if (IS_ERR_OR_NULL(coll_qp))
 				continue;
 
-			qp = coll_qp->qps_array[i];
-			hl_nic_qp_do_release(qp);
+			for (i = 0 ; i < nic_props->max_num_of_ports ; i++) {
+				if (!(hdev->nic_ports_mask & BIT(i)))
+					continue;
+
+				qp = coll_qp->qps_array[i];
+				hl_nic_qp_do_release(qp);
+			}
 		}
 	}
 
@@ -2644,6 +2720,15 @@ static void qps_destroy(struct hl_device *hdev)
 
 		port_funcs->cfg_unlock(nic_port);
 	}
+
+	hl_nic_cfg_lock_all(hdev);
+
+	for (coll_conn_type = 0 ; coll_conn_type < HL_NIC_COLL_CONN_TYPE_MAX ; coll_conn_type++) {
+		idr_for_each_entry(&nic->coll_props[coll_conn_type].coll_qp_ids, coll_qp, qp_id)
+			dev_err_ratelimited(hdev->dev, "Collective QP %d is still alive\n", qp_id);
+	}
+
+	hl_nic_cfg_unlock_all(hdev);
 }
 
 static void wq_arrs_destroy(struct hl_device *hdev, struct hl_ctx *ctx)
@@ -2652,6 +2737,7 @@ static void wq_arrs_destroy(struct hl_device *hdev, struct hl_ctx *ctx)
 	struct hl_wq_array_properties *wq_arr_props;
 	struct hl_nic_port *nic_port;
 	struct hl_nic *nic = &hdev->nic;
+	u32 type;
 	int i;
 
 	for (i = 0 ; i < nic_props->max_num_of_ports ; i++) {
@@ -2662,17 +2748,10 @@ static void wq_arrs_destroy(struct hl_device *hdev, struct hl_ctx *ctx)
 
 		wq_arr_props = nic_port->wq_arr_props;
 
-		if (wq_arr_props[HL_NIC_USER_WQ_SEND].enable)
-			__user_wq_arr_unset(nic_port, HL_NIC_USER_WQ_SEND, ctx);
-
-		if (wq_arr_props[HL_NIC_USER_WQ_RECV].enable)
-			__user_wq_arr_unset(nic_port, HL_NIC_USER_WQ_RECV, ctx);
-
-		if (wq_arr_props[HL_NIC_USER_COLL_WQ_SEND].enable)
-			__user_wq_arr_unset(nic_port, HL_NIC_USER_COLL_WQ_SEND, ctx);
-
-		if (wq_arr_props[HL_NIC_USER_COLL_WQ_RECV].enable)
-			__user_wq_arr_unset(nic_port, HL_NIC_USER_COLL_WQ_RECV, ctx);
+		for (type = 0 ; type < HL_NIC_USER_WQ_TYPE_MAX ; type++) {
+			if (wq_arr_props[type].enable)
+				__user_wq_arr_unset(nic_port, type, ctx);
+		}
 	}
 
 	/* After all the WQ arrays for all the ports have been destroyed, we can destroy also
@@ -2715,27 +2794,18 @@ static void encap_ids_destroy(struct hl_device *hdev, struct hl_ctx *ctx)
 	}
 }
 
-static bool is_gen_wq(u32 type)
-{
-	return (type == HL_NIC_USER_WQ_SEND || type == HL_NIC_USER_WQ_RECV);
-}
-
-static bool is_coll_wq(u32 type)
-{
-	return (type == HL_NIC_USER_COLL_WQ_SEND || type == HL_NIC_USER_COLL_WQ_RECV);
-}
-
 static int user_wq_arr_set(struct hl_device *hdev,
 			struct hl_nic_user_wq_arr_set_in *in,
 			struct hl_nic_user_wq_arr_set_out *out,
 			struct hl_ctx *ctx)
 {
 	struct hl_wq_array_properties *wq_arr_props;
+	struct hl_coll_properties *coll_props;
 	struct hl_nic_port_funcs *port_funcs;
 	struct hl_nic_properties *nic_props;
 	struct hl_nic *nic = &hdev->nic;
 	struct hl_nic_port *nic_port;
-	u32 port, type, min_wqs_per_port;
+	u32 port, type, num_of_wqs, num_of_wq_entries, min_wqs_per_port;
 	char *type_str;
 	int rc, i;
 
@@ -2775,8 +2845,11 @@ static int user_wq_arr_set(struct hl_device *hdev,
 	wq_arr_props = &nic_port->wq_arr_props[type];
 	type_str = wq_arr_props->type_str;
 
+	if (wq_arr_props->is_coll)
+		coll_props = &nic->coll_props[wq_arr_props->coll_wq_type];
+
 	/* For generic WQs minimum number of wqs required is 2, one for raw eth and one for rdma */
-	min_wqs_per_port = is_gen_wq(type) ? NIC_MIN_WQS_PER_PORT : NIC_MIN_COLL_WQS_PER_PORT;
+	min_wqs_per_port = wq_arr_props->is_coll ? NIC_MIN_COLL_WQS_PER_PORT : NIC_MIN_WQS_PER_PORT;
 	if (in->num_of_wqs < min_wqs_per_port) {
 		dev_dbg(hdev->dev, "number of %s WQs must be minimum %d, port %d\n", type_str,
 			min_wqs_per_port, port);
@@ -2849,32 +2922,32 @@ static int user_wq_arr_set(struct hl_device *hdev,
 		goto out;
 	}
 
-	if (is_gen_wq(type) && nic_port->num_of_wq_entries &&
-			(nic_port->num_of_wq_entries != in->num_of_wq_entries)) {
+	if (wq_arr_props->is_coll) {
+		num_of_wq_entries = coll_props->num_of_coll_wq_entries;
+		num_of_wqs = coll_props->num_of_coll_wqs;
+
+		if (!hl_nic_is_scale_out_coll_type(wq_arr_props->coll_wq_type) &&
+				(in->num_of_wqs > NIC_MAX_NON_SCALE_OUT_COLL_CONNS)) {
+			dev_dbg(hdev->dev, "Too many WQs (%u) for non scale-out collective WQ - should be max %u, port %d\n",
+				in->num_of_wqs, NIC_MAX_NON_SCALE_OUT_COLL_CONNS, port);
+			rc = -EINVAL;
+			goto out;
+		}
+	} else {
+		num_of_wq_entries = nic_port->num_of_wq_entries;
+		num_of_wqs = nic_port->num_of_wqs;
+	}
+
+	if (num_of_wq_entries && (num_of_wq_entries != in->num_of_wq_entries)) {
 		dev_dbg(hdev->dev, "%s WQ number of entries (0x%x) should be 0x%x, port %d\n",
-			type_str, in->num_of_wq_entries, nic_port->num_of_wq_entries, port);
+			type_str, in->num_of_wq_entries, num_of_wq_entries, port);
 		rc = -EINVAL;
 		goto out;
 	}
 
-	if (is_gen_wq(type) && nic_port->num_of_wqs && (nic_port->num_of_wqs != in->num_of_wqs)) {
-		dev_dbg(hdev->dev, "%s WQs number (0x%x) should be 0x%x, port %d\n", type_str,
-			in->num_of_wqs, nic_port->num_of_wqs, port);
-		rc = -EINVAL;
-		goto out;
-	}
-
-	if (is_coll_wq(type) && nic->num_of_coll_wq_entries &&
-			(nic->num_of_coll_wq_entries != in->num_of_wq_entries)) {
-		dev_dbg(hdev->dev, "%s WQ number of entries (0x%x) should be 0x%x, port %d\n",
-			type_str, in->num_of_wq_entries, nic->num_of_coll_wq_entries, port);
-		rc = -EINVAL;
-		goto out;
-	}
-
-	if (is_coll_wq(type) && nic->num_of_coll_wqs && (nic->num_of_coll_wqs != in->num_of_wqs)) {
-		dev_dbg(hdev->dev, "%s WQs number (0x%x) should be 0x%x, port %d\n", type_str,
-			in->num_of_wqs, nic->num_of_coll_wqs, port);
+	if (num_of_wqs && (num_of_wqs != in->num_of_wqs)) {
+		dev_dbg(hdev->dev, "%s WQs number (0x%x) should be 0x%x, port %d\n",
+			type_str, in->num_of_wqs, num_of_wqs, port);
 		rc = -EINVAL;
 		goto out;
 	}
@@ -2885,19 +2958,19 @@ static int user_wq_arr_set(struct hl_device *hdev,
 		goto out;
 	}
 
-	if (is_gen_wq(type)) {
-		nic_port->num_of_wq_entries = in->num_of_wq_entries;
-		nic_port->num_of_wqs = in->num_of_wqs;
-	} else {
+	if (wq_arr_props->is_coll) {
 		/* num_of_coll_wq_entries and num_of_coll_wqs are global hence will be set for the
 		 * first requested WQ array.
 		 */
-		if (atomic_read(&nic->num_of_coll_wq_arrays) == 0) {
-			nic->num_of_coll_wq_entries = in->num_of_wq_entries;
-			nic->num_of_coll_wqs = in->num_of_wqs;
+		if (atomic_read(&coll_props->num_of_coll_wq_arrays) == 0) {
+			coll_props->num_of_coll_wq_entries = in->num_of_wq_entries;
+			coll_props->num_of_coll_wqs = in->num_of_wqs;
 		}
 
-		atomic_inc(&nic->num_of_coll_wq_arrays);
+		atomic_inc(&coll_props->num_of_coll_wq_arrays);
+	} else {
+		nic_port->num_of_wq_entries = in->num_of_wq_entries;
+		nic_port->num_of_wqs = in->num_of_wqs;
 	}
 
 	wq_arr_props->enable = true;
@@ -2911,18 +2984,24 @@ out:
 static int __user_wq_arr_unset(struct hl_nic_port *nic_port, u32 type, struct hl_ctx *ctx)
 {
 	struct hl_wq_array_properties *wq_arr_props;
-	struct hl_device *hdev = nic_port->hdev;
-	u32 port = nic_port->port;
+	struct hl_coll_properties *coll_props;
+	struct hl_device *hdev;
+	u32 port;
 	char *type_str;
 	int rc;
 
+	hdev = nic_port->hdev;
 	wq_arr_props = &nic_port->wq_arr_props[type];
 	type_str = wq_arr_props->type_str;
+	port = nic_port->port;
 
 	rc = hdev->asic_funcs->nic_funcs->port_funcs->user_wq_arr_unset(nic_port, type, ctx);
 	if (rc)
 		dev_err(hdev->dev, "%s WQ array unset failed, port %d, err %d\n", type_str, port,
 			rc);
+
+	if (wq_arr_props->is_coll)
+		coll_props = &hdev->nic.coll_props[wq_arr_props->coll_wq_type];
 
 	wq_arr_props->enable = false;
 	wq_arr_props->under_unset = false;
@@ -2933,10 +3012,10 @@ static int __user_wq_arr_unset(struct hl_nic_port *nic_port, u32 type, struct hl
 		nic_port->num_of_wqs = 0;
 	}
 
-	if (is_coll_wq(type)) {
-		if (atomic_dec_and_test(&hdev->nic.num_of_coll_wq_arrays)) {
-			hdev->nic.num_of_coll_wq_entries = 0;
-			hdev->nic.num_of_coll_wqs = 0;
+	if (wq_arr_props->is_coll) {
+		if (atomic_dec_and_test(&coll_props->num_of_coll_wq_arrays)) {
+			coll_props->num_of_coll_wq_entries = 0;
+			coll_props->num_of_coll_wqs = 0;
 		}
 	}
 
@@ -2988,7 +3067,7 @@ static int user_wq_arr_unset(struct hl_device *hdev, struct hl_nic_user_wq_arr_u
 	port_funcs->cfg_lock(nic_port);
 
 	if (!wq_arr_props->enable) {
-		dev_dbg(hdev->dev, "%s WQ array is already unset, port %d\n", type_str, port);
+		dev_dbg(hdev->dev, "%s WQ array is disabled, port %d\n", type_str, port);
 		rc = -EINVAL;
 		goto out;
 	}
@@ -3000,14 +3079,19 @@ static int user_wq_arr_unset(struct hl_device *hdev, struct hl_nic_user_wq_arr_u
 	}
 
 	/* Allocated QPs might still use the WQ, hence unset the WQ once they are destroyed */
-	if (is_gen_wq(type)) {
-		if (atomic_read(&nic_port->num_of_allocated_qps)) {
+	if (wq_arr_props->is_coll) {
+		atomic_t *num_of_allocated_coll_qps =
+					hl_nic_is_scale_out_coll_type(wq_arr_props->coll_wq_type) ?
+					&nic_port->num_of_allocated_scale_out_coll_qps :
+					&nic_port->num_of_allocated_coll_qps;
+
+		if (atomic_read(num_of_allocated_coll_qps)) {
 			wq_arr_props->under_unset = true;
 			rc = 0;
 			goto out;
 		}
 	} else {
-		if (atomic_read(&nic_port->num_of_allocated_coll_qps)) {
+		if (atomic_read(&nic_port->num_of_allocated_qps)) {
 			wq_arr_props->under_unset = true;
 			rc = 0;
 			goto out;
@@ -4722,7 +4806,7 @@ static int __hl_nic_control(struct hl_device *hdev, u32 op, void *input, void *o
 		rc = user_cq_id_unset(hdev, input, ctx);
 		break;
 	case HL_NIC_OP_ALLOC_COLL_CONN:
-		rc = alloc_coll_qp(hdev, ctx, output);
+		rc = alloc_coll_qp(hdev, ctx, input, output);
 		break;
 	default:
 		/* we shouldn't get here as we check the opcode mask before */
@@ -4878,6 +4962,39 @@ static void nic_port_sw_fini(struct hl_nic_port *nic_port)
 	destroy_workqueue(nic_port->wq);
 }
 
+static void nic_wq_arr_props_init(struct hl_wq_array_properties *wq_arr_props)
+{
+	wq_arr_props[HL_NIC_USER_WQ_SEND].type_str = "send";
+	wq_arr_props[HL_NIC_USER_WQ_SEND].is_send = true;
+	wq_arr_props[HL_NIC_USER_WQ_SEND].is_coll = false;
+
+	wq_arr_props[HL_NIC_USER_WQ_RECV].type_str = "recv";
+	wq_arr_props[HL_NIC_USER_WQ_RECV].is_send = false;
+	wq_arr_props[HL_NIC_USER_WQ_RECV].is_coll = false;
+
+	wq_arr_props[HL_NIC_USER_COLL_WQ_SEND].type_str = "collective send";
+	wq_arr_props[HL_NIC_USER_COLL_WQ_SEND].is_send = true;
+	wq_arr_props[HL_NIC_USER_COLL_WQ_SEND].is_coll = true;
+	wq_arr_props[HL_NIC_USER_COLL_WQ_SEND].coll_wq_type = HL_NIC_COLL_CONN_TYPE_NON_SCALE_OUT;
+
+	wq_arr_props[HL_NIC_USER_COLL_WQ_RECV].type_str = "collective recv";
+	wq_arr_props[HL_NIC_USER_COLL_WQ_RECV].is_send = false;
+	wq_arr_props[HL_NIC_USER_COLL_WQ_RECV].is_coll = true;
+	wq_arr_props[HL_NIC_USER_COLL_WQ_RECV].coll_wq_type = HL_NIC_COLL_CONN_TYPE_NON_SCALE_OUT;
+
+	wq_arr_props[HL_NIC_USER_COLL_SCALE_OUT_WQ_SEND].type_str = "collective scale-out send";
+	wq_arr_props[HL_NIC_USER_COLL_SCALE_OUT_WQ_SEND].is_send = true;
+	wq_arr_props[HL_NIC_USER_COLL_SCALE_OUT_WQ_SEND].is_coll = true;
+	wq_arr_props[HL_NIC_USER_COLL_SCALE_OUT_WQ_SEND].coll_wq_type =
+						HL_NIC_COLL_CONN_TYPE_SCALE_OUT;
+
+	wq_arr_props[HL_NIC_USER_COLL_SCALE_OUT_WQ_RECV].type_str = "collective scale-out recv";
+	wq_arr_props[HL_NIC_USER_COLL_SCALE_OUT_WQ_RECV].is_send = false;
+	wq_arr_props[HL_NIC_USER_COLL_SCALE_OUT_WQ_RECV].is_coll = true;
+	wq_arr_props[HL_NIC_USER_COLL_SCALE_OUT_WQ_RECV].coll_wq_type =
+						HL_NIC_COLL_CONN_TYPE_SCALE_OUT;
+}
+
 static int nic_port_sw_init(struct hl_nic_port *nic_port)
 {
 	struct hl_wq_array_properties *wq_arr_props;
@@ -4922,15 +5039,7 @@ static int nic_port_sw_init(struct hl_nic_port *nic_port)
 	nic_port->pfc_enable = true;
 	nic_port->pflags = PFLAGS_PCS_LINK_CHECK | PFLAGS_PHY_AUTO_NEG_LPBK;
 
-	/* Set the name and whether it's send or not for each WQ array type  */
-	wq_arr_props[HL_NIC_USER_WQ_SEND].type_str = "send";
-	wq_arr_props[HL_NIC_USER_WQ_RECV].type_str = "recv";
-	wq_arr_props[HL_NIC_USER_COLL_WQ_SEND].type_str = "collective send";
-	wq_arr_props[HL_NIC_USER_COLL_WQ_RECV].type_str = "collective recv";
-	wq_arr_props[HL_NIC_USER_WQ_SEND].is_send = true;
-	wq_arr_props[HL_NIC_USER_WQ_RECV].is_send = false;
-	wq_arr_props[HL_NIC_USER_COLL_WQ_SEND].is_send = true;
-	wq_arr_props[HL_NIC_USER_COLL_WQ_RECV].is_send = false;
+	nic_wq_arr_props_init(wq_arr_props);
 
 	rc = port_funcs->port_sw_init(nic_port);
 	if (rc)
@@ -4953,6 +5062,25 @@ err:
 	destroy_workqueue(nic_port->wq);
 
 	return rc;
+}
+
+static void nic_coll_props_init(struct hl_coll_properties *coll_props)
+{
+	idr_init(&coll_props[HL_NIC_COLL_CONN_TYPE_NON_SCALE_OUT].coll_qp_ids);
+	atomic_set(&coll_props[HL_NIC_COLL_CONN_TYPE_NON_SCALE_OUT].num_of_coll_wq_arrays, 0);
+	coll_props[HL_NIC_COLL_CONN_TYPE_NON_SCALE_OUT].swq_type = HL_NIC_USER_COLL_WQ_SEND;
+	coll_props[HL_NIC_COLL_CONN_TYPE_NON_SCALE_OUT].rwq_type = HL_NIC_USER_COLL_WQ_RECV;
+
+	idr_init(&coll_props[HL_NIC_COLL_CONN_TYPE_SCALE_OUT].coll_qp_ids);
+	atomic_set(&coll_props[HL_NIC_COLL_CONN_TYPE_SCALE_OUT].num_of_coll_wq_arrays, 0);
+	coll_props[HL_NIC_COLL_CONN_TYPE_SCALE_OUT].swq_type = HL_NIC_USER_COLL_SCALE_OUT_WQ_SEND;
+	coll_props[HL_NIC_COLL_CONN_TYPE_SCALE_OUT].rwq_type = HL_NIC_USER_COLL_SCALE_OUT_WQ_RECV;
+}
+
+static void nic_coll_props_fini(struct hl_coll_properties *coll_props)
+{
+	idr_destroy(&coll_props[HL_NIC_COLL_CONN_TYPE_NON_SCALE_OUT].coll_qp_ids);
+	idr_destroy(&coll_props[HL_NIC_COLL_CONN_TYPE_SCALE_OUT].coll_qp_ids);
 }
 
 static int nic_macro_sw_init(struct hl_nic_macro *nic_macro)
@@ -4983,7 +5111,7 @@ void hl_nic_sw_fini(struct hl_device *hdev)
 	for (i = 0 ; i < nic_props->max_num_of_ports ; i++)
 		nic_port_sw_fini(&nic->nic_ports[i]);
 
-	idr_destroy(&nic->coll_qp_ids);
+	nic_coll_props_fini(nic->coll_props);
 
 	for (i = 0 ; i < nic_props->num_of_macros ; i++)
 		nic_macro_sw_fini(&nic->nic_macros[i]);
@@ -5102,8 +5230,7 @@ int hl_nic_sw_init(struct hl_device *hdev)
 				(hdev->nic_load_fw);
 	nic->debugfs_reset = true;
 
-	idr_init(&nic->coll_qp_ids);
-	atomic_set(&nic->num_of_coll_wq_arrays, 0);
+	nic_coll_props_init(nic->coll_props);
 
 	/* At this stage, we don't know how many ports we have, so we must
 	 * allocate for the maximum number of ports (and also free all of them
@@ -5115,6 +5242,7 @@ int hl_nic_sw_init(struct hl_device *hdev)
 		nic_port->port = i;
 		atomic_set(&nic_port->num_of_allocated_qps, 0);
 		atomic_set(&nic_port->num_of_allocated_coll_qps, 0);
+		atomic_set(&nic_port->num_of_allocated_scale_out_coll_qps, 0);
 		rc = nic_port_sw_init(nic_port);
 		if (rc) {
 			dev_err(hdev->dev, "NIC S/W init failed, port: %d, rc: %d\n", i, rc);
@@ -5128,7 +5256,7 @@ port_init_fail:
 	for (i = 0 ; i < port_cnt ; i++)
 		nic_port_sw_fini(&nic->nic_ports[i]);
 
-	idr_destroy(&nic->coll_qp_ids);
+	nic_coll_props_fini(nic->coll_props);
 macro_init_fail:
 	for (i = 0 ; i < macro_cnt ; i++)
 		nic_macro_sw_fini(&nic->nic_macros[i]);

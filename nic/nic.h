@@ -84,6 +84,8 @@
 
 #define DMA_COHERENT_MAX_SIZE	SZ_4M
 
+#define NIC_MAX_NON_SCALE_OUT_COLL_CONNS	128
+
 extern struct hl_en_stat hl_nic_mac_fec_stats[];
 extern struct hl_en_stat hl_nic_mac_stats_rx[];
 extern struct hl_en_stat hl_nic_mac_stats_tx[];
@@ -419,6 +421,18 @@ struct hl_nic_user_cq {
 };
 
 /**
+ * enum hl_nic_coll_conn_type - Collective connection type.
+ * HL_NIC_COLL_CONN_TYPE_NON_SCALE_OUT - non scale out connection.
+ * HL_NIC_COLL_CONN_TYPE_SCALE_OUT - scale out connection.
+ * HL_NIC_COLL_CONN_TYPE_MAX - number of values in enum.
+ */
+enum hl_nic_coll_conn_type {
+	HL_NIC_COLL_CONN_TYPE_NON_SCALE_OUT,
+	HL_NIC_COLL_CONN_TYPE_SCALE_OUT,
+	HL_NIC_COLL_CONN_TYPE_MAX
+};
+
+/**
  * struct hl_wq_array_properties - WQ array properties.
  * @type_str: string of this WQ array type.
  * @handle: handle for this WQ array.
@@ -431,18 +445,22 @@ struct hl_nic_user_cq {
  *               destroyed), false otherwise.
  * @on_device_mem: true if this WQ array resides on HBM, false if on host.
  * @is_send: true if this WQ array should contain send WQEs, false if recv WQEs.
+ * @is_coll: true if this WQ array is for collective connections.
+ * @coll_wq_type: type of this collective WQ array (scale-out or not).
  */
 struct hl_wq_array_properties {
-	char	*type_str;
-	u64	handle;
-	u64	dva_base;
-	u64	dva_size;
-	u64	wq_size;
-	u32	idx;
-	u8	enable;
-	u8	under_unset;
-	u8	on_device_mem;
-	u8	is_send;
+	char				*type_str;
+	u64				handle;
+	u64				dva_base;
+	u64				dva_size;
+	u64				wq_size;
+	u32				idx;
+	u8				enable;
+	u8				under_unset;
+	u8				on_device_mem;
+	u8				is_send;
+	u8				is_coll;
+	enum hl_nic_coll_conn_type	coll_wq_type;
 };
 
 /**
@@ -458,6 +476,8 @@ struct hl_wq_array_properties {
  * @ev_dqs: per ASID/App events dispatch queues managed by the driver.
  * @num_of_allocated_qps: the currently number of allocated qps for this nic.
  * @num_of_allocated_coll_qps: the currently number of allocated collective qps for this nic.
+ * @num_of_allocated_scale_out_coll_qps: the currently number of allocated scale-out collective qps
+ *                                       for this nic.
  * @link_status_work: work for checking NIC link status.
  * @nic_status_work: work for sending port status to the FW.
  * @control_lock: protects from a race between port open/close and other stuff that might run in
@@ -495,8 +515,10 @@ struct hl_wq_array_properties {
  * @data_rate: NIC data rate according to speed and number of lanes.
  * @num_of_wq_entries: number of entries configured in the port WQ.
  * @num_of_wqs: number of WQs configured for this port.
- * @qp_idx_offset: offset to the base QP index of this port.
- * @coll_qp_idx_offset: offset to the base collective QP index of this port.
+ * @qp_idx_offset: offset to the base QP index of this port for generic QPs.
+ * @coll_qp_idx_offset: offset to the base QP index of this port for collective QPs.
+ * @scale_out_coll_qp_idx_offset: offset to the base QP index of this port for scale-out
+ *                                collective QPs.
  * @port_open: true if the port H/W is initialized, false otherwise.
  * @mac_loopback: true if port in MAC loopback mode, false otherwise.
  * @pfc_enable: true if this port supports Priority Flow Control, false
@@ -538,6 +560,7 @@ struct hl_nic_port {
 
 	atomic_t			num_of_allocated_qps;
 	atomic_t			num_of_allocated_coll_qps;
+	atomic_t			num_of_allocated_scale_out_coll_qps;
 	struct delayed_work		link_status_work;
 	struct work_struct		nic_status_work;
 	struct mutex			control_lock;
@@ -570,6 +593,7 @@ struct hl_nic_port {
 	u32				num_of_wqs;
 	u32				qp_idx_offset;
 	u32				coll_qp_idx_offset;
+	u32				scale_out_coll_qp_idx_offset;
 	u32				swqe_size;
 	u8				port_open;
 	u8				mac_loopback;
@@ -621,6 +645,24 @@ struct hl_nic_ctx {
 };
 
 /**
+ * struct hl_coll_properties - collective properties.
+ * @coll_qp_ids: IDR to hold all collective QP IDs.
+ * @num_of_coll_wq_arrays: number of allocated collective WQ arrays (each port will have two).
+ * @num_of_coll_wqs: number of configured collective WQs.
+ * @num_of_coll_wq_entries: number of entries configured per collective WQ.
+ * @swq_type: the type of send work-queue array.
+ * @rwq_type: the type of receive work-queue array.
+ */
+struct hl_coll_properties {
+	struct idr		coll_qp_ids;
+	atomic_t		num_of_coll_wq_arrays;
+	u32			num_of_coll_wqs;
+	u32			num_of_coll_wq_entries;
+	u32			swq_type;
+	u32			rwq_type;
+};
+
+/**
  * struct hl_nic - habanalabs NIC common structure.
  * @nic_ports: pointer to an array that holds all NIC ports manage common structures.
  * @nic_macros: pointer to an array that holds all NIC macros manage structures.
@@ -629,8 +671,7 @@ struct hl_nic_ctx {
  * @ib_aux_dev: pointer to IB auxiliary device structure.
  * @qp_info: details of a QP to read via debugfs.
  * @wqe_info: details of a WQE to read via debugfs.
- * @coll_qp_ids: IDR to hold all collective QP IDs.
- * @num_of_coll_wq_arrays: number of allocated collective WQ arrays (each port will have two).
+ * @coll_props: array of collective properties (to distinguish between scale-up/out ports).
  * @mac_lane_remap: MAC to PHY lane mapping.
  * @eth_ports_mask: Ethernet ports enable mask.
  * @mac_loopback: enable MAC loopback on specific NIC ports.
@@ -640,8 +681,6 @@ struct hl_nic_ctx {
  * @pcs_fail_time_frame: time frame is seconds to count PCS link failure.
  * @pcs_fail_threshold: PCS link failures threshold to reset link.
  * @card_location: the OAM number in the HLS (relevant for PMC card type).
- * @num_of_coll_wqs: number of configured collective WQs.
- * @num_of_coll_wq_entries: number of entries configured per collective WQ.
  * @phy_port_to_dump: the port which its serdes params will be dump.
  * @phy_load_fw: true if the NIC PHY F/W should be loaded, false otherwise.
  *               The NIC PHY F/W should be loaded on ASIC only, in contrary to
@@ -657,7 +696,7 @@ struct hl_nic_ctx {
  *              (false only for testing).
  * @wq_mmu_bypass: true if WQs has MMU-BP access, false otherwise.
  * @has_eq: true if event queue is supported.
- * @eth_loopback enable hack in hl_en_handle_tx to test eth traffic.
+ * @eth_loopback: enable hack in hl_en_handle_tx to test eth traffic.
  * @phy_regs_print: print all PHY registers reads/writes.
  * @phy_show_ber: show PHY BER statistics during power-up.
  * @is_eth_aux_dev_initialized: true if the eth auxiliary device is initialized.
@@ -671,48 +710,45 @@ struct hl_nic_ctx {
  * @skip_wq_arrays_pool: Used to skip allocation and destruction of WQ arrays pool.
  */
 struct hl_nic {
-	struct hl_nic_port	*nic_ports;
-	struct hl_nic_macro	*nic_macros;
-	struct hl_nic_tx_taps	*phy_tx_taps;
-	struct hl_aux_dev	en_aux_dev;
-	struct hl_aux_dev	ib_aux_dev;
-	struct hl_nic_qp_info	qp_info;
-	struct hl_nic_wqe_info	wqe_info;
-	struct idr		coll_qp_ids;
-	atomic_t		num_of_coll_wq_arrays;
-	u32			*mac_lane_remap;
-	u64			eth_ports_mask;
-	u64			mac_loopback;
-	u64			auto_neg_mask;
-	u64			ctrl_op_mask;
-	u32			cq_arm_timeout;
-	u32			pcs_fail_time_frame;
-	u32			pcs_fail_threshold;
-	u32			card_location;
-	u32			num_of_coll_wqs;
-	u32			num_of_coll_wq_entries;
-	u32			phy_port_to_dump;
-	u8			phy_load_fw;
-	u8			phy_config_fw;
-	u8			use_fw_serdes_info;
-	u8			debugfs_reset;
-	u8			rand_status;
-	u8			mmu_bypass;
-	u8			wq_mmu_bypass;
-	u8			has_eq;
-	u8			eth_loopback;
-	u8			phy_regs_print;
-	u8			phy_show_ber;
-	u8			is_eth_aux_dev_initialized;
-	u8			is_ib_aux_dev_initialized;
-	u8			is_decap_disabled;
-	u8			skip_mac_reset;
-	u8			phy_set_nrz;
-	u8			skip_odd_ports_cfg_lock;
-	u8			skip_mac_cnts;
-	u8			ib_support;
-	u8			skip_cq_arm_timeout;
-	u8			skip_wq_arrays_pool;
+	struct hl_nic_port		*nic_ports;
+	struct hl_nic_macro		*nic_macros;
+	struct hl_nic_tx_taps		*phy_tx_taps;
+	struct hl_aux_dev		en_aux_dev;
+	struct hl_aux_dev		ib_aux_dev;
+	struct hl_nic_qp_info		qp_info;
+	struct hl_nic_wqe_info		wqe_info;
+	struct hl_coll_properties	coll_props[HL_NIC_COLL_CONN_TYPE_MAX];
+	u32				*mac_lane_remap;
+	u64				eth_ports_mask;
+	u64				mac_loopback;
+	u64				auto_neg_mask;
+	u64				ctrl_op_mask;
+	u32				cq_arm_timeout;
+	u32				pcs_fail_time_frame;
+	u32				pcs_fail_threshold;
+	u32				card_location;
+	u32				phy_port_to_dump;
+	u8				phy_load_fw;
+	u8				phy_config_fw;
+	u8				use_fw_serdes_info;
+	u8				debugfs_reset;
+	u8				rand_status;
+	u8				mmu_bypass;
+	u8				wq_mmu_bypass;
+	u8				has_eq;
+	u8				eth_loopback;
+	u8				phy_regs_print;
+	u8				phy_show_ber;
+	u8				is_eth_aux_dev_initialized;
+	u8				is_ib_aux_dev_initialized;
+	u8				is_decap_disabled;
+	u8				skip_mac_reset;
+	u8				phy_set_nrz;
+	u8				skip_odd_ports_cfg_lock;
+	u8				skip_mac_cnts;
+	u8				ib_support;
+	u8				skip_cq_arm_timeout;
+	u8				skip_wq_arrays_pool;
 };
 
 /**
@@ -824,8 +860,6 @@ enum hl_nic_qp_state_op {
  * @nic_port: Pointer to the NIC port this QP belongs to.
  * @async_work: async work performed on QP, when destroying the QP.
  * @ctx: Associated user context.
- * @coll_qp: Pointer to the collective QP structure. Will be NULL if this QP doesn't have a
- *           collective connection ID.
  * @req_user_cq: CQ ID used by the requester context.
  * @res_user_cq: CQ ID used by the responder context.
  * @curr_state: The current state of the QP.
@@ -842,27 +876,28 @@ enum hl_nic_qp_state_op {
  * @is_req: is requester context was set for the QP.
  * @is_res: is responder context was set for the QP.
  * @is_coll: is collective QP.
+ * @coll_conn_type: type of collective connection (scale-out or not).
  */
 struct hl_qp {
-	struct hl_nic_port	*nic_port;
-	struct work_struct	async_work;
-	struct hl_ctx		*ctx;
-	struct hl_coll_qp	*coll_qp;
-	struct hl_nic_user_cq	*req_user_cq;
-	struct hl_nic_user_cq	*res_user_cq;
-	enum hl_nic_qp_state	curr_state;
-	enum mtu_type		mtu_type;
-	u64			swq_handle;
-	u64			rwq_handle;
-	u32			port;
-	u32			qp_id;
-	u32			local_key;
-	u32			remote_key;
-	u32			asid;
-	u32			mtu;
-	u8			is_req;
-	u8			is_res;
-	u8			is_coll;
+	struct hl_nic_port		*nic_port;
+	struct work_struct		async_work;
+	struct hl_ctx			*ctx;
+	struct hl_nic_user_cq		*req_user_cq;
+	struct hl_nic_user_cq		*res_user_cq;
+	enum hl_nic_qp_state		curr_state;
+	enum mtu_type			mtu_type;
+	u64				swq_handle;
+	u64				rwq_handle;
+	u32				port;
+	u32				qp_id;
+	u32				local_key;
+	u32				remote_key;
+	u32				asid;
+	u32				mtu;
+	u8				is_req;
+	u8				is_res;
+	u8				is_coll;
+	enum hl_nic_coll_conn_type	coll_conn_type;
 };
 
 /**
@@ -872,12 +907,14 @@ struct hl_qp {
  * @num_of_initialized_qps: number of initialized QPs which have the same id like this
  *                          collective QP.
  * @id: id of this collective QP.
+ * @coll_conn_type: type of collective connection (scale-out or not).
  */
 struct hl_coll_qp {
-	struct hl_device *hdev;
-	struct hl_qp **qps_array;
-	atomic_t num_of_initialized_qps;
-	u32 id;
+	struct hl_device		*hdev;
+	struct hl_qp			**qps_array;
+	atomic_t			num_of_initialized_qps;
+	u32				id;
+	enum hl_nic_coll_conn_type	coll_conn_type;
 };
 
 /**
@@ -1249,7 +1286,8 @@ struct hl_nic_funcs {
 	void (*synchronize_irqs)(struct hl_device *hdev);
 	int (*write_coll_lag_size)(struct hl_device *hdev, u32 coll_lag_size);
 	int (*read_coll_lag_size)(struct hl_device *hdev, u32 *coll_lag_size);
-	void (*get_coll_qp_id_range)(struct hl_device *hdev, u32 *min_id, u32 *max_id);
+	void (*get_coll_qp_id_range)(struct hl_device *hdev, u32 *min_id, u32 *max_id,
+					bool is_scale_out);
 	bool (*is_coll_conn_id)(struct hl_device *hdev, u32 conn_id);
 	void (*phy_dump_serdes_params)(struct hl_device *hdev, char *buf, size_t size);
 	u32 (*get_max_msg_sz)(struct hl_device *hdev);
@@ -1286,7 +1324,8 @@ int hl_nic_control(struct hl_device *hdev, u32 op, void *input,	void *output, st
 int hl_nic_ioctl_port_check(struct hl_device *hdev, u32 port, u32 flags);
 void hl_nic_cfg_lock_all(struct hl_device *hdev);
 void hl_nic_cfg_unlock_all(struct hl_device *hdev);
-struct hl_qp *hl_nic_get_qp_from_collective_conn(struct hl_nic_port *nic_port, u32 conn_id);
+struct hl_qp *hl_nic_get_qp_from_coll_conn_id(struct hl_nic_port *nic_port, u32 conn_id);
+bool hl_nic_is_scale_out_coll_type(u32 coll_conn_type);
 int hl_nic_qp_modify(struct hl_nic_port *nic_port, struct hl_qp *qp,
 			enum hl_nic_qp_state new_state, void *params);
 int hl_nic_sw_init(struct hl_device *hdev);
@@ -1353,6 +1392,7 @@ u64 hl_nic_reserve_wq_dva(struct hl_device *hdev, struct hl_ctx *ctx, struct hl_
 				u64 wq_arr_size, u32 type);
 int hl_nic_unreserve_wq_dva(struct hl_device *hdev, struct hl_ctx *ctx,
 				struct hl_nic_port *nic_port, u32 type);
+u32 hl_nic_get_wq_array_type(bool is_send, bool is_coll, bool is_scale_out);
 
 #ifndef _HAS_AUX_BUS_H
 extern int hl_en_probe(struct hl_aux_dev *aux_dev);

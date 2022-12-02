@@ -551,7 +551,7 @@ static int gaudi3_nic_debugfs_get_wqe(struct hl_nic_port *nic_port, void *wqe, u
 	u64 wq_size, wqe_offset, wq_size_cline_log;
 	u32 port, offset, type, wq_idx, min_id, max_id;
 	u8 wqe_size;
-	bool is_coll;
+	bool is_coll, is_scale_out_conn = false;
 	int rc = 0;
 
 	hdev = nic_port->hdev;
@@ -565,7 +565,8 @@ static int gaudi3_nic_debugfs_get_wqe(struct hl_nic_port *nic_port, void *wqe, u
 	if (is_coll) {
 		u32 coll_qp_offset = ELEMENT_OFFSET(port, NIC_MAX_COLL_QP_NUM);
 
-		nic_funcs->get_coll_qp_id_range(hdev, &min_id, &max_id);
+		is_scale_out_conn = qpn >= nic_port->scale_out_coll_qp_idx_offset;
+		nic_funcs->get_coll_qp_id_range(hdev, &min_id, &max_id, is_scale_out_conn);
 
 		min_id += coll_qp_offset;
 		max_id += coll_qp_offset;
@@ -576,7 +577,10 @@ static int gaudi3_nic_debugfs_get_wqe(struct hl_nic_port *nic_port, void *wqe, u
 			return -EINVAL;
 		}
 
-		wq_idx = qpn - nic_port->coll_qp_idx_offset;
+		if (is_scale_out_conn)
+			wq_idx = qpn - nic_port->scale_out_coll_qp_idx_offset;
+		else
+			wq_idx = qpn - nic_port->coll_qp_idx_offset;
 	} else {
 		port_funcs->get_qp_id_range(nic_port, &min_id, &max_id);
 
@@ -589,11 +593,7 @@ static int gaudi3_nic_debugfs_get_wqe(struct hl_nic_port *nic_port, void *wqe, u
 		wq_idx = qpn - nic_port->qp_idx_offset;
 	}
 
-	if (is_tx)
-		type = is_coll ? HL_NIC_USER_COLL_WQ_SEND : HL_NIC_USER_WQ_SEND;
-	else
-		type = is_coll ? HL_NIC_USER_COLL_WQ_RECV : HL_NIC_USER_WQ_RECV;
-
+	type = hl_nic_get_wq_array_type(is_tx, is_coll, is_scale_out_conn);
 	wq_arr_props = &nic_port->wq_arr_props[type];
 	offset = wq_arr_props->idx;
 

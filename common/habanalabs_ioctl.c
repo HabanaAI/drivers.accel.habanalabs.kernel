@@ -71,7 +71,7 @@ static u32 hl_nic_input_size[HL_NIC_OP_ALLOC_COLL_CONN + 1] = {
 	[HL_NIC_OP_USER_CCQ_UNSET] = sizeof(struct hl_nic_user_ccq_unset_in),
 	[HL_NIC_OP_USER_CQ_ID_SET] = sizeof(struct hl_nic_user_cq_id_set_in),
 	[HL_NIC_OP_USER_CQ_ID_UNSET] = sizeof(struct hl_nic_user_cq_id_unset_in),
-	[HL_NIC_OP_ALLOC_COLL_CONN] = 0,
+	[HL_NIC_OP_ALLOC_COLL_CONN] = sizeof(struct hl_nic_alloc_coll_conn_in),
 };
 
 static u32 hl_nic_output_size[HL_NIC_OP_ALLOC_COLL_CONN + 1] = {
