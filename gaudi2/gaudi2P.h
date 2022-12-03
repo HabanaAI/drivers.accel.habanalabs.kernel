@@ -522,7 +522,6 @@ struct dup_block_ctx {
  * @cong_q_err_cnt: error count of congestion queue error.
  * @qp_timeout_cnt: count of timeouts occurred on a port operating a QP.
  * @advanced: true if advanced features are supported.
- * @phy_fw_tuned_bitmap: represents on which lanes the PHY FW is tuned.
  * @qp_destroy_mac_lpbk: port in is MAC loopback due to QP destroy flow.
  */
 struct gaudi2_nic_port {
@@ -555,7 +554,6 @@ struct gaudi2_nic_port {
 	u32			qp_timeout_cnt;
 
 	u8			advanced;
-	u8			phy_fw_tuned_bitmap;
 	u8			qp_destroy_mac_lpbk;
 };
 

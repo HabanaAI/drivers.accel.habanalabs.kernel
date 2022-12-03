@@ -1570,20 +1570,18 @@ static u32 rv_debug(struct hl_device *hdev, u32 port, int lane, u32 mode, u32 in
 
 static int fw_tuning(struct hl_device *hdev, u32 port, int lane, bool pam4)
 {
-	u32 exp_state, state, mode;
+	u32 state, mode;
 
-	if (pam4) {
-		exp_state = 0x8F00;
-		mode = 2;
-	} else {
-		exp_state = 0x9A00;
-		mode = 1;
-	}
-
+	mode = pam4 ? 2 : 1;
 	state = rv_debug(hdev, port, lane, mode, 0);
 
-	if (((u16) state) != exp_state)
-		return -EAGAIN;
+	if (pam4) {
+		if (((u16) state) != 0x8F00 && ((u16) state) != 0x8F80)
+			return -EAGAIN;
+	} else {
+		if (((u16) state) != 0x9A00)
+			return -EAGAIN;
+	}
 
 	return 0;
 }
@@ -1622,7 +1620,6 @@ static void print_taps_after_tuning(struct hl_device *hdev, u32 port)
 
 static void do_fw_tuning(struct hl_nic_port *nic_port)
 {
-	struct gaudi2_nic_port *gaudi2_nic = nic_port->nic_specific;
 	struct hl_device *hdev = nic_port->hdev;
 	u32 card_location, port;
 	int lane, rc;
@@ -1633,9 +1630,6 @@ static void do_fw_tuning(struct hl_nic_port *nic_port)
 	pam4 = (nic_port->data_rate == NIC_DR_50);
 
 	for (lane = 0 ; lane < 2 ; lane++) {
-		if (gaudi2_nic->phy_fw_tuned_bitmap & BIT(lane))
-			continue;
-
 		rc = fw_tuning(hdev, port, lane, pam4);
 		if (rc) {
 			if (ktime_after(ktime_get(), nic_port->fw_tuning_limit_ts)) {
@@ -1645,12 +1639,12 @@ static void do_fw_tuning(struct hl_nic_port *nic_port)
 				hl_nic_phy_port_reconfig(nic_port);
 				return;
 			}
-		} else {
-			gaudi2_nic->phy_fw_tuned_bitmap |= BIT(lane);
+
+			break;
 		}
 	}
 
-	if (gaudi2_nic->phy_fw_tuned_bitmap == NIC_PHY_PORT_FW_TUNED) {
+	if (!rc) {
 		/* The control lock needs to be taken here in order to protect against a parallel
 		 * status set from the link event handler.
 		 * This lock also protects port close flow that destroys this thread synchronically,
@@ -2002,10 +1996,7 @@ int gaudi2_nic_phy_port_init(struct hl_nic_port *nic_port)
 
 void gaudi2_nic_phy_port_fini(struct hl_nic_port *nic_port)
 {
-	struct gaudi2_nic_port *gaudi2_nic = nic_port->nic_specific;
-
 	hl_nic_phy_fini(nic_port);
-	gaudi2_nic->phy_fw_tuned_bitmap = 0;
 }
 
 int gaudi2_nic_phy_reset_macro(struct hl_nic_macro *nic_macro)
