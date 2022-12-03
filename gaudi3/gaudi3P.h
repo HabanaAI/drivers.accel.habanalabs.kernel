@@ -383,7 +383,6 @@ typedef void (*gaudi3_nic_eq_handler)(struct gaudi3_nic_port *);
  * @raw_db_pool_offset: offset within the gen pool allocator
  * @raw_fifo_offset: actual offset of the fifo allocated
  * @advanced: true if advanced features are supported.
- * @phy_fw_tuned_bitmap: represents on which lanes the PHY FW is tuned.
  */
 struct gaudi3_nic_port {
 	struct hl_device	*hdev;
@@ -415,7 +414,6 @@ struct gaudi3_nic_port {
 	u32			raw_fifo_offset;
 
 	u8			advanced;
-	u8			phy_fw_tuned_bitmap;
 };
 
 /**
