@@ -3510,6 +3510,7 @@ struct hl_etr_buf_store {
  * @pci_mem_region: array of memory regions in the PCI
  * @state_dump_specs: constants and dictionaries needed to dump system state.
  * @multi_cs_completion: array of multi-CS completion.
+ * @etr_buf_store_completion: an array of completions per ETR trace fetching.
  * @clk_throttling: holds information about current/previous clock throttling events
  * @captured_err_info: holds information about errors.
  * @reset_info: holds current device reset information.
@@ -3712,6 +3713,9 @@ struct hl_device {
 
 	struct multi_cs_completion	multi_cs_completion[
 							MULTI_CS_MAX_USER_CTX];
+
+	struct completion		*etr_buf_store_completion;
+
 	struct hl_clk_throttle		clk_throttling;
 	struct hl_error_info		captured_err_info;
 
@@ -4314,7 +4318,7 @@ void hl_dec_fini(struct hl_device *hdev);
 void hl_dec_ctx_fini(struct hl_ctx *ctx);
 
 void hl_release_pending_user_interrupts(struct hl_device *hdev);
-void hl_abort_waitings_for_completion(struct hl_device *hdev);
+void hl_abort_waiting_for_cs_completions(struct hl_device *hdev);
 int hl_cs_signal_sob_wraparound_handler(struct hl_device *hdev, u32 q_idx,
 			struct hl_hw_sob **hw_sob, u32 count, bool encaps_sig);
 

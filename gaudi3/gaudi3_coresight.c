@@ -5980,11 +5980,11 @@ static int gaudi3_fetch_trace(struct hl_device *hdev, struct hl_debug_params *pa
 	struct hl_debug_params_fetch_trace *input = params->input;
 	struct asic_fixed_properties *prop = &hdev->asic_prop;
 	struct hl_etr_buf_store *store = &hdev->etr_buf_store;
+	int completion_rc, rc, etr_idx;
 	u32 *output = params->output;
 	unsigned long left_to_copy;
 	struct hl_etr_buf *buf;
 	u64 half_buf_size;
-	int rc, etr_idx;
 
 	half_buf_size = hdev->asic_prop.etr_buf_dram_size >> 1;
 
@@ -6001,15 +6001,25 @@ static int gaudi3_fetch_trace(struct hl_device *hdev, struct hl_debug_params *pa
 	if (input->buffer_size < half_buf_size)
 		return -EFBIG;
 
-	/* TODO: SW-109644: support non-zero timeout */
-	if (input->timeout_ms)
-		return -EINVAL;
+	/* We sleep until buffers are fetched from the AC, ready to be consumed */
+	completion_rc = wait_for_completion_interruptible_timeout(
+			&hdev->etr_buf_store_completion[etr_idx],
+			msecs_to_jiffies(input->timeout_ms));
 
-	buf = gaudi3_etr_buf_store_pop_buf(hdev, etr_idx);
-	if (!buf) {
+	if (completion_rc > 0) { /* Number of jiffies left till timeout */
+		buf = gaudi3_etr_buf_store_pop_buf(hdev, etr_idx);
+		if (!buf)
+			return -ENOMEM;
+		rc = 0;
+	} else if (completion_rc == 0) { /* Completion timed out (NOT considered a failure) */
 		*output = store->etr_trs[etr_idx].started ? HL_DEBUG_FETCH_STATUS_EMPTY :
 				HL_DEBUG_FETCH_STATUS_STOPPED;
 		return 0;
+	} else { /* Return value < 0 (-ERESTARTSYS) if interrupted */
+		dev_err_ratelimited(hdev->dev,
+			"user process got signal while waiting for a buffer fetched from ETR ID %d\n",
+			etr_idx);
+		return -EINTR;
 	}
 
 	*output = HL_DEBUG_FETCH_STATUS_OK;

@@ -5671,6 +5671,10 @@ void gaudi3_etr_buf_store_fini(struct hl_device *hdev)
 	if (!store->etr_trs)
 		return;
 
+	/* By now, all pending threads must NOT be waiting for completions anymore */
+	kfree(hdev->etr_buf_store_completion);
+	hdev->etr_buf_store_completion = NULL;
+
 	for (etr_idx = 0 ; etr_idx < hdev->asic_prop.etr_buf_number ; ++etr_idx) {
 		list_for_each_entry_safe(buf, tmp, &store->etr_trs[etr_idx].bufs, list_link) {
 			list_del(&buf->list_link);
@@ -5699,6 +5703,34 @@ void gaudi3_etr_buf_store_fini(struct hl_device *hdev)
 
 	store->etr_trs = NULL;
 	store->nbufs = 0;
+}
+
+/*
+ * hl_etr_buf_store_completion_init - init array of ETR buffer storing completion structures
+ *
+ * @hdev: pointer to habanalabs device structure
+ *
+ * Called to initialize completion mechanism used to signal the user when a buffer is
+ * fetched from the AC (Autonomous Controller), making it available for consumption.
+ */
+static int hl_etr_buf_store_completion_init(struct hl_device *hdev)
+{
+	struct asic_fixed_properties *prop = &hdev->asic_prop;
+	struct hl_etr_buf_store *store = &hdev->etr_buf_store;
+	int i;
+
+	if (!store->etr_trs)
+		return -ENODATA;
+
+	hdev->etr_buf_store_completion = kcalloc(prop->etr_buf_number,
+			sizeof(struct completion), GFP_KERNEL);
+	if (!hdev->etr_buf_store_completion)
+		return -ENOMEM;
+
+	for (i = 0 ; i < prop->etr_buf_number ; i++)
+		init_completion(&hdev->etr_buf_store_completion[i]);
+
+	return 0;
 }
 
 int gaudi3_etr_buf_store_init(struct hl_device *hdev)
@@ -5766,6 +5798,10 @@ int gaudi3_etr_buf_store_init(struct hl_device *hdev)
 	}
 
 	store->nbufs = store->min_bufs;
+
+	rc = hl_etr_buf_store_completion_init(hdev);
+	if (rc)
+		goto destroy_store;
 
 	goto out;
 
@@ -5941,6 +5977,9 @@ int gaudi3_etr_fetch_buffer_to_host(struct hl_device *hdev, u32 etr_idx,
 	list_add(&buf->list_link, &ets->bufs);
 
 	spin_unlock(&ets->lock);
+
+	/* Wake up the user-thread to consume the newly fetched buffer */
+	complete(&hdev->etr_buf_store_completion[etr_idx]);
 
 	return 0;
 }

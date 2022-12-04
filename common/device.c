@@ -1279,6 +1279,31 @@ static void take_release_locks(struct hl_device *hdev)
 	mutex_unlock(&hdev->nic_hw_access_lock);
 }
 
+static void hl_release_pending_etr_buf_store_threads(struct hl_device *hdev)
+{
+	struct asic_fixed_properties *prop = &hdev->asic_prop;
+	struct hl_etr_buf_store *store = &hdev->etr_buf_store;
+	int etr_idx;
+
+	if (!store->etr_trs || !store->etr_trs)
+		return;
+
+	for (etr_idx = 0 ; etr_idx < prop->etr_buf_number ; ++etr_idx)
+		complete_all(&hdev->etr_buf_store_completion[etr_idx]);
+}
+
+static void hl_abort_waiting_for_completions(struct hl_device *hdev)
+{
+	hl_abort_waiting_for_cs_completions(hdev);
+
+	/* Release all pending user interrupts, each pending user interrupt
+	 * holds a reference to a user context.
+	 */
+	hl_release_pending_user_interrupts(hdev);
+
+	hl_release_pending_etr_buf_store_threads(hdev);
+}
+
 static void cleanup_resources(struct hl_device *hdev, bool hard_reset, bool fw_reset,
 				bool skip_wq_flush)
 {
@@ -1298,10 +1323,7 @@ static void cleanup_resources(struct hl_device *hdev, bool hard_reset, bool fw_r
 	/* flush the MMU prefetch workqueue */
 	flush_workqueue(hdev->prefetch_wq);
 
-	/* Release all pending user interrupts, each pending user interrupt
-	 * holds a reference to user context
-	 */
-	hl_release_pending_user_interrupts(hdev);
+	hl_abort_waiting_for_completions(hdev);
 }
 
 /*
@@ -2039,7 +2061,7 @@ out:
 
 	hl_ctx_put(ctx);
 
-	hl_abort_waitings_for_completion(hdev);
+	hl_abort_waiting_for_completions(hdev);
 
 	return 0;
 
