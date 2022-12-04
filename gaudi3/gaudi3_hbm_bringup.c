@@ -105,7 +105,7 @@ static int poll_on_phy_init(struct hl_device *hdev, u32 dev)
 		hdev,
 		hbm_offset + mmD0_HBM0_MC0_BASE + mmMC_CH_DFI_PHY_INIT_COMPLETE,
 		reg_val,
-		((reg_val & D0_HBM0_MC0_DFI_PHY_INIT_COMPLETE_VAL_M) == 0x1),
+		((reg_val & MC_CH_DFI_PHY_INIT_COMPLETE_VAL_M) == 0x1),
 		sleep,
 		timeout);
 
@@ -201,7 +201,7 @@ static int phy_poll_on_training(struct hl_device *hdev, u32 hbm_dev)
 		hbm_dev,
 		mmD0_HBM0_PHY_P0_MASTER_BASE + mmHBM_PHY_P0_MASTER_TRAINSTATUS,
 		reg_val,
-		(reg_val & D0_HBM0_PHY_P0_MASTER_TRAINSTATUS_TRAINDONE_M),
+		(reg_val & HBM_PHY_P0_MASTER_TRAINSTATUS_TRAINDONE_M),
 		100,
 		timeout);
 

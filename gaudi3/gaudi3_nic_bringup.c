@@ -356,7 +356,7 @@ void gaudi3_nic_override_phy_readiness(struct hl_nic_port *nic_port, bool set_re
 
 	if (hdev->nic_lanes_per_port == PORT_LANES_4) {
 		if (set_ready)
-			val = D0_NIC0_MAC_AUX_PHY_SIG_DETECT_OVRD_SIG_DETECT_ASSERT_M;
+			val = PRT_MAC_AUX_PHY_SIG_DETECT_OVRD_SIG_DETECT_ASSERT_M;
 
 		NIC_WREG32(mmD0_NIC0_MAC_AUX_PHY_SIG_DETECT_OVRD, val);
 	} else if (hdev->nic_lanes_per_port == PORT_LANES_2) {

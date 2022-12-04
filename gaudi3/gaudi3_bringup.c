@@ -1616,7 +1616,7 @@ void gaudi3_init_arc(struct hl_device *hdev, u32 cpu_id)
 				FIELD_PREP(QMAN_ARC_AUX_CBU_AXCACHE_OVR_CBU_WR_EN_M, 0xF);
 		WREG32(reg_base + mmQMAN_ARC_AUX_CBU_AXCACHE_OVR, reg_val);
 
-		reg_val = FIELD_PREP(HD0_ARC_FARM_ARC0_AF_SB_ARCACHE_ARCACHE_M,
+		reg_val = FIELD_PREP(ARC_AF_ENG_SB_ARCACHE_ARCACHE_M,
 					AXCACHE_DO_NOT_SKIP_CACHE);
 		reg_base = gaudi3_sched_arc_af_blocks_bases[cpu_id];
 		WREG32(reg_base + mmARC_AF_ENG_SB_ARCACHE, reg_val);

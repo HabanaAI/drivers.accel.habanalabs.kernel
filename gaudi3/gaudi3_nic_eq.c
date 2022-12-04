@@ -169,8 +169,8 @@ static void gaudi3_nic_link_event_handler(struct gaudi3_nic_port *gaudi3_nic)
 	nic_macro = gaudi3_nic->nic_port->nic_macro;
 
 	curr_link_sts = (NIC_RREG32(mmD0_NIC0_MAC_CORE_BASE + mmPRT_MAC_CORE_PCS_REC_STS) &
-					D0_NIC0_MAC_CORE_PCS_REC_STS_LINK_STATUS_M) >>
-						D0_NIC0_MAC_CORE_PCS_REC_STS_LINK_STATUS_S;
+					PRT_MAC_CORE_PCS_REC_STS_LINK_STATUS_M) >>
+						PRT_MAC_CORE_PCS_REC_STS_LINK_STATUS_S;
 
 	/* get the change on the serdes by XOR with previous val */
 	link_sts_change = curr_link_sts ^ nic_macro->rec_link_sts;

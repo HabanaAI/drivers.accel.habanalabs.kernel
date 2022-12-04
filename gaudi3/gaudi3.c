@@ -7875,9 +7875,9 @@ static void gaudi3_halt_arc_farm_acp(struct hl_device *hdev, u32 arc_id)
 	offset = hdcore_id * HDCORE_OFFSET + sched_id * ARC_DUP_SCHED_OFFSET;
 
 	WREG32(mmHD0_ARC_FARM_ARC0_AF_BASE + offset + mmARC_AF_ENG_SB_HALT,
-			FIELD_PREP(HD0_ARC_FARM_ARC0_AF_SB_HALT_VAL_M, 0x1));
+			FIELD_PREP(ARC_AF_ENG_SB_HALT_VAL_M, 0x1));
 	WREG32(mmHD0_ARC_FARM_ARC0_AF_BASE + offset + mmARC_AF_ENG_DCCM_HALT,
-			FIELD_PREP(HD0_ARC_FARM_ARC0_AF_DCCM_HALT_VAL_M, 0x1));
+			FIELD_PREP(ARC_AF_ENG_DCCM_HALT_VAL_M, 0x1));
 }
 
 static void gaudi3_halt_arc_farm_acp_engines(struct hl_device *hdev)
