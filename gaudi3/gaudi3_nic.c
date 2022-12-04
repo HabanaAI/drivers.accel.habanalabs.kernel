@@ -3903,7 +3903,9 @@ static void gaudi3_nic_get_pfc_cnts(struct hl_aux_dev *aux_dev, u32 port, int pf
 	reg_addr += (4 * pfc_prio);
 
 	lo_part = NIC_OFFSET_RREG32(reg_addr);
-	hi_part = NIC_RREG32(mmD0_NIC0_MAC_GLOB_STAT_CONTROL_REG_DATA_HI);
+	hi_part = NIC_RREG32(mmD0_NIC0_MAC_GLOB_STAT_CONTROL_REG_BASE +
+						mmNIC_MAC_GLOB_STAT_CONTROL_REG_DATA_HI);
+
 	*indications = lo_part | (hi_part << 32);
 
 	offset = ELEMENT_OFFSET(port, MAC_GLOB_STAT_TX_NUM);
@@ -3913,7 +3915,8 @@ static void gaudi3_nic_get_pfc_cnts(struct hl_aux_dev *aux_dev, u32 port, int pf
 	reg_addr += (4 * pfc_prio);
 
 	lo_part = NIC_OFFSET_RREG32(reg_addr);
-	hi_part = NIC_RREG32(mmD0_NIC0_MAC_GLOB_STAT_CONTROL_REG_DATA_HI);
+	hi_part = NIC_RREG32(mmD0_NIC0_MAC_GLOB_STAT_CONTROL_REG_BASE +
+					mmNIC_MAC_GLOB_STAT_CONTROL_REG_DATA_HI);
 	*requests = lo_part | (hi_part << 32);
 }
 
@@ -4770,7 +4773,9 @@ static int gaudi3_nic_get_mac_tx_stats(struct hl_nic_port *nic_port, u64 *data)
 		/* Upper part must be read after lower part, since the upper part register
 		 * gets its value only after the lower part was read.
 		 */
-		hi_part = NIC_RREG32(mmD0_NIC0_MAC_GLOB_STAT_CONTROL_REG_DATA_HI);
+		hi_part = NIC_RREG32(mmD0_NIC0_MAC_GLOB_STAT_CONTROL_REG_BASE +
+						mmNIC_MAC_GLOB_STAT_CONTROL_REG_DATA_HI);
+
 		data[i] = lo_part | (hi_part << 32);
 	}
 
@@ -4799,7 +4804,9 @@ static int gaudi3_nic_get_mac_rx_stats(struct hl_nic_port *nic_port, u64 *data)
 		/* Upper part must be read after lower part, since the upper part register
 		 * gets its value only after the lower part was read.
 		 */
-		hi_part = NIC_RREG32(mmD0_NIC0_MAC_GLOB_STAT_CONTROL_REG_DATA_HI);
+		hi_part = NIC_RREG32(mmD0_NIC0_MAC_GLOB_STAT_CONTROL_REG_BASE +
+					mmNIC_MAC_GLOB_STAT_CONTROL_REG_DATA_HI);
+
 		data[i] = lo_part | (hi_part << 32);
 	}
 
@@ -4964,8 +4971,9 @@ static void gaudi3_nic_reset_mac_stats(struct hl_nic_port *nic_port)
 	struct hl_device *hdev = nic_port->hdev;
 	u32 port = nic_port->port;
 
-	NIC_WREG32(mmD0_NIC0_MAC_GLOB_STAT_CONTROL_REG_STATN_CONFIG,
-			   BIT(NIC_MAC_GLOB_STAT_CONTROL_REG_STATN_CONFIG_F_RESET_S));
+	NIC_WREG32(mmD0_NIC0_MAC_GLOB_STAT_CONTROL_REG_BASE +
+			mmNIC_MAC_GLOB_STAT_CONTROL_REG_STATN_CONFIG,
+		BIT(NIC_MAC_GLOB_STAT_CONTROL_REG_STATN_CONFIG_F_RESET_S));
 }
 
 void gaudi3_nic_read_mac_fec_stats(struct hl_nic_port *nic_port, u64 *data)
