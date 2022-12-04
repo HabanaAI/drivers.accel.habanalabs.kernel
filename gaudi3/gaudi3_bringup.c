@@ -2416,7 +2416,7 @@ static void gaudi3_ac_program(struct hl_device *hdev, u32 etr_idx)
 
 	/* Modify the number of commands, without the activation bit */
 	RMWREG32(mmD0_NCH_AC_BASE + mmAUTONOMOUS_CONTROL_CTRL + ac_off, i - 1,
-			D0_NCH_AC_CTRL_NUM_CMD_M);
+				AUTONOMOUS_CONTROL_CTRL_NUM_CMD_M);
 }
 
 static void gaudi3_ac_program_all(struct hl_device *hdev)
@@ -2435,7 +2435,8 @@ void gaudi3_ac_start(struct hl_device *hdev, u32 etr_idx)
 	store->etr_tracer[etr_idx].ac_started = 1;
 
 	/* TODO: this has to be done by FW, add mailbox for that */
-	RMWREG32(mmD0_NCH_AC_BASE + mmAUTONOMOUS_CONTROL_CTRL + base, 1, D0_NCH_AC_CTRL_EN_M);
+	RMWREG32(mmD0_NCH_AC_BASE + mmAUTONOMOUS_CONTROL_CTRL + base, 1,
+			AUTONOMOUS_CONTROL_CTRL_EN_M);
 }
 
 void gaudi3_ac_stop(struct hl_device *hdev, u32 etr_idx)
@@ -2446,7 +2447,8 @@ void gaudi3_ac_stop(struct hl_device *hdev, u32 etr_idx)
 	store->etr_tracer[etr_idx].ac_started = 0;
 
 	/* TODO: this has to be done by FW, add mailbox for that */
-	RMWREG32(mmD0_NCH_AC_BASE + mmAUTONOMOUS_CONTROL_CTRL + base, 0, D0_NCH_AC_CTRL_EN_M);
+	RMWREG32(mmD0_NCH_AC_BASE + mmAUTONOMOUS_CONTROL_CTRL + base, 0,
+			AUTONOMOUS_CONTROL_CTRL_EN_M);
 }
 
 int gaudi3_is_ac_started(struct hl_device *hdev, u32 etr_idx)

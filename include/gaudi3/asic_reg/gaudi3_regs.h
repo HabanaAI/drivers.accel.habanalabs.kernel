@@ -278,8 +278,6 @@
 #include "d0_nic0_mac_glob_stat_control_reg_regs.h"
 #include "hd1_sedma0_cmn_masks.h"
 #include "hd1_sedma0_ch0_masks.h"
-#include "d0_pmmu_pif_masks.h"
-#include "d0_nch_ac_masks.h"
 #include "hd0_sync_mngr_mstr_if_axuser_hbw_masks.h"
 #include "arc_af_eng_masks.h"
 #include "hd0_rrtr0_rtr_ctrl_rr_lbw_masks.h"
@@ -288,6 +286,7 @@
 #include "hd0_rrtr0_rtr_ctrl_ch0_razwi_hbw_regs.h"
 #include "d0_nic0_cs_dbg_bmon0_masks.h"
 #include "d0_nic0_cs_dbg_spmu_masks.h"
+#include "autonomous_control_masks.h"
 
 #define mmD0_PCIE_DBI_SNPS_BASE	0xC403000ull
 
