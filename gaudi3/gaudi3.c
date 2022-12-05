@@ -6378,6 +6378,12 @@ static int gaudi3_hw_init(struct hl_device *hdev)
 		return rc;
 	}
 
+	rc = gaudi3->cpucp_info_get(hdev);
+	if (rc) {
+		dev_err(hdev->dev, "Failed to get cpucp info\n");
+		return rc;
+	}
+
 	rc = gaudi3_mmu_init(hdev);
 	if (rc)
 		return rc;

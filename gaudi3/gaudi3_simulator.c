@@ -13,6 +13,8 @@
 #include "../common/simulator.h"
 #include "include/common/simulator.h"
 #include "include/common/pci_ids.h"
+#include "../include/gaudi3/gaudi3_reg_map.h"
+#include "../include/hw_ip/nic/nic_general.h"
 
 #include <linux/fs.h>
 #include <linux/delay.h>
@@ -815,6 +817,97 @@ static int gaudi3_sim_early_fini(struct hl_device *hdev)
 	return 0;
 }
 
+static void gaudi3_sim_get_nic_info(struct hl_device *hdev)
+{
+	struct cpucp_nic_info *nic_info = &hdev->asic_prop.cpucp_nic_info;
+
+	/* Assume HLS3 connections */
+	if (hdev->nic_lanes_per_port == PORT_LANES_2) {
+		nic_info->link_ext_mask[0] = cpu_to_le64(GAUDI3_HLS3_EXTERN_PORTS_MASK_200G_48TB);
+		nic_info->link_mask[0] = cpu_to_le64(GAUDI3_PORTS_MASK_200G);
+	} else {
+		nic_info->link_ext_mask[0] = cpu_to_le64(GAUDI3_HLS3_EXTERN_PORTS_MASK_400G_48TB);
+		nic_info->link_mask[0] = cpu_to_le64(GAUDI3_PORTS_MASK_400G);
+	}
+}
+
+static int gaudi3_sim_cpucp_info_get(struct hl_device *hdev)
+{
+	struct hl_simulator_device *edev =
+			gaudi3_simulator_dev_table[hdev->id];
+	struct gaudi3_device *gaudi3 = hdev->asic_specific;
+	struct asic_fixed_properties *prop = &hdev->asic_prop;
+	struct cpucp_nic_info *nic_info = &prop->cpucp_nic_info;
+	u64 dram_size;
+	int rc;
+
+	if (!(gaudi3->hw_cap_initialized & HW_CAP_CPU_Q)) {
+		/* Set nic_info by the driver because F/W is disabled on simulator. */
+		if (!hdev->ignore_fw_nic_info) {
+			gaudi3_sim_get_nic_info(hdev);
+			hdev->nic_ports_ext_mask &= le64_to_cpu(nic_info->link_ext_mask[0]);
+			hdev->nic_ports_mask &= le64_to_cpu(nic_info->link_mask[0]);
+			hdev->nic_auto_neg_mask &= le64_to_cpu(nic_info->auto_neg_mask[0]);
+		}
+
+		return 0;
+	}
+
+	/* No point of asking this information again when not doing hard reset, as the device
+	 * CPU hasn't been reset
+	 */
+	if (hdev->reset_info.in_compute_reset)
+		return 0;
+
+	rc = hl_fw_cpucp_handshake(hdev,
+			mmD0_PSOC_GLOBAL_CONF_BASE + mmCPU_BOOT_DEV_STS0,
+			mmD0_PSOC_GLOBAL_CONF_BASE + mmCPU_BOOT_DEV_STS1,
+			mmD0_PSOC_GLOBAL_CONF_BASE + mmCPU_BOOT_ERR0,
+			mmD0_PSOC_GLOBAL_CONF_BASE + mmCPU_BOOT_ERR1);
+	if (rc)
+		return rc;
+
+	if (!strlen(prop->cpucp_info.card_name))
+		strncpy(prop->cpucp_info.card_name, GAUDI3_DEFAULT_CARD_NAME, CARD_NAME_MAX_LEN);
+
+	/* Make sure we don't expose HWMON for simulator */
+	if (hdev->hl_chip_info->info) {
+		const struct hwmon_channel_info **channel_info_arr;
+		int i = 0;
+
+		channel_info_arr = hdev->hl_chip_info->info;
+
+		while (channel_info_arr[i]) {
+			kfree(channel_info_arr[i]->config);
+			kfree(channel_info_arr[i]);
+			i++;
+		}
+
+		kfree(channel_info_arr);
+
+		hdev->hl_chip_info->info = NULL;
+	}
+
+	dram_size = le64_to_cpu(prop->cpucp_info.dram_size);
+	if (dram_size) {
+		if (dram_size != edev->dram_size) {
+			dev_err(hdev->dev,
+				"F/W reported invalid HBM size %llu != %llu\n",
+				dram_size, edev->dram_size);
+			dram_size = edev->dram_size;
+		}
+
+		prop->dram_size = dram_size;
+		prop->dram_end_address = prop->dram_base_address + dram_size;
+	}
+
+	if (!hdev->ignore_fw_nic_info)
+		hdev->card_type =
+			le32_to_cpu(hdev->asic_prop.cpucp_info.card_type);
+
+	return 0;
+}
+
 static int gaudi3_sim_sw_init(struct hl_device *hdev)
 {
 	struct hl_nic *nic = &hdev->nic;
@@ -847,6 +940,7 @@ static int gaudi3_sim_sw_init(struct hl_device *hdev)
 		goto free_cpu_accessible_dma_pool;
 	}
 
+	gaudi3->cpucp_info_get = gaudi3_sim_cpucp_info_get;
 	hdev->asic_prop.supports_compute_reset = true;
 	hdev->asic_specific = gaudi3;
 
@@ -966,6 +1060,7 @@ static int gaudi3_sim_fw_config(struct hl_device *hdev)
 
 static int gaudi3_sim_hw_init(struct hl_device *hdev)
 {
+	struct gaudi3_device *gaudi3 = hdev->asic_specific;
 	struct hl_simulator_device *edev = gaudi3_simulator_dev_table[hdev->id];
 	int rc;
 
@@ -1008,6 +1103,12 @@ static int gaudi3_sim_hw_init(struct hl_device *hdev)
 	rc = gaudi3_init_cpu_queues(hdev, GAUDI3_CPU_TIMEOUT_USEC);
 	if (rc) {
 		dev_err(hdev->dev, "failed to initialize CPU H/W queues %d\n", rc);
+		return rc;
+	}
+
+	rc = gaudi3->cpucp_info_get(hdev);
+	if (rc) {
+		dev_err(hdev->dev, "Failed to get cpucp info\n");
 		return rc;
 	}
 

@@ -312,6 +312,16 @@ enum db_fifo_type_hw {
 #define PLAIN_RDMA_VALID_WQE_OPCODES \
 	(BIT(WQE_SEND) | BIT(WQE_LINEAR))
 
+#define GAUDI3_PORTS_MASK_200G 0xFFFFFF
+#define GAUDI3_PORTS_MASK_400G 0xFFF
+#define GAUDI3_HLS3_EXTERN_PORTS_MASK_200G_16TB 0x3003C0
+#define GAUDI3_HLS3_EXTERN_PORTS_MASK_200G_48TB GAUDI3_PORTS_MASK_200G
+#define GAUDI3_HLS3_EXTERN_PORTS_MASK_400G_48TB GAUDI3_PORTS_MASK_400G
+
+enum gaudi3_setup_type {
+	GAUDI3_SETUP_TYPE_HLS3,
+};
+
 u64 gaudi3_nic_get_macro_ports_mask(struct hl_nic_macro *nic_macro);
 int get_lane_offset(struct gaudi3_nic_port *gaudi3_nic);
 int get_resource_offset(struct hl_device *hdev, u32 port, int num_of_resources);
