@@ -4445,7 +4445,6 @@ static void gaudi3_hdcore_stlb_init(struct hl_device *hdev)
 {
 	u8 hdcore, num_dtlbs[NUM_OF_HDCORES_PER_DIE * MAX_NUM_OF_DIES] = {
 							10, 8, 10, 8, 8, 10, 8, 10};
-	struct gaudi3_device *gaudi3 = hdev->asic_specific;
 	u32 sob_off, sob_lbw_off, inc_sob_value, regval;
 	u64 sob_target;
 
@@ -4496,14 +4495,16 @@ static void gaudi3_hdcore_stlb_init(struct hl_device *hdev)
 				FIELD_PREP(STLB_CNTRL_MAIN_DTLB_NUM_M, num_dtlbs[hdcore]);
 		WREG32(address, val);
 	}
-
-	/* set STLB as initialized */
-	gaudi3->hw_cap_initialized |= HW_CAP_HMMU_MASK;
 }
 
 static void gaudi3_hbm_mmu_init(struct hl_device *hdev)
 {
+	struct gaudi3_device *gaudi3 = hdev->asic_specific;
+
 	if (!hdev->dram_enable || (hdev->mmu_enable != MMU_EN_ALL))
+		return;
+
+	if (gaudi3->hw_cap_initialized & HW_CAP_HMMU_MASK)
 		return;
 
 	dev_dbg(hdev->dev, "Initializing HBM MMU\n");
@@ -4513,6 +4514,9 @@ static void gaudi3_hbm_mmu_init(struct hl_device *hdev)
 	 * the function for better code readability
 	 */
 	gaudi3_hdcore_stlb_init(hdev);
+
+	/* set STLB as initialized */
+	gaudi3->hw_cap_initialized |= HW_CAP_HMMU_MASK;
 }
 
 void gaudi3_lbw_dup_init(struct hl_device *hdev)

@@ -2162,6 +2162,7 @@ static void gaudi3_hdcore_stlb_init_fw_config(struct hl_device *hdev)
 
 static void gaudi3_init_hbm_mmu_fw_config(struct hl_device *hdev)
 {
+	struct gaudi3_device *gaudi3 = hdev->asic_specific;
 	struct tlb_init_data dtlb_init_data;
 	struct iterate_module_ctx ctx = {
 		.fn = gaudi3_dtlb_init,
@@ -2169,6 +2170,9 @@ static void gaudi3_init_hbm_mmu_fw_config(struct hl_device *hdev)
 	};
 
 	if (!hdev->dram_enable || (hdev->mmu_enable != MMU_EN_ALL))
+		return;
+
+	if (gaudi3->hw_cap_initialized & HW_CAP_HMMU_MASK)
 		return;
 
 	dev_dbg(hdev->dev, "Initializing HBM MMU (FW init)\n");
