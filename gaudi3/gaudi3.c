@@ -813,6 +813,7 @@ struct gaudi3_mmu_maint_data {
  * @job_str: string describing the JOB, used for logging.
  * @src: PDMA source address.
  * @dst: PDMA destination address.
+ * @ch_idx: channel index ranging from 0-23.
  * @ch_reg_base: base address for PDMA channel registers.
  * @size: PDMA transfer size.
  * @is_memset: true if memset, otherwise false.
@@ -821,6 +822,7 @@ struct gaudi3_pdma_job_params {
 	char job_str[HL_STR_MAX];
 	u64 src;
 	u64 dst;
+	u32 ch_idx;
 	u32 ch_reg_base;
 	u32 size;
 	bool is_memset;
@@ -3365,6 +3367,8 @@ static int gaudi3_trigger_pdma_job_and_wait_for_cq_completion(struct hl_device *
 				GAUDI3_PDMA_TIMEOUT_USEC;
 
 	rc = gaudi3_trigger_job_and_wait_for_cq_completion(hdev, &cq_params);
+	if (rc)
+		gaudi3_pdma_print_debug_info(hdev, job_params->ch_idx);
 
 	/* Make sure to clear the ctrl register for the future use */
 	WREG32(job_params->ch_reg_base + PDMA_CH_A_CTX_OFFSET + mmPDMA_CH_A_CTX_CTRL_MAIN, 0);
@@ -5903,6 +5907,7 @@ int gaudi3_etr_fetch_buffer_to_host(struct hl_device *hdev, u32 etr_idx,
 	else
 		dram_src = ets->virt_dram_addr + half_buf_size;
 
+	job_params.ch_idx = KDMA_CH_ID;
 	job_params.ch_reg_base = gaudi3_pdma_get_ch_reg_base(hdev, KDMA_CH_ID);
 	job_params.src = dram_src;
 	job_params.dst = buf->data_device_va;
@@ -7743,6 +7748,170 @@ err_unreserve_va:
 	return rc;
 }
 
+static void gaudi3_err_cause_iterator(struct hl_device *hdev, u32 err_msk,
+					const char * const *err_tbl, char *initiator, char *type)
+{
+	u32 err_idx = 0;
+
+	dev_dbg(hdev->dev, "Error mask is 0x%X\n", err_msk);
+
+	while (err_msk) {
+		if (err_msk & 1)
+			dev_err_ratelimited(hdev->dev, "%s %s error: %s\n",
+					initiator, type, err_tbl[err_idx]);
+		err_idx++;
+		err_msk >>= 1;
+	}
+}
+
+static bool gaudi3_handle_err_cause_reg(struct hl_device *hdev, u64 err_cause_reg, bool clear_err,
+					const char * const *err_tbl, char *initiator, char *type,
+					u32 err_ignore_msk)
+{
+	u32 err_cause_val = RREG32(err_cause_reg) & (~err_ignore_msk);
+
+	if (!err_cause_val)
+		return false;
+
+	gaudi3_err_cause_iterator(hdev, err_cause_val, err_tbl, initiator, type);
+
+	if (clear_err)
+		WREG32(err_cause_reg, err_cause_val);
+
+	return true;
+}
+
+static void gaudi3_pdma_print_ch_sei_err(struct hl_device *hdev, u32 ch_idx)
+{
+	u64 err_cause_reg_offset, ch_err_cause_addr, ch_err_ignore_mask;
+	u32 ch_base_addr = gaudi3_pdma_get_ch_reg_base(hdev, ch_idx);
+	struct asic_fixed_properties *prop = &hdev->asic_prop;
+	u32 grp_idx = ch_idx / prop->pdma_grp_ch_max,
+		ch_idx_in_grp = ch_idx % prop->pdma_grp_ch_max;
+	char pdma_channel_name[SZ_128];
+
+	err_cause_reg_offset = PDMA_CH_B_OFFSET + mmPDMA_CH_B_ERR_STATUS;
+	ch_err_ignore_mask = PDMA_CH_B_ERR_STATUS_VALID_M; /* Ignore valid bit */
+	ch_err_cause_addr = ch_base_addr + err_cause_reg_offset;
+	snprintf(pdma_channel_name, sizeof(pdma_channel_name) - 1,
+			"PDMA group=%u, PDMA channel (in group)=%u", grp_idx, ch_idx_in_grp);
+
+	gaudi3_handle_err_cause_reg(hdev, ch_err_cause_addr, false,
+			gaudi3_pdma_sei_err_cause, pdma_channel_name, "SEI",
+			ch_err_ignore_mask);
+}
+
+static void gaudi3_pdma_print_ch_status(struct hl_device *hdev, u32 ch_idx)
+{
+	u32 str_size = 0, read_val, ch_addr = gaudi3_pdma_get_ch_reg_base(hdev, ch_idx);
+	char debug_str[SZ_256];
+	u16 max_size = SZ_256;
+	u64 reg_addr;
+
+	str_size += snprintf(debug_str + str_size, max_size - str_size,
+			"PDMA channel %u debug info:\n", ch_idx);
+
+	/* Channel status */
+	reg_addr = ch_addr + PDMA_CH_B_OFFSET + mmPDMA_CH_B_STS;
+	read_val = RREG32(reg_addr);
+
+	str_size += snprintf(debug_str + str_size, max_size - str_size,
+			"[CH_B_STS] is_busy=%u, is_halted=%u\n",
+			FIELD_GET(PDMA_CH_B_STS_IS_BUSY_M, read_val),
+			FIELD_GET(PDMA_CH_B_STS_IS_HALT_M, read_val));
+
+	/* Channel debug information */
+	reg_addr = ch_addr + PDMA_CH_B_OFFSET + mmPDMA_CH_B_DBG_STS;
+	read_val = RREG32(reg_addr);
+	str_size += snprintf(debug_str + str_size, max_size - str_size,
+			"[CH_B_DBG_STS] channel dbg info: 0x%X (default=0x929)\n", read_val);
+
+	dev_dbg(hdev->dev, "%s", debug_str);
+}
+
+static void gaudi3_pdma_print_grp_status(struct hl_device *hdev, u32 ch_idx)
+{
+	struct asic_fixed_properties *prop = &hdev->asic_prop;
+	u32 read_val, str_size = 0, grp_idx = ch_idx / prop->pdma_grp_ch_max,
+			grp_addr = gaudi3_pdma_grp_blocks_bases[grp_idx];
+	char debug_str[3 * SZ_256];
+	u16 max_size = 3 * SZ_256;
+	u64 reg_addr;
+	int i;
+
+	str_size += snprintf(debug_str + str_size, max_size - str_size,
+			"PDMA group %u debug info:\n", grp_idx);
+
+	/* Free counter of read contexts handled */
+	reg_addr = grp_addr + PDMA_CMN_B_OFFSET + mmPDMA_CMN_B_DBG_DESC_CNT;
+	read_val = RREG32(reg_addr);
+	str_size += snprintf(debug_str + str_size, max_size - str_size,
+			"[CMN_B_DBG_DESC_CNT] cyclic read desc cnt: %u\n",
+			read_val);
+
+	/* DMA-status. 'Idle' when:
+	 * 1. ~(hbw_rd_sts_busy | hbw_wr_sts_busy | ~data_pipe_empty)
+	 * 2. instage descriptor q empty
+	 * 3. wr comp fifo empty
+	 */
+	reg_addr = grp_addr + PDMA_CMN_B_OFFSET + mmPDMA_CMN_B_DMA_STATUS;
+	read_val = RREG32(reg_addr);
+	str_size += snprintf(debug_str + str_size, max_size - str_size,
+			"[CMN_B_DMA_STATUS] DMA sts (6 ch bitmap): HALT: 0x%X, and BUSY: 0x%X\n",
+			FIELD_GET(PDMA_CMN_B_DMA_STATUS_HALT_M, read_val),
+			FIELD_GET(PDMA_CMN_B_DMA_STATUS_IDLE_M, read_val));
+
+	if (!hdev->security_enable && !hdev->priv_security_enable) {
+		for (i = 0 ; i < prop->pdma_grp_ch_max ; ++i) {
+			reg_addr = grp_addr + PDMA_CMN_B_OFFSET +
+					(mmPDMA_CMN_B_CH_DESC_CREDITS_0 + sizeof(u32) * i);
+			read_val = RREG32(reg_addr);
+			str_size += snprintf(debug_str + str_size, max_size - str_size,
+					"[CMN_B_CH_DESC_CREDITS_%d] ch %d, credits num: %u\n",
+					i, i, read_val);
+		}
+	}
+
+	/* Common debug information */
+	reg_addr = grp_addr + PDMA_CMN_B_OFFSET + mmPDMA_CMN_B_DBG_STS;
+	read_val = RREG32(reg_addr);
+	str_size += snprintf(debug_str + str_size, max_size - str_size,
+			"[CMN_B_DBG_STS] grp dbg info: 0x%X (default=0x3E)\n", read_val);
+
+	/* hbw sb rd and wbc wr inflight num */
+	reg_addr = grp_addr + PDMA_CMN_B_OFFSET + mmPDMA_CMN_B_HBW_INFLIGHTS_STS;
+	read_val = RREG32(reg_addr);
+	str_size += snprintf(debug_str + str_size, max_size - str_size,
+			"[CMN_B_HBW_INFLIGHTS_STS] open read buffer req cnt: %u, AXI inflight writes cnt: %u\n",
+			FIELD_GET(PDMA_CMN_B_HBW_INFLIGHTS_STS_RSB_RD_M, read_val),
+			FIELD_GET(PDMA_CMN_B_HBW_INFLIGHTS_STS_WBC_WR_M, read_val));
+
+	/* lbw sb rd and wbc wr inflight num */
+	reg_addr = grp_addr + PDMA_CMN_B_OFFSET + mmPDMA_CMN_B_LBW_INFLIGHTS_STS;
+	read_val = RREG32(reg_addr);
+	str_size += snprintf(debug_str + str_size, max_size - str_size,
+			"[CMN_B_LBW_INFLIGHTS_STS] open read buffer req cnt: %u, AXI inflight writes cnt: %u\n",
+			FIELD_GET(PDMA_CMN_B_LBW_INFLIGHTS_STS_RSB_RD_M, read_val),
+			FIELD_GET(PDMA_CMN_B_LBW_INFLIGHTS_STS_WBC_WR_M, read_val));
+
+	/* BUSY and counters */
+	reg_addr = grp_addr + PDMA_CMN_B_OFFSET + mmPDMA_CMN_B_STS0;
+	read_val = RREG32(reg_addr);
+	str_size += snprintf(debug_str + str_size, max_size - str_size,
+			"[CMN_B_STS0] read req cnt: %u, write req cnt (excluding comp msg): %u\n",
+			FIELD_GET(PDMA_CMN_B_STS0_RD_REQ_CNT_M, read_val),
+			FIELD_GET(PDMA_CMN_B_STS0_WR_REQ_CNT_M, read_val));
+
+	dev_dbg(hdev->dev, "%s", debug_str);
+}
+
+void gaudi3_pdma_print_debug_info(struct hl_device *hdev, u32 ch_idx)
+{
+	gaudi3_pdma_print_ch_sei_err(hdev, ch_idx);
+	gaudi3_pdma_print_ch_status(hdev, ch_idx);
+	gaudi3_pdma_print_grp_status(hdev, ch_idx);
+}
+
 static int gaudi3_test_pdma_access(struct hl_device *hdev, u32 ch_idx, bool is_dram_test)
 {
 	struct asic_fixed_properties *prop = &hdev->asic_prop;
@@ -7823,6 +7992,7 @@ static int gaudi3_test_pdma_access(struct hl_device *hdev, u32 ch_idx, bool is_d
 		gaudi3_config_pdma_ch_protection(hdev, ch_reg_base, true);
 
 	/* prepare JOB params */
+	job_params.ch_idx = ch_idx;
 	job_params.ch_reg_base = ch_reg_base;
 	job_params.src = host_va;
 	job_params.dst = device_va;
@@ -7882,6 +8052,9 @@ static int gaudi3_test_pdma_access(struct hl_device *hdev, u32 ch_idx, bool is_d
 		dev_err(hdev->dev, "PDMA ch %u test Device <--> Host, data validation failed",
 				ch_idx);
 revert_prot_lvl:
+	if (rc)
+		gaudi3_pdma_print_debug_info(hdev, ch_idx);
+
 	/* Revert channel's prior security level and bypass mode */
 	if (prop->pdma_user_owned_ch_mask & BIT(ch_idx))
 		gaudi3_config_pdma_ch_protection(hdev, ch_reg_base, false);
@@ -7934,6 +8107,7 @@ static int gaudi3_test_kdma_access(struct hl_device *hdev)
 	/* prepare JOB params */
 
 	/* KDMA is the 1st channel in the 1st PDMA group */
+	job_params.ch_idx = KDMA_CH_ID;
 	job_params.ch_reg_base = gaudi3_pdma_get_ch_reg_base(hdev, KDMA_CH_ID);
 	job_params.src = host_mem_dma_addr;
 	job_params.dst = regs_dma_address;
@@ -9990,39 +10164,6 @@ static void gaudi3_print_irq_info(struct hl_device *hdev, u16 event_type)
 		snprintf(desc, sizeof(desc), "N/A");
 
 	dev_err_ratelimited(hdev->dev, "Received H/W interrupt %d [\"%s\"]\n", event_type, desc);
-}
-
-static void gaudi3_err_cause_iterator(struct hl_device *hdev, u32 err_msk,
-					const char * const *err_tbl, char *initiator, char *type)
-{
-	u32 err_idx = 0;
-
-	dev_dbg(hdev->dev, "Error mask is 0x%X\n", err_msk);
-
-	while (err_msk) {
-		if (err_msk & 1)
-			dev_err_ratelimited(hdev->dev, "%s %s error: %s\n",
-					initiator, type, err_tbl[err_idx]);
-		err_idx++;
-		err_msk >>= 1;
-	}
-}
-
-static bool gaudi3_handle_err_cause_reg(struct hl_device *hdev, u64 err_cause_reg, bool clear_err,
-					const char * const *err_tbl, char *initiator, char *type,
-					u32 err_ignore_msk)
-{
-	u32 err_cause_val = RREG32(err_cause_reg) & (~err_ignore_msk);
-
-	if (!err_cause_val)
-		return false;
-
-	gaudi3_err_cause_iterator(hdev, err_cause_val, err_tbl, initiator, type);
-
-	if (clear_err)
-		WREG32(err_cause_reg, err_cause_val);
-
-	return true;
 }
 
 static void gaudi3_pdma_mask_err_int(struct hl_device *hdev,
