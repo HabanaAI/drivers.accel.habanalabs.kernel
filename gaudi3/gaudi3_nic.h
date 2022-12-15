@@ -41,7 +41,8 @@
 #define NIC_MAX_RC_MTU		SZ_8K
 
 /* This is the max frame length the H/W supports (Tx/Rx) */
-#define NIC_MAX_FRM_LEN		(NIC_MAX_RC_MTU + NIC_CACHE_LINE_SIZE)
+#define NIC_MAX_RDMA_HDRS	128
+#define NIC_MAX_FRM_LEN		(NIC_MAX_RC_MTU + NIC_MAX_RDMA_HDRS)
 #define NIC_RAW_MIN_MTU		(SZ_1K - HL_EN_MAX_HEADERS_SZ)
 #define NIC_RAW_MAX_MTU		(NIC_MAX_RC_MTU - HL_EN_MAX_HEADERS_SZ)
 

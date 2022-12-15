@@ -8,6 +8,7 @@
 #include "gaudi3_nic.h"
 #include "../include/gaudi3/asic_reg/gaudi3_regs.h"
 #include "../include/hw_ip/nic/nic_general.h"
+#include "uapi/misc/habanalabs.h"
 #include <uapi/linux/ethtool.h>
 #include <linux/etherdevice.h>
 #include <linux/pci.h>
@@ -32,10 +33,10 @@
 #define db_fifo_offset(id) ((id) * 4)
 
 /* User encapsulation IDs */
-#define GAUDI3_NO_ENCAP_ID(port)	ELEMENT_OFFSET((port), TXE_ENCAP_NUM)
-#define GAUDI3_MIN_ENCAP_ID(port)	(GAUDI3_NO_ENCAP_ID(port) + 1)
+#define GAUDI3_DEFAULT_ENCAP_ID(port)	ELEMENT_OFFSET((port), TXE_ENCAP_NUM)
+#define GAUDI3_MIN_ENCAP_ID(port)	(GAUDI3_DEFAULT_ENCAP_ID(port) + 1)
 #define GAUDI3_MAX_ENCAP_ID(port)	\
-				(GAUDI3_NO_ENCAP_ID(port) + ELEMENT_COUNT(TXE_ENCAP_NUM) - 1)
+				(GAUDI3_DEFAULT_ENCAP_ID(port) + ELEMENT_COUNT(TXE_ENCAP_NUM) - 1)
 
 #define GAUDI3_CQ_RAW_IDX(port)	(GAUDI3_RAW_OFFSET + ELEMENT_OFFSET((port), CQ_UMR_NUM))
 
@@ -112,8 +113,12 @@
 #define NIC_TMR_TIMEOUT_US		1000 /* 1 msec */
 
 #define IPv4_PROTOCOL_UDP	17
+#define IPv4_PROTOCOL_DUMMY	200
 
 #define PERF_BW_DIV		1000000
+
+/* As part of the ECO support for H9-5384, lower part of DECAP mask must be 0*/
+#define RX_DROP_ECO_DCAP_UNSET_MASK	0xFFFF
 
 static int gaudi3_encap_set(struct hl_nic_port *nic_port, u32 encap_id,
 				struct hl_nic_encap_idr_pdata *idr_pdata);
@@ -2226,12 +2231,12 @@ static bool is_valid_mtu(u16 mtu)
 	return (mtu == SZ_1K) || (mtu == SZ_2K) || (mtu == SZ_4K) || (mtu == SZ_8K);
 }
 
-static void gaudi3_get_no_encap_id(struct hl_nic_port *nic_port, u32 *id)
+static void gaudi3_get_default_encap_id(struct hl_nic_port *nic_port, u32 *id)
 {
 	struct hl_device *hdev = nic_port->hdev;
 	u32 port = nic_port->port;
 
-	*id = GAUDI3_NO_ENCAP_ID(port);
+	*id = GAUDI3_DEFAULT_ENCAP_ID(port);
 }
 
 static int get_src_ip(struct hl_nic_port *nic_port, u32 *src_ip)
@@ -2251,8 +2256,9 @@ static int get_src_ip(struct hl_nic_port *nic_port, u32 *src_ip)
 static void gaudi3_set_ip_addr_encap(struct hl_nic_port *nic_port, u32 *encap_id, u32 src_ip)
 {
 	struct hl_nic_encap_idr_pdata encap_data;
+	uint8_t dummy_hdr[NIC_MAX_TNL_HDR_SIZE] = {};
 
-	gaudi3_get_no_encap_id(nic_port, encap_id);
+	gaudi3_get_default_encap_id(nic_port, encap_id);
 
 	if (!src_ip && get_src_ip(nic_port, &src_ip)) {
 		dev_dbg(nic_port->hdev->dev, "failed to get interface IP, using 0\n");
@@ -2262,10 +2268,20 @@ static void gaudi3_set_ip_addr_encap(struct hl_nic_port *nic_port, u32 *encap_id
 	encap_data.port = nic_port->port;
 	encap_data.id = *encap_id;
 	encap_data.src_ip = src_ip;
-	encap_data.encap_type = HL_NIC_ENCAP_NONE;
-	encap_data.encap_type_data = IPv4_PROTOCOL_UDP;
-	encap_data.encap_header = NULL;
-	encap_data.encap_header_size = 0;
+
+	if (nic_port->hdev->nic_enable_h9_rx_drop_eco) {
+		memset(dummy_hdr, 0xa5, sizeof(dummy_hdr));
+		encap_data.encap_type = HL_NIC_ENCAP_OVER_IPV4;
+		encap_data.encap_type_data = IPv4_PROTOCOL_DUMMY;
+		encap_data.encap_header = dummy_hdr;
+		encap_data.encap_header_size = sizeof(dummy_hdr);
+
+	} else {
+		encap_data.encap_type = HL_NIC_ENCAP_NONE;
+		encap_data.encap_type_data = IPv4_PROTOCOL_UDP;
+		encap_data.encap_header = NULL;
+		encap_data.encap_header_size = 0;
+	}
 
 	gaudi3_encap_set(nic_port, *encap_id, &encap_data);
 }
@@ -2274,6 +2290,8 @@ static int gaudi3_nic_set_req_qp_ctx(struct hl_device *hdev,
 				struct hl_nic_req_conn_ctx_in *in,
 				struct hl_qp *qp)
 {
+	u32 congestion_wnd, log_wq_size, port, priority, encap_id, wq_base_addr, wq_idx_offset,
+		encap_en;
 	struct gaudi3_qpc_requester req_qpc;
 	struct gaudi3_nic_port *gaudi3_nic;
 	struct hl_nic *nic = &hdev->nic;
@@ -2282,7 +2300,6 @@ static int gaudi3_nic_set_req_qp_ctx(struct hl_device *hdev,
 	struct gaudi3_device *gaudi3;
 	struct hl_nic_port *nic_port;
 	struct hl_aux_dev *aux_dev;
-	u32 congestion_wnd, log_wq_size, port, priority, encap_id, wq_base_addr, wq_idx_offset;
 	bool loopback, plain_rdma;
 	u8 mac[ETH_ALEN], cqn;
 	int logical_port, rc;
@@ -2317,6 +2334,16 @@ static int gaudi3_nic_set_req_qp_ctx(struct hl_device *hdev,
 
 	if (normalize_priority(hdev, in->priority, TS_RC, true, &priority)) {
 		dev_dbg(hdev->dev, "Unsupported priority value %u, port %d\n", in->priority, port);
+		return -EINVAL;
+	}
+
+	/* H9-5384: Below configuration isn't valid due to H/W bug, i.e.: using encap_id for src IP
+	 * settings w/o encapsulation isn't allowed.
+	 */
+	if (hdev->nic_enable_h9_rx_drop_eco && !in->encap_en && in->encap_id) {
+		dev_dbg(hdev->dev,
+			"Encapsulation ID %d can't be set when encapsulation disable, port %d\n",
+			in->encap_id, port);
 		return -EINVAL;
 	}
 
@@ -2448,13 +2475,17 @@ static int gaudi3_nic_set_req_qp_ctx(struct hl_device *hdev,
 	REQ_QPC_SET_MAX_MDF(req_qpc, 2);
 	REQ_QPC_SET_TARGET_DELAY(req_qpc, 1000);
 
-
-	if (in->encap_en || in->encap_id)
+	if (in->encap_en || (!hdev->nic_enable_h9_rx_drop_eco && in->encap_id))
 		encap_id = in->encap_id;
 	else
-		gaudi3_get_no_encap_id(nic_port, &encap_id);
+		gaudi3_get_default_encap_id(nic_port, &encap_id);
 
-	REQ_QPC_SET_ENCAP_ENABLE(req_qpc, in->encap_en);
+	if (hdev->nic_enable_h9_rx_drop_eco)
+		encap_en = 1;
+	else
+		encap_en = in->encap_en;
+
+	REQ_QPC_SET_ENCAP_ENABLE(req_qpc, encap_en);
 	REQ_QPC_SET_ENCAP_TYPE(req_qpc, encap_id);
 
 	loopback = !!in->loopback;
@@ -2495,7 +2526,7 @@ static int gaudi3_nic_set_res_qp_ctx(struct hl_device *hdev,
 	struct gaudi3_nic_port *gaudi3_nic;
 	struct hl_nic_user_cq *user_cq;
 	bool loopback, plain_rdma, atomic_fna;
-	u32 port = in->port, encap_id, priority;
+	u32 port = in->port, encap_id, priority, encap_en;
 	u8 mac[ETH_ALEN], cqn;
 	int logical_port, rc;
 
@@ -2539,6 +2570,16 @@ static int gaudi3_nic_set_res_qp_ctx(struct hl_device *hdev,
 				return -EINVAL;
 			}
 		}
+	}
+
+	/* H9-5384: Below configuration isn't valid due to H/W bug, i.e.: using encap_id for src IP
+	 * settings w/o encapsulation isn't allowed.
+	 */
+	if (hdev->nic_enable_h9_rx_drop_eco && !in->encap_en && in->encap_id) {
+		dev_dbg(hdev->dev,
+			"Encapsulation ID %d can't be set when encapsulation disable, port %d\n",
+			in->encap_id, port);
+		return -EINVAL;
 	}
 
 	if (in->cq_number) {
@@ -2648,12 +2689,18 @@ static int gaudi3_nic_set_res_qp_ctx(struct hl_device *hdev,
 	atomic_fna = !!gaudi3_nic->advanced;
 	RES_QPC_SET_ATOMIC_FA_EN(res_qpc, atomic_fna);
 
-	if (in->encap_en || in->encap_id)
+
+	if (in->encap_en || (!hdev->nic_enable_h9_rx_drop_eco && in->encap_id))
 		encap_id = in->encap_id;
 	else
-		gaudi3_get_no_encap_id(nic_port, &encap_id);
+		gaudi3_get_default_encap_id(nic_port, &encap_id);
 
-	RES_QPC_SET_ENCAP_ENABLE(res_qpc, in->encap_en);
+	if (hdev->nic_enable_h9_rx_drop_eco)
+		encap_en = 1;
+	else
+		encap_en = in->encap_en;
+
+	RES_QPC_SET_ENCAP_ENABLE(res_qpc, encap_en);
 	RES_QPC_SET_ENCAP_TYPE(res_qpc, encap_id);
 
 	RES_QPC_SET_VALID(res_qpc, 1);
@@ -4622,13 +4669,26 @@ static int gaudi3_encap_set(struct hl_nic_port *nic_port, u32 encap_id,
 		NIC_OFFSET_WREG32(mmD0_NIC0_TXE_ENCAP_DATA_31_0_0 + encap_hdr_offset * i,
 					encap_header[i]);
 
-	if (!hdev->nic.is_decap_disabled) {
-		NIC_OFFSET_WREG32(mmD0_NIC0_RXB_CORE_PRT_TNL_DECAP_MASK_0,
-					D0_NIC0_RXB_CORE_PRT_TNL_DECAP_MASK_VAL_M);
-		NIC_OFFSET_WREG32(mmD0_NIC0_RXB_CORE_PRT_TNL_DECAP_ENTRY_0, decap_cfg);
-	}
-
 	NIC_OFFSET_WREG32(mmD0_NIC0_TXE_ENCAP_CFG_0, encap_cfg);
+
+	if (!hdev->nic.is_decap_disabled) {
+		NIC_OFFSET_WREG32(mmD0_NIC0_RXB_CORE_PRT_TNL_DECAP_ENTRY_0, decap_cfg);
+
+		/* As part of the ECO support for H9-5384, lower part of DECAP mask must be 0
+		 * Even though at the time of writing these lines, there are no writes to this
+		 * register, make sure the lower bits are always set to 0.
+		 */
+		if (hdev->nic_enable_h9_rx_drop_eco) {
+			uint32_t tnl_decap_mask;
+
+			tnl_decap_mask = NIC_OFFSET_RREG32(mmD0_NIC0_RXB_CORE_PRT_TNL_DECAP_MASK_0);
+			if (tnl_decap_mask & RX_DROP_ECO_DCAP_UNSET_MASK) {
+				dev_dbg(hdev->dev, "Decap mask 0x%x is not valid\n",
+					tnl_decap_mask);
+				return -EINVAL;
+			}
+		}
+	}
 
 	return 0;
 }
