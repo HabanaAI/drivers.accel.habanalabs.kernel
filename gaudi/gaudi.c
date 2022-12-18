@@ -702,6 +702,8 @@ int gaudi_set_fixed_properties(struct hl_device *hdev)
 
 	prop->dma_mask = 48;
 
+	prop->hbw_flush_reg = mmPCIE_WRAP_RR_ELBI_RD_SEC_REG_CTRL;
+
 	/* Fuse properties */
 	prop->fuse_read_reg = mmPSOC_EFUSE_READ;
 	prop->fuse_data_0_reg = mmPSOC_EFUSE_DATA_0;

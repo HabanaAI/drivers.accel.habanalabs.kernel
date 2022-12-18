@@ -2841,6 +2841,8 @@ int gaudi3_set_fixed_properties(struct hl_device *hdev)
 	prop->max_dec = NUMBER_OF_DEC;
 	prop->supports_odp = true;
 
+	prop->hbw_flush_reg = mmD0_PCIE_WRAP_SPECIAL_BASE + mmPCIE_WRAP_SPECIAL_GLBL_SPARE_0;
+
 	nic_prop->max_hw_qps_num = NIC_HW_MAX_QP_NUM;
 	nic_prop->max_qps_num = ELEMENT_COUNT(NIC_MAX_GEN_QP_NUM);
 	nic_prop->max_hw_user_wqs_num = USER_WQES_MAX_NUM;

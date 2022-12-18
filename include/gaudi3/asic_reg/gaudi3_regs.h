@@ -45,6 +45,7 @@
 #include "d0_nic0_txe_special_regs.h"
 #include "d0_nic0_txb_special_regs.h"
 #include "d0_nic0_rxb_core_special_regs.h"
+#include "pcie_wrap_special_regs.h"
 
 #include "pdma_cmn_b_masks.h"
 #include "pdma_cmn_b_pqm_cmn_b_masks.h"
