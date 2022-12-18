@@ -1607,6 +1607,10 @@ static void fixup_device_params_per_asic(struct hl_device *hdev, int timeout)
 		if (!nic_poll_enable_param_was_set)
 			hdev->nic_poll_enable = false;
 
+		/* DRAM cannot be used if SRAM is enabled */
+		if (!hdev->cache_enable)
+			hdev->dram_enable = 0;
+
 		break;
 
 	default:
