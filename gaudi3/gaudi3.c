@@ -7912,7 +7912,7 @@ void gaudi3_pdma_print_debug_info(struct hl_device *hdev, u32 ch_idx)
 	gaudi3_pdma_print_grp_status(hdev, ch_idx);
 }
 
-static int gaudi3_test_pdma_access(struct hl_device *hdev, u32 ch_idx, bool is_dram_test)
+static int gaudi3_test_pdma_access(struct hl_device *hdev, u32 ch_idx)
 {
 	struct asic_fixed_properties *prop = &hdev->asic_prop;
 	u64 device_data, device_addr, host_va, device_va, device_phys_addr;
@@ -7922,6 +7922,7 @@ static int gaudi3_test_pdma_access(struct hl_device *hdev, u32 ch_idx, bool is_d
 	u32 val, *host_ptr, ch_reg_base;
 	dma_addr_t host_mem_dma_addr;
 	enum pci_region region_type;
+	bool is_dram_test;
 	uint i;
 
 	if (!(gaudi3->hw_cap_pdma_initialized & BIT(ch_idx)))
@@ -7931,10 +7932,8 @@ static int gaudi3_test_pdma_access(struct hl_device *hdev, u32 ch_idx, bool is_d
 	if (hdev->cache_enable && !hdev->dram_enable)
 		return 0;
 
-	if (hdev->cache_enable) /* we don't have SRAM - force DRAM test */
-		is_dram_test = true;
-	else if (!hdev->dram_enable) /* we don't have DRAM - force SRAM test */
-		is_dram_test = false;
+	/* Either DRAM or SRAM is enabled */
+	is_dram_test = !!hdev->cache_enable;
 
 	if (is_dram_test) {
 		region_type = PCI_REGION_DRAM;
@@ -8272,14 +8271,11 @@ free_pkt:
 int gaudi3_test_queues(struct hl_device *hdev)
 {
 	int rc = 0, i;
-	bool is_dram_test = false;
 
 	dev_dbg(hdev->dev, "Testing PDMA access on %u channels\n", hdev->asic_prop.pdma_ch_max);
 
-	for (i = 0 ; i < hdev->asic_prop.pdma_ch_max ; i++) {
-		rc |= gaudi3_test_pdma_access(hdev, i, is_dram_test);
-		is_dram_test = !is_dram_test;
-	}
+	for (i = 0 ; i < hdev->asic_prop.pdma_ch_max ; i++)
+		rc |= gaudi3_test_pdma_access(hdev, i);
 
 	if (rc)
 		return rc;
