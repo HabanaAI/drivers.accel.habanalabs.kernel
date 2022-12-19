@@ -3144,91 +3144,13 @@ static void gaudi2_nic_kernel_ctx_fini(struct hl_ctx *ctx)
 
 static int gaudi2_nic_pre_core_init(struct hl_device *hdev)
 {
-	struct cpucp_nic_info *nic_info = &hdev->asic_prop.cpucp_nic_info;
-	struct hl_nic_properties *nic_prop = &hdev->asic_prop.nic_props;
-	struct cpucp_mac_addr *mac_arr = nic_info->mac_addrs;
-	struct cpucp_info *cpucp_info = &hdev->asic_prop.cpucp_info;
 	struct gaudi2_device *gaudi2 = hdev->asic_specific;
-	struct hl_nic *nic = &hdev->nic;
-	u64 nic_dram_alloc_size;
-	u32 card_location, serdes_type = MAX_NUM_SERDES_TYPE;
-	u8 mac[ETH_ALEN], *mac_addr;
-	int i;
 
-	nic_dram_alloc_size = nic_prop->nic_drv_end_addr - nic_prop->nic_drv_base_addr;
-	if (nic_dram_alloc_size > nic_prop->nic_drv_size) {
-		dev_err(hdev->dev, "DRAM allocation for NIC (%lluMB) shouldn't exceed %lluMB\n",
-			div_u64(nic_dram_alloc_size, SZ_1M),
-			div_u64(nic_prop->nic_drv_size, SZ_1M));
-		return -ENOMEM;
-	}
+	/* This case is handled as part of gaudi2_cpucp_info_get() */
+	if ((gaudi2->hw_cap_initialized & HW_CAP_CPU_Q) && !hdev->ignore_fw_nic_info)
+		return 0;
 
-	/* copy the MAC OUI in reverse */
-	for (i = 0 ; i < 3 ; i++)
-		mac[i] = HABANALABS_MAC_OUI_1 >> (8 * (2 - i));
-
-	if ((gaudi2->hw_cap_initialized & HW_CAP_CPU_Q) && !hdev->ignore_fw_nic_info) {
-		serdes_type = le16_to_cpu(nic_info->serdes_type);
-
-		for (i = 0 ; i < NIC_NUMBER_OF_PORTS ; i++) {
-			if (!(hdev->nic_ports_mask & BIT(i)))
-				continue;
-
-			mac_addr = mac_arr[i].mac_addr;
-			if (strncmp(mac, mac_addr, 3)) {
-				dev_err(hdev->dev, "bad MAC OUI %pM, port %d\n", mac_addr, i);
-				return -EFAULT;
-			}
-		}
-
-		nic->card_location = le32_to_cpu(cpucp_info->card_location);
-
-		/* LKD will use the FW serdes info only in case of HLS2 setup */
-		if (hdev->gaudi2_setup_type == GAUDI2_SETUP_TYPE_HLS2) {
-			gaudi2_nic_get_fw_lane_mapping(nic_info, nic);
-			nic->use_fw_serdes_info = true;
-		}
-	} else {
-		/*
-		 * No CPU, hence set the MAC addresses manually.
-		 * Each device will have its own unique MAC random.
-		 */
-		get_random_bytes(&mac[3], 2);
-
-		for (i = 0 ; i < NIC_NUMBER_OF_PORTS ; i++) {
-			mac[ETH_ALEN - 1] = i;
-			memcpy(mac_arr[i].mac_addr, mac, ETH_ALEN);
-		}
-
-		if (!(hdev->fw_components & FW_TYPE_BOOT_CPU)) {
-			card_location = RREG32(mmPSOC_GLOBAL_CONF_BOOT_STRAP_PINS_H);
-			serdes_type = card_location;
-			card_location &= PSOC_GLOBAL_CONF_BOOT_STRAP_PINS_H_I2C_SLV_ADDR_MASK;
-			card_location >>= PSOC_GLOBAL_CONF_BOOT_STRAP_PINS_H_I2C_SLV_ADDR_SHIFT;
-			cpucp_info->card_location = cpu_to_le32(card_location);
-			nic->card_location = card_location;
-			serdes_type &= PSOC_GLOBAL_CONF_BOOT_STRAP_PINS_H_RERERVED_STRAP_MASK;
-			serdes_type >>= PSOC_GLOBAL_CONF_BOOT_STRAP_PINS_H_RERERVED_STRAP_SHIFT;
-		} else {
-			dev_warn(hdev->dev, "can't read card location as FW security is enabled\n");
-		}
-	}
-
-	switch (serdes_type) {
-	case HLS2_SERDES_TYPE:
-		hdev->asic_prop.server_type = HL_SERVER_GAUDI2_HLS2;
-		break;
-	case HLS2_TYPE_1_SERDES_TYPE:
-		hdev->asic_prop.server_type = HL_SERVER_GAUDI2_TYPE1;
-		break;
-	default:
-		hdev->asic_prop.server_type = HL_SERVER_TYPE_UNKNOWN;
-		break;
-	}
-
-	gaudi2_nic_phy_init(hdev);
-
-	return 0;
+	return gaudi2_nic_set_info(hdev, false);
 }
 
 static void gaudi2_nic_set_speed(struct hl_device *hdev)
@@ -3548,10 +3470,94 @@ static void gaudi2_nic_macros_hw_config(struct hl_device *hdev)
 	}
 }
 
-static int gaudi2_nic_core_init(struct hl_device *hdev)
+int gaudi2_nic_set_info(struct hl_device *hdev, bool get_from_fw)
 {
-	struct hl_nic_properties *nic_prop = &hdev->asic_prop.nic_props;
+	struct cpucp_nic_info *nic_info = &hdev->asic_prop.cpucp_nic_info;
+	struct cpucp_info *cpucp_info = &hdev->asic_prop.cpucp_info;
+	struct cpucp_mac_addr *mac_arr = nic_info->mac_addrs;
 	struct hl_nic *nic = &hdev->nic;
+	u32 card_location, serdes_type = MAX_NUM_SERDES_TYPE;
+	u8 mac[ETH_ALEN], *mac_addr;
+	int rc, i;
+
+	/* copy the MAC OUI in reverse */
+	for (i = 0 ; i < 3 ; i++)
+		mac[i] = HABANALABS_MAC_OUI_1 >> (8 * (2 - i));
+
+	if (get_from_fw) {
+		rc = hl_fw_cpucp_nic_info_get(hdev);
+		if (rc)
+			return rc;
+
+		/* Allow debugging of gaudi2B disabled ports by overriding the pci revision id and
+		 * by that identifing as gaudi2.
+		 */
+		if ((hdev->asic_type == ASIC_GAUDI2) && hdev->pci_rev_id_override) {
+			dev_dbg(hdev->dev,
+				"skipping NIC FW ports info on gaudi2B device with an overridden pci revision id\n");
+		} else {
+			hdev->nic_ports_mask &= le64_to_cpu(nic_info->link_mask[0]);
+			hdev->nic_ports_ext_mask &= le64_to_cpu(nic_info->link_ext_mask[0]);
+			hdev->nic_auto_neg_mask &= le64_to_cpu(nic_info->auto_neg_mask[0]);
+		}
+
+		serdes_type = le16_to_cpu(nic_info->serdes_type);
+
+		for (i = 0 ; i < NIC_NUMBER_OF_PORTS ; i++) {
+			if (!(hdev->nic_ports_mask & BIT(i)))
+				continue;
+
+			mac_addr = mac_arr[i].mac_addr;
+			if (strncmp(mac, mac_addr, 3)) {
+				dev_err(hdev->dev, "bad MAC OUI %pM, port %d\n", mac_addr, i);
+				return -EFAULT;
+			}
+		}
+
+		nic->card_location = le32_to_cpu(cpucp_info->card_location);
+
+		/* LKD will use the FW serdes info only in case of HLS2 setup */
+		if (hdev->gaudi2_setup_type == GAUDI2_SETUP_TYPE_HLS2) {
+			gaudi2_nic_get_fw_lane_mapping(nic_info, nic);
+			nic->use_fw_serdes_info = true;
+		}
+	} else {
+		/* No F/W, hence need to set the MACs manually (randomize) */
+		get_random_bytes(&mac[3], 2);
+
+		for (i = 0 ; i < NIC_NUMBER_OF_PORTS ; i++) {
+			if (!(hdev->nic_ports_mask & BIT(i)))
+				continue;
+
+			mac[ETH_ALEN - 1] = i;
+			memcpy(mac_arr[i].mac_addr, mac, ETH_ALEN);
+		}
+
+		if (!(hdev->fw_components & FW_TYPE_BOOT_CPU)) {
+			card_location = RREG32(mmPSOC_GLOBAL_CONF_BOOT_STRAP_PINS_H);
+			serdes_type = card_location;
+			card_location &= PSOC_GLOBAL_CONF_BOOT_STRAP_PINS_H_I2C_SLV_ADDR_MASK;
+			card_location >>= PSOC_GLOBAL_CONF_BOOT_STRAP_PINS_H_I2C_SLV_ADDR_SHIFT;
+			cpucp_info->card_location = cpu_to_le32(card_location);
+			nic->card_location = card_location;
+			serdes_type &= PSOC_GLOBAL_CONF_BOOT_STRAP_PINS_H_RERERVED_STRAP_MASK;
+			serdes_type >>= PSOC_GLOBAL_CONF_BOOT_STRAP_PINS_H_RERERVED_STRAP_SHIFT;
+		} else {
+			dev_warn(hdev->dev, "can't read card location as FW security is enabled\n");
+		}
+	}
+
+	switch (serdes_type) {
+	case HLS2_SERDES_TYPE:
+		hdev->asic_prop.server_type = HL_SERVER_GAUDI2_HLS2;
+		break;
+	case HLS2_TYPE_1_SERDES_TYPE:
+		hdev->asic_prop.server_type = HL_SERVER_GAUDI2_TYPE1;
+		break;
+	default:
+		hdev->asic_prop.server_type = HL_SERVER_TYPE_UNKNOWN;
+		break;
+	}
 
 	/* If we are running on non HLS2 setup or a PCI card, all the ports should be set as
 	 * external (the only exception is when the asic type is GADUI2B).
@@ -3566,6 +3572,23 @@ static int gaudi2_nic_core_init(struct hl_device *hdev)
 
 	nic->auto_neg_mask = hdev->nic_auto_neg_mask;
 
+	return 0;
+}
+
+static int gaudi2_nic_core_init(struct hl_device *hdev)
+{
+	struct hl_nic_properties *nic_prop = &hdev->asic_prop.nic_props;
+	struct hl_nic *nic = &hdev->nic;
+	u64 nic_dram_alloc_size;
+
+	nic_dram_alloc_size = nic_prop->nic_drv_end_addr - nic_prop->nic_drv_base_addr;
+	if (nic_dram_alloc_size > nic_prop->nic_drv_size) {
+		dev_err(hdev->dev, "DRAM allocation for NIC (%lluMB) shouldn't exceed %lluMB\n",
+			div_u64(nic_dram_alloc_size, SZ_1M),
+			div_u64(nic_prop->nic_drv_size, SZ_1M));
+		return -ENOMEM;
+	}
+
 	/* Fail the initialization in case of an old PHY F/W, as the current PHY init flow won't
 	 * work with it.
 	 */
@@ -3573,6 +3596,8 @@ static int gaudi2_nic_core_init(struct hl_device *hdev)
 		dev_err(hdev->dev, "PHY F/W is very old - failing the initialization\n");
 		return -EINVAL;
 	}
+
+	gaudi2_nic_phy_init(hdev);
 
 	/* This function must be called before configuring the NIC macros */
 	gaudi2_nic_set_speed(hdev);

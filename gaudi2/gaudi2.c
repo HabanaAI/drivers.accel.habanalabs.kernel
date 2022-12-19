@@ -2709,23 +2709,8 @@ static int gaudi2_cpucp_info_get(struct hl_device *hdev)
 
 	prop->max_power_default = (u64) max_power;
 
-	if (!hdev->ignore_fw_nic_info) {
-		struct cpucp_nic_info *nic_info = &prop->cpucp_nic_info;
-
-		rc = hl_fw_cpucp_nic_info_get(hdev);
-		if (rc)
-			return rc;
-
-		/* Allow debugging of gaudi2B disabled ports on hacked gaudi2 ASIC */
-		if ((hdev->asic_type == ASIC_GAUDI2) && hdev->pci_rev_id_override) {
-			dev_info(hdev->dev,
-				 "skipping NIC FW ports info on hacked gaudi2B device\n");
-		} else {
-			hdev->nic_ports_mask &= le64_to_cpu(nic_info->link_mask[0]);
-			hdev->nic_ports_ext_mask &= le64_to_cpu(nic_info->link_ext_mask[0]);
-			hdev->nic_auto_neg_mask &= le64_to_cpu(nic_info->auto_neg_mask[0]);
-		}
-	}
+	if (!hdev->ignore_fw_nic_info)
+		gaudi2_nic_set_info(hdev, true);
 
 	return 0;
 }

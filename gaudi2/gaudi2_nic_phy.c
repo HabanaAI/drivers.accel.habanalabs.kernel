@@ -2258,7 +2258,7 @@ void gaudi2_nic_phy_init(struct hl_device *hdev)
 		set_default_polarity_values(hdev);
 	}
 
-	/* set the default PAM4 Tx taps */
+	/* set the default Tx taps */
 	set_default_tx_taps_values(hdev);
 }
 

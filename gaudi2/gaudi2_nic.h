@@ -275,5 +275,6 @@ char *gaudi2_nic_qp_err_syndrom_to_str(u32 syndrome);
 int gaudi2_nic_qpc_read(struct hl_nic_port *nic_port, void *qpc, u32 qpn, bool is_req);
 int gaudi2_nic_wqe_read(struct hl_nic_port *nic_port, void *wqe, u32 qpn, u32 wqe_idx, bool is_tx);
 void gaudi2_nic_hw_mac_loopback_cfg(struct gaudi2_nic_port *gaudi2_nic);
+int gaudi2_nic_set_info(struct hl_device *hdev, bool get_from_fw);
 
 #endif /* GAUDI2_NIC_H_ */
