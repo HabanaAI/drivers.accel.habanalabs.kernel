@@ -3503,15 +3503,35 @@ int gaudi2_nic_set_info(struct hl_device *hdev, bool get_from_fw)
 
 		serdes_type = le16_to_cpu(nic_info->serdes_type);
 
-		/* Fail on invalid MAC addresses from F/W (bad OUI) */
+		/* In case of invalid MAC from F/W, and if the user asked to ignore eeprom related
+		 * errors, the MAC addresses will be set manually according to the bus address and
+		 * the port id.
+		 * here we prepare the 3rd (bus id) and the 4th (device id) octates for such a case.
+		 */
+		if (hdev->ignore_eeprom_errors) {
+			mac[3] = hdev->pdev->bus->number;
+			mac[4] = PCI_SLOT(hdev->pdev->devfn);
+		}
+
+		/* check for invalid MAC addresses from F/W (bad OUI) */
 		for (i = 0 ; i < NIC_NUMBER_OF_PORTS ; i++) {
 			if (!(hdev->nic_ports_mask & BIT(i)))
 				continue;
 
 			mac_addr = mac_arr[i].mac_addr;
 			if (strncmp(mac, mac_addr, 3)) {
-				dev_err(hdev->dev, "bad MAC OUI %pM, port %d\n", mac_addr, i);
-				return -EFAULT;
+				if (hdev->ignore_eeprom_errors) {
+					dev_dbg(hdev->dev,
+						"bad MAC OUI %pM, port %d - setting a valid MAC\n",
+						mac_addr, i);
+					mac[ETH_ALEN - 1] = i;
+					memcpy(mac_addr, mac, ETH_ALEN);
+				} else {
+					dev_dbg(hdev->dev,
+						"bad MAC OUI %pM, port %d - failing the initialization\n",
+						mac_addr, i);
+					return -EFAULT;
+				}
 			}
 		}
 
