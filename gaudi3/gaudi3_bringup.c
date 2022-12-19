@@ -2429,7 +2429,9 @@ void gaudi3_fw_config(struct hl_device *hdev)
 	gaudi3_ac_program_all(hdev);
 	gaudi3_enable_ptw_bypass(hdev);
 	gaudi3_init_qos(hdev);
-	gaudi3_init_cache(hdev);
+
+	if (hdev->cache_enable)
+		gaudi3_init_cache(hdev);
 }
 
 static int gaudi3_wait_outbound_outsatnding_complete(struct hl_device *hdev)
