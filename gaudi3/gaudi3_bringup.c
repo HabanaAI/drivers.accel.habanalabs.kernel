@@ -833,17 +833,20 @@ static void gaudi3_sram_init_cslice(struct hl_device *hdev, int block, int inst,
 
 static void gaudi3_sram_init(struct hl_device *hdev)
 {
+	struct gaudi3_device *gaudi3 = hdev->asic_specific;
 	struct iterate_module_ctx ctx = {
 		.fn = gaudi3_sram_init_cslice,
 	};
 
-	/* If we're in cache mode, we cannot switch to sram mode in soft reset
-	 * Hard reset is required.
-	 */
-	if (hdev->cache_enable && hdev->reset_info.in_compute_reset)
+	if (hdev->cache_enable)
+		return;
+
+	if (gaudi3->hw_cap_initialized & HW_CAP_SRAM)
 		return;
 
 	gaudi3_iterate_cache_slices(hdev, &ctx);
+
+	gaudi3->hw_cap_initialized |= HW_CAP_SRAM;
 }
 
 static void gaudi3_reset_config(struct hl_device *hdev)

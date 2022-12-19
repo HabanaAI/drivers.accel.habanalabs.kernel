@@ -66,6 +66,7 @@
 #define HW_CAP_QOS_MASK			BIT_ULL(46)
 #define HW_CAP_CACHE_MASK		BIT_ULL(47)
 #define HW_CAP_SET_CACHE_MODE_MASK	BIT_ULL(48)
+#define HW_CAP_SRAM			BIT_ULL(49)
 
 /* TODO: this definition may be remove later as P/HMMU does not share tables anymore */
 #define HW_CAP_MMU_MASK			(HW_CAP_PMMU | HW_CAP_HMMU_MASK)
