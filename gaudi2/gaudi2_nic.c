@@ -3591,6 +3591,7 @@ static int gaudi2_nic_core_init(struct hl_device *hdev)
 	struct hl_nic_properties *nic_prop = &hdev->asic_prop.nic_props;
 	struct hl_nic *nic = &hdev->nic;
 	u64 nic_dram_alloc_size;
+	int rc;
 
 	nic_dram_alloc_size = nic_prop->nic_drv_end_addr - nic_prop->nic_drv_base_addr;
 	if (nic_dram_alloc_size > nic_prop->nic_drv_size) {
@@ -3600,15 +3601,9 @@ static int gaudi2_nic_core_init(struct hl_device *hdev)
 		return -ENOMEM;
 	}
 
-	/* Fail the initialization in case of an old PHY F/W, as the current PHY init flow won't
-	 * work with it.
-	 */
-	if (hdev->nic.phy_config_fw && gaudi2_nic_phy_is_old_phy_fw_loaded(hdev)) {
-		dev_err(hdev->dev, "PHY F/W is very old - failing the initialization\n");
-		return -EINVAL;
-	}
-
-	gaudi2_nic_phy_init(hdev);
+	rc = gaudi2_nic_phy_init(hdev);
+	if (rc)
+		return rc;
 
 	/* This function must be called before configuring the NIC macros */
 	gaudi2_nic_set_speed(hdev);

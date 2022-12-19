@@ -2243,13 +2243,26 @@ u16 gaudi2_nic_phy_get_crc(struct hl_device *hdev)
 	return fw_crc(hdev, port);
 }
 
-void gaudi2_nic_phy_init(struct hl_device *hdev)
+static bool is_old_phy_fw_loaded(struct hl_device *hdev)
+{
+	return gaudi2_nic_phy_get_crc(hdev) == 0x1723;
+}
+
+int gaudi2_nic_phy_init(struct hl_device *hdev)
 {
 	struct hl_nic *nic = &hdev->nic;
 
 	if (hdev->skip_nic_phy_init) {
 		nic->phy_config_fw = 0;
-		return;
+		return 0;
+	}
+
+	/* Fail the initialization in case of an old PHY F/W, as the current PHY init flow won't
+	 * work with it.
+	 */
+	if (nic->phy_config_fw && is_old_phy_fw_loaded(hdev)) {
+		dev_err(hdev->dev, "PHY F/W is very old - failing the initialization\n");
+		return -EINVAL;
 	}
 
 	/* In case we didn't get serdes info from FW, set to default values */
@@ -2260,11 +2273,8 @@ void gaudi2_nic_phy_init(struct hl_device *hdev)
 
 	/* set the default Tx taps */
 	set_default_tx_taps_values(hdev);
-}
 
-bool gaudi2_nic_phy_is_old_phy_fw_loaded(struct hl_device *hdev)
-{
-	return gaudi2_nic_phy_get_crc(hdev) == 0x1723;
+	return 0;
 }
 
 static int fw_read_s16(struct hl_device *hdev, u32 port, u32 offset)

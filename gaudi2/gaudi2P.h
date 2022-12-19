@@ -736,7 +736,7 @@ int gaudi2_send_device_activity(struct hl_device *hdev, bool open);
 /* Functions exported for NIC */
 void gaudi2_init_nic(struct hl_device *hdev);
 const char *gaudi2_nic_phy_get_fw_name(void);
-void gaudi2_nic_phy_init(struct hl_device *hdev);
+int gaudi2_nic_phy_init(struct hl_device *hdev);
 int gaudi2_nic_phy_fw_load_all(struct hl_device *hdev);
 u16 gaudi2_nic_phy_get_crc(struct hl_device *hdev);
 int gaudi2_nic_phy_port_init(struct hl_nic_port *nic_port);
@@ -746,7 +746,6 @@ void gaudi2_nic_phy_port_reconfig(struct hl_nic_port *nic_port);
 void gaudi2_nic_phy_port_fini(struct hl_nic_port *nic_port);
 int gaudi2_nic_phy_reset_macro(struct hl_nic_macro *nic_macro);
 void gaudi2_nic_phy_link_status_work(struct work_struct *work);
-bool gaudi2_nic_phy_is_old_phy_fw_loaded(struct hl_device *hdev);
 void gaudi2_nic_phy_dump_serdes_params(struct hl_device *hdev, char *buf, size_t size);
 void gaudi2_nic_get_fw_lane_mapping(struct cpucp_nic_info *nic_info, struct hl_nic *nic);
 void gaudi2_nic_spmu_get_stats_info(struct hl_nic_port *nic_port, struct hl_en_stat **stats,
