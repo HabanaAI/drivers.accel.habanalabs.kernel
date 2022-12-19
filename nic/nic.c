@@ -2287,21 +2287,16 @@ static void hl_nic_coll_qp_free(struct hl_coll_qp *coll_qp)
 {
 	struct hl_device *hdev = coll_qp->hdev;
 	struct hl_nic *nic = &hdev->nic;
-	struct hl_qp *qp;
 	u32 port;
 
-	/* Free the rest of the QPs and replace them with NULL in the collective QPs array, so
-	 * the destroy work couldn't be called for them.
+	/* Go over all the ports and call the QP release function for the collective QP of each
+	 * one. In that way, all the QPs will go through the same release flow.
 	 */
 	for (port = 0 ; port < hdev->asic_prop.nic_props.max_num_of_ports ; port++) {
 		if (!(hdev->nic_ports_mask & BIT(port)))
 			continue;
 
-		qp = coll_qp->qps_array[port];
-		if (qp) {
-			coll_qp->qps_array[port] = NULL;
-			kfree(qp);
-		}
+		hl_nic_qp_do_release(coll_qp->qps_array[port]);
 	}
 
 	idr_remove(&nic->coll_qp_ids, coll_qp->id);
