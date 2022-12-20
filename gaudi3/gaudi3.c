@@ -2562,6 +2562,7 @@ static int set_number_of_functional_hbms(struct hl_device *hdev)
 	}
 
 	prop->num_functional_hbms = max_hbms - faulty_hbms;
+	prop->dram_enabled_mask = GENMASK_ULL(prop->num_functional_hbms - 1, 0);
 	return 0;
 }
 

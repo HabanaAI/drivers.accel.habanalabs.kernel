@@ -6452,7 +6452,7 @@ int gaudi3_coresight_init(struct hl_device *hdev)
 
 		/* Set stlb disable components */
 		half_size = CS_DBG_STLB_ID_SIZE >> 1;
-		enabled_mask = GENMASK_ULL(half_size, 0);
+		enabled_mask = GENMASK_ULL(half_size - 1, 0);
 		ret = gaudi3_coresight_set_disabled_components(hdev, die_index, half_size,
 						enabled_mask, gaudi3_stlb_coresight_cfg_table);
 		if (ret) {
@@ -6462,7 +6462,7 @@ int gaudi3_coresight_init(struct hl_device *hdev)
 
 		/* Set SPDMA disable components */
 		half_size = CS_DBG_SPDMA_ID_SIZE >> 1;
-		enabled_mask = GENMASK_ULL(half_size, 0);
+		enabled_mask = GENMASK_ULL(half_size - 1, 0);
 		ret = gaudi3_coresight_set_disabled_components(hdev, die_index, half_size,
 					enabled_mask, gaudi3_spdma_coresight_cfg_table);
 		if (ret) {
@@ -6472,7 +6472,7 @@ int gaudi3_coresight_init(struct hl_device *hdev)
 
 		/* Set PMMU disable components */
 		half_size = CS_DBG_PMMU_ID_SIZE >> 1;
-		enabled_mask = GENMASK_ULL(half_size, 0);
+		enabled_mask = GENMASK_ULL(half_size - 1, 0);
 		ret = gaudi3_coresight_set_disabled_components(hdev, die_index, half_size,
 					enabled_mask, gaudi3_pmmu_coresight_cfg_table);
 		if (ret) {
@@ -6482,7 +6482,7 @@ int gaudi3_coresight_init(struct hl_device *hdev)
 
 		/* Set CS disable components */
 		half_size = CS_DBG_CS_ID_SIZE >> 1;
-		enabled_mask = GENMASK_ULL(half_size, 0);
+		enabled_mask = GENMASK_ULL(half_size - 1, 0);
 		ret = gaudi3_coresight_set_disabled_components(hdev, die_index, half_size,
 					enabled_mask, gaudi3_cs_coresight_cfg_table);
 		if (ret) {
@@ -6492,7 +6492,7 @@ int gaudi3_coresight_init(struct hl_device *hdev)
 
 		/* Set CPU disable components */
 		half_size = CS_DBG_CPU_ID_SIZE >> 1;
-		enabled_mask = GENMASK_ULL(half_size, 0);
+		enabled_mask = GENMASK_ULL(half_size - 1, 0);
 		ret = gaudi3_coresight_set_disabled_components(hdev, die_index, half_size,
 					enabled_mask, gaudi3_cpu_coresight_cfg_table);
 		if (ret) {
@@ -6502,7 +6502,7 @@ int gaudi3_coresight_init(struct hl_device *hdev)
 
 		/* Set PSOC disable components */
 		half_size = CS_DBG_CPU_ID_SIZE >> 1;
-		enabled_mask = GENMASK_ULL(half_size, 0);
+		enabled_mask = GENMASK_ULL(half_size - 1, 0);
 		ret = gaudi3_coresight_set_disabled_components(hdev, die_index, half_size,
 					enabled_mask, gaudi3_psoc_coresight_cfg_table);
 		if (ret) {
@@ -6530,7 +6530,7 @@ int gaudi3_coresight_init(struct hl_device *hdev)
 		}
 
 		enabled_mask = enabled_mask >> (die_index * half_size);
-		enabled_mask &= GENMASK_ULL(half_size, 0);
+		enabled_mask &= GENMASK_ULL(half_size - 1, 0);
 
 		ret = gaudi3_coresight_set_disabled_components(hdev, die_index, half_size,
 					enabled_mask, gaudi3_nic_coresight_cfg_table);
@@ -6550,7 +6550,7 @@ int gaudi3_coresight_init(struct hl_device *hdev)
 		};
 
 		enabled_mask = enabled_mask >> (die_index * half_size);
-		enabled_mask &= GENMASK_ULL(half_size, 0);
+		enabled_mask &= GENMASK_ULL(half_size - 1, 0);
 
 		ret = gaudi3_coresight_set_disabled_components(hdev, die_index, half_size,
 					enabled_mask,	gaudi3_mme_sbte_coresight_cfg_table);
@@ -6561,8 +6561,8 @@ int gaudi3_coresight_init(struct hl_device *hdev)
 
 		/* Set MME QMAN disable components */
 		half_size = CS_DBG_MME_QMAN_ID_SIZE >> 1;
-		enabled_mask = enabled_mask >> (die_index * half_size);
-		enabled_mask &= GENMASK_ULL(half_size, 0);
+		enabled_mask = hdev->mme_mask >> (die_index * half_size);
+		enabled_mask &= GENMASK_ULL(half_size - 1, 0);
 
 		ret = gaudi3_coresight_set_disabled_components(hdev, die_index, half_size,
 					enabled_mask, gaudi3_mme_qman_coresight_cfg_table);
@@ -6572,21 +6572,18 @@ int gaudi3_coresight_init(struct hl_device *hdev)
 		}
 
 		/* Set PCIE disable components */
-		if (die_index == 0) {
-			half_size = CS_DBG_PCIE_ID_SIZE >> 1;
-			enabled_mask = GENMASK_ULL(half_size, 0);
-
-			ret = gaudi3_coresight_set_disabled_components(hdev, die_index, half_size,
-						enabled_mask, gaudi3_pcie_coresight_cfg_table);
-			if (ret) {
-				dev_err(hdev->dev, "Failed to set disabled cs_dbg units for pcie coresight\n");
-				return ret;
-			}
+		half_size = CS_DBG_PCIE_ID_SIZE >> 1;
+		enabled_mask = die_index ? 0x0 : GENMASK_ULL(half_size - 1, 0);
+		ret = gaudi3_coresight_set_disabled_components(hdev, die_index, half_size,
+					enabled_mask, gaudi3_pcie_coresight_cfg_table);
+		if (ret) {
+			dev_err(hdev->dev, "Failed to set disabled cs_dbg units for pcie coresight\n");
+			return ret;
 		}
 
 		/* Set SM disable components */
 		half_size = CS_DBG_SM_ID_SIZE >> 1;
-		enabled_mask = GENMASK_ULL(half_size, 0);
+		enabled_mask = GENMASK_ULL(half_size - 1, 0);
 
 		ret = gaudi3_coresight_set_disabled_components(hdev, die_index, half_size,
 					enabled_mask, gaudi3_sm_coresight_cfg_table);
@@ -6599,7 +6596,7 @@ int gaudi3_coresight_init(struct hl_device *hdev)
 		half_size = CS_DBG_D2D_MAC_ID_SIZE >> 1;
 
 		if (prop->num_of_dies == MAX_NUM_OF_DIES)
-			enabled_mask = GENMASK_ULL(half_size, 0);
+			enabled_mask = GENMASK_ULL(half_size - 1, 0);
 		else
 			enabled_mask = 0x0;
 
@@ -6613,7 +6610,7 @@ int gaudi3_coresight_init(struct hl_device *hdev)
 		/* Set ROT disable components */
 		half_size = CS_DBG_ROT_ID_SIZE >> 1;
 		enabled_mask = hdev->rotator_mask >> (die_index * half_size);
-		enabled_mask &= GENMASK_ULL(half_size, 0);
+		enabled_mask &= GENMASK_ULL(half_size - 1, 0);
 
 		ret = gaudi3_coresight_set_disabled_components(hdev, die_index, half_size,
 					enabled_mask, gaudi3_rot_coresight_cfg_table);
@@ -6624,9 +6621,10 @@ int gaudi3_coresight_init(struct hl_device *hdev)
 
 		/* Set parc_arc disable components */
 		half_size = CS_DBG_PARC_ARC_ID_SIZE >> 1;
+		enabled_mask = 0x0;
 
 		ret = gaudi3_coresight_set_disabled_components(hdev, die_index, half_size,
-					0x0, gaudi3_parc_arc_coresight_cfg_table);
+					enabled_mask, gaudi3_parc_arc_coresight_cfg_table);
 		if (ret) {
 			dev_err(hdev->dev, "Failed to set disabled cs_dbg units for parc_arc coresight\n");
 			return ret;
@@ -6634,7 +6632,7 @@ int gaudi3_coresight_init(struct hl_device *hdev)
 
 		/* Set arc farm disable components */
 		half_size = CS_DBG_ARC_FARM_ID_SIZE >> 1;
-		enabled_mask = GENMASK_ULL(half_size, 0);
+		enabled_mask = GENMASK_ULL(half_size - 1, 0);
 
 		ret = gaudi3_coresight_set_disabled_components(hdev, die_index, half_size,
 					enabled_mask, gaudi3_arc_farm_coresight_cfg_table);
@@ -6646,7 +6644,7 @@ int gaudi3_coresight_init(struct hl_device *hdev)
 		/* Set TPC disable components */
 		half_size = CS_DBG_TPC_ID_SIZE >> 1;
 		enabled_mask = prop->tpc_enabled_mask >> (die_index * half_size);
-		enabled_mask &= GENMASK_ULL(half_size, 0);
+		enabled_mask &= GENMASK_ULL(half_size - 1, 0);
 
 		ret = gaudi3_coresight_set_disabled_components(hdev, die_index, half_size,
 					enabled_mask, gaudi3_tpc_coresight_cfg_table);
@@ -6658,7 +6656,7 @@ int gaudi3_coresight_init(struct hl_device *hdev)
 		/* Set decoder disable components */
 		half_size = CS_DBG_VDEC_ID_SIZE >> 1;
 		enabled_mask = prop->decoder_enabled_mask >> (die_index * half_size);
-		enabled_mask &= GENMASK_ULL(half_size, 0);
+		enabled_mask &= GENMASK_ULL(half_size - 1, 0);
 
 		ret = gaudi3_coresight_set_disabled_components(hdev, die_index, half_size,
 					enabled_mask, gaudi3_vdec_coresight_cfg_table);
@@ -6669,9 +6667,16 @@ int gaudi3_coresight_init(struct hl_device *hdev)
 
 		/* Set dram disable components */
 		half_size = CS_DBG_HBM_ID_SIZE >> 1;
-		enabled_mask = prop->dram_enabled_mask >> (die_index * half_size);
-		enabled_mask &= GENMASK_ULL(half_size, 0);
+		enabled_mask = 0x0;
+		tmp_mask_index = 0;
+		while (prop->dram_enabled_mask >> tmp_mask_index) {
+			if ((prop->dram_enabled_mask >> tmp_mask_index) & 1ULL)
+				enabled_mask |= 0xFULL << (tmp_mask_index * 4);
+			tmp_mask_index++;
+		};
 
+		enabled_mask = enabled_mask >> (die_index * half_size);
+		enabled_mask &= GENMASK_ULL(half_size - 1, 0);
 		ret = gaudi3_coresight_set_disabled_components(hdev, die_index, half_size,
 					enabled_mask, gaudi3_hbm_coresight_cfg_table);
 		if (ret) {
@@ -6682,7 +6687,7 @@ int gaudi3_coresight_init(struct hl_device *hdev)
 		/* Set EDMA disable components */
 		half_size = CS_DBG_SEDMA_ID_SIZE >> 1;
 		enabled_mask = prop->edma_enabled_mask >> (die_index * half_size);
-		enabled_mask &= GENMASK_ULL(half_size, 0);
+		enabled_mask &= GENMASK_ULL(half_size - 1, 0);
 
 
 		ret = gaudi3_coresight_set_disabled_components(hdev, die_index, half_size,
