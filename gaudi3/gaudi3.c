@@ -6321,8 +6321,6 @@ static int gaudi3_hw_init(struct hl_device *hdev)
 	 */
 	gaudi3_lbw_dup_init(hdev);
 
-	gaudi3_fw_config(hdev);
-
 	/* If iATU is done by FW, the HBM bar ALWAYS points to DRAM_PHYS_BASE.
 	 * So we set it here and if anyone tries to move it later to
 	 * a different address, there will be an error
@@ -6344,6 +6342,13 @@ static int gaudi3_hw_init(struct hl_device *hdev)
 		dev_err(hdev->dev, "failed to initialize CPU\n");
 		return rc;
 	}
+
+	/*
+	 * note: FW config should be placed after init CPU because inside
+	 * init CPU all binning mask are being updated which is an input parameter
+	 * to the FW config (e.g. work with 8 or 7 HBMs
+	 */
+	gaudi3_fw_config(hdev);
 
 	if (hdev->cache_enable) {
 		rc = gaudi3_set_cache_mode(hdev);
