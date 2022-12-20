@@ -1,0 +1,61 @@
+/* SPDX-License-Identifier: GPL-2.0
+ *
+ * Copyright 2016-2020 HabanaLabs, Ltd.
+ * All Rights Reserved.
+ *
+ */
+
+/************************************
+ ** This is an auto-generated file **
+ **       DO NOT EDIT BELOW        **
+ ************************************/
+
+#ifndef ASIC_REG_NIC0_RXE0_WQE_ARUSER_REGS_H_
+#define ASIC_REG_NIC0_RXE0_WQE_ARUSER_REGS_H_
+
+/*
+ *****************************************
+ *   NIC0_RXE0_WQE_ARUSER
+ *   (Prototype: AXUSER)
+ *****************************************
+ */
+
+#define mmNIC0_RXE0_WQE_ARUSER_HB_ASID 0x544A900
+
+#define mmNIC0_RXE0_WQE_ARUSER_HB_MMU_BP 0x544A904
+
+#define mmNIC0_RXE0_WQE_ARUSER_HB_STRONG_ORDER 0x544A908
+
+#define mmNIC0_RXE0_WQE_ARUSER_HB_NO_SNOOP 0x544A90C
+
+#define mmNIC0_RXE0_WQE_ARUSER_HB_WR_REDUCTION 0x544A910
+
+#define mmNIC0_RXE0_WQE_ARUSER_HB_RD_ATOMIC 0x544A914
+
+#define mmNIC0_RXE0_WQE_ARUSER_HB_QOS 0x544A918
+
+#define mmNIC0_RXE0_WQE_ARUSER_HB_RSVD 0x544A91C
+
+#define mmNIC0_RXE0_WQE_ARUSER_HB_EMEM_CPAGE 0x544A920
+
+#define mmNIC0_RXE0_WQE_ARUSER_HB_CORE 0x544A924
+
+#define mmNIC0_RXE0_WQE_ARUSER_E2E_COORD 0x544A928
+
+#define mmNIC0_RXE0_WQE_ARUSER_HB_WR_OVRD_LO 0x544A930
+
+#define mmNIC0_RXE0_WQE_ARUSER_HB_WR_OVRD_HI 0x544A934
+
+#define mmNIC0_RXE0_WQE_ARUSER_HB_RD_OVRD_LO 0x544A938
+
+#define mmNIC0_RXE0_WQE_ARUSER_HB_RD_OVRD_HI 0x544A93C
+
+#define mmNIC0_RXE0_WQE_ARUSER_LB_COORD 0x544A940
+
+#define mmNIC0_RXE0_WQE_ARUSER_LB_LOCK 0x544A944
+
+#define mmNIC0_RXE0_WQE_ARUSER_LB_RSVD 0x544A948
+
+#define mmNIC0_RXE0_WQE_ARUSER_LB_OVRD 0x544A94C
+
+#endif /* ASIC_REG_NIC0_RXE0_WQE_ARUSER_REGS_H_ */

@@ -1,0 +1,61 @@
+/* SPDX-License-Identifier: GPL-2.0
+ *
+ * Copyright 2016-2020 HabanaLabs, Ltd.
+ * All Rights Reserved.
+ *
+ */
+
+/************************************
+ ** This is an auto-generated file **
+ **       DO NOT EDIT BELOW        **
+ ************************************/
+
+#ifndef ASIC_REG_NIC0_QPC0_AXUSER_QPC_REQ_REGS_H_
+#define ASIC_REG_NIC0_QPC0_AXUSER_QPC_REQ_REGS_H_
+
+/*
+ *****************************************
+ *   NIC0_QPC0_AXUSER_QPC_REQ
+ *   (Prototype: AXUSER)
+ *****************************************
+ */
+
+#define mmNIC0_QPC0_AXUSER_QPC_REQ_HB_ASID 0x541FE20
+
+#define mmNIC0_QPC0_AXUSER_QPC_REQ_HB_MMU_BP 0x541FE24
+
+#define mmNIC0_QPC0_AXUSER_QPC_REQ_HB_STRONG_ORDER 0x541FE28
+
+#define mmNIC0_QPC0_AXUSER_QPC_REQ_HB_NO_SNOOP 0x541FE2C
+
+#define mmNIC0_QPC0_AXUSER_QPC_REQ_HB_WR_REDUCTION 0x541FE30
+
+#define mmNIC0_QPC0_AXUSER_QPC_REQ_HB_RD_ATOMIC 0x541FE34
+
+#define mmNIC0_QPC0_AXUSER_QPC_REQ_HB_QOS 0x541FE38
+
+#define mmNIC0_QPC0_AXUSER_QPC_REQ_HB_RSVD 0x541FE3C
+
+#define mmNIC0_QPC0_AXUSER_QPC_REQ_HB_EMEM_CPAGE 0x541FE40
+
+#define mmNIC0_QPC0_AXUSER_QPC_REQ_HB_CORE 0x541FE44
+
+#define mmNIC0_QPC0_AXUSER_QPC_REQ_E2E_COORD 0x541FE48
+
+#define mmNIC0_QPC0_AXUSER_QPC_REQ_HB_WR_OVRD_LO 0x541FE50
+
+#define mmNIC0_QPC0_AXUSER_QPC_REQ_HB_WR_OVRD_HI 0x541FE54
+
+#define mmNIC0_QPC0_AXUSER_QPC_REQ_HB_RD_OVRD_LO 0x541FE58
+
+#define mmNIC0_QPC0_AXUSER_QPC_REQ_HB_RD_OVRD_HI 0x541FE5C
+
+#define mmNIC0_QPC0_AXUSER_QPC_REQ_LB_COORD 0x541FE60
+
+#define mmNIC0_QPC0_AXUSER_QPC_REQ_LB_LOCK 0x541FE64
+
+#define mmNIC0_QPC0_AXUSER_QPC_REQ_LB_RSVD 0x541FE68
+
+#define mmNIC0_QPC0_AXUSER_QPC_REQ_LB_OVRD 0x541FE6C
+
+#endif /* ASIC_REG_NIC0_QPC0_AXUSER_QPC_REQ_REGS_H_ */

@@ -1,0 +1,179 @@
+/* SPDX-License-Identifier: GPL-2.0
+ *
+ * Copyright 2016-2021 HabanaLabs, Ltd.
+ * All Rights Reserved.
+ *
+ */
+
+/************************************
+ ** This is an auto-generated file **
+ **       DO NOT EDIT BELOW        **
+ ************************************/
+
+#ifndef ASIC_REG_ROTATOR_DESC_REGS_H_
+#define ASIC_REG_ROTATOR_DESC_REGS_H_
+
+/*
+ *****************************************
+ *   ROTATOR_DESC
+ *   (Prototype: ROT_DESC)
+ *****************************************
+ */
+
+#define mmROTATOR_DESC_CONTEXT_ID 0x0
+
+#define mmROTATOR_DESC_IN_IMG_START_ADDR_L 0x4
+
+#define mmROTATOR_DESC_IN_IMG_START_ADDR_H 0x8
+
+#define mmROTATOR_DESC_OUT_IMG_START_ADDR_L 0xC
+
+#define mmROTATOR_DESC_OUT_IMG_START_ADDR_H 0x10
+
+#define mmROTATOR_DESC_CFG 0x14
+
+#define mmROTATOR_DESC_IM_READ_SLOPE 0x18
+
+#define mmROTATOR_DESC_SIN_D 0x1C
+
+#define mmROTATOR_DESC_COS_D 0x20
+
+#define mmROTATOR_DESC_IN_IMG 0x24
+
+#define mmROTATOR_DESC_IN_STRIDE 0x28
+
+#define mmROTATOR_DESC_IN_STRIPE 0x2C
+
+#define mmROTATOR_DESC_IN_CENTER 0x30
+
+#define mmROTATOR_DESC_OUT_IMG 0x34
+
+#define mmROTATOR_DESC_OUT_STRIDE 0x38
+
+#define mmROTATOR_DESC_OUT_STRIPE 0x3C
+
+#define mmROTATOR_DESC_OUT_CENTER 0x40
+
+#define mmROTATOR_DESC_BACKGROUND 0x44
+
+#define mmROTATOR_DESC_CPL_MSG_EN 0x48
+
+#define mmROTATOR_DESC_IDLE_STATE 0x4C
+
+#define mmROTATOR_DESC_CPL_MSG_ADDR 0x50
+
+#define mmROTATOR_DESC_CPL_MSG_DATA 0x54
+
+#define mmROTATOR_DESC_X_I_START_OFFSET 0x5C
+
+#define mmROTATOR_DESC_X_I_START_OFFSET_FLIP 0x60
+
+#define mmROTATOR_DESC_X_I_FIRST 0x64
+
+#define mmROTATOR_DESC_Y_I_FIRST 0x68
+
+#define mmROTATOR_DESC_Y_I 0x6C
+
+#define mmROTATOR_DESC_OUT_STRIPE_SIZE 0x70
+
+#define mmROTATOR_DESC_RSB_CFG_0 0x74
+
+#define mmROTATOR_DESC_RSB_PAD_VAL 0x78
+
+#define mmROTATOR_DESC_OWM_CFG 0x8C
+
+#define mmROTATOR_DESC_CTRL_CFG 0x90
+
+#define mmROTATOR_DESC_PIXEL_PAD 0x94
+
+#define mmROTATOR_DESC_PREC_SHIFT 0x98
+
+#define mmROTATOR_DESC_MAX_VAL 0x9C
+
+#define mmROTATOR_DESC_A0_M11 0xA0
+
+#define mmROTATOR_DESC_A1_M12 0xA4
+
+#define mmROTATOR_DESC_A2 0xA8
+
+#define mmROTATOR_DESC_B0_M21 0xAC
+
+#define mmROTATOR_DESC_B1_M22 0xB0
+
+#define mmROTATOR_DESC_B2 0xB4
+
+#define mmROTATOR_DESC_C0 0xB8
+
+#define mmROTATOR_DESC_C1 0xBC
+
+#define mmROTATOR_DESC_C2 0xC0
+
+#define mmROTATOR_DESC_D0 0xC4
+
+#define mmROTATOR_DESC_D1 0xC8
+
+#define mmROTATOR_DESC_D2 0xCC
+
+#define mmROTATOR_DESC_INV_PROC_SIZE_M_1 0xD0
+
+#define mmROTATOR_DESC_MESH_IMG_START_ADDR_L 0xD4
+
+#define mmROTATOR_DESC_MESH_IMG_START_ADDR_H 0xD8
+
+#define mmROTATOR_DESC_MESH_IMG 0xDC
+
+#define mmROTATOR_DESC_MESH_STRIDE 0xE0
+
+#define mmROTATOR_DESC_MESH_STRIPE 0xE4
+
+#define mmROTATOR_DESC_MESH_CTRL 0xE8
+
+#define mmROTATOR_DESC_MESH_GH 0xEC
+
+#define mmROTATOR_DESC_MESH_GV 0xF0
+
+#define mmROTATOR_DESC_MRSB_CFG_0 0xF4
+
+#define mmROTATOR_DESC_MRSB_PAD_VAL 0xF8
+
+#define mmROTATOR_DESC_BUF_CFG 0xFC
+
+#define mmROTATOR_DESC_CID_OFFSET 0x100
+
+#define mmROTATOR_DESC_GRSB_CFG_0 0x104
+
+#define mmROTATOR_DESC_GRSB_PAD_VAL 0x108
+
+#define mmROTATOR_DESC_RESCALE_CFG 0x110
+
+#define mmROTATOR_DESC_GRAD_IMG_START_ADDR_L 0x114
+
+#define mmROTATOR_DESC_GRAD_IMG_START_ADDR_H 0x118
+
+#define mmROTATOR_DESC_GRAD_STRIDE 0x120
+
+#define mmROTATOR_DESC_GRAD_CTRL 0x128
+
+#define mmROTATOR_DESC_ROT_IRM_RL 0x130
+
+#define mmROTATOR_DESC_MESH_IRM_RL 0x134
+
+#define mmROTATOR_DESC_GRAD_IRM_RL 0x13C
+
+#define mmROTATOR_DESC_WCH_CTRL 0x140
+
+#define mmROTATOR_DESC_ROT_NULL_CMD 0x144
+
+#define mmROTATOR_DESC_IN_IMG_AXI_CFG 0x148
+
+#define mmROTATOR_DESC_OUT_IMG_AXI_CFG 0x14C
+
+#define mmROTATOR_DESC_OUT_IMG_AXI_CFG_REDUCTION 0x150
+
+#define mmROTATOR_DESC_MESH_AXI_CFG 0x154
+
+#define mmROTATOR_DESC_GRAD_AXI_CFG 0x158
+
+#define mmROTATOR_DESC_PUSH_DESC 0x19C
+
+#endif /* ASIC_REG_ROTATOR_DESC_REGS_H_ */

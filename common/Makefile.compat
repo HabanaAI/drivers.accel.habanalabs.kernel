@@ -1,0 +1,456 @@
+# SPDX-License-Identifier: GPL-2.0-only
+
+ifdef OFED_PATH
+IB_PATH=$(OFED_PATH)
+else
+IB_PATH="."
+endif
+
+ifneq ($(shell grep "u64_to_user_ptr" include/linux/kernel.h > /dev/null 2>&1 && echo 1),)
+	ccflags-y += -D_HAS_U64_TO_USERPTR
+endif
+
+ifneq ($(shell grep -qs "DIV_ROUND_UP_ULL" include/linux/kernel.h include/linux/math.h > /dev/null 2>&1 && echo 1),)
+	ccflags-y += -D_HAS_DIV_ROUND_UP_ULL
+endif
+
+ifneq ($(shell grep -qs "DIV_ROUND_DOWN_ULL" include/linux/kernel.h include/linux/math.h > /dev/null 2>&1 && echo 1),)
+	ccflags-y += -D_HAS_DIV_ROUND_DOWN_ULL
+endif
+
+ifneq ($(shell ls include/linux/coresight.h > /dev/null 2>&1 && echo 1),)
+	ccflags-y += -D_HAS_CORESIGHT_H
+endif
+
+ifneq ($(shell grep "IS_ERR_VALUE" include/linux/err.h | grep "(unsigned long)(void \*)(x)" > /dev/null 2>&1 && echo 1),)
+	ccflags-y += -D_HAS_CAST_IN_IS_ERR_VALUE
+endif
+
+ifneq ($(shell grep -B1 "_IOC_TYPECHECK" include/asm-generic/ioctl.h | grep "__CHECKER__" > /dev/null 2>&1 && echo 1),)
+	ccflags-y += -D_HAS_FIX_IN_IOC_TYPECHECK
+endif
+
+ifneq ($(shell grep -Pi "lower_32_bits.*ffffffff" include/linux/kernel.h > /dev/null 2>&1 && echo 1),)
+	ccflags-y += -D_LOWER_32_BITS_USES_MASK
+endif
+
+ifneq ($(shell grep "dma_pool_zalloc" include/linux/dmapool.h > /dev/null 2>&1 && echo 1),)
+	ccflags-y += -D_HAS_DMA_POOL_ZALLOC
+endif
+
+ifneq ($(shell grep "kref_read" include/linux/kref.h > /dev/null 2>&1 && echo 1),)
+	ccflags-y += -D_HAS_KREF_READ
+endif
+
+ifneq ($(shell grep "device_add_groups" include/linux/device.h > /dev/null 2>&1 && echo 1),)
+	ccflags-y += -D_HAS_DEVICE_ADD_GROUPS
+endif
+
+ifneq ($(shell grep "pci_ioremap_wc_bar" include/linux/pci.h > /dev/null 2>&1 && echo 1),)
+	ccflags-y += -D_HAS_PCI_IOREMAP_WC_BAR
+endif
+
+ifneq ($(shell grep "kvmalloc_array" include/linux/mm.h include/linux/slab.h > /dev/null 2>&1 && echo 1),)
+        ccflags-y += -D_HAS_KVMALLOC_ARRAY
+endif
+
+ifneq ($(shell grep "kvcalloc" include/linux/mm.h include/linux/slab.h > /dev/null 2>&1 && echo 1),)
+        ccflags-y += -D_HAS_KVCALLOC
+endif
+
+ifneq ($(shell grep "pci_alloc_irq_vectors" include/linux/pci.h > /dev/null 2>&1 && echo 1),)
+	ccflags-y += -D_HAS_PCI_ALLOC_IRQ_VECTORS
+endif
+
+ifneq ($(shell grep "struct frame_vector" include/linux/mm.h > /dev/null 2>&1 && echo 1),)
+	ccflags-y += -D_HAS_FRAME_VECTOR
+endif
+
+ifneq ($(shell grep "unpin_user_pages_dirty_lock" include/linux/mm.h > /dev/null 2>&1 && echo 1),)
+	ccflags-y += -D_HAS_USER_PAGES_DIRTY_LOCK
+endif
+
+ifneq ($(shell grep "FOLL_PTRACE" include/linux/mm.h > /dev/null 2>&1 && echo 1),)
+	ccflags-y += -D_HAS_FOLL_PTRACE
+endif
+
+ifneq ($(shell ls include/linux/dax.h > /dev/null 2>&1 && echo 1),)
+	ccflags-y += -D_HAS_DAX_H
+endif
+
+ifneq ($(shell grep "vma_is_fsdax" include/linux/fs.h > /dev/null 2>&1 && echo 1),)
+	ccflags-y += -D_HAS_VMA_IS_FSDAX
+endif
+
+ifneq ($(shell grep "hwmon_device_register_with_info" include/linux/hwmon.h > /dev/null 2>&1 && echo 1),)
+	ccflags-y += -D_HAS_HWMON_DEVICE_REGISTER_WITH_INFO
+endif
+
+ifneq ($(shell grep "HWMON_I_ENABLE" include/linux/hwmon.h > /dev/null 2>&1 && echo 1),)
+	ccflags-y += -D_HAS_HWMON_HWMON_I_ENABLE
+endif
+
+ifneq ($(shell grep "HWMON_T_ENABLE" include/linux/hwmon.h > /dev/null 2>&1 && echo 1),)
+	ccflags-y += -D_HAS_HWMON_HWMON_T_ENABLE
+endif
+
+ifneq ($(shell grep "HWMON_PWM_ENABLE" include/linux/hwmon.h > /dev/null 2>&1 && echo 1),)
+	ccflags-y += -D_HAS_HWMON_HWMON_PWM_ENABLE
+endif
+
+ifneq ($(shell grep "hwmon_max" include/linux/hwmon.h > /dev/null 2>&1 && echo 1),)
+	ccflags-y += -D_HAS_HWMON_HWMON_MAX
+endif
+
+ifneq ($(shell grep -A2 "struct gen_pool_chunk {" include/linux/genalloc.h | grep "atomic_long_t avail" > /dev/null 2>&1 && echo 1),)
+	ccflags-y += -D_HAS_GEN_POOL_CHUNK_WITH_ATOMIC_LONG
+endif
+
+ifneq ($(shell grep "gen_pool_dma_alloc" include/linux/genalloc.h > /dev/null 2>&1 && echo 1),)
+	ccflags-y += -D_HAS_GEN_POOL_DMA_ALLOC
+endif
+
+ifneq ($(shell grep "gen_pool_dma_alloc_align" include/linux/genalloc.h > /dev/null 2>&1 && echo 1),)
+	ccflags-y += -D_HAS_GEN_POOL_DMA_ALLOC_ALIGN
+endif
+
+ifneq ($(shell grep "gen_pool_dma_zalloc" include/linux/genalloc.h > /dev/null 2>&1 && echo 1),)
+	ccflags-y += -D_HAS_GEN_POOL_DMA_ZALLOC
+endif
+
+ifneq ($(shell grep "cdev_device_add" include/linux/cdev.h > /dev/null 2>&1 && echo 1),)
+	ccflags-y += -D_HAS_CDEV_DEVICE_ADD
+endif
+
+ifneq ($(shell grep "ktime_get_raw_ns" include/linux/timekeeping.h > /dev/null 2>&1 && echo 1),)
+	ccflags-y += -D_HAS_KTIME_GET_RAW_NS
+endif
+
+ifneq ($(shell ls include/linux/bitfield.h > /dev/null 2>&1 && echo 1),)
+	ccflags-y += -D_HAS_BITFIELD_H
+endif
+
+ifneq ($(shell grep -A1 "GENMASK" include/linux/bitops.h include/linux/bits.h 2> /dev/null | grep "(1UL << (l))" > /dev/null 2>&1 && echo 1),)
+	ccflags-y += -D_HAS_OVERFLOW_PROT_IN_GENMASK
+endif
+
+ifneq ($(shell grep "struct ethtool_link_ksettings" include/linux/ethtool.h > /dev/null 2>&1 && echo 1),)
+	ccflags-y += -D_HAS_ETHTOOL_LINK_KSETTINGS
+endif
+
+ifneq ($(shell grep "ndo_size" include/linux/netdevice.h > /dev/null 2>&1 && echo 1),)
+	ccflags-y += -D_HAS_NDO_FIELD_NDO_SIZE
+endif
+
+ifneq ($(shell grep -A50 "struct net_device_ops_extended {" include/linux/netdevice.h | grep "ndo_change_mtu" > /dev/null 2>&1 && echo 1),)
+	ccflags-y += -D_HAS_NDO_EXT_CHANGE_MTU
+endif
+
+ifneq ($(shell grep "min_mtu" include/linux/netdevice.h > /dev/null 2>&1 && echo 1),)
+	ccflags-y += -D_HAS_MIN_MAX_MTU
+endif
+
+ifneq ($(shell grep "array_index_nospec" include/linux/nospec.h > /dev/null 2>&1 && echo 1),)
+	ccflags-y += -D_HAS_NO_SPEC
+endif
+
+ifneq ($(shell ls include/linux/sched/signal.h > /dev/null 2>&1 && echo 1),)
+	ccflags-y += -D_HAS_SCHED_SIGNAL_H
+endif
+
+ifneq ($(shell ls include/linux/io-64-nonatomic-lo-hi.h > /dev/null 2>&1 && echo 1),)
+	ccflags-y += -D_HAS_IO_64_NONATOMIC_LO_HI_H
+endif
+
+ifneq ($(shell grep "access_ok" include/asm-generic/uaccess.h | grep "type" > /dev/null 2>&1 && echo 1),)
+	ccflags-y += -D_HAS_TYPE_ARG_IN_ACCESS_OK
+endif
+
+ifneq ($(shell grep "dma_mmap_coherent" include/linux/dma-mapping.h > /dev/null 2>&1 && echo 1),)
+	ifneq ($(shell grep "dma_can_mmap" include/linux/dma-mapping.h > /dev/null 2>&1 && echo 1),)
+		ccflags-y += -D_HAS_DMA_MMAP_COHERENT
+	endif
+endif
+
+ifneq ($(shell grep "dma_map_resource" include/linux/dma-mapping.h > /dev/null 2>&1 && echo 1),)
+	ccflags-y += -D_HAS_DMA_MAP_RESOURCE
+endif
+
+ifneq ($(shell grep "dma_map_resource" -A5 include/linux/dma-mapping.h | grep "struct dma_attrs" > /dev/null 2>&1 && echo 1),)
+	ccflags-y += -D_HAS_DMA_MAP_RESOURCE_WITH_DMA_ATTRS
+endif
+
+ifneq ($(shell grep "define static_assert" include/linux/build_bug.h > /dev/null 2>&1 && echo 1),)
+	ccflags-y += -D_HAS_STATIC_ASSERT
+endif
+
+ifneq ($(shell grep -A20 "struct pci_host_bridge {" include/linux/pci.h | grep "no_ext_tags" > /dev/null 2>&1 && echo 1),)
+	ccflags-y += -D_HAS_PCI_CONFIGURE_EXTENDED_TAGS
+endif
+
+ifneq ($(shell grep "strscpy" include/linux/string.h > /dev/null 2>&1 && echo 1),)
+	ccflags-y += -D_HAS_STRSCPY
+endif
+
+ifneq ($(shell grep "get_user_pages_locked" include/linux/mm.h | grep "struct task_struct"> /dev/null 2>&1 && echo 1),)
+	ccflags-y += -D_HAS_GET_USER_PAGES_LOCKED_WITH_TASK_PTR
+endif
+
+ifneq ($(shell grep "int (\*attach)" include/linux/dma-buf.h | grep "struct device" > /dev/null 2>&1 && echo 1),)
+	ccflags-y += -D_HAS_DMA_BUF_OP_ATTACH_WITH_DEV
+endif
+
+ifneq ($(shell grep "ib_umem_dmabuf_get" include/rdma/ib_umem.h > /dev/null 2>&1 && echo 1),)
+	ccflags-y += -D_HAS_IB_UMEM_DMABUF_GET
+endif
+
+ifneq ($(shell grep "mmap_read_lock" include/linux/mmap_lock.h > /dev/null 2>&1 && echo 1),)
+	ccflags-y += -D_HAS_MMAP_READ_LOCK
+endif
+
+ifneq ($(shell grep "mmgrab" include/linux/sched/mm.h include/linux/sched.h > /dev/null 2>&1 && echo 1),)
+	ccflags-y += -D_HAS_MMGRAB
+endif
+
+ifneq ($(shell grep "get_user_pages_remote" include/linux/mm.h | grep "struct task_struct"> /dev/null 2>&1 && echo 1),)
+	ccflags-y += -D_HAS_GET_USER_PAGES_REMOTE_WITH_TASK_PTR
+endif
+
+ifneq ($(shell grep -P "get_user_pages[^\w]" include/linux/mm.h | grep "struct task_struct"> /dev/null 2>&1 && echo 1),)
+	ccflags-y += -D_HAS_GET_USER_PAGES_WITH_TASK_PTR
+endif
+
+ifneq ($(shell grep -A 1 " get_user_pages" include/linux/mm.h | grep "gup_flags"> /dev/null 2>&1 && echo 1),)
+	ccflags-y += -D_HAS_GET_USER_PAGES_WITH_GUP_FLAGS
+endif
+
+ifneq ($(shell grep "get_user_pages_remote" include/linux/mm.h > /dev/null 2>&1 && echo 1),)
+	ccflags-y += -D_HAS_GET_USER_PAGES_REMOTE
+endif
+
+ifneq ($(shell grep -A 3 "get_user_pages_remote" include/linux/mm.h | grep locked > /dev/null 2>&1 && echo 1),)
+	ccflags-y += -D_HAS_GET_USER_PAGES_REMOTE_LOCKED
+endif
+
+ifneq ($(shell grep "jiffies64_to_msecs" include/linux/jiffies.h > /dev/null 2>&1 && echo 1),)
+	ccflags-y += -D_HAS_JIFFIES64_TO_MSEC
+endif
+
+ifneq ($(shell grep "__rcu \*ifa_list;" include/linux/inetdevice.h > /dev/null 2>&1 && echo 1),)
+	ccflags-y += -D_HAS_RCU_IFA_LIST
+endif
+
+ifneq ($(shell grep "peer2peer" include/linux/dma-buf.h > /dev/null 2>&1 && echo 1),)
+	ccflags-y += -D_HAS_PEER2PEER
+endif
+
+# TODO SW-114896: remove once AMZN kernel includes AUX_BUS
+ifneq ($(shell uname -r | grep -v amzn > /dev/null 2>&1 && echo 1),)
+	ifneq ($(shell grep "struct auxiliary_device_id" include/linux/mod_devicetable.h > /dev/null 2>&1 && echo 1),)
+		ccflags-y += -D_HAS_AUX_BUS_H
+	endif
+endif
+
+ifneq ($(shell grep "MODULE_IMPORT_NS" include/linux/module.h > /dev/null 2>&1 && echo 1),)
+	ccflags-y += -D_HAS_MODULE_IMPORT_NS
+endif
+
+ifneq ($(shell grep "int __irq_alloc_descs" include/linux/irq.h -A2 | grep affinity > /dev/null 2>&1 && echo 1),)
+	ccflags-y += -D_HAS_IRQ_ALLOC_DESCS_AFFINITY
+endif
+
+ifneq ($(shell grep "void handle_simple_irq" include/linux/irq.h | grep "unsigned int" > /dev/null 2>&1 && echo 1),)
+	ccflags-y += -D_HAS_HANDLE_SIMPLE_IRQ_2_ARGUMENTS
+endif
+
+ifneq ($(shell grep "__poll_t" include/uapi/linux/types.h > /dev/null 2>&1 && echo 1),)
+	ccflags-y += -D_HAS_POLL_T
+endif
+
+ifneq ($(shell grep "hmm_range_fault" include/linux/hmm.h | grep "flags" > /dev/null 2>&1 && echo 1),)
+	ccflags-y += -D_HAS_HMM_RANGE_FAULT_FLAGS
+endif
+
+ifneq ($(shell grep -A 5 "struct hmm_range" include/linux/hmm.h | grep "hmm_pfns" > /dev/null 2>&1 && echo 1),)
+	ccflags-y += -D_HAS_HMM_RANGE_HMM_PFNS
+endif
+
+ifneq ($(shell grep "mmu_interval_read_begin" include/linux/mmu_notifier.h > /dev/null 2>&1 && echo 1),)
+	ccflags-y += -D_HAS_MMU_INTERVAL_READ_BEGIN
+endif
+
+ifneq ($(shell grep -A10 "struct hmm_range {" include/linux/hmm.h | grep notifier > /dev/null 2>&1 && echo 1),)
+	ccflags-y += -D_HAS_HMM_RANGE_INTERVAL_NOTIFIER
+endif
+
+ifneq ($(shell grep -A10 "struct hmm_range {" include/linux/hmm.h | grep '\*flags' > /dev/null 2>&1 && echo 1),)
+	ccflags-y += -D_HAS_MMU_RANGE_FLAGS
+endif
+
+ifneq ($(shell grep "hmm_pfn_to_page" include/linux/hmm.h > /dev/null 2>&1 && echo 1),)
+	ccflags-y += -D_HAS_HMM_PFN_TO_PAGE
+endif
+
+ifneq ($(shell grep "bitmap_find_next_zero_area_off" include/linux/bitmap.h > /dev/null 2>&1 && echo 1),)
+	ccflags-y += -D_HAS_BITMAP_FIND_NEXT_ZERO_AREA_OFF
+endif
+
+ifneq ($(shell grep "bitmap_zalloc" include/linux/bitmap.h > /dev/null 2>&1 && echo 1),)
+	ccflags-y += -D_HAS_BITMAP_ZALLOC
+endif
+
+ifneq ($(shell grep "bitmap_free" include/linux/bitmap.h > /dev/null 2>&1 && echo 1),)
+	ccflags-y += -D_HAS_BITMAP_FREE
+endif
+
+ifneq ($(shell grep "gen_pool_dma_alloc_algo" include/linux/genalloc.h > /dev/null 2>&1 && echo 1),)
+	ccflags-y += -D_HAS_GEN_POOL_DMA_ALLOC_ALGO
+endif
+
+ifneq ($(shell grep "struct genpool_data_align {" include/linux/genalloc.h > /dev/null 2>&1 && echo 1),)
+	ccflags-y += -D_HAS_GENPOOL_DATA_ALIGN_STRUCT
+endif
+
+ifneq ($(shell grep "gen_pool_first_fit_align" include/linux/genalloc.h > /dev/null 2>&1 && echo 1),)
+	ccflags-y += -D_HAS_GEN_POOL_FIRST_FIT_ALIGN
+endif
+
+ifneq ($(shell grep -A5 "typedef unsigned long (\*genpool_algo_t)" include/linux/genalloc.h | grep "unsigned long start_addr" > /dev/null 2>&1 && echo 1),)
+	ccflags-y += -D_HAS_GENPOOL_ALGO_T_WITH_START_ADDR
+endif
+
+ifneq ($(shell grep "gen_pool_dma_zalloc_align" include/linux/genalloc.h > /dev/null 2>&1 && echo 1),)
+	ccflags-y += -D_HAS_GEN_POOL_DMA_ZALLOC_ALIGN
+endif
+
+ifneq ($(shell grep "gen_pool_dma_zalloc_algo" include/linux/genalloc.h > /dev/null 2>&1 && echo 1),)
+	ccflags-y += -D_HAS_GEN_POOL_DMA_ZALLOC_ALGO
+endif
+
+ifneq ($(shell grep "dma_map_sgtable" include/linux/dma-mapping.h > /dev/null 2>&1 && echo 1),)
+	ccflags-y += -D_HAS_DMA_MAP_SGTABLE
+endif
+
+ifneq ($(shell grep "device_iommu_mapped" include/linux/device.h > /dev/null 2>&1 && echo 1),)
+	ccflags-y += -D_HAS_DEVICE_IOMMU_MAPPED
+endif
+
+ifneq ($(shell grep "FOLL_POPULATE" include/linux/mm.h > /dev/null 2>&1 && echo 1),)
+	ccflags-y += -D_HAS_FOLL_POPULATE
+endif
+
+ifneq ($(shell grep -w "dma_resv_wait_timeout" include/linux/dma-resv.h > /dev/null 2>&1 && echo 1),)
+	ccflags-y += -D_HAS_DMA_RESV_WAIT_TIMEOUT
+endif
+
+ifneq ($(shell grep -w "DMA_RESV_USAGE_KERNEL" include/linux/dma-resv.h > /dev/null 2>&1 && echo 1),)
+	ccflags-y += -D_HAS_DMA_RESV_USAGE_KERNEL
+endif
+
+ifneq ($(shell grep -w "get_random_u32" include/linux/random.h > /dev/null 2>&1 && echo 1),)
+	ccflags-y += -D_HAS_RANDOM_U32
+endif
+
+ifneq ($(shell grep -w "kernel_write" include/linux/fs.h | grep ", loff_t \*" > /dev/null 2>&1 && echo 1),)
+	ccflags-y += -D_HAS_KERNEL_WRITE_WITH_PTR
+endif
+
+ifneq ($(shell grep "200000baseKR4_Full_BIT" include/uapi/linux/ethtool.h > /dev/null 2>&1 && echo 1),)
+	ccflags-y += -D_HAS_200G_KSETTINGS
+endif
+
+ifneq ($(shell grep "400000baseKR4_Full_BIT" include/uapi/linux/ethtool.h $(IB_PATH)/include/linux/ethtool.h > /dev/null 2>&1 && echo 1),)
+	ccflags-y += -D_HAS_400G_KSETTINGS
+endif
+
+ifneq ($(shell grep "ib_alloc_device(drv_struct, member)" $(IB_PATH)/include/rdma/ib_verbs.h > /dev/null 2>&1 && echo 1),)
+	ccflags-y += -D_HAS_SAFE_IB_ALLOC_DEVICE
+endif
+
+ifneq ($(shell grep -A1 "int ib_register_device" $(IB_PATH)/include/rdma/ib_verbs.h | grep dma_device > /dev/null 2>&1 && echo 1),)
+	ccflags-y += -D_HAS_DMA_IB_REGISTER_DEVICE
+endif
+
+ifneq ($(shell grep "get_port_immutable" $(IB_PATH)/include/rdma/ib_verbs.h | grep u32 > /dev/null 2>&1 && echo 1),)
+	ccflags-y += -D_HAS_EX_RDMA_PORTS
+endif
+
+ifneq ($(shell grep "DECLARE_RDMA_OBJ_SIZE(ib_qp)" $(IB_PATH)/include/rdma/ib_verbs.h > /dev/null 2>&1 && echo 1),)
+	ccflags-y += -D_HAS_IB_QP_SIZE
+endif
+
+ifneq ($(shell grep "DECLARE_RDMA_OBJ_SIZE(ib_cq)" $(IB_PATH)/include/rdma/ib_verbs.h > /dev/null 2>&1 && echo 1),)
+	ccflags-y += -D_HAS_IB_CQ_SIZE
+endif
+
+ifneq ($(shell grep "rdma_ah_init_attr" $(IB_PATH)/include/rdma/ib_verbs.h > /dev/null 2>&1 && echo 1),)
+	ccflags-y += -D_HAS_AH_INIT_ATTR
+endif
+
+ifneq ($(shell grep "int (\*create_qp)" $(IB_PATH)/include/rdma/ib_verbs.h > /dev/null 2>&1 && echo 1),)
+	ccflags-y += -D_HAS_INT_CREATE_QP
+endif
+
+ifneq ($(shell grep "int (\*dealloc_pd)" $(IB_PATH)/include/rdma/ib_verbs.h > /dev/null 2>&1 && echo 1),)
+	ccflags-y += -D_HAS_INT_DEALLOC_PD
+endif
+
+ifneq ($(shell grep "int (\*destroy_ah)" $(IB_PATH)/include/rdma/ib_verbs.h > /dev/null 2>&1 && echo 1),)
+	ccflags-y += -D_HAS_INT_DESTROY_AH
+endif
+
+ifneq ($(shell grep "int (\*create_cq)" $(IB_PATH)/include/rdma/ib_verbs.h > /dev/null 2>&1 && echo 1),)
+	ccflags-y += -D_HAS_INT_CREATE_CQ
+endif
+
+ifneq ($(shell grep "int (\*destroy_cq)" $(IB_PATH)/include/rdma/ib_verbs.h > /dev/null 2>&1 && echo 1),)
+	ccflags-y += -D_HAS_INT_DESTROY_CQ
+endif
+
+ifneq ($(shell grep "reg_user_mr_dmabuf" $(IB_PATH)/include/rdma/ib_verbs.h > /dev/null 2>&1 && echo 1),)
+	ccflags-y += -D_HAS_REG_USER_MR_DMABUF
+endif
+
+ifneq ($(shell grep "uverbs_ex_cmd_mask" $(IB_PATH)/include/rdma/ib_verbs.h > /dev/null 2>&1 && echo 1),)
+	ccflags-y += -D_HAS_EX_CMD_MASK
+endif
+
+ifneq ($(shell grep "RDMA_DRIVER_HLIB" $(IB_PATH)/include/uapi/rdma/ib_user_ioctl_verbs.h > /dev/null 2>&1 && echo 1),)
+	ccflags-y += -D_HAS_RDMA_DRIVER_HLIB
+endif
+
+ifneq ($(shell grep "ibdev_printk" $(IB_PATH)/include/rdma/ib_verbs.h > /dev/null 2>&1 && echo 1),)
+	ccflags-y += -D_HAS_IBDEV_PRINT
+endif
+
+ifneq ($(shell grep "reg_user_mr" $(IB_PATH)/include/rdma/ib_verbs.h | grep attr > /dev/null 2>&1 && echo 1),)
+	ccflags-y += -D_HAS_REG_MR_ATTR
+endif
+
+ifneq ($(shell grep -A1 "struct ib_device_ops {" $(IB_PATH)/include/rdma/ib_verbs.h | grep owner > /dev/null 2>&1 && echo 1),)
+	ccflags-y += -D_HAS_DEVICE_OPS_INFO
+endif
+
+ifneq ($(shell grep "enum ib_port_phys_state" $(IB_PATH)/include/rdma/ib_verbs.h > /dev/null 2>&1 && echo 1),)
+	ccflags-y += -D_HAS_IB_PORT_PHYS_STATE
+endif
+
+ifneq ($(shell grep "void (\*mmap_free)" $(IB_PATH)/include/rdma/ib_verbs.h > /dev/null 2>&1 && echo 1),)
+	ccflags-y += -D_HAS_MMAP_FREE
+endif
+
+ifneq ($(shell grep "check_add_overflow" include/linux/overflow.h > /dev/null 2>&1 && echo 1),)
+	ccflags-y += -D_HAS_CHECK_ADD_OVERFLOW
+endif
+
+ifneq ($(shell grep -w "supported_coalesce_params" include/linux/ethtool.h > /dev/null 2>&1 && echo 1),)
+	ccflags-y += -D_HAS_ETHTOOL_COALESCE_PARAMS
+endif
+
+ifneq ($(shell grep -w -A 3 "get_coalesce" include/linux/ethtool.h | grep "struct netlink_ext_ack" > /dev/null 2>&1 && echo 1),)
+	ccflags-y += -D_HAS_ETHTOOL_COALESCE_EXT_PARAMS
+endif
+
+ifneq ($(shell grep -w "uverbs_copy_to_struct_or_zero" $(IB_PATH)/Module.symvers > /dev/null 2>&1 && echo 1),)
+	ccflags-y += -D_HAS_UVERBS_COPY_TO_STRUCT_OR_ZERO
+endif

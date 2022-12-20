@@ -1,0 +1,143 @@
+/* SPDX-License-Identifier: GPL-2.0
+ *
+ * Copyright 2016-2021 HabanaLabs, Ltd.
+ * All Rights Reserved.
+ *
+ */
+
+/************************************
+ ** This is an auto-generated file **
+ **       DO NOT EDIT BELOW        **
+ ************************************/
+
+#ifndef ASIC_REG_D0_NIC0_UMR_0_REGS_H_
+#define ASIC_REG_D0_NIC0_UMR_0_REGS_H_
+
+/*
+ *****************************************
+ *   D0_NIC0_UMR_0
+ *   (Prototype: NIC_UMR)
+ *****************************************
+ */
+
+#define mmD0_NIC0_UMR_0_REG_DW_0 0xD00A000
+
+#define mmD0_NIC0_UMR_0_REG_DW_1 0xD00A004
+
+#define mmD0_NIC0_UMR_0_REG_DW_2 0xD00A008
+
+#define mmD0_NIC0_UMR_0_REG_DW_3 0xD00A00C
+
+#define mmD0_NIC0_UMR_0_REG_DW_4 0xD00A010
+
+#define mmD0_NIC0_UMR_0_REG_DW_5 0xD00A014
+
+#define mmD0_NIC0_UMR_0_REG_DW_6 0xD00A018
+
+#define mmD0_NIC0_UMR_0_REG_DW_7 0xD00A01C
+
+#define mmD0_NIC0_UMR_0_REG_DW_8 0xD00A020
+
+#define mmD0_NIC0_UMR_0_REG_DW_9 0xD00A024
+
+#define mmD0_NIC0_UMR_0_REG_DW_10 0xD00A028
+
+#define mmD0_NIC0_UMR_0_REG_DW_11 0xD00A02C
+
+#define mmD0_NIC0_UMR_0_REG_DW_12 0xD00A030
+
+#define mmD0_NIC0_UMR_0_REG_DW_13 0xD00A034
+
+#define mmD0_NIC0_UMR_0_REG_DW_14 0xD00A038
+
+#define mmD0_NIC0_UMR_0_REG_DW_15 0xD00A03C
+
+#define mmD0_NIC0_UMR_0_REG_DW_16 0xD00A040
+
+#define mmD0_NIC0_UMR_0_REG_DW_17 0xD00A044
+
+#define mmD0_NIC0_UMR_0_REG_DW_18 0xD00A048
+
+#define mmD0_NIC0_UMR_0_REG_DW_19 0xD00A04C
+
+#define mmD0_NIC0_UMR_0_REG_DW_20 0xD00A050
+
+#define mmD0_NIC0_UMR_0_REG_DW_21 0xD00A054
+
+#define mmD0_NIC0_UMR_0_REG_DW_22 0xD00A058
+
+#define mmD0_NIC0_UMR_0_REG_DW_23 0xD00A05C
+
+#define mmD0_NIC0_UMR_0_REG_DW_24 0xD00A060
+
+#define mmD0_NIC0_UMR_0_REG_DW_25 0xD00A064
+
+#define mmD0_NIC0_UMR_0_REG_DW_26 0xD00A068
+
+#define mmD0_NIC0_UMR_0_REG_DW_27 0xD00A06C
+
+#define mmD0_NIC0_UMR_0_REG_DW_28 0xD00A070
+
+#define mmD0_NIC0_UMR_0_REG_DW_29 0xD00A074
+
+#define mmD0_NIC0_UMR_0_REG_DW_30 0xD00A078
+
+#define mmD0_NIC0_UMR_0_REG_DW_31 0xD00A07C
+
+#define mmD0_NIC0_UMR_0_REG_DW_32 0xD00A080
+
+#define mmD0_NIC0_UMR_0_REG_DW_33 0xD00A084
+
+#define mmD0_NIC0_UMR_0_REG_DW_34 0xD00A088
+
+#define mmD0_NIC0_UMR_0_REG_DW_35 0xD00A08C
+
+#define mmD0_NIC0_UMR_0_REG_DW_36 0xD00A090
+
+#define mmD0_NIC0_UMR_0_REG_DW_37 0xD00A094
+
+#define mmD0_NIC0_UMR_0_REG_DW_38 0xD00A098
+
+#define mmD0_NIC0_UMR_0_REG_DW_39 0xD00A09C
+
+#define mmD0_NIC0_UMR_0_REG_DW_40 0xD00A0A0
+
+#define mmD0_NIC0_UMR_0_REG_DW_41 0xD00A0A4
+
+#define mmD0_NIC0_UMR_0_REG_DW_42 0xD00A0A8
+
+#define mmD0_NIC0_UMR_0_REG_DW_43 0xD00A0AC
+
+#define mmD0_NIC0_UMR_0_REG_DW_44 0xD00A0B0
+
+#define mmD0_NIC0_UMR_0_REG_DW_45 0xD00A0B4
+
+#define mmD0_NIC0_UMR_0_REG_DW_46 0xD00A0B8
+
+#define mmD0_NIC0_UMR_0_REG_DW_47 0xD00A0BC
+
+#define mmD0_NIC0_UMR_0_REG_DW_48 0xD00A0C0
+
+#define mmD0_NIC0_UMR_0_REG_DW_49 0xD00A0C4
+
+#define mmD0_NIC0_UMR_0_REG_DW_50 0xD00A0C8
+
+#define mmD0_NIC0_UMR_0_REG_DW_51 0xD00A0CC
+
+#define mmD0_NIC0_UMR_0_REG_DW_52 0xD00A0D0
+
+#define mmD0_NIC0_UMR_0_REG_DW_53 0xD00A0D4
+
+#define mmD0_NIC0_UMR_0_REG_DW_54 0xD00A0D8
+
+#define mmD0_NIC0_UMR_0_REG_DW_55 0xD00A0DC
+
+#define mmD0_NIC0_UMR_0_REG_DW_56 0xD00A0E0
+
+#define mmD0_NIC0_UMR_0_REG_DW_57 0xD00A0E4
+
+#define mmD0_NIC0_UMR_0_REG_DW_58 0xD00A0E8
+
+#define mmD0_NIC0_UMR_0_REG_DW_59 0xD00A0EC
+
+#endif /* ASIC_REG_D0_NIC0_UMR_0_REGS_H_ */

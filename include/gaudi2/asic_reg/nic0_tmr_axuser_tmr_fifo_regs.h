@@ -1,0 +1,61 @@
+/* SPDX-License-Identifier: GPL-2.0
+ *
+ * Copyright 2016-2020 HabanaLabs, Ltd.
+ * All Rights Reserved.
+ *
+ */
+
+/************************************
+ ** This is an auto-generated file **
+ **       DO NOT EDIT BELOW        **
+ ************************************/
+
+#ifndef ASIC_REG_NIC0_TMR_AXUSER_TMR_FIFO_REGS_H_
+#define ASIC_REG_NIC0_TMR_AXUSER_TMR_FIFO_REGS_H_
+
+/*
+ *****************************************
+ *   NIC0_TMR_AXUSER_TMR_FIFO
+ *   (Prototype: AXUSER)
+ *****************************************
+ */
+
+#define mmNIC0_TMR_AXUSER_TMR_FIFO_HB_ASID 0x5448DC0
+
+#define mmNIC0_TMR_AXUSER_TMR_FIFO_HB_MMU_BP 0x5448DC4
+
+#define mmNIC0_TMR_AXUSER_TMR_FIFO_HB_STRONG_ORDER 0x5448DC8
+
+#define mmNIC0_TMR_AXUSER_TMR_FIFO_HB_NO_SNOOP 0x5448DCC
+
+#define mmNIC0_TMR_AXUSER_TMR_FIFO_HB_WR_REDUCTION 0x5448DD0
+
+#define mmNIC0_TMR_AXUSER_TMR_FIFO_HB_RD_ATOMIC 0x5448DD4
+
+#define mmNIC0_TMR_AXUSER_TMR_FIFO_HB_QOS 0x5448DD8
+
+#define mmNIC0_TMR_AXUSER_TMR_FIFO_HB_RSVD 0x5448DDC
+
+#define mmNIC0_TMR_AXUSER_TMR_FIFO_HB_EMEM_CPAGE 0x5448DE0
+
+#define mmNIC0_TMR_AXUSER_TMR_FIFO_HB_CORE 0x5448DE4
+
+#define mmNIC0_TMR_AXUSER_TMR_FIFO_E2E_COORD 0x5448DE8
+
+#define mmNIC0_TMR_AXUSER_TMR_FIFO_HB_WR_OVRD_LO 0x5448DF0
+
+#define mmNIC0_TMR_AXUSER_TMR_FIFO_HB_WR_OVRD_HI 0x5448DF4
+
+#define mmNIC0_TMR_AXUSER_TMR_FIFO_HB_RD_OVRD_LO 0x5448DF8
+
+#define mmNIC0_TMR_AXUSER_TMR_FIFO_HB_RD_OVRD_HI 0x5448DFC
+
+#define mmNIC0_TMR_AXUSER_TMR_FIFO_LB_COORD 0x5448E00
+
+#define mmNIC0_TMR_AXUSER_TMR_FIFO_LB_LOCK 0x5448E04
+
+#define mmNIC0_TMR_AXUSER_TMR_FIFO_LB_RSVD 0x5448E08
+
+#define mmNIC0_TMR_AXUSER_TMR_FIFO_LB_OVRD 0x5448E0C
+
+#endif /* ASIC_REG_NIC0_TMR_AXUSER_TMR_FIFO_REGS_H_ */

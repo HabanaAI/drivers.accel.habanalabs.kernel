@@ -1,0 +1,352 @@
+/* SPDX-License-Identifier: GPL-2.0
+ *
+ * Copyright 2016-2018 HabanaLabs, Ltd.
+ * All Rights Reserved.
+ *
+ */
+
+/************************************
+ ** This is an auto-generated file **
+ **       DO NOT EDIT BELOW        **
+ ************************************/
+
+#ifndef ASIC_REG_NIC0_TMR_MASKS_H_
+#define ASIC_REG_NIC0_TMR_MASKS_H_
+
+/*
+ *****************************************
+ *   NIC0_TMR (Prototype: NIC_TMR)
+ *****************************************
+ */
+
+/* NIC0_TMR_TMR_PUSH_MASK */
+#define NIC0_TMR_TMR_PUSH_MASK_R_SHIFT                               0
+#define NIC0_TMR_TMR_PUSH_MASK_R_MASK                                0x1
+
+/* NIC0_TMR_TMR_POP_MASK */
+#define NIC0_TMR_TMR_POP_MASK_R_SHIFT                                0
+#define NIC0_TMR_TMR_POP_MASK_R_MASK                                 0x1
+
+/* NIC0_TMR_TMR_PUSH_RELEASE_INVALIDATE */
+#define NIC0_TMR_TMR_PUSH_RELEASE_INVALIDATE_R_SHIFT                 0
+#define NIC0_TMR_TMR_PUSH_RELEASE_INVALIDATE_R_MASK                  0x1
+
+/* NIC0_TMR_TMR_POP_RELEASE_INVALIDATE */
+#define NIC0_TMR_TMR_POP_RELEASE_INVALIDATE_R_SHIFT                  0
+#define NIC0_TMR_TMR_POP_RELEASE_INVALIDATE_R_MASK                   0x1
+
+/* NIC0_TMR_TMR_LIST_MEM_READ_MASK */
+#define NIC0_TMR_TMR_LIST_MEM_READ_MASK_R_SHIFT                      0
+#define NIC0_TMR_TMR_LIST_MEM_READ_MASK_R_MASK                       0x1
+
+/* NIC0_TMR_TMR_FIFO_MEM_READ_MASK */
+#define NIC0_TMR_TMR_FIFO_MEM_READ_MASK_R_SHIFT                      0
+#define NIC0_TMR_TMR_FIFO_MEM_READ_MASK_R_MASK                       0x1
+
+/* NIC0_TMR_TMR_LIST_MEM_WRITE_MASK */
+#define NIC0_TMR_TMR_LIST_MEM_WRITE_MASK_R_SHIFT                     0
+#define NIC0_TMR_TMR_LIST_MEM_WRITE_MASK_R_MASK                      0x1
+
+/* NIC0_TMR_TMR_FIFO_MEM_WRITE_MASK */
+#define NIC0_TMR_TMR_FIFO_MEM_WRITE_MASK_R_SHIFT                     0
+#define NIC0_TMR_TMR_FIFO_MEM_WRITE_MASK_R_MASK                      0x1
+
+/* NIC0_TMR_TMR_BASE_ADDRESS_49_18 */
+#define NIC0_TMR_TMR_BASE_ADDRESS_49_18_R_SHIFT                      0
+#define NIC0_TMR_TMR_BASE_ADDRESS_49_18_R_MASK                       0xFFFFFFFF
+
+/* NIC0_TMR_TMR_BASE_ADDRESS_17_7 */
+#define NIC0_TMR_TMR_BASE_ADDRESS_17_7_R_SHIFT                       0
+#define NIC0_TMR_TMR_BASE_ADDRESS_17_7_R_MASK                        0x7FF
+
+/* NIC0_TMR_TMR_LIST_AXI_USER */
+#define NIC0_TMR_TMR_LIST_AXI_USER_R_SHIFT                           0
+#define NIC0_TMR_TMR_LIST_AXI_USER_R_MASK                            0xFFFFFFFF
+
+/* NIC0_TMR_TMR_LIST_AXI_PROT */
+#define NIC0_TMR_TMR_LIST_AXI_PROT_R_SHIFT                           0
+#define NIC0_TMR_TMR_LIST_AXI_PROT_R_MASK                            0x7
+
+/* NIC0_TMR_TMR_STATE_AXI_USER */
+#define NIC0_TMR_TMR_STATE_AXI_USER_R_SHIFT                          0
+#define NIC0_TMR_TMR_STATE_AXI_USER_R_MASK                           0xFFFFFFFF
+
+/* NIC0_TMR_TMR_STATE_AXI_PROT */
+#define NIC0_TMR_TMR_STATE_AXI_PROT_R_SHIFT                          0
+#define NIC0_TMR_TMR_STATE_AXI_PROT_R_MASK                           0x7
+
+/* NIC0_TMR_TMR_SCHEDQ_UPDATE_EN */
+#define NIC0_TMR_TMR_SCHEDQ_UPDATE_EN_R_SHIFT                        0
+#define NIC0_TMR_TMR_SCHEDQ_UPDATE_EN_R_MASK                         0x1
+
+/* NIC0_TMR_TMR_SCHEDQ_UPDATE_FIFO */
+#define NIC0_TMR_TMR_SCHEDQ_UPDATE_FIFO_R_SHIFT                      0
+#define NIC0_TMR_TMR_SCHEDQ_UPDATE_FIFO_R_MASK                       0xFF
+
+/* NIC0_TMR_TMR_SCHEDQ_UPDATE_DESC_31_0 */
+#define NIC0_TMR_TMR_SCHEDQ_UPDATE_DESC_31_0_R_SHIFT                 0
+#define NIC0_TMR_TMR_SCHEDQ_UPDATE_DESC_31_0_R_MASK                  0xFFFFFFFF
+
+/* NIC0_TMR_TMR_SCHEDQ_UPDATE_DESC_63_32 */
+#define NIC0_TMR_TMR_SCHEDQ_UPDATE_DESC_63_32_R_SHIFT                0
+#define NIC0_TMR_TMR_SCHEDQ_UPDATE_DESC_63_32_R_MASK                 0xFFFFFFFF
+
+/* NIC0_TMR_TMR_SCHEDQ_UPDATE_DESC_95_64 */
+#define NIC0_TMR_TMR_SCHEDQ_UPDATE_DESC_95_64_R_SHIFT                0
+#define NIC0_TMR_TMR_SCHEDQ_UPDATE_DESC_95_64_R_MASK                 0xFFFFFFFF
+
+/* NIC0_TMR_TMR_SCHEDQ_UPDATE_DESC_127_96 */
+#define NIC0_TMR_TMR_SCHEDQ_UPDATE_DESC_127_96_R_SHIFT               0
+#define NIC0_TMR_TMR_SCHEDQ_UPDATE_DESC_127_96_R_MASK                0xFFFFFFFF
+
+/* NIC0_TMR_TMR_SCHEDQ_UPDATE_DESC_159_128 */
+#define NIC0_TMR_TMR_SCHEDQ_UPDATE_DESC_159_128_R_SHIFT              0
+#define NIC0_TMR_TMR_SCHEDQ_UPDATE_DESC_159_128_R_MASK               0xFFFFFFFF
+
+/* NIC0_TMR_TMR_SCHEDQ_UPDATE_DESC_191_160 */
+#define NIC0_TMR_TMR_SCHEDQ_UPDATE_DESC_191_160_R_SHIFT              0
+#define NIC0_TMR_TMR_SCHEDQ_UPDATE_DESC_191_160_R_MASK               0xFFFFFFFF
+
+/* NIC0_TMR_TMR_SCHEDQ_UPDATE_DESC_216_192 */
+#define NIC0_TMR_TMR_SCHEDQ_UPDATE_DESC_216_192_R_SHIFT              0
+#define NIC0_TMR_TMR_SCHEDQ_UPDATE_DESC_216_192_R_MASK               0x1FFFFFF
+
+/* NIC0_TMR_TMR_FORCE_HIT_EN */
+#define NIC0_TMR_TMR_FORCE_HIT_EN_R_SHIFT                            0
+#define NIC0_TMR_TMR_FORCE_HIT_EN_R_MASK                             0x1
+
+/* NIC0_TMR_TMR_INVALIDATE_LIST */
+
+/* NIC0_TMR_TMR_INVALIDATE_LIST_STAT */
+#define NIC0_TMR_TMR_INVALIDATE_LIST_STAT_INVALIDATE_DONE_SHIFT      0
+#define NIC0_TMR_TMR_INVALIDATE_LIST_STAT_INVALIDATE_DONE_MASK       0x1
+#define NIC0_TMR_TMR_INVALIDATE_LIST_STAT_CACHE_IDLE_SHIFT           1
+#define NIC0_TMR_TMR_INVALIDATE_LIST_STAT_CACHE_IDLE_MASK            0x2
+
+/* NIC0_TMR_TMR_INVALIDATE_FREE */
+
+/* NIC0_TMR_TMR_INVALIDATE_FREE_STAT */
+#define NIC0_TMR_TMR_INVALIDATE_FREE_STAT_INVALIDATE_DONE_SHIFT      0
+#define NIC0_TMR_TMR_INVALIDATE_FREE_STAT_INVALIDATE_DONE_MASK       0x1
+#define NIC0_TMR_TMR_INVALIDATE_FREE_STAT_CACHE_IDLE_SHIFT           1
+#define NIC0_TMR_TMR_INVALIDATE_FREE_STAT_CACHE_IDLE_MASK            0x2
+
+/* NIC0_TMR_TMR_PUSH_PREFETCH_EN */
+#define NIC0_TMR_TMR_PUSH_PREFETCH_EN_R_SHIFT                        0
+#define NIC0_TMR_TMR_PUSH_PREFETCH_EN_R_MASK                         0x1
+
+/* NIC0_TMR_TMR_PUSH_RELEASE_EN */
+#define NIC0_TMR_TMR_PUSH_RELEASE_EN_R_SHIFT                         0
+#define NIC0_TMR_TMR_PUSH_RELEASE_EN_R_MASK                          0x1
+
+/* NIC0_TMR_TMR_PUSH_LOCK_EN */
+#define NIC0_TMR_TMR_PUSH_LOCK_EN_R_SHIFT                            0
+#define NIC0_TMR_TMR_PUSH_LOCK_EN_R_MASK                             0x1
+
+/* NIC0_TMR_TMR_PUSH_PREFETCH_NEXT_EN */
+#define NIC0_TMR_TMR_PUSH_PREFETCH_NEXT_EN_R_SHIFT                   0
+#define NIC0_TMR_TMR_PUSH_PREFETCH_NEXT_EN_R_MASK                    0x1
+
+/* NIC0_TMR_TMR_POP_PREFETCH_EN */
+#define NIC0_TMR_TMR_POP_PREFETCH_EN_R_SHIFT                         0
+#define NIC0_TMR_TMR_POP_PREFETCH_EN_R_MASK                          0x1
+
+/* NIC0_TMR_TMR_POP_RELEASE_EN */
+#define NIC0_TMR_TMR_POP_RELEASE_EN_R_SHIFT                          0
+#define NIC0_TMR_TMR_POP_RELEASE_EN_R_MASK                           0x1
+
+/* NIC0_TMR_TMR_POP_LOCK_EN */
+#define NIC0_TMR_TMR_POP_LOCK_EN_R_SHIFT                             0
+#define NIC0_TMR_TMR_POP_LOCK_EN_R_MASK                              0x1
+
+/* NIC0_TMR_TMR_POP_PREFETCH_NEXT_EN */
+#define NIC0_TMR_TMR_POP_PREFETCH_NEXT_EN_R_SHIFT                    0
+#define NIC0_TMR_TMR_POP_PREFETCH_NEXT_EN_R_MASK                     0x1
+
+/* NIC0_TMR_TMR_LIST_MASK */
+#define NIC0_TMR_TMR_LIST_MASK_R_SHIFT                               0
+#define NIC0_TMR_TMR_LIST_MASK_R_MASK                                0x7FFFFFF
+
+/* NIC0_TMR_TMR_RELEASE_INCALIDATE */
+#define NIC0_TMR_TMR_RELEASE_INCALIDATE_R_SHIFT                      0
+#define NIC0_TMR_TMR_RELEASE_INCALIDATE_R_MASK                       0x1
+
+/* NIC0_TMR_TMR_BASE_ADDRESS_FREE_LIST_49_32 */
+#define NIC0_TMR_TMR_BASE_ADDRESS_FREE_LIST_49_32_R_SHIFT            0
+#define NIC0_TMR_TMR_BASE_ADDRESS_FREE_LIST_49_32_R_MASK             0x3FFFF
+
+/* NIC0_TMR_TMR_BASE_ADDRESS_FREE_LIST_31_0 */
+#define NIC0_TMR_TMR_BASE_ADDRESS_FREE_LIST_31_0_R_SHIFT             0
+#define NIC0_TMR_TMR_BASE_ADDRESS_FREE_LIST_31_0_R_MASK              0xFFFFFFFF
+
+/* NIC0_TMR_TMR_FREE_LIST_EN */
+#define NIC0_TMR_TMR_FREE_LIST_EN_R_SHIFT                            0
+#define NIC0_TMR_TMR_FREE_LIST_EN_R_MASK                             0x1
+
+/* NIC0_TMR_TMR_PUSH_FORCE_HIT_EN */
+#define NIC0_TMR_TMR_PUSH_FORCE_HIT_EN_R_SHIFT                       0
+#define NIC0_TMR_TMR_PUSH_FORCE_HIT_EN_R_MASK                        0x1
+
+/* NIC0_TMR_TMR_PRODUCER_UPDATE_EN */
+#define NIC0_TMR_TMR_PRODUCER_UPDATE_EN_R_SHIFT                      0
+#define NIC0_TMR_TMR_PRODUCER_UPDATE_EN_R_MASK                       0x1
+
+/* NIC0_TMR_TMR_PRODUCER_UPDATE */
+#define NIC0_TMR_TMR_PRODUCER_UPDATE_R_SHIFT                         0
+#define NIC0_TMR_TMR_PRODUCER_UPDATE_R_MASK                          0xFFFFFFFF
+
+/* NIC0_TMR_TMR_CAHE_INVALIDATE */
+
+/* NIC0_TMR_TMR_CAHE_INVALIDATE_STAT */
+#define NIC0_TMR_TMR_CAHE_INVALIDATE_STAT_INVALIDATE_DONE_SHIFT      0
+#define NIC0_TMR_TMR_CAHE_INVALIDATE_STAT_INVALIDATE_DONE_MASK       0x1
+#define NIC0_TMR_TMR_CAHE_INVALIDATE_STAT_CACHE_IDLE_SHIFT           1
+#define NIC0_TMR_TMR_CAHE_INVALIDATE_STAT_CACHE_IDLE_MASK            0x2
+
+/* NIC0_TMR_TMR_CACHE_CLEAR_LINK_LIST */
+#define NIC0_TMR_TMR_CACHE_CLEAR_LINK_LIST_R_SHIFT                   0
+#define NIC0_TMR_TMR_CACHE_CLEAR_LINK_LIST_R_MASK                    0x1
+
+/* NIC0_TMR_TMR_CACHE_CFG */
+#define NIC0_TMR_TMR_CACHE_CFG_RELEASE_INVALIDATE_SHIFT              0
+#define NIC0_TMR_TMR_CACHE_CFG_RELEASE_INVALIDATE_MASK               0x1
+
+/* NIC0_TMR_TMR_CACHE_BASE_ADDR_49_32 */
+#define NIC0_TMR_TMR_CACHE_BASE_ADDR_49_32_R_SHIFT                   0
+#define NIC0_TMR_TMR_CACHE_BASE_ADDR_49_32_R_MASK                    0x3FFFF
+
+/* NIC0_TMR_TMR_CACHE_BASE_ADDR_31_7 */
+#define NIC0_TMR_TMR_CACHE_BASE_ADDR_31_7_R_SHIFT                    0
+#define NIC0_TMR_TMR_CACHE_BASE_ADDR_31_7_R_MASK                     0x1FFFFFF
+
+/* NIC0_TMR_TMR_TIMER_EN */
+#define NIC0_TMR_TMR_TIMER_EN_R_SHIFT                                0
+#define NIC0_TMR_TMR_TIMER_EN_R_MASK                                 0x1
+
+/* NIC0_TMR_TMR_TICK_WRAP */
+#define NIC0_TMR_TMR_TICK_WRAP_R_SHIFT                               0
+#define NIC0_TMR_TMR_TICK_WRAP_R_MASK                                0xFFFF
+
+/* NIC0_TMR_TMR_SCAN_TIMER_COMP_47_32 */
+#define NIC0_TMR_TMR_SCAN_TIMER_COMP_47_32_R_SHIFT                   0
+#define NIC0_TMR_TMR_SCAN_TIMER_COMP_47_32_R_MASK                    0xFFFF
+
+/* NIC0_TMR_TMR_SCAN_TIMER_COMP_31_0 */
+#define NIC0_TMR_TMR_SCAN_TIMER_COMP_31_0_R_SHIFT                    0
+#define NIC0_TMR_TMR_SCAN_TIMER_COMP_31_0_R_MASK                     0xFFFFFFFF
+
+/* NIC0_TMR_TMR_SCHEDQS_0 */
+#define NIC0_TMR_TMR_SCHEDQS_0_FIRST_SHIFT                           0
+#define NIC0_TMR_TMR_SCHEDQS_0_FIRST_MASK                            0x7F
+#define NIC0_TMR_TMR_SCHEDQS_0_LAST_SHIFT                            7
+#define NIC0_TMR_TMR_SCHEDQS_0_LAST_MASK                             0x3F80
+
+/* NIC0_TMR_TMR_SCHEDQS_1 */
+#define NIC0_TMR_TMR_SCHEDQS_1_FIRST_SHIFT                           0
+#define NIC0_TMR_TMR_SCHEDQS_1_FIRST_MASK                            0x7F
+#define NIC0_TMR_TMR_SCHEDQS_1_LAST_SHIFT                            7
+#define NIC0_TMR_TMR_SCHEDQS_1_LAST_MASK                             0x3F80
+
+/* NIC0_TMR_TMR_SCHEDQS_2 */
+#define NIC0_TMR_TMR_SCHEDQS_2_FIRST_SHIFT                           0
+#define NIC0_TMR_TMR_SCHEDQS_2_FIRST_MASK                            0x7F
+#define NIC0_TMR_TMR_SCHEDQS_2_LAST_SHIFT                            7
+#define NIC0_TMR_TMR_SCHEDQS_2_LAST_MASK                             0x3F80
+
+/* NIC0_TMR_TMR_SCHEDQS_3 */
+#define NIC0_TMR_TMR_SCHEDQS_3_FIRST_SHIFT                           0
+#define NIC0_TMR_TMR_SCHEDQS_3_FIRST_MASK                            0x7F
+#define NIC0_TMR_TMR_SCHEDQS_3_LAST_SHIFT                            7
+#define NIC0_TMR_TMR_SCHEDQS_3_LAST_MASK                             0x3F80
+
+/* NIC0_TMR_TMR_CACHES_CFG */
+#define NIC0_TMR_TMR_CACHES_CFG_STATE_CACHE_PLRU_EVICTION_SHIFT      0
+#define NIC0_TMR_TMR_CACHES_CFG_STATE_CACHE_PLRU_EVICTION_MASK       0x1
+#define NIC0_TMR_TMR_CACHES_CFG_STATE_CACHE_STOP_SHIFT               1
+#define NIC0_TMR_TMR_CACHES_CFG_STATE_CACHE_STOP_MASK                0x2
+#define NIC0_TMR_TMR_CACHES_CFG_STATE_CACHE_INV_WRITEBACK_SHIFT      2
+#define NIC0_TMR_TMR_CACHES_CFG_STATE_CACHE_INV_WRITEBACK_MASK       0x4
+#define NIC0_TMR_TMR_CACHES_CFG_LIST_PLRU_EVICTION_SHIFT             3
+#define NIC0_TMR_TMR_CACHES_CFG_LIST_PLRU_EVICTION_MASK              0x8
+#define NIC0_TMR_TMR_CACHES_CFG_LIST_CACHE_STOP_SHIFT                4
+#define NIC0_TMR_TMR_CACHES_CFG_LIST_CACHE_STOP_MASK                 0x10
+#define NIC0_TMR_TMR_CACHES_CFG_LIST_INV_WRITEBACK_SHIFT             5
+#define NIC0_TMR_TMR_CACHES_CFG_LIST_INV_WRITEBACK_MASK              0x20
+#define NIC0_TMR_TMR_CACHES_CFG_FREE_LIST_PLRU_EVICTION_SHIFT        6
+#define NIC0_TMR_TMR_CACHES_CFG_FREE_LIST_PLRU_EVICTION_MASK         0x40
+#define NIC0_TMR_TMR_CACHES_CFG_FREE_LIST_CACHE_STOP_SHIFT           7
+#define NIC0_TMR_TMR_CACHES_CFG_FREE_LIST_CACHE_STOP_MASK            0x80
+#define NIC0_TMR_TMR_CACHES_CFG_FREE_LIST_INV_WRITEBACK_SHIFT        8
+#define NIC0_TMR_TMR_CACHES_CFG_FREE_LIST_INV_WRITEBACK_MASK         0x100
+
+/* NIC0_TMR_TMR_DBG_COUNT_SELECT */
+#define NIC0_TMR_TMR_DBG_COUNT_SELECT_R_SHIFT                        0
+#define NIC0_TMR_TMR_DBG_COUNT_SELECT_R_MASK                         0x3F
+
+/* NIC0_TMR_TMR_POP_CACHE_CREDIT */
+#define NIC0_TMR_TMR_POP_CACHE_CREDIT_CREDIT_SHIFT                   0
+#define NIC0_TMR_TMR_POP_CACHE_CREDIT_CREDIT_MASK                    0x3F
+#define NIC0_TMR_TMR_POP_CACHE_CREDIT_FORCE_FULL_SHIFT               6
+#define NIC0_TMR_TMR_POP_CACHE_CREDIT_FORCE_FULL_MASK                0x40
+
+/* NIC0_TMR_TMR_PIPE_CREDIT */
+#define NIC0_TMR_TMR_PIPE_CREDIT_SCAN_QPC_CREDIT_SHIFT               0
+#define NIC0_TMR_TMR_PIPE_CREDIT_SCAN_QPC_CREDIT_MASK                0x3F
+#define NIC0_TMR_TMR_PIPE_CREDIT_SCAN_QPC_FORCE_FULL_SHIFT           7
+#define NIC0_TMR_TMR_PIPE_CREDIT_SCAN_QPC_FORCE_FULL_MASK            0x80
+#define NIC0_TMR_TMR_PIPE_CREDIT_SCAN_PUSH_CREDIT_SHIFT              8
+#define NIC0_TMR_TMR_PIPE_CREDIT_SCAN_PUSH_CREDIT_MASK               0x3F00
+#define NIC0_TMR_TMR_PIPE_CREDIT_SCAN_PUSH_FORCE_FULL_SHIFT          15
+#define NIC0_TMR_TMR_PIPE_CREDIT_SCAN_PUSH_FORCE_FULL_MASK           0x8000
+#define NIC0_TMR_TMR_PIPE_CREDIT_QPC_PUSH_CREDIT_SHIFT               16
+#define NIC0_TMR_TMR_PIPE_CREDIT_QPC_PUSH_CREDIT_MASK                0x3F0000
+#define NIC0_TMR_TMR_PIPE_CREDIT_QPC_PUSH_FORCE_FULL_SHIFT           24
+#define NIC0_TMR_TMR_PIPE_CREDIT_QPC_PUSH_FORCE_FULL_MASK            0x1000000
+#define NIC0_TMR_TMR_PIPE_CREDIT_QPC_CREDIT_EN_SHIFT                 28
+#define NIC0_TMR_TMR_PIPE_CREDIT_QPC_CREDIT_EN_MASK                  0x10000000
+#define NIC0_TMR_TMR_PIPE_CREDIT_SCAN_CREDIT_EN_SHIFT                29
+#define NIC0_TMR_TMR_PIPE_CREDIT_SCAN_CREDIT_EN_MASK                 0x20000000
+#define NIC0_TMR_TMR_PIPE_CREDIT_FLOW_ARB_EN_SHIFT                   30
+#define NIC0_TMR_TMR_PIPE_CREDIT_FLOW_ARB_EN_MASK                    0x40000000
+
+/* NIC0_TMR_TMR_DBG_TRIG */
+#define NIC0_TMR_TMR_DBG_TRIG_R_SHIFT                                0
+#define NIC0_TMR_TMR_DBG_TRIG_R_MASK                                 0xF
+
+/* NIC0_TMR_INTERRUPT_CAUSE */
+#define NIC0_TMR_INTERRUPT_CAUSE_R_SHIFT                             0
+#define NIC0_TMR_INTERRUPT_CAUSE_R_MASK                              0xF
+
+/* NIC0_TMR_INTERRUPT_MASK */
+#define NIC0_TMR_INTERRUPT_MASK_R_SHIFT                              0
+#define NIC0_TMR_INTERRUPT_MASK_R_MASK                               0xF
+
+/* NIC0_TMR_INTERRUPT_CLR */
+
+/* NIC0_TMR_TRM_SLICE_CREDIT */
+#define NIC0_TMR_TRM_SLICE_CREDIT_QPC_CREDIT_SHIFT                   0
+#define NIC0_TMR_TRM_SLICE_CREDIT_QPC_CREDIT_MASK                    0x7F
+#define NIC0_TMR_TRM_SLICE_CREDIT_QPC_FORCE_FULL_SHIFT               7
+#define NIC0_TMR_TRM_SLICE_CREDIT_QPC_FORCE_FULL_MASK                0x80
+#define NIC0_TMR_TRM_SLICE_CREDIT_SCAN_CREDIT_SHIFT                  8
+#define NIC0_TMR_TRM_SLICE_CREDIT_SCAN_CREDIT_MASK                   0x7F00
+#define NIC0_TMR_TRM_SLICE_CREDIT_SCAN_FORCE_FULL_SHIFT              15
+#define NIC0_TMR_TRM_SLICE_CREDIT_SCAN_FORCE_FULL_MASK               0x8000
+#define NIC0_TMR_TRM_SLICE_CREDIT_TOTAL_CREDIT_SHIFT                 24
+#define NIC0_TMR_TRM_SLICE_CREDIT_TOTAL_CREDIT_MASK                  0x7F000000
+#define NIC0_TMR_TRM_SLICE_CREDIT_TOTAL_FORCE_FULL_SHIFT             31
+#define NIC0_TMR_TRM_SLICE_CREDIT_TOTAL_FORCE_FULL_MASK              0x80000000
+
+/* NIC0_TMR_TMR_AXI_CACHE */
+#define NIC0_TMR_TMR_AXI_CACHE_R_SHIFT                               0
+#define NIC0_TMR_TMR_AXI_CACHE_R_MASK                                0xF
+
+/* NIC0_TMR_FREE_LIST_PUSH_MASK_EN */
+#define NIC0_TMR_FREE_LIST_PUSH_MASK_EN_R_SHIFT                      0
+#define NIC0_TMR_FREE_LIST_PUSH_MASK_EN_R_MASK                       0x1
+
+/* NIC0_TMR_FREE_AEMPTY_THRESHOLD */
+#define NIC0_TMR_FREE_AEMPTY_THRESHOLD_R_SHIFT                       0
+#define NIC0_TMR_FREE_AEMPTY_THRESHOLD_R_MASK                        0xFFFFFFFF
+
+#endif /* ASIC_REG_NIC0_TMR_MASKS_H_ */
