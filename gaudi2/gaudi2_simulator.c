@@ -1575,6 +1575,16 @@ static u32 gaudi2_sim_get_pci_id(struct hl_device *hdev)
 	}
 }
 
+static int gaudi2_sim_get_eeprom_data(struct hl_device *hdev, void *data,
+		size_t max_size)
+{
+	const char *str = "no EEPROM data on simulator";
+
+	memcpy(data, str, strlen(str) + 1);
+
+	return 0;
+}
+
 static void gaudi2_sim_ack_protection_bits_errors(struct hl_device *hdev)
 {
 
@@ -1710,7 +1720,7 @@ static const struct hl_asic_funcs gaudi2_sim_funcs = {
 	.hw_queues_lock = gaudi2_sim_hw_queues_lock,
 	.hw_queues_unlock = gaudi2_sim_hw_queues_unlock,
 	.get_pci_id = gaudi2_sim_get_pci_id,
-	.get_eeprom_data = NULL,
+	.get_eeprom_data = gaudi2_sim_get_eeprom_data,
 	.get_monitor_dump = gaudi2_get_monitor_dump,
 	.send_cpu_message = gaudi2_send_cpu_message,
 	.nic_init = hl_nic_init,
