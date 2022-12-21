@@ -449,6 +449,9 @@ static const struct range gaudi3_pb_hdcr0_sm_glbl_unsecured_regs[] = {
 	{mmHD0_SYNC_MNGR_GLBL_BASE + mmSOB_GLBL_CQ_INC_MODE_0 +
 			GAUDI3_RESERVED_CQ_NUMBER * sizeof(u32),
 			mmHD0_SYNC_MNGR_GLBL_BASE + mmSOB_GLBL_CQ_INC_MODE_63},
+	{mmHD0_SYNC_MNGR_GLBL_BASE + mmSOB_GLBL_CQ_DIR_LBW_EN_0 +
+			GAUDI3_RESERVED_CQ_NUMBER * sizeof(u32),
+			mmHD0_SYNC_MNGR_GLBL_BASE + mmSOB_GLBL_CQ_DIR_LBW_EN_63},
 };
 
 static const struct range gaudi3_pb_hdcr_x_sm_glbl_unsecured_regs[] = {
@@ -468,6 +471,8 @@ static const struct range gaudi3_pb_hdcr_x_sm_glbl_unsecured_regs[] = {
 			mmHD1_SYNC_MNGR_GLBL_BASE + mmSOB_GLBL_LBW_DATA_63},
 	{mmHD1_SYNC_MNGR_GLBL_BASE + mmSOB_GLBL_CQ_INC_MODE_0,
 			mmHD1_SYNC_MNGR_GLBL_BASE + mmSOB_GLBL_CQ_INC_MODE_63},
+	{mmHD1_SYNC_MNGR_GLBL_BASE + mmSOB_GLBL_CQ_DIR_LBW_EN_0,
+			mmHD1_SYNC_MNGR_GLBL_BASE + mmSOB_GLBL_CQ_DIR_LBW_EN_63},
 };
 
 static int gaudi3_init_pb_sm_objs(struct hl_device *hdev)
