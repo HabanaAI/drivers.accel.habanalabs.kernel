@@ -760,7 +760,7 @@ static void init_lane_for_fw_rx(struct hl_device *hdev, u32 port, int lane, bool
 	set_pol_rx(hdev, port, lane, rx_pol);
 }
 
-static void set_functional_mode_lane(struct hl_device *hdev, u32 port, int lane)
+static void set_functional_mode_lane(struct hl_device *hdev, u32 port, int lane, bool do_lt)
 {
 	NIC_PHY_RMWREG32_LANE(mmNIC0_SERDES0_LANE0_REGISTER_0PA0, 0,
 				NIC0_SERDES0_LANE0_REGISTER_0PA0_TX_PRBS_CLK_EN_MASK);
@@ -769,7 +769,10 @@ static void set_functional_mode_lane(struct hl_device *hdev, u32 port, int lane)
 	NIC_PHY_RMWREG32_LANE(mmNIC0_SERDES0_LANE0_REGISTER_0PA0, 0,
 				NIC0_SERDES0_LANE0_REGISTER_0PA0_TX_PRBS_GEN_EN_MASK);
 
-	NIC_PHY_WREG32_LANE(mmNIC0_SERDES0_LANE0_REGISTER_AN10, 0);
+	if (do_lt)
+		NIC_PHY_WREG32_LANE(mmNIC0_SERDES0_LANE0_REGISTER_AN10, 0x5);
+	else
+		NIC_PHY_WREG32_LANE(mmNIC0_SERDES0_LANE0_REGISTER_AN10, 0);
 
 	dev_dbg(hdev->dev, "Card %u Port %u lane %d: Switched to functional mode\n",
 		hdev->nic.card_location, port, lane);
@@ -780,10 +783,13 @@ static void set_functional_mode(struct hl_device *hdev, u32 port)
 	struct hl_nic_port *nic_port = &hdev->nic.nic_ports[port];
 	u32 tx_port;
 	int lane, tx_lane;
+	bool do_lt;
+
+	do_lt = nic_port->auto_neg_enable;
 
 	for (lane = 0 ; lane < 2 ; lane++) {
 		get_tx_port_and_lane(hdev, port, lane, &tx_port, &tx_lane);
-		set_functional_mode_lane(hdev, tx_port, tx_lane);
+		set_functional_mode_lane(hdev, tx_port, tx_lane, do_lt);
 	}
 
 	nic_port->phy_func_mode_en = true;
@@ -1085,7 +1091,7 @@ static void set_tx_taps_scale(struct hl_device *hdev, u32 port, int lane)
 
 static int fw_config_speed_pam4(struct hl_device *hdev, u32 port, int lane, bool do_lt)
 {
-	u32 tx_port, card_location, abs_lane_idx;
+	u32 tx_port, card_location, abs_lane_idx, val;
 	int tx_lane, rc;
 	s32 *taps;
 
@@ -1132,6 +1138,13 @@ static int fw_config_speed_pam4(struct hl_device *hdev, u32 port, int lane, bool
 	}
 
 	if (do_lt) {
+		if (!hdev->nic.phy_show_ber) {
+			/* tell the F/W to do LT with PCS data instead of PRBS */
+			val = get_fw_reg(hdev, port, 366);
+			val &= 0xFEFE;
+			set_fw_reg(hdev, port, 366, val);
+		}
+
 		set_tx_taps_scale(hdev, tx_port, tx_lane);
 		set_gc_tx(hdev, tx_port, tx_lane, 0);
 		set_pc_tx(hdev, tx_port, tx_lane, 0);
@@ -1309,7 +1322,7 @@ static int fw_config(struct hl_device *hdev, u32 port, u32 data_rate, bool do_lt
 
 	reset_mac_tx(hdev, port);
 
-	if (!nic->phy_show_ber && !do_lt)
+	if (!nic->phy_show_ber)
 		set_functional_mode(hdev, port);
 
 	/* set go bit */
@@ -1852,7 +1865,7 @@ static int fw_start_an_tx(struct hl_device *hdev, u32 port, int lane)
 static int fw_config_auto_neg(struct hl_device *hdev, u32 port, int lane)
 {
 	struct hl_nic_port *nic_port = &hdev->nic.nic_ports[port];
-	u64 basepage = 0x80000001ull;
+	u64 basepage = 0x800000001ull;
 	u32 tx_port, pflags;
 	u32 card_location;
 	int tx_lane, rc;
