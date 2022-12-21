@@ -1006,6 +1006,11 @@ static void gaudi3_nic_config_hw_qpc(struct hl_nic_macro *nic_macro)
 	/* CongQ configuration - should be set to read mode but not alloc = 0x3 */
 	NIC_WREG32(mmD0_NIC0_QPC_CONGQ_AWCACHE, (0x3 << D0_NIC0_QPC_CONGQ_AWCACHE_CACHE_S));
 
+	/* H9-5457 - causing the TXE to stop sending packets at 1023 OTF rather then 1024, i.e.
+	 * avoid a case where the windows is full and the HW bug may occur.
+	 */
+	NIC_WREG32(mmD0_NIC0_QPC_MAX_OTF_PSN_SACK, 1023);
+
 #ifdef SW_68008
 	/* TODO: [SW-68008] */
 	NIC_WREG32(mmNIC0_QPC0_AXUSER_EV_QUE_LBW_INTR_HB_WR_OVRD_LO, 0xFFFFFBFF);
