@@ -192,6 +192,11 @@
 #include "pcie_aux_masks.h"
 #include "global_conf_masks.h"
 #include "nic_mac_glob_stat_control_reg_masks.h"
+#include "nic_qpc_masks.h"
+#include "nic_rxe_masks.h"
+#include "nic_tmr_masks.h"
+#include "nic_rxb_core_masks.h"
+#include "nic_rxb_core_prt_masks.h"
 
 /* CSLICE */
 #define CS_MAINT_BASE_OFFSET		(mmHD0_CS0_MAINT_BASE - mmHD0_CS0_MAIN_BASE)
@@ -260,18 +265,6 @@
 #include "hd0_rrtr0_rtr_ctrl_ch0_razwi_hbw_regs.h"
 #include "d0_nic0_mac_glob_stat_control_reg_regs.h"
 
-#include "d0_nic0_qpc_masks.h"
-#include "d0_nic0_rxe_masks.h"
-#include "d0_nic0_qpc_axuser_lbw_db_fifo_masks.h"
-#include "d0_nic0_tmr_axuser_axuser_masks.h"
-#include "d0_nic0_tmr_masks.h"
-#include "d0_nic0_rxb_core_masks.h"
-#include "d0_nic0_rxb_core_prt_masks.h"
-#include "d0_nic0_qpc_axuser_hbw_db_fifo_masks.h"
-#include "d0_nic0_qpc_axuser_hbw_qpc_req_masks.h"
-#include "d0_nic0_qpc_axuser_hbw_qpc_resp_masks.h"
-#include "d0_nic0_qpc_axuser_hbw_cong_que_masks.h"
-#include "d0_nic0_phy_masks.h"
 #include "d0_nic0_mac_aux_masks.h"
 #include "d0_nic0_mac_ch_mac_ch0_masks.h"
 #include "d0_nic0_mac_core_masks.h"

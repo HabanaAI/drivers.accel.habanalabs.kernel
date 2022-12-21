@@ -323,11 +323,11 @@ void gaudi3_nic_eq_reset_ring(struct gaudi3_nic_port *gaudi3_nic)
 	ring->rep_idx = 0;
 
 	NIC_OFFSET_WREG32(mmD0_NIC0_QPC_EVENT_QUE_CFG_0,
-			offset << D0_NIC0_QPC_EVENT_QUE_CFG_EQ_ID_S |
-			D0_NIC0_QPC_EVENT_QUE_CFG_INTERRUPT_PER_EQE_M |
-			D0_NIC0_QPC_EVENT_QUE_CFG_OVERRUN_EN_M |
-			D0_NIC0_QPC_EVENT_QUE_CFG_WRITE_PI_EN_M |
-			D0_NIC0_QPC_EVENT_QUE_CFG_ENABLE_M);
+			offset << NIC_QPC_EVENT_QUE_CFG_EQ_ID_S |
+			NIC_QPC_EVENT_QUE_CFG_INTERRUPT_PER_EQE_M |
+			NIC_QPC_EVENT_QUE_CFG_OVERRUN_EN_M |
+			NIC_QPC_EVENT_QUE_CFG_WRITE_PI_EN_M |
+			NIC_QPC_EVENT_QUE_CFG_ENABLE_M);
 }
 
 static void nic_eq_handler(struct gaudi3_nic_port *gaudi3_nic)
@@ -472,7 +472,7 @@ static void gaudi3_nic_eq_hw_unconfig(struct gaudi3_nic_port *gaudi3_nic)
 	u32 port = gaudi3_nic->nic_port->port, offset;
 
 	offset = ELEMENT_OFFSET(port, QPC_EQ_NUM);
-	NIC_OFFSET_RMWREG32(mmD0_NIC0_QPC_EVENT_QUE_CFG_0, 0, D0_NIC0_QPC_EVENT_QUE_CFG_ENABLE_M);
+	NIC_OFFSET_RMWREG32(mmD0_NIC0_QPC_EVENT_QUE_CFG_0, 0, NIC_QPC_EVENT_QUE_CFG_ENABLE_M);
 	NIC_OFFSET_RREG32(mmD0_NIC0_QPC_EVENT_QUE_CFG_0);
 }
 
