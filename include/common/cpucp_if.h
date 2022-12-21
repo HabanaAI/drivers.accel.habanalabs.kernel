@@ -344,10 +344,21 @@ struct hl_eq_engine_arc_intr_data {
 	__le64 pad[5];
 };
 
+#define ADDR_DEC_ADDRESS_COUNT_MAX 4
+
+/* Data structure specifies details of ADDR_DEC interrupt */
+struct hl_eq_addr_dec_intr_data {
+	struct hl_eq_intr_cause intr_cause;
+	__le64 addr[ADDR_DEC_ADDRESS_COUNT_MAX];
+	__u8 addr_cnt;
+	__u8 pad[7];
+};
+
 #define MAX_PORTS_PER_NIC	4
 
 /* NIC interrupt type */
 enum hl_nic_interrupt_type {
+	NIC_INTR_NONE = 0,
 	NIC_INTR_TMR = 1,
 	NIC_INTR_RXB_CORE_SPI,
 	NIC_INTR_RXB_CORE_SEI,
@@ -378,6 +389,7 @@ struct hl_eq_entry {
 		struct hl_eq_razwi_with_intr_cause razwi_with_intr_cause;
 		struct hl_eq_hbm_sei_data sei_data;	/* Gaudi2 HBM */
 		struct hl_eq_engine_arc_intr_data arc_data;
+		struct hl_eq_addr_dec_intr_data addr_dec;
 		struct hl_eq_nic_intr_cause nic_intr_cause;
 		__le64 data[7];
 	};
@@ -694,7 +706,7 @@ enum pq_init_status {
  *       team recommendation, NIC memory ECC errors should be unmasked after NIC driver is up and
  *       running
  *
- * * CPUCP_PACKET_GENERIC_PASSTHROUGH -
+ * CPUCP_PACKET_GENERIC_PASSTHROUGH -
  *      Generic opcode for all firmware info that is only passed to host
  *      through the LKD, without getting parsed there.
  *
@@ -805,6 +817,11 @@ enum cpucp_packet_id {
 #define CPUCP_PKT_RES_PLL_OUT2_MASK	0x0000FFFF00000000ull
 #define CPUCP_PKT_RES_PLL_OUT3_SHIFT	48
 #define CPUCP_PKT_RES_PLL_OUT3_MASK	0xFFFF000000000000ull
+
+#define CPUCP_PKT_RES_EEPROM_OUT0_SHIFT	0
+#define CPUCP_PKT_RES_EEPROM_OUT0_MASK	0x000000000000FFFFull
+#define CPUCP_PKT_RES_EEPROM_OUT1_SHIFT	16
+#define CPUCP_PKT_RES_EEPROM_OUT1_MASK	0x0000000000FF0000ull
 
 #define CPUCP_PKT_VAL_PFC_IN1_SHIFT	0
 #define CPUCP_PKT_VAL_PFC_IN1_MASK	0x0000000000000001ull
@@ -965,7 +982,9 @@ enum cpucp_in_attributes {
 	cpucp_in_max,
 	cpucp_in_lowest = 6,
 	cpucp_in_highest = 7,
-	cpucp_in_reset_history
+	cpucp_in_reset_history,
+	cpucp_in_intr_alarm_a,
+	cpucp_in_intr_alarm_b,
 };
 
 enum cpucp_curr_attributes {
@@ -1421,6 +1440,7 @@ struct cpucp_dev_info_signed {
 	__u8 certificate[SEC_CERTIFICATE_BUF_SZ];
 };
 
+#define DCORE_MON_REGS_SZ	512
 /*
  * struct dcore_monitor_regs_data - DCORE monitor regs data.
  * the structure follows sync manager block layout. relevant only to Gaudi.
@@ -1431,11 +1451,11 @@ struct cpucp_dev_info_signed {
  * @mon_status: array of monitor status.
  */
 struct dcore_monitor_regs_data {
-	__le32 mon_pay_addrl[512];
-	__le32 mon_pay_addrh[512];
-	__le32 mon_pay_data[512];
-	__le32 mon_arm[512];
-	__le32 mon_status[512];
+	__le32 mon_pay_addrl[DCORE_MON_REGS_SZ];
+	__le32 mon_pay_addrh[DCORE_MON_REGS_SZ];
+	__le32 mon_pay_data[DCORE_MON_REGS_SZ];
+	__le32 mon_arm[DCORE_MON_REGS_SZ];
+	__le32 mon_status[DCORE_MON_REGS_SZ];
 };
 
 /* contains SM data for each SYNC_MNGR (relevant only to Gaudi) */
