@@ -2297,7 +2297,7 @@ static int gaudi3_nic_set_req_qp_ctx(struct hl_device *hdev,
 	struct gaudi3_device *gaudi3;
 	struct hl_nic_port *nic_port;
 	struct hl_aux_dev *aux_dev;
-	u32 congestion_wnd, log_wq_size, port, priority, encap_id, wq_base_addr, wq_idx;
+	u32 congestion_wnd, log_wq_size, port, priority, encap_id, wq_base_addr, wq_idx_offset;
 	bool loopback, plain_rdma;
 	u8 mac[ETH_ALEN], cqn;
 	int logical_port, rc;
@@ -2380,18 +2380,18 @@ static int gaudi3_nic_set_req_qp_ctx(struct hl_device *hdev,
 	if (qp->is_coll) {
 		if (hl_nic_is_scale_out_coll_type(qp->coll_conn_type)) {
 			wq_base_addr = GAUDI3_TXE_COLL_SCALE_OUT_WQ_RDMA_IDX(port);
-			wq_idx = qp->qp_id - nic_port->scale_out_coll_qp_idx_offset;
+			wq_idx_offset = nic_port->scale_out_coll_qp_idx_offset;
 		} else {
 			wq_base_addr = GAUDI3_TXE_COLL_WQ_RDMA_IDX(port);
-			wq_idx = qp->qp_id - nic_port->coll_qp_idx_offset;
+			wq_idx_offset = nic_port->coll_qp_idx_offset;
 		}
 	} else {
 		wq_base_addr = GAUDI3_TXE_WQ_RDMA_IDX(port);
-		wq_idx = qp->qp_id - nic_port->qp_idx_offset;
+		wq_idx_offset = nic_port->qp_idx_offset;
 	}
 
 	REQ_QPC_SET_WQ_BASE_ADDR(req_qpc, wq_base_addr);
-	REQ_QPC_SET_WQ_IDX(req_qpc, wq_idx);
+	REQ_QPC_SET_WQ_IDX(req_qpc, qp->qp_id - wq_idx_offset);
 
 	/* In case the user didn't specify MTU, set the one from netdev.
 	 * If there is no netdev, use the default value.
@@ -2620,7 +2620,7 @@ static int gaudi3_nic_set_res_qp_ctx(struct hl_device *hdev,
 
 	if (in->conn_peer) {
 		struct hl_qp *peer_qp;
-		u32 peer_wq_base_addr, peer_wq_idx;
+		u32 peer_wq_base_addr, peer_wq_idx_offset;
 
 		peer_qp = qp->is_coll ?
 				hl_nic_get_qp_from_coll_conn_id(nic_port, in->conn_peer) :
@@ -2635,19 +2635,18 @@ static int gaudi3_nic_set_res_qp_ctx(struct hl_device *hdev,
 		if (qp->is_coll) {
 			if (hl_nic_is_scale_out_coll_type(qp->coll_conn_type)) {
 				peer_wq_base_addr = GAUDI3_TXE_COLL_SCALE_OUT_WQ_RDMA_IDX(port);
-				peer_wq_idx = peer_qp->qp_id -
-						nic_port->scale_out_coll_qp_idx_offset;
+				peer_wq_idx_offset = nic_port->scale_out_coll_qp_idx_offset;
 			} else {
 				peer_wq_base_addr = GAUDI3_TXE_COLL_WQ_RDMA_IDX(port);
-				peer_wq_idx = peer_qp->qp_id - nic_port->coll_qp_idx_offset;
+				peer_wq_idx_offset = nic_port->coll_qp_idx_offset;
 			}
 		} else {
 			peer_wq_base_addr = GAUDI3_TXE_WQ_RDMA_IDX(port);
-			peer_wq_idx = peer_qp->qp_id - nic_port->qp_idx_offset;
+			peer_wq_idx_offset = nic_port->qp_idx_offset;
 		}
 
 		RES_QPC_SET_PEER_WQ_BASE_ADDR(res_qpc, peer_wq_base_addr);
-		RES_QPC_SET_PEER_WQ_IDX(res_qpc, peer_wq_idx);
+		RES_QPC_SET_PEER_WQ_IDX(res_qpc, peer_qp->qp_id - peer_wq_idx_offset);
 		RES_QPC_SET_PEER_QP(res_qpc, peer_qp->qp_id);
 		RES_QPC_SET_PEER_WQ_GRAN(res_qpc, in->wq_peer_granularity);
 		RES_QPC_SET_PEER_WQ_LOG_SIZE(res_qpc, ilog2(in->wq_peer_size));
@@ -5204,8 +5203,8 @@ static u32 gaudi3_nic_get_coll_qps_offset(struct hl_nic_port *nic_port)
 	return ELEMENT_OFFSET(port, NIC_MAX_COLL_QP_NUM);
 }
 
-static void gaudi3_nic_get_coll_qp_id_range(struct hl_device *hdev, u32 *min_id, u32 *max_id,
-						bool is_scale_out_conn)
+static void gaudi3_nic_get_coll_qp_id_range(struct hl_device *hdev, bool is_scale_out_conn,
+						u32 *min_id, u32 *max_id)
 {
 	if (is_scale_out_conn) {
 		*min_id = GAUDI3_MIN_COLL_QP_ID + NIC_MAX_NON_SCALE_OUT_COLL_CONNS;

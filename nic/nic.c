@@ -1582,13 +1582,13 @@ static void hl_nic_get_qp_id_range(struct hl_nic_port *nic_port, u32 *min_id, u3
 	*max_id = min(nic_port->qp_idx_offset + nic_port->num_of_wqs - 1, *max_id);
 }
 
-static void hl_nic_get_coll_qp_id_range(struct hl_device *hdev, u32 *min_id, u32 *max_id,
-					bool is_scale_out_conn)
+static void hl_nic_get_coll_qp_id_range(struct hl_device *hdev, bool is_scale_out_conn, u32 *min_id,
+					u32 *max_id)
 {
 	struct hl_nic *nic = &hdev->nic;
 	u32 coll_conn_type;
 
-	hdev->asic_funcs->nic_funcs->get_coll_qp_id_range(hdev, min_id, max_id, is_scale_out_conn);
+	hdev->asic_funcs->nic_funcs->get_coll_qp_id_range(hdev, is_scale_out_conn, min_id, max_id);
 
 	coll_conn_type = is_scale_out_conn ?
 		HL_NIC_COLL_CONN_TYPE_SCALE_OUT : HL_NIC_COLL_CONN_TYPE_NON_SCALE_OUT;
@@ -1783,7 +1783,7 @@ static int alloc_coll_qp(struct hl_device *hdev, struct hl_ctx *ctx,
 
 	is_scale_out_conn = in->is_scale_out;
 
-	hl_nic_get_coll_qp_id_range(hdev, &min_id, &max_id, is_scale_out_conn);
+	hl_nic_get_coll_qp_id_range(hdev, is_scale_out_conn, &min_id, &max_id);
 
 	coll_conn_type = is_scale_out_conn ?
 		HL_NIC_COLL_CONN_TYPE_SCALE_OUT : HL_NIC_COLL_CONN_TYPE_NON_SCALE_OUT;

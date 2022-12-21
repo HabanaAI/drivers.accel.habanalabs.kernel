@@ -566,7 +566,7 @@ static int gaudi3_nic_debugfs_get_wqe(struct hl_nic_port *nic_port, void *wqe, u
 		u32 coll_qp_offset = ELEMENT_OFFSET(port, NIC_MAX_COLL_QP_NUM);
 
 		is_scale_out_conn = qpn >= nic_port->scale_out_coll_qp_idx_offset;
-		nic_funcs->get_coll_qp_id_range(hdev, &min_id, &max_id, is_scale_out_conn);
+		nic_funcs->get_coll_qp_id_range(hdev, is_scale_out_conn, &min_id, &max_id);
 
 		min_id += coll_qp_offset;
 		max_id += coll_qp_offset;

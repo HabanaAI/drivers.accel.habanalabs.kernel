@@ -435,6 +435,7 @@ enum hl_nic_coll_conn_type {
 /**
  * struct hl_wq_array_properties - WQ array properties.
  * @type_str: string of this WQ array type.
+ * @coll_wq_type: type of this collective WQ array (scale-out or not).
  * @handle: handle for this WQ array.
  * @dva_base: reserved device VA for this WQ array.
  * @dva_size: size in bytes of device VA block of this WQ array.
@@ -446,10 +447,10 @@ enum hl_nic_coll_conn_type {
  * @on_device_mem: true if this WQ array resides on HBM, false if on host.
  * @is_send: true if this WQ array should contain send WQEs, false if recv WQEs.
  * @is_coll: true if this WQ array is for collective connections.
- * @coll_wq_type: type of this collective WQ array (scale-out or not).
  */
 struct hl_wq_array_properties {
 	char				*type_str;
+	enum hl_nic_coll_conn_type	coll_wq_type;
 	u64				handle;
 	u64				dva_base;
 	u64				dva_size;
@@ -460,7 +461,6 @@ struct hl_wq_array_properties {
 	u8				on_device_mem;
 	u8				is_send;
 	u8				is_coll;
-	enum hl_nic_coll_conn_type	coll_wq_type;
 };
 
 /**
@@ -864,6 +864,7 @@ enum hl_nic_qp_state_op {
  * @res_user_cq: CQ ID used by the responder context.
  * @curr_state: The current state of the QP.
  * @mtu_type: Source of MTU value from user, from netdev or default.
+ * @coll_conn_type: type of collective connection (scale-out or not).
  * @swq_handle: Send WQ mmap handle.
  * @rwq_handle: Receive WQ mmap handle.
  * @port: The port number this QP belongs to.
@@ -876,7 +877,6 @@ enum hl_nic_qp_state_op {
  * @is_req: is requester context was set for the QP.
  * @is_res: is responder context was set for the QP.
  * @is_coll: is collective QP.
- * @coll_conn_type: type of collective connection (scale-out or not).
  */
 struct hl_qp {
 	struct hl_nic_port		*nic_port;
@@ -886,6 +886,7 @@ struct hl_qp {
 	struct hl_nic_user_cq		*res_user_cq;
 	enum hl_nic_qp_state		curr_state;
 	enum mtu_type			mtu_type;
+	enum hl_nic_coll_conn_type	coll_conn_type;
 	u64				swq_handle;
 	u64				rwq_handle;
 	u32				port;
@@ -897,7 +898,6 @@ struct hl_qp {
 	u8				is_req;
 	u8				is_res;
 	u8				is_coll;
-	enum hl_nic_coll_conn_type	coll_conn_type;
 };
 
 /**
@@ -906,15 +906,15 @@ struct hl_qp {
  * @qps_array: per port array of QPs which have the same id like this collective QP.
  * @num_of_initialized_qps: number of initialized QPs which have the same id like this
  *                          collective QP.
- * @id: id of this collective QP.
  * @coll_conn_type: type of collective connection (scale-out or not).
+ * @id: id of this collective QP.
  */
 struct hl_coll_qp {
 	struct hl_device		*hdev;
 	struct hl_qp			**qps_array;
 	atomic_t			num_of_initialized_qps;
-	u32				id;
 	enum hl_nic_coll_conn_type	coll_conn_type;
+	u32				id;
 };
 
 /**
@@ -1286,8 +1286,8 @@ struct hl_nic_funcs {
 	void (*synchronize_irqs)(struct hl_device *hdev);
 	int (*write_coll_lag_size)(struct hl_device *hdev, u32 coll_lag_size);
 	int (*read_coll_lag_size)(struct hl_device *hdev, u32 *coll_lag_size);
-	void (*get_coll_qp_id_range)(struct hl_device *hdev, u32 *min_id, u32 *max_id,
-					bool is_scale_out);
+	void (*get_coll_qp_id_range)(struct hl_device *hdev, bool is_scale_out, u32 *min_id,
+					u32 *max_id);
 	bool (*is_coll_conn_id)(struct hl_device *hdev, u32 conn_id);
 	void (*phy_dump_serdes_params)(struct hl_device *hdev, char *buf, size_t size);
 	u32 (*get_max_msg_sz)(struct hl_device *hdev);
