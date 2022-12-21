@@ -1798,6 +1798,12 @@ static void gaudi2_memset_device_lbw(struct hl_device *hdev, u32 addr, u32 size,
 static int gaudi2_send_job_to_kdma(struct hl_device *hdev, u64 src_addr, u64 dst_addr, u32 size,
 										bool is_memset);
 
+int gaudi2_is_fw_ver_below_1_8_1(struct hl_device *hdev)
+{
+	return ((hdev->fw_major_version < 40) ||
+			((hdev->fw_major_version == 40) && (hdev->fw_minor_version < 1)));
+}
+
 int gaudi2_is_fw_ver_below_1_8(struct hl_device *hdev)
 {
 	return (hdev->fw_major_version < 39);

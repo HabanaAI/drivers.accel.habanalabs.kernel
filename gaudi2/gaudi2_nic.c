@@ -3597,7 +3597,8 @@ int gaudi2_nic_set_info(struct hl_device *hdev, bool get_from_fw)
 		hdev->nic_auto_neg_mask &= ~hdev->nic_ports_ext_mask;
 	}
 
-	nic->auto_neg_mask = hdev->nic_auto_neg_mask;
+	/* Disable ANLT on NIC 0 ports (due to lane swapping) */
+	hdev->nic_auto_neg_mask &= ~0x3;
 
 	return 0;
 }

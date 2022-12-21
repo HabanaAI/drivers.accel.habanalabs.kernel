@@ -1947,8 +1947,6 @@ int gaudi2_nic_phy_port_power_up(struct hl_nic_port *nic_port)
 
 	phy_port_reset(hdev, port);
 
-	/* TODO SW-61565: currently ANLT is not supported */
-	nic_port->auto_neg_enable = 0;
 	nic_port->phy_func_mode_en = false;
 
 	if (nic_port->auto_neg_enable) {
@@ -2274,6 +2272,11 @@ static bool is_old_phy_fw_loaded(struct hl_device *hdev)
 	return gaudi2_nic_phy_get_crc(hdev) == 0x1723;
 }
 
+static bool is_phy_fw_with_anlt_support(struct hl_device *hdev)
+{
+	return gaudi2_nic_phy_get_crc(hdev) == 0x185E;
+}
+
 int gaudi2_nic_phy_init(struct hl_device *hdev)
 {
 	struct hl_nic *nic = &hdev->nic;
@@ -2288,6 +2291,21 @@ int gaudi2_nic_phy_init(struct hl_device *hdev)
 		dev_err(hdev->dev, "PHY F/W is very old - failing the initialization\n");
 		return -EINVAL;
 	}
+
+	/* In case the PHY F/W has ANLT support we will enable it according to the mask.
+	 * Otherwise, set the mask to 0 (ANLT is disabled on all ports).
+	 * Such a PHY FW can be loaded by embedded F/W with version >= 1.8.1 or manually by the
+	 * driver (for debug purposes).
+	 *
+	 * NOTE - this code doesn't cover the case that the user manually loaded PHY F/W w/o ANLT
+	 * support with an embedded F/W >= 1.8.1 - for such a case he can set the nic_auto_neg_mask
+	 * module parameter to 0.
+	 */
+	if (!gaudi2_is_fw_ver_below_1_8_1(hdev) ||
+			(nic->phy_load_fw && is_phy_fw_with_anlt_support(hdev)))
+		nic->auto_neg_mask = hdev->nic_auto_neg_mask;
+	else
+		nic->auto_neg_mask = 0;
 
 	/* In case we didn't get serdes info from FW, set to default values */
 	if (!nic->use_fw_serdes_info) {
