@@ -2107,11 +2107,15 @@ static void gaudi3_dtlb_init(struct hl_device *hdev, int block, int inst, u32 of
 
 	/*
 	 * set HBM params: single HBM memory size and number of HBMs
-	 * TODO: this should be modified if we have HBM binning
+	 * TODO: this should be modified if we have HBM binning. In addition,
+	 * this is RMW to avoid overriding the value in DCORE0_HAS_*HBM field
+	 * written by FW in the binning phase.
 	 */
-	WREG32(offset + DTLB_HBM_CONF_OFFSET,
-		FIELD_PREP(DTLB_HBM_CONF_INDX_M, 0x4) | /* 4 means each HBM 16GB */
-		FIELD_PREP(DTLB_HBM_CONF_NUM_HBM_M, hdev->asic_prop.num_functional_hbms));
+	RMWREG32_SHIFTED(offset + DTLB_HBM_CONF_OFFSET,
+				FIELD_PREP(DTLB_HBM_CONF_INDX_M, 0x4) |
+				FIELD_PREP(DTLB_HBM_CONF_NUM_HBM_M,
+						hdev->asic_prop.num_functional_hbms),
+				DTLB_HBM_CONF_INDX_M | DTLB_HBM_CONF_NUM_HBM_M);
 
 	/*
 	 *  we want pre-boot to run on SRAM that is in one-die (48MB SRAM)
