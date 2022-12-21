@@ -416,6 +416,10 @@ static const u32 gaudi3_pb_hdcr0_sm_glbl[] = {
 	mmHD0_SYNC_MNGR_GLBL_BASE,
 };
 
+static const u32 gaudi3_pb_hdcr1_sm_glbl[] = {
+	mmHD1_SYNC_MNGR_GLBL_BASE,
+};
+
 static const u32 gaudi3_pb_hdcr0_sm_mstr_if[] = {
 	mmHD0_SYNC_MNGR_MSTR_IF_RR_HBW_BASE,
 };
@@ -448,22 +452,22 @@ static const struct range gaudi3_pb_hdcr0_sm_glbl_unsecured_regs[] = {
 };
 
 static const struct range gaudi3_pb_hdcr_x_sm_glbl_unsecured_regs[] = {
-	{mmHD0_SYNC_MNGR_GLBL_BASE + mmSOB_GLBL_CQ_BASE_ADDR_L_0,
-			mmHD0_SYNC_MNGR_GLBL_BASE + mmSOB_GLBL_CQ_BASE_ADDR_L_63},
-	{mmHD0_SYNC_MNGR_GLBL_BASE + mmSOB_GLBL_CQ_BASE_ADDR_H_0,
-			mmHD0_SYNC_MNGR_GLBL_BASE + mmSOB_GLBL_CQ_BASE_ADDR_H_63},
-	{mmHD0_SYNC_MNGR_GLBL_BASE + mmSOB_GLBL_CQ_SIZE_LOG2_0,
-			mmHD0_SYNC_MNGR_GLBL_BASE + mmSOB_GLBL_CQ_SIZE_LOG2_63},
-	{mmHD0_SYNC_MNGR_GLBL_BASE + mmSOB_GLBL_CQ_PI_0,
-			mmHD0_SYNC_MNGR_GLBL_BASE + mmSOB_GLBL_CQ_PI_63},
-	{mmHD0_SYNC_MNGR_GLBL_BASE + mmSOB_GLBL_LBW_ADDR_L_0,
-			mmHD0_SYNC_MNGR_GLBL_BASE + mmSOB_GLBL_LBW_ADDR_L_63},
-	{mmHD0_SYNC_MNGR_GLBL_BASE + mmSOB_GLBL_LBW_ADDR_H_0,
-			mmHD0_SYNC_MNGR_GLBL_BASE + mmSOB_GLBL_LBW_ADDR_H_63},
-	{mmHD0_SYNC_MNGR_GLBL_BASE + mmSOB_GLBL_LBW_DATA_0,
-			mmHD0_SYNC_MNGR_GLBL_BASE + mmSOB_GLBL_LBW_DATA_63},
-	{mmHD0_SYNC_MNGR_GLBL_BASE + mmSOB_GLBL_CQ_INC_MODE_0,
-			mmHD0_SYNC_MNGR_GLBL_BASE + mmSOB_GLBL_CQ_INC_MODE_63},
+	{mmHD1_SYNC_MNGR_GLBL_BASE + mmSOB_GLBL_CQ_BASE_ADDR_L_0,
+			mmHD1_SYNC_MNGR_GLBL_BASE + mmSOB_GLBL_CQ_BASE_ADDR_L_63},
+	{mmHD1_SYNC_MNGR_GLBL_BASE + mmSOB_GLBL_CQ_BASE_ADDR_H_0,
+			mmHD1_SYNC_MNGR_GLBL_BASE + mmSOB_GLBL_CQ_BASE_ADDR_H_63},
+	{mmHD1_SYNC_MNGR_GLBL_BASE + mmSOB_GLBL_CQ_SIZE_LOG2_0,
+			mmHD1_SYNC_MNGR_GLBL_BASE + mmSOB_GLBL_CQ_SIZE_LOG2_63},
+	{mmHD1_SYNC_MNGR_GLBL_BASE + mmSOB_GLBL_CQ_PI_0,
+			mmHD1_SYNC_MNGR_GLBL_BASE + mmSOB_GLBL_CQ_PI_63},
+	{mmHD1_SYNC_MNGR_GLBL_BASE + mmSOB_GLBL_LBW_ADDR_L_0,
+			mmHD1_SYNC_MNGR_GLBL_BASE + mmSOB_GLBL_LBW_ADDR_L_63},
+	{mmHD1_SYNC_MNGR_GLBL_BASE + mmSOB_GLBL_LBW_ADDR_H_0,
+			mmHD1_SYNC_MNGR_GLBL_BASE + mmSOB_GLBL_LBW_ADDR_H_63},
+	{mmHD1_SYNC_MNGR_GLBL_BASE + mmSOB_GLBL_LBW_DATA_0,
+			mmHD1_SYNC_MNGR_GLBL_BASE + mmSOB_GLBL_LBW_DATA_63},
+	{mmHD1_SYNC_MNGR_GLBL_BASE + mmSOB_GLBL_CQ_INC_MODE_0,
+			mmHD1_SYNC_MNGR_GLBL_BASE + mmSOB_GLBL_CQ_INC_MODE_63},
 };
 
 static int gaudi3_init_pb_sm_objs(struct hl_device *hdev)
@@ -582,14 +586,6 @@ static int gaudi3_init_protection_bits(struct hl_device *hdev)
 
 	/* SYNC_MNGR_GLBL */
 
-	/* Secure all registers except for CQ related registers */
-	rc |= hl_init_pb_ranges(hdev, prop->num_of_hdcores, HDCORE_OFFSET,
-			HL_PB_SINGLE_INSTANCE, HL_PB_NA,
-			gaudi3_pb_hdcr0_sm_glbl,
-			ARRAY_SIZE(gaudi3_pb_hdcr0_sm_glbl),
-			gaudi3_pb_hdcr_x_sm_glbl_unsecured_regs,
-			ARRAY_SIZE(gaudi3_pb_hdcr_x_sm_glbl_unsecured_regs));
-
 	/* Secure the first GAUDI3_RESERVED_CQ_NUMBER CQ registers in HDCORE0 */
 	rc |= hl_init_pb_ranges(hdev, HL_PB_SHARED, HL_PB_NA,
 			HL_PB_SINGLE_INSTANCE, HL_PB_NA,
@@ -597,6 +593,14 @@ static int gaudi3_init_protection_bits(struct hl_device *hdev)
 			ARRAY_SIZE(gaudi3_pb_hdcr0_sm_glbl),
 			gaudi3_pb_hdcr0_sm_glbl_unsecured_regs,
 			ARRAY_SIZE(gaudi3_pb_hdcr0_sm_glbl_unsecured_regs));
+
+	/* Secure all registers except for CQ related registers in HDCORE1..X */
+	rc |= hl_init_pb_ranges(hdev, prop->num_of_hdcores - 1, HDCORE_OFFSET,
+			HL_PB_SINGLE_INSTANCE, HL_PB_NA,
+			gaudi3_pb_hdcr1_sm_glbl,
+			ARRAY_SIZE(gaudi3_pb_hdcr1_sm_glbl),
+			gaudi3_pb_hdcr_x_sm_glbl_unsecured_regs,
+			ARRAY_SIZE(gaudi3_pb_hdcr_x_sm_glbl_unsecured_regs));
 
 	/* SYNC_MNGR_MSTR_IF */
 	rc |= hl_init_pb(hdev, prop->num_of_hdcores, HDCORE_OFFSET,
