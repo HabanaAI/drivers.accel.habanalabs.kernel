@@ -2090,9 +2090,9 @@ static void gaudi3_nic_disable_erratum_5384(struct hl_nic_macro *nic_macro)
 
 	port = gaudi3_nic_get_first_port(nic_macro);
 
-	NIC_WREG32(mmD0_NIC0_TXE_SPECIAL_GLBL_SPARE_3, 0x100000);
-	NIC_WREG32(mmD0_NIC0_TXB_SPECIAL_GLBL_SPARE_0, 0x1);
-	NIC_WREG32(mmD0_NIC0_RXB_CORE_SPECIAL_GLBL_SPARE_0, 0x1);
+	NIC_WREG32(mmD0_NIC0_TXE_SPECIAL_BASE + mmNIC_TXE_SPECIAL_GLBL_SPARE_3, 0x100000);
+	NIC_WREG32(mmD0_NIC0_TXB_SPECIAL_BASE + mmNIC_TXB_SPECIAL_GLBL_SPARE_0, 0x1);
+	NIC_WREG32(mmD0_NIC0_RXB_CORE_SPECIAL_BASE + mmNIC_RXB_CORE_SPECIAL_GLBL_SPARE_0, 0x1);
 }
 
 static void gaudi3_nic_hw_macro_config(struct hl_nic_macro *nic_macro)

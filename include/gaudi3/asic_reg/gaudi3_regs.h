@@ -42,9 +42,9 @@
 #include "mstr_if_xresp_lbw_regs.h"
 #include "cbc_regs.h"
 #include "cbc_user_regs.h"
-#include "d0_nic0_txe_special_regs.h"
-#include "d0_nic0_txb_special_regs.h"
-#include "d0_nic0_rxb_core_special_regs.h"
+#include "nic_txe_special_regs.h"
+#include "nic_rxb_core_special_regs.h"
+#include "nic_txb_special_regs.h"
 #include "pcie_wrap_special_regs.h"
 
 #include "pdma_cmn_b_masks.h"
@@ -79,9 +79,6 @@
 #include "nic_txs_masks.h"
 #include "nic_txe_masks.h"
 #include "stlb_masks.h"
-#include "d0_nic0_txe_special_masks.h"
-#include "d0_nic0_txb_special_masks.h"
-#include "d0_nic0_rxb_core_special_masks.h"
 
 /* CSLICE */
 #define CS_MAINT_BASE_OFFSET		(mmHD0_CS0_MAINT_BASE - mmHD0_CS0_MAIN_BASE)
