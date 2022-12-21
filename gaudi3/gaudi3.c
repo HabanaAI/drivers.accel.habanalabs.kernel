@@ -9331,6 +9331,9 @@ static int gaudi3_invalidate_all_cs(struct hl_device *hdev)
 {
 	struct iterate_module_ctx ctx = {};
 
+	if (!hdev->cache_enable)
+		return 0;
+
 	ctx.fn = gaudi3_trigger_cs_invalidation;
 	gaudi3_iterate_cache_slices(hdev, &ctx);
 
