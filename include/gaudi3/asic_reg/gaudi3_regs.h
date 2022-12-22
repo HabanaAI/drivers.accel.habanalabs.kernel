@@ -27,6 +27,7 @@
 #include "tpc_smt_tpc_th0_regs.h"
 #include "mme_ctrl_lo_regs.h"
 #include "mme_ctrl_lo_arch_dma_n_ten_regs.h"
+#include "sb_regs.h"
 #include "vdec_brdg_ctrl_regs.h"
 #include "vdec_ctrl_special_regs.h"
 #include "vsi_cmd_regs.h"

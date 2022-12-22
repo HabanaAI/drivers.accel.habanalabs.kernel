@@ -4954,9 +4954,9 @@ static void gaudi3_init_mme_axuser_hbw(struct hl_device *hdev, u32 mme_offset)
 		gaudi3_axuser_hbw_mmu_bp_set(hdev, axuser_hbw_reg_base, false);
 
 		for (sbte_id = 0 ; sbte_id < NUM_OF_MME_SBTE_PER_EU ; sbte_id++) {
-			sbte_offset = eu_offset + sbte_id * HDCORE_MME_SBTE_OFFSET;
+			sbte_offset = sbte_id * HDCORE_MME_SBTE_OFFSET;
 			axuser_hbw_reg_base = mmHD0_MME0_SBTE0_MSTR_IF_AXUSER_HBW_BASE +
-						mme_offset + sbte_offset;
+						mme_offset + eu_offset + sbte_offset;
 			gaudi3_axuser_hbw_mmu_bp_set(hdev, axuser_hbw_reg_base, false);
 		}
 	}
@@ -6941,9 +6941,9 @@ static void gaudi3_mme_mmu_prepare(struct hl_device *hdev, int hdcore, int inst,
 		gaudi3_axuser_hbw_asid_set(hdev, axuser_hbw_reg_base, asid);
 
 		for (sbte_id = 0 ; sbte_id < NUM_OF_MME_SBTE_PER_EU ; sbte_id++) {
-			sbte_offset = eu_offset + sbte_id * HDCORE_MME_SBTE_OFFSET;
+			sbte_offset = sbte_id * HDCORE_MME_SBTE_OFFSET;
 			axuser_hbw_reg_base = mmHD0_MME0_SBTE0_MSTR_IF_AXUSER_HBW_BASE + offset +
-						sbte_offset;
+						eu_offset + sbte_offset;
 			gaudi3_axuser_hbw_asid_set(hdev, axuser_hbw_reg_base, asid);
 		}
 	}
@@ -7352,9 +7352,22 @@ void gaudi3_stall_tpc(struct hl_device *hdev)
 static void gaudi3_stall_mme_engine(struct hl_device *hdev, int hdcore, int inst, u32 offset,
 					struct iterate_module_ctx *ctx)
 {
-	u32 ctrl_lo_reg_base = mmHD0_MME_CTRL_LO_BASE + offset;
+	u32 eu_id, eu_offset, sbte_id, sbte_offset, ctrl_lo_reg_base, acc_reg_base, sbte_reg_base;
 
+	ctrl_lo_reg_base = mmHD0_MME_CTRL_LO_BASE + offset;
 	WREG32(ctrl_lo_reg_base + mmMME_CTRL_LO_QM_STALL, 0x1);
+
+	for (eu_id = 0 ; eu_id < NUM_OF_MME_EU_PER_HDCORE ; eu_id++) {
+		eu_offset = eu_id * HDCORE_MME_EU_OFFSET;
+		acc_reg_base = mmHD0_MME0_ACC_BASE + offset + eu_offset;
+		WREG32(acc_reg_base + mmACC_WBC_STALL, 0x1);
+
+		for (sbte_id = 0 ; sbte_id < NUM_OF_MME_SBTE_PER_EU ; sbte_id++) {
+			sbte_offset = sbte_id * HDCORE_MME_SBTE_OFFSET;
+			sbte_reg_base = mmHD0_MME0_SBTE0_BASE + offset + eu_offset + sbte_offset;
+			WREG32(sbte_reg_base + mmSB_RSB_STALL, 0x1);
+		}
+	}
 }
 
 void gaudi3_stall_mme(struct hl_device *hdev)
