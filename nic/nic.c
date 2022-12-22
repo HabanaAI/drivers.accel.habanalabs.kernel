@@ -578,6 +578,12 @@ static int hl_nic_ib_alloc_ucontext(struct hl_aux_dev *aux_dev, int core_fd, voi
 	struct file *file;
 	int rc = 0;
 
+	/* IB core can independently manages its resources and context.
+	 * However, for HL devices, corresponding HW resources can also be
+	 * managed by core. To avoid contention (e.g. abrupt application close)
+	 * between them, enforce orderly FD closure. Thsi facilitates that IB destroy
+	 * runs first, followed by core fini.
+	 */
 	file = fget(core_fd);
 	if (!file)
 		return -EBADF;
@@ -605,7 +611,9 @@ static int hl_nic_ib_alloc_ucontext(struct hl_aux_dev *aux_dev, int core_fd, voi
 
 out:
 	mutex_unlock(&hdev->fpriv_list_lock);
-	fput(file);
+
+	if (rc)
+		fput(file);
 
 	return rc;
 }
@@ -615,12 +623,19 @@ static void hl_nic_ib_dealloc_ucontext(struct hl_aux_dev *aux_dev, void *ctx_pri
 	struct hl_nic *nic = HL_AUX2NIC(aux_dev);
 	struct hl_device *hdev = container_of(nic, struct hl_device, nic);
 	struct hl_fpriv *hpriv = ctx_priv;
+	struct file *file = hpriv->filp;
 
 	dev_dbg(hdev->dev, "IB context hpriv put\n");
 
 	set_app_params_clear(hdev);
 
 	hl_hpriv_put(hpriv);
+
+	/* We can assert here that all IB resources which might have
+	 * dependency on core are already released. Hence, release reference
+	 * to core file.
+	 */
+	fput(file);
 }
 
 static void hl_nic_ib_query_port(struct hl_aux_dev *aux_dev, u32 port,
