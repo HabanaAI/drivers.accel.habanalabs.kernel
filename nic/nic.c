@@ -602,7 +602,6 @@ static int hl_nic_ib_alloc_ucontext(struct hl_aux_dev *aux_dev, int core_fd, voi
 	hpriv = list_first_entry(&hdev->fpriv_list, struct hl_fpriv, dev_node);
 
 	if (hpriv == file->private_data) {
-		hl_hpriv_get(hpriv);
 		*ctx_priv = hpriv;
 	} else {
 		dev_dbg(hdev->dev, "core FD mismatch\n");
@@ -625,11 +624,9 @@ static void hl_nic_ib_dealloc_ucontext(struct hl_aux_dev *aux_dev, void *ctx_pri
 	struct hl_fpriv *hpriv = ctx_priv;
 	struct file *file = hpriv->filp;
 
-	dev_dbg(hdev->dev, "IB context hpriv put\n");
+	dev_dbg(hdev->dev, "IB context dealloc\n");
 
 	set_app_params_clear(hdev);
-
-	hl_hpriv_put(hpriv);
 
 	/* We can assert here that all IB resources which might have
 	 * dependency on core are already released. Hence, release reference
