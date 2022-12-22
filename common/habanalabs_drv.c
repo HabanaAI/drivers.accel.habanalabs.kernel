@@ -71,6 +71,7 @@ static int skip_iatu_for_unsecured_device;
 static int reset_upon_device_release = 1;
 static int gaudi2_setup_type;
 static ulong enable_events_tracing;
+static int ignore_eeprom_errors;
 
 /* Parameters for bring-up/debugging */
 static int pldm;
@@ -136,7 +137,6 @@ static uint bfe_mme_row_repair_l;
 static uint bfe_mme_row_repair_h;
 static int bfe_pci_rev_id;
 static int bfe_ptw_bypass_enable = 1;
-static int bfe_ignore_eeprom_errors;
 static uint bfe_rotator_binning;
 
 /* special-case of parameter handling - polling */
@@ -227,6 +227,10 @@ MODULE_PARM_DESC(gaudi2_setup_type,
 module_param(enable_events_tracing, ulong, 0444);
 MODULE_PARM_DESC(enable_events_tracing,
 	"Bitmask for enable various events tracing indication (values in HL_TRACE_*_MASK definitions, default 0)");
+
+module_param(ignore_eeprom_errors, int, 0444);
+MODULE_PARM_DESC(ignore_eeprom_errors,
+	"Ignore eeprom errors (0 - disabled, 1 - enabled, default 0)");
 
 /* Bring-Up flags */
 module_param(pldm, int, 0444);
@@ -479,10 +483,6 @@ MODULE_PARM_DESC(bfe_pci_rev_id, "Override PCI revision ID, (0 means do not over
 module_param(bfe_ptw_bypass_enable, int, 0444);
 MODULE_PARM_DESC(bfe_ptw_bypass_enable,
 	"Flag to enable or disable PTW bypass support(0 - disabled, 1 - enabled, default 1)");
-
-module_param(bfe_ignore_eeprom_errors, int, 0444);
-MODULE_PARM_DESC(bfe_ignore_eeprom_errors,
-	"Flag to ignore eeprom errors (0 - disabled, 1 - enabled, default 0)");
 
 module_param(bfe_rotator_binning, uint, 0444);
 MODULE_PARM_DESC(bfe_rotator_binning,
@@ -1432,7 +1432,6 @@ static void set_driver_behavior_per_device(struct hl_device *hdev)
 	hdev->skip_nic_phy_init = 0;
 	hdev->odp_enabled = 1;
 	hdev->pci_rev_id_override = 0;
-	hdev->ignore_eeprom_errors = 0;
 }
 
 static void copy_kernel_module_params_to_device(struct hl_device *hdev)
@@ -1452,6 +1451,7 @@ static void copy_kernel_module_params_to_device(struct hl_device *hdev)
 	hdev->reset_upon_device_release = reset_upon_device_release;
 	hdev->skip_iatu_for_unsecured_device = skip_iatu_for_unsecured_device;
 	hdev->gaudi2_setup_type = gaudi2_setup_type;
+	hdev->ignore_eeprom_errors = ignore_eeprom_errors;
 }
 
 static void copy_bfe_params_to_device(struct hl_device *hdev)
@@ -1525,7 +1525,6 @@ static void copy_bfe_params_to_device(struct hl_device *hdev)
 	hdev->priv_security_enable = bfe_priv_security_enable;
 	hdev->pci_rev_id_override = bfe_pci_rev_id;
 	hdev->ptw_bypass_enable = bfe_ptw_bypass_enable;
-	hdev->ignore_eeprom_errors = bfe_ignore_eeprom_errors;
 	hdev->rotator_binning = bfe_rotator_binning;
 
 	/* Debug feature:
