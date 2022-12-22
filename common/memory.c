@@ -66,7 +66,9 @@ static int umem_dmabuf_map_pages(struct hl_umem_dmabuf *umem_dmabuf)
 	struct scatterlist *sg;
 	unsigned int nmap = 0;
 	struct sg_table *sgt;
+#ifdef _HAS_DMA_RESV_WAIT_TIMEOUT
 	long rc;
+#endif
 	int i;
 
 	dma_resv_assert_held(umem_dmabuf->attach->dmabuf->resv);
