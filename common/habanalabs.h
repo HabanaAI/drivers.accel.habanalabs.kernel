@@ -3858,6 +3858,7 @@ struct hl_device {
 	u8				pci_rev_id_override;
 	u8				ptw_bypass_enable;
 	u8				ignore_eeprom_errors;
+	u8				hbm_compression_enable;
 };
 
 /**

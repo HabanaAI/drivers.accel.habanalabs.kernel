@@ -207,6 +207,9 @@ static void enable_hbm_compression(struct hl_device *hdev, int hbm_dev)
 	u64 hbm_offset, hif_offset;
 	u32 val;
 
+	if (!hdev->hbm_compression_enable)
+		return;
+
 	hbm_offset = (hbm_dev / 4) * DIE_OFFSET + (hbm_dev % 4) * HBM_DEV_OFFSET;
 	hif_offset = (u64)hbm_dev * HDCORE_OFFSET;
 
@@ -234,6 +237,9 @@ int gaudi3_init_hbm(struct hl_device *hdev)
 
 	if (gaudi3->hw_cap_initialized & HW_CAP_DRAM)
 		return 0;
+
+	if (!hdev->hbm_compression_enable)
+		dev_dbg(hdev->dev, "HBM compression is disabled\n");
 
 	/* if preboot does HBM init then skip it */
 	if ((hdev->fw_components & FW_TYPE_PREBOOT_CPU) &&

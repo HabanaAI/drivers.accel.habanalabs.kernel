@@ -138,6 +138,7 @@ static uint bfe_mme_row_repair_h;
 static int bfe_pci_rev_id;
 static int bfe_ptw_bypass_enable = 1;
 static uint bfe_rotator_binning;
+static int bfe_hbm_compression_enable = 1;
 
 /* special-case of parameter handling - polling */
 static bool nic_poll_enable_param_was_set;
@@ -487,6 +488,10 @@ MODULE_PARM_DESC(bfe_ptw_bypass_enable,
 module_param(bfe_rotator_binning, uint, 0444);
 MODULE_PARM_DESC(bfe_rotator_binning,
 	"Rotator binning mask, 1 bit per rotator instance(relevant for Gaudi3 and above), default 0");
+
+module_param(bfe_hbm_compression_enable, int, 0444);
+MODULE_PARM_DESC(bfe_hbm_compression_enable,
+	"Enable HBM compression, relevant for Gaudi3 or later (0 = no, 1 = yes, default yes)");
 
 #define PCI_VENDOR_ID_HABANALABS	0x1da3
 
@@ -1082,6 +1087,7 @@ static void set_driver_behavior_per_device(struct hl_device *hdev)
 		hdev->priv_security_enable = 0;
 		hdev->cache_enable = 0;
 		hdev->rotator_binning = 0;
+		hdev->hbm_compression_enable = 0;
 		break;
 
 	case ASIC_GAUDI2_SIM:
@@ -1109,6 +1115,7 @@ static void set_driver_behavior_per_device(struct hl_device *hdev)
 		hdev->priv_security_enable = 1;
 		hdev->cache_enable = 0;
 		hdev->rotator_binning = 0;
+		hdev->hbm_compression_enable = 0;
 		break;
 
 	case ASIC_GAUDI2_SIM_ARC:
@@ -1136,6 +1143,7 @@ static void set_driver_behavior_per_device(struct hl_device *hdev)
 		hdev->priv_security_enable = 1;
 		hdev->cache_enable = 0;
 		hdev->rotator_binning = 0;
+		hdev->hbm_compression_enable = 0;
 		break;
 
 	case ASIC_GAUDI2:
@@ -1163,6 +1171,7 @@ static void set_driver_behavior_per_device(struct hl_device *hdev)
 		hdev->priv_security_enable = 0;
 		hdev->cache_enable = 0;
 		hdev->rotator_binning = 0;
+		hdev->hbm_compression_enable = 0;
 		break;
 
 	case ASIC_GAUDI2_FPGA:
@@ -1189,6 +1198,7 @@ static void set_driver_behavior_per_device(struct hl_device *hdev)
 		hdev->priv_security_enable = 0;
 		hdev->cache_enable = 0;
 		hdev->rotator_binning = 0;
+		hdev->hbm_compression_enable = 0;
 		break;
 
 	case ASIC_GAUDI3:
@@ -1216,6 +1226,7 @@ static void set_driver_behavior_per_device(struct hl_device *hdev)
 		hdev->cache_enable = 1;
 		hdev->ptw_bypass_enable = 1;
 		hdev->rotator_binning = 0;
+		hdev->hbm_compression_enable = 1;
 		break;
 
 	case ASIC_GAUDI3_SINGLE_DIE:
@@ -1243,6 +1254,7 @@ static void set_driver_behavior_per_device(struct hl_device *hdev)
 		hdev->cache_enable = 1;
 		hdev->ptw_bypass_enable = 1;
 		hdev->rotator_binning = 0;
+		hdev->hbm_compression_enable = 1;
 		break;
 
 	case ASIC_GAUDI3_SIM:
@@ -1269,6 +1281,7 @@ static void set_driver_behavior_per_device(struct hl_device *hdev)
 		hdev->priv_security_enable = 1;
 		hdev->cache_enable = 1;
 		hdev->rotator_binning = 0;
+		hdev->hbm_compression_enable = 1;
 		break;
 
 	case ASIC_GAUDI3_SIM_ARC:
@@ -1295,6 +1308,7 @@ static void set_driver_behavior_per_device(struct hl_device *hdev)
 		hdev->priv_security_enable = 1;
 		hdev->cache_enable = 1;
 		hdev->rotator_binning = 0;
+		hdev->hbm_compression_enable = 1;
 		break;
 
 	case ASIC_GAUDI3_SIM_SINGLE_DIE:
@@ -1321,6 +1335,7 @@ static void set_driver_behavior_per_device(struct hl_device *hdev)
 		hdev->priv_security_enable = 1;
 		hdev->cache_enable = 1;
 		hdev->rotator_binning = 0;
+		hdev->hbm_compression_enable = 1;
 		break;
 
 	case ASIC_GAUDI3_SIM_SINGLE_DIE_ARC:
@@ -1347,6 +1362,7 @@ static void set_driver_behavior_per_device(struct hl_device *hdev)
 		hdev->priv_security_enable = 1;
 		hdev->cache_enable = 1;
 		hdev->rotator_binning = 0;
+		hdev->hbm_compression_enable = 1;
 		break;
 
 	case ASIC_GAUDI3_FPGA:
@@ -1373,6 +1389,7 @@ static void set_driver_behavior_per_device(struct hl_device *hdev)
 		hdev->priv_security_enable = 0;
 		hdev->cache_enable = 0;
 		hdev->rotator_binning = 0;
+		hdev->hbm_compression_enable = 1;
 		break;
 
 	default:
@@ -1399,6 +1416,7 @@ static void set_driver_behavior_per_device(struct hl_device *hdev)
 		hdev->priv_security_enable = 1;
 		hdev->cache_enable = 0;
 		hdev->rotator_binning = 0;
+		hdev->hbm_compression_enable = 0;
 		break;
 	}
 
@@ -1526,6 +1544,7 @@ static void copy_bfe_params_to_device(struct hl_device *hdev)
 	hdev->pci_rev_id_override = bfe_pci_rev_id;
 	hdev->ptw_bypass_enable = bfe_ptw_bypass_enable;
 	hdev->rotator_binning = bfe_rotator_binning;
+	hdev->hbm_compression_enable = bfe_hbm_compression_enable;
 
 	/* Debug feature:
 	 * Store a copy of binning information to override f/w binning configuration later
