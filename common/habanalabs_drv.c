@@ -71,7 +71,6 @@ static int skip_iatu_for_unsecured_device;
 static int reset_upon_device_release = 1;
 static int gaudi2_setup_type;
 static ulong enable_events_tracing;
-static int gaudi2_skip_internal_link_recovery = 1;
 
 /* Parameters for bring-up/debugging */
 static int pldm;
@@ -224,10 +223,6 @@ MODULE_PARM_DESC(reset_upon_device_release,
 module_param(gaudi2_setup_type, int, 0444);
 MODULE_PARM_DESC(gaudi2_setup_type,
 	"The type of setup according to which the gaudi2 PHY should be configured (0 - HLS2, 1 - HL225-S with external loopbacks, default 0)");
-
-module_param(gaudi2_skip_internal_link_recovery, int, 0444);
-MODULE_PARM_DESC(gaudi2_skip_internal_link_recovery,
-	"Skip the internal link recovery handler (0 = no, 1 = yes, default yes)");
 
 /* Bring-Up flags */
 module_param(pldm, int, 0444);
