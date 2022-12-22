@@ -224,6 +224,10 @@ module_param(gaudi2_setup_type, int, 0444);
 MODULE_PARM_DESC(gaudi2_setup_type,
 	"The type of setup according to which the gaudi2 PHY should be configured (0 - HLS2, 1 - HL225-S with external loopbacks, default 0)");
 
+module_param(enable_events_tracing, ulong, 0444);
+MODULE_PARM_DESC(enable_events_tracing,
+	"Bitmask for enable various events tracing indication (values in HL_TRACE_*_MASK definitions, default 0)");
+
 /* Bring-Up flags */
 module_param(pldm, int, 0444);
 MODULE_PARM_DESC(pldm,
@@ -450,10 +454,6 @@ MODULE_PARM_DESC(bfe_enable_intr_aggr,
 module_param(bfe_halt_eng_upon_fw_events, int, 0444);
 MODULE_PARM_DESC(bfe_halt_eng_upon_fw_events,
 	"Perform halt engines upon FW events (0 = no, 1 = yes, default no), supported in gaudi2");
-
-module_param(enable_events_tracing, ulong, 0444);
-MODULE_PARM_DESC(enable_events_tracing,
-	"Bitmask for enable various events tracing indication (values in HL_TRACE_*_MASK definitions, default 0)");
 
 module_param(bfe_hmmu_supported_pages_mask, ulong, 0444);
 MODULE_PARM_DESC(bfe_hmmu_supported_pages_mask,
