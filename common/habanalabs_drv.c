@@ -139,6 +139,7 @@ static int bfe_pci_rev_id;
 static int bfe_ptw_bypass_enable = 1;
 static uint bfe_rotator_binning;
 static int bfe_hbm_compression_enable = 1;
+static int bfe_nic_enable_h9_rx_drop_eco = 1;
 
 /* special-case of parameter handling - polling */
 static bool nic_poll_enable_param_was_set;
@@ -492,6 +493,10 @@ MODULE_PARM_DESC(bfe_rotator_binning,
 module_param(bfe_hbm_compression_enable, int, 0444);
 MODULE_PARM_DESC(bfe_hbm_compression_enable,
 	"Enable HBM compression, relevant for Gaudi3 or later (0 = no, 1 = yes, default yes)");
+
+module_param(bfe_nic_enable_h9_rx_drop_eco, int, 0444);
+MODULE_PARM_DESC(bfe_nic_enable_h9_rx_drop_eco,
+	"Enable erratum 5384 ECO, which avoids packet drops in RXB (0 - disabled, 1 - enabled, default 1)");
 
 #define PCI_VENDOR_ID_HABANALABS	0x1da3
 
@@ -1547,6 +1552,7 @@ static void copy_bfe_params_to_device(struct hl_device *hdev)
 	hdev->ptw_bypass_enable = bfe_ptw_bypass_enable;
 	hdev->rotator_binning = bfe_rotator_binning;
 	hdev->hbm_compression_enable = bfe_hbm_compression_enable;
+	hdev->nic_enable_h9_rx_drop_eco = bfe_nic_enable_h9_rx_drop_eco;
 
 	/* Debug feature:
 	 * Store a copy of binning information to override f/w binning configuration later
