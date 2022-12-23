@@ -469,7 +469,7 @@ MODULE_PARM_DESC(bfe_hmmu_default_page_size,
 
 module_param(bfe_priv_security_enable, int, 0444);
 MODULE_PARM_DESC(bfe_priv_security_enable,
-	"Enable config of privileged PBs & assert upon invalid access. Relevant for GAUDI2 and later (0 = no, 1 = yes, default no)");
+	"Enable privileged PB security & assert upon invalid access. Relevant only for GaudiX devices (0 = no, 1 = yes, default no)");
 
 module_param(bfe_mme_row_repair_l, uint, 0444);
 MODULE_PARM_DESC(bfe_mme_row_repair_l, "MME row repair mask lower 32 bits, default 0");
