@@ -31,6 +31,10 @@
 #define NIC_RXB_CORE_SPECIAL_GLBL_SPARE_0_ECO_5384_DISABLE_S 0
 #define NIC_RXB_CORE_SPECIAL_GLBL_SPARE_0_ECO_5384_DISABLE_M 0x1
 
+ /* mmNIC_RXE_SPECIAL_GLBL_SPARE_0 */
+#define NIC_RXE_SPECIAL_GLBL_SPARE_0_BACK_PRESSURE_TH_S 0
+#define NIC_RXE_SPECIAL_GLBL_SPARE_0_BACK_PRESSURE_TH_M 0x7F
+
 void gaudi3_nic_config_hw_mac_no_fw(struct hl_device *hdev, u32 port)
 {
 	if (hdev->fw_components & FW_TYPE_BOOT_CPU)
@@ -157,6 +161,10 @@ void gaudi3_nic_config_hw_rxe_no_fw(struct hl_device *hdev, u32 port)
 			(0 << D0_NIC0_RXE_WQE_CHECKS_ACTION_WQE_MULTI_ZERO_S) |
 			(0 << D0_NIC0_RXE_WQE_CHECKS_ACTION_WQE_WR_SEND_BIG_S) |
 			(0 << D0_NIC0_RXE_WQE_CHECKS_ACTION_WQE_MULTI_BIG_S));
+
+	/* H9-5454: configure back-pressure threshold */
+	NIC_RMWREG32(mmD0_NIC0_RXE_SPECIAL_BASE + mmNIC_RXE_SPECIAL_GLBL_SPARE_0, 64,
+			NIC_RXE_SPECIAL_GLBL_SPARE_0_BACK_PRESSURE_TH_M);
 }
 
 void gaudi3_nic_config_hw_qpc_no_fw(struct hl_device *hdev, u32 port)
