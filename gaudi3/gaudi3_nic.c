@@ -2492,8 +2492,10 @@ static int gaudi3_nic_set_req_qp_ctx(struct hl_device *hdev,
 
 	return 0;
 qpc_write_fail:
-	if (qp->req_user_cq)
+	if (qp->req_user_cq) {
 		hl_nic_user_cq_put(qp->req_user_cq);
+		qp->req_user_cq = NULL;
+	}
 
 	return rc;
 }
@@ -2678,8 +2680,10 @@ static int gaudi3_nic_set_res_qp_ctx(struct hl_device *hdev,
 
 	return 0;
 qpc_write_fail:
-	if (qp->res_user_cq)
+	if (qp->res_user_cq) {
 		hl_nic_user_cq_put(qp->res_user_cq);
+		qp->res_user_cq = NULL;
+	}
 
 	return rc;
 }

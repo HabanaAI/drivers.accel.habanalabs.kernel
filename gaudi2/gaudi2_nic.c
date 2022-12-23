@@ -2188,6 +2188,15 @@ static int gaudi2_set_req_qp_ctx(struct hl_device *hdev,
 		return -EINVAL;
 	}
 
+	/* Due to H/W bug H6-3280, it was decided to allow congestion control for external ports
+	 * only - the user shouldn't enable it for internal ports.
+	 */
+	if (!nic_port->eth_enable && in->congestion_en) {
+		dev_err(hdev->dev, "congestion control should be disabled for internal ports, port %d mode %u\n",
+			port, in->congestion_en);
+		return -EINVAL;
+	}
+
 	if (in->cq_number) {
 		/* User CQ. */
 		cqn = in->cq_number;
@@ -2202,15 +2211,6 @@ static int gaudi2_set_req_qp_ctx(struct hl_device *hdev,
 	} else {
 		/* No CQ. */
 		cqn = NIC_CQ_RDMA_IDX;
-	}
-
-	/* Due to H/W bug H6-3280, it was decided to allow congestion control for external ports
-	 * only - the user shouldn't enable it for internal ports.
-	 */
-	if (!nic_port->eth_enable && in->congestion_en) {
-		dev_err(hdev->dev, "congestion control should be disabled for internal ports, port %d mode %u\n",
-			port, in->congestion_en);
-		return -EINVAL;
 	}
 
 	if (nic_port->eth_enable)
@@ -2335,8 +2335,10 @@ static int gaudi2_set_req_qp_ctx(struct hl_device *hdev,
 	return 0;
 
 qpc_write_fail:
-	if (qp->req_user_cq)
+	if (qp->req_user_cq) {
 		hl_nic_user_cq_put(qp->req_user_cq);
+		qp->req_user_cq = NULL;
+	}
 
 	return rc;
 }
@@ -2372,6 +2374,17 @@ static int gaudi2_set_res_qp_ctx(struct hl_device *hdev,
 		return -EINVAL;
 	}
 
+	if (nic_port->eth_enable)
+		memcpy(mac, in->dst_mac_addr, ETH_ALEN);
+	else
+		/* in this case the MAC is irrelevant so use broadcast */
+		eth_broadcast_addr(mac);
+
+	if (normalize_priority(hdev, in->priority, TS_RC, false, &priority)) {
+		dev_dbg(hdev->dev, "Unsupported priority value %u, port %d\n", in->priority, port);
+		return -EINVAL;
+	}
+
 	if (in->cq_number) {
 		/* User CQ. */
 		cqn = in->cq_number;
@@ -2386,17 +2399,6 @@ static int gaudi2_set_res_qp_ctx(struct hl_device *hdev,
 	} else {
 		/* No CQ. */
 		cqn = NIC_CQ_RDMA_IDX;
-	}
-
-	if (nic_port->eth_enable)
-		memcpy(mac, in->dst_mac_addr, ETH_ALEN);
-	else
-		/* in this case the MAC is irrelevant so use broadcast */
-		eth_broadcast_addr(mac);
-
-	if (normalize_priority(hdev, in->priority, TS_RC, false, &priority)) {
-		dev_dbg(hdev->dev, "Unsupported priority value %u, port %d\n", in->priority, port);
-		return -EINVAL;
 	}
 
 	memset(&res_qpc, 0, sizeof(res_qpc));
@@ -2460,8 +2462,10 @@ static int gaudi2_set_res_qp_ctx(struct hl_device *hdev,
 	return 0;
 
 qpc_write_fail:
-	if (qp->res_user_cq)
+	if (qp->res_user_cq) {
 		hl_nic_user_cq_put(qp->res_user_cq);
+		qp->res_user_cq = NULL;
+	}
 
 	return rc;
 }
