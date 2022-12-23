@@ -9052,8 +9052,8 @@ static void gaudi3_get_mme_idle_status(struct hl_device *hdev, struct gaudi3_idl
 static void gaudi3_is_rotator_engine_idle(struct hl_device *hdev, int hdcore, int inst, u32 offset,
 						struct iterate_module_ctx *ctx)
 {
-	u32 reg_base, qm_glbl_sts0, qm_glbl_sts1, qm_cgm_sts, hdcore_index;
-	const char *format = "%-4d%-5d%-9s%#-14x%#-14x%#x\n";
+	u32 reg_base, qm_glbl_sts0, qm_glbl_sts1, qm_cgm_sts, rsb_info, wbc_info, hdcore_index;
+	const char *format = "%-4d%-5d%-9s%#-14x%#-14x%#-12x%#-12x%#x\n";
 	struct gaudi3_idle_data *idle_data = ctx->data;
 	bool is_idle = true;
 	long eng_id;
@@ -9061,6 +9061,24 @@ static void gaudi3_is_rotator_engine_idle(struct hl_device *hdev, int hdcore, in
 	reg_base = mmHD1_ROT0_QM_BASE + offset;
 	if (!gaudi3_is_qman_idle(hdev, reg_base, &qm_glbl_sts0, &qm_glbl_sts1, &qm_cgm_sts))
 		is_idle = false;
+
+	reg_base = mmHD1_ROT0_BASE + offset;
+
+	rsb_info = RREG32(reg_base + mmROTATOR_RSB_INFO);
+	/* TODO: remove 'if' when simulator returns correct idle value for RSB_INFO (SW-116255) */
+	if (hdev->pdev) {
+		if ((FIELD_GET(ROTATOR_RSB_INFO_EMPTY_M, rsb_info) != 0x1) ||
+				(FIELD_GET(ROTATOR_RSB_INFO_AXI_IDLE_M, rsb_info) != 0x1))
+			is_idle = false;
+	}
+
+	wbc_info = RREG32(reg_base + mmROTATOR_WBC_INFO);
+	/* TODO: remove 'if' when simulator returns correct idle value for WBC_INFO (SW-116255) */
+	if (hdev->pdev) {
+		if ((FIELD_GET(ROTATOR_WBC_INFO_EMPTY_M, wbc_info) != 0x1) ||
+				(FIELD_GET(ROTATOR_WBC_INFO_AXI_IDLE_M, wbc_info) != 0x1))
+			is_idle = false;
+	}
 
 	if (idle_data->mask && !is_idle) {
 		hdcore_index = hdcore / 2; /* [0] = HD1, [1] = HD3, [2] = HD4, [3] = HD6 */
@@ -9071,7 +9089,7 @@ static void gaudi3_is_rotator_engine_idle(struct hl_device *hdev, int hdcore, in
 
 	if (idle_data->e)
 		hl_engine_data_sprintf(idle_data->e, format, hdcore, inst, is_idle ? "Y" : "N",
-					qm_glbl_sts0, qm_glbl_sts1, qm_cgm_sts);
+					qm_glbl_sts0, qm_glbl_sts1, qm_cgm_sts, rsb_info, wbc_info);
 
 	*idle_data->is_idle &= is_idle;
 }
@@ -9079,8 +9097,9 @@ static void gaudi3_is_rotator_engine_idle(struct hl_device *hdev, int hdcore, in
 static void gaudi3_get_rotator_idle_status(struct hl_device *hdev,
 						struct gaudi3_idle_data *idle_data)
 {
-	const char *header = "\nHD  ROT  is_idle  QM_GLBL_STS0  QM_GLBL_STS1  QM_CGM_STS\n"
-				"--  ---  -------  ------------  ------------  ----------\n";
+	const char *header =
+		"\nHD  ROT  is_idle  QM_GLBL_STS0  QM_GLBL_STS1  QM_CGM_STS  RSB_INFO    WBC_INFO\n"
+		"--  ---  -------  ------------  ------------  ----------  --------    --------\n";
 	struct iterate_module_ctx iter_ctx = {
 		.fn = gaudi3_is_rotator_engine_idle,
 		.data = idle_data
