@@ -124,9 +124,9 @@ static void qp_destroy_work(struct work_struct *work);
 static int __user_wq_arr_unset(struct hl_nic_port *nic_port, u32 type, struct hl_ctx *ctx);
 static void user_cq_destroy(struct kref *kref);
 static void set_app_params_clear(struct hl_device *hdev);
-static int hl_nic_ib_cmd_ctrl(struct hl_aux_dev *aux_dev, void *ctx_priv, u32 op, void *input,
+static int hl_nic_ib_cmd_ctrl(struct hl_aux_dev *aux_dev, void *core_ctx, u32 op, void *input,
 				void *output);
-static int hl_nic_ib_mmap(struct hl_aux_dev *aux_dev, void *ctx_priv,
+static int hl_nic_ib_mmap(struct hl_aux_dev *aux_dev, void *core_ctx,
 				struct vm_area_struct *vma);
 static void wq_arrays_pool_destroy(struct hl_ctx *ctx);
 
@@ -570,7 +570,7 @@ static void hl_nic_en_aux_data_fini(struct hl_device *hdev)
 	core_info->mac_addr = NULL;
 }
 
-static int hl_nic_ib_alloc_ucontext(struct hl_aux_dev *aux_dev, int core_fd, void **ctx_priv)
+static int hl_nic_ib_alloc_ucontext(struct hl_aux_dev *aux_dev, int core_fd, void **core_ctx)
 {
 	struct hl_nic *nic = HL_AUX2NIC(aux_dev);
 	struct hl_device *hdev = container_of(nic, struct hl_device, nic);
@@ -602,7 +602,7 @@ static int hl_nic_ib_alloc_ucontext(struct hl_aux_dev *aux_dev, int core_fd, voi
 	hpriv = list_first_entry(&hdev->fpriv_list, struct hl_fpriv, dev_node);
 
 	if (hpriv == file->private_data) {
-		*ctx_priv = hpriv;
+		*core_ctx = hpriv->ctx;
 	} else {
 		dev_dbg(hdev->dev, "core FD mismatch\n");
 		rc = -EINVAL;
@@ -617,11 +617,11 @@ out:
 	return rc;
 }
 
-static void hl_nic_ib_dealloc_ucontext(struct hl_aux_dev *aux_dev, void *ctx_priv)
+static void hl_nic_ib_dealloc_ucontext(struct hl_aux_dev *aux_dev, void *core_ctx)
 {
 	struct hl_nic *nic = HL_AUX2NIC(aux_dev);
 	struct hl_device *hdev = container_of(nic, struct hl_device, nic);
-	struct hl_fpriv *hpriv = ctx_priv;
+	struct hl_fpriv *hpriv = ((struct hl_ctx *) core_ctx)->hpriv;
 	struct file *file = hpriv->filp;
 
 	dev_dbg(hdev->dev, "IB context dealloc\n");
@@ -4829,26 +4829,24 @@ static int __hl_nic_control(struct hl_device *hdev, u32 op, void *input, void *o
 	return rc;
 }
 
-static int hl_nic_ib_cmd_ctrl(struct hl_aux_dev *aux_dev, void *ctx_priv, u32 op, void *input,
+static int hl_nic_ib_cmd_ctrl(struct hl_aux_dev *aux_dev, void *core_ctx, u32 op, void *input,
 				void *output)
 {
 	struct hl_nic *nic = HL_AUX2NIC(aux_dev);
 	struct hl_device *hdev = container_of(nic, struct hl_device, nic);
-	struct hl_fpriv *hpriv = ctx_priv;
-	struct hl_ctx *ctx = hpriv->ctx;
 	int rc;
 
 	do
-		rc = __hl_nic_control(hdev, op, input, output, ctx);
+		rc = __hl_nic_control(hdev, op, input, output, core_ctx);
 	while (rc == -EAGAIN);
 
 	return rc;
 }
 
-static int hl_nic_ib_mmap(struct hl_aux_dev *aux_dev, void *ctx_priv,
+static int hl_nic_ib_mmap(struct hl_aux_dev *aux_dev, void *core_ctx,
 				struct vm_area_struct *vma)
 {
-	return __hl_mmap(ctx_priv, vma);
+	return __hl_mmap(((struct hl_ctx *) core_ctx)->hpriv, vma);
 }
 
 int hl_nic_control(struct hl_device *hdev, u32 op, void *input,	void *output, struct hl_ctx *ctx)
