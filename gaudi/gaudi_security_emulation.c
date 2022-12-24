@@ -1415,16 +1415,16 @@ static void fw_secure_hbw_rr(struct hl_device *hdev, int rr, u64 base, u64 mask)
 static void fw_secure_all_hbw_rr(struct hl_device *hdev)
 {
 	/* STM RR 0x7F_F400_0000 - 0x7F_F800_0000 (64MB) */
-	fw_secure_hbw_rr(hdev, HBW_RR_STM, 0x7FF4000000, 0x3FFFFC000000);
+	fw_secure_hbw_rr(hdev, HBW_RR_STM, 0x7FF4000000, 0x3FFFFFC000000);
 
 	/* SPI Flash RR 0x7F_F800_0000 - 0x7F_FA00_0000 (32MB) */
-	fw_secure_hbw_rr(hdev, HBW_RR_SPI_FLASH, HL_SPI_BASE, 0x3FFFFE000000);
+	fw_secure_hbw_rr(hdev, HBW_RR_SPI_FLASH, HL_SPI_BASE, 0x3FFFFFE000000);
 
 	/* Scratchpad SRAM RR 0x7F_FBFE_0000 - 0x7F_FBFF_0000 (64KB) */
-	fw_secure_hbw_rr(hdev, HBW_RR_SP_SRAM, 0x7FFBFE0000, 0x3FFFFFFF0000);
+	fw_secure_hbw_rr(hdev, HBW_RR_SP_SRAM, 0x7FFBFE0000, 0x3FFFFFFFF0000);
 
 	/* PCIe FW SRAM RR 0x7F_FBFF_0000 - 0x7F_FBFF_8000 (32KB) */
-	fw_secure_hbw_rr(hdev, HBW_RR_PCIE_FW, 0x7FFBFF0000, 0x3FFFFFFF8000);
+	fw_secure_hbw_rr(hdev, HBW_RR_PCIE_FW, 0x7FFBFF0000, 0x3FFFFFFFF8000);
 
 	/* HBM RR 0x00_0000_0000 - 0x00_1000_0000 (256MB) */
 	/* Keep RR_0 last, as it replaces the BTL settings */
