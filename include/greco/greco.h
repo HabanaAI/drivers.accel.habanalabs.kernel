@@ -65,7 +65,6 @@
 #define NUM_OF_ROT_PER_DCORE	1
 
 #define NUM_OF_DMMU_PER_DCORE	2
-#define NUM_OF_RTR_PER_DCORE	8
 
 #define NUM_OF_ENC		1
 
