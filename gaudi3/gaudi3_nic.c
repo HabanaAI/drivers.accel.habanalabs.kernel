@@ -1563,7 +1563,7 @@ static int gaudi3_nic_qpc_write(struct hl_nic_port *nic_port, void *qpc, struct 
 static int gaudi3_nic_qpc_invalidate(struct hl_nic_port *nic_port, u32 qpn, bool is_req)
 {
 	struct hl_device *hdev = nic_port->hdev;
-	u32 port = nic_port->port;
+	u32 port = nic_port->port, val;
 	struct qpc_mask mask = {};
 	union rr_qpc _qpc = {};
 	int rc = 0;
@@ -1597,6 +1597,32 @@ static int gaudi3_nic_qpc_invalidate(struct hl_nic_port *nic_port, u32 qpn, bool
 
 		NIC_RMWREG32(mmD0_NIC0_RXE_CACHE_CFG, 0, NIC_RXE_CACHE_CFG_INVALIDATION_M);
 		NIC_RREG32(mmD0_NIC0_RXE_CACHE_CFG);
+	}
+
+	if (!nic_port->pcs_link) {
+		struct gaudi3_nic_port *gaudi3_nic = nic_port->nic_specific;
+		u32 lane = get_lane_offset(gaudi3_nic);
+
+		/* flush TXE slices */
+		NIC_WREG32(mmD0_NIC0_TXE_WQE_BUFF_FLUSH_SLICE_REG0, 0xFFFFFFFF);
+		NIC_WREG32(mmD0_NIC0_TXE_WQE_BUFF_FLUSH_SLICE_REG1, 0xFFFF);
+
+		NIC_RMWREG32(mmD0_NIC0_MAC_CORE_BASE + mmPRT_MAC_CORE_TX_DRAIN, 1, BIT(lane));
+
+		rc = hl_poll_timeout(
+				hdev,
+				NIC_REG(mmD0_NIC0_TXE_OCCUP_SLICE_CNTR),
+				val,
+				!(val & NIC_TXE_OCCUP_SLICE_CNTR_DBG_OCCUP_SLICE_CNTR_M),
+				1000,
+				HL_DEVICE_TIMEOUT_USEC);
+
+		if (rc)
+			dev_err(hdev->dev, "Failed to flush TXE slices, port %d\n", port);
+
+		NIC_WREG32(mmD0_NIC0_TXE_WQE_BUFF_FLUSH_SLICE_REG0, 0);
+		NIC_WREG32(mmD0_NIC0_TXE_WQE_BUFF_FLUSH_SLICE_REG1, 0);
+		NIC_RMWREG32(mmD0_NIC0_MAC_CORE_BASE + mmPRT_MAC_CORE_TX_DRAIN, 0, BIT(lane));
 	}
 
 	return rc;
