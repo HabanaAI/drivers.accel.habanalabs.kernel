@@ -3537,7 +3537,7 @@ static void gaudi3_scrub_arcs_dccm(struct hl_device *hdev)
 	}
 }
 
-static void gaudi3_halt_pdma(struct hl_device *hdev)
+void gaudi3_halt_pdma(struct hl_device *hdev)
 {
 	u32 halt_engine, stop_pqm, reg_base;
 	int i;
@@ -3553,7 +3553,7 @@ static void gaudi3_halt_pdma(struct hl_device *hdev)
 	}
 }
 
-static void gaudi3_halt_dup(struct hl_device *hdev)
+void gaudi3_halt_dup(struct hl_device *hdev)
 {
 	u32 reg_base;
 	int i;
@@ -7158,7 +7158,7 @@ static void gaudi3_halt_arc(struct hl_device *hdev, u32 cpu_id)
 	WREG32(reg_base + mmQMAN_ARC_AUX_HALT_REQ, reg_val);
 }
 
-static void gaudi3_halt_arcs(struct hl_device *hdev)
+void gaudi3_halt_arcs(struct hl_device *hdev)
 {
 	struct gaudi3_device *gaudi3 = hdev->asic_specific;
 	u16 arc_id;
@@ -7627,6 +7627,7 @@ static void gaudi3_halt_engines(struct hl_device *hdev, bool hard_reset, bool fw
 	gaudi3_stall_tpc(hdev);
 	gaudi3_stall_mme(hdev);
 	gaudi3_stall_rotator(hdev);
+	gaudi3_stop_decoder(hdev);
 
 	msleep(wait_timeout_ms);
 
@@ -7637,8 +7638,6 @@ static void gaudi3_halt_engines(struct hl_device *hdev, bool hard_reset, bool fw
 	gaudi3_disable_nic_qmans(hdev);
 
 	gaudi3_disable_timestamp(hdev);
-
-	gaudi3_stop_decoder(hdev);
 
 skip_engines:
 	if (hard_reset) {
