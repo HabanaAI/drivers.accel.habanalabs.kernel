@@ -7497,21 +7497,37 @@ void gaudi3_disable_nic_qmans(struct hl_device *hdev)
 static void gaudi3_stop_decoder_engine(struct hl_device *hdev, int hdcore, int inst, u32 offset,
 					struct iterate_module_ctx *ctx)
 {
-	u32 vdec_cmd_reg_base, vdec_brdg_ctrl_reg_base, timeout_usec, graceful;
+	u32 vcmd_reg_base, dec_reg_base, brdg_ctrl_reg_base, timeout_usec, graceful;
 	int rc;
 
-	vdec_cmd_reg_base = mmHD0_VDEC0_CMD_BASE + offset;
-	WREG32(vdec_cmd_reg_base + mmVSI_CMD_SWREG16,
+	/* Disable VCMD */
+	vcmd_reg_base = mmHD0_VDEC0_CMD_BASE + offset;
+	WREG32(vcmd_reg_base + mmVSI_CMD_SWREG16,
 			FIELD_PREP(VSI_CMD_SWREG16_SW_START_TRIGGER_M, 0x0));
 
-	vdec_brdg_ctrl_reg_base = mmHD0_VDEC0_BRDG_CTRL_BASE + offset;
-	WREG32(vdec_brdg_ctrl_reg_base + mmVDEC_BRDG_CTRL_GRACEFUL,
+	/* Disable decoder */
+	dec_reg_base = mmHD0_VDEC0_VSI_BASE + offset;
+	WREG32(dec_reg_base + mmVSI_DEC_SWREG1,
+			FIELD_PREP(VSI_DEC_SWREG1_SW_DEC_E_M, 0x0) |
+			FIELD_PREP(VSI_DEC_SWREG1_SW_DEC_ABORT_E_M, 0x1));
+
+	/* Clear interrupts */
+	WREG32(vcmd_reg_base + mmVSI_CMD_SWREG17,
+			FIELD_PREP(VSI_CMD_SWREG17_SW_IRQ_ENDCMD_M, 0x1) |
+			FIELD_PREP(VSI_CMD_SWREG17_SW_IRQ_BUSERR_M, 0x1) |
+			FIELD_PREP(VSI_CMD_SWREG17_SW_IRQ_TIMEOUT_M, 0x1) |
+			FIELD_PREP(VSI_CMD_SWREG17_SW_IRQ_CMDERR_M, 0x1) |
+			FIELD_PREP(VSI_CMD_SWREG17_SW_IRQ_ABORT_M, 0x1) |
+			FIELD_PREP(VSI_CMD_SWREG17_SW_IRQ_JMP_M, 0x1));
+
+	brdg_ctrl_reg_base = mmHD0_VDEC0_BRDG_CTRL_BASE + offset;
+	WREG32(brdg_ctrl_reg_base + mmVDEC_BRDG_CTRL_GRACEFUL,
 			FIELD_PREP(VDEC_BRDG_CTRL_GRACEFUL_STOP_M, 0x1));
 
 	timeout_usec = hdev->pldm ? GAUDI3_PLDM_VDEC_TIMEOUT_USEC : GAUDI3_VDEC_TIMEOUT_USEC;
 	rc = hl_poll_timeout(
 			hdev,
-			vdec_brdg_ctrl_reg_base + mmVDEC_BRDG_CTRL_GRACEFUL,
+			brdg_ctrl_reg_base + mmVDEC_BRDG_CTRL_GRACEFUL,
 			graceful,
 			(graceful & VDEC_BRDG_CTRL_GRACEFUL_PEND_M),
 			1000,
