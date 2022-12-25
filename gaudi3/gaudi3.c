@@ -7620,6 +7620,8 @@ static void gaudi3_halt_engines(struct hl_device *hdev, bool hard_reset, bool fw
 {
 	u32 wait_timeout_ms;
 
+	gaudi3_halt_engines_no_fw(hdev);
+
 	if (hdev->pldm)
 		wait_timeout_ms = GAUDI3_PLDM_HALT_ENGINES_WAIT_MSEC;
 	else

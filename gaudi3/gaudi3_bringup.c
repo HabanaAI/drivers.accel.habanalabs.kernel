@@ -1970,21 +1970,28 @@ static void gaudi3_init_sm_axprot_overrides(struct hl_device *hdev)
 	}
 }
 
-static void gaudi3_enable_decoder_clock_gating(struct hl_device *hdev, int hdcore, int inst,
+static void gaudi3_set_decoder_clock_gating(struct hl_device *hdev, int hdcore, int inst,
 						u32 offset, struct iterate_module_ctx *ctx)
 {
 	u32 vdec_brdg_ctrl_reg_base = mmHD0_VDEC0_BRDG_CTRL_BASE + offset;
+	bool enable = (uintptr_t) ctx->data;
 
-	WREG32(vdec_brdg_ctrl_reg_base + mmVDEC_BRDG_CTRL_CGM_DISABLE, 0x0);
+	WREG32(vdec_brdg_ctrl_reg_base + mmVDEC_BRDG_CTRL_CGM_DISABLE, enable ? 0x0 : 0x1);
+}
+
+static void gaudi3_set_decoders_clock_gating(struct hl_device *hdev, bool enable)
+{
+	struct iterate_module_ctx iter_ctx = {
+		.fn = gaudi3_set_decoder_clock_gating,
+		.data = (void *) (uintptr_t) enable
+	};
+
+	gaudi3_iterate_decoders(hdev, &iter_ctx);
 }
 
 static void gaudi3_enable_clock_gating(struct hl_device *hdev)
 {
-	struct iterate_module_ctx iter_ctx = {
-		.fn = gaudi3_enable_decoder_clock_gating
-	};
-
-	gaudi3_iterate_decoders(hdev, &iter_ctx);
+	gaudi3_set_decoders_clock_gating(hdev, true);
 }
 
 static void gaudi3_init_interrupt_coalescing(struct hl_device *hdev)
@@ -5630,4 +5637,68 @@ int gaudi3_pll_info_get(struct hl_device *hdev, u32 pll_index, u16 *pll_freq_arr
 		return -EINVAL;
 
 	return calculate_pll_freq(hdev, gaudi3_pll_block_bases[index], pll_freq_arr);
+}
+
+static void gaudi3_disable_pqm_clock_gating(struct hl_device *hdev, int die, int inst, u32 offset,
+					struct iterate_module_ctx *ctx)
+{
+	u32 reg_base = mmD0_SPDMA0_CMN_B_BASE + offset;
+
+	RMWREG32(reg_base + mmPDMA_CMN_B_PQM_CMN_B_CGM_CFG, 0x0, PDMA_CMN_B_PQM_CMN_B_CGM_CFG_EN_M);
+}
+
+static void gaudi3_disable_pqms_clock_gating(struct hl_device *hdev)
+{
+	struct iterate_module_ctx iter_ctx = {
+		.fn = gaudi3_disable_pqm_clock_gating
+	};
+
+	gaudi3_iterate_pdma_grps(hdev, &iter_ctx);
+}
+
+static void gaudi3_disable_qman_clock_gating(struct hl_device *hdev, int block, int inst,
+						u32 offset, struct iterate_module_ctx *ctx)
+{
+	u32 first_qm_reg_base = *(u32 *) ctx->data, qm_reg_base = first_qm_reg_base + offset;
+
+	RMWREG32(qm_reg_base + QM_CGM_BASE_OFFSET + mmQMAN_CGM_CFG, 0x0, QMAN_CGM_CFG_EN_M);
+}
+
+static void gaudi3_disable_qmans_clock_gating(struct hl_device *hdev)
+{
+	u32 first_qm_reg_base;
+	struct iterate_module_ctx iter_ctx = {
+		.fn = gaudi3_disable_qman_clock_gating,
+		.data = &first_qm_reg_base
+	};
+
+	first_qm_reg_base = mmHD1_SEDMA0_QM_BASE;
+	gaudi3_iterate_edmas(hdev, &iter_ctx);
+
+	first_qm_reg_base = mmHD0_TPC0_QM_BASE;
+	gaudi3_iterate_tpcs(hdev, &iter_ctx);
+
+	first_qm_reg_base = mmHD0_MME_QM_BASE;
+	gaudi3_iterate_mmes(hdev, &iter_ctx);
+
+	first_qm_reg_base = mmHD1_ROT0_QM_BASE;
+	gaudi3_iterate_rotators(hdev, &iter_ctx);
+
+	first_qm_reg_base = mmD0_NIC0_QM_BASE;
+	gaudi3_iterate_nics(hdev, &iter_ctx);
+}
+
+static void gaudi3_disable_clock_gating(struct hl_device *hdev)
+{
+	gaudi3_disable_pqms_clock_gating(hdev);
+	gaudi3_disable_qmans_clock_gating(hdev);
+	gaudi3_set_decoders_clock_gating(hdev, false);
+}
+
+void gaudi3_halt_engines_no_fw(struct hl_device *hdev)
+{
+	if (hdev->fw_components & FW_TYPE_BOOT_CPU)
+		return;
+
+	gaudi3_disable_clock_gating(hdev);
 }

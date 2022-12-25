@@ -835,6 +835,7 @@ void gaudi3_handle_axi_drain(struct hl_device *hdev, bool *pci_link_error);
 void gaudi3_enable_interrupt_aggr_msgs(struct hl_device *hdev);
 irqreturn_t hl_pldm_irq_handler(int irq, void *arg);
 void gaudi3_pdma_print_debug_info(struct hl_device *hdev, u32 ch_idx);
+void gaudi3_halt_engines_no_fw(struct hl_device *hdev);
 
 /* Functions exported for FPGA support */
 int gaudi3_early_fini(struct hl_device *hdev);

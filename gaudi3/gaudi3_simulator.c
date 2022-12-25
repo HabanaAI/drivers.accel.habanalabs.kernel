@@ -1003,8 +1003,21 @@ static int gaudi3_sim_sw_fini(struct hl_device *hdev)
 	return 0;
 }
 
+static void gaudi3_sim_halt_engines_no_fw(struct hl_device *hdev)
+{
+	struct hl_simulator_device *edev = gaudi3_simulator_dev_table[hdev->id];
+
+	hl_sim_set_priv_assertions(edev, false);
+
+	gaudi3_halt_engines_no_fw(hdev);
+
+	hl_sim_set_priv_assertions(edev, true);
+}
+
 static void gaudi3_sim_halt_engines(struct hl_device *hdev, bool hard_reset, bool fw_reset)
 {
+	gaudi3_sim_halt_engines_no_fw(hdev);
+
 	/*
 	 * Mark the NIC as in reset to avoid any new NIC accesses to the HW. This must be done
 	 * before we stop the CPU as the NIC might use it e.g. get/set EEPROM data.
