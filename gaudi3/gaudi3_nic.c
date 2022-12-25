@@ -2083,18 +2083,6 @@ static void gaudi3_nic_config_hw_tmr(struct hl_nic_macro *nic_macro)
 	NIC_RREG32(mmD0_NIC0_TMR_TMR_TIMER_EN);
 }
 
-static void gaudi3_nic_disable_erratum_5384(struct hl_nic_macro *nic_macro)
-{
-	struct hl_device *hdev = nic_macro->hdev;
-	u32 port;
-
-	port = gaudi3_nic_get_first_port(nic_macro);
-
-	NIC_WREG32(mmD0_NIC0_TXE_SPECIAL_BASE + mmNIC_TXE_SPECIAL_GLBL_SPARE_3, 0x100000);
-	NIC_WREG32(mmD0_NIC0_TXB_SPECIAL_BASE + mmNIC_TXB_SPECIAL_GLBL_SPARE_0, 0x1);
-	NIC_WREG32(mmD0_NIC0_RXB_CORE_SPECIAL_BASE + mmNIC_RXB_CORE_SPECIAL_GLBL_SPARE_0, 0x1);
-}
-
 static void gaudi3_nic_hw_macro_config(struct hl_nic_macro *nic_macro)
 {
 	/* MAC Configuration */
@@ -2118,10 +2106,7 @@ static void gaudi3_nic_hw_macro_config(struct hl_nic_macro *nic_macro)
 
 	gaudi3_nic_config_hw_rxe(nic_macro);
 
-	/* TODO: SW-114652: Support erratum_5384 (rx drop eco) enabled and disabled, enabled by
-	 * default.
-	 */
-	gaudi3_nic_disable_erratum_5384(nic_macro);
+	gaudi3_nic_set_rx_drop_eco_no_fw(nic_macro);
 }
 
 static void gaudi3_nic_config_coll_lag_size(struct hl_device *hdev)

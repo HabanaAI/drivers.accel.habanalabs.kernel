@@ -7,6 +7,30 @@
 
 #include "gaudi3_nic.h"
 
+/* mmNIC_TXE_SPECIAL_GLBL_SPARE_3 */
+#define NIC_TXE_SPECIAL_GLBL_SPARE_3_WR_RDV_LIN_PAD_SIZE_S 0
+#define NIC_TXE_SPECIAL_GLBL_SPARE_3_WR_RDV_LIN_PAD_SIZE_M 0x1F
+
+#define NIC_TXE_SPECIAL_GLBL_SPARE_3_WR_RDV_MUL_PAD_SIZE_S 5
+#define NIC_TXE_SPECIAL_GLBL_SPARE_3_WR_RDV_MUL_PAD_SIZE_M 0x1F
+
+#define NIC_TXE_SPECIAL_GLBL_SPARE_3_RD_RDV_LIN_PAD_SIZE_S 10
+#define NIC_TXE_SPECIAL_GLBL_SPARE_3_RD_RDV_LIN_PAD_SIZE_M 0x1F
+
+#define NIC_TXE_SPECIAL_GLBL_SPARE_3_RD_RDV_MUL_PAD_SIZE_S 15
+#define NIC_TXE_SPECIAL_GLBL_SPARE_3_RD_RDV_MUL_PAD_SIZE_M 0x1F
+
+#define NIC_TXE_SPECIAL_GLBL_SPARE_3_ECO_5384_DISABLE_S 20
+#define NIC_TXE_SPECIAL_GLBL_SPARE_3_ECO_5384_DISABLE_M 0x1
+
+/* mmNIC_TXB_SPECIAL_GLBL_SPARE_0 */
+#define NIC_TXB_SPECIAL_GLBL_SPARE_0_ECO_5384_DISABLE_S 0
+#define NIC_TXB_SPECIAL_GLBL_SPARE_0_ECO_5384_DISABLE_M 0x1
+
+/* mmNIC_RXB_CORE_SPECIAL_GLBL_SPARE_0 */
+#define NIC_RXB_CORE_SPECIAL_GLBL_SPARE_0_ECO_5384_DISABLE_S 0
+#define NIC_RXB_CORE_SPECIAL_GLBL_SPARE_0_ECO_5384_DISABLE_M 0x1
+
 void gaudi3_nic_config_hw_mac_no_fw(struct hl_device *hdev, u32 port)
 {
 	if (hdev->fw_components & FW_TYPE_BOOT_CPU)
@@ -17,6 +41,7 @@ void gaudi3_nic_config_hw_mac_no_fw(struct hl_device *hdev, u32 port)
 
 void gaudi3_nic_config_hw_rxe_no_fw(struct hl_device *hdev, u32 port)
 {
+	uint32_t rxe_qpc_checks_mask;
 	int i;
 
 	if (hdev->fw_components & FW_TYPE_BOOT_CPU)
@@ -61,17 +86,20 @@ void gaudi3_nic_config_hw_rxe_no_fw(struct hl_device *hdev, u32 port)
 	NIC_RMWREG32(mmD0_NIC0_RXE_PKT_SIZE_CHECK_RAW, ETH_ZLEN,
 					D0_NIC0_RXE_PKT_SIZE_CHECK_RAW_MIN_M);
 
-	NIC_WREG32(mmD0_NIC0_RXE_QPC_CHECKS_EN,
-			(1 << D0_NIC0_RXE_QPC_CHECKS_EN_QPC_QP_INV_S) |
-			(1 << D0_NIC0_RXE_QPC_CHECKS_EN_QPC_TS_MISMATCH_S) |
-			(1 << D0_NIC0_RXE_QPC_CHECKS_EN_QPC_REQ_CS_INV_S) |
-			(1 << D0_NIC0_RXE_QPC_CHECKS_EN_QPC_RES_CS_INV_S) |
-			(1 << D0_NIC0_RXE_QPC_CHECKS_EN_QPC_RES_RESYNC_INV_S) |
-			(1 << D0_NIC0_RXE_QPC_CHECKS_EN_QPC_REQ_PSN_INV_S) |
-			(1 << D0_NIC0_RXE_QPC_CHECKS_EN_QPC_REQ_PSN_UNSENT_S) |
-			(1 << D0_NIC0_RXE_QPC_CHECKS_EN_QPC_REQ_SAL_NTS_INV_S) |
-			(1 << D0_NIC0_RXE_QPC_CHECKS_EN_QPC_RES_RKEY_INV_S) |
-			(1 << D0_NIC0_RXE_QPC_CHECKS_EN_QPC_RES_SAL_PSN_INV_S));
+	rxe_qpc_checks_mask = (1 << D0_NIC0_RXE_QPC_CHECKS_EN_QPC_QP_INV_S) |
+				(1 << D0_NIC0_RXE_QPC_CHECKS_EN_QPC_TS_MISMATCH_S) |
+				(1 << D0_NIC0_RXE_QPC_CHECKS_EN_QPC_REQ_CS_INV_S) |
+				(1 << D0_NIC0_RXE_QPC_CHECKS_EN_QPC_RES_CS_INV_S) |
+				(1 << D0_NIC0_RXE_QPC_CHECKS_EN_QPC_RES_RESYNC_INV_S) |
+				(1 << D0_NIC0_RXE_QPC_CHECKS_EN_QPC_REQ_PSN_INV_S) |
+				(1 << D0_NIC0_RXE_QPC_CHECKS_EN_QPC_REQ_PSN_UNSENT_S) |
+				(1 << D0_NIC0_RXE_QPC_CHECKS_EN_QPC_REQ_SAL_NTS_INV_S) |
+				(1 << D0_NIC0_RXE_QPC_CHECKS_EN_QPC_RES_SAL_PSN_INV_S);
+
+	if (!hdev->nic_enable_h9_rx_drop_eco)
+		rxe_qpc_checks_mask |= (1 << D0_NIC0_RXE_QPC_CHECKS_EN_QPC_RES_RKEY_INV_S);
+
+	NIC_WREG32(mmD0_NIC0_RXE_QPC_CHECKS_EN, rxe_qpc_checks_mask);
 
 	NIC_WREG32(mmD0_NIC0_RXE_WQE_CHECKS_EN,
 			(1 << D0_NIC0_RXE_WQE_CHECKS_EN_WQE_IDX_MISMATCH_S) |
@@ -327,4 +355,47 @@ void gaudi3_nic_disable_wqe_index_checker_no_fw(struct hl_nic_port *nic_port)
 
 	/* Disable the WQE index checker on the RX side */
 	NIC_RMWREG32(mmD0_NIC0_RXE_WQE_CHECKS_EN, 0, D0_NIC0_RXE_WQE_CHECKS_EN_WQE_IDX_MISMATCH_M);
+}
+
+void gaudi3_nic_set_rx_drop_eco_no_fw(struct hl_nic_macro *nic_macro)
+{
+	u32 port, txe_val, txb_disable_eco, rxb_disable_eco;
+	struct hl_device *hdev = nic_macro->hdev;
+	bool qpc_res_rkey_check_en;
+
+	if (hdev->fw_components & FW_TYPE_BOOT_CPU)
+		return;
+
+	port = gaudi3_nic_get_first_port(nic_macro);
+
+	if (hdev->nic_enable_h9_rx_drop_eco) {
+		txe_val = (0x1F << NIC_TXE_SPECIAL_GLBL_SPARE_3_WR_RDV_LIN_PAD_SIZE_S) |
+				(0x1D << NIC_TXE_SPECIAL_GLBL_SPARE_3_WR_RDV_MUL_PAD_SIZE_S) |
+				(0x1D << NIC_TXE_SPECIAL_GLBL_SPARE_3_RD_RDV_LIN_PAD_SIZE_S) |
+				(0x1B << NIC_TXE_SPECIAL_GLBL_SPARE_3_RD_RDV_MUL_PAD_SIZE_S);
+
+		txb_disable_eco = 0;
+		rxb_disable_eco = 0;
+		qpc_res_rkey_check_en  = 0;
+	} else {
+		txe_val = 0x1 << NIC_TXE_SPECIAL_GLBL_SPARE_3_ECO_5384_DISABLE_S;
+
+		txb_disable_eco = 1;
+		rxb_disable_eco = 1;
+		qpc_res_rkey_check_en  = 1;
+	}
+
+	/* Set padding per WQE type */
+	NIC_WREG32(mmD0_NIC0_TXE_SPECIAL_BASE + mmNIC_TXE_SPECIAL_GLBL_SPARE_3, txe_val);
+
+	NIC_RMWREG32(mmD0_NIC0_TXB_SPECIAL_BASE + mmNIC_TXB_SPECIAL_GLBL_SPARE_0, txb_disable_eco,
+			NIC_TXB_SPECIAL_GLBL_SPARE_0_ECO_5384_DISABLE_M);
+
+	NIC_RMWREG32(mmD0_NIC0_RXB_CORE_SPECIAL_BASE + mmNIC_RXB_CORE_SPECIAL_GLBL_SPARE_0,
+			rxb_disable_eco, NIC_RXB_CORE_SPECIAL_GLBL_SPARE_0_ECO_5384_DISABLE_M);
+
+	NIC_RMWREG32(mmD0_NIC0_RXE_QPC_CHECKS_EN, qpc_res_rkey_check_en,
+			D0_NIC0_RXE_QPC_CHECKS_EN_QPC_RES_RKEY_INV_M);
+
+	/* TODO: SW-115690 - Add cpucp message to enable\disable RKEY QPC check, when FW is used */
 }
