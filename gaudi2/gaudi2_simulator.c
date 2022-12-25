@@ -1020,10 +1020,8 @@ static void gaudi2_sim_get_nic_info(struct hl_device *hdev)
 		nic_info->link_ext_mask[0] = 0;
 	} else {
 		nic_info->link_mask[0] = cpu_to_le64(0xFFFFFF);
-		nic_info->link_ext_mask[0] = nic_info->link_mask[0];
+		nic_info->link_ext_mask[0] = GAUDI2_HLS2_EXTERN_PORTS_MASK;
 	}
-
-	/* TODO SW-110075: revisit the decision that all Gaudi2-sim NIC ports are external */
 }
 
 static int gaudi2_sim_cpucp_info_get(struct hl_device *hdev)
