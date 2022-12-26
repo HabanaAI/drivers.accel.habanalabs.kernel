@@ -6,9 +6,9 @@
 ifneq ($(PATCHLEVEL),)
 # kbuild part of makefile
 
-CONFIG_HABANA_AI := m
+CONFIG_DRM_ACCEL_HABANALABS := m
 
-obj-$(CONFIG_HABANA_AI) := habanalabs.o
+obj-$(CONFIG_DRM_ACCEL_HABANALABS) := habanalabs.o
 
 include $(src)/common/Makefile
 habanalabs-y += $(HL_COMMON_FILES)
