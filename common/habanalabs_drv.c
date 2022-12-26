@@ -1293,7 +1293,7 @@ static void set_driver_behavior_per_device(struct hl_device *hdev)
 		hdev->rotator_mask = 0xFF;
 		hdev->use_8_bit_hops = 0;
 		hdev->priv_security_enable = 1;
-		hdev->cache_enable = 0;
+		hdev->cache_enable = 1;
 		hdev->rotator_binning = 0;
 		break;
 
@@ -1345,7 +1345,7 @@ static void set_driver_behavior_per_device(struct hl_device *hdev)
 		hdev->rotator_mask = 0xF;
 		hdev->use_8_bit_hops = 0;
 		hdev->priv_security_enable = 1;
-		hdev->cache_enable = 0;
+		hdev->cache_enable = 1;
 		hdev->rotator_binning = 0;
 		break;
 
