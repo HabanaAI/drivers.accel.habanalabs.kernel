@@ -2252,15 +2252,13 @@ int gaudi2_nic_phy_init(struct hl_device *hdev)
 {
 	struct hl_nic *nic = &hdev->nic;
 
-	if (hdev->skip_nic_phy_init) {
-		nic->phy_config_fw = 0;
+	if (!nic->phy_config_fw)
 		return 0;
-	}
 
 	/* Fail the initialization in case of an old PHY F/W, as the current PHY init flow won't
 	 * work with it.
 	 */
-	if (nic->phy_config_fw && is_old_phy_fw_loaded(hdev)) {
+	if (is_old_phy_fw_loaded(hdev)) {
 		dev_err(hdev->dev, "PHY F/W is very old - failing the initialization\n");
 		return -EINVAL;
 	}

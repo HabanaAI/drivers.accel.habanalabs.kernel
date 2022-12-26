@@ -5232,7 +5232,7 @@ int hl_nic_sw_init(struct hl_device *hdev)
 	nic->mac_lane_remap = mac_lane_remap;
 	nic->pcs_fail_time_frame = NIC_PCS_FAIL_TIME_FRAME_SEC;
 	nic->pcs_fail_threshold = NIC_PCS_FAIL_THRESHOLD;
-	nic->phy_config_fw = !hdev->pldm;
+	nic->phy_config_fw = !hdev->pldm && !hdev->skip_nic_phy_init;
 	nic->mmu_bypass = 1;
 
 	/* Boot CPU loads the PHY F/W at boot */
