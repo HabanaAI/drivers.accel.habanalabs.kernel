@@ -7347,28 +7347,16 @@ static void gaudi3_set_arc_id_cap(struct hl_device *hdev, u64 arc_id)
 	}
 }
 
-static void gaudi3_halt_sched_arc_dup(struct hl_device *hdev, u32 cpu_id, bool halt)
-{
-	u32 hdcore_id = cpu_id / NUM_ARC_SCHED_PER_HDCORE;
-	u32 sched_id = cpu_id % NUM_ARC_SCHED_PER_HDCORE;
-	u64 control_halt_addr = mmHD0_ARC_FARM_ARC0_DUP_ENG_BASE + mmARC_DUP_ENG_DUP_CONTROL_HALT +
-		(hdcore_id * HDCORE_OFFSET) + (sched_id * ARC_DUP_SCHED_OFFSET);
-
-	WREG32(control_halt_addr, halt);
-}
-
-static void gaudi3_halt_arc(struct hl_device *hdev, u32 cpu_id)
+static void gaudi3_halt_arc_core(struct hl_device *hdev, u32 arc_id)
 {
 	u32 reg_base, reg_val;
 
-	reg_base = gaudi3_arc_blocks_bases[cpu_id];
-
-	/* Halt ARC */
-	reg_val = FIELD_PREP(QMAN_ARC_AUX_HALT_REQ_VAL_M, 1);
+	reg_base = gaudi3_arc_blocks_bases[arc_id];
+	reg_val = FIELD_PREP(QMAN_ARC_AUX_HALT_REQ_VAL_M, 0x1);
 	WREG32(reg_base + mmQMAN_ARC_AUX_HALT_REQ, reg_val);
 }
 
-void gaudi3_halt_arcs(struct hl_device *hdev)
+static void gaudi3_halt_arc_cores(struct hl_device *hdev)
 {
 	struct gaudi3_device *gaudi3 = hdev->asic_specific;
 	u16 arc_id;
@@ -7376,14 +7364,70 @@ void gaudi3_halt_arcs(struct hl_device *hdev)
 	if (!gaudi3)
 		return;
 
-	for (arc_id = CPU_ID_SCHED_ARC0; arc_id < CPU_ID_MAX; arc_id++) {
-		if (gaudi3_is_arc_initialized(hdev, arc_id)) {
-			gaudi3_halt_arc(hdev, arc_id);
-
-			if (arc_id < CPU_ID_SCHED_MAX)
-				gaudi3_halt_sched_arc_dup(hdev, arc_id, true);
-		}
+	for (arc_id = CPU_ID_SCHED_ARC0 ; arc_id < CPU_ID_MAX ; arc_id++) {
+		if (gaudi3_is_arc_initialized(hdev, arc_id))
+			gaudi3_halt_arc_core(hdev, arc_id);
 	}
+}
+
+static void gaudi3_halt_arc_farm_dup(struct hl_device *hdev, u32 arc_id, bool halt)
+{
+	u32 hdcore_id, sched_id, offset;
+
+	hdcore_id = arc_id / NUM_ARC_SCHED_PER_HDCORE;
+	sched_id = arc_id % NUM_ARC_SCHED_PER_HDCORE;
+	offset = hdcore_id * HDCORE_OFFSET + sched_id * ARC_DUP_SCHED_OFFSET;
+
+	WREG32(mmHD0_ARC_FARM_ARC0_DUP_ENG_BASE + offset + mmARC_DUP_ENG_DUP_CONTROL_HALT, halt);
+}
+
+static void gaudi3_halt_arc_farm_dup_engines(struct hl_device *hdev)
+{
+	struct gaudi3_device *gaudi3 = hdev->asic_specific;
+	u16 arc_id;
+
+	if (!gaudi3)
+		return;
+
+	for (arc_id = CPU_ID_SCHED_ARC0 ; arc_id < CPU_ID_SCHED_MAX ; arc_id++) {
+		if (gaudi3_is_arc_initialized(hdev, arc_id))
+			gaudi3_halt_arc_farm_dup(hdev, arc_id, true);
+	}
+}
+
+static void gaudi3_halt_arc_farm_acp(struct hl_device *hdev, u32 arc_id)
+{
+	u32 hdcore_id, sched_id, offset;
+
+	hdcore_id = arc_id / NUM_ARC_SCHED_PER_HDCORE;
+	sched_id = arc_id % NUM_ARC_SCHED_PER_HDCORE;
+	offset = hdcore_id * HDCORE_OFFSET + sched_id * ARC_DUP_SCHED_OFFSET;
+
+	WREG32(mmHD0_ARC_FARM_ARC0_AF_BASE + offset + mmARC_AF_ENG_SB_HALT,
+			FIELD_PREP(HD0_ARC_FARM_ARC0_AF_SB_HALT_VAL_M, 0x1));
+	WREG32(mmHD0_ARC_FARM_ARC0_AF_BASE + offset + mmARC_AF_ENG_DCCM_HALT,
+			FIELD_PREP(HD0_ARC_FARM_ARC0_AF_DCCM_HALT_VAL_M, 0x1));
+}
+
+static void gaudi3_halt_arc_farm_acp_engines(struct hl_device *hdev)
+{
+	struct gaudi3_device *gaudi3 = hdev->asic_specific;
+	u16 arc_id;
+
+	if (!gaudi3)
+		return;
+
+	for (arc_id = CPU_ID_SCHED_ARC0 ; arc_id < CPU_ID_SCHED_MAX ; arc_id++) {
+		if (gaudi3_is_arc_initialized(hdev, arc_id))
+			gaudi3_halt_arc_farm_acp(hdev, arc_id);
+	}
+}
+
+void gaudi3_halt_arcs(struct hl_device *hdev)
+{
+	gaudi3_halt_arc_cores(hdev);
+	gaudi3_halt_arc_farm_dup_engines(hdev);
+	gaudi3_halt_arc_farm_acp_engines(hdev);
 }
 
 void gaudi3_reset_arcs(struct hl_device *hdev)
@@ -7414,7 +7458,7 @@ void gaudi3_init_arcs(struct hl_device *hdev)
 			continue;
 
 		gaudi3_init_arc(hdev, i);
-		gaudi3_halt_sched_arc_dup(hdev, i, false);
+		gaudi3_halt_arc_farm_dup(hdev, i, false);
 		gaudi3_set_arc_id_cap(hdev, i);
 	}
 
@@ -7809,7 +7853,6 @@ int gaudi3_set_engine_cores(struct hl_device *hdev, u32 *core_ids,
 					u32 num_cores, u32 core_command)
 {
 	int i, rc;
-
 
 	for (i = 0 ; i < num_cores ; i++) {
 		if (gaudi3_is_arc_initialized(hdev, core_ids[i]))
