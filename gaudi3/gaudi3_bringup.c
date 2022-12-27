@@ -2378,7 +2378,7 @@ void gaudi3_fabric_serialization_fini_fw_config(struct hl_device *hdev)
 	WREG32(mmD0_PCIE_WRAP_BASE + mmPCIE_WRAP_DUMMY_LBW_REGION_RESP, 0xF);
 }
 
-/* Naturally, all FW configurations should go under gaudi3_fw_config.
+/* Naturally, all FW configurations should go under gaudi3_hw_init_fw_config().
  * 'Fabric Serialization Enhancement', however, is an exception as it might
  * alter PCIE reordering rules. Hence, we should make sure it's called long
  * after the HW has already been initialized.
@@ -2417,7 +2417,7 @@ void gaudi3_fabric_serialization_init_fw_config(struct hl_device *hdev)
 	WREG32(mmD0_PCIE_WRAP_BASE + mmPCIE_WRAP_DUMMY_LBW_REGION_RESP, 0x0);
 }
 
-void gaudi3_fw_config(struct hl_device *hdev)
+void gaudi3_hw_init_fw_config(struct hl_device *hdev)
 {
 	/* TODO (SW-108260): Temporary allow those configs for SIM_GAUDI3_ARC */
 	if ((hdev->fw_components & FW_TYPE_BOOT_CPU) && (hdev->asic_type != ASIC_GAUDI3_SIM_ARC))
@@ -5707,10 +5707,38 @@ static void gaudi3_disable_clock_gating(struct hl_device *hdev)
 	gaudi3_set_decoders_clock_gating(hdev, false);
 }
 
-void gaudi3_halt_engines_no_fw(struct hl_device *hdev)
+static void gaudi3_stop_decoder_engine_fw_config(struct hl_device *hdev, int hdcore, int inst,
+							u32 offset, struct iterate_module_ctx *ctx)
+{
+	u32 vdec_brdg_ctrl_reg_base = mmHD0_VDEC0_BRDG_CTRL_BASE + offset;
+
+	/* Mask idle signals from IP */
+	WREG32(vdec_brdg_ctrl_reg_base + mmVDEC_BRDG_CTRL_IDLE_MASK,
+			FIELD_PREP(VDEC_BRDG_CTRL_IDLE_MASK_VAL_M, 0x7));
+
+	/* Disable VCMD normal interrupts */
+	WREG32(vdec_brdg_ctrl_reg_base + mmVDEC_BRDG_CTRL_NRM_INTR_MASK,
+			FIELD_PREP(VDEC_BRDG_CTRL_NRM_INTR_MASK_VAL_M, 0x1));
+}
+
+static void gaudi3_stop_decoder_fw_config(struct hl_device *hdev)
+{
+	struct gaudi3_device *gaudi3 = hdev->asic_specific;
+	struct iterate_module_ctx iter_ctx = {
+		.fn = gaudi3_stop_decoder_engine_fw_config
+	};
+
+	if (!(gaudi3->hw_cap_dec_initialized & HW_CAP_DEC_MASK))
+		return;
+
+	gaudi3_iterate_decoders(hdev, &iter_ctx);
+}
+
+void gaudi3_halt_engines_fw_config(struct hl_device *hdev)
 {
 	if (hdev->fw_components & FW_TYPE_BOOT_CPU)
 		return;
 
 	gaudi3_disable_clock_gating(hdev);
+	gaudi3_stop_decoder_fw_config(hdev);
 }

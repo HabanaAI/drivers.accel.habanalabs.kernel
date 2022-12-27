@@ -6496,7 +6496,7 @@ static int gaudi3_hw_init(struct hl_device *hdev)
 		return rc;
 	}
 
-	gaudi3_fw_config(hdev);
+	gaudi3_hw_init_fw_config(hdev);
 
 	if (hdev->cache_enable) {
 		rc = gaudi3_set_cache_mode(hdev);
@@ -7728,7 +7728,7 @@ static void gaudi3_halt_engines(struct hl_device *hdev, bool hard_reset, bool fw
 {
 	u32 wait_timeout_ms;
 
-	gaudi3_halt_engines_no_fw(hdev);
+	gaudi3_halt_engines_fw_config(hdev);
 
 	if (hdev->pldm)
 		wait_timeout_ms = GAUDI3_PLDM_HALT_ENGINES_WAIT_MSEC;
