@@ -7118,6 +7118,8 @@ static void gaudi3_hw_fini(struct hl_device *hdev, bool hard_reset, bool fw_rese
 
 	gaudi3_reset_arcs(hdev);
 
+	gaudi3_set_isolation(hdev, true, hard_reset);
+
 	gaudi3_page_fault_queue_fini(hdev);
 
 	if (hard_reset)

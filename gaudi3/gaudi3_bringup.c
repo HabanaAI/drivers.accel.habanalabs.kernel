@@ -1220,10 +1220,18 @@ void gaudi3_disable_nic_interrupts_cpu_if(struct hl_device *hdev)
 	RREG32(mmD0_CPU_INT_AGG_SHARED_SEI_INT_MSG_BASE + mmINT_AGG_SHARED_SEI_INT_MSG_MASK_0);
 }
 
-static void gaudi3_set_edma_isolation(struct hl_device *hdev)
+static void gaudi3_set_edma_isolation(struct hl_device *hdev, bool isolate)
 {
 	struct asic_fixed_properties *prop = &hdev->asic_prop;
 	u32 edma_iso;
+	int die;
+
+	if (isolate) {
+		for (die = 0 ; die < prop->num_of_dies ; die++)
+			WREG32(mmD0_PSOC_BOOT_CONF_EDMA_ISO + die * DIE_OFFSET,
+					PSOC_BOOT_CONF_EDMA_ISO_ISO_EN_M);
+		return;
+	}
 
 	/* DIE0 EDMA_ISO:
 	 * Bit[0] - HD1_EDMA{0,1}
@@ -1251,11 +1259,23 @@ static void gaudi3_set_edma_isolation(struct hl_device *hdev)
 	WREG32(mmD1_PSOC_BOOT_CONF_EDMA_ISO, edma_iso);
 }
 
-static void gaudi3_set_tpc_isolation(struct hl_device *hdev)
+static void gaudi3_set_tpc_isolation(struct hl_device *hdev, bool isolate)
 {
 	u32 die0_tpc_disabled_mask, die1_tpc_disabled_mask, tpc_iso_l;
 	struct asic_fixed_properties *prop = &hdev->asic_prop;
 	u64 tpc_disabled_mask;
+	int die;
+
+	if (isolate) {
+		for (die = 0 ; die < prop->num_of_dies ; die++) {
+			WREG32(mmD0_PSOC_BOOT_CONF_TPC_ISO_L + die * DIE_OFFSET,
+					PSOC_BOOT_CONF_TPC_ISO_L_ISO_EN_M);
+			WREG32(mmD0_PSOC_BOOT_CONF_TPC_ISO_H + die * DIE_OFFSET,
+					PSOC_BOOT_CONF_TPC_ISO_H_ISO_EN_M);
+		}
+
+		return;
+	}
 
 	/* DIE0 TPC_ISO_L:
 	 *  Bit[0]  - HD0_TPC0 ... Bit[7]  - HD0_TPC7
@@ -1300,10 +1320,18 @@ static void gaudi3_set_tpc_isolation(struct hl_device *hdev)
 	WREG32(mmD1_PSOC_BOOT_CONF_TPC_ISO_H, 0x3);
 }
 
-static void gaudi3_set_mme_isolation(struct hl_device *hdev)
+static void gaudi3_set_mme_isolation(struct hl_device *hdev, bool isolate)
 {
 	struct asic_fixed_properties *prop = &hdev->asic_prop;
 	u32 mme_iso;
+	int die;
+
+	if (isolate) {
+		for (die = 0 ; die < prop->num_of_dies ; die++)
+			WREG32(mmD0_PSOC_BOOT_CONF_MME_ISO + die * DIE_OFFSET,
+					PSOC_BOOT_CONF_MME_ISO_ISO_EN_M);
+		return;
+	}
 
 	/* DIE0 MME_ISO:
 	 * Bit[0] - HD0_MME ... Bit[3] - HD3_MME
@@ -1321,10 +1349,18 @@ static void gaudi3_set_mme_isolation(struct hl_device *hdev)
 	WREG32(mmD1_PSOC_BOOT_CONF_MME_ISO, mme_iso);
 }
 
-static void gaudi3_set_rotator_isolation(struct hl_device *hdev)
+static void gaudi3_set_rotator_isolation(struct hl_device *hdev, bool isolate)
 {
 	struct asic_fixed_properties *prop = &hdev->asic_prop;
 	u32 rot_disabled_mask, rot_iso;
+	int die;
+
+	if (isolate) {
+		for (die = 0 ; die < prop->num_of_dies ; die++)
+			WREG32(mmD0_PSOC_BOOT_CONF_ROT_ISO + die * DIE_OFFSET,
+					PSOC_BOOT_CONF_ROT_ISO_ISO_EN_M);
+		return;
+	}
 
 	rot_disabled_mask = ~hdev->rotator_mask & 0xFF;
 	/* DIE0 ROT_ISO:
@@ -1353,13 +1389,20 @@ static void gaudi3_set_rotator_isolation(struct hl_device *hdev)
 	WREG32(mmD1_PSOC_BOOT_CONF_ROT_ISO, rot_iso);
 }
 
-static void gaudi3_set_decoder_isolation(struct hl_device *hdev)
+static void gaudi3_set_decoder_isolation(struct hl_device *hdev, bool isolate)
 {
 	u8 d0_decoder_id_to_iso_bit[] = {0, 2, 4, 6, 1, 3, 5, 7};
 	u8 d1_decoder_id_to_iso_bit[] = {5, 7, 1, 3, 4, 6, 0, 2};
 	struct asic_fixed_properties *prop = &hdev->asic_prop;
 	u32 num_of_decoder_per_die, vdec_iso;
-	int i;
+	int i, die;
+
+	if (isolate) {
+		for (die = 0 ; die < prop->num_of_dies ; die++)
+			WREG32(mmD0_PSOC_BOOT_CONF_VDEC_ISO + die * DIE_OFFSET,
+					PSOC_BOOT_CONF_VDEC_ISO_ISO_EN_M);
+		return;
+	};
 
 	num_of_decoder_per_die = NUM_OF_HDCORES_PER_DIE * NUM_OF_DECODER_PER_HDCORE;
 
@@ -1401,12 +1444,19 @@ static void gaudi3_set_decoder_isolation(struct hl_device *hdev)
 	WREG32(mmD1_PSOC_BOOT_CONF_VDEC_ISO, vdec_iso);
 }
 
-static void gaudi3_set_nic_isolation(struct hl_device *hdev)
+static void gaudi3_set_nic_isolation(struct hl_device *hdev, bool isolate)
 {
 	struct asic_fixed_properties *prop = &hdev->asic_prop;
 	struct hl_nic_macro *nic_macro;
 	u32 nic_iso;
-	int i;
+	int i, die;
+
+	if (isolate) {
+		for (die = 0 ; die < prop->num_of_dies ; die++)
+			WREG32(mmD0_PSOC_BOOT_CONF_NIC_ISO + die * DIE_OFFSET,
+					PSOC_BOOT_CONF_NIC_ISO_ISO_EN_M);
+		return;
+	};
 
 	/* DIE0 NIC_ISO:
 	 * Bit[0] - D0_NIC0 ... Bit[5] - D0_NIC5
@@ -1434,33 +1484,50 @@ static void gaudi3_set_nic_isolation(struct hl_device *hdev)
 	WREG32(mmD1_PSOC_BOOT_CONF_NIC_ISO, nic_iso);
 }
 
-static void gaudi3_set_hbm_isolation(struct hl_device *hdev)
+static void gaudi3_set_hbm_isolation(struct hl_device *hdev, bool isolate)
 {
 	struct asic_fixed_properties *prop = &hdev->asic_prop;
-	int i;
+	u32 hbm_iso;
+	int die;
 
-	if (!hdev->dram_enable)
-		return;
+	hbm_iso = (isolate || !hdev->dram_enable) ? PSOC_BOOT_CONF_HBM_ISO_ISO_EN_M : 0x0;
 
-	for (i = 0 ; i < prop->num_of_dies; i++)
-		WREG32(mmD0_PSOC_BOOT_CONF_HBM_ISO + i * DIE_OFFSET, 0x0);
+	for (die = 0 ; die < prop->num_of_dies ; die++)
+		WREG32(mmD0_PSOC_BOOT_CONF_HBM_ISO + die * DIE_OFFSET, hbm_iso);
 }
 
-static void gaudi3_set_isolation(struct hl_device *hdev)
+/*
+ * gaudi3_set_isolation() - configure isolation for engines and HBM.
+ * @hdev: pointer to habanalabs device structure.
+ * @isolate_engines: isolate or deisolate engines.
+ * @isolate_hbm: isolate of deioslate HBM.
+ *
+ * Configure isolation for engines and HBM according to the provided 'isolate' flags.
+ * A 'true' value in the flags means isolate all, while a 'false' value means remove isolation based
+ * on the 'enabled' properties. I.e. if a block is not enabled, it will be isolated even if a
+ * 'false' isolate flag was provided.
+ * Engines and HBM have separate flags, to enable the flexibility of isolating only one of them
+ * (e.g. isolate only engines before compute reset).
+ */
+void gaudi3_set_isolation(struct hl_device *hdev, bool isolate_engines, bool isolate_hbm)
 {
-	/* if preboot exist- it will care of the isolation */
+	/* if preboot exist- it will handle of the isolation */
 	if (hdev->fw_components & FW_TYPE_PREBOOT_CPU)
 		return;
 
-	gaudi3_set_edma_isolation(hdev);
-	gaudi3_set_tpc_isolation(hdev);
-	gaudi3_set_mme_isolation(hdev);
-	gaudi3_set_rotator_isolation(hdev);
-	gaudi3_set_decoder_isolation(hdev);
-	gaudi3_set_nic_isolation(hdev);
-	gaudi3_set_hbm_isolation(hdev);
+	/* Perform read from the device to flush all previous accesses */
+	RREG32(mmD0_PSOC_BOOT_CONF_HBM_ISO);
 
-	/* Perform read from the device to flush all configuration */
+	gaudi3_set_edma_isolation(hdev, isolate_engines);
+	gaudi3_set_tpc_isolation(hdev, isolate_engines);
+	gaudi3_set_mme_isolation(hdev, isolate_engines);
+	gaudi3_set_rotator_isolation(hdev, isolate_engines);
+	gaudi3_set_decoder_isolation(hdev, isolate_engines);
+	gaudi3_set_nic_isolation(hdev, isolate_engines);
+
+	gaudi3_set_hbm_isolation(hdev, isolate_hbm);
+
+	/* Perform read from the device to flush the isolation configuration */
 	RREG32(mmD0_PSOC_BOOT_CONF_HBM_ISO);
 }
 
@@ -2429,7 +2496,7 @@ void gaudi3_hw_init_fw_config(struct hl_device *hdev)
 	gaudi3_reset_config(hdev);
 	gaudi3_sram_init(hdev);
 	gaudi3_init_credits(hdev);
-	gaudi3_set_isolation(hdev);
+	gaudi3_set_isolation(hdev, false, false);
 	gaudi3_init_cbc_fw_config(hdev);
 	gaudi3_init_mstr_if_fw_config(hdev);
 	gaudi3_init_pdma_fw_config(hdev);

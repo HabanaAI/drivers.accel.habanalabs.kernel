@@ -1075,11 +1075,26 @@ static int gaudi3_sim_fw_config(struct hl_device *hdev)
 	return 0;
 }
 
+static void gaudi3_sim_set_isolation(struct hl_device *hdev, bool isolate_engines, bool isolate_hbm)
+{
+	struct hl_simulator_device *edev = gaudi3_simulator_dev_table[hdev->id];
+
+	hl_sim_set_priv_assertions(edev, false);
+
+	/* TODO: enable when simulator supports clearing isolation status (SW-116639) */
+	/*gaudi3_set_isolation(hdev, isolate_engines, isolate_hbm);*/
+
+	hl_sim_set_priv_assertions(edev, true);
+}
+
 static int gaudi3_sim_hw_init(struct hl_device *hdev)
 {
 	struct gaudi3_device *gaudi3 = hdev->asic_specific;
 	struct hl_simulator_device *edev = gaudi3_simulator_dev_table[hdev->id];
 	int rc;
+
+	/* Must be called before accessing engine blocks in hl_init_pb_security() */
+	gaudi3_sim_set_isolation(hdev, false, false);
 
 	rc = hl_init_pb_security(hdev, true);
 	if (rc) {
@@ -1094,7 +1109,7 @@ static int gaudi3_sim_hw_init(struct hl_device *hdev)
 	if (rc)
 		return rc;
 
-	/* TODO:: tempoary WA to not fail on device disable*/
+	/* TODO: temporary WA to not fail on device disable */
 	rc = hl_fw_read_preboot_status(hdev);
 	if (rc)
 		return rc;
@@ -1216,6 +1231,8 @@ static void gaudi3_sim_hw_fini(struct hl_device *hdev, bool hard_reset, bool fw_
 	int i;
 
 	gaudi3_reset_arcs(hdev);
+
+	gaudi3_sim_set_isolation(hdev, true, hard_reset);
 
 	gaudi3_page_fault_queue_fini(hdev);
 
