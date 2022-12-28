@@ -880,6 +880,18 @@ struct gaudi3_idle_data {
 	bool *is_idle;
 };
 
+/*
+ * struct gaudi3_mstr_if_dbg_block_operation - function and data used by MSTR_IF.DBG iterator.
+ * @func: function to apply to each MSTR_IF.DBG_{H,L}BW block.
+ * @dbg_hbw_base_addr: base address of MSTR_IF.DBG_HBW sub-block. 0x0 if not exist in MSTR_IF.
+ * @dbg_lbw_base_addr: base address of MSTR_IF.DBG_LBW sub-block. 0x0 if not exist in MSTR_IF.
+ */
+struct gaudi3_mstr_if_dbg_block_operation {
+	void (*func)(struct hl_device *hdev, struct gaudi3_mstr_if_dbg_block_operation *operation);
+	u32 dbg_hbw_base_addr;
+	u32 dbg_lbw_base_addr;
+};
+
 static const u32 gaudi3_arc_to_engine_id[CPU_ID_MAX] = {
 	[CPU_ID_EDMA_QMAN_ARC0] = GAUDI3_HDCORE1_ENGINE_ID_EDMA_0,
 	[CPU_ID_EDMA_QMAN_ARC1] = GAUDI3_HDCORE1_ENGINE_ID_EDMA_1,
@@ -5344,6 +5356,284 @@ static void gaudi3_disable_timestamp(struct hl_device *hdev)
 	WREG32(mmD0_PSOC_TIMESTAMP_BASE, 0);
 }
 
+static void gaudi3_iterate_pdma_mstr_if_dbg_blocks_fn(struct hl_device *hdev, int block,
+							int inst, u32 offset,
+							struct iterate_module_ctx *ctx)
+{
+	struct gaudi3_mstr_if_dbg_block_operation *operation = ctx->data;
+
+	operation->dbg_hbw_base_addr = mmD0_SPDMA0_MSTR_IF_DBG_HBW_BASE + offset;
+	operation->dbg_lbw_base_addr = mmD0_SPDMA0_MSTR_IF_DBG_LBW_BASE + offset;
+	operation->func(hdev, operation);
+}
+
+static void gaudi3_iterate_pdma_mstr_if_dbg_blocks(struct hl_device *hdev,
+					struct gaudi3_mstr_if_dbg_block_operation *operation)
+{
+	struct iterate_module_ctx iter_ctx = {
+		.fn = gaudi3_iterate_pdma_mstr_if_dbg_blocks_fn,
+		.data = operation
+	};
+
+	gaudi3_iterate_pdma_grps(hdev, &iter_ctx);
+}
+
+static void gaudi3_iterate_pdma_dup_mstr_if_dbg_blocks_fn(struct hl_device *hdev, int block,
+								int inst, u32 offset,
+								struct iterate_module_ctx *ctx)
+{
+	struct gaudi3_mstr_if_dbg_block_operation *operation = ctx->data;
+
+	operation->dbg_hbw_base_addr = 0x0; /* no DBG_HBW sub-block */
+	operation->dbg_lbw_base_addr = mmD0_SPDMA0_DUP_MSTR_IF_DBG_LBW_BASE + offset;
+	operation->func(hdev, operation);
+}
+
+static void gaudi3_iterate_pdma_dup_mstr_if_dbg_blocks(struct hl_device *hdev,
+					struct gaudi3_mstr_if_dbg_block_operation *operation)
+{
+	struct iterate_module_ctx iter_ctx = {
+		.fn = gaudi3_iterate_pdma_dup_mstr_if_dbg_blocks_fn,
+		.data = operation
+	};
+
+	gaudi3_iterate_pdma_grps(hdev, &iter_ctx);
+}
+
+static void gaudi3_iterate_edma_mstr_if_dbg_blocks_fn(struct hl_device *hdev, int block,
+							int inst, u32 offset,
+							struct iterate_module_ctx *ctx)
+{
+	struct gaudi3_mstr_if_dbg_block_operation *operation = ctx->data;
+
+	operation->dbg_hbw_base_addr = mmHD1_SEDMA0_MSTR_IF_DBG_HBW_BASE + offset;
+	operation->dbg_lbw_base_addr = mmHD1_SEDMA0_MSTR_IF_DBG_LBW_BASE + offset;
+	operation->func(hdev, operation);
+}
+
+static void gaudi3_iterate_edma_mstr_if_dbg_blocks(struct hl_device *hdev,
+					struct gaudi3_mstr_if_dbg_block_operation *operation)
+{
+	struct iterate_module_ctx iter_ctx = {
+		.fn = gaudi3_iterate_edma_mstr_if_dbg_blocks_fn,
+		.data = operation
+	};
+
+	gaudi3_iterate_edmas(hdev, &iter_ctx);
+}
+
+static void gaudi3_iterate_tpc_mstr_if_dbg_blocks_fn(struct hl_device *hdev, int block,
+							int inst, u32 offset,
+							struct iterate_module_ctx *ctx)
+{
+	struct gaudi3_mstr_if_dbg_block_operation *operation = ctx->data;
+
+	operation->dbg_hbw_base_addr = mmHD0_TPC0_MSTR_IF_DBG_HBW_BASE + offset;
+	operation->dbg_lbw_base_addr = mmHD0_TPC0_MSTR_IF_DBG_LBW_BASE + offset;
+	operation->func(hdev, operation);
+}
+
+static void gaudi3_iterate_tpc_mstr_if_dbg_blocks(struct hl_device *hdev,
+					struct gaudi3_mstr_if_dbg_block_operation *operation)
+{
+	struct iterate_module_ctx iter_ctx = {
+		.fn = gaudi3_iterate_tpc_mstr_if_dbg_blocks_fn,
+		.data = operation
+	};
+
+	gaudi3_iterate_tpcs(hdev, &iter_ctx);
+}
+
+static void gaudi3_iterate_mme_mstr_if_dbg_blocks_fn(struct hl_device *hdev, int block,
+							int inst, u32 offset,
+							struct iterate_module_ctx *ctx)
+{
+	struct gaudi3_mstr_if_dbg_block_operation *operation = ctx->data;
+	u32 eu_id, eu_offset, sbte_id, sbte_offset;
+
+	operation->dbg_hbw_base_addr = mmHD0_MME_QMAN_MSTR_IF_DBG_HBW_BASE + offset;
+	operation->dbg_lbw_base_addr = mmHD0_MME_QMAN_MSTR_IF_DBG_LBW_BASE + offset;
+	operation->func(hdev, operation);
+
+	for (eu_id = 0 ; eu_id < NUM_OF_MME_EU_PER_HDCORE ; eu_id++) {
+		eu_offset = eu_id * HDCORE_MME_EU_OFFSET;
+		operation->dbg_hbw_base_addr = mmHD0_MME0_WB_MSTR_IF_DBG_HBW_BASE + offset +
+						eu_offset;
+		operation->dbg_lbw_base_addr = 0x0; /* no DBG_LBW sub-block */
+		operation->func(hdev, operation);
+
+		for (sbte_id = 0 ; sbte_id < NUM_OF_MME_SBTE_PER_EU ; sbte_id++) {
+			sbte_offset = sbte_id * HDCORE_MME_SBTE_OFFSET;
+			operation->dbg_hbw_base_addr = mmHD0_MME0_SBTE0_MSTR_IF_DBG_HBW_BASE
+							+ offset + eu_offset + sbte_offset;
+			operation->dbg_lbw_base_addr = 0x0; /* no DBG_LBW sub-block */
+			operation->func(hdev, operation);
+		}
+	}
+}
+
+static void gaudi3_iterate_mme_mstr_if_dbg_blocks(struct hl_device *hdev,
+					struct gaudi3_mstr_if_dbg_block_operation *operation)
+{
+	struct iterate_module_ctx iter_ctx = {
+		.fn = gaudi3_iterate_mme_mstr_if_dbg_blocks_fn,
+		.data = operation
+	};
+
+	gaudi3_iterate_mmes(hdev, &iter_ctx);
+}
+
+static void gaudi3_iterate_rotator_mstr_if_dbg_blocks_fn(struct hl_device *hdev, int block,
+								int inst, u32 offset,
+								struct iterate_module_ctx *ctx)
+{
+	struct gaudi3_mstr_if_dbg_block_operation *operation = ctx->data;
+
+	operation->dbg_hbw_base_addr = mmHD1_ROT0_MSTR_IF_DBG_HBW_BASE + offset;
+	operation->dbg_lbw_base_addr = mmHD1_ROT0_MSTR_IF_DBG_LBW_BASE + offset;
+	operation->func(hdev, operation);
+}
+
+static void gaudi3_iterate_rotator_mstr_if_dbg_blocks(struct hl_device *hdev,
+					struct gaudi3_mstr_if_dbg_block_operation *operation)
+{
+	struct iterate_module_ctx iter_ctx = {
+		.fn = gaudi3_iterate_rotator_mstr_if_dbg_blocks_fn,
+		.data = operation
+	};
+
+	gaudi3_iterate_rotators(hdev, &iter_ctx);
+}
+
+static void gaudi3_iterate_decoder_mstr_if_dbg_blocks_fn(struct hl_device *hdev, int block,
+								int inst, u32 offset,
+								struct iterate_module_ctx *ctx)
+{
+	struct gaudi3_mstr_if_dbg_block_operation *operation = ctx->data;
+
+	operation->dbg_hbw_base_addr = mmHD0_VDEC0_MSTR_IF_DBG_HBW_BASE + offset;
+	operation->dbg_lbw_base_addr = mmHD0_VDEC0_MSTR_IF_DBG_LBW_BASE + offset;
+	operation->func(hdev, operation);
+}
+
+static void gaudi3_iterate_decoder_mstr_if_dbg_blocks(struct hl_device *hdev,
+					struct gaudi3_mstr_if_dbg_block_operation *operation)
+{
+	struct iterate_module_ctx iter_ctx = {
+		.fn = gaudi3_iterate_decoder_mstr_if_dbg_blocks_fn,
+		.data = operation
+	};
+
+	gaudi3_iterate_decoders(hdev, &iter_ctx);
+}
+
+static void gaudi3_iterate_nic_mstr_if_dbg_blocks_fn(struct hl_device *hdev, int block,
+							int inst, u32 offset,
+							struct iterate_module_ctx *ctx)
+{
+	struct gaudi3_mstr_if_dbg_block_operation *operation = ctx->data;
+
+	operation->dbg_hbw_base_addr = mmD0_NIC0_MSTR_IF_CTRL_DBG_HBW_BASE + offset;
+	operation->dbg_lbw_base_addr = mmD0_NIC0_MSTR_IF_CTRL_DBG_LBW_BASE + offset;
+	operation->func(hdev, operation);
+
+	operation->dbg_hbw_base_addr = mmD0_NIC0_MSTR_IF_DATA_DBG_HBW_BASE + offset;
+	operation->dbg_lbw_base_addr = 0x0; /* no DBG_LBW sub-block */
+	operation->func(hdev, operation);
+}
+
+static void gaudi3_iterate_nic_mstr_if_dbg_blocks(struct hl_device *hdev,
+					struct gaudi3_mstr_if_dbg_block_operation *operation)
+{
+	struct iterate_module_ctx iter_ctx = {
+		.fn = gaudi3_iterate_nic_mstr_if_dbg_blocks_fn,
+		.data = operation
+	};
+
+	/* TODO:
+	 * Enable when/if some of hl_nic_ctop() moves to be before the "skip_engines" label in
+	 * gaudi3_halt_engines() (SW-116829).
+	 * When enabled, need to add more info in the mstr_if_dbg_block data/operation structures
+	 * about hard/compute reset, to allow skipping it for NIC if needed.
+	 */
+	if (true)
+		return;
+
+	gaudi3_iterate_nics(hdev, &iter_ctx);
+}
+
+static void gaudi3_iterate_arc_farm_mstr_if_dbg_blocks_fn(struct hl_device *hdev, int block,
+					int inst, u32 offset,
+					struct gaudi3_mstr_if_dbg_block_operation *operation)
+{
+	/* There is a single FARM_MSTR_IF per ARC_FARM, so configure only for the first instance */
+	if (!inst) {
+		operation->dbg_hbw_base_addr = mmHD0_ARC_FARM_FARM_MSTR_IF_DBG_HBW_BASE + offset;
+		operation->dbg_lbw_base_addr = mmHD0_ARC_FARM_FARM_MSTR_IF_DBG_LBW_BASE + offset;
+		operation->func(hdev, operation);
+	}
+
+	operation->dbg_hbw_base_addr = 0x0; /* no DBG_HBW sub-block */
+	operation->dbg_lbw_base_addr = mmHD0_ARC_FARM_ARC0_DUP_MSTR_IF_DBG_LBW_BASE + offset;
+	operation->func(hdev, operation);
+}
+
+static void gaudi3_iterate_arc_farm_mstr_if_dbg_blocks(struct hl_device *hdev,
+					struct gaudi3_mstr_if_dbg_block_operation *operation)
+{
+	u32 hdcore, inst, arc_id, offset;
+
+	for (hdcore = 0 ; hdcore < hdev->asic_prop.num_of_hdcores ; hdcore++) {
+		for (inst = 0 ; inst < NUM_ARC_SCHED_PER_HDCORE ; inst++) {
+			arc_id = hdcore * NUM_ARC_SCHED_PER_HDCORE + inst;
+			if (!(hdev->sched_arc_mask & BIT_ULL(arc_id)))
+				continue;
+
+			offset = hdcore * HDCORE_OFFSET + inst * ARC_DUP_SCHED_OFFSET;
+			gaudi3_iterate_arc_farm_mstr_if_dbg_blocks_fn(hdev, hdcore, inst, offset,
+									operation);
+		}
+	}
+}
+
+static void gaudi3_iterate_mstr_if_dbg_blocks(struct hl_device *hdev,
+					struct gaudi3_mstr_if_dbg_block_operation *operation)
+{
+	gaudi3_iterate_pdma_mstr_if_dbg_blocks(hdev, operation);
+	gaudi3_iterate_pdma_dup_mstr_if_dbg_blocks(hdev, operation);
+	gaudi3_iterate_edma_mstr_if_dbg_blocks(hdev, operation);
+	gaudi3_iterate_tpc_mstr_if_dbg_blocks(hdev, operation);
+	gaudi3_iterate_mme_mstr_if_dbg_blocks(hdev, operation);
+	gaudi3_iterate_rotator_mstr_if_dbg_blocks(hdev, operation);
+	gaudi3_iterate_decoder_mstr_if_dbg_blocks(hdev, operation);
+	gaudi3_iterate_nic_mstr_if_dbg_blocks(hdev, operation);
+	gaudi3_iterate_arc_farm_mstr_if_dbg_blocks(hdev, operation);
+}
+
+static void gaudi3_enable_mstr_if_dbg_counters_func(struct hl_device *hdev,
+					struct gaudi3_mstr_if_dbg_block_operation *operation)
+{
+	if (operation->dbg_hbw_base_addr)
+		WREG32(operation->dbg_hbw_base_addr + mmMSTR_IF_DBG_HBW_DBG_EN, 0x1);
+
+	if (operation->dbg_lbw_base_addr)
+		WREG32(operation->dbg_lbw_base_addr + mmMSTR_IF_DBG_LBW_DBG_EN, 0x1);
+}
+
+static void gaudi3_enable_mstr_if_dbg_counters(struct hl_device *hdev)
+{
+	struct gaudi3_mstr_if_dbg_block_operation operation = {
+		.func = gaudi3_enable_mstr_if_dbg_counters_func,
+	};
+
+	gaudi3_iterate_mstr_if_dbg_blocks(hdev, &operation);
+}
+
+static void gaudi3_init_mstr_if(struct hl_device *hdev)
+{
+	gaudi3_enable_mstr_if_dbg_counters(hdev);
+}
+
 static const char *gaudi3_irq_name(u16 irq_number)
 {
 	switch (irq_number) {
@@ -6657,6 +6947,8 @@ static int gaudi3_hw_init(struct hl_device *hdev)
 	gaudi3_init_nic_qmans(hdev);
 	gaudi3_enable_timestamp(hdev);
 
+	gaudi3_init_mstr_if(hdev);
+
 	rc = gaudi3_init_security(hdev);
 	if (rc)
 		return rc;
@@ -7875,6 +8167,58 @@ int gaudi3_set_engine_cores(struct hl_device *hdev, u32 *core_ids,
 	return 0;
 }
 
+static void gaudi3_verify_mstr_if_dbg_counters_func(struct hl_device *hdev,
+					struct gaudi3_mstr_if_dbg_block_operation *operation)
+{
+	u32 hbw_otf_wr_cnt = 0, hbw_otf_rd_cnt = 0, lbw_otf_wr_cnt = 0, lbw_otf_rd_cnt = 0, addr;
+
+	if (!operation->dbg_hbw_base_addr && !operation->dbg_lbw_base_addr)
+		return;
+
+	if (operation->dbg_hbw_base_addr) {
+		hbw_otf_wr_cnt = RREG32(operation->dbg_hbw_base_addr +
+					mmMSTR_IF_DBG_HBW_OTF_WR_TOTAL_CNT);
+		hbw_otf_rd_cnt = RREG32(operation->dbg_hbw_base_addr +
+					mmMSTR_IF_DBG_HBW_OTF_RD_TOTAL_CNT);
+	}
+
+	if (operation->dbg_lbw_base_addr) {
+		lbw_otf_wr_cnt = RREG32(operation->dbg_lbw_base_addr +
+					mmMSTR_IF_DBG_LBW_OTF_WR_TOTAL_CNT);
+		lbw_otf_rd_cnt = RREG32(operation->dbg_lbw_base_addr +
+					mmMSTR_IF_DBG_LBW_OTF_RD_TOTAL_CNT);
+	}
+
+	if (!hbw_otf_wr_cnt && !hbw_otf_rd_cnt && !lbw_otf_wr_cnt && !lbw_otf_rd_cnt)
+		return;
+
+	addr = operation->dbg_hbw_base_addr ?
+			(operation->dbg_hbw_base_addr & ~(HL_BLOCK_SIZE - 1)) :
+			(operation->dbg_lbw_base_addr & ~(HL_BLOCK_SIZE - 1));
+
+	if (operation->dbg_hbw_base_addr && operation->dbg_lbw_base_addr)
+		dev_err(hdev->dev,
+			"active transactions in mstr_if %#x: hbw wr %u, hbw rd %u, lbw wr %u, lbw rd %u\n",
+			addr, hbw_otf_wr_cnt, hbw_otf_rd_cnt, lbw_otf_wr_cnt, lbw_otf_rd_cnt);
+	else if (operation->dbg_hbw_base_addr)
+		dev_err(hdev->dev,
+			"active transactions in mstr_if %#x: hbw wr %u, hbw rd %u\n",
+			addr, hbw_otf_wr_cnt, hbw_otf_rd_cnt);
+	else
+		dev_err(hdev->dev,
+			"active transactions in mstr_if %#x: lbw wr %u, lbw rd %u\n",
+			addr, lbw_otf_wr_cnt, lbw_otf_rd_cnt);
+}
+
+static void gaudi3_verify_mstr_if_dbg_counters(struct hl_device *hdev)
+{
+	struct gaudi3_mstr_if_dbg_block_operation operation = {
+		.func = gaudi3_verify_mstr_if_dbg_counters_func,
+	};
+
+	gaudi3_iterate_mstr_if_dbg_blocks(hdev, &operation);
+}
+
 static void gaudi3_halt_engines(struct hl_device *hdev, bool hard_reset, bool fw_reset)
 {
 	u32 wait_timeout_ms;
@@ -7922,6 +8266,9 @@ static void gaudi3_halt_engines(struct hl_device *hdev, bool hard_reset, bool fw
 	gaudi3_disable_nic_qmans(hdev);
 
 	gaudi3_disable_timestamp(hdev);
+
+	/* Verify that there are no on-the-fly AXI transactions after halting the engines */
+	gaudi3_verify_mstr_if_dbg_counters(hdev);
 
 skip_engines:
 	if (hard_reset) {

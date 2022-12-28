@@ -1571,7 +1571,7 @@ static void gaudi3_init_vdec_mstr_if(struct hl_device *hdev)
 	gaudi3_iterate_decoders(hdev, &iter_ctx);
 }
 
-static void gaudi3_init_mstr_if(struct hl_device *hdev)
+static void gaudi3_init_mstr_if_fw_config(struct hl_device *hdev)
 {
 	gaudi3_init_vdec_mstr_if(hdev);
 }
@@ -2431,7 +2431,7 @@ void gaudi3_hw_init_fw_config(struct hl_device *hdev)
 	gaudi3_init_credits(hdev);
 	gaudi3_set_isolation(hdev);
 	gaudi3_init_cbc_fw_config(hdev);
-	gaudi3_init_mstr_if(hdev);
+	gaudi3_init_mstr_if_fw_config(hdev);
 	gaudi3_init_pdma_fw_config(hdev);
 	gaudi3_init_edma_fw_config(hdev);
 	gaudi3_init_tpc_fw_config(hdev);
