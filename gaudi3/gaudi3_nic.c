@@ -5148,15 +5148,6 @@ out:
 	return rc;
 }
 
-static void gaudi3_nic_disable_wqe_index_checker(struct hl_nic_port *nic_port)
-{
-	struct hl_device *hdev = nic_port->hdev;
-	u32 port = nic_port->port;
-
-	/* Disable the WQE index checker on the RX side */
-	NIC_RMWREG32(mmD0_NIC0_RXE_WQE_CHECKS_EN, 0, D0_NIC0_RXE_WQE_CHECKS_EN_WQE_IDX_MISMATCH_M);
-}
-
 static void gaudi3_nic_fill_nic_status(struct hl_nic_port *nic_port,
 					struct cpucp_nic_status *nic_status)
 {
@@ -5540,7 +5531,7 @@ static struct hl_nic_port_funcs gaudi3_nic_port_funcs = {
 	.user_ccq_unset = gaudi3_nic_user_ccq_unset,
 	.reset_mac_stats = gaudi3_nic_reset_mac_stats,
 	.print_fec_stats = gaudi3_nic_debugfs_print_fec_stats,
-	.disable_wqe_index_checker = gaudi3_nic_disable_wqe_index_checker,
+	.disable_wqe_index_checker = gaudi3_nic_disable_wqe_index_checker_no_fw,
 	.fill_nic_status = gaudi3_nic_fill_nic_status,
 	.cfg_lock = gaudi3_nic_cfg_lock,
 	.cfg_unlock = gaudi3_nic_cfg_unlock,

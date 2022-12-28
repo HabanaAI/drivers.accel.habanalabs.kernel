@@ -316,3 +316,15 @@ void gaudi3_nic_override_phy_readiness(struct hl_nic_port *nic_port, bool set_re
 		NIC_RMWREG32(mmD0_NIC0_MAC_AUX_PHY_SIG_DETECT_OVRD, val, enable_mask);
 	}
 }
+
+void gaudi3_nic_disable_wqe_index_checker_no_fw(struct hl_nic_port *nic_port)
+{
+	struct hl_device *hdev = nic_port->hdev;
+	u32 port = nic_port->port;
+
+	if (hdev->fw_components & FW_TYPE_BOOT_CPU)
+		return;
+
+	/* Disable the WQE index checker on the RX side */
+	NIC_RMWREG32(mmD0_NIC0_RXE_WQE_CHECKS_EN, 0, D0_NIC0_RXE_WQE_CHECKS_EN_WQE_IDX_MISMATCH_M);
+}
