@@ -5025,7 +5025,8 @@ static void gaudi3_nic_disable_nics_interrupts(struct hl_device *hdev)
 
 		port = gaudi3_nic_get_first_port(nic_macro);
 
-		gaudi3_nic_disable_nics_interrupts_no_fw(hdev, port);
+		NIC_WREG32(mmD0_NIC0_TXE_INTERRUPT_MASK, NIC_TXE_INTERRUPT_MASK_R_M);
+		NIC_WREG32(mmD0_NIC0_TXS_INTERRUPT_MASK, NIC_TXS_INTERRUPT_MASK_R_M);
 
 		/* interrupt MSI and WIRE regs determine if the interrupt
 		 * being generated is directed to the MSI or Wire Path

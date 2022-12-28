@@ -7,15 +7,6 @@
 
 #include "gaudi3_nic.h"
 
-void gaudi3_nic_disable_nics_interrupts_no_fw(struct hl_device *hdev, u32 port)
-{
-	if (hdev->fw_components & FW_TYPE_BOOT_CPU)
-		return;
-
-	NIC_WREG32(mmD0_NIC0_TXE_INTERRUPT_MASK, NIC_TXE_INTERRUPT_MASK_R_M);
-	NIC_WREG32(mmD0_NIC0_TXS_INTERRUPT_MASK, NIC_TXS_INTERRUPT_MASK_R_M);
-}
-
 void gaudi3_nic_config_hw_mac_no_fw(struct hl_device *hdev, u32 port)
 {
 	if (hdev->fw_components & FW_TYPE_BOOT_CPU)
