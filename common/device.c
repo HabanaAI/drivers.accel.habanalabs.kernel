@@ -203,8 +203,14 @@ int hl_dma_map_sgtable(struct hl_device *hdev, struct sg_table *sgt, enum dma_da
 	struct asic_fixed_properties *prop = &hdev->asic_prop;
 	struct scatterlist *sg;
 	int rc, i;
+#ifdef _HAS_DMA_MAP_RESOURCE_WITH_DMA_ATTRS
+	DEFINE_DMA_ATTRS(_attrs);
+	struct dma_attrs *attrs = &_attrs;
+#else
+	unsigned long attrs = 0;
+#endif
 
-	rc = dma_map_sgtable(&hdev->pdev->dev, sgt, dir, 0);
+	rc = dma_map_sgtable(&hdev->pdev->dev, sgt, dir, attrs);
 	if (rc)
 		return rc;
 
@@ -221,13 +227,19 @@ void hl_dma_unmap_sgtable(struct hl_device *hdev, struct sg_table *sgt, enum dma
 	struct asic_fixed_properties *prop = &hdev->asic_prop;
 	struct scatterlist *sg;
 	int i;
+#ifdef _HAS_DMA_MAP_RESOURCE_WITH_DMA_ATTRS
+	DEFINE_DMA_ATTRS(_attrs);
+	struct dma_attrs *attrs = &_attrs;
+#else
+	unsigned long attrs = 0;
+#endif
 
 	/* Cancel the device's base physical address of host memory if necessary */
 	if (prop->device_dma_offset_for_host_access)
 		for_each_sgtable_dma_sg(sgt, sg, i)
 			sg->dma_address -= prop->device_dma_offset_for_host_access;
 
-	dma_unmap_sgtable(&hdev->pdev->dev, sgt, dir, 0);
+	dma_unmap_sgtable(&hdev->pdev->dev, sgt, dir, attrs);
 }
 
 /*

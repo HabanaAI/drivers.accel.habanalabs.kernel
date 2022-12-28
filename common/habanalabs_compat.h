@@ -34,7 +34,9 @@
 #ifndef _HAS_RANDOM_U32
 #include <linux/random.h>
 #endif
-
+#ifdef _HAS_DMA_MAP_RESOURCE_WITH_DMA_ATTRS
+#include <linux/dma-attrs.h>
+#endif
 #ifndef SZ_16G
 #define SZ_16G				_AC(0x400000000, ULL)
 #endif
@@ -778,15 +780,25 @@ void dma_unmap_resource(struct device *dev, dma_addr_t addr, size_t size,
 #endif
 
 #ifndef _HAS_DMA_MAP_SGTABLE
+#ifdef _HAS_DMA_MAP_RESOURCE_WITH_DMA_ATTRS
+int dma_map_sgtable(struct device *dev, struct sg_table *sgt, enum dma_data_direction dir,
+		    struct dma_attrs *attrs);
+#else
 int dma_map_sgtable(struct device *dev, struct sg_table *sgt, enum dma_data_direction dir,
 			unsigned long attrs);
+#endif
 
 static inline void dma_unmap_sgtable(struct device *dev, struct sg_table *sgt,
-		enum dma_data_direction dir, unsigned long attrs)
+				     enum dma_data_direction dir,
+#ifdef _HAS_DMA_MAP_RESOURCE_WITH_DMA_ATTRS
+				     struct dma_attrs *attrs)
+#else
+				     unsigned long attrs)
+#endif
 {
 	dma_unmap_sg_attrs(dev, sgt->sgl, sgt->orig_nents, dir, attrs);
 }
-#endif
+#endif /* _HAS_DMA_MAP_SGTABLE */
 
 #ifndef _HAS_BITMAP_FIND_NEXT_ZERO_AREA_OFF
 unsigned long bitmap_find_next_zero_area_off(unsigned long *map,
