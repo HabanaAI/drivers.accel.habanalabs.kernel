@@ -1280,13 +1280,6 @@ static void gaudi3_set_mme_isolation(struct hl_device *hdev)
 	struct asic_fixed_properties *prop = &hdev->asic_prop;
 	u32 mme_iso;
 
-	/* TODO: remove when the isolation mapping is clarified (H9-5046) */
-	WREG32(mmD0_PSOC_BOOT_CONF_MME_ISO, 0x0);
-	if (prop->num_of_dies == 2)
-		WREG32(mmD1_PSOC_BOOT_CONF_MME_ISO, 0x0);
-	if (true) /* avoid a smatch warning of "ignoring unreachable code" */
-		return;
-
 	/* DIE0 MME_ISO:
 	 * Bit[0] - HD0_MME ... Bit[3] - HD3_MME
 	 */
