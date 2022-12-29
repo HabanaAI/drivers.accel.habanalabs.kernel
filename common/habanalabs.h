@@ -3448,6 +3448,7 @@ struct hl_etr_buf_store {
  * @cdev_ctrl: char device for control operations only (INFO IOCTL)
  * @dev: related kernel basic device structure.
  * @dev_ctrl: related kernel device structure for the control device
+ * @sdev: pointer to simulator device, NULL in case of PCI device.
  * @work_heartbeat: delayed work for CPU-CP is-alive check.
  * @work_no_fw_monitor: monitor work when running without firmware.
  * @work_pci: work to remove the device from PCI.
@@ -3655,6 +3656,7 @@ struct hl_device {
 	struct cdev			cdev_ctrl;
 	struct device			*dev;
 	struct device			*dev_ctrl;
+	struct device			*sdev;
 	struct delayed_work		work_heartbeat;
 	struct delayed_work		work_no_fw_monitor;
 	struct work_struct		work_pci;
@@ -3882,6 +3884,11 @@ struct hl_device {
 	u8				hbm_compression_enable;
 	u8				nic_enable_h9_rx_drop_eco;
 };
+
+/* Retrieve PCI device name in case of a PCI device or dev name in simulator */
+#define HL_DEV_NAME(hdev)	\
+		((hdev)->pdev ? dev_name(&(hdev)->pdev->dev) : \
+		((hdev)->sdev ? dev_name((hdev)->sdev) : "NA-DEVICE"))
 
 /**
  * struct hl_cs_irq_info - IRQ info structure for CS completion interrupt.

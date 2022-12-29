@@ -562,6 +562,8 @@ static int gaudi_sim_start(struct hl_simulator_device *edev, int major,
 		return rc;
 	}
 
+	(*hdev)->sdev = &edev->sdev;
+
 	rc = hl_device_init(*hdev, edev->hclass);
 	if (rc) {
 		dev_err(edev->dev, "fatal error during GAUDI simulator init\n");

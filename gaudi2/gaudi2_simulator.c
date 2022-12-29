@@ -579,6 +579,7 @@ static int gaudi2_sim_start(struct hl_simulator_device *edev, int major,
 		return rc;
 	}
 
+	(*hdev)->sdev = &edev->sdev;
 	hl_sim_set_priv_assertions(edev, true);
 
 	rc = hl_device_init(*hdev, edev->hclass);
