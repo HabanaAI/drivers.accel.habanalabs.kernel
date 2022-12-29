@@ -1431,6 +1431,7 @@ static const struct hl_asic_funcs goya_sim_funcs = {
 	.fw_security_emulation_fini = goya_fw_security_emulation_fini,
 	.pll_info_get = goya_sim_pll_info_get,
 	.set_dram_properties = goya_set_dram_properties,
+	.set_priv_assertions = goya_set_priv_assertions,
 };
 
 /**

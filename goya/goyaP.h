@@ -302,6 +302,7 @@ void goya_disable_external_queues(struct hl_device *hdev);
 void goya_disable_internal_queues(struct hl_device *hdev);
 void goya_state_dump_init(struct hl_device *hdev);
 void goya_set_freq_to_low_job(struct work_struct *work);
+void goya_set_priv_assertions(struct hl_device *hdev, bool enable);
 
 /* Bringup functions */
 void goya_init_pll(struct hl_device *hdev);

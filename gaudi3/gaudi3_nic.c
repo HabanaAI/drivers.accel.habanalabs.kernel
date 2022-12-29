@@ -820,7 +820,7 @@ static void gaudi3_nic_config_hw_txe(struct hl_nic_macro *nic_macro)
 
 	port = gaudi3_nic_get_first_port(nic_macro);
 
-	gaudi3_nic_config_hw_txe_no_fw(hdev, port);
+	/* Privilege registers configured under nic bringup file */
 
 	NIC_WREG32(mmD0_NIC0_TXE_BTH_MKEY, 0xffff);
 
@@ -902,7 +902,7 @@ static void gaudi3_nic_config_hw_qpc(struct hl_nic_macro *nic_macro)
 		req_qpc_swl_base_addr = gaudi3_nic->req_qpc_swl_mem.dma_addr;
 	}
 
-	gaudi3_nic_config_hw_qpc_no_fw(hdev, port);
+	/* Privilege registers configured under nic bringup file */
 
 	NIC_WREG32(mmD0_NIC0_QPC_REQ_BASE_ADDRESS_63_32, upper_32_bits(req_qpc_base_addr));
 	NIC_WREG32(mmD0_NIC0_QPC_REQ_BASE_ADDRESS_31_0, lower_32_bits(req_qpc_base_addr));
@@ -1085,7 +1085,7 @@ static void gaudi3_nic_config_hw_rxe(struct hl_nic_macro *nic_macro)
 	props = &hdev->asic_prop;
 	nic_prop = &props->nic_props;
 
-	gaudi3_nic_config_hw_rxe_no_fw(hdev, port);
+	/* Privilege registers configured under nic bringup file */
 
 	/* TODO: HB_OVRD_LO zero 11 LSBs */
 	NIC_WREG32(mmD0_NIC0_RXE_LBW_BASE_LO, lower_32_bits(CFG_BAR_BASE));
@@ -1852,7 +1852,7 @@ static void gaudi3_nic_config_hw_mac(struct hl_nic_macro *nic_macro)
 
 	port = gaudi3_nic_get_first_port(nic_macro);
 
-	gaudi3_nic_config_hw_mac_no_fw(hdev, port);
+	/* Privilege registers configured under nic bringup file */
 
 	if (is_400g_mode(hdev)) {
 		NIC_WREG32(mmD0_NIC0_MAC_CORE_BASE + mmPRT_MAC_CORE_PCS_MODE_SETTING,
@@ -2118,8 +2118,6 @@ static void gaudi3_nic_hw_macro_config(struct hl_nic_macro *nic_macro)
 	gaudi3_nic_config_hw_qpc(nic_macro);
 
 	gaudi3_nic_config_hw_rxe(nic_macro);
-
-	gaudi3_nic_set_rx_drop_eco_no_fw(nic_macro);
 }
 
 static void gaudi3_nic_config_coll_lag_size(struct hl_device *hdev)

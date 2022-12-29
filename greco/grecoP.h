@@ -622,4 +622,7 @@ int greco_debugfs_read_dma(struct hl_device *hdev, u64 addr, u32 size,
 				void *blob_addr);
 void greco_state_dump_init(struct hl_device *hdev);
 
+/* Greco declarations for simulator */
+void greco_set_priv_assertions(struct hl_device *hdev, bool enable);
+
 #endif /* GRECOP_H_ */

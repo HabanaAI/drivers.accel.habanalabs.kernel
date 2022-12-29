@@ -651,6 +651,7 @@ int gaudi_map_pll_idx_to_fw_idx(u32 pll_idx);
 void gaudi_state_dump_init(struct hl_device *hdev);
 u32 *gaudi_get_stream_master_qid_arr(void);
 int gaudi_set_dram_properties(struct hl_device *hdev);
+void gaudi_set_priv_assertions(struct hl_device *hdev, bool enable);
 
 /* NIC functions */
 irqreturn_t gaudi_nic_cq_irq_handler(int irq, void *arg);

@@ -39,7 +39,7 @@
 #define NIC_RXE_SPECIAL_GLBL_SPARE_0_BACK_PRESSURE_TH_S 0
 #define NIC_RXE_SPECIAL_GLBL_SPARE_0_BACK_PRESSURE_TH_M 0x7F
 
-void gaudi3_nic_config_hw_mac_no_fw(struct hl_device *hdev, u32 port)
+static void gaudi3_nic_config_hw_mac_no_fw(struct hl_device *hdev, u32 port)
 {
 	if (hdev->fw_components & FW_TYPE_BOOT_CPU)
 		return;
@@ -47,7 +47,7 @@ void gaudi3_nic_config_hw_mac_no_fw(struct hl_device *hdev, u32 port)
 	NIC_WREG32(mmD0_NIC0_MAC_AUX_MAC_CFG_SEC, 0);
 }
 
-void gaudi3_nic_config_hw_rxe_no_fw(struct hl_device *hdev, u32 port)
+static void gaudi3_nic_config_hw_rxe_no_fw(struct hl_device *hdev, u32 port)
 {
 	uint32_t rxe_qpc_checks_mask;
 	int i;
@@ -171,7 +171,7 @@ void gaudi3_nic_config_hw_rxe_no_fw(struct hl_device *hdev, u32 port)
 			NIC_RXE_SPECIAL_GLBL_SPARE_0_BACK_PRESSURE_TH_M);
 }
 
-void gaudi3_nic_config_hw_qpc_no_fw(struct hl_device *hdev, u32 port)
+static void gaudi3_nic_config_hw_qpc_no_fw(struct hl_device *hdev, u32 port)
 {
 	if (hdev->fw_components & FW_TYPE_BOOT_CPU)
 		return;
@@ -248,7 +248,7 @@ void gaudi3_nic_config_hw_qpc_no_fw(struct hl_device *hdev, u32 port)
 	 */
 	NIC_RMWREG32(mmD0_NIC0_QPC_LBW_PROT, 0, D0_NIC0_QPC_LBW_PROT_INTERRUPT_M);
 }
-void gaudi3_nic_config_hw_txe_no_fw(struct hl_device *hdev, u32 port)
+static void gaudi3_nic_config_hw_txe_no_fw(struct hl_device *hdev, u32 port)
 {
 	if (hdev->fw_components & FW_TYPE_BOOT_CPU)
 		return;
@@ -373,7 +373,7 @@ void gaudi3_nic_disable_wqe_index_checker_no_fw(struct hl_nic_port *nic_port)
 	NIC_RMWREG32(mmD0_NIC0_RXE_WQE_CHECKS_EN, 0, D0_NIC0_RXE_WQE_CHECKS_EN_WQE_IDX_MISMATCH_M);
 }
 
-void gaudi3_nic_set_rx_drop_eco_no_fw(struct hl_nic_macro *nic_macro)
+static void gaudi3_nic_set_rx_drop_eco_no_fw(struct hl_nic_macro *nic_macro)
 {
 	u32 port, txe_val, txb_disable_eco, rxb_disable_eco;
 	struct hl_device *hdev = nic_macro->hdev;
@@ -412,4 +412,48 @@ void gaudi3_nic_set_rx_drop_eco_no_fw(struct hl_nic_macro *nic_macro)
 
 	NIC_RMWREG32(mmD0_NIC0_RXE_QPC_CHECKS_EN, qpc_res_rkey_check_en,
 			D0_NIC0_RXE_QPC_CHECKS_EN_QPC_RES_RKEY_INV_M);
+}
+
+static void gaudi3_nic_hw_macro_config_no_fw(struct hl_nic_macro *nic_macro)
+{
+	struct hl_device *hdev = nic_macro->hdev;
+	struct hl_nic_properties *nic_prop;
+	u32 port;
+
+	nic_prop = &hdev->asic_prop.nic_props;
+
+	port = gaudi3_nic_get_first_port(nic_macro);
+
+	gaudi3_nic_config_hw_mac_no_fw(hdev, port);
+
+	gaudi3_nic_config_hw_rxe_no_fw(hdev, port);
+
+	gaudi3_nic_config_hw_qpc_no_fw(hdev, port);
+
+	gaudi3_nic_config_hw_txe_no_fw(hdev, port);
+
+	gaudi3_nic_set_rx_drop_eco_no_fw(nic_macro);
+}
+
+void gaudi3_nic_macros_fw_config(struct hl_device *hdev)
+{
+	struct hl_nic_macro *nic_macro;
+	int i;
+
+	if (hdev->reset_info.in_compute_reset)
+		return;
+
+	for (i = 0 ; i < NIC_NUMBER_OF_MACROS ; i++) {
+		nic_macro = &hdev->nic.nic_macros[i];
+
+		/* It's not allowed to configure a macro that its port or ports are disabled.
+		 * In 400Gbps mode we have a single port in each macro.
+		 * In 200Gbps mode we need to check also the second port in the macro. Only if both
+		 * of the ports are disabled, we should skip this macro.
+		 */
+		if (!gaudi3_nic_is_macro_enabled(hdev, nic_macro))
+			continue;
+
+		gaudi3_nic_hw_macro_config_no_fw(nic_macro);
+	}
 }

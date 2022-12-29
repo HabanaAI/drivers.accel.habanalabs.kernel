@@ -8020,6 +8020,10 @@ void greco_fw_security_emulation_fini(struct hl_device *hdev, bool asic_dirty)
 {
 }
 
+void greco_set_priv_assertions(struct hl_device *hdev, bool enable)
+{
+}
+
 static const struct hl_asic_funcs greco_funcs = {
 	.early_init = greco_early_init,
 	.early_fini = greco_early_fini,
@@ -8124,6 +8128,7 @@ static const struct hl_asic_funcs greco_funcs = {
 	.fw_security_emulation_fini = greco_fw_security_emulation_fini,
 	.pll_info_get = hl_fw_cpucp_pll_info_get,
 	.set_dram_properties = greco_set_dram_properties,
+	.set_priv_assertions = greco_set_priv_assertions,
 };
 
 void greco_set_asic_funcs(struct hl_device *hdev)

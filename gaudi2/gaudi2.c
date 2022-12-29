@@ -11561,6 +11561,10 @@ void gaudi2_fw_security_emulation_fini(struct hl_device *hdev, bool asic_dirty)
 {
 }
 
+static void gaudi2_set_priv_assertions(struct hl_device *hdev, bool enable)
+{
+}
+
 static const struct hl_asic_funcs gaudi2_funcs = {
 	.early_init = gaudi2_early_init,
 	.early_fini = gaudi2_early_fini,
@@ -11669,6 +11673,8 @@ static const struct hl_asic_funcs gaudi2_funcs = {
 	.fw_security_emulation_fini = gaudi2_fw_security_emulation_fini,
 	.pll_info_get = gaudi2_fetch_frequency,
 	.set_dram_properties = gaudi2_set_dram_properties,
+	.set_priv_assertions = gaudi2_set_priv_assertions,
+
 };
 
 void gaudi2_set_asic_funcs(struct hl_device *hdev)

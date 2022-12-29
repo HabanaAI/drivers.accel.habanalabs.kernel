@@ -2430,6 +2430,8 @@ void gaudi3_fw_config(struct hl_device *hdev)
 	gaudi3_enable_ptw_bypass(hdev);
 	gaudi3_init_qos(hdev);
 
+	gaudi3_nic_macros_fw_config(hdev);
+
 	if (hdev->cache_enable)
 		gaudi3_init_cache(hdev);
 }

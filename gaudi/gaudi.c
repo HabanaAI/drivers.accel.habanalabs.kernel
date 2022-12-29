@@ -9849,6 +9849,10 @@ out:
 	return rc;
 }
 
+void gaudi_set_priv_assertions(struct hl_device *hdev, bool enable)
+{
+}
+
 static const struct hl_asic_funcs gaudi_funcs = {
 	.early_init = gaudi_early_init,
 	.early_fini = gaudi_early_fini,
@@ -9953,6 +9957,7 @@ static const struct hl_asic_funcs gaudi_funcs = {
 	.fw_security_emulation_fini = gaudi_fw_security_emulation_fini,
 	.pll_info_get = hl_fw_cpucp_pll_info_get,
 	.set_dram_properties = gaudi_set_dram_properties,
+	.set_priv_assertions = gaudi_set_priv_assertions,
 };
 
 /**

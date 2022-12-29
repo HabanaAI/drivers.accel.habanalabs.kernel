@@ -1443,6 +1443,12 @@ static int gaudi3_sim_pll_info_get(struct hl_device *hdev, u32 pll_index,
 	return 0;
 }
 
+static void gaudi3_sim_set_priv_assertions(struct hl_device *hdev, bool enable)
+{
+	struct hl_simulator_device *edev = gaudi3_simulator_dev_table[hdev->id];
+
+	hl_sim_set_priv_assertions(edev, enable);
+}
 
 static const struct hl_asic_funcs gaudi3_sim_funcs = {
 	.early_init = gaudi3_sim_early_init,
@@ -1543,6 +1549,7 @@ static const struct hl_asic_funcs gaudi3_sim_funcs = {
 	.fw_security_emulation_fini = gaudi3_fw_security_emulation_fini,
 	.pll_info_get = gaudi3_sim_pll_info_get,
 	.set_dram_properties = gaudi3_set_dram_properties,
+	.set_priv_assertions = gaudi3_sim_set_priv_assertions,
 };
 
 /**

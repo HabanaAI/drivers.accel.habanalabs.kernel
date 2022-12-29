@@ -1759,6 +1759,7 @@ struct engines_data {
  * @send_device_activity: indication to FW about device availability
  * @read_fetch_memory_block: read memory area for debug read operation
  * @set_dram_properties: set DRAM related properties.
+ * @set_priv_assertions: enable/disable privilege assertions.
  */
 struct hl_asic_funcs {
 	int (*early_init)(struct hl_device *hdev);
@@ -1921,6 +1922,7 @@ struct hl_asic_funcs {
 	void (*fw_security_emulation_fini)(struct hl_device *hdev, bool asic_dirty);
 	int (*pll_info_get)(struct hl_device *hdev, u32 pll_index, u16 *pll_freq_arr);
 	int (*set_dram_properties)(struct hl_device *hdev);
+	void (*set_priv_assertions)(struct hl_device *hdev, bool enable);
 };
 
 

@@ -3923,12 +3923,6 @@ static bool gaudi3_pb_block_skip_with_mask(struct hl_device *hdev,
 
 	switch (block_info->block_type) {
 	case GAUDI3_BLOCK_TYPE_NIC:
-		/* TODO - currently, skipping NIC privileged PB configurations.
-		 * This can be removed once SW-107241 & SW-108259 are resolved.
-		 */
-		if (special_blocks_cfg->prot_lvl_priv)
-			return true;
-
 		/* If a NIC instance is enabled, we assume that so do all of its sub-blocks */
 		if (block_info->minor > 0)
 			instance_idx = major * block_info->minor + minor;
@@ -10576,6 +10570,10 @@ void gaudi3_fw_security_emulation_fini(struct hl_device *hdev, bool asic_dirty)
 {
 }
 
+static void gaudi3_set_priv_assertions(struct hl_device *hdev, bool enable)
+{
+}
+
 static const struct hl_asic_funcs gaudi3_funcs = {
 	.early_init = gaudi3_early_init,
 	.early_fini = gaudi3_early_fini,
@@ -10679,6 +10677,7 @@ static const struct hl_asic_funcs gaudi3_funcs = {
 	.fw_security_emulation_fini = gaudi3_fw_security_emulation_fini,
 	.pll_info_get = gaudi3_pll_info_get,
 	.set_dram_properties = gaudi3_set_dram_properties,
+	.set_priv_assertions = gaudi3_set_priv_assertions,
 };
 
 void gaudi3_set_asic_funcs(struct hl_device *hdev)

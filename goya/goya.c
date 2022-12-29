@@ -5491,6 +5491,10 @@ void goya_fw_security_emulation_fini(struct hl_device *hdev, bool asic_dirty)
 {
 }
 
+void goya_set_priv_assertions(struct hl_device *hdev, bool enable)
+{
+}
+
 static const struct hl_asic_funcs goya_funcs = {
 	.early_init = goya_early_init,
 	.early_fini = goya_early_fini,
@@ -5593,6 +5597,7 @@ static const struct hl_asic_funcs goya_funcs = {
 	.fw_security_emulation_fini = goya_fw_security_emulation_fini,
 	.pll_info_get = hl_fw_cpucp_pll_info_get,
 	.set_dram_properties = goya_set_dram_properties,
+	.set_priv_assertions = goya_set_priv_assertions,
 };
 
 /*
