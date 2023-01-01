@@ -8,6 +8,8 @@
 #ifndef ASIC_REG_GAUDI3_REGS_H_
 #define ASIC_REG_GAUDI3_REGS_H_
 
+#include "gaudi3_blocks_linux_driver.h"
+
 /****************************** h9 specs [START] ******************************/
 
 #include "nch_regs.h"
@@ -46,73 +48,6 @@
 #include "nic_rxb_core_special_regs.h"
 #include "nic_txb_special_regs.h"
 #include "pcie_wrap_special_regs.h"
-
-#include "pdma_cmn_b_masks.h"
-#include "pdma_cmn_b_pqm_cmn_b_masks.h"
-#include "pdup_eng_masks.h"
-#include "qman_masks.h"
-#include "qman_cgm_masks.h"
-#include "edma_cmn_masks.h"
-#include "tpc_masks.h"
-#include "tpc_qm_masks.h"
-#include "tpc_kernel_masks.h"
-#include "tpc_qm_tensor_0_shared_masks.h"
-#include "mme_ctrl_lo_masks.h"
-#include "mme_ctrl_lo_arch_dma_n_ten_masks.h"
-#include "vdec_brdg_ctrl_masks.h"
-#include "vdec_ctrl_special_masks.h"
-#include "vsi_cmd_masks.h"
-#include "arc_dup_eng_masks.h"
-#include "qman_arc_aux_masks.h"
-#include "pcie_wrap_masks.h"
-#include "pcie_dbi_masks.h"
-#include "pcie_wrap_dbi_access_masks.h"
-#include "pcie_wrap_dbi_gw_m0_masks.h"
-#include "pcie_wrap_dbi_gw_m1_masks.h"
-#include "rotator_masks.h"
-#include "rotator_desc_masks.h"
-#include "mstr_if_axprot_lbw_masks.h"
-#include "mstr_if_axcache_hbw_masks.h"
-#include "cbc_masks.h"
-#include "cbc_user_masks.h"
-#include "psoc_reset_conf_masks.h"
-#include "psoc_boot_conf_masks.h"
-#include "nic_txs_masks.h"
-#include "nic_txe_masks.h"
-#include "stlb_masks.h"
-
-/* CSLICE */
-#define CS_MAINT_BASE_OFFSET		(mmHD0_CS0_MAINT_BASE - mmHD0_CS0_MAIN_BASE)
-
-/* QM */
-#define QM_AXUSER_HBW_BASE_OFFSET	(mmHD0_TPC0_QM_AXUSER_HBW_BASE - mmHD0_TPC0_QM_BASE)
-#define QM_CGM_BASE_OFFSET		(mmHD0_TPC0_QM_CGM_BASE - mmHD0_TPC0_QM_BASE)
-
-/* TPC */
-#define HDCORE_TPC_OFFSET		(mmHD0_TPC1_CFG_BASE - mmHD0_TPC0_CFG_BASE)
-#define TPC_THREAD_OFFSET		(mmHD0_TPC0_SMT_TPC_TENOSOR0_BASE_TH1_BASE - \
-						mmHD0_TPC0_SMT_TPC_TENOSOR0_BASE_TH0_BASE)
-#define HDCORE_TPC_TENSOR_OFFSET	(mmHD0_TPC0_CFG_QM_TENSOR_1_SHARED_BASE - \
-						mmHD0_TPC0_CFG_QM_TENSOR_0_SHARED_BASE)
-#define TPC_CFG_QM_TENSOR_0_OFFSET	(mmHD0_TPC0_CFG_QM_TENSOR_0_SHARED_BASE - \
-						mmHD0_TPC0_CFG_BASE)
-#define TPC_CFG_QM_OFFSET		(mmHD0_TPC0_CFG_QM_BASE - mmHD0_TPC0_CFG_BASE)
-
-/* MME */
-#define HDCORE_MME_EU_OFFSET		(mmHD0_MME1_ACC_BASE - mmHD0_MME0_ACC_BASE)
-#define HDCORE_MME_SBTE_OFFSET		(mmHD0_MME0_SBTE1_BASE - mmHD0_MME0_SBTE0_BASE)
-#define MME_CTRL_LO_ARCH_DMA_N_TEN_OFFSET \
-			(mmHD0_MME_CTRL_LO_ARCH_DMA_N_TEN_BASE - mmHD0_MME_CTRL_LO_BASE)
-
-/* ROT */
-#define HDCORE_ROT_OFFSET		(mmHD1_ROT1_BASE - mmHD1_ROT0_BASE)
-
-/* Decoder */
-#define HDCORE_DECODER_OFFSET		(mmHD0_VDEC1_CMD_BASE - mmHD0_VDEC0_CMD_BASE)
-
-/****************************** h9 specs [END]   ******************************/
-
-#include "gaudi3_blocks_linux_driver.h"
 #include "global_conf_regs.h"
 #include "pll_ctrl_regs.h"
 #include "bmu_regs.h"
@@ -130,41 +65,6 @@
 #include "cache_main_regs.h"
 #include "cache_crdt_regs.h"
 #include "cache_misc_regs.h"
-#include "hd0_rrtr0_dtlb_regs.h"
-#include "hd0_rrtr1_dtlb_regs.h"
-#include "hd0_rrtr0_dtlb_special_regs.h"
-#include "hd0_rrtr0_rtr_ctrl_hbw_scram_regs.h"
-#include "hd0_rrtr1_rtr_ctrl_hbw_scram_regs.h"
-#include "d0_psoc_boot_conf_regs.h"
-#include "d1_psoc_boot_conf_regs.h"
-#include "d0_psoc_reset_conf_regs.h"
-#include "d1_psoc_reset_conf_regs.h"
-#include "hd0_stlb_regs.h"
-#include "d0_nic0_txs_regs.h"
-#include "d0_nic0_txe_regs.h"
-#include "d0_nic0_qpc_regs.h"
-#include "d1_nic0_qpc_regs.h"
-#include "d0_nic0_rxe_regs.h"
-#include "d0_nic0_qpc_axuser_lbw_db_fifo_regs.h"
-#include "d0_nic0_qpc_axuser_hbw_qpc_req_regs.h"
-#include "d0_nic0_qpc_axuser_hbw_qpc_resp_regs.h"
-#include "d0_nic0_qpc_axuser_hbw_rxwqe_regs.h"
-#include "d0_nic0_qpc_axuser_lbw_qman_bp_regs.h"
-#include "d0_nic0_qpc_axuser_hbw_cong_que_regs.h"
-#include "d0_nic0_tmr_regs.h"
-#include "d0_nic0_rxb_core_regs.h"
-#include "d0_nic0_rxb_core_prt_regs.h"
-#include "d0_nic0_umr_0_regs.h"
-#include "d0_nic0_cq_umr_0_regs.h"
-#include "d0_nic0_mstr_if_ctrl_max_os_hbw_regs.h"
-#include "d0_nic0_mstr_if_data_max_os_hbw_regs.h"
-#include "d0_nic0_mstr_if_ctrl_max_os_lbw_regs.h"
-#include "d0_nic0_tmr_axuser_axuser_regs.h"
-#include "d0_nic0_qpc_axuser_hbw_db_fifo_regs.h"
-#include "d0_nic0_phy_regs.h"
-#include "d0_nic0_mac_aux_regs.h"
-#include "d0_nic0_mac_aux_special_regs.h"
-#include "d0_nic0_mac_pcs_rsfec400_regs.h"
 #include "acc_regs.h"
 #include "nic_mac_ch_mac_ch0_regs.h"
 #include "prt_mac_core_regs.h"
@@ -240,6 +140,39 @@
 #include "intr_gen_regs.h"
 #include "timestamp_regs.h"
 
+#include "pdma_cmn_b_masks.h"
+#include "pdma_cmn_b_pqm_cmn_b_masks.h"
+#include "pdup_eng_masks.h"
+#include "qman_masks.h"
+#include "qman_cgm_masks.h"
+#include "edma_cmn_masks.h"
+#include "tpc_masks.h"
+#include "tpc_qm_masks.h"
+#include "tpc_kernel_masks.h"
+#include "tpc_qm_tensor_0_shared_masks.h"
+#include "mme_ctrl_lo_masks.h"
+#include "mme_ctrl_lo_arch_dma_n_ten_masks.h"
+#include "vdec_brdg_ctrl_masks.h"
+#include "vdec_ctrl_special_masks.h"
+#include "vsi_cmd_masks.h"
+#include "arc_dup_eng_masks.h"
+#include "qman_arc_aux_masks.h"
+#include "pcie_wrap_masks.h"
+#include "pcie_dbi_masks.h"
+#include "pcie_wrap_dbi_access_masks.h"
+#include "pcie_wrap_dbi_gw_m0_masks.h"
+#include "pcie_wrap_dbi_gw_m1_masks.h"
+#include "rotator_masks.h"
+#include "rotator_desc_masks.h"
+#include "mstr_if_axprot_lbw_masks.h"
+#include "mstr_if_axcache_hbw_masks.h"
+#include "cbc_masks.h"
+#include "cbc_user_masks.h"
+#include "psoc_reset_conf_masks.h"
+#include "psoc_boot_conf_masks.h"
+#include "nic_txs_masks.h"
+#include "nic_txe_masks.h"
+#include "stlb_masks.h"
 #include "mmu_masks.h"
 #include "pstlb_masks.h"
 #include "bmu_masks.h"
@@ -255,6 +188,78 @@
 #include "dtlb_masks.h"
 #include "pcie_aux_masks.h"
 #include "global_conf_masks.h"
+#include "nic_mac_glob_stat_control_reg_masks.h"
+
+/* CSLICE */
+#define CS_MAINT_BASE_OFFSET		(mmHD0_CS0_MAINT_BASE - mmHD0_CS0_MAIN_BASE)
+
+/* QM */
+#define QM_AXUSER_HBW_BASE_OFFSET	(mmHD0_TPC0_QM_AXUSER_HBW_BASE - mmHD0_TPC0_QM_BASE)
+#define QM_CGM_BASE_OFFSET		(mmHD0_TPC0_QM_CGM_BASE - mmHD0_TPC0_QM_BASE)
+
+/* TPC */
+#define HDCORE_TPC_OFFSET		(mmHD0_TPC1_CFG_BASE - mmHD0_TPC0_CFG_BASE)
+#define TPC_THREAD_OFFSET		(mmHD0_TPC0_SMT_TPC_TENOSOR0_BASE_TH1_BASE - \
+						mmHD0_TPC0_SMT_TPC_TENOSOR0_BASE_TH0_BASE)
+#define HDCORE_TPC_TENSOR_OFFSET	(mmHD0_TPC0_CFG_QM_TENSOR_1_SHARED_BASE - \
+						mmHD0_TPC0_CFG_QM_TENSOR_0_SHARED_BASE)
+#define TPC_CFG_QM_TENSOR_0_OFFSET	(mmHD0_TPC0_CFG_QM_TENSOR_0_SHARED_BASE - \
+						mmHD0_TPC0_CFG_BASE)
+#define TPC_CFG_QM_OFFSET		(mmHD0_TPC0_CFG_QM_BASE - mmHD0_TPC0_CFG_BASE)
+
+/* MME */
+#define HDCORE_MME_EU_OFFSET		(mmHD0_MME1_ACC_BASE - mmHD0_MME0_ACC_BASE)
+#define HDCORE_MME_SBTE_OFFSET		(mmHD0_MME0_SBTE1_BASE - mmHD0_MME0_SBTE0_BASE)
+#define MME_CTRL_LO_ARCH_DMA_N_TEN_OFFSET \
+			(mmHD0_MME_CTRL_LO_ARCH_DMA_N_TEN_BASE - mmHD0_MME_CTRL_LO_BASE)
+
+/* ROT */
+#define HDCORE_ROT_OFFSET		(mmHD1_ROT1_BASE - mmHD1_ROT0_BASE)
+
+/* Decoder */
+#define HDCORE_DECODER_OFFSET		(mmHD0_VDEC1_CMD_BASE - mmHD0_VDEC0_CMD_BASE)
+
+/****************************** h9 specs [END]   ******************************/
+
+#include "hd0_rrtr0_dtlb_regs.h"
+#include "hd0_rrtr1_dtlb_regs.h"
+#include "hd0_rrtr0_dtlb_special_regs.h"
+#include "hd0_rrtr0_rtr_ctrl_hbw_scram_regs.h"
+#include "hd0_rrtr1_rtr_ctrl_hbw_scram_regs.h"
+#include "d0_psoc_boot_conf_regs.h"
+#include "d1_psoc_boot_conf_regs.h"
+#include "d0_psoc_reset_conf_regs.h"
+#include "d1_psoc_reset_conf_regs.h"
+#include "hd0_stlb_regs.h"
+#include "d0_nic0_txs_regs.h"
+#include "d0_nic0_txe_regs.h"
+#include "d0_nic0_qpc_regs.h"
+#include "d1_nic0_qpc_regs.h"
+#include "d0_nic0_rxe_regs.h"
+#include "d0_nic0_qpc_axuser_lbw_db_fifo_regs.h"
+#include "d0_nic0_qpc_axuser_hbw_qpc_req_regs.h"
+#include "d0_nic0_qpc_axuser_hbw_qpc_resp_regs.h"
+#include "d0_nic0_qpc_axuser_hbw_rxwqe_regs.h"
+#include "d0_nic0_qpc_axuser_lbw_qman_bp_regs.h"
+#include "d0_nic0_qpc_axuser_hbw_cong_que_regs.h"
+#include "d0_nic0_tmr_regs.h"
+#include "d0_nic0_rxb_core_regs.h"
+#include "d0_nic0_rxb_core_prt_regs.h"
+#include "d0_nic0_umr_0_regs.h"
+#include "d0_nic0_cq_umr_0_regs.h"
+#include "d0_nic0_mstr_if_ctrl_max_os_hbw_regs.h"
+#include "d0_nic0_mstr_if_data_max_os_hbw_regs.h"
+#include "d0_nic0_mstr_if_ctrl_max_os_lbw_regs.h"
+#include "d0_nic0_tmr_axuser_axuser_regs.h"
+#include "d0_nic0_qpc_axuser_hbw_db_fifo_regs.h"
+#include "d0_nic0_phy_regs.h"
+#include "d0_nic0_mac_aux_regs.h"
+#include "d0_nic0_mac_aux_special_regs.h"
+#include "d0_nic0_mac_pcs_rsfec400_regs.h"
+#include "d0_nic0_phy_special_regs.h"
+#include "hd0_rrtr0_rtr_ctrl_ch0_razwi_hbw_regs.h"
+#include "d0_nic0_mac_glob_stat_control_reg_regs.h"
+
 #include "d0_nic0_qpc_masks.h"
 #include "d0_nic0_rxe_masks.h"
 #include "d0_nic0_qpc_axuser_lbw_db_fifo_masks.h"
@@ -268,8 +273,6 @@
 #include "d0_nic0_qpc_axuser_hbw_cong_que_masks.h"
 #include "d0_nic0_phy_masks.h"
 #include "d0_nic0_mac_aux_masks.h"
-#include "d0_nic0_phy_special_regs.h"
-#include "nic_mac_glob_stat_control_reg_masks.h"
 #include "d0_nic0_mac_ch_mac_ch0_masks.h"
 #include "d0_nic0_mac_core_masks.h"
 #include "d0_nic0_mac_pcs_pcs400_masks.h"
@@ -279,7 +282,6 @@
 #include "d0_hbm0_phy_p0_master_masks.h"
 #include "d0_nic0_mac_glob_stat_rx0_masks.h"
 #include "d0_nic0_mac_glob_stat_tx0_masks.h"
-#include "d0_nic0_mac_glob_stat_control_reg_regs.h"
 #include "hd1_sedma0_cmn_masks.h"
 #include "hd1_sedma0_ch0_masks.h"
 #include "hd0_arc_farm_arc0_af_sec_user_adapt_masks.h"
@@ -295,7 +297,6 @@
 #include "hd0_rrtr0_rtr_ctrl_rr_lbw_masks.h"
 #include "hd0_rrtr0_rtr_ctrl_rr_hbw_masks.h"
 #include "hd0_arc_farm_arc0_af_masks.h"
-#include "hd0_rrtr0_rtr_ctrl_ch0_razwi_hbw_regs.h"
 #include "d0_nic0_cs_dbg_bmon0_masks.h"
 #include "d0_nic0_cs_dbg_spmu_masks.h"
 
