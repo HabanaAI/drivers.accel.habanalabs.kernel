@@ -2547,7 +2547,7 @@ static int set_number_of_functional_hbms(struct hl_device *hdev)
 	if (!faulty_hbms) {
 		dev_dbg(hdev->dev, "All HBM are in use (no binning)\n");
 		prop->num_functional_hbms = max_hbms;
-		return 0;
+		goto set_dram_mask;
 	}
 
 	/*
@@ -2564,6 +2564,8 @@ static int set_number_of_functional_hbms(struct hl_device *hdev)
 	}
 
 	prop->num_functional_hbms = max_hbms - faulty_hbms;
+
+set_dram_mask:
 	prop->dram_enabled_mask = GENMASK_ULL(prop->num_functional_hbms - 1, 0);
 	return 0;
 }

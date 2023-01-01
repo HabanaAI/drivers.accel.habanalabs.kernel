@@ -90,6 +90,7 @@
 #define NUM_OF_TPC_TENSORS		16
 
 #define NUM_HBM_PER_DIE			4
+#define NUM_MCS_PER_HBM			8
 #define SINGLE_HBM_SIZE			SZ_16G
 
 #define GAUDI3_NIC_CLK_FREQ		533000000ull	/* 533 MHz */
@@ -809,6 +810,7 @@ void gaudi3_special_blocks_free(struct hl_device *hdev);
 int gaudi3_pre_hw_init(struct hl_device *hdev);
 int gaudi3_init_plls(struct hl_device *hdev);
 void gaudi3_print_sol_config_version(struct hl_device *hdev);
+void gaudi3_iterate_mcs(struct hl_device *hdev, struct iterate_module_ctx *ctx);
 void gaudi3_init_mc(struct hl_device *hdev);
 int gaudi3_init_hbm(struct hl_device *hdev);
 void gaudi3_init_scrambler(struct hl_device *hdev);

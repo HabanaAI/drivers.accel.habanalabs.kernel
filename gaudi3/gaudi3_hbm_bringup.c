@@ -63,6 +63,36 @@ static void phy_dfi_init(struct hl_device *hdev, u32 hbm_dev);
 static void phy_config_p1500(struct hl_device *hdev, u32 hbm_dev);
 static void open_traffic_2(struct hl_device *hdev, u64 offset, u64 hif_offset);
 
+void gaudi3_iterate_mcs(struct hl_device *hdev, struct iterate_module_ctx *ctx)
+{
+	struct asic_fixed_properties *prop = &hdev->asic_prop;
+	u8 die, hbm_idx, hbm_die_idx, mc_hbm_idx, mc_idx;
+	u32 offset;
+
+	for (die = 0; die < prop->num_of_dies; die++) {
+		for (hbm_die_idx = 0; hbm_die_idx < NUM_HBM_PER_DIE; hbm_die_idx++) {
+			hbm_idx = (die * NUM_HBM_PER_DIE) +  hbm_die_idx;
+
+			if (!(prop->dram_enabled_mask & BIT(hbm_idx)))
+				continue;
+
+			/* bcast MC config */
+			offset = mmD0_HBM0_BCAST_MC_BASE + (die * DIE_OFFSET) +
+							(hbm_die_idx * HBM_DEV_OFFSET);
+			ctx->fn(hdev, die, hbm_idx, offset, ctx);
+
+			/* HBM MC configs */
+			for (mc_hbm_idx = 0; mc_hbm_idx < NUM_MCS_PER_HBM; mc_hbm_idx++) {
+				mc_idx = (hbm_idx * NUM_MCS_PER_HBM) + mc_hbm_idx;
+				offset = mmD0_HBM0_MC0_BASE + (die * DIE_OFFSET) +
+								(hbm_die_idx * HBM_DEV_OFFSET) +
+								(mc_hbm_idx * HBM_MC_OFFSET);
+				ctx->fn(hdev, die, mc_idx, offset, ctx);
+			}
+		}
+	}
+}
+
 static int poll_on_phy_init(struct hl_device *hdev, u32 dev)
 {
 	u64 hbm_offset = (dev / 4) * DIE_OFFSET + (dev % 4) * HBM_DEV_OFFSET;
