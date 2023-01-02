@@ -412,6 +412,4 @@ void gaudi3_nic_set_rx_drop_eco_no_fw(struct hl_nic_macro *nic_macro)
 
 	NIC_RMWREG32(mmD0_NIC0_RXE_QPC_CHECKS_EN, qpc_res_rkey_check_en,
 			D0_NIC0_RXE_QPC_CHECKS_EN_QPC_RES_RKEY_INV_M);
-
-	/* TODO: SW-115690 - Add cpucp message to enable\disable RKEY QPC check, when FW is used */
 }

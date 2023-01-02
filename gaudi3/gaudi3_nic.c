@@ -958,9 +958,12 @@ static void gaudi3_nic_config_hw_qpc(struct hl_nic_macro *nic_macro)
 	NIC_WREG32(mmD0_NIC0_QPC_WQ_DEC_THRESHOLD, GAUDI3_NIC_WTD_BP_LOWER_TH_DIFF);
 
 	/* HW accelerated congestion control configuration */
+	/* H9-5456 - HW bug when congestion control is used with SACK. Fix was done for RTT
+	 * measure method = 1 only.
+	 */
 	NIC_WREG32(mmD0_NIC0_QPC_SWIFT_CFG,
 			1 << D0_NIC0_QPC_SWIFT_CFG_SWIFT_EN_S |
-			0 << D0_NIC0_QPC_SWIFT_CFG_RTT_MEASURE_METHOD_S |
+			1 << D0_NIC0_QPC_SWIFT_CFG_RTT_MEASURE_METHOD_S |
 			4 << D0_NIC0_QPC_SWIFT_CFG_COALESCE_INIT_VAL_S |
 			1 << D0_NIC0_QPC_SWIFT_CFG_ENABLE_COALESCE_S);
 	NIC_WREG32(mmD0_NIC0_QPC_CC_ROLLBACK,
