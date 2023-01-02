@@ -3395,28 +3395,28 @@ struct hl_etr_buf {
 };
 
 /**
- * struct hl_etr_trace_system - represents a single ETR trace system with all
- *                              the related data: ready bufs, memory maps and
- *                              metadata.
+ * struct hl_etr_tracer - represents a single ETR trace system with all the
+ *                       related data: ready bufs, memory maps and metadata.
  * @bufs: list of full buffers
  * @lock: lock used to protect bufs access
  * @phys_dram_addr: physical address of the sink buffer in dram for given ETR
  * @virt_dram_addr: virtual address of the sink buffer in dram for given ETR
  * @idx: next buffer index, ever growing
- * @started: true if etr tracing has started
+ * @ac_started: true if AC (Autonomous Controller) has started, which indicates
+ *              that all prerequisites were initialized (ETR HW, ETR buf store & AC).
  */
-struct hl_etr_trace_system {
+struct hl_etr_tracer {
 	struct list_head bufs;
 	spinlock_t lock;
 	u64 phys_dram_addr;
 	u64 virt_dram_addr;
 	u64 idx;
-	u8 started;
+	u8 ac_started;
 };
 
 /**
  * struct hl_etr_buf_store - stores both full and empty buffers from all etrs
- * @etr_trs: array of per-etr buffer info
+ * @etr_tracer: array of per-etr buffer info
  * @free_bufs: array of free buffers, for reuse
  * @free_bufs_lock: lock that must be held when manipulating free_bufs
  * @min_bufs: minimal number of bufs (in all lists together)
@@ -3428,7 +3428,7 @@ struct hl_etr_trace_system {
  *                    not empty.
  */
 struct hl_etr_buf_store {
-	struct hl_etr_trace_system *etr_trs;
+	struct hl_etr_tracer *etr_tracer;
 	struct list_head free_bufs;
 	spinlock_t free_bufs_lock;
 	u64 min_bufs;

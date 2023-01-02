@@ -5904,7 +5904,7 @@ static int gaudi3_config_etr(struct hl_device *hdev, struct hl_ctx *ctx,
 	if (params->enable) {
 		if (input->buffer_size == 0) {
 			/* Configure in AC mode */
-			input->buffer_address = store->etr_trs[etr_idx].virt_dram_addr;
+			input->buffer_address = store->etr_tracer[etr_idx].virt_dram_addr;
 			input->buffer_size =  hdev->asic_prop.etr_buf_dram_size;
 			input->sink_mode = 0; /* Sink mode forced to circular buffer */
 			ctx = hdev->kernel_ctx;
@@ -6017,7 +6017,7 @@ static int gaudi3_fetch_trace(struct hl_device *hdev, struct hl_debug_params *pa
 			return -ENOMEM;
 		rc = 0;
 	} else if (completion_rc == 0) { /* Completion timed out (NOT considered a failure) */
-		*output = store->etr_trs[etr_idx].started ? HL_DEBUG_FETCH_STATUS_EMPTY :
+		*output = store->etr_tracer[etr_idx].ac_started ? HL_DEBUG_FETCH_STATUS_EMPTY :
 				HL_DEBUG_FETCH_STATUS_STOPPED;
 		return 0;
 	} else { /* Return value < 0 (-ERESTARTSYS) if interrupted */

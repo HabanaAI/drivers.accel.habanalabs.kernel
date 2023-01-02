@@ -1297,7 +1297,7 @@ static void hl_release_pending_etr_buf_store_threads(struct hl_device *hdev)
 	struct hl_etr_buf_store *store = &hdev->etr_buf_store;
 	int etr_idx;
 
-	if (!store->etr_trs || !store->etr_trs)
+	if (!store || !store->etr_tracer)
 		return;
 
 	for (etr_idx = 0 ; etr_idx < prop->etr_buf_number ; ++etr_idx)

@@ -2319,7 +2319,7 @@ void gaudi3_ac_start(struct hl_device *hdev, u32 etr_idx)
 	struct hl_etr_buf_store *store = &hdev->etr_buf_store;
 	u64 base = gaudi3_etr_ac_config[etr_idx].ac_off;
 
-	store->etr_trs[etr_idx].started = 1;
+	store->etr_tracer[etr_idx].ac_started = 1;
 
 	/* TODO: this has to be done by FW, add mailbox for that */
 	RMWREG32(mmD0_NCH_AC_BASE + mmAUTONOMOUS_CONTROL_CTRL + base, 1, D0_NCH_AC_CTRL_EN_M);
@@ -2330,7 +2330,7 @@ void gaudi3_ac_stop(struct hl_device *hdev, u32 etr_idx)
 	struct hl_etr_buf_store *store = &hdev->etr_buf_store;
 	u64 base = gaudi3_etr_ac_config[etr_idx].ac_off;
 
-	store->etr_trs[etr_idx].started = 0;
+	store->etr_tracer[etr_idx].ac_started = 0;
 
 	/* TODO: this has to be done by FW, add mailbox for that */
 	RMWREG32(mmD0_NCH_AC_BASE + mmAUTONOMOUS_CONTROL_CTRL + base, 0, D0_NCH_AC_CTRL_EN_M);
@@ -2340,7 +2340,7 @@ int gaudi3_is_ac_started(struct hl_device *hdev, u32 etr_idx)
 {
 	struct hl_etr_buf_store *store = &hdev->etr_buf_store;
 
-	return store->etr_trs[etr_idx].started;
+	return store->etr_tracer[etr_idx].ac_started;
 }
 
 static void gaudi3_init_credits(struct hl_device *hdev)
