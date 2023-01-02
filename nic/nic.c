@@ -786,6 +786,8 @@ static int hl_nic_ib_aux_data_init(struct hl_device *hdev)
 
 	core_info->ndev = kcalloc(core_info->max_num_of_ports, sizeof(*core_info->ndev),
 					GFP_KERNEL);
+	if (!core_info->ndev)
+		return -ENOMEM;
 
 	for (i = 0; i < nic_props->max_num_of_ports; i++) {
 		if (!(core_info->ports_mask & BIT(i)))
@@ -800,7 +802,6 @@ static int hl_nic_ib_aux_data_init(struct hl_device *hdev)
 
 		/* For the internal ports, we would get NULL. We don't care for now if the netdev is
 		 * null as the ib_device_set_netdev accepts a NULL as input.
-		 * TODO: SW-103038: should we iterate using ports_mask or just the external ports?
 		 */
 		core_info->ndev[i] = en_aux_ops->get_netdev(&hdev->nic.en_aux_dev, i);
 	}
@@ -811,7 +812,7 @@ static int hl_nic_ib_aux_data_init(struct hl_device *hdev)
 	rc = hl_nic_get_asic_type(hdev, &core_info->asic_type);
 	if (rc) {
 		dev_err(hdev->dev, "failed to set ib aux data asic type\n");
-		return rc;
+		goto free_ndev;
 	}
 
 	/* set ib -> core ops */
@@ -832,11 +833,24 @@ static int hl_nic_ib_aux_data_init(struct hl_device *hdev)
 	aux_ops->mmap = hl_nic_ib_mmap;
 
 	return 0;
+
+free_ndev:
+	kfree(core_info->ndev);
+
+	return rc;
 }
 
 static void hl_nic_ib_aux_data_fini(struct hl_device *hdev)
 {
+	struct hl_ib_core_info *core_info;
+	struct hl_nic *nic = &hdev->nic;
+	struct hl_aux_dev *aux_dev;
 
+	aux_dev = &nic->ib_aux_dev;
+	core_info = aux_dev->core_info;
+
+	/* Free the netdev structs */
+	kfree(core_info->ndev);
 }
 
 #ifdef _HAS_AUX_BUS_H
