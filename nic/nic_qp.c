@@ -100,7 +100,8 @@ static int nic_qp_op_reset(struct hl_nic_port *nic_port, struct hl_qp *qp)
 
 	/* clear the QPCs */
 	rc = nic_funcs->port_funcs->qpc_clear(nic_port, qp->qp_id, true);
-	if (rc)
+	if (rc && hl_device_operational(hdev, NULL))
+		/* Device might not respond during reset if the reset was due to error */
 		dev_err(hdev->dev, "Port %d QP %d: Failed to clear requester QPC\n",
 			qp->port, qp->qp_id);
 	else
@@ -109,8 +110,10 @@ static int nic_qp_op_reset(struct hl_nic_port *nic_port, struct hl_qp *qp)
 	rc1 = nic_funcs->port_funcs->qpc_clear(nic_port, qp->qp_id, false);
 	if (rc1) {
 		rc = rc1;
-		dev_err(hdev->dev, "Port %d QP %d: Failed to clear responder QPC\n",
-			qp->port, qp->qp_id);
+		if (hl_device_operational(hdev, NULL))
+			/* Device might not respond during reset if the reset was due to error */
+			dev_err(hdev->dev, "Port %d QP %d: Failed to clear responder QPC\n",
+				qp->port, qp->qp_id);
 	} else {
 		qp->is_res = false;
 	}

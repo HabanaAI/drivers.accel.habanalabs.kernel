@@ -1845,8 +1845,10 @@ static int gaudi2_nic_qpc_write_masked(struct hl_nic_port *nic_port, const void 
 
 	ctrl = (is_req << NIC0_QPC0_GW_CTRL_REQUESTER_SHIFT) | qpn |
 			(!!force_doorbell << NIC0_QPC0_GW_CTRL_DOORBELL_FORCE_SHIFT);
+
 	rc = gaudi2_nic_qpc_op(nic_port, ctrl, true);
-	if (rc)
+	if (rc && hl_device_operational(hdev, NULL))
+		/* Device might not respond during reset if the reset was due to error */
 		dev_err(hdev->dev, "%s QPC GW write timeout, port: %d, qpn: %u\n",
 				is_req ? "requester" : "responder", port, qpn);
 

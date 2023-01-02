@@ -140,7 +140,8 @@ static int gaudi_nic_qpc_write_masked(struct hl_nic_port *nic_port,
 		NIC_WREG32(mmNIC0_QPC0_GW_DATA_0 + i * sizeof(u32), data[i]);
 
 	rc = gaudi_nic_qpc_op(nic_port, qpn, is_req, true);
-	if (rc)
+	if (rc && hl_device_operational(hdev, NULL))
+		/* Device might not respond during reset if the reset was due to error */
 		dev_err(hdev->dev, "%s QPC GW timeout, port: %d\n",
 			is_req ? "requester" : "responder", port);
 
