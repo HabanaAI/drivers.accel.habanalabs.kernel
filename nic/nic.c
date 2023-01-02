@@ -2399,7 +2399,7 @@ static void qp_destroy_work(struct work_struct *work)
 	struct hl_nic_port_funcs *port_funcs = hdev->asic_funcs->nic_funcs->port_funcs;
 	struct hl_nic_qpc_drain_attr drain_attr;
 	struct hl_nic_qpc_reset_attr rst_attr;
-	struct hl_coll_properties *coll_props;
+	struct hl_coll_properties *coll_props = NULL;
 	struct hl_ctx *ctx = qp->ctx;
 	struct hl_mem_mgr *mmg = &ctx->hpriv->mem_mgr;
 	int rc;
@@ -2826,7 +2826,7 @@ static int user_wq_arr_set(struct hl_device *hdev,
 			struct hl_ctx *ctx)
 {
 	struct hl_wq_array_properties *wq_arr_props;
-	struct hl_coll_properties *coll_props;
+	struct hl_coll_properties *coll_props = NULL;
 	struct hl_nic_port_funcs *port_funcs;
 	struct hl_nic_properties *nic_props;
 	struct hl_nic *nic = &hdev->nic;
@@ -3010,7 +3010,7 @@ out:
 static int __user_wq_arr_unset(struct hl_nic_port *nic_port, u32 type, struct hl_ctx *ctx)
 {
 	struct hl_wq_array_properties *wq_arr_props;
-	struct hl_coll_properties *coll_props;
+	struct hl_coll_properties *coll_props = NULL;
 	struct hl_device *hdev;
 	u32 port;
 	char *type_str;
