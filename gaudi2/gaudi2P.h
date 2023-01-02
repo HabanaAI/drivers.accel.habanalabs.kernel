@@ -920,14 +920,10 @@ int gaudi2_is_fw_ver_below_1_8(struct hl_device *hdev);
 int gaudi2_is_fw_ver_below_1_8_1(struct hl_device *hdev);
 
 /* Bringup functions (w/o F/W support) */
-void gaudi2_nic_set_correct_address_for_errors(struct hl_device *hdev);
-int gaudi2_nic_set_wqe_asid(struct hl_nic_port *nic_port, u32 asid);
-void gaudi2_nic_config_hw_txs_no_fw(struct hl_device *hdev, u32 port);
-void gaudi2_nic_config_hw_txe_no_fw(struct hl_device *hdev, u32 port);
-void gaudi2_nic_config_hw_rxe_no_fw(struct hl_device *hdev, u32 port);
-void gaudi2_nic_config_hw_qpc_no_fw(struct hl_device *hdev, u32 port);
-void gaudi2_nic_config_hw_tmr_no_fw(struct hl_device *hdev, u32 port);
-void gaudi2_nic_config_hw_eq_no_fw(struct hl_device *hdev, u32 port);
+int gaudi2_nic_config_wqe_asid(struct hl_nic_port *nic_port, u32 asid, bool set_asid);
 void gaudi2_nic_override_phy_readiness(struct hl_nic_port *nic_port, bool set_ready);
+void gaudi2_nic_disable_wqe_index_checker_no_fw(struct hl_nic_port *nic_port);
+void gaudi2_nic_quiescence_phy_no_fw(struct hl_device *hdev);
+void gaudi2_nic_blocks_fw_config(struct hl_device *hdev);
 
 #endif /* GAUDI2P_H_ */

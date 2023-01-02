@@ -259,7 +259,7 @@ char *gaudi2_nic_qp_err_syndrom_to_str(u32 syndrome)
 	return str;
 }
 
-static bool gaudi2_nic_is_macro_enabled(struct hl_nic_macro *nic_macro)
+bool gaudi2_nic_is_macro_enabled(struct hl_nic_macro *nic_macro)
 {
 	struct hl_device *hdev = nic_macro->hdev;
 	u32 port1, port2;
@@ -754,9 +754,6 @@ void gaudi2_nic_disable_nics_interrupts(struct hl_device *hdev)
  */
 void gaudi2_nic_quiescence(struct hl_device *hdev)
 {
-	u32 port, force_link_down = 1 << NIC0_PHY_PHY_RX_CFG_SW_PHY_READY_OVERRIDE_SHIFT;
-	int i, num_ports_in_macro = NIC_NUMBER_OF_PORTS / NIC_NUMBER_OF_MACROS;
-
 	/*
 	 * Do not quiescence the ports during device release
 	 * reset aka soft reset flow.
@@ -768,24 +765,8 @@ void gaudi2_nic_quiescence(struct hl_device *hdev)
 
 	gaudi2_nic_disable_nics_interrupts(hdev);
 
-	/* if any NIC is present and running on PLDM or simulator, prevent traffic from entering the
-	 * device
-	 */
-	if (!hdev->nic.phy_config_fw && hdev->nic_ports_mask) {
-		for (i = 0 ; i < NIC_NUMBER_OF_MACROS ; i++) {
-			port = i * num_ports_in_macro;
-
-			/* force PHY link down */
-			NIC_MACRO_WREG32(mmNIC0_PHY_PHY_RX_CFG_0,
-					force_link_down);
-			NIC_MACRO_WREG32(mmNIC0_PHY_PHY_RX_CFG_1,
-					force_link_down);
-			NIC_MACRO_WREG32(mmNIC0_PHY_PHY_RX_CFG_2,
-					force_link_down);
-			NIC_MACRO_WREG32(mmNIC0_PHY_PHY_RX_CFG_3,
-					force_link_down);
-		}
-	}
+	/* quiescence phy before configuring to prevent any packet entering nic */
+	gaudi2_nic_quiescence_phy_no_fw(hdev);
 }
 
 static int gaudi2_nic_set_pfc(struct hl_nic_port *nic_port)
@@ -831,8 +812,6 @@ static void gaudi2_nic_config_port_hw_txs(struct gaudi2_nic_port *gaudi2_nic)
 	hdev = gaudi2_nic->hdev;
 	gaudi2 = hdev->asic_specific;
 	nic_prop = &hdev->asic_prop.nic_props;
-
-	gaudi2_nic_config_hw_txs_no_fw(hdev, port);
 
 	txs_addr = nic_prop->txs_base_addr + port * nic_prop->txs_base_size;
 
@@ -935,8 +914,6 @@ static void gaudi2_nic_config_port_hw_txe(struct gaudi2_nic_port *gaudi2_nic, u6
 	nic_prop = &hdev->asic_prop.nic_props;
 	port = gaudi2_nic->nic_port->port;
 
-	gaudi2_nic_config_hw_txe_no_fw(hdev, port);
-
 	/* set the base address of the raw wq */
 	NIC_WREG32(mmNIC0_TXE0_SQ_BASE_ADDRESS_63_32_0,
 		   upper_32_bits(RING_BUF_DMA_ADDRESS(&gaudi2_nic->wq_ring)));
@@ -983,8 +960,6 @@ static void gaudi2_nic_config_port_hw_qpc(struct gaudi2_nic_port *gaudi2_nic)
 
 	hdev = gaudi2_nic->hdev;
 	nic_prop = &hdev->asic_prop.nic_props;
-
-	gaudi2_nic_config_hw_qpc_no_fw(hdev, port);
 
 	req_qpc_base_addr = nic_prop->req_qpc_base_addr + port * nic_prop->req_qpc_base_size;
 	res_qpc_base_addr = nic_prop->res_qpc_base_addr + port * nic_prop->res_qpc_base_size;
@@ -1061,8 +1036,6 @@ static void gaudi2_nic_config_port_hw_rxe(struct gaudi2_nic_port *gaudi2_nic)
 	u32 port = gaudi2_nic->nic_port->port;
 	u32 rx_mem_addr_lo, rx_mem_addr_hi;
 	int i;
-
-	gaudi2_nic_config_hw_rxe_no_fw(hdev, port);
 
 	rx_mem_addr_lo = lower_32_bits(RING_BUF_DMA_ADDRESS(rx_ring));
 	rx_mem_addr_hi = upper_32_bits(RING_BUF_DMA_ADDRESS(rx_ring));
@@ -2484,38 +2457,6 @@ static int gaudi2_nic_update_qp_mtu(struct hl_nic_port *nic_port, struct hl_qp *
 	return gaudi2_nic_qpc_write_masked(nic_port, &req_qpc, &mask, qp->qp_id, true, false);
 }
 
-static int gaudi2_nic_config_wqe_asid(struct hl_nic_port *nic_port, u32 asid, bool set_asid)
-{
-	struct hl_device *hdev = nic_port->hdev;
-	u32 port = nic_port->port;
-	struct cpucp_packet pkt;
-	int rc;
-
-	/* change asid to secured asid */
-	if (!(hdev->fw_components & FW_TYPE_BOOT_CPU)) {
-		/* set chicken bit before changing asid */
-		NIC_WREG32(mmNIC0_TXE0_CHICKEN_BITS, set_asid ? 0x1 : 0);
-		if (set_asid)
-			NIC_WREG32(mmNIC0_TXE0_WQE_FETCH_AXI_USER_LO, asid);
-	} else {
-		pkt.ctl = set_asid ?
-			cpu_to_le32(CPUCP_PACKET_NIC_WQE_ASID_SET << CPUCP_PKT_CTL_OPCODE_SHIFT) :
-			cpu_to_le32(CPUCP_PACKET_NIC_WQE_ASID_UNSET << CPUCP_PKT_CTL_OPCODE_SHIFT);
-		pkt.value = cpu_to_le64(asid);
-		pkt.port_index = cpu_to_le32(port);
-
-		rc = hdev->asic_funcs->send_cpu_message(hdev, (u32 *) &pkt, sizeof(pkt), 0, NULL);
-		if (rc) {
-			dev_err(hdev->dev,
-				"Failed to %s NIC WQE ASID via FW, port %d, rc %d\n",
-				set_asid ? "set" : "unset", port, rc);
-			return rc;
-		}
-	}
-
-	return 0;
-}
-
 static int gaudi2_user_wq_arr_set(struct hl_device *hdev,
 				struct hl_nic_user_wq_arr_set_in *in,
 				struct hl_nic_user_wq_arr_set_out *out,
@@ -3306,8 +3247,6 @@ static void gaudi2_nic_config_hw_tmr(struct hl_nic_macro *nic_macro)
 	gaudi2 = hdev->asic_specific;
 	nic_prop = &hdev->asic_prop.nic_props;
 
-	gaudi2_nic_config_hw_tmr_no_fw(hdev, port);
-
 	tmr_addr = nic_prop->tmr_base_addr + nic_macro->idx * nic_prop->tmr_base_size;
 
 	/* Clear timer FSM0 + FSM1 */
@@ -3561,7 +3500,14 @@ int gaudi2_nic_set_info(struct hl_device *hdev, bool get_from_fw)
 		}
 
 		if (!(hdev->fw_components & FW_TYPE_BOOT_CPU)) {
+			/* This section reads privilege register, hence we should disable
+			 * assertion on simulator to allow this read.
+			 * Assertion is turned on right after the register is read.
+			 */
+			hdev->asic_funcs->set_priv_assertions(hdev, false);
 			card_location = RREG32(mmPSOC_GLOBAL_CONF_BOOT_STRAP_PINS_H);
+			hdev->asic_funcs->set_priv_assertions(hdev, true);
+
 			serdes_type = card_location;
 			card_location &= PSOC_GLOBAL_CONF_BOOT_STRAP_PINS_H_I2C_SLV_ADDR_MASK;
 			card_location >>= PSOC_GLOBAL_CONF_BOOT_STRAP_PINS_H_I2C_SLV_ADDR_SHIFT;
@@ -3626,8 +3572,6 @@ static int gaudi2_nic_core_init(struct hl_device *hdev)
 	gaudi2_nic_set_speed(hdev);
 
 	gaudi2_nic_macros_hw_config(hdev);
-
-	gaudi2_nic_set_correct_address_for_errors(hdev);
 
 	/* TODO: SW-69798: Optimize the amount of pkts to wait for and the timeout it requires.
 	 * For now request an interrupt after 1 pkt with 10 usec timeout.
@@ -4819,18 +4763,6 @@ static void  gaudi2_nic_user_ccq_unset(struct hl_nic_port *nic_port, u32 *ccqn)
 	*ccqn = 0;
 }
 
-static void gaudi2_nic_disable_wqe_index_checker(struct hl_nic_port *nic_port)
-{
-	struct hl_device *hdev = nic_port->hdev;
-	u32 port = nic_port->port;
-
-	/* Disable the WQE index checker on the RX side */
-	NIC_RMWREG32(mmNIC0_RXE0_RXE_CHECKS, 0, NIC0_RXE0_RXE_CHECKS_WQE_IDX_MISMATCH_EN_MASK);
-
-	/* Disable the WQE index checker on the TX side */
-	NIC_RMWREG32(mmNIC0_TXE0_WQE_CHECK_EN, 0, NIC0_TXE0_WQE_CHECK_EN_WQE_INDEX_EN_MASK);
-}
-
 static void gaudi2_nic_fill_spmu_data(struct hl_nic_port *nic_port,
 					struct cpucp_nic_status *nic_status)
 {
@@ -5009,7 +4941,7 @@ static struct hl_nic_port_funcs gaudi2_nic_port_funcs = {
 	.user_ccq_unset = gaudi2_nic_user_ccq_unset,
 	.reset_mac_stats = gaudi2_nic_reset_mac_stats,
 	.print_fec_stats = gaudi2_nic_debugfs_print_fec_stats,
-	.disable_wqe_index_checker = gaudi2_nic_disable_wqe_index_checker,
+	.disable_wqe_index_checker = gaudi2_nic_disable_wqe_index_checker_no_fw,
 	.fill_nic_status = gaudi2_nic_fill_nic_status,
 	.cfg_lock = gaudi2_nic_cfg_lock,
 	.cfg_unlock = gaudi2_nic_cfg_unlock,

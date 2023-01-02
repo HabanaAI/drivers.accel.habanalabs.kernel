@@ -427,8 +427,6 @@ static void gaudi2_nic_eq_hw_config(struct gaudi2_nic_port *gaudi2_nic)
 	struct hl_device *hdev = gaudi2_nic->hdev;
 	u32 port = gaudi2_nic->nic_port->port;
 
-	gaudi2_nic_config_hw_eq_no_fw(hdev, port);
-
 	/* set base address for event queue */
 	NIC_WREG32(mmNIC0_QPC0_EVENT_QUE_PI_ADDR_63_32,
 			upper_32_bits(RING_PI_DMA_ADDRESS(ring)));

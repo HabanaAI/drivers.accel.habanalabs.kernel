@@ -3628,9 +3628,7 @@ static int hl_nic_modify_wqe_checkers(struct hl_nic_port *nic_port)
 	int rc;
 
 	if (!(hdev->fw_components & FW_TYPE_BOOT_CPU)) {
-		hdev->asic_funcs->set_priv_assertions(hdev, false);
 		hdev->asic_funcs->nic_funcs->port_funcs->disable_wqe_index_checker(nic_port);
-		hdev->asic_funcs->set_priv_assertions(hdev, true);
 		return 0;
 	}
 

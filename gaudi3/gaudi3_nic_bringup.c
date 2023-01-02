@@ -345,6 +345,8 @@ void gaudi3_nic_override_phy_readiness(struct hl_nic_port *nic_port, bool set_re
 	if (hdev->fw_components & FW_TYPE_BOOT_CPU)
 		return;
 
+	hdev->asic_funcs->set_priv_assertions(hdev, false);
+
 	if (hdev->nic_lanes_per_port == PORT_LANES_4) {
 		if (set_ready)
 			val = D0_NIC0_MAC_AUX_PHY_SIG_DETECT_OVRD_SIG_DETECT_ASSERT_M;
@@ -359,6 +361,8 @@ void gaudi3_nic_override_phy_readiness(struct hl_nic_port *nic_port, bool set_re
 		enable_mask = 0x3 << get_lane_offset(&gaudi3->nic_ports[port]);
 		NIC_RMWREG32(mmD0_NIC0_MAC_AUX_PHY_SIG_DETECT_OVRD, val, enable_mask);
 	}
+
+	hdev->asic_funcs->set_priv_assertions(hdev, true);
 }
 
 void gaudi3_nic_disable_wqe_index_checker_no_fw(struct hl_nic_port *nic_port)
@@ -366,11 +370,17 @@ void gaudi3_nic_disable_wqe_index_checker_no_fw(struct hl_nic_port *nic_port)
 	struct hl_device *hdev = nic_port->hdev;
 	u32 port = nic_port->port;
 
-	if (hdev->fw_components & FW_TYPE_BOOT_CPU)
-		return;
+	/* This is a privilege register that is modified on the go, hence we should disable
+	 * assertion on simulator to allow us the modification. At the end of this section we
+	 * enable security assertion back. We enter this section only if FW security
+	 * is not enabled.
+	 */
+	hdev->asic_funcs->set_priv_assertions(hdev, false);
 
 	/* Disable the WQE index checker on the RX side */
 	NIC_RMWREG32(mmD0_NIC0_RXE_WQE_CHECKS_EN, 0, D0_NIC0_RXE_WQE_CHECKS_EN_WQE_IDX_MISMATCH_M);
+
+	hdev->asic_funcs->set_priv_assertions(hdev, true);
 }
 
 static void gaudi3_nic_set_rx_drop_eco_no_fw(struct hl_nic_macro *nic_macro)

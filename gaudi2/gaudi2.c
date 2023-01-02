@@ -3310,19 +3310,6 @@ static bool gaudi2_pb_block_skip(struct hl_device *hdev,
 		struct hl_special_blocks_cfg *special_blocks_cfg,
 		u32 blk_idx, u32 major, u32 minor, u32 sub_minor)
 {
-	struct hl_automated_pb_cfg *auto_pb_cfg_arr = special_blocks_cfg->prot_lvl_priv ?
-			special_blocks_cfg->priv_automated_pb_cfg :
-			special_blocks_cfg->sec_automated_pb_cfg;
-	struct hl_automated_pb_cfg *auto_pb_cfg = &auto_pb_cfg_arr[blk_idx];
-	struct hl_special_block_info *block_info = &auto_pb_cfg->addr;
-
-	/* TODO - currently, skipping NIC privileged PB configurations.
-	 * This can be removed once SW-107241 & SW-108259 are resolved.
-	 */
-	if ((block_info->block_type == GAUDI2_BLOCK_TYPE_NIC) &&
-			special_blocks_cfg->prot_lvl_priv)
-		return true;
-
 	return false;
 }
 
