@@ -2631,6 +2631,29 @@ static int gaudi2_set_cluster_binning_masks(struct hl_device *hdev)
 	return 0;
 }
 
+int gaudi2_set_binning_masks(struct hl_device *hdev)
+{
+	bool fw_cfg = !((hdev->fw_components & FW_TYPE_BOOT_CPU) && !hdev->fw_cfg_skip);
+	int rc;
+
+	if (fw_cfg)
+		rc = gaudi2_set_cluster_binning_masks_fw_config(hdev);
+	else
+		rc = gaudi2_set_cluster_binning_masks(hdev);
+	if (rc)
+		return rc;
+
+	rc = gaudi2_set_tpc_binning_masks(hdev);
+	if (rc)
+		return rc;
+
+	rc = gaudi2_set_dec_binning_masks(hdev);
+	if (rc)
+		return rc;
+
+	return 0;
+}
+
 static int gaudi2_cpucp_info_get(struct hl_device *hdev)
 {
 	struct gaudi2_device *gaudi2 = hdev->asic_specific;
@@ -2693,15 +2716,7 @@ static int gaudi2_cpucp_info_get(struct hl_device *hdev)
 	if (rc)
 		return rc;
 
-	rc = gaudi2_set_cluster_binning_masks(hdev);
-	if (rc)
-		return rc;
-
-	rc = gaudi2_set_tpc_binning_masks(hdev);
-	if (rc)
-		return rc;
-
-	rc = gaudi2_set_dec_binning_masks(hdev);
+	rc = hdev->asic_funcs->set_binning_masks(hdev);
 	if (rc)
 		return rc;
 
@@ -11674,7 +11689,7 @@ static const struct hl_asic_funcs gaudi2_funcs = {
 	.pll_info_get = gaudi2_fetch_frequency,
 	.set_dram_properties = gaudi2_set_dram_properties,
 	.set_priv_assertions = gaudi2_set_priv_assertions,
-
+	.set_binning_masks = gaudi2_set_binning_masks,
 };
 
 void gaudi2_set_asic_funcs(struct hl_device *hdev)

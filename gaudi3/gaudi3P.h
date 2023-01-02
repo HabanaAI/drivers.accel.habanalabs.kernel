@@ -688,6 +688,7 @@ int gaudi3_mmu_invalidate_cache_range(struct hl_device *hdev, bool is_hard,
 				u32 flags, u32 asid, u64 va, u64 size);
 int gaudi3_mmu_prefetch_cache_range(struct hl_ctx *ctx, u32 flags, u32 asid, u64 va, u64 size);
 int gaudi3_set_dram_properties(struct hl_device *hdev);
+int gaudi3_set_binning_masks(struct hl_device *hdev);
 int gaudi3_set_fixed_properties(struct hl_device *hdev);
 bool gaudi3_host_phys_addr_valid(u64 addr);
 void gaudi3_init_firmware_preload_params(struct hl_device *hdev);

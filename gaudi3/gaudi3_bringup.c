@@ -2402,20 +2402,15 @@ void gaudi3_fw_config(struct hl_device *hdev)
 	if ((hdev->fw_components & FW_TYPE_BOOT_CPU) && (hdev->asic_type != ASIC_GAUDI3_SIM_ARC))
 		return;
 
+	hdev->asic_funcs->set_binning_masks(hdev);
+
 	gaudi3_print_sol_config_version(hdev);
-
 	gaudi3_reset_config(hdev);
-
 	gaudi3_sram_init(hdev);
-
 	gaudi3_init_credits(hdev);
-
 	gaudi3_set_isolation(hdev);
-
 	gaudi3_init_cbc_fw_config(hdev);
-
 	gaudi3_init_mstr_if(hdev);
-
 	gaudi3_init_pdma_fw_config(hdev);
 	gaudi3_init_edma_fw_config(hdev);
 	gaudi3_init_tpc_fw_config(hdev);
@@ -2424,15 +2419,11 @@ void gaudi3_fw_config(struct hl_device *hdev)
 	gaudi3_init_decoder_fw_config(hdev);
 	gaudi3_init_nic_qmans_fw_config(hdev);
 	gaudi3_init_sm_axprot_overrides(hdev);
-
 	gaudi3_enable_clock_gating(hdev);
-
 	gaudi3_init_odp(hdev);
 	gaudi3_init_regulators(hdev);
-
 	gaudi3_init_interrupt_coalescing(hdev);
 	gaudi3_init_mmu_fw_config(hdev);
-
 	gaudi3_ac_program_all(hdev);
 	gaudi3_enable_ptw_bypass(hdev);
 	gaudi3_init_qos(hdev);

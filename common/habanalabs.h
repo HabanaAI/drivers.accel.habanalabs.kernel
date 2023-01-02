@@ -1760,6 +1760,7 @@ struct engines_data {
  * @read_fetch_memory_block: read memory area for debug read operation
  * @set_dram_properties: set DRAM related properties.
  * @set_priv_assertions: enable/disable privilege assertions.
+ * @set_binning_masks: set binning/enable masks for all relevant components.
  */
 struct hl_asic_funcs {
 	int (*early_init)(struct hl_device *hdev);
@@ -1923,6 +1924,7 @@ struct hl_asic_funcs {
 	int (*pll_info_get)(struct hl_device *hdev, u32 pll_index, u16 *pll_freq_arr);
 	int (*set_dram_properties)(struct hl_device *hdev);
 	void (*set_priv_assertions)(struct hl_device *hdev, bool enable);
+	int (*set_binning_masks)(struct hl_device *hdev);
 };
 
 

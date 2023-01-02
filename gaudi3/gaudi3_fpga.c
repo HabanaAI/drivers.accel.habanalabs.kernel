@@ -550,6 +550,7 @@ static const struct hl_asic_funcs gaudi3_fpga_funcs = {
 	.free_irq_vectors = gaudi3_free_irq_vectors,
 	.fw_security_emulation_init = gaudi3_fw_security_emulation_init,
 	.fw_security_emulation_fini = gaudi3_fw_security_emulation_fini,
+	.set_binning_masks = gaudi3_set_binning_masks,
 };
 
 void gaudi3_fpga_set_asic_funcs(struct hl_device *hdev)

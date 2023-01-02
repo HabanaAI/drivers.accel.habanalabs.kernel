@@ -4830,7 +4830,7 @@ static int gaudi2_apply_cluster_masks(struct hl_device *hdev)
 	return 0;
 }
 
-static int gaudi2_set_cluster_binning_masks_fw_config(struct hl_device *hdev)
+int gaudi2_set_cluster_binning_masks_fw_config(struct hl_device *hdev)
 {
 	int rc;
 
@@ -6808,16 +6808,7 @@ int gaudi2_init_golden_registers(struct hl_device *hdev)
 	if ((hdev->fw_components & FW_TYPE_BOOT_CPU) && !hdev->fw_cfg_skip)
 		return 0;
 
-	rc = gaudi2_set_cluster_binning_masks_fw_config(hdev);
-	if (rc)
-		return rc;
-
-	/* TPC/DEC binning masks are received from user/eFuse */
-	rc = gaudi2_set_tpc_binning_masks(hdev);
-	if (rc)
-		return rc;
-
-	rc = gaudi2_set_dec_binning_masks(hdev);
+	rc = hdev->asic_funcs->set_binning_masks(hdev);
 	if (rc)
 		return rc;
 

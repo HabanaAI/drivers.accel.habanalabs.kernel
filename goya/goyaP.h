@@ -180,6 +180,7 @@ struct goya_device {
 
 int goya_scrub_device_dram(struct hl_device *hdev, u64 val);
 int goya_set_dram_properties(struct hl_device *hdev);
+int goya_set_binning_masks(struct hl_device *hdev);
 int goya_set_fixed_properties(struct hl_device *hdev);
 int goya_mmu_init(struct hl_device *hdev);
 void goya_init_dma_qmans(struct hl_device *hdev);

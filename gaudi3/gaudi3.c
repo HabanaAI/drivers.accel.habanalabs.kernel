@@ -141,6 +141,9 @@ MODULE_FIRMWARE(GAUDI3_BOOT_FIT_FILE);
 /* we can invalidate at most 256MB at once */
 #define RANGE_INV_MAX_MEM_SIZE	(256 * 1024 * 1024)
 
+#define MAX_BINNED_TPCS_PER_DCORE	1
+#define MAX_BINNED_DECODERS_PER_DIE	1
+
 #define HL_STR(e) #e
 
 const char *gaudi3_engine_id_str[] = {
@@ -2542,6 +2545,7 @@ static int set_number_of_functional_hbms(struct hl_device *hdev)
 
 	max_hbms = NUM_HBM_PER_DIE * prop->num_of_dies;
 	faulty_hbms = hweight64(hdev->dram_binning);
+	prop->dram_binning_mask = hdev->dram_binning;
 
 	/* check if all HBMs should be used */
 	if (!faulty_hbms) {
@@ -2594,6 +2598,117 @@ int gaudi3_set_dram_properties(struct hl_device *hdev)
 	 */
 	prop->dmmu.start_addr = prop->dram_base_address +
 			roundup(prop->dram_size, prop->dram_page_size);
+
+	return 0;
+}
+
+static int gaudi3_validate_set_tpc_binning(struct hl_device *hdev)
+{
+	u64 dcore_tpc_binning_mask, dcore_tpc_full_mask, tpc_full_mask;
+	struct asic_fixed_properties *prop = &hdev->asic_prop;
+	u8 i, num_dcores, num_dcore_tpcs, num_binned;
+
+	tpc_full_mask = GENMASK_ULL((prop->num_of_hdcores * NUM_OF_TPC_PER_HDCORE) - 1, 0);
+
+	/* no binning but maybe not all engines are enabled */
+	if (!hdev->tpc_binning) {
+		prop->tpc_enabled_mask = hdev->tpc_mask;
+		prop->tpc_binning_mask = hdev->tpc_binning;
+		return 0;
+	}
+
+	if (hdev->tpc_binning && (hdev->tpc_mask != tpc_full_mask)) {
+		dev_err(hdev->dev,
+			"TPC binning is valid only with full TPC enabled mask\n");
+		return -EINVAL;
+	}
+
+	/* in TPC binning we can have, at most, single binned TPC per DCORE */
+	num_dcores = prop->num_of_hdcores / 2;
+	num_dcore_tpcs = NUM_OF_TPC_PER_HDCORE * 2;
+	dcore_tpc_full_mask = GENMASK_ULL(num_dcore_tpcs - 1, 0);
+	for (i = 0; i < num_dcores; i++) {
+		u8 rshift = i * num_dcore_tpcs;
+
+		dcore_tpc_binning_mask = (hdev->tpc_binning >> rshift) & dcore_tpc_full_mask;
+		if (!dcore_tpc_binning_mask)
+			continue;
+
+		num_binned = __ffs((unsigned long)dcore_tpc_binning_mask);
+		if (num_binned > MAX_BINNED_TPCS_PER_DCORE) {
+			dev_err(hdev->dev, "too many binned TPCs (%#llx)\n", hdev->tpc_binning);
+			return -EINVAL;
+		}
+	}
+
+	prop->tpc_binning_mask = hdev->tpc_binning;
+	/* as we have 4 spare TPCs we always expect full TPC enabled mask. */
+	prop->tpc_enabled_mask = tpc_full_mask;
+
+	return 0;
+}
+
+static int gaudi3_validate_set_decoder_binning(struct hl_device *hdev)
+{
+	u64 decoder_full_mask, die_decoder_full_mask, die_decoder_binning_mask;
+	struct asic_fixed_properties *prop = &hdev->asic_prop;
+	u8 i, num_die_decoders, num_binned;
+
+	decoder_full_mask = GENMASK((prop->num_of_hdcores * NUM_OF_DECODER_PER_HDCORE) - 1, 0);
+
+	/* no binning but maybe not all engines are enabled */
+	if (!hdev->decoder_binning) {
+		prop->decoder_enabled_mask = hdev->decoder_mask;
+		prop->decoder_binning_mask = hdev->decoder_binning;
+		return 0;
+	}
+
+	if (hdev->decoder_binning && (hdev->decoder_mask != decoder_full_mask)) {
+		dev_err(hdev->dev,
+			"Decoder binning is valid only with full decoder enabled mask\n");
+		return -EINVAL;
+	}
+
+	/* in decoder binning we can have, at most, single binned decoder per DIE */
+	num_die_decoders = NUM_OF_HDCORES_PER_DIE * NUM_OF_DECODER_PER_HDCORE;
+	die_decoder_full_mask = GENMASK(num_die_decoders - 1, 0);
+	prop->decoder_enabled_mask = 0;
+	for (i = 0; i < prop->num_of_dies; i++) {
+		u8 shift = i * num_die_decoders;
+
+		die_decoder_binning_mask = (hdev->decoder_binning >> shift) & die_decoder_full_mask;
+		if (!die_decoder_binning_mask) {
+			prop->decoder_enabled_mask |= (die_decoder_full_mask << shift);
+			continue;
+		}
+
+		num_binned = __ffs((unsigned long)die_decoder_binning_mask);
+		if (num_binned > MAX_BINNED_DECODERS_PER_DIE) {
+			dev_err(hdev->dev, "too many binned decoders (%#x)\n",
+							hdev->decoder_binning);
+			return -EINVAL;
+		}
+
+		/* set last decoder in each die as not enabled */
+		prop->decoder_enabled_mask |= (GENMASK(num_die_decoders - 2, 0) << shift);
+	}
+
+	prop->decoder_binning_mask = hdev->decoder_binning;
+
+	return 0;
+}
+
+int gaudi3_set_binning_masks(struct hl_device *hdev)
+{
+	int rc;
+
+	rc = gaudi3_validate_set_tpc_binning(hdev);
+	if (rc)
+		return rc;
+
+	rc = gaudi3_validate_set_decoder_binning(hdev);
+	if (rc)
+		return rc;
 
 	return 0;
 }
@@ -2839,9 +2954,6 @@ int gaudi3_set_fixed_properties(struct hl_device *hdev)
 	prop->dma_mask = 64;
 
 	prop->edma_enabled_mask = hdev->edma_mask;
-	/* TODO: move to cpucp_info_get when receiving binning info from F/W */
-	prop->tpc_enabled_mask = hdev->tpc_mask;
-	prop->decoder_enabled_mask = hdev->decoder_mask;
 
 	prop->max_dec = NUMBER_OF_DEC;
 	prop->supports_odp = true;
@@ -4166,6 +4278,7 @@ static int gaudi3_cpucp_info_get(struct hl_device *hdev)
 		hdev->nic_auto_neg_mask &= le64_to_cpu(nic_info->auto_neg_mask[0]);
 	}
 
+	hdev->asic_funcs->set_binning_masks(hdev);
 
 	return rc;
 }
@@ -6383,11 +6496,6 @@ static int gaudi3_hw_init(struct hl_device *hdev)
 		return rc;
 	}
 
-	/*
-	 * note: FW config should be placed after init CPU because inside
-	 * init CPU all binning mask are being updated which is an input parameter
-	 * to the FW config (e.g. work with 8 or 7 HBMs
-	 */
 	gaudi3_fw_config(hdev);
 
 	if (hdev->cache_enable) {
@@ -10680,6 +10788,7 @@ static const struct hl_asic_funcs gaudi3_funcs = {
 	.pll_info_get = gaudi3_pll_info_get,
 	.set_dram_properties = gaudi3_set_dram_properties,
 	.set_priv_assertions = gaudi3_set_priv_assertions,
+	.set_binning_masks = gaudi3_set_binning_masks,
 };
 
 void gaudi3_set_asic_funcs(struct hl_device *hdev)

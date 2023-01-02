@@ -868,6 +868,8 @@ int gaudi2_special_blocks_config(struct hl_device *hdev);
 void gaudi2_special_blocks_free(struct hl_device *hdev);
 void gaudi2_fw_security_emulation_init(struct hl_device *hdev);
 void gaudi2_fw_security_emulation_fini(struct hl_device *hdev, bool asic_dirty);
+int gaudi2_set_binning_masks(struct hl_device *hdev);
+int gaudi2_set_cluster_binning_masks_fw_config(struct hl_device *hdev);
 
 /* Functions exported for FPGA support */
 int gaudi2_early_fini(struct hl_device *hdev);

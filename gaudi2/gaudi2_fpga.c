@@ -577,6 +577,7 @@ static const struct hl_asic_funcs gaudi2_fpga_funcs = {
 	.access_dev_mem = hl_access_dev_mem,
 	.set_dram_bar_base = gaudi2_fpga_set_hbm_bar_base,
 	.send_device_activity = gaudi2_send_device_activity,
+	.set_binning_masks = gaudi2_set_binning_masks,
 };
 
 void gaudi2_fpga_set_asic_funcs(struct hl_device *hdev)

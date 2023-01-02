@@ -607,6 +607,7 @@ u32 greco_get_sob_addr(struct hl_device *hdev, u32 sob_id);
 u32 *greco_get_stream_master_qid_arr(void);
 int greco_get_monitor_dump(struct hl_device *hdev, void *data);
 int greco_set_dram_properties(struct hl_device *hdev);
+int greco_set_binning_masks(struct hl_device *hdev);
 void greco_reset_sob(struct hl_device *hdev, void *data);
 void greco_reset_sob_group(struct hl_device *hdev, u16 sob_group);
 u64 greco_get_device_time(struct hl_device *hdev);

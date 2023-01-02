@@ -40,9 +40,6 @@
 
 #define GRECO_PLL_TIMEOUT_USEC			10000		/* 10ms */
 
-#define MAX_FAULTY_TPCS				1
-#define MAX_FAULTY_DECODERS			1
-
 #define NUM_OF_DECODE_BASE_ADDR 4
 #define NUM_OF_DCONS 4
 
@@ -1971,41 +1968,6 @@ static void greco_init_binning_mme(struct hl_device *hdev)
 			dcore1_mme_fma_binned_idx, dcore1_mme_ima_binned_idx);
 }
 
-static void greco_set_binning_masks(struct hl_device *hdev)
-{
-	struct asic_fixed_properties *prop = &hdev->asic_prop;
-	struct hw_queue_properties *q_props = prop->hw_queues_props;
-
-	prop->tpc_binning_mask = hdev->tpc_binning;
-	prop->tpc_enabled_mask = 0x1FF;
-	/*
-	 * Since we use only 9 TPCs no matter what,
-	 * TPC 4 in DCORE1 is always not in use.
-	 * DCORE1 TPCs are a mirror of DCORE0 TPCs so DCORE1_TPC4
-	 * is actually the LSB in the mask.
-	 */
-	q_props[GRECO_QUEUE_ID_DCORE1_TPC_4_0].binned = 1;
-	q_props[GRECO_QUEUE_ID_DCORE1_TPC_4_1].binned = 1;
-	q_props[GRECO_QUEUE_ID_DCORE1_TPC_4_2].binned = 1;
-	q_props[GRECO_QUEUE_ID_DCORE1_TPC_4_3].binned = 1;
-
-	if ((hdev->decoder_mask & 0x3FF) != 0x3FF) {
-		prop->decoder_binning_mask = 0;
-		prop->decoder_enabled_mask = hdev->decoder_mask &
-							~hdev->decoder_binning;
-	} else {
-		prop->decoder_binning_mask = hdev->decoder_binning;
-		prop->decoder_enabled_mask = hdev->decoder_mask;
-		if (hdev->decoder_binning & 0x1F)
-			prop->decoder_enabled_mask &= ~0x10ull;
-		if (hdev->decoder_binning & 0x3E0)
-			prop->decoder_enabled_mask &= ~0x200ull;
-	}
-
-	prop->mme_binning_mask = hdev->mme_binning;
-	prop->sram_binning = hdev->sram_binning;
-}
-
 static void greco_report_driver_performed_binning(struct hl_device *hdev)
 {
 	struct greco_device *greco = hdev->asic_specific;
@@ -2030,26 +1992,7 @@ static void greco_report_driver_performed_binning(struct hl_device *hdev)
 
 static void greco_init_binning(struct hl_device *hdev)
 {
-	/*
-	 * check for error condition in which number of binning candidates
-	 * is higher than the maximum supported by the driver
-	 */
-	if (hweight64(hdev->tpc_binning) > MAX_FAULTY_TPCS) {
-		dev_err(hdev->dev,
-			"TPC binning is supported for max of %u faulty TPCs, provided mask 0x%llx\n",
-			MAX_FAULTY_TPCS, hdev->tpc_binning);
-		hdev->tpc_binning = 0;
-	}
-
-	if (hweight32(hdev->decoder_binning) > MAX_FAULTY_DECODERS) {
-		dev_err(hdev->dev,
-			"Decoder binning is supported for max of %u faulty decoders, provided mask 0x%x\n",
-			MAX_FAULTY_DECODERS, hdev->decoder_binning);
-		hdev->decoder_binning = 0;
-	}
-
-	greco_set_binning_masks(hdev);
-
+	hdev->asic_funcs->set_binning_masks(hdev);
 	greco_init_binning_sram(hdev);
 	greco_init_binning_tpc_dec(hdev);
 	greco_init_binning_mme(hdev);

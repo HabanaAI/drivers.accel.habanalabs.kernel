@@ -60,6 +60,9 @@ MODULE_FIRMWARE(GRECO_LINUX_FW_FILE);
 
 #define GRECO_ALLOC_CPU_MEM_RETRY_CNT	6
 
+#define MAX_FAULTY_TPCS			1
+#define MAX_FAULTY_DECODERS		1
+
 #define GRECO_MAX_STRING_LEN		32
 
 #define GRECO_NUM_OF_TPC_INTR_CAUSE	25
@@ -1253,6 +1256,61 @@ static int greco_early_fini(struct hl_device *hdev)
 {
 	kfree(hdev->asic_prop.hw_queues_props);
 	hl_pci_fini(hdev);
+
+	return 0;
+}
+
+int greco_set_binning_masks(struct hl_device *hdev)
+{
+	struct asic_fixed_properties *prop = &hdev->asic_prop;
+	struct hw_queue_properties *q_props = prop->hw_queues_props;
+
+	/*
+	 * check for error condition in which number of binning candidates
+	 * is higher than the maximum supported by the driver
+	 */
+	if (hweight64(hdev->tpc_binning) > MAX_FAULTY_TPCS) {
+		dev_err(hdev->dev,
+			"TPC binning is supported for max of %u faulty TPCs, provided mask 0x%llx\n",
+			MAX_FAULTY_TPCS, hdev->tpc_binning);
+		hdev->tpc_binning = 0;
+	}
+
+	if (hweight32(hdev->decoder_binning) > MAX_FAULTY_DECODERS) {
+		dev_err(hdev->dev,
+			"Decoder binning is supported for max of %u faulty decoders, provided mask 0x%x\n",
+			MAX_FAULTY_DECODERS, hdev->decoder_binning);
+		hdev->decoder_binning = 0;
+	}
+
+	prop->tpc_binning_mask = hdev->tpc_binning;
+	prop->tpc_enabled_mask = 0x1FF;
+	/*
+	 * Since we use only 9 TPCs no matter what,
+	 * TPC 4 in DCORE1 is always not in use.
+	 * DCORE1 TPCs are a mirror of DCORE0 TPCs so DCORE1_TPC4
+	 * is actually the LSB in the mask.
+	 */
+	q_props[GRECO_QUEUE_ID_DCORE1_TPC_4_0].binned = 1;
+	q_props[GRECO_QUEUE_ID_DCORE1_TPC_4_1].binned = 1;
+	q_props[GRECO_QUEUE_ID_DCORE1_TPC_4_2].binned = 1;
+	q_props[GRECO_QUEUE_ID_DCORE1_TPC_4_3].binned = 1;
+
+	if ((hdev->decoder_mask & 0x3FF) != 0x3FF) {
+		prop->decoder_binning_mask = 0;
+		prop->decoder_enabled_mask = hdev->decoder_mask &
+							~hdev->decoder_binning;
+	} else {
+		prop->decoder_binning_mask = hdev->decoder_binning;
+		prop->decoder_enabled_mask = hdev->decoder_mask;
+		if (hdev->decoder_binning & 0x1F)
+			prop->decoder_enabled_mask &= ~0x10ull;
+		if (hdev->decoder_binning & 0x3E0)
+			prop->decoder_enabled_mask &= ~0x200ull;
+	}
+
+	prop->mme_binning_mask = hdev->mme_binning;
+	prop->sram_binning = hdev->sram_binning;
 
 	return 0;
 }
@@ -8129,6 +8187,7 @@ static const struct hl_asic_funcs greco_funcs = {
 	.pll_info_get = hl_fw_cpucp_pll_info_get,
 	.set_dram_properties = greco_set_dram_properties,
 	.set_priv_assertions = greco_set_priv_assertions,
+	.set_binning_masks = greco_set_binning_masks,
 };
 
 void greco_set_asic_funcs(struct hl_device *hdev)

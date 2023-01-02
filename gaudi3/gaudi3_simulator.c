@@ -1563,6 +1563,7 @@ static const struct hl_asic_funcs gaudi3_sim_funcs = {
 	.pll_info_get = gaudi3_sim_pll_info_get,
 	.set_dram_properties = gaudi3_set_dram_properties,
 	.set_priv_assertions = gaudi3_sim_set_priv_assertions,
+	.set_binning_masks = gaudi3_set_binning_masks,
 };
 
 /**
