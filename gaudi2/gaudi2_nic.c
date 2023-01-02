@@ -3746,7 +3746,7 @@ static int gaudi2_nic_ring_tx_doorbell(struct hl_aux_dev *aux_dev, u32 port, u32
 	space_left_in_db_fifo = CIRC_SPACE(db_fifo_pi, db_fifo_ci, NIC_FIFO_DB_SIZE);
 
 	if (!space_left_in_db_fifo) {
-		dev_err_ratelimited(hdev->dev, "port %d DB fifo full. PI %d, CI %d\n",
+		dev_dbg_ratelimited(hdev->dev, "port %d DB fifo full. PI %d, CI %d\n",
 				    port, db_fifo_pi, db_fifo_ci);
 		return -EBUSY;
 	}
