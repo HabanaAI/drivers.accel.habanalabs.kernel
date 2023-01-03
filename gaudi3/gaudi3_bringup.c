@@ -795,6 +795,10 @@ int gaudi3_set_cache_mode(struct hl_device *hdev)
 	if ((gaudi3->hw_cap_initialized & HW_CAP_SET_CACHE_MODE_MASK) == HW_CAP_SET_CACHE_MODE_MASK)
 		return 0;
 
+	/* If preboot simulator exist- he will perform those configs- skip */
+	if ((hdev->fw_components & FW_TYPE_BOOT_CPU) && (hdev->asic_type == ASIC_GAUDI3_SIM_ARC))
+		return 0;
+
 	ctx.fn = gaudi3_set_cache_mode_cslice;
 	gaudi3_iterate_cache_slices(hdev, &ctx);
 	if (ctx.rc)
