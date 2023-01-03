@@ -751,10 +751,13 @@ static void gaudi3_set_cache_mode_dtlb(struct hl_device *hdev, int block, int in
 	WREG32(offset + DTLB_RR_GLBL_PA_END1_OFFSET, 0);
 }
 
-static void gaudi3_set_cache_mode_cslice(struct hl_device *hdev, int block, int inst,
+static void gaudi3_set_cache_mode_cslice(struct hl_device *hdev, int hdcore, int inst,
 						u32 offset, struct iterate_module_ctx *ctx)
 {
-	u32 val;
+	struct asic_fixed_properties *prop = &hdev->asic_prop;
+	/* init to illegal large value */
+	u8 binned_hbm = 0xFF;
+	u32 val, mask;
 	int rc;
 
 	val = FIELD_PREP(CACHE_MAIN_CNTRL_MAIN_SRAM_MODE_EN_M, 0) |
@@ -783,8 +786,26 @@ static void gaudi3_set_cache_mode_cslice(struct hl_device *hdev, int block, int 
 		return;
 	}
 
-	RMWREG32(offset + CSLICE_CRDT_OFFSET + mmCACHE_CRDT_TO_HBM, 0x1,
-			CACHE_CRDT_TO_HBM_SWAP_PC_ADDR_WITH_9_M);
+	if (prop->dram_binning_mask)
+		binned_hbm = __ffs((unsigned long)prop->dram_binning_mask);
+
+	val = FIELD_PREP(CACHE_CRDT_TO_HBM_SWAP_PC_ADDR_WITH_9_M, 1);
+	mask = CACHE_CRDT_TO_HBM_SWAP_PC_ADDR_WITH_9_M;
+
+	/*
+	 * if we have "binned-out" HBM in DIE0 we need to set
+	 * BINOUT_INV_ADDR16_2HBM/BINOUT_SWAP_PC_0_WITH_1 in the CSs that
+	 * are on the same DCORE (e.g. HBM3 is binned out- apply on CSs in
+	 * HDCOREs 2, 3
+	 */
+	if ((binned_hbm < NUM_HBM_PER_DIE) && ((binned_hbm & 0x2) == (hdcore & 0x2))) {
+		val |= FIELD_PREP(CACHE_CRDT_TO_HBM_BINOUT_INV_ADDR16_2HBM_M, 1) |
+			FIELD_PREP(CACHE_CRDT_TO_HBM_BINOUT_SWAP_PC_0_WITH_1_M, 1);
+		mask |= CACHE_CRDT_TO_HBM_BINOUT_INV_ADDR16_2HBM_M |
+			CACHE_CRDT_TO_HBM_BINOUT_SWAP_PC_0_WITH_1_M;
+	}
+
+	RMWREG32_SHIFTED(offset + CSLICE_CRDT_OFFSET + mmCACHE_CRDT_TO_HBM, val, mask);
 }
 
 int gaudi3_set_cache_mode(struct hl_device *hdev)
