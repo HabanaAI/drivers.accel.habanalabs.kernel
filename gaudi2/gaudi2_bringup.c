@@ -3043,7 +3043,8 @@ int gaudi2_init_scrambler_sram(struct hl_device *hdev)
 			GAUDI2_NIC_FW_TIMEOUT_USEC);
 
 		if (rc) {
-			dev_err(hdev->dev, "Failed to wait for uboot to be active\n");
+			dev_err(hdev->dev,
+				"Failed to wait for uboot to be active (status = %d)\n", status);
 			return -EIO;
 		}
 
@@ -3063,7 +3064,9 @@ int gaudi2_init_scrambler_sram(struct hl_device *hdev)
 				GAUDI2_NIC_FW_TIMEOUT_USEC);
 
 			if (rc) {
-				dev_err(hdev->dev, "Failed to wait for uboot to free the SRAM\n");
+				dev_err(hdev->dev,
+					"Failed to wait for uboot to free the SRAM (status = %d)\n",
+					status);
 				return -EIO;
 			}
 		} else {

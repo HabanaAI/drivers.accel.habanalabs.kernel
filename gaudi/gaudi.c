@@ -2318,7 +2318,8 @@ void gaudi_init_scrambler_sram(struct hl_device *hdev)
 
 		if (rc)
 			dev_warn(hdev->dev,
-				"Failed to detect u-boot has finished loading NIC F/W. Maybe running old F/W?\n");
+				"Failed to detect u-boot has finished loading NIC F/W (status = %d). Maybe running old F/W?\n",
+				status);
 
 		if (status != CPU_BOOT_STATUS_SRAM_AVAIL)
 			ssleep(1);

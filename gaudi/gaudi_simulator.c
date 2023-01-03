@@ -1387,7 +1387,7 @@ static void gaudi_sim_hw_fini(struct hl_device *hdev, bool hard_reset, bool fw_r
 
 	if (rc == -ETIMEDOUT)
 		dev_err(hdev->dev,
-			"Timeout while waiting for device to reset 0x%x\n",
+			"Timeout while waiting for device to reset (status = 0x%x)\n",
 			status);
 
 	if (gaudi) {
