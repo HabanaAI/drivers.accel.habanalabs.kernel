@@ -956,6 +956,12 @@ static int gaudi3_sim_sw_init(struct hl_device *hdev)
 		goto free_cpu_accessible_dma_pool;
 	}
 
+	rc = gaudi3_etr_buf_store_sw_init(hdev);
+	if (rc) {
+		dev_err(hdev->dev, "Failed to init ETR buffer storing S/W\n");
+		goto nic_sw_fini;
+	}
+
 	nic->phy_load_fw = 0;
 	nic->phy_config_fw = 0;
 	nic->debugfs_reset = true;
@@ -967,10 +973,12 @@ static int gaudi3_sim_sw_init(struct hl_device *hdev)
 
 	rc = gaudi3_special_blocks_config(hdev);
 	if (rc)
-		goto nic_sw_fini;
+		goto etr_sw_fini;
 
 	return 0;
 
+etr_sw_fini:
+	gaudi3_etr_buf_store_sw_fini(hdev);
 nic_sw_fini:
 	hl_nic_sw_fini(hdev);
 free_cpu_accessible_dma_pool:
@@ -990,6 +998,8 @@ static int gaudi3_sim_sw_fini(struct hl_device *hdev)
 	struct gaudi3_device *gaudi3 = hdev->asic_specific;
 
 	gaudi3_special_blocks_free(hdev);
+
+	gaudi3_etr_buf_store_sw_fini(hdev);
 
 	hl_nic_sw_fini(hdev);
 

@@ -3982,7 +3982,7 @@ int gaudi3_late_init(struct hl_device *hdev)
 	gaudi3_scrub_arcs_dccm(hdev);
 	gaudi3_user_mapped_blocks_init(hdev);
 
-	rc = gaudi3_etr_buf_store_init(hdev);
+	rc = gaudi3_etr_buf_store_late_init(hdev);
 	if (rc)
 		return rc;
 
@@ -3997,7 +3997,7 @@ int gaudi3_late_init(struct hl_device *hdev)
 
 void gaudi3_late_fini(struct hl_device *hdev)
 {
-	gaudi3_etr_buf_store_fini(hdev);
+	gaudi3_etr_buf_store_late_fini(hdev);
 
 	hl_hwmon_release_resources(hdev);
 }
@@ -4402,6 +4402,12 @@ int gaudi3_sw_init(struct hl_device *hdev)
 
 	nic->has_eq = true;
 
+	rc = gaudi3_etr_buf_store_sw_init(hdev);
+	if (rc) {
+		dev_err(hdev->dev, "Failed to init ETR buffer storing S/W\n");
+		goto nic_sw_fini;
+	}
+
 	gaudi3_user_interrupt_setup(hdev);
 	hdev->supports_cb_mapping = true;
 	hdev->supports_mmu_prefetch = true;
@@ -4411,10 +4417,12 @@ int gaudi3_sw_init(struct hl_device *hdev)
 
 	rc = gaudi3_special_blocks_config(hdev);
 	if (rc)
-		goto nic_sw_fini;
+		goto etr_sw_fini;
 
 	return 0;
 
+etr_sw_fini:
+	gaudi3_etr_buf_store_sw_fini(hdev);
 nic_sw_fini:
 	hl_nic_sw_fini(hdev);
 free_cpu_accessible_dma_pool:
@@ -4435,6 +4443,8 @@ int gaudi3_sw_fini(struct hl_device *hdev)
 	struct gaudi3_device *gaudi3 = hdev->asic_specific;
 
 	gaudi3_special_blocks_free(hdev);
+
+	gaudi3_etr_buf_store_sw_fini(hdev);
 
 	hl_nic_sw_fini(hdev);
 
@@ -6067,7 +6077,7 @@ out:
 	return buf;
 }
 
-static void gaudi3_etr_buf_store_destroy_host_buf(struct hl_device *hdev, struct hl_etr_buf *buf)
+static void gaudi3_etr_buf_store_free_host_buf(struct hl_device *hdev, struct hl_etr_buf *buf)
 {
 	vfree(buf->data_host_va);
 	kfree(buf);
@@ -6115,14 +6125,14 @@ static void gaudi3_etr_buf_store_unmap_host_buf(struct hl_device *hdev, struct h
 
 static void gaudi3_etr_buf_store_reset_db(struct hl_device *hdev)
 {
-	struct hl_etr_buf_store *store = &hdev->etr_buf_store;
+	struct asic_fixed_properties *prop = &hdev->asic_prop;
 	struct hl_etr_buf *buf;
 	int etr_idx;
 
-	if (!store->etr_tracer)
+	if (!prop->etr_buf_number)
 		return;
 
-	for (etr_idx = 0 ; etr_idx < hdev->asic_prop.etr_buf_number ; ++etr_idx) {
+	for (etr_idx = 0 ; etr_idx < prop->etr_buf_number ; ++etr_idx) {
 		while ((buf = gaudi3_etr_buf_store_pop_buf(hdev, etr_idx)))
 			gaudi3_etr_buf_store_return_buf_to_pool(hdev, buf);
 	}
@@ -6176,23 +6186,109 @@ static void gaudi3_etr_buf_store_unmap_device_buf(struct hl_device *hdev,
 	etr_tracer->phys_dram_addr = etr_tracer->virt_dram_addr = 0;
 }
 
-void gaudi3_etr_buf_store_fini(struct hl_device *hdev)
+static void gaudi3_etr_buf_store_completion_reinit(struct hl_device *hdev)
 {
+	int etr_idx;
+
+	for (etr_idx = 0 ; etr_idx < hdev->asic_prop.etr_buf_number ; etr_idx++)
+		reinit_completion(&hdev->etr_buf_store_completion[etr_idx]);
+}
+
+/* Allocates per-ETR completion struct memory, used to signal the user when
+ * a buffer was fetched from an ETR, making it available for consumption.
+ */
+static int gaudi3_etr_buf_store_completion_init(struct hl_device *hdev)
+{
+	struct asic_fixed_properties *prop = &hdev->asic_prop;
+	int etr_idx;
+
+	hdev->etr_buf_store_completion = kcalloc(prop->etr_buf_number,
+			sizeof(struct completion), GFP_KERNEL);
+	if (!hdev->etr_buf_store_completion)
+		return -ENOMEM;
+
+	for (etr_idx = 0 ; etr_idx < hdev->asic_prop.etr_buf_number ; etr_idx++)
+		init_completion(&hdev->etr_buf_store_completion[etr_idx]);
+
+	return 0;
+}
+
+void gaudi3_etr_buf_store_late_fini(struct hl_device *hdev)
+{
+	struct asic_fixed_properties *prop = &hdev->asic_prop;
 	struct hl_etr_buf_store *store = &hdev->etr_buf_store;
 	struct hl_etr_buf *buf, *tmp;
 	u32 etr_idx;
 
-	if (!hdev->asic_prop.etr_buf_number || !store->etr_tracer)
+	if (!prop->etr_buf_number)
+		return;
+
+	for (etr_idx = 0 ; etr_idx < prop->etr_buf_number ; ++etr_idx) {
+		list_for_each_entry_safe(buf, tmp, &store->etr_tracer[etr_idx].bufs, list_link)
+			gaudi3_etr_buf_store_unmap_host_buf(hdev, buf);
+
+		gaudi3_etr_buf_store_unmap_device_buf(hdev, &store->etr_tracer[etr_idx]);
+	}
+
+	list_for_each_entry_safe(buf, tmp, &store->free_bufs, list_link)
+		gaudi3_etr_buf_store_unmap_host_buf(hdev, buf);
+}
+
+int gaudi3_etr_buf_store_late_init(struct hl_device *hdev)
+{
+	struct asic_fixed_properties *prop = &hdev->asic_prop;
+	struct hl_etr_buf_store *store = &hdev->etr_buf_store;
+	struct hl_etr_buf *buf, *tmp;
+	u64 phys_dram_addr;
+	u32 etr_idx;
+	int rc = 0;
+
+	if (!prop->etr_buf_number)
+		return 0;
+
+	phys_dram_addr = prop->etr_bufs_dram_phys_base;
+
+	for (etr_idx = 0 ; etr_idx < prop->etr_buf_number ; ++etr_idx,
+		phys_dram_addr += prop->etr_buf_dram_size_aligned) {
+		rc = gaudi3_etr_buf_store_map_device_buf(hdev, &store->etr_tracer[etr_idx],
+						phys_dram_addr);
+		if (rc)
+			goto unmap_store;
+	}
+
+	list_for_each_entry_safe(buf, tmp, &store->free_bufs, list_link) {
+		rc = gaudi3_etr_buf_store_map_host_buf(hdev, buf);
+		if (rc)
+			goto unmap_store;
+	}
+
+	goto out;
+
+unmap_store:
+	gaudi3_etr_buf_store_late_fini(hdev);
+
+out:
+	return rc;
+}
+
+void gaudi3_etr_buf_store_sw_fini(struct hl_device *hdev)
+{
+	struct asic_fixed_properties *prop = &hdev->asic_prop;
+	struct hl_etr_buf_store *store = &hdev->etr_buf_store;
+	struct hl_etr_buf *buf, *tmp;
+	u32 etr_idx;
+
+	if (!prop->etr_buf_number)
 		return;
 
 	/* By now, all pending threads must NOT be waiting for completions anymore */
 	kfree(hdev->etr_buf_store_completion);
 
-	for (etr_idx = 0 ; etr_idx < hdev->asic_prop.etr_buf_number ; ++etr_idx) {
+	for (etr_idx = 0 ; etr_idx < prop->etr_buf_number ; ++etr_idx) {
 		list_for_each_entry_safe(buf, tmp, &store->etr_tracer[etr_idx].bufs, list_link) {
 			list_del(&buf->list_link);
 			gaudi3_etr_buf_store_unmap_host_buf(hdev, buf);
-			gaudi3_etr_buf_store_destroy_host_buf(hdev, buf);
+			gaudi3_etr_buf_store_free_host_buf(hdev, buf);
 		}
 
 		gaudi3_etr_buf_store_unmap_device_buf(hdev, &store->etr_tracer[etr_idx]);
@@ -6201,7 +6297,7 @@ void gaudi3_etr_buf_store_fini(struct hl_device *hdev)
 	list_for_each_entry_safe(buf, tmp, &store->free_bufs, list_link) {
 		list_del(&buf->list_link);
 		gaudi3_etr_buf_store_unmap_host_buf(hdev, buf);
-		gaudi3_etr_buf_store_destroy_host_buf(hdev, buf);
+		gaudi3_etr_buf_store_free_host_buf(hdev, buf);
 	}
 
 	kfree(store->etr_tracer);
@@ -6210,41 +6306,12 @@ void gaudi3_etr_buf_store_fini(struct hl_device *hdev)
 	store->nbufs = 0;
 }
 
-/*
- * hl_etr_buf_store_completion_init - init array of ETR buffer storing completion structures
- *
- * @hdev: pointer to habanalabs device structure
- *
- * Called to initialize completion mechanism used to signal the user when a buffer is
- * fetched from the AC (Autonomous Controller), making it available for consumption.
- */
-static int hl_etr_buf_store_completion_init(struct hl_device *hdev)
-{
-	struct asic_fixed_properties *prop = &hdev->asic_prop;
-	struct hl_etr_buf_store *store = &hdev->etr_buf_store;
-	int i;
-
-	if (!store->etr_tracer)
-		return -ENODATA;
-
-	hdev->etr_buf_store_completion = kcalloc(prop->etr_buf_number,
-			sizeof(struct completion), GFP_KERNEL);
-	if (!hdev->etr_buf_store_completion)
-		return -ENOMEM;
-
-	for (i = 0 ; i < prop->etr_buf_number ; i++)
-		init_completion(&hdev->etr_buf_store_completion[i]);
-
-	return 0;
-}
-
-int gaudi3_etr_buf_store_init(struct hl_device *hdev)
+int gaudi3_etr_buf_store_sw_init(struct hl_device *hdev)
 {
 	struct asic_fixed_properties *prop = &hdev->asic_prop;
 	struct hl_etr_buf_store *store = &hdev->etr_buf_store;
 	struct hl_etr_buf *buf;
 	int rc = 0, i, etr_idx;
-	u64 phys_dram_addr;
 
 	if (!prop->etr_buf_number)
 		return 0;
@@ -6257,17 +6324,9 @@ int gaudi3_etr_buf_store_init(struct hl_device *hdev)
 	if (!store->etr_tracer)
 		return -ENOMEM;
 
-	phys_dram_addr = hdev->asic_prop.etr_bufs_dram_phys_base;
-
-	for (etr_idx = 0 ; etr_idx < prop->etr_buf_number ; ++etr_idx,
-		phys_dram_addr += hdev->asic_prop.etr_buf_dram_size_aligned) {
+	for (etr_idx = 0 ; etr_idx < prop->etr_buf_number ; ++etr_idx) {
 		INIT_LIST_HEAD(&store->etr_tracer[etr_idx].bufs);
 		spin_lock_init(&store->etr_tracer[etr_idx].lock);
-
-		rc = gaudi3_etr_buf_store_map_device_buf(hdev, &store->etr_tracer[etr_idx],
-						phys_dram_addr);
-		if (rc)
-			goto destroy_store;
 	}
 
 	INIT_LIST_HEAD(&store->free_bufs);
@@ -6277,29 +6336,22 @@ int gaudi3_etr_buf_store_init(struct hl_device *hdev)
 		buf = gaudi3_etr_buf_store_create_host_buf(hdev);
 		if (!buf) {
 			rc = -ENOMEM;
-			goto destroy_store;
+			goto free_store;
 		}
 
 		list_add(&buf->list_link, &store->free_bufs);
-
-		rc = gaudi3_etr_buf_store_map_host_buf(hdev, buf);
-		if (rc) {
-			list_del(&buf->list_link);
-			gaudi3_etr_buf_store_destroy_host_buf(hdev, buf);
-			goto destroy_store;
-		}
 	}
 
 	store->nbufs = store->min_bufs;
 
-	rc = hl_etr_buf_store_completion_init(hdev);
+	rc = gaudi3_etr_buf_store_completion_init(hdev);
 	if (rc)
-		goto destroy_store;
+		goto free_store;
 
 	goto out;
 
-destroy_store:
-	gaudi3_etr_buf_store_fini(hdev);
+free_store:
+	gaudi3_etr_buf_store_sw_fini(hdev);
 
 out:
 	return rc;
@@ -6333,7 +6385,7 @@ static struct hl_etr_buf *gaudi3_etr_buf_store_fetch_free_buf(struct hl_device *
 
 	rc = gaudi3_etr_buf_store_map_host_buf(hdev, buf);
 	if (rc) {
-		gaudi3_etr_buf_store_destroy_host_buf(hdev, buf);
+		gaudi3_etr_buf_store_free_host_buf(hdev, buf);
 		buf = NULL;
 	}
 
@@ -6364,7 +6416,7 @@ void gaudi3_etr_buf_store_return_buf_to_pool(struct hl_device *hdev, struct hl_e
 	 */
 	if (need_free) {
 		gaudi3_etr_buf_store_unmap_host_buf(hdev, buf);
-		gaudi3_etr_buf_store_destroy_host_buf(hdev, buf);
+		gaudi3_etr_buf_store_free_host_buf(hdev, buf);
 	}
 }
 
@@ -10107,6 +10159,8 @@ int gaudi3_ctx_init(struct hl_ctx *ctx)
 		return rc;
 
 	gaudi3_mmu_prepare(ctx->hdev, ctx->asid);
+
+	gaudi3_etr_buf_store_completion_reinit(ctx->hdev);
 
 	return 0;
 }
