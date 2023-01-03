@@ -799,6 +799,10 @@ static int gaudi3_sim_early_init(struct hl_device *hdev)
 	if (rc)
 		goto free_queue_props;
 
+	rc = hl_fw_read_preboot_status(hdev);
+	if (rc)
+		goto free_queue_props;
+
 	return 0;
 
 free_queue_props:
@@ -1109,11 +1113,6 @@ static int gaudi3_sim_hw_init(struct hl_device *hdev)
 
 	/* Set all privileged registers instead of FW */
 	rc = gaudi3_sim_fw_config(hdev);
-	if (rc)
-		return rc;
-
-	/* TODO: temporary WA to not fail on device disable */
-	rc = hl_fw_read_preboot_status(hdev);
 	if (rc)
 		return rc;
 
