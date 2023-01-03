@@ -2842,8 +2842,9 @@ void hl_wreg(struct hl_device *hdev, u32 reg, u32 val);
 		} \
 		if ((cond) || \
 			unlikely(!hdev->pdev && \
-				((hdev->disabled && !hdev->reset_info.in_compute_reset) || \
-					hdev->simulator_crashed))) \
+				(((hdev->disabled && !hdev->init_done) && \
+					!hdev->reset_info.in_compute_reset) || \
+							hdev->simulator_crashed))) \
 			break; \
 		if (timeout_us && ktime_compare(ktime_get(), __timeout) > 0) { \
 			if (elbi) { \
