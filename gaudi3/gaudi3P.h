@@ -799,8 +799,8 @@ int gaudi3_alloc_irq_vectors(struct hl_device *hdev, unsigned int min_vecs,
 			unsigned int max_vecs, unsigned int flags);
 void gaudi3_free_irq_vectors(struct hl_device *hdev);
 int gaudi3_init_pb_security(struct hl_device *hdev);
-int gaudi3_special_blocks_config(struct hl_device *hdev);
-void gaudi3_special_blocks_free(struct hl_device *hdev);
+int gaudi3_special_blocks_iterator_config(struct hl_device *hdev);
+void gaudi3_special_blocks_iterator_free(struct hl_device *hdev);
 
 /* Functions exported for bring-up support */
 int gaudi3_pre_hw_init(struct hl_device *hdev);

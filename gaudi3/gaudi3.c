@@ -356,6 +356,29 @@ static struct hl_automated_pb_cfg gaudi3_sec_pb_cfg[] = GAUDI3_SEC_PROTBITS_CFG;
 GAUDI3_PRIV_PROTBITS_DATA;
 static struct hl_automated_pb_cfg gaudi3_priv_pb_cfg[] = GAUDI3_PRIV_PROTBITS_CFG;
 
+/* TODO - remove exclusion of ARC_FARM once SW-123176 is resolved */
+int gaudi3_iterator_skip_block_types[] = {
+		GAUDI3_BLOCK_TYPE_ARC_FARM,
+		GAUDI3_BLOCK_TYPE_EU_BIST
+};
+
+struct range gaudi3_iterator_skip_special_blocks_ranges[] = {
+		/* DBG regions */
+		{mmHD0_TPC0_CS_DBG_ROM_TABLE_BASE, mmHD7_SCD_FUNNEL_BASE}
+};
+
+/*
+ * Note that we do the PB config of the first PDMA channel manually and
+ * we don't want the automation to touch it.
+ */
+struct range gaudi3_iterator_skip_pb_blocks_ranges[] = {
+		/* DBG regions */
+		{mmHD0_TPC0_CS_DBG_ROM_TABLE_BASE, mmHD7_SCD_FUNNEL_BASE},
+		/* KDMA channel */
+		{mmD0_SPDMA0_CH0_A_BASE, mmD0_SPDMA0_CH0_A_BASE},
+		{mmD0_SPDMA0_CH0_B_BASE, mmD0_SPDMA0_CH0_B_BASE}
+};
+
 const u32 gaudi3_arc_blocks_bases[CPU_ID_MAX] = {
 	[CPU_ID_SCHED_ARC0] = mmHD0_ARC_FARM_ARC0_AUX_BASE,
 	[CPU_ID_SCHED_ARC1] = mmHD0_ARC_FARM_ARC1_AUX_BASE,
@@ -2354,6 +2377,8 @@ static void handle_pmmu_events(struct hl_device *hdev, u32 die, u64 *event_mask)
 		err_type = RREG32(mmD0_PMMU_HBW_MMU_BASE + mmMMU_ACCESS_PAGE_ERROR_VALID + offset);
 		mmu_spi_status = RREG32(mmD0_PMMU_HBW_MMU_BASE + mmMMU_SPI_STATUS + offset);
 	}
+
+	hl_check_for_glbl_errors(hdev);
 }
 
 struct dtlb_fault_desc {
@@ -2480,6 +2505,8 @@ static void handle_hmmu_events(struct hl_device *hdev, u32 die, u32 hdcore, u64 
 
 	dev_err(hdev->dev,
 		"STLB info: %s, DTLB info: %s\n", stlb_str, dtlb_str);
+
+	hl_check_for_glbl_errors(hdev);
 }
 
 static void gaudi3_lbw_dup_group_id_breakdown(struct hl_device *hdev, u32 dup_group_id, u32 *die,
@@ -4081,6 +4108,13 @@ free_dma_mem_arr:
 	return rc;
 }
 
+static bool gaudi3_special_block_skip(struct hl_device *hdev,
+		struct hl_special_blocks_cfg *special_blocks_cfg,
+		u32 blk_idx, u32 major, u32 minor, u32 sub_minor)
+{
+	return false;
+}
+
 static bool gaudi3_pb_block_skip_with_mask(struct hl_device *hdev,
 		struct hl_special_blocks_cfg *special_blocks_cfg,
 		u32 blk_idx, u32 major, u32 minor, u32 sub_minor)
@@ -4251,26 +4285,12 @@ static bool gaudi3_pb_block_skip_with_mask(struct hl_device *hdev,
 	return true;
 }
 
-int gaudi3_special_blocks_config(struct hl_device *hdev)
+static int gaudi3_special_blocks_config(struct hl_device *hdev)
 {
-	/* TODO - remove exclusion of ARC_FARM once SW-123176 is resolved */
-	int pb_skip_block_types[] = {
-			GAUDI3_BLOCK_TYPE_ARC_FARM, GAUDI3_BLOCK_TYPE_EU_BIST};
-	struct range pb_skip_block_ranges[] = {
-			/* DBG regions */
-			{mmHD0_TPC0_CS_DBG_ROM_TABLE_BASE, mmHD7_SCD_FUNNEL_BASE},
-			/* KDMA channel */
-			{mmD0_SPDMA0_CH0_A_BASE, mmD0_SPDMA0_CH0_A_BASE},
-			{mmD0_SPDMA0_CH0_B_BASE, mmD0_SPDMA0_CH0_B_BASE}};
 	struct asic_fixed_properties *prop = &hdev->asic_prop;
 	int i, rc;
 
-	memset(&prop->pb_blocks_cfg, 0, sizeof(prop->pb_blocks_cfg));
-	prop->pb_blocks_cfg.sec_automated_pb_cfg = gaudi3_sec_pb_cfg;
-	prop->pb_blocks_cfg.sec_cfg_size = ARRAY_SIZE(gaudi3_sec_pb_cfg);
-	prop->pb_blocks_cfg.priv_automated_pb_cfg = gaudi3_priv_pb_cfg;
-	prop->pb_blocks_cfg.priv_cfg_size = ARRAY_SIZE(gaudi3_priv_pb_cfg);
-
+	prop->glbl_err_cause_num = HL_MAX_NUM_OF_GLBL_ERR_CAUSE;
 	prop->num_of_special_blocks = ARRAY_SIZE(gaudi3_special_blocks);
 
 	prop->special_blocks = kmalloc_array(prop->num_of_special_blocks,
@@ -4282,61 +4302,150 @@ int gaudi3_special_blocks_config(struct hl_device *hdev)
 		memcpy(&prop->special_blocks[i], &gaudi3_special_blocks[i],
 				sizeof(*prop->special_blocks));
 
-	prop->glbl_err_cause_num = HL_MAX_NUM_OF_GLBL_ERR_CAUSE;
+	/* Configure when to skip Special blocks */
+	memset(&prop->skip_special_blocks_cfg, 0, sizeof(prop->skip_special_blocks_cfg));
 
-	/* set skip configs */
-	memset(&prop->skip_pb_blocks_cfg, 0, sizeof(prop->skip_pb_blocks_cfg));
-
-	if (ARRAY_SIZE(pb_skip_block_types)) {
-		prop->skip_pb_blocks_cfg.block_types =
-				kmalloc_array(ARRAY_SIZE(pb_skip_block_types),
-					sizeof(pb_skip_block_types[0]), GFP_KERNEL);
-		if (!prop->skip_pb_blocks_cfg.block_types) {
+	if (ARRAY_SIZE(gaudi3_iterator_skip_block_types)) {
+		prop->skip_special_blocks_cfg.block_types =
+				kmalloc_array(ARRAY_SIZE(gaudi3_iterator_skip_block_types),
+					sizeof(gaudi3_iterator_skip_block_types[0]), GFP_KERNEL);
+		if (!prop->skip_special_blocks_cfg.block_types) {
 			rc = -ENOMEM;
 			goto free_special_blocks;
 		}
 
-		memcpy(prop->skip_pb_blocks_cfg.block_types, pb_skip_block_types,
-					sizeof(pb_skip_block_types));
+		memcpy(prop->skip_special_blocks_cfg.block_types, gaudi3_iterator_skip_block_types,
+				sizeof(gaudi3_iterator_skip_block_types));
 
-		prop->skip_pb_blocks_cfg.block_types_len = ARRAY_SIZE(pb_skip_block_types);
+		prop->skip_special_blocks_cfg.block_types_len =
+					ARRAY_SIZE(gaudi3_iterator_skip_block_types);
 	}
 
-	if (ARRAY_SIZE(pb_skip_block_ranges)) {
-		prop->skip_pb_blocks_cfg.block_ranges =
-				kmalloc_array(ARRAY_SIZE(pb_skip_block_ranges),
-					sizeof(pb_skip_block_ranges[0]), GFP_KERNEL);
-		if (!prop->skip_pb_blocks_cfg.block_ranges) {
+	if (ARRAY_SIZE(gaudi3_iterator_skip_special_blocks_ranges)) {
+		prop->skip_special_blocks_cfg.block_ranges =
+			kmalloc_array(ARRAY_SIZE(gaudi3_iterator_skip_special_blocks_ranges),
+				sizeof(gaudi3_iterator_skip_special_blocks_ranges[0]), GFP_KERNEL);
+		if (!prop->skip_special_blocks_cfg.block_ranges) {
 			rc = -ENOMEM;
-			goto free_block_types;
+			goto free_skip_special_blocks_types;
 		}
 
-		for (i = 0 ; i < ARRAY_SIZE(pb_skip_block_ranges) ; i++)
-			memcpy(&prop->skip_pb_blocks_cfg.block_ranges[i],
-					&pb_skip_block_ranges[i], sizeof(struct range));
+		for (i = 0 ; i < ARRAY_SIZE(gaudi3_iterator_skip_special_blocks_ranges) ; i++)
+			memcpy(&prop->skip_special_blocks_cfg.block_ranges[i],
+				&gaudi3_iterator_skip_special_blocks_ranges[i],
+				sizeof(struct range));
 
-		prop->skip_pb_blocks_cfg.block_ranges_len = ARRAY_SIZE(pb_skip_block_ranges);
+		prop->skip_special_blocks_cfg.block_ranges_len =
+				ARRAY_SIZE(gaudi3_iterator_skip_special_blocks_ranges);
 	}
 
-	prop->skip_pb_blocks_cfg.skip_block_hook = gaudi3_pb_block_skip_with_mask;
+	prop->skip_special_blocks_cfg.skip_block_hook = gaudi3_special_block_skip;
 
 	return 0;
 
-free_block_types:
-	kfree(prop->skip_pb_blocks_cfg.block_types);
+free_skip_special_blocks_types:
+	kfree(prop->skip_special_blocks_cfg.block_types);
 free_special_blocks:
 	kfree(prop->special_blocks);
 
 	return rc;
 }
 
-void gaudi3_special_blocks_free(struct hl_device *hdev)
+static int gaudi3_pb_blocks_config(struct hl_device *hdev)
 {
 	struct asic_fixed_properties *prop = &hdev->asic_prop;
+	int i, rc;
+
+	memset(&prop->pb_blocks_cfg, 0, sizeof(prop->pb_blocks_cfg));
+	prop->pb_blocks_cfg.sec_automated_pb_cfg = gaudi3_sec_pb_cfg;
+	prop->pb_blocks_cfg.sec_cfg_size = ARRAY_SIZE(gaudi3_sec_pb_cfg);
+	prop->pb_blocks_cfg.priv_automated_pb_cfg = gaudi3_priv_pb_cfg;
+	prop->pb_blocks_cfg.priv_cfg_size = ARRAY_SIZE(gaudi3_priv_pb_cfg);
+
+	/* Configure when to skip PB blocks */
+	memset(&prop->skip_pb_blocks_cfg, 0, sizeof(prop->skip_pb_blocks_cfg));
+
+	if (ARRAY_SIZE(gaudi3_iterator_skip_block_types)) {
+		prop->skip_pb_blocks_cfg.block_types =
+				kmalloc_array(ARRAY_SIZE(gaudi3_iterator_skip_block_types),
+					sizeof(gaudi3_iterator_skip_block_types[0]), GFP_KERNEL);
+		if (!prop->skip_pb_blocks_cfg.block_types)
+			return -ENOMEM;
+
+		memcpy(prop->skip_pb_blocks_cfg.block_types, gaudi3_iterator_skip_block_types,
+					sizeof(gaudi3_iterator_skip_block_types));
+
+		prop->skip_pb_blocks_cfg.block_types_len =
+				ARRAY_SIZE(gaudi3_iterator_skip_block_types);
+	}
+
+	if (ARRAY_SIZE(gaudi3_iterator_skip_pb_blocks_ranges)) {
+		prop->skip_pb_blocks_cfg.block_ranges =
+			kmalloc_array(ARRAY_SIZE(gaudi3_iterator_skip_pb_blocks_ranges),
+				sizeof(gaudi3_iterator_skip_pb_blocks_ranges[0]), GFP_KERNEL);
+		if (!prop->skip_pb_blocks_cfg.block_ranges) {
+			rc = -ENOMEM;
+			goto free_skip_pb_blocks_types;
+		}
+
+		for (i = 0 ; i < ARRAY_SIZE(gaudi3_iterator_skip_pb_blocks_ranges) ; i++)
+			memcpy(&prop->skip_pb_blocks_cfg.block_ranges[i],
+				&gaudi3_iterator_skip_pb_blocks_ranges[i],
+					sizeof(struct range));
+
+		prop->skip_pb_blocks_cfg.block_ranges_len =
+				ARRAY_SIZE(gaudi3_iterator_skip_pb_blocks_ranges);
+	}
+
+	prop->skip_pb_blocks_cfg.skip_block_hook = gaudi3_pb_block_skip_with_mask;
+
+	return 0;
+
+free_skip_pb_blocks_types:
+	kfree(prop->skip_pb_blocks_cfg.block_types);
+
+	return rc;
+}
+
+static void gaudi3_special_blocks_free(struct hl_device *hdev)
+{
+	struct asic_fixed_properties *prop = &hdev->asic_prop;
+	struct hl_skip_blocks_cfg *skip_special_blocks_cfg =
+			&prop->skip_special_blocks_cfg;
 
 	kfree(prop->special_blocks);
-	kfree(prop->skip_pb_blocks_cfg.block_types);
-	kfree(prop->skip_pb_blocks_cfg.block_ranges);
+	kfree(skip_special_blocks_cfg->block_types);
+	kfree(skip_special_blocks_cfg->block_ranges);
+}
+
+static void gaudi3_pb_blocks_free(struct hl_device *hdev)
+{
+	struct hl_skip_blocks_cfg *skip_pb_blocks_cfg =
+			&hdev->asic_prop.skip_pb_blocks_cfg;
+
+	kfree(skip_pb_blocks_cfg->block_types);
+	kfree(skip_pb_blocks_cfg->block_ranges);
+}
+
+int gaudi3_special_blocks_iterator_config(struct hl_device *hdev)
+{
+	int rc;
+
+	rc = gaudi3_pb_blocks_config(hdev);
+	if (rc)
+		return rc;
+
+	rc = gaudi3_special_blocks_config(hdev);
+	if (rc)
+		gaudi3_pb_blocks_free(hdev);
+
+	return rc;
+}
+
+void gaudi3_special_blocks_iterator_free(struct hl_device *hdev)
+{
+	gaudi3_special_blocks_free(hdev);
+	gaudi3_pb_blocks_free(hdev);
 }
 
 static int gaudi3_cpucp_info_get(struct hl_device *hdev)
@@ -4449,7 +4558,7 @@ int gaudi3_sw_init(struct hl_device *hdev)
 	hdev->asic_funcs->set_pci_memory_regions(hdev);
 	hdev->support_preboot_binning = true;
 
-	rc = gaudi3_special_blocks_config(hdev);
+	rc = gaudi3_special_blocks_iterator_config(hdev);
 	if (rc)
 		goto etr_sw_fini;
 
@@ -4476,7 +4585,7 @@ int gaudi3_sw_fini(struct hl_device *hdev)
 {
 	struct gaudi3_device *gaudi3 = hdev->asic_specific;
 
-	gaudi3_special_blocks_free(hdev);
+	gaudi3_special_blocks_iterator_free(hdev);
 
 	gaudi3_etr_buf_store_sw_fini(hdev);
 
@@ -10795,6 +10904,7 @@ static void gaudi3_razwi_handler(struct hl_device *hdev,  enum razwi_initiztor r
 		break;
 	}
 
+	hl_check_for_glbl_errors(hdev);
 }
 
 static void gaudi3_check_if_razwi_happened(struct hl_device *hdev)
@@ -10977,6 +11087,8 @@ static void gaudi3_handle_pdma_sei_err(struct hl_device *hdev, u8 die)
 {
 	gaudi3_handle_pdma_module_sei_err(hdev, die, false);
 	gaudi3_handle_pdma_module_sei_err(hdev, die, true);
+
+	hl_check_for_glbl_errors(hdev);
 }
 
 static void gaudi3_handle_arc_farm_sei_err(struct hl_device *hdev, struct hl_eq_intr_cause *i)
@@ -10986,6 +11098,8 @@ static void gaudi3_handle_arc_farm_sei_err(struct hl_device *hdev, struct hl_eq_
 	err_msk = lower_32_bits(le64_to_cpu(i->intr_cause_data));
 
 	gaudi3_err_cause_iterator(hdev, err_msk, gaudi3_arc_sei_err_cause, "ARC", "SEI");
+
+	hl_check_for_glbl_errors(hdev);
 }
 
 static void gaudi3_handle_pcie0_sei_err(struct hl_device *hdev, struct hl_eq_intr_cause *i)
@@ -10995,6 +11109,8 @@ static void gaudi3_handle_pcie0_sei_err(struct hl_device *hdev, struct hl_eq_int
 	err_msk = lower_32_bits(le64_to_cpu(i->intr_cause_data));
 
 	gaudi3_err_cause_iterator(hdev, err_msk, gaudi3_pcie_sei_err_cause, "PCIE", "SEI");
+
+	hl_check_for_glbl_errors(hdev);
 }
 
 static void gaudi3_handle_ecc_event(struct hl_device *hdev, u16 event_type,

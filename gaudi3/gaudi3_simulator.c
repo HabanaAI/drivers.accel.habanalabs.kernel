@@ -966,7 +966,7 @@ static int gaudi3_sim_sw_init(struct hl_device *hdev)
 	nic->skip_mac_cnts = true;
 	nic->skip_cq_arm_timeout = true;
 
-	rc = gaudi3_special_blocks_config(hdev);
+	rc = gaudi3_special_blocks_iterator_config(hdev);
 	if (rc)
 		goto etr_sw_fini;
 
@@ -992,7 +992,7 @@ static int gaudi3_sim_sw_fini(struct hl_device *hdev)
 {
 	struct gaudi3_device *gaudi3 = hdev->asic_specific;
 
-	gaudi3_special_blocks_free(hdev);
+	gaudi3_special_blocks_iterator_free(hdev);
 
 	gaudi3_etr_buf_store_sw_fini(hdev);
 

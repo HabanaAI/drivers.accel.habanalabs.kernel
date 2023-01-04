@@ -5442,6 +5442,8 @@ void gaudi3_handle_nic_spi_event(struct hl_device *hdev, u32 macro_index,
 		NIC_RREG32(mmD0_NIC0_RXB_CORE_SPI_INTR_CLEAR);
 		NIC_WREG32(mmD0_NIC0_RXB_CORE_SPI_INTR_CLEAR, 0);
 	}
+
+	hl_check_for_glbl_errors(hdev);
 }
 
 void gaudi3_handle_nic_sei_error_event(struct hl_device *hdev, u32 macro_index,
@@ -5567,6 +5569,8 @@ void gaudi3_handle_nic_sei_error_event(struct hl_device *hdev, u32 macro_index,
 
 		NIC_WREG32(mmD0_NIC0_TXE_INTERRUPT_CLR, txe_intr_cause);
 	}
+
+	hl_check_for_glbl_errors(hdev);
 }
 
 void gaudi3_nic_handle_bmon_spmu_event(struct hl_device *hdev, u32 macro_index,
