@@ -5842,6 +5842,11 @@ static int gaudi3_config_etr(struct hl_device *hdev, struct hl_ctx *ctx,
 	if (params->output_size >= sizeof(u64))
 		*(u64 *)params->output = 0x0;
 
+	/* on pldm, single die image need to ignore etr configuration on die 1 */
+	if (hdev->pldm && prop->num_of_dies < 2 &&
+		(etr_idx == GAUDI3_D1_PSOC_ETR || etr_idx == GAUDI3_D1_NCH_ETR))
+		return 0;
+
 	switch (etr_idx) {
 	case GAUDI3_D0_PSOC_ETR:
 		base_reg = mmD0_PSOC_ETR_BASE;
