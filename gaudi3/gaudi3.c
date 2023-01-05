@@ -143,6 +143,7 @@ MODULE_FIRMWARE(GAUDI3_BOOT_FIT_FILE);
 
 #define MAX_BINNED_TPCS_PER_DCORE	1
 #define MAX_BINNED_DECODERS_PER_DIE	1
+#define MAX_BINNED_ROTATORS_PER_DIE	1
 
 #define HL_STR(e) #e
 
@@ -1749,7 +1750,7 @@ void gaudi3_iterate_rotators(struct hl_device *hdev, struct iterate_module_ctx *
 
 		for (inst = 0 ; inst < NUM_OF_ROTATOR_PER_HDCORE ; inst++) {
 			rotator_id = hdcore_index * NUM_OF_ROTATOR_PER_HDCORE + inst;
-			if (!(hdev->rotator_mask & BIT(rotator_id)))
+			if (!(prop->rotator_enabled_mask & BIT(rotator_id)))
 				continue;
 
 			/* The offset is relative to the first rotator in HD1 */
@@ -2670,8 +2671,6 @@ static int gaudi3_validate_set_tpc_binning(struct hl_device *hdev)
 	struct asic_fixed_properties *prop = &hdev->asic_prop;
 	u8 i, num_dcores, num_dcore_tpcs, num_binned;
 
-	tpc_full_mask = GENMASK_ULL((prop->num_of_hdcores * NUM_OF_TPC_PER_HDCORE) - 1, 0);
-
 	/* no binning but maybe not all engines are enabled */
 	if (!hdev->tpc_binning) {
 		prop->tpc_enabled_mask = hdev->tpc_mask;
@@ -2679,7 +2678,9 @@ static int gaudi3_validate_set_tpc_binning(struct hl_device *hdev)
 		return 0;
 	}
 
-	if (hdev->tpc_binning && (hdev->tpc_mask != tpc_full_mask)) {
+	tpc_full_mask = GENMASK_ULL((prop->num_of_hdcores * NUM_OF_TPC_PER_HDCORE) - 1, 0);
+
+	if (hdev->tpc_mask != tpc_full_mask) {
 		dev_err(hdev->dev,
 			"TPC binning is valid only with full TPC enabled mask\n");
 		return -EINVAL;
@@ -2716,8 +2717,6 @@ static int gaudi3_validate_set_decoder_binning(struct hl_device *hdev)
 	struct asic_fixed_properties *prop = &hdev->asic_prop;
 	u8 i, num_die_decoders, num_binned;
 
-	decoder_full_mask = GENMASK((prop->num_of_hdcores * NUM_OF_DECODER_PER_HDCORE) - 1, 0);
-
 	/* no binning but maybe not all engines are enabled */
 	if (!hdev->decoder_binning) {
 		prop->decoder_enabled_mask = hdev->decoder_mask;
@@ -2725,7 +2724,9 @@ static int gaudi3_validate_set_decoder_binning(struct hl_device *hdev)
 		return 0;
 	}
 
-	if (hdev->decoder_binning && (hdev->decoder_mask != decoder_full_mask)) {
+	decoder_full_mask = GENMASK_ULL((prop->num_of_hdcores * NUM_OF_DECODER_PER_HDCORE) - 1, 0);
+
+	if (hdev->decoder_mask != decoder_full_mask) {
 		dev_err(hdev->dev,
 			"Decoder binning is valid only with full decoder enabled mask\n");
 		return -EINVAL;
@@ -2760,6 +2761,55 @@ static int gaudi3_validate_set_decoder_binning(struct hl_device *hdev)
 	return 0;
 }
 
+static int gaudi3_validate_set_rotator_binning(struct hl_device *hdev)
+{
+	u32 rotator_full_mask, die_rotator_full_mask, die_rotator_binning_mask;
+	struct asic_fixed_properties *prop = &hdev->asic_prop;
+	u8 i, num_binned;
+
+	/* no binning but maybe not all engines are enabled */
+	if (!hdev->rotator_binning) {
+		prop->rotator_enabled_mask = hdev->rotator_mask;
+		prop->rotator_binning_mask = hdev->rotator_binning;
+		return 0;
+	}
+
+	rotator_full_mask = GENMASK((prop->num_of_dies * NUM_OF_ROTATOR_PER_DIE) - 1, 0);
+
+	if (hdev->rotator_mask != rotator_full_mask) {
+		dev_err(hdev->dev,
+			"Rotator binning is valid only with full rotator enabled mask\n");
+		return -EINVAL;
+	}
+
+	/* in rotator binning we can have, at most, single binned rotator per DIE */
+	die_rotator_full_mask = GENMASK(NUM_OF_ROTATOR_PER_DIE - 1, 0);
+	prop->rotator_enabled_mask = 0;
+	for (i = 0; i < prop->num_of_dies; i++) {
+		u8 shift = i * NUM_OF_ROTATOR_PER_DIE;
+
+		die_rotator_binning_mask = (hdev->rotator_binning >> shift) & die_rotator_full_mask;
+		if (!die_rotator_binning_mask) {
+			prop->rotator_enabled_mask |= (die_rotator_full_mask << shift);
+			continue;
+		}
+
+		num_binned = __ffs((unsigned long)die_rotator_binning_mask);
+		if (num_binned > MAX_BINNED_ROTATORS_PER_DIE) {
+			dev_err(hdev->dev, "too many binned rotators (%#x)\n",
+							hdev->rotator_binning);
+			return -EINVAL;
+		}
+
+		/* set last rotator in each die as not enabled */
+		prop->rotator_enabled_mask |= (GENMASK(NUM_OF_ROTATOR_PER_DIE - 2, 0) << shift);
+	}
+
+	prop->rotator_binning_mask = hdev->rotator_binning;
+
+	return 0;
+}
+
 int gaudi3_set_binning_masks(struct hl_device *hdev)
 {
 	int rc;
@@ -2769,6 +2819,10 @@ int gaudi3_set_binning_masks(struct hl_device *hdev)
 		return rc;
 
 	rc = gaudi3_validate_set_decoder_binning(hdev);
+	if (rc)
+		return rc;
+
+	rc = gaudi3_validate_set_rotator_binning(hdev);
 	if (rc)
 		return rc;
 
@@ -4190,7 +4244,7 @@ static bool gaudi3_pb_block_skip_with_mask(struct hl_device *hdev,
 			return true;
 		}
 
-		if (hdev->rotator_mask & BIT(instance_idx))
+		if (prop->rotator_enabled_mask & BIT(instance_idx))
 			return false;
 		break;
 	case GAUDI3_BLOCK_TYPE_EDMA:
@@ -5228,7 +5282,7 @@ void gaudi3_init_rotator(struct hl_device *hdev)
 		.fn = gaudi3_init_rotator_engine
 	};
 
-	if (!hdev->rotator_mask)
+	if (!hdev->asic_prop.rotator_enabled_mask)
 		return;
 
 	if ((gaudi3->hw_cap_initialized & HW_CAP_ROT_MASK) == HW_CAP_ROT_MASK)
@@ -7441,7 +7495,8 @@ static bool gaudi3_is_engine_enabled(struct hl_device *hdev, u32 eng_id)
 		return !!(hdev->pdma_ch_mask & BIT_ULL(eng_id - GAUDI3_DIE0_ENGINE_ID_PDMA_0_CH_0));
 
 	case GAUDI3_HDCORE1_ENGINE_ID_ROT_0 ... GAUDI3_HDCORE6_ENGINE_ID_ROT_1:
-		return !!(hdev->rotator_mask & BIT(eng_id - GAUDI3_HDCORE1_ENGINE_ID_ROT_0));
+		return !!(prop->rotator_enabled_mask &
+				BIT(eng_id - GAUDI3_HDCORE1_ENGINE_ID_ROT_0));
 
 	default:
 		dev_err(hdev->dev, "Invalid engine id (%u)\n", eng_id);
@@ -9785,7 +9840,7 @@ static void gaudi3_get_rotator_idle_status(struct hl_device *hdev,
 		.data = idle_data
 	};
 
-	if (idle_data->e && hdev->rotator_mask)
+	if (idle_data->e && hdev->asic_prop.rotator_enabled_mask)
 		hl_engine_data_sprintf(idle_data->e, header);
 
 	gaudi3_iterate_rotators(hdev, &iter_ctx);

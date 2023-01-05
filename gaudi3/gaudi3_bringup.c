@@ -1398,7 +1398,7 @@ static void gaudi3_set_rotator_isolation(struct hl_device *hdev, bool isolate)
 		return;
 	}
 
-	rot_disabled_mask = ~hdev->rotator_mask & 0xFF;
+	rot_disabled_mask = ~prop->rotator_enabled_mask & 0xFF;
 	/* DIE0 ROT_ISO:
 	 * Bit[0] - HD1_ROT0
 	 * Bit[1] - HD1_ROT1
@@ -1940,7 +1940,7 @@ static void gaudi3_init_rotator_fw_config(struct hl_device *hdev)
 		.fn = gaudi3_init_rotator_engine_fw_config
 	};
 
-	if (!hdev->rotator_mask)
+	if (!hdev->asic_prop.rotator_enabled_mask)
 		return;
 
 	if ((gaudi3->hw_cap_initialized & HW_CAP_ROT_MASK) == HW_CAP_ROT_MASK)
