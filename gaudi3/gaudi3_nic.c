@@ -13,6 +13,7 @@
 #include <linux/etherdevice.h>
 #include <linux/pci.h>
 #include <linux/vmalloc.h>
+#include <linux/circ_buf.h>
 
 #define GAUDI3_PFC_PRIO_DRIVER			0
 #define GAUDI3_PFC_PRIO_USER_BASE		1
@@ -3931,9 +3932,7 @@ static int gaudi3_nic_ring_tx_doorbell(struct hl_aux_dev *aux_dev, u32 port, u32
 	db_fifo_ci = *((u32 *) RING_CI_ADDRESS(&gaudi3_nic->fifo_ring));
 	db_fifo_pi = gaudi3_nic->db_fifo_pi;
 
-	space_left_in_db_fifo = ((db_fifo_pi >= db_fifo_ci) ?
-				(NIC_FIFO_DB_SIZE - (db_fifo_pi - db_fifo_ci)) :
-						(db_fifo_ci - db_fifo_pi)) - 1;
+	space_left_in_db_fifo = CIRC_SPACE(db_fifo_pi, db_fifo_ci, NIC_FIFO_DB_SIZE);
 
 	/* PSB explanation for this condition */
 	if (space_left_in_db_fifo < 2) {
