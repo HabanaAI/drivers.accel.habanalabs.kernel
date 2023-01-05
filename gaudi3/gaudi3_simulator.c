@@ -1031,13 +1031,9 @@ static void gaudi3_sim_halt_engines(struct hl_device *hdev, bool hard_reset, boo
 	gaudi3_stop_rotator_qmans(hdev);
 	gaudi3_stop_nic_qmans(hdev);
 
-	/* TODO: remove 'if' when simulator clears ARC_AUX.HALT_REQ in hard-reset (SW-117134) */
-	if (!hard_reset)
-		gaudi3_halt_arcs(hdev);
+	gaudi3_halt_arcs(hdev);
 	gaudi3_halt_pdma(hdev);
-	/* TODO: remove 'if' when simulator clears PDMA_DUP halt in hard-reset (SW-116293) */
-	if (!hard_reset)
-		gaudi3_halt_dup(hdev);
+	gaudi3_halt_dup(hdev);
 	gaudi3_stall_edma(hdev);
 	gaudi3_stall_tpc(hdev);
 	gaudi3_stall_mme(hdev);
