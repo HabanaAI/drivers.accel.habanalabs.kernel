@@ -3916,7 +3916,7 @@ static void gaudi3_nic_get_pfc_cnts(struct hl_aux_dev *aux_dev, u32 port, int pf
 	*requests = lo_part | (hi_part << 32);
 }
 
-static int hl_nic_ring_tx_doorbell(struct hl_aux_dev *aux_dev, u32 port, u32 pi)
+static int gaudi3_nic_ring_tx_doorbell(struct hl_aux_dev *aux_dev, u32 port, u32 pi)
 {
 	struct hl_nic *nic = container_of(aux_dev, struct hl_nic, en_aux_dev);
 	struct hl_device *hdev = container_of(nic, struct hl_device, nic);
@@ -4095,7 +4095,7 @@ static int gaudi3_nic_sw_init(struct hl_device *hdev)
 	aux_ops->arm_cq = gaudi3_nic_arm_cq;
 	aux_ops->write_rx_ci = gaudi3_nic_write_rx_ci;
 	aux_ops->get_pfc_cnts = gaudi3_nic_get_pfc_cnts;
-	aux_ops->ring_tx_doorbell = hl_nic_ring_tx_doorbell;
+	aux_ops->ring_tx_doorbell = gaudi3_nic_ring_tx_doorbell;
 	aux_ops->dma_map_tx_pkt = gaudi3_nic_dma_map_tx_pkt;
 	aux_ops->dma_unmap_tx_pkt = gaudi3_nic_dma_unmap_tx_pkt;
 	aux_ops->qp_err_syndrom_to_str = gaudi3_nic_qp_err_syndrom_to_str;
