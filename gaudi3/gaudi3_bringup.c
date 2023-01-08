@@ -755,18 +755,42 @@ static void gaudi3_set_cache_mode_cslice(struct hl_device *hdev, int hdcore, int
 						u32 offset, struct iterate_module_ctx *ctx)
 {
 	struct asic_fixed_properties *prop = &hdev->asic_prop;
+	bool dcore_has_binned_hbm = false;
 	/* init to illegal large value */
 	u8 binned_hbm = 0xFF;
 	u32 val, mask;
 	int rc;
 
+	if (prop->dram_binning_mask) {
+		binned_hbm = __ffs((unsigned long)prop->dram_binning_mask);
+		/*
+		 * HBM is associated with HDCORE, check if *DCORE* (note: DCORE, not HDCORE)
+		 * is hosting binned-out HBM
+		 */
+		dcore_has_binned_hbm = ((hdcore >> 1) == (binned_hbm >> 1));
+	}
+
 	val = FIELD_PREP(CACHE_MAIN_CNTRL_MAIN_SRAM_MODE_EN_M, 0) |
 		FIELD_PREP(CACHE_MAIN_CNTRL_MAIN_DATA_FORWARD_EN_M, 1) |
 		FIELD_PREP(CACHE_MAIN_CNTRL_MAIN_DATA_FORWARD_WR_EN_M, 1);
-	RMWREG32_SHIFTED(offset + mmCACHE_MAIN_CNTRL_MAIN, val,
-				CACHE_MAIN_CNTRL_MAIN_SRAM_MODE_EN_M |
-				CACHE_MAIN_CNTRL_MAIN_DATA_FORWARD_EN_M |
-				CACHE_MAIN_CNTRL_MAIN_DATA_FORWARD_WR_EN_M);
+	mask = CACHE_MAIN_CNTRL_MAIN_SRAM_MODE_EN_M |
+			CACHE_MAIN_CNTRL_MAIN_DATA_FORWARD_EN_M |
+			CACHE_MAIN_CNTRL_MAIN_DATA_FORWARD_WR_EN_M;
+
+	/*
+	 * the field ALWAYS_ALLOW_NTQ_DNGRD (note- the field name is meaningless)
+	 * shall be set to 1 in the below cases:
+	 * 1. for CS in DCORE that has binned-out HBM with even index {0, 2, 4, 6}
+	 * 2. for CS in DCORE that has 2 functional HBMs and is placed in odd HDCORE
+	 *    (i.e. HD[1,3,5,7]_CS[0-7]).
+	 */
+	if ((dcore_has_binned_hbm && (!(binned_hbm & 0x1))) ||
+			(!dcore_has_binned_hbm && (hdcore & 0x1))) {
+		val |= FIELD_PREP(CACHE_MAIN_CNTRL_MAIN_ALWAYS_ALLOW_NTQ_DNGRD_M, 1);
+		mask |= CACHE_MAIN_CNTRL_MAIN_ALWAYS_ALLOW_NTQ_DNGRD_M;
+	}
+
+	RMWREG32_SHIFTED(offset + mmCACHE_MAIN_CNTRL_MAIN, val, mask);
 
 	WREG32(offset + CSLICE_MISC_OFFSET + mmCACHE_MISC_LTA_INIT_TRIG, 0x1);
 
@@ -785,9 +809,6 @@ static void gaudi3_set_cache_mode_cslice(struct hl_device *hdev, int hdcore, int
 		ctx->rc = -EIO;
 		return;
 	}
-
-	if (prop->dram_binning_mask)
-		binned_hbm = __ffs((unsigned long)prop->dram_binning_mask);
 
 	val = FIELD_PREP(CACHE_CRDT_TO_HBM_SWAP_PC_ADDR_WITH_9_M, 1);
 	mask = CACHE_CRDT_TO_HBM_SWAP_PC_ADDR_WITH_9_M;
