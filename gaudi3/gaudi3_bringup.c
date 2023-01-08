@@ -777,6 +777,12 @@ static void gaudi3_set_cache_mode_cslice(struct hl_device *hdev, int hdcore, int
 			CACHE_MAIN_CNTRL_MAIN_DATA_FORWARD_EN_M |
 			CACHE_MAIN_CNTRL_MAIN_DATA_FORWARD_WR_EN_M;
 
+	if (hdev->enable_h9_cache_eta_eco) {
+		/* this field shall be applied only to the ETA ECO (SW-117604) */
+		val |= FIELD_PREP(CACHE_MAIN_CNTRL_MAIN_DNGRD_D2H_RQ_SPCL_FSM_DIS_M, 1);
+		mask |= CACHE_MAIN_CNTRL_MAIN_DNGRD_D2H_RQ_SPCL_FSM_DIS_M;
+	}
+
 	/*
 	 * the field ALWAYS_ALLOW_NTQ_DNGRD (note- the field name is meaningless)
 	 * shall be set to 1 in the below cases:

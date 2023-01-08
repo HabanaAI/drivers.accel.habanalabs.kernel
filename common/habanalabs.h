@@ -3645,7 +3645,6 @@ struct hl_etr_buf_store {
  * @supports_ctx_switch: true if a ctx switch is required upon first submission.
  * @pci_revision_id: PCI revision ID
  * @support_preboot_binning: true if we support read binning info from preboot.
- * @nic_enable_h9_rx_drop_eco: true if RX drop ECO (H9-5384) should be enabled (Gaudi3 only).
  */
 struct hl_device {
 	struct pci_dev			*pdev;
@@ -3883,6 +3882,7 @@ struct hl_device {
 	u8				ignore_eeprom_errors;
 	u8				hbm_compression_enable;
 	u8				nic_enable_h9_rx_drop_eco;
+	u8				enable_h9_cache_eta_eco;
 };
 
 /* Retrieve PCI device name in case of a PCI device or dev name in simulator */

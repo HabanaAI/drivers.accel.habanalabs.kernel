@@ -152,6 +152,7 @@ static int bfe_ptw_bypass_enable = 1;
 static uint bfe_rotator_binning;
 static int bfe_hbm_compression_enable = 1;
 static int bfe_nic_enable_h9_rx_drop_eco = 1;
+static int bfe_enable_h9_cache_eta_eco;
 
 /* special-case of parameter handling - polling */
 static bool nic_poll_enable_param_was_set;
@@ -509,6 +510,10 @@ MODULE_PARM_DESC(bfe_hbm_compression_enable,
 module_param(bfe_nic_enable_h9_rx_drop_eco, int, 0444);
 MODULE_PARM_DESC(bfe_nic_enable_h9_rx_drop_eco,
 	"Enable erratum 5384 ECO, which avoids packet drops in RXB (0 - disabled, 1 - enabled, default 1)");
+
+module_param(bfe_enable_h9_cache_eta_eco, int, 0444);
+MODULE_PARM_DESC(bfe_enable_h9_cache_eta_eco,
+	"Enable H9 Cache ETA ECO (0 - disabled, 1 - enabled, default 0)");
 
 #define PCI_VENDOR_ID_HABANALABS	0x1da3
 
@@ -1471,6 +1476,7 @@ static void set_driver_behavior_per_device(struct hl_device *hdev)
 	hdev->pci_rev_id_override = 0;
 	hdev->debug_wreg = 1;
 	hdev->debug_rreg = 1;
+	hdev->enable_h9_cache_eta_eco = 0;
 }
 
 static void copy_kernel_module_params_to_device(struct hl_device *hdev)
@@ -1567,6 +1573,7 @@ static void copy_bfe_params_to_device(struct hl_device *hdev)
 	hdev->rotator_binning = bfe_rotator_binning;
 	hdev->hbm_compression_enable = bfe_hbm_compression_enable;
 	hdev->nic_enable_h9_rx_drop_eco = bfe_nic_enable_h9_rx_drop_eco;
+	hdev->enable_h9_cache_eta_eco = bfe_enable_h9_cache_eta_eco;
 
 	/* Debug feature:
 	 * Store a copy of binning information to override f/w binning configuration later
