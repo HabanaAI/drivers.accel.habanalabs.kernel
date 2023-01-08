@@ -3931,7 +3931,6 @@ static int hl_nic_ring_tx_doorbell(struct hl_aux_dev *aux_dev, u32 port, u32 pi)
 	db_fifo_ci = *((u32 *) RING_CI_ADDRESS(&gaudi3_nic->fifo_ring));
 	db_fifo_pi = gaudi3_nic->db_fifo_pi;
 
-	/* TODO: SW-82278 Utilize fifo space calculation to use all entries */
 	space_left_in_db_fifo = ((db_fifo_pi >= db_fifo_ci) ?
 				(NIC_FIFO_DB_SIZE - (db_fifo_pi - db_fifo_ci)) :
 						(db_fifo_ci - db_fifo_pi)) - 1;
