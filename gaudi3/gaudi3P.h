@@ -750,6 +750,7 @@ void gaudi3_iterate_edmas(struct hl_device *hdev, struct iterate_module_ctx *ctx
 void gaudi3_iterate_pdma_grps(struct hl_device *hdev, struct iterate_module_ctx *ctx);
 void gaudi3_iterate_tpcs(struct hl_device *hdev, struct iterate_module_ctx *ctx);
 void gaudi3_iterate_mmes(struct hl_device *hdev, struct iterate_module_ctx *ctx);
+void gaudi3_iterate_mmes_mstr_ifs(struct hl_device *hdev, struct iterate_module_ctx *ctx);
 void gaudi3_iterate_rotators(struct hl_device *hdev, struct iterate_module_ctx *ctx);
 void gaudi3_iterate_decoders(struct hl_device *hdev, struct iterate_module_ctx *ctx);
 void gaudi3_iterate_nics(struct hl_device *hdev, struct iterate_module_ctx *ctx);
