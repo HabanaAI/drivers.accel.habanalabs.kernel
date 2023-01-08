@@ -772,12 +772,12 @@ static const u32 gaudi3_lbw_dup_group_mask_offsets[] = {
 /*
  * type of MME iterator
  * - MME_ITER_BASES iterate all enabled MMEs, each iterator supplied the MME's DCORE offset.
- * - MME_ITER_MSTR_IFS- iterate all MME's MSTR_IF blocks, each iterator supplied the MME's
- *                      MSTR_IF_V3 base (AXUSER_HBW_HB_MMU_BYPASS).
+ * - MME_ITER_V3_MSTR_IFS iterate all MME's MSTR_IF V3 blocks, each iterator supplied the
+ *                        MME's MSTR_IF_V3 base (AXUSER_HBW_HB_MMU_BYPASS).
  */
 enum mme_iter_type {
 	MME_ITER_BASES,
-	MME_ITER_MSTR_IFS,
+	MME_ITER_V3_MSTR_IFS,
 };
 
 /*
@@ -1672,7 +1672,7 @@ void gaudi3_iterate_tpcs(struct hl_device *hdev, struct iterate_module_ctx *ctx)
 	}
 }
 
-static void gaudi3_iterate_mme_mstr_ifs(struct hl_device *hdev, struct iterate_module_ctx *ctx,
+static void gaudi3_iterate_mme_v3_mstr_ifs(struct hl_device *hdev, struct iterate_module_ctx *ctx,
 						u32 hdcore)
 {
 	u32 offset, eu_id, sbte_id, wb_offset, sbte_offset;
@@ -1711,7 +1711,7 @@ static void gaudi3_iterate_mme_blocks(struct hl_device *hdev, struct iterate_mod
 			offset = hdcore * HDCORE_OFFSET;
 			ctx->fn(hdev, hdcore, 0, offset, ctx);
 		} else {
-			gaudi3_iterate_mme_mstr_ifs(hdev, ctx, hdcore);
+			gaudi3_iterate_mme_v3_mstr_ifs(hdev, ctx, hdcore);
 		}
 	}
 }
@@ -1721,9 +1721,9 @@ void gaudi3_iterate_mmes(struct hl_device *hdev, struct iterate_module_ctx *ctx)
 	gaudi3_iterate_mme_blocks(hdev, ctx, MME_ITER_BASES);
 }
 
-void gaudi3_iterate_mmes_mstr_ifs(struct hl_device *hdev, struct iterate_module_ctx *ctx)
+void gaudi3_iterate_mmes_v3_mstr_ifs(struct hl_device *hdev, struct iterate_module_ctx *ctx)
 {
-	gaudi3_iterate_mme_blocks(hdev, ctx, MME_ITER_MSTR_IFS);
+	gaudi3_iterate_mme_blocks(hdev, ctx, MME_ITER_V3_MSTR_IFS);
 }
 
 void gaudi3_iterate_rotators(struct hl_device *hdev, struct iterate_module_ctx *ctx)

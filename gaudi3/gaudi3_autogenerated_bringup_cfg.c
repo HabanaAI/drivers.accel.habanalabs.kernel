@@ -2091,9 +2091,10 @@ static void gaudi3_init_regulators_d2d_7_hbm_tpc_block(struct hl_device *hdev,
 	WREG32(offset + 0xB40, 0x11);
 }
 
-static void gaudi3_init_regulators_single_die_mme_block(
-			struct hl_device *hdev, u64 offset)
+static void gaudi3_init_regulators_single_die_mme_block(struct hl_device *hdev,
+			int block, int inst, u32 offset, struct iterate_module_ctx *ctx)
 {
+	offset -= 0x560;
 	WREG32(offset + 0xA00, 0x00000190);
 	WREG32(offset + 0xA04, 0x00000320);
 	WREG32(offset + 0xA20, 0x01040508);
@@ -2125,9 +2126,10 @@ static void gaudi3_init_regulators_single_die_mme_block(
 	WREG32(offset + 0xF68, 0x95FA6FA6);
 }
 
-static void gaudi3_init_regulators_d2d_8_hbm_mme_block(
-			struct hl_device *hdev, u64 offset)
+static void gaudi3_init_regulators_d2d_8_hbm_mme_block(struct hl_device *hdev,
+			int block, int inst, u32 offset, struct iterate_module_ctx *ctx)
 {
+	offset -= 0x560;
 	WREG32(offset + 0xA00, 0x00000190);
 	WREG32(offset + 0xA04, 0x00000320);
 	WREG32(offset + 0xA20, 0x01040508);
@@ -2159,9 +2161,10 @@ static void gaudi3_init_regulators_d2d_8_hbm_mme_block(
 	WREG32(offset + 0xF68, 0x95FA6FA6);
 }
 
-static void gaudi3_init_regulators_d2d_7_hbm_mme_block(
-			struct hl_device *hdev, u64 offset)
+static void gaudi3_init_regulators_d2d_7_hbm_mme_block(struct hl_device *hdev,
+			int block, int inst, u32 offset, struct iterate_module_ctx *ctx)
 {
+	offset -= 0x560;
 	WREG32(offset + 0xA00, 0x00000190);
 	WREG32(offset + 0xA04, 0x00000320);
 	WREG32(offset + 0xA20, 0x01040508);
@@ -2393,214 +2396,26 @@ static void gaudi3_init_regulators_d2d_7_hbm_tpc(struct hl_device *hdev)
 
 static void gaudi3_init_regulators_single_die_mme(struct hl_device *hdev)
 {
-	gaudi3_init_regulators_single_die_mme_block(hdev, 0xE0D6000);
-	gaudi3_init_regulators_single_die_mme_block(hdev, 0xE0DE000);
-	gaudi3_init_regulators_single_die_mme_block(hdev, 0xE0E1000);
-	gaudi3_init_regulators_single_die_mme_block(hdev, 0xE0E3000);
-	gaudi3_init_regulators_single_die_mme_block(hdev, 0xE0E5000);
-	gaudi3_init_regulators_single_die_mme_block(hdev, 0xE0E7000);
-	gaudi3_init_regulators_single_die_mme_block(hdev, 0xE0E9000);
-	gaudi3_init_regulators_single_die_mme_block(hdev, 0xE0EB000);
-	gaudi3_init_regulators_single_die_mme_block(hdev, 0xE0ED000);
-	gaudi3_init_regulators_single_die_mme_block(hdev, 0xE0EF000);
-	gaudi3_init_regulators_single_die_mme_block(hdev, 0xE4D6000);
-	gaudi3_init_regulators_single_die_mme_block(hdev, 0xE4DE000);
-	gaudi3_init_regulators_single_die_mme_block(hdev, 0xE4E1000);
-	gaudi3_init_regulators_single_die_mme_block(hdev, 0xE4E3000);
-	gaudi3_init_regulators_single_die_mme_block(hdev, 0xE4E5000);
-	gaudi3_init_regulators_single_die_mme_block(hdev, 0xE4E7000);
-	gaudi3_init_regulators_single_die_mme_block(hdev, 0xE4E9000);
-	gaudi3_init_regulators_single_die_mme_block(hdev, 0xE4EB000);
-	gaudi3_init_regulators_single_die_mme_block(hdev, 0xE4ED000);
-	gaudi3_init_regulators_single_die_mme_block(hdev, 0xE4EF000);
-	gaudi3_init_regulators_single_die_mme_block(hdev, 0xE8D6000);
-	gaudi3_init_regulators_single_die_mme_block(hdev, 0xE8DE000);
-	gaudi3_init_regulators_single_die_mme_block(hdev, 0xE8E1000);
-	gaudi3_init_regulators_single_die_mme_block(hdev, 0xE8E3000);
-	gaudi3_init_regulators_single_die_mme_block(hdev, 0xE8E5000);
-	gaudi3_init_regulators_single_die_mme_block(hdev, 0xE8E7000);
-	gaudi3_init_regulators_single_die_mme_block(hdev, 0xE8E9000);
-	gaudi3_init_regulators_single_die_mme_block(hdev, 0xE8EB000);
-	gaudi3_init_regulators_single_die_mme_block(hdev, 0xE8ED000);
-	gaudi3_init_regulators_single_die_mme_block(hdev, 0xE8EF000);
-	gaudi3_init_regulators_single_die_mme_block(hdev, 0xECD6000);
-	gaudi3_init_regulators_single_die_mme_block(hdev, 0xECDE000);
-	gaudi3_init_regulators_single_die_mme_block(hdev, 0xECE1000);
-	gaudi3_init_regulators_single_die_mme_block(hdev, 0xECE3000);
-	gaudi3_init_regulators_single_die_mme_block(hdev, 0xECE5000);
-	gaudi3_init_regulators_single_die_mme_block(hdev, 0xECE7000);
-	gaudi3_init_regulators_single_die_mme_block(hdev, 0xECE9000);
-	gaudi3_init_regulators_single_die_mme_block(hdev, 0xECEB000);
-	gaudi3_init_regulators_single_die_mme_block(hdev, 0xECED000);
-	gaudi3_init_regulators_single_die_mme_block(hdev, 0xECEF000);
+	struct iterate_module_ctx ctx = {};
+
+	ctx.fn = gaudi3_init_regulators_single_die_mme_block;
+	gaudi3_iterate_mmes_v3_mstr_ifs(hdev, &ctx);
 }
 
 static void gaudi3_init_regulators_d2d_8_hbm_mme(struct hl_device *hdev)
 {
-	gaudi3_init_regulators_d2d_8_hbm_mme_block(hdev, 0xE0D6000);
-	gaudi3_init_regulators_d2d_8_hbm_mme_block(hdev, 0xE0DE000);
-	gaudi3_init_regulators_d2d_8_hbm_mme_block(hdev, 0xE0E1000);
-	gaudi3_init_regulators_d2d_8_hbm_mme_block(hdev, 0xE0E3000);
-	gaudi3_init_regulators_d2d_8_hbm_mme_block(hdev, 0xE0E5000);
-	gaudi3_init_regulators_d2d_8_hbm_mme_block(hdev, 0xE0E7000);
-	gaudi3_init_regulators_d2d_8_hbm_mme_block(hdev, 0xE0E9000);
-	gaudi3_init_regulators_d2d_8_hbm_mme_block(hdev, 0xE0EB000);
-	gaudi3_init_regulators_d2d_8_hbm_mme_block(hdev, 0xE0ED000);
-	gaudi3_init_regulators_d2d_8_hbm_mme_block(hdev, 0xE0EF000);
-	gaudi3_init_regulators_d2d_8_hbm_mme_block(hdev, 0xE4D6000);
-	gaudi3_init_regulators_d2d_8_hbm_mme_block(hdev, 0xE4DE000);
-	gaudi3_init_regulators_d2d_8_hbm_mme_block(hdev, 0xE4E1000);
-	gaudi3_init_regulators_d2d_8_hbm_mme_block(hdev, 0xE4E3000);
-	gaudi3_init_regulators_d2d_8_hbm_mme_block(hdev, 0xE4E5000);
-	gaudi3_init_regulators_d2d_8_hbm_mme_block(hdev, 0xE4E7000);
-	gaudi3_init_regulators_d2d_8_hbm_mme_block(hdev, 0xE4E9000);
-	gaudi3_init_regulators_d2d_8_hbm_mme_block(hdev, 0xE4EB000);
-	gaudi3_init_regulators_d2d_8_hbm_mme_block(hdev, 0xE4ED000);
-	gaudi3_init_regulators_d2d_8_hbm_mme_block(hdev, 0xE4EF000);
-	gaudi3_init_regulators_d2d_8_hbm_mme_block(hdev, 0xE8D6000);
-	gaudi3_init_regulators_d2d_8_hbm_mme_block(hdev, 0xE8DE000);
-	gaudi3_init_regulators_d2d_8_hbm_mme_block(hdev, 0xE8E1000);
-	gaudi3_init_regulators_d2d_8_hbm_mme_block(hdev, 0xE8E3000);
-	gaudi3_init_regulators_d2d_8_hbm_mme_block(hdev, 0xE8E5000);
-	gaudi3_init_regulators_d2d_8_hbm_mme_block(hdev, 0xE8E7000);
-	gaudi3_init_regulators_d2d_8_hbm_mme_block(hdev, 0xE8E9000);
-	gaudi3_init_regulators_d2d_8_hbm_mme_block(hdev, 0xE8EB000);
-	gaudi3_init_regulators_d2d_8_hbm_mme_block(hdev, 0xE8ED000);
-	gaudi3_init_regulators_d2d_8_hbm_mme_block(hdev, 0xE8EF000);
-	gaudi3_init_regulators_d2d_8_hbm_mme_block(hdev, 0xECD6000);
-	gaudi3_init_regulators_d2d_8_hbm_mme_block(hdev, 0xECDE000);
-	gaudi3_init_regulators_d2d_8_hbm_mme_block(hdev, 0xECE1000);
-	gaudi3_init_regulators_d2d_8_hbm_mme_block(hdev, 0xECE3000);
-	gaudi3_init_regulators_d2d_8_hbm_mme_block(hdev, 0xECE5000);
-	gaudi3_init_regulators_d2d_8_hbm_mme_block(hdev, 0xECE7000);
-	gaudi3_init_regulators_d2d_8_hbm_mme_block(hdev, 0xECE9000);
-	gaudi3_init_regulators_d2d_8_hbm_mme_block(hdev, 0xECEB000);
-	gaudi3_init_regulators_d2d_8_hbm_mme_block(hdev, 0xECED000);
-	gaudi3_init_regulators_d2d_8_hbm_mme_block(hdev, 0xECEF000);
-	gaudi3_init_regulators_d2d_8_hbm_mme_block(hdev, 0xF0D6000);
-	gaudi3_init_regulators_d2d_8_hbm_mme_block(hdev, 0xF0DE000);
-	gaudi3_init_regulators_d2d_8_hbm_mme_block(hdev, 0xF0E1000);
-	gaudi3_init_regulators_d2d_8_hbm_mme_block(hdev, 0xF0E3000);
-	gaudi3_init_regulators_d2d_8_hbm_mme_block(hdev, 0xF0E5000);
-	gaudi3_init_regulators_d2d_8_hbm_mme_block(hdev, 0xF0E7000);
-	gaudi3_init_regulators_d2d_8_hbm_mme_block(hdev, 0xF0E9000);
-	gaudi3_init_regulators_d2d_8_hbm_mme_block(hdev, 0xF0EB000);
-	gaudi3_init_regulators_d2d_8_hbm_mme_block(hdev, 0xF0ED000);
-	gaudi3_init_regulators_d2d_8_hbm_mme_block(hdev, 0xF0EF000);
-	gaudi3_init_regulators_d2d_8_hbm_mme_block(hdev, 0xF4D6000);
-	gaudi3_init_regulators_d2d_8_hbm_mme_block(hdev, 0xF4DE000);
-	gaudi3_init_regulators_d2d_8_hbm_mme_block(hdev, 0xF4E1000);
-	gaudi3_init_regulators_d2d_8_hbm_mme_block(hdev, 0xF4E3000);
-	gaudi3_init_regulators_d2d_8_hbm_mme_block(hdev, 0xF4E5000);
-	gaudi3_init_regulators_d2d_8_hbm_mme_block(hdev, 0xF4E7000);
-	gaudi3_init_regulators_d2d_8_hbm_mme_block(hdev, 0xF4E9000);
-	gaudi3_init_regulators_d2d_8_hbm_mme_block(hdev, 0xF4EB000);
-	gaudi3_init_regulators_d2d_8_hbm_mme_block(hdev, 0xF4ED000);
-	gaudi3_init_regulators_d2d_8_hbm_mme_block(hdev, 0xF4EF000);
-	gaudi3_init_regulators_d2d_8_hbm_mme_block(hdev, 0xF8D6000);
-	gaudi3_init_regulators_d2d_8_hbm_mme_block(hdev, 0xF8DE000);
-	gaudi3_init_regulators_d2d_8_hbm_mme_block(hdev, 0xF8E1000);
-	gaudi3_init_regulators_d2d_8_hbm_mme_block(hdev, 0xF8E3000);
-	gaudi3_init_regulators_d2d_8_hbm_mme_block(hdev, 0xF8E5000);
-	gaudi3_init_regulators_d2d_8_hbm_mme_block(hdev, 0xF8E7000);
-	gaudi3_init_regulators_d2d_8_hbm_mme_block(hdev, 0xF8E9000);
-	gaudi3_init_regulators_d2d_8_hbm_mme_block(hdev, 0xF8EB000);
-	gaudi3_init_regulators_d2d_8_hbm_mme_block(hdev, 0xF8ED000);
-	gaudi3_init_regulators_d2d_8_hbm_mme_block(hdev, 0xF8EF000);
-	gaudi3_init_regulators_d2d_8_hbm_mme_block(hdev, 0xFCD6000);
-	gaudi3_init_regulators_d2d_8_hbm_mme_block(hdev, 0xFCDE000);
-	gaudi3_init_regulators_d2d_8_hbm_mme_block(hdev, 0xFCE1000);
-	gaudi3_init_regulators_d2d_8_hbm_mme_block(hdev, 0xFCE3000);
-	gaudi3_init_regulators_d2d_8_hbm_mme_block(hdev, 0xFCE5000);
-	gaudi3_init_regulators_d2d_8_hbm_mme_block(hdev, 0xFCE7000);
-	gaudi3_init_regulators_d2d_8_hbm_mme_block(hdev, 0xFCE9000);
-	gaudi3_init_regulators_d2d_8_hbm_mme_block(hdev, 0xFCEB000);
-	gaudi3_init_regulators_d2d_8_hbm_mme_block(hdev, 0xFCED000);
-	gaudi3_init_regulators_d2d_8_hbm_mme_block(hdev, 0xFCEF000);
+	struct iterate_module_ctx ctx = {};
+
+	ctx.fn = gaudi3_init_regulators_d2d_8_hbm_mme_block;
+	gaudi3_iterate_mmes_v3_mstr_ifs(hdev, &ctx);
 }
 
 static void gaudi3_init_regulators_d2d_7_hbm_mme(struct hl_device *hdev)
 {
-	gaudi3_init_regulators_d2d_7_hbm_mme_block(hdev, 0xE0D6000);
-	gaudi3_init_regulators_d2d_7_hbm_mme_block(hdev, 0xE0DE000);
-	gaudi3_init_regulators_d2d_7_hbm_mme_block(hdev, 0xE0E1000);
-	gaudi3_init_regulators_d2d_7_hbm_mme_block(hdev, 0xE0E3000);
-	gaudi3_init_regulators_d2d_7_hbm_mme_block(hdev, 0xE0E5000);
-	gaudi3_init_regulators_d2d_7_hbm_mme_block(hdev, 0xE0E7000);
-	gaudi3_init_regulators_d2d_7_hbm_mme_block(hdev, 0xE0E9000);
-	gaudi3_init_regulators_d2d_7_hbm_mme_block(hdev, 0xE0EB000);
-	gaudi3_init_regulators_d2d_7_hbm_mme_block(hdev, 0xE0ED000);
-	gaudi3_init_regulators_d2d_7_hbm_mme_block(hdev, 0xE0EF000);
-	gaudi3_init_regulators_d2d_7_hbm_mme_block(hdev, 0xE4D6000);
-	gaudi3_init_regulators_d2d_7_hbm_mme_block(hdev, 0xE4DE000);
-	gaudi3_init_regulators_d2d_7_hbm_mme_block(hdev, 0xE4E1000);
-	gaudi3_init_regulators_d2d_7_hbm_mme_block(hdev, 0xE4E3000);
-	gaudi3_init_regulators_d2d_7_hbm_mme_block(hdev, 0xE4E5000);
-	gaudi3_init_regulators_d2d_7_hbm_mme_block(hdev, 0xE4E7000);
-	gaudi3_init_regulators_d2d_7_hbm_mme_block(hdev, 0xE4E9000);
-	gaudi3_init_regulators_d2d_7_hbm_mme_block(hdev, 0xE4EB000);
-	gaudi3_init_regulators_d2d_7_hbm_mme_block(hdev, 0xE4ED000);
-	gaudi3_init_regulators_d2d_7_hbm_mme_block(hdev, 0xE4EF000);
-	gaudi3_init_regulators_d2d_7_hbm_mme_block(hdev, 0xE8D6000);
-	gaudi3_init_regulators_d2d_7_hbm_mme_block(hdev, 0xE8DE000);
-	gaudi3_init_regulators_d2d_7_hbm_mme_block(hdev, 0xE8E1000);
-	gaudi3_init_regulators_d2d_7_hbm_mme_block(hdev, 0xE8E3000);
-	gaudi3_init_regulators_d2d_7_hbm_mme_block(hdev, 0xE8E5000);
-	gaudi3_init_regulators_d2d_7_hbm_mme_block(hdev, 0xE8E7000);
-	gaudi3_init_regulators_d2d_7_hbm_mme_block(hdev, 0xE8E9000);
-	gaudi3_init_regulators_d2d_7_hbm_mme_block(hdev, 0xE8EB000);
-	gaudi3_init_regulators_d2d_7_hbm_mme_block(hdev, 0xE8ED000);
-	gaudi3_init_regulators_d2d_7_hbm_mme_block(hdev, 0xE8EF000);
-	gaudi3_init_regulators_d2d_7_hbm_mme_block(hdev, 0xECD6000);
-	gaudi3_init_regulators_d2d_7_hbm_mme_block(hdev, 0xECDE000);
-	gaudi3_init_regulators_d2d_7_hbm_mme_block(hdev, 0xECE1000);
-	gaudi3_init_regulators_d2d_7_hbm_mme_block(hdev, 0xECE3000);
-	gaudi3_init_regulators_d2d_7_hbm_mme_block(hdev, 0xECE5000);
-	gaudi3_init_regulators_d2d_7_hbm_mme_block(hdev, 0xECE7000);
-	gaudi3_init_regulators_d2d_7_hbm_mme_block(hdev, 0xECE9000);
-	gaudi3_init_regulators_d2d_7_hbm_mme_block(hdev, 0xECEB000);
-	gaudi3_init_regulators_d2d_7_hbm_mme_block(hdev, 0xECED000);
-	gaudi3_init_regulators_d2d_7_hbm_mme_block(hdev, 0xECEF000);
-	gaudi3_init_regulators_d2d_7_hbm_mme_block(hdev, 0xF0D6000);
-	gaudi3_init_regulators_d2d_7_hbm_mme_block(hdev, 0xF0DE000);
-	gaudi3_init_regulators_d2d_7_hbm_mme_block(hdev, 0xF0E1000);
-	gaudi3_init_regulators_d2d_7_hbm_mme_block(hdev, 0xF0E3000);
-	gaudi3_init_regulators_d2d_7_hbm_mme_block(hdev, 0xF0E5000);
-	gaudi3_init_regulators_d2d_7_hbm_mme_block(hdev, 0xF0E7000);
-	gaudi3_init_regulators_d2d_7_hbm_mme_block(hdev, 0xF0E9000);
-	gaudi3_init_regulators_d2d_7_hbm_mme_block(hdev, 0xF0EB000);
-	gaudi3_init_regulators_d2d_7_hbm_mme_block(hdev, 0xF0ED000);
-	gaudi3_init_regulators_d2d_7_hbm_mme_block(hdev, 0xF0EF000);
-	gaudi3_init_regulators_d2d_7_hbm_mme_block(hdev, 0xF4D6000);
-	gaudi3_init_regulators_d2d_7_hbm_mme_block(hdev, 0xF4DE000);
-	gaudi3_init_regulators_d2d_7_hbm_mme_block(hdev, 0xF4E1000);
-	gaudi3_init_regulators_d2d_7_hbm_mme_block(hdev, 0xF4E3000);
-	gaudi3_init_regulators_d2d_7_hbm_mme_block(hdev, 0xF4E5000);
-	gaudi3_init_regulators_d2d_7_hbm_mme_block(hdev, 0xF4E7000);
-	gaudi3_init_regulators_d2d_7_hbm_mme_block(hdev, 0xF4E9000);
-	gaudi3_init_regulators_d2d_7_hbm_mme_block(hdev, 0xF4EB000);
-	gaudi3_init_regulators_d2d_7_hbm_mme_block(hdev, 0xF4ED000);
-	gaudi3_init_regulators_d2d_7_hbm_mme_block(hdev, 0xF4EF000);
-	gaudi3_init_regulators_d2d_7_hbm_mme_block(hdev, 0xF8D6000);
-	gaudi3_init_regulators_d2d_7_hbm_mme_block(hdev, 0xF8DE000);
-	gaudi3_init_regulators_d2d_7_hbm_mme_block(hdev, 0xF8E1000);
-	gaudi3_init_regulators_d2d_7_hbm_mme_block(hdev, 0xF8E3000);
-	gaudi3_init_regulators_d2d_7_hbm_mme_block(hdev, 0xF8E5000);
-	gaudi3_init_regulators_d2d_7_hbm_mme_block(hdev, 0xF8E7000);
-	gaudi3_init_regulators_d2d_7_hbm_mme_block(hdev, 0xF8E9000);
-	gaudi3_init_regulators_d2d_7_hbm_mme_block(hdev, 0xF8EB000);
-	gaudi3_init_regulators_d2d_7_hbm_mme_block(hdev, 0xF8ED000);
-	gaudi3_init_regulators_d2d_7_hbm_mme_block(hdev, 0xF8EF000);
-	gaudi3_init_regulators_d2d_7_hbm_mme_block(hdev, 0xFCD6000);
-	gaudi3_init_regulators_d2d_7_hbm_mme_block(hdev, 0xFCDE000);
-	gaudi3_init_regulators_d2d_7_hbm_mme_block(hdev, 0xFCE1000);
-	gaudi3_init_regulators_d2d_7_hbm_mme_block(hdev, 0xFCE3000);
-	gaudi3_init_regulators_d2d_7_hbm_mme_block(hdev, 0xFCE5000);
-	gaudi3_init_regulators_d2d_7_hbm_mme_block(hdev, 0xFCE7000);
-	gaudi3_init_regulators_d2d_7_hbm_mme_block(hdev, 0xFCE9000);
-	gaudi3_init_regulators_d2d_7_hbm_mme_block(hdev, 0xFCEB000);
-	gaudi3_init_regulators_d2d_7_hbm_mme_block(hdev, 0xFCED000);
-	gaudi3_init_regulators_d2d_7_hbm_mme_block(hdev, 0xFCEF000);
+	struct iterate_module_ctx ctx = {};
+
+	ctx.fn = gaudi3_init_regulators_d2d_7_hbm_mme_block;
+	gaudi3_iterate_mmes_v3_mstr_ifs(hdev, &ctx);
 }
 
 static void gaudi3_init_regulators_single_die_nic_cntrl(struct hl_device *hdev)
