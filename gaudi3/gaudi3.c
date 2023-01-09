@@ -9697,20 +9697,14 @@ static void gaudi3_is_rotator_engine_idle(struct hl_device *hdev, int hdcore, in
 	reg_base = mmHD1_ROT0_BASE + offset;
 
 	rsb_info = RREG32(reg_base + mmROTATOR_RSB_INFO);
-	/* TODO: remove 'if' when simulator returns correct idle value for RSB_INFO (SW-116255) */
-	if (hdev->pdev) {
-		if ((FIELD_GET(ROTATOR_RSB_INFO_EMPTY_M, rsb_info) != 0x1) ||
-				(FIELD_GET(ROTATOR_RSB_INFO_AXI_IDLE_M, rsb_info) != 0x1))
-			is_idle = false;
-	}
+	if ((FIELD_GET(ROTATOR_RSB_INFO_EMPTY_M, rsb_info) != 0x1) ||
+			(FIELD_GET(ROTATOR_RSB_INFO_AXI_IDLE_M, rsb_info) != 0x1))
+		is_idle = false;
 
 	wbc_info = RREG32(reg_base + mmROTATOR_WBC_INFO);
-	/* TODO: remove 'if' when simulator returns correct idle value for WBC_INFO (SW-116255) */
-	if (hdev->pdev) {
-		if ((FIELD_GET(ROTATOR_WBC_INFO_EMPTY_M, wbc_info) != 0x1) ||
-				(FIELD_GET(ROTATOR_WBC_INFO_AXI_IDLE_M, wbc_info) != 0x1))
-			is_idle = false;
-	}
+	if ((FIELD_GET(ROTATOR_WBC_INFO_EMPTY_M, wbc_info) != 0x1) ||
+			(FIELD_GET(ROTATOR_WBC_INFO_AXI_IDLE_M, wbc_info) != 0x1))
+		is_idle = false;
 
 	if (idle_data->mask && !is_idle) {
 		hdcore_index = hdcore / 2; /* [0] = HD1, [1] = HD3, [2] = HD4, [3] = HD6 */
