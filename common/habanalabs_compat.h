@@ -897,4 +897,8 @@ enum ib_port_phys_state {
 })
 #endif
 
+#ifndef _HAS_IB_SPEED_NDR
+#define IB_SPEED_NDR	128
+#endif
+
 #endif /* HABANALABS_COMPAT_H_ */

@@ -470,3 +470,7 @@ endif
 ifneq ($(shell grep "netif_napi_add" -A4 include/linux/netdevice.h | grep '@weight' > /dev/null 2>&1 && echo 1),)
 	ccflags-y += -D_HAS_NAPI_ADD_WEIGHT
 endif
+
+ifneq ($(shell grep -w "IB_SPEED_NDR" $(IB_PATH)/include/rdma/ib_verbs.h > /dev/null 2>&1 && echo 1),)
+	ccflags-y += -D_HAS_IB_SPEED_NDR
+endif
