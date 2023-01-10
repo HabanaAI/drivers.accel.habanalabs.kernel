@@ -906,6 +906,7 @@ int greco_set_fixed_properties(struct hl_device *hdev)
 	prop->completion_queues_count = 0;
 	prop->sync_stream_first_sob = GRECO_NUM_RSRVD_SOBS;
 	prop->sync_stream_first_mon = GRECO_NUM_RSRVD_COMPLETION_Q_MONITORS;
+	prop->completion_mode = U8_MAX; /* N/A completion mode */
 
 	/*
 	 * Set default SRAM size regardless of binning
