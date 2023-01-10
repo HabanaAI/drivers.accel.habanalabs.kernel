@@ -1075,15 +1075,13 @@ static int gaudi3_sim_fw_config(struct hl_device *hdev)
 	return 0;
 }
 
-static void gaudi3_sim_set_isolation(struct hl_device *hdev, bool isolate_engines, bool isolate_hbm)
+static void gaudi3_sim_set_isolation(struct hl_device *hdev, bool isolate_engines,
+					bool isolate_nic_and_hbm)
 {
 	struct hl_simulator_device *edev = gaudi3_simulator_dev_table[hdev->id];
 
 	hl_sim_set_priv_assertions(edev, false);
-
-	/* TODO: enable when simulator supports clearing isolation status (SW-116639) */
-	/*gaudi3_set_isolation(hdev, isolate_engines, isolate_hbm);*/
-
+	gaudi3_set_isolation(hdev, isolate_engines, isolate_nic_and_hbm);
 	hl_sim_set_priv_assertions(edev, true);
 }
 
@@ -1093,7 +1091,7 @@ static int gaudi3_sim_hw_init(struct hl_device *hdev)
 	struct hl_simulator_device *edev = gaudi3_simulator_dev_table[hdev->id];
 	int rc;
 
-	/* Must be called before accessing engine blocks in hl_init_pb_security() */
+	/* Some blocks are isolated by default so must be called before hl_init_pb_security() */
 	gaudi3_sim_set_isolation(hdev, false, false);
 
 	rc = hl_init_pb_security(hdev, true);
