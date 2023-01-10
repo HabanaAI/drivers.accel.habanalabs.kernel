@@ -675,13 +675,6 @@ static const u32 greco_pb_dcr0_hmmu0[] = {
 	mmDCORE0_HMMU0_STLB_BASE,
 };
 
-static const u32 greco_pb_dcr0_hmmu0_axi[] = {
-	mmDCORE0_HMMU0_AXI_MBIST0_BASE,
-	mmDCORE0_HMMU0_AXI_MBIST1_BASE,
-	mmDCORE0_HMMU0_AXI_MBIST2_BASE,
-	mmDCORE0_HMMU0_AXI_MBIST3_BASE,
-};
-
 static const u32 greco_pb_dcr0_kdma[] = {
 	mmDCORE0_KDMA_CORE_BASE,
 	mmDCORE0_KDMA_MSTR_IF_RR_SHRD_HBW_BASE,
@@ -2578,24 +2571,6 @@ static void greco_init_pb_hmmu(struct hl_device *hdev)
 	}
 }
 
-static void greco_init_pb_hmmu_axi(struct hl_device *hdev)
-{
-	u32 hmmu_offset = mmDCORE0_HMMU1_MMU_BASE - mmDCORE0_HMMU0_MMU_BASE;
-	int i, j, array_size = ARRAY_SIZE(greco_pb_dcr0_hmmu0_axi);
-	struct hl_block_glbl_sec
-		glbl_sec[ARRAY_SIZE(greco_pb_dcr0_hmmu0_axi)];
-
-	hl_secure_block(hdev, glbl_sec, array_size);
-
-	/* Fill all blocks with the same configuration */
-	for (i = 0 ; i < NUM_OF_DCORES ; i++) {
-		for (j = 0 ; j < 2 ; j++)
-			hl_config_glbl_sec(hdev, greco_pb_dcr0_hmmu0_axi,
-					glbl_sec, i * DCORE_OFFSET +
-					j * hmmu_offset, array_size);
-	}
-}
-
 static void greco_init_pb_kdma(struct hl_device *hdev)
 {
 	int i, array_size = ARRAY_SIZE(greco_pb_dcr0_kdma);
@@ -3145,7 +3120,6 @@ static void greco_init_protection_bits(struct hl_device *hdev)
 	greco_init_pb_ddr(hdev);
 	greco_init_pb_hif(hdev);
 	greco_init_pb_hmmu(hdev);
-	greco_init_pb_hmmu_axi(hdev);
 	greco_init_pb_kdma(hdev);
 	greco_init_pb_mme(hdev);
 	greco_init_pb_mme_qm(hdev);
@@ -3233,11 +3207,19 @@ static void greco_init_lbw_range_registers(struct hl_device *hdev, u32 rr_base)
 	u64 lbw_range_min_short[] = {
 		0x7FFC800000ull, /* GIC */
 		0x7FFC440000ull, /* PSOC_I2C_M0 */
+		0x7FFC145000ull, /* DCORE0_HMMU0_AXI_MBIST0 */
+		0x7FFC165000ull, /* DCORE0_HMMU1_AXI_MBIST0 */
+		0x7FFC345000ull, /* DCORE1_HMMU0_AXI_MBIST0 */
+		0x7FFC365000ull, /* DCORE1_HMMU1_AXI_MBIST0 */
 	};
 
 	u64 lbw_range_max_short[] = {
 		0x7FFCFC0000ull + 64 * 1024, /* EOF DCORE1_DDR3_PHY */
 		0x7FFC6F0000ull + 40 * 1024, /* EOF DCORE1_DDR3_MC1 */
+		0x7FFC148000ull + HL_BLOCK_SIZE, /* EOF DCORE0_HMMU0_AXI_MBIST3 */
+		0x7FFC168000ull + HL_BLOCK_SIZE, /* EOF DCORE0_HMMU1_AXI_MBIST3 */
+		0x7FFC348000ull + HL_BLOCK_SIZE, /* EOF DCORE1_HMMU0_AXI_MBIST3 */
+		0x7FFC368000ull + HL_BLOCK_SIZE, /* EOF DCORE1_HMMU1_AXI_MBIST3 */
 	};
 
 	int i, reg_offset;
@@ -3248,6 +3230,10 @@ static void greco_init_lbw_range_registers(struct hl_device *hdev, u32 rr_base)
 	 * Short ranges cover:
 	 *   0x7FFC800000 - 0x7FFCFD0000
 	 *   0x7FFC440000 - 0x7FFE80A000
+	 *   0x7FFC145000 - 0x7FFC149000
+	 *   0x7FFC165000 - 0x7FFC169000
+	 *   0x7FFC345000 - 0x7FFC349000
+	 *   0x7FFC365000 - 0x7FFC369000
 	 */
 	for (i = 0 ; i < ARRAY_SIZE(lbw_range_min) ; i++) {
 		reg_offset = i * sizeof(u32);
@@ -3609,24 +3595,6 @@ static void greco_ack_pb_hmmu(struct hl_device *hdev)
 	}
 }
 
-static void greco_ack_pb_hmmu_axi(struct hl_device *hdev)
-{
-	u32 hmmu_offset = mmDCORE0_HMMU1_MMU_BASE - mmDCORE0_HMMU0_MMU_BASE;
-	int i, j, array_size = ARRAY_SIZE(greco_pb_dcr0_hmmu0_axi);
-
-	if (!hdev->mmu_enable)
-		return;
-
-	/* Ack all blocks */
-	for (i = 0 ; i < NUM_OF_DCORES ; i++) {
-		for (j = 0 ; j < 2 ; j++)
-			hl_ack_pb_security_violations(hdev,
-					greco_pb_dcr0_hmmu0_axi,
-					i * DCORE_OFFSET + j * hmmu_offset,
-					array_size);
-	}
-}
-
 static void greco_ack_pb_kdma(struct hl_device *hdev)
 {
 	int i, array_size = ARRAY_SIZE(greco_pb_dcr0_kdma);
@@ -3978,7 +3946,6 @@ void greco_ack_protection_bits_errors(struct hl_device *hdev)
 	greco_ack_pb_ddr(hdev);
 	greco_ack_pb_hif(hdev);
 	greco_ack_pb_hmmu(hdev);
-	greco_ack_pb_hmmu_axi(hdev);
 	greco_ack_pb_kdma(hdev);
 	greco_ack_pb_mme(hdev);
 	greco_ack_pb_mme_qm(hdev);
