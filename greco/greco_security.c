@@ -692,7 +692,6 @@ static const u32 greco_pb_dcr0_mme[] = {
 	mmDCORE0_MME_CTRL_HI_BASE,
 	mmDCORE0_MME_CTRL_LO_BASE,
 	mmDCORE0_MME_MSTR_IF_RR_SHRD_HBW_BASE,
-	mmDCORE0_MME_QM_BASE,
 	mmDCORE0_MME_SRAM_L0_BASE,
 };
 
@@ -1702,6 +1701,13 @@ static const u32 greco_pb_dcr0_mme_unsecured_regs[] = {
 	mmDCORE0_MME_CTRL_LO_SHADOW_1_TENSOR_COUT_VALID_ELEMENTS_3,
 	mmDCORE0_MME_CTRL_LO_SHADOW_1_TENSOR_COUT_VALID_ELEMENTS_4,
 	mmDCORE0_MME_CTRL_LO_STATUS1,
+};
+
+static const u32 greco_pb_dcr0_mme_qm[] = {
+	mmDCORE0_MME_QM_BASE,
+};
+
+static const u32 greco_pb_dcr0_mme_qm_unsecured_regs[] = {
 	mmDCORE0_MME_QM_CP_FENCE0_RDATA_0,
 	mmDCORE0_MME_QM_CP_FENCE0_RDATA_1,
 	mmDCORE0_MME_QM_CP_FENCE0_RDATA_2,
@@ -2621,10 +2627,35 @@ static void greco_init_pb_mme(struct hl_device *hdev)
 				glbl_sec, i * DCORE_OFFSET, blocks_array_size);
 }
 
+static void greco_init_pb_mme_qm(struct hl_device *hdev)
+{
+	int blocks_array_size = ARRAY_SIZE(greco_pb_dcr0_mme_qm);
+	int regs_array_size = ARRAY_SIZE(greco_pb_dcr0_mme_qm_unsecured_regs);
+	struct hl_block_glbl_sec glbl_sec[ARRAY_SIZE(greco_pb_dcr0_mme_qm)];
+	struct asic_fixed_properties *prop = &hdev->asic_prop;
+	struct hw_queue_properties *queue_props;
+
+	if (!hdev->mme_mask)
+		return;
+
+	hl_secure_block(hdev, glbl_sec, blocks_array_size);
+	hl_unsecure_registers(hdev, greco_pb_dcr0_mme_qm_unsecured_regs, regs_array_size, 0,
+				greco_pb_dcr0_mme_qm, glbl_sec, blocks_array_size);
+
+	/* DCORE0_MME_QM */
+	hl_config_glbl_sec(hdev, greco_pb_dcr0_mme_qm, glbl_sec, 0x0, blocks_array_size);
+
+	/* DCORE1_MME_QM */
+	queue_props = &prop->hw_queues_props[GRECO_QUEUE_ID_DCORE1_MME_0_0];
+	if (!queue_props->slave)
+		hl_config_glbl_sec(hdev, greco_pb_dcr0_mme_qm, glbl_sec, DCORE_OFFSET,
+					blocks_array_size);
+}
+
 static void greco_init_pb_mme_sbte(struct hl_device *hdev)
 {
 	int i, array_size = ARRAY_SIZE(greco_pb_dcr0_mme_sbte);
-	struct hl_block_glbl_sec glbl_sec[ARRAY_SIZE(greco_pb_dcr0_mme)];
+	struct hl_block_glbl_sec glbl_sec[ARRAY_SIZE(greco_pb_dcr0_mme_sbte)];
 
 	if (!hdev->mme_mask)
 		return;
@@ -3115,6 +3146,7 @@ static void greco_init_protection_bits(struct hl_device *hdev)
 	greco_init_pb_hmmu_axi(hdev);
 	greco_init_pb_kdma(hdev);
 	greco_init_pb_mme(hdev);
+	greco_init_pb_mme_qm(hdev);
 	greco_init_pb_mme_sbte(hdev);
 	greco_init_pb_mmeif_rtr(hdev);
 	greco_init_pb_pdma(hdev);
@@ -3614,6 +3646,24 @@ static void greco_ack_pb_mme(struct hl_device *hdev)
 						i * DCORE_OFFSET, array_size);
 }
 
+static void greco_ack_pb_mme_qm(struct hl_device *hdev)
+{
+	struct asic_fixed_properties *prop = &hdev->asic_prop;
+	int array_size = ARRAY_SIZE(greco_pb_dcr0_mme_qm);
+	struct hw_queue_properties *queue_props;
+
+	if (!hdev->mme_mask)
+		return;
+
+	/* DCORE0_MME_QM */
+	hl_ack_pb_security_violations(hdev, greco_pb_dcr0_mme_qm, 0x0, array_size);
+
+	/* DCORE1_MME_QM */
+	queue_props = &prop->hw_queues_props[GRECO_QUEUE_ID_DCORE1_MME_0_0];
+	if (!queue_props->slave)
+		hl_ack_pb_security_violations(hdev, greco_pb_dcr0_mme_qm, DCORE_OFFSET, array_size);
+}
+
 static void greco_ack_pb_mme_sbte(struct hl_device *hdev)
 {
 	int i, array_size = ARRAY_SIZE(greco_pb_dcr0_mme_sbte);
@@ -3929,6 +3979,7 @@ void greco_ack_protection_bits_errors(struct hl_device *hdev)
 	greco_ack_pb_hmmu_axi(hdev);
 	greco_ack_pb_kdma(hdev);
 	greco_ack_pb_mme(hdev);
+	greco_ack_pb_mme_qm(hdev);
 	greco_ack_pb_mme_sbte(hdev);
 	greco_ack_pb_mmeif_rtr(hdev);
 	greco_ack_pb_pdma(hdev);

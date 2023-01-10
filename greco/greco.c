@@ -3145,13 +3145,18 @@ void greco_disable_dcore_dma_qmans(struct hl_device *hdev)
 
 void greco_disable_mme_qmans(struct hl_device *hdev)
 {
+	struct asic_fixed_properties *prop = &hdev->asic_prop;
 	struct greco_device *greco = hdev->asic_specific;
+	struct hw_queue_properties *queue_props;
 
 	if (!(greco->hw_cap_initialized & HW_CAP_MME_MASK))
 		return;
 
 	greco_disable_qman_common(hdev, mmDCORE0_MME_QM_BASE);
-	greco_disable_qman_common(hdev, mmDCORE1_MME_QM_BASE);
+
+	queue_props = &prop->hw_queues_props[GRECO_QUEUE_ID_DCORE1_MME_0_0];
+	if (!queue_props->slave)
+		greco_disable_qman_common(hdev, mmDCORE1_MME_QM_BASE);
 }
 
 void greco_disable_tpc_qmans(struct hl_device *hdev)
@@ -3234,13 +3239,18 @@ void greco_stop_dcore_dma_qmans(struct hl_device *hdev)
 
 void greco_stop_mme_qmans(struct hl_device *hdev)
 {
+	struct asic_fixed_properties *prop = &hdev->asic_prop;
 	struct greco_device *greco = hdev->asic_specific;
+	struct hw_queue_properties *queue_props;
 
 	if (!(greco->hw_cap_initialized & HW_CAP_MME_MASK))
 		return;
 
 	greco_stop_qman_common(hdev, mmDCORE0_MME_QM_BASE);
-	greco_stop_qman_common(hdev, mmDCORE1_MME_QM_BASE);
+
+	queue_props = &prop->hw_queues_props[GRECO_QUEUE_ID_DCORE1_MME_0_0];
+	if (!queue_props->slave)
+		greco_stop_qman_common(hdev, mmDCORE1_MME_QM_BASE);
 }
 
 void greco_stop_tpc_qmans(struct hl_device *hdev)
