@@ -2524,8 +2524,8 @@ int hl_device_init(struct hl_device *hdev, struct class *hclass)
 		goto out_disabled;
 	}
 
-	dev_notice(hdev->dev,
-		"Successfully added device %s to habanalabs driver\n", HL_DEV_NAME(hdev));
+	/* TODO: Add HL_DEV_NAME to the print once SW-118405 is resolved */
+	dev_notice(hdev->dev, "Successfully added device to habanalabs driver\n");
 
 	hdev->init_done = true;
 
