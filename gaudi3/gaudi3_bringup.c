@@ -1499,19 +1499,19 @@ static void gaudi3_set_hbm_isolation(struct hl_device *hdev, bool isolate)
 /*
  * gaudi3_set_isolation() - configure isolation for engines and HBM.
  * @hdev: pointer to habanalabs device structure.
- * @isolate_engines: isolate or deisolate engines.
- * @isolate_hbm: isolate of deioslate HBM.
+ * @isolate_engines: isolate or deisolate non-NIC engines.
+ * @isolate_nic_and_hbm: isolate or deioslate NIC and HBM.
  *
  * Configure isolation for engines and HBM according to the provided 'isolate' flags.
  * A 'true' value in the flags means isolate all, while a 'false' value means remove isolation based
  * on the 'enabled' properties. I.e. if a block is not enabled, it will be isolated even if a
  * 'false' isolate flag was provided.
- * Engines and HBM have separate flags, to enable the flexibility of isolating only one of them
- * (e.g. isolate only engines before compute reset).
+ * NIC/HBM and non-NIC engines have separate flags, to allow the isolation of only non-NIC engines
+ * before compute reset.
  */
-void gaudi3_set_isolation(struct hl_device *hdev, bool isolate_engines, bool isolate_hbm)
+void gaudi3_set_isolation(struct hl_device *hdev, bool isolate_engines, bool isolate_nic_and_hbm)
 {
-	/* if preboot exist- it will handle of the isolation */
+	/* Isolation is configured by preboot */
 	if (hdev->fw_components & FW_TYPE_PREBOOT_CPU)
 		return;
 
@@ -1523,9 +1523,9 @@ void gaudi3_set_isolation(struct hl_device *hdev, bool isolate_engines, bool iso
 	gaudi3_set_mme_isolation(hdev, isolate_engines);
 	gaudi3_set_rotator_isolation(hdev, isolate_engines);
 	gaudi3_set_decoder_isolation(hdev, isolate_engines);
-	gaudi3_set_nic_isolation(hdev, isolate_engines);
 
-	gaudi3_set_hbm_isolation(hdev, isolate_hbm);
+	gaudi3_set_nic_isolation(hdev, isolate_nic_and_hbm);
+	gaudi3_set_hbm_isolation(hdev, isolate_nic_and_hbm);
 
 	/* Perform read from the device to flush the isolation configuration */
 	RREG32(mmD0_PSOC_BOOT_CONF_HBM_ISO);
