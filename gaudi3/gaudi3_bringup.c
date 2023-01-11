@@ -1232,7 +1232,8 @@ static void gaudi3_set_edma_isolation(struct hl_device *hdev, bool isolate)
 
 	if (isolate) {
 		for (die = 0 ; die < prop->num_of_dies ; die++)
-			WREG32(mmD0_PSOC_BOOT_CONF_EDMA_ISO + die * DIE_OFFSET,
+			WREG32(mmD0_PSOC_BOOT_CONF_BASE + die * DIE_OFFSET +
+					mmPSOC_BOOT_CONF_EDMA_ISO,
 					PSOC_BOOT_CONF_EDMA_ISO_ISO_EN_M);
 		return;
 	}
@@ -1246,7 +1247,7 @@ static void gaudi3_set_edma_isolation(struct hl_device *hdev, bool isolate)
 		edma_iso |= BIT(0);
 	if (!(prop->edma_enabled_mask & 0xC))
 		edma_iso |= BIT(1);
-	WREG32(mmD0_PSOC_BOOT_CONF_EDMA_ISO, edma_iso);
+	WREG32(mmD0_PSOC_BOOT_CONF_BASE + mmPSOC_BOOT_CONF_EDMA_ISO, edma_iso);
 
 	if (prop->num_of_dies == 1)
 		return;
@@ -1260,7 +1261,7 @@ static void gaudi3_set_edma_isolation(struct hl_device *hdev, bool isolate)
 		edma_iso |= BIT(0);
 	if (!(prop->edma_enabled_mask & 0x30))
 		edma_iso |= BIT(1);
-	WREG32(mmD1_PSOC_BOOT_CONF_EDMA_ISO, edma_iso);
+	WREG32(mmD1_PSOC_BOOT_CONF_BASE + mmPSOC_BOOT_CONF_EDMA_ISO, edma_iso);
 }
 
 static void gaudi3_set_tpc_isolation(struct hl_device *hdev, bool isolate)
@@ -1272,9 +1273,11 @@ static void gaudi3_set_tpc_isolation(struct hl_device *hdev, bool isolate)
 
 	if (isolate) {
 		for (die = 0 ; die < prop->num_of_dies ; die++) {
-			WREG32(mmD0_PSOC_BOOT_CONF_TPC_ISO_L + die * DIE_OFFSET,
+			WREG32(mmD0_PSOC_BOOT_CONF_BASE + die * DIE_OFFSET +
+					mmPSOC_BOOT_CONF_TPC_ISO_L,
 					PSOC_BOOT_CONF_TPC_ISO_L_ISO_EN_M);
-			WREG32(mmD0_PSOC_BOOT_CONF_TPC_ISO_H + die * DIE_OFFSET,
+			WREG32(mmD0_PSOC_BOOT_CONF_BASE + die * DIE_OFFSET +
+					mmPSOC_BOOT_CONF_TPC_ISO_H,
 					PSOC_BOOT_CONF_TPC_ISO_H_ISO_EN_M);
 		}
 
@@ -1291,13 +1294,13 @@ static void gaudi3_set_tpc_isolation(struct hl_device *hdev, bool isolate)
 	die0_tpc_disabled_mask = lower_32_bits(tpc_disabled_mask);
 
 	/* for DIE0 the isolation value is the same as the DIE disabled mask */
-	WREG32(mmD0_PSOC_BOOT_CONF_TPC_ISO_L, die0_tpc_disabled_mask);
+	WREG32(mmD0_PSOC_BOOT_CONF_BASE + mmPSOC_BOOT_CONF_TPC_ISO_L, die0_tpc_disabled_mask);
 
 	/* DIE0 TPC_ISO_H:
 	 *  Bit[0] - HD0_TPC8
 	 *  Bit[1] - HD2_TPC8
 	 */
-	WREG32(mmD0_PSOC_BOOT_CONF_TPC_ISO_H, 0x3);
+	WREG32(mmD0_PSOC_BOOT_CONF_BASE + mmPSOC_BOOT_CONF_TPC_ISO_H, 0x3);
 
 	if (prop->num_of_dies == 1)
 		return;
@@ -1315,13 +1318,13 @@ static void gaudi3_set_tpc_isolation(struct hl_device *hdev, bool isolate)
 		FIELD_PREP(0xFF00, bitrev8(FIELD_GET(0xFF0000, die1_tpc_disabled_mask))) |
 		FIELD_PREP(0xFF0000, bitrev8(FIELD_GET(0xFF00, die1_tpc_disabled_mask))) |
 		FIELD_PREP(0xFF000000, bitrev8(FIELD_GET(0xFF, die1_tpc_disabled_mask)));
-	WREG32(mmD1_PSOC_BOOT_CONF_TPC_ISO_L, tpc_iso_l);
+	WREG32(mmD1_PSOC_BOOT_CONF_BASE + mmPSOC_BOOT_CONF_TPC_ISO_L, tpc_iso_l);
 
 	/* DIE1 TPC_ISO_H:
 	 *  Bit[0] - HD7_TPC8
 	 *  Bit[1] - HD5_TPC8
 	 */
-	WREG32(mmD1_PSOC_BOOT_CONF_TPC_ISO_H, 0x3);
+	WREG32(mmD1_PSOC_BOOT_CONF_BASE + mmPSOC_BOOT_CONF_TPC_ISO_H, 0x3);
 }
 
 static void gaudi3_set_mme_isolation(struct hl_device *hdev, bool isolate)
@@ -1332,7 +1335,8 @@ static void gaudi3_set_mme_isolation(struct hl_device *hdev, bool isolate)
 
 	if (isolate) {
 		for (die = 0 ; die < prop->num_of_dies ; die++)
-			WREG32(mmD0_PSOC_BOOT_CONF_MME_ISO + die * DIE_OFFSET,
+			WREG32(mmD0_PSOC_BOOT_CONF_BASE + die * DIE_OFFSET +
+					mmPSOC_BOOT_CONF_MME_ISO,
 					PSOC_BOOT_CONF_MME_ISO_ISO_EN_M);
 		return;
 	}
@@ -1341,7 +1345,7 @@ static void gaudi3_set_mme_isolation(struct hl_device *hdev, bool isolate)
 	 * Bit[0] - HD0_MME ... Bit[3] - HD3_MME
 	 */
 	mme_iso = ~hdev->mme_mask & 0xF;
-	WREG32(mmD0_PSOC_BOOT_CONF_MME_ISO, mme_iso);
+	WREG32(mmD0_PSOC_BOOT_CONF_BASE + mmPSOC_BOOT_CONF_MME_ISO, mme_iso);
 
 	if (prop->num_of_dies == 1)
 		return;
@@ -1350,7 +1354,7 @@ static void gaudi3_set_mme_isolation(struct hl_device *hdev, bool isolate)
 	 * Bit[0] - HD7_MME ... Bit[3] - HD4_MME
 	 */
 	mme_iso = bitrev8(~hdev->mme_mask & 0xF0);
-	WREG32(mmD1_PSOC_BOOT_CONF_MME_ISO, mme_iso);
+	WREG32(mmD1_PSOC_BOOT_CONF_BASE + mmPSOC_BOOT_CONF_MME_ISO, mme_iso);
 }
 
 static void gaudi3_set_rotator_isolation(struct hl_device *hdev, bool isolate)
@@ -1361,7 +1365,8 @@ static void gaudi3_set_rotator_isolation(struct hl_device *hdev, bool isolate)
 
 	if (isolate) {
 		for (die = 0 ; die < prop->num_of_dies ; die++)
-			WREG32(mmD0_PSOC_BOOT_CONF_ROT_ISO + die * DIE_OFFSET,
+			WREG32(mmD0_PSOC_BOOT_CONF_BASE + die * DIE_OFFSET +
+					mmPSOC_BOOT_CONF_ROT_ISO,
 					PSOC_BOOT_CONF_ROT_ISO_ISO_EN_M);
 		return;
 	}
@@ -1374,7 +1379,7 @@ static void gaudi3_set_rotator_isolation(struct hl_device *hdev, bool isolate)
 	 * Bit[3] - HD3_ROT1
 	 */
 	rot_iso = rot_disabled_mask & 0xF;
-	WREG32(mmD0_PSOC_BOOT_CONF_ROT_ISO, rot_iso);
+	WREG32(mmD0_PSOC_BOOT_CONF_BASE + mmPSOC_BOOT_CONF_ROT_ISO, rot_iso);
 
 	if (prop->num_of_dies == 1)
 		return;
@@ -1390,7 +1395,7 @@ static void gaudi3_set_rotator_isolation(struct hl_device *hdev, bool isolate)
 	 */
 	rot_iso = FIELD_PREP(0x3, FIELD_GET(0xC, rot_disabled_mask)) |
 			FIELD_PREP(0xC, FIELD_GET(0x3, rot_disabled_mask));
-	WREG32(mmD1_PSOC_BOOT_CONF_ROT_ISO, rot_iso);
+	WREG32(mmD1_PSOC_BOOT_CONF_BASE + mmPSOC_BOOT_CONF_ROT_ISO, rot_iso);
 }
 
 static void gaudi3_set_decoder_isolation(struct hl_device *hdev, bool isolate)
@@ -1403,7 +1408,8 @@ static void gaudi3_set_decoder_isolation(struct hl_device *hdev, bool isolate)
 
 	if (isolate) {
 		for (die = 0 ; die < prop->num_of_dies ; die++)
-			WREG32(mmD0_PSOC_BOOT_CONF_VDEC_ISO + die * DIE_OFFSET,
+			WREG32(mmD0_PSOC_BOOT_CONF_BASE + die * DIE_OFFSET +
+					mmPSOC_BOOT_CONF_VDEC_ISO,
 					PSOC_BOOT_CONF_VDEC_ISO_ISO_EN_M);
 		return;
 	};
@@ -1425,7 +1431,7 @@ static void gaudi3_set_decoder_isolation(struct hl_device *hdev, bool isolate)
 		if (!(prop->decoder_enabled_mask & BIT(i)))
 			vdec_iso |= BIT(d0_decoder_id_to_iso_bit[i]);
 	}
-	WREG32(mmD0_PSOC_BOOT_CONF_VDEC_ISO, vdec_iso);
+	WREG32(mmD0_PSOC_BOOT_CONF_BASE + mmPSOC_BOOT_CONF_VDEC_ISO, vdec_iso);
 
 	if (prop->num_of_dies == 1)
 		return;
@@ -1445,7 +1451,7 @@ static void gaudi3_set_decoder_isolation(struct hl_device *hdev, bool isolate)
 		if (!(prop->decoder_enabled_mask & BIT(num_of_decoder_per_die + i)))
 			vdec_iso |= BIT(d1_decoder_id_to_iso_bit[i]);
 	}
-	WREG32(mmD1_PSOC_BOOT_CONF_VDEC_ISO, vdec_iso);
+	WREG32(mmD1_PSOC_BOOT_CONF_BASE + mmPSOC_BOOT_CONF_VDEC_ISO, vdec_iso);
 }
 
 static void gaudi3_set_nic_isolation(struct hl_device *hdev, bool isolate)
@@ -1457,7 +1463,8 @@ static void gaudi3_set_nic_isolation(struct hl_device *hdev, bool isolate)
 
 	if (isolate) {
 		for (die = 0 ; die < prop->num_of_dies ; die++)
-			WREG32(mmD0_PSOC_BOOT_CONF_NIC_ISO + die * DIE_OFFSET,
+			WREG32(mmD0_PSOC_BOOT_CONF_BASE + die * DIE_OFFSET +
+					mmPSOC_BOOT_CONF_NIC_ISO,
 					PSOC_BOOT_CONF_NIC_ISO_ISO_EN_M);
 		return;
 	};
@@ -1471,7 +1478,7 @@ static void gaudi3_set_nic_isolation(struct hl_device *hdev, bool isolate)
 		if (!(hdev->nic_ports_mask & gaudi3_nic_get_macro_ports_mask(nic_macro)))
 			nic_iso |= BIT(i);
 	}
-	WREG32(mmD0_PSOC_BOOT_CONF_NIC_ISO, nic_iso);
+	WREG32(mmD0_PSOC_BOOT_CONF_BASE + mmPSOC_BOOT_CONF_NIC_ISO, nic_iso);
 
 	if (prop->num_of_dies == 1)
 		return;
@@ -1485,7 +1492,7 @@ static void gaudi3_set_nic_isolation(struct hl_device *hdev, bool isolate)
 		if (!(hdev->nic_ports_mask & gaudi3_nic_get_macro_ports_mask(nic_macro)))
 			nic_iso |= BIT(i);
 	}
-	WREG32(mmD1_PSOC_BOOT_CONF_NIC_ISO, nic_iso);
+	WREG32(mmD1_PSOC_BOOT_CONF_BASE + mmPSOC_BOOT_CONF_NIC_ISO, nic_iso);
 }
 
 static void gaudi3_set_hbm_isolation(struct hl_device *hdev, bool isolate)
@@ -1497,7 +1504,8 @@ static void gaudi3_set_hbm_isolation(struct hl_device *hdev, bool isolate)
 	hbm_iso = (isolate || !hdev->dram_enable) ? PSOC_BOOT_CONF_HBM_ISO_ISO_EN_M : 0x0;
 
 	for (die = 0 ; die < prop->num_of_dies ; die++)
-		WREG32(mmD0_PSOC_BOOT_CONF_HBM_ISO + die * DIE_OFFSET, hbm_iso);
+		WREG32(mmD0_PSOC_BOOT_CONF_BASE + die * DIE_OFFSET + mmPSOC_BOOT_CONF_HBM_ISO,
+				hbm_iso);
 }
 
 /*
@@ -1520,7 +1528,7 @@ void gaudi3_set_isolation(struct hl_device *hdev, bool isolate_engines, bool iso
 		return;
 
 	/* Perform read from the device to flush all previous accesses */
-	RREG32(mmD0_PSOC_BOOT_CONF_HBM_ISO);
+	RREG32(mmD0_PSOC_BOOT_CONF_BASE + mmPSOC_BOOT_CONF_HBM_ISO);
 
 	gaudi3_set_edma_isolation(hdev, isolate_engines);
 	gaudi3_set_tpc_isolation(hdev, isolate_engines);
@@ -1532,7 +1540,7 @@ void gaudi3_set_isolation(struct hl_device *hdev, bool isolate_engines, bool iso
 	gaudi3_set_hbm_isolation(hdev, isolate_nic_and_hbm);
 
 	/* Perform read from the device to flush the isolation configuration */
-	RREG32(mmD0_PSOC_BOOT_CONF_HBM_ISO);
+	RREG32(mmD0_PSOC_BOOT_CONF_BASE + mmPSOC_BOOT_CONF_HBM_ISO);
 }
 
 void gaudi3_init_arc(struct hl_device *hdev, u32 cpu_id)

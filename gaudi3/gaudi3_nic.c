@@ -1743,7 +1743,8 @@ static int gaudi3_nic_pre_core_init(struct hl_device *hdev)
 		}
 
 		if (!hdev->asic_prop.fw_security_enabled) {
-			card_location = RREG32(mmD0_PSOC_BOOT_CONF_BOOT_STRAP_PINS_H);
+			card_location = RREG32(mmD0_PSOC_BOOT_CONF_BASE +
+						mmPSOC_BOOT_CONF_BOOT_STRAP_PINS_H);
 			serdes_type = card_location;
 			card_location &= PSOC_BOOT_CONF_BOOT_STRAP_PINS_H_MODULE_ID_M;
 			card_location >>= PSOC_BOOT_CONF_BOOT_STRAP_PINS_H_MODULE_ID_S;
