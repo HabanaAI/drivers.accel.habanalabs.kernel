@@ -1528,11 +1528,28 @@ static void gaudi3_set_hbm_isolation(struct hl_device *hdev, bool isolate)
 	u32 hbm_iso;
 	int die;
 
-	hbm_iso = (isolate || !hdev->dram_enable) ? PSOC_BOOT_CONF_HBM_ISO_ISO_EN_M : 0x0;
+	if (isolate || !hdev->dram_enable) {
+		for (die = 0; die < prop->num_of_dies; die++)
+			WREG32(mmD0_PSOC_BOOT_CONF_BASE + die * DIE_OFFSET +
+					mmPSOC_BOOT_CONF_HBM_ISO,
+					PSOC_BOOT_CONF_HBM_ISO_ISO_EN_M);
+		return;
+	}
 
-	for (die = 0 ; die < prop->num_of_dies ; die++)
-		WREG32(mmD0_PSOC_BOOT_CONF_BASE + die * DIE_OFFSET + mmPSOC_BOOT_CONF_HBM_ISO,
-				hbm_iso);
+	/* DIE0 HBM_ISO:
+	 * Bit[0] - HBM0 ... Bit[3] - HBM3
+	 */
+	hbm_iso = ~lower_32_bits(prop->dram_enabled_mask) & 0xF;
+	WREG32(mmD0_PSOC_BOOT_CONF_BASE + mmPSOC_BOOT_CONF_HBM_ISO, hbm_iso);
+
+	if (prop->num_of_dies == 1)
+		return;
+
+	/* DIE1 HBM_ISO:
+	 * Bit[0] - HBM7 ... Bit[3] - HBM4
+	 */
+	hbm_iso = bitrev8(~lower_32_bits(prop->dram_enabled_mask) & 0xF0);
+	WREG32(mmD1_PSOC_BOOT_CONF_BASE + mmPSOC_BOOT_CONF_HBM_ISO, hbm_iso);
 }
 
 /*
