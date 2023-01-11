@@ -887,18 +887,22 @@ static void gaudi3_reset_config(struct hl_device *hdev)
 
 		if (gaudi3->psoc_reset) {
 			/* Reset PSOC and PSOC ARCs during hard-reset */
-			WREG32(mmD0_PSOC_RESET_CONF_PSOC_SW_RST_CFG + offset,
+			WREG32(mmD0_PSOC_RESET_CONF_BASE + offset +
+					mmPSOC_RESET_CONF_PSOC_SW_RST_CFG,
 					PSOC_RESET_CONF_PSOC_SW_RST_CFG_EN_M);
-			WREG32(mmD0_PSOC_RESET_CONF_ARC_SW_RST_CFG + offset,
+			WREG32(mmD0_PSOC_RESET_CONF_BASE + offset +
+					mmPSOC_RESET_CONF_ARC_SW_RST_CFG,
 					PSOC_RESET_CONF_ARC_SW_RST_CFG_EN_M);
 		}
 
 		/* Reset PMMU during hard-reset */
-		WREG32(mmD0_PSOC_RESET_CONF_PMMU_SW_RST_CFG + offset,
+		WREG32(mmD0_PSOC_RESET_CONF_BASE + offset +
+				mmPSOC_RESET_CONF_PMMU_SW_RST_CFG,
 				PSOC_RESET_CONF_PMMU_SW_RST_CFG_EN_M);
 
 		/* Reset NIC_QMAN during soft-reset */
-		WREG32(mmD0_PSOC_RESET_CONF_NIC_QMAN_SOFT_RST_CFG + offset,
+		WREG32(mmD0_PSOC_RESET_CONF_BASE + offset +
+				mmPSOC_RESET_CONF_NIC_QMAN_SOFT_RST_CFG,
 				PSOC_RESET_CONF_NIC_QMAN_SOFT_RST_CFG_EN_M);
 
 		/* PPW termination of all transactions after reset should be cleared by F/W via a
@@ -2566,9 +2570,9 @@ void gaudi3_execute_reset_no_fw(struct hl_device *hdev, u32 reset_sleep_ms, bool
 
 	if (hard_reset) {
 		gaudi3_execute_hard_reset_no_fw(hdev);
-		d0_reset_reg = mmD0_PSOC_RESET_CONF_SW_ALL_RST;
+		d0_reset_reg = mmD0_PSOC_RESET_CONF_BASE + mmPSOC_RESET_CONF_SW_ALL_RST;
 	} else {
-		d0_reset_reg = mmD0_PSOC_RESET_CONF_SOFT_RST;
+		d0_reset_reg = mmD0_PSOC_RESET_CONF_BASE + mmPSOC_RESET_CONF_SOFT_RST;
 	}
 
 	if (hdev->asic_prop.num_of_dies == MAX_NUM_OF_DIES) {

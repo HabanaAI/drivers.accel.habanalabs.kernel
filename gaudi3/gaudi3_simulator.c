@@ -1192,10 +1192,9 @@ static void gaudi3_sim_trigger_reset(struct hl_device *hdev, bool hard_reset, u3
 {
 	u32 reset_timeout_ms = SIM_RESET_WAIT_MSEC;
 
-	if (hard_reset)
-		WREG32(die * DIE_OFFSET + mmD0_PSOC_RESET_CONF_SW_ALL_RST, 1);
-	else
-		WREG32(die * DIE_OFFSET + mmD0_PSOC_RESET_CONF_SOFT_RST, 1);
+	WREG32(mmD0_PSOC_RESET_CONF_BASE + die * DIE_OFFSET +
+			(hard_reset ? mmPSOC_RESET_CONF_SW_ALL_RST : mmPSOC_RESET_CONF_SOFT_RST),
+			0x1);
 
 	dev_dbg(hdev->dev,
 		"Issued %s reset command to DIE%d, waiting up to %dms\n",
@@ -1226,7 +1225,7 @@ static void gaudi3_sim_poll_on_reset_complete(struct hl_device *hdev, u32 die)
 static void gaudi3_sim_hw_fini(struct hl_device *hdev, bool hard_reset, bool fw_reset)
 {
 	struct asic_fixed_properties *prop = &hdev->asic_prop;
-	int i;
+	int die;
 
 	gaudi3_reset_arcs(hdev);
 
@@ -1238,18 +1237,16 @@ static void gaudi3_sim_hw_fini(struct hl_device *hdev, bool hard_reset, bool fw_
 		goto clear_hw_cap;
 
 	/* Order of reset is DIE1 followed by DIE0 */
-	for (i = prop->num_of_dies - 1; i >= 0 ; i--) {
-		gaudi3_sim_trigger_reset(hdev, hard_reset, i);
-		gaudi3_sim_poll_on_reset_complete(hdev, i);
+	for (die = prop->num_of_dies - 1; die >= 0 ; die--) {
+		gaudi3_sim_trigger_reset(hdev, hard_reset, die);
+		gaudi3_sim_poll_on_reset_complete(hdev, die);
 	}
 
 	/* Reset bit is not self-clearing, need to manually clear it */
-	for (i = 0; i < prop->num_of_dies; i++) {
-		if (hard_reset)
-			WREG32(i * DIE_OFFSET + mmD0_PSOC_RESET_CONF_SW_ALL_RST, 0);
-		else
-			WREG32(i * DIE_OFFSET + mmD0_PSOC_RESET_CONF_SOFT_RST, 0);
-	}
+	for (die = 0; die < prop->num_of_dies; die++)
+		WREG32(mmD0_PSOC_RESET_CONF_BASE + die * DIE_OFFSET +
+			(hard_reset ? mmPSOC_RESET_CONF_SW_ALL_RST : mmPSOC_RESET_CONF_SOFT_RST),
+			0x0);
 
 clear_hw_cap:
 	gaudi3_clear_hw_cap(hdev, hard_reset);
