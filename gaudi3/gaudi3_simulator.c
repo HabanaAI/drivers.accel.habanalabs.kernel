@@ -679,17 +679,8 @@ static u32 gaudi3_sim_rreg(struct hl_device *hdev, u32 reg)
 {
 	struct hl_simulator_device *edev = gaudi3_simulator_dev_table[hdev->id];
 	u64 reg_addr = CFG_BAR_BASE + reg;
-	u32 val;
 
-	if (unlikely(hdev->debug_rreg))
-		dev_info(hdev->dev, "BAR read from offset %#x (addr %#llx)\n", reg,
-			CFG_BAR_BASE + reg);
-	val = hl_sim_rreg(hdev, reg_addr, edev);
-
-	if (unlikely(hdev->debug_rreg))
-		dev_info(hdev->dev, "BAR read result: %#x\n", val);
-
-	return val;
+	return hl_sim_rreg(hdev, reg_addr, edev);
 }
 
 /**
@@ -707,9 +698,6 @@ static void gaudi3_sim_wreg(struct hl_device *hdev, u32 reg, u32 val)
 	struct hl_simulator_device *edev = gaudi3_simulator_dev_table[hdev->id];
 	u64 reg_addr = CFG_BAR_BASE + reg;
 
-	if (unlikely(hdev->debug_wreg))
-		dev_info(hdev->dev, "BAR write to offset %#x (addr %#llx), value: %#x\n",
-			reg, CFG_BAR_BASE + reg, val);
 	hl_sim_wreg(hdev, reg_addr, edev, val);
 }
 

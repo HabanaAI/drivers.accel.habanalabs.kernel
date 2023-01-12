@@ -122,8 +122,20 @@ static int bfe_bmu_enable = 1;
 static int bfe_nic_eth_on_internal;
 static int bfe_config_qman_arc_for_stub_mme;
 static int bfe_skip_nic_phy_init;
-static int bfe_debug_rreg;
-static int bfe_debug_wreg;
+/*
+ * The debug_[rw]reg control on tracing LBW RW
+ * The logic is as follow
+ * if 0- disable RW LBW traces
+ * if 1- do not disable RW LBW traces. traces will be active only
+ *       if, in addition, the corresponding RW LBW trace point is
+ *       enabled as well.
+ * This is done to preserve the general events tracing logic while allowing
+ * a user to "debug LBW RWs" only to specific sections of the code.
+ * In which case the user should load LKD with  bfe_debug_[rw]reg = 0
+ * and wrap the specific code with hdev->debug_[rw]reg = 1 and 0.
+ */
+static int bfe_debug_rreg = 1;
+static int bfe_debug_wreg = 1;
 static ulong bfe_sched_arc_mask = 0xFFFF;
 static int bfe_enable_odp = 1;
 static int bfe_use_8_bit_hops = 1;
@@ -1457,6 +1469,8 @@ static void set_driver_behavior_per_device(struct hl_device *hdev)
 	hdev->skip_nic_phy_init = 0;
 	hdev->odp_enabled = 1;
 	hdev->pci_rev_id_override = 0;
+	hdev->debug_wreg = 1;
+	hdev->debug_rreg = 1;
 }
 
 static void copy_kernel_module_params_to_device(struct hl_device *hdev)

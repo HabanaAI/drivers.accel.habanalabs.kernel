@@ -16,6 +16,8 @@
 #include <linux/vmalloc.h>
 #include <linux/irq.h>
 
+#include <trace/events/habanalabs.h>
+
 /* The last available minor number is occupied by the simulator mode device */
 #define HL_SIM_MAX_MINORS	(HL_MAX_MINORS - 1)
 #define HL_SIM_MODE_DEV_MINOR	HL_SIM_MAX_MINORS
@@ -431,6 +433,7 @@ hl_sim_msg_try_h2c:
  */
 u32 hl_sim_rreg(struct hl_device *hdev, u64 reg_addr, struct hl_simulator_device *edev)
 {
+	struct asic_fixed_properties *prop = &hdev->asic_prop;
 	struct simulator_msg *msg;
 	int count;
 	u32 op_id, val;
@@ -491,6 +494,9 @@ hl_sim_rreg_try_c2h:
 	val = msg->val;
 	kfree(msg);
 
+	if (unlikely(trace_habanalabs_rreg32_enabled() && hdev->debug_rreg))
+		trace_habanalabs_rreg32(hdev->dev, reg_addr - prop->cfg_base_address, val);
+
 	return val;
 }
 
@@ -507,6 +513,7 @@ hl_sim_rreg_try_c2h:
  */
 void hl_sim_wreg(struct hl_device *hdev, u64 reg_addr, struct hl_simulator_device *edev, u32 val)
 {
+	struct asic_fixed_properties *prop = &hdev->asic_prop;
 	struct simulator_msg *msg;
 
 	if (!edev) {
@@ -532,6 +539,9 @@ void hl_sim_wreg(struct hl_device *hdev, u64 reg_addr, struct hl_simulator_devic
 				reg_addr);
 		kfree(msg);
 	}
+
+	if (unlikely(trace_habanalabs_wreg32_enabled() && hdev->debug_wreg))
+		trace_habanalabs_wreg32(hdev->dev, reg_addr - prop->cfg_base_address, val);
 }
 
 void hl_sim_notify_reset(struct hl_device *hdev, struct hl_simulator_device *edev)

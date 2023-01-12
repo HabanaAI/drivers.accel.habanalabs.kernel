@@ -10788,38 +10788,6 @@ static void gaudi3_no_fw_monitor(struct hl_device *hdev, bool *stop_monitor)
 	*stop_monitor = pci_link_error;
 }
 
-static u32 gaudi3_rreg(struct hl_device *hdev, u32 reg)
-{
-	u32 val;
-	/*
-	 * TODO: This function shall be removed as gaudi3 palladium stabilizes.
-	 * It is very useful for current development stage.
-	 */
-	if (unlikely(hdev->debug_rreg))
-		dev_info(hdev->dev, "BAR read from offset %#x (addr %#llx)\n", reg,
-			CFG_BAR_BASE + reg);
-
-	val = hl_rreg(hdev, reg);
-
-	if (unlikely(hdev->debug_rreg))
-		dev_info(hdev->dev, "BAR read result: %#x\n", val);
-
-	return val;
-}
-
-static void gaudi3_wreg(struct hl_device *hdev, u32 reg, u32 val)
-{
-	/*
-	 * TODO: This function shall be removed as gaudi3 palladium stabilizes.
-	 * It is very useful for current development stage.
-	 */
-	if (unlikely(hdev->debug_wreg))
-		dev_info(hdev->dev, "BAR write to offset %#x (addr %#llx), value: %#x\n",
-			reg, CFG_BAR_BASE + reg, val);
-
-	hl_wreg(hdev, reg, val);
-}
-
 int gaudi3_alloc_irq_vectors(struct hl_device *hdev, unsigned int min_vecs,
 			unsigned int max_vecs, unsigned int flags)
 {
@@ -11292,8 +11260,8 @@ static const struct hl_asic_funcs gaudi3_funcs = {
 	.nic_control = hl_nic_control,
 	.pci_bars_map = gaudi3_pci_bars_map,
 	.init_iatu = gaudi3_init_iatu,
-	.rreg = gaudi3_rreg,
-	.wreg = gaudi3_wreg,
+	.rreg = hl_rreg,
+	.wreg = hl_wreg,
 	.halt_coresight = gaudi3_halt_coresight,
 	.ctx_init = gaudi3_ctx_init,
 	.ctx_fini = gaudi3_ctx_fini,

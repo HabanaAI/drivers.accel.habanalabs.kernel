@@ -2761,7 +2761,7 @@ inline u32 hl_rreg(struct hl_device *hdev, u32 reg)
 {
 	u32 val = readl(hdev->rmmio + reg);
 
-	if (unlikely(trace_habanalabs_rreg32_enabled()))
+	if (unlikely(trace_habanalabs_rreg32_enabled() && hdev->debug_rreg))
 		trace_habanalabs_rreg32(hdev->dev, reg, val);
 
 	return val;
@@ -2779,7 +2779,7 @@ inline u32 hl_rreg(struct hl_device *hdev, u32 reg)
  */
 inline void hl_wreg(struct hl_device *hdev, u32 reg, u32 val)
 {
-	if (unlikely(trace_habanalabs_wreg32_enabled()))
+	if (unlikely(trace_habanalabs_wreg32_enabled() && hdev->debug_wreg))
 		trace_habanalabs_wreg32(hdev->dev, reg, val);
 
 	writel(val, hdev->rmmio + reg);
