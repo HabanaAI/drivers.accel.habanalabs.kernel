@@ -270,6 +270,28 @@ static struct greco_razwi_info razwi_info[] = {
 
 static struct hl_special_block_info greco_special_blocks[] = GRECO_SPECIAL_BLOCKS;
 
+/* Special blocks ranges that should be skipped.
+ * The first 2 entries are placeholders for DCORE{0,1}_VDEC4, and they will be included depending on
+ * the decoder binning info.
+ * The next entry is a placeholder for DCORE1_MME_QM, and it will be included according to whether
+ * or not DCORE1_MME works in slave mode.
+ * The following entries are for DCORE1_TPC4, and it is assumed that it always binned-out.
+ */
+#define GRECO_SPECIAL_BLOCKS_SKIP_RANGES_D0_DEC4_IDX	0
+#define GRECO_SPECIAL_BLOCKS_SKIP_RANGES_D1_DEC4_IDX	1
+#define GRECO_SPECIAL_BLOCKS_SKIP_RANGES_D1_MME_QM_IDX	2
+
+static struct range greco_special_blocks_skip_ranges[] = {
+	{mmDCORE0_VDEC4_BRDG_CTRL_BASE, mmDCORE0_DEC4_CMD_BASE},
+	{mmDCORE1_VDEC4_BRDG_CTRL_BASE, mmDCORE1_DEC4_CMD_BASE},
+	{mmDCORE1_MME_QM_BASE, mmDCORE1_MME_QM_BASE},
+	{mmDCORE1_TPC4_QM_BASE, mmDCORE1_TPC4_QM_BASE},
+	{mmDCORE1_TPC4_CFG_BASE, mmDCORE1_TPC4_PRTN_BASE},
+	{mmDCORE1_TPC4_ROM_TABLE_BASE, mmDCORE1_TPC4_EML_BUSMON_3_BASE},
+	{mmDCORE1_TPC4_EML_CFG_BASE, mmDCORE1_TPC4_EML_TPC_QM_BASE},
+	{mmDCORE1_TPC4_EML_CS_BASE, mmDCORE1_TPC4_EML_CS_BASE}
+};
+
 static const int greco_qman_async_event_id[] = {
 	[GRECO_QUEUE_ID_DCORE0_PDMA_0_0] = GRECO_EVENT_PDMA0_QM,
 	[GRECO_QUEUE_ID_DCORE0_PDMA_0_1] = GRECO_EVENT_PDMA0_QM,
@@ -1747,17 +1769,7 @@ void greco_user_interrupt_setup(struct hl_device *hdev)
 
 static int greco_special_blocks_config(struct hl_device *hdev)
 {
-	int skip_block_types[] = {
-			GRECO_BLOCK_TYPE_PLL, GRECO_BLOCK_TYPE_HMMU};
-	struct range skip_block_ranges[] = {
-			{mmDCORE1_VDEC4_BRDG_CTRL_BASE, mmDCORE1_DEC4_CMD_BASE},
-			{mmDCORE1_TPC4_QM_BASE, mmDCORE1_TPC4_QM_BASE},
-			{mmDCORE1_TPC4_CFG_BASE, mmDCORE1_TPC4_PRTN_BASE},
-			{mmDCORE1_TPC4_ROM_TABLE_BASE, mmDCORE1_TPC4_EML_BUSMON_3_BASE},
-			{mmDCORE1_TPC4_EML_CFG_BASE, mmDCORE1_TPC4_EML_TPC_QM_BASE},
-			{mmDCORE1_TPC4_EML_CS_BASE, mmDCORE1_TPC4_EML_CS_BASE},
-			/* A slaved MME can't (and shouldn't) be addressed at all */
-			{mmDCORE1_MME_QM_BASE, mmDCORE1_MME_QM_BASE}};
+	int skip_block_types[] = {GRECO_BLOCK_TYPE_PLL, GRECO_BLOCK_TYPE_HMMU};
 	struct asic_fixed_properties *prop = &hdev->asic_prop;
 	int i, rc;
 
@@ -1791,19 +1803,20 @@ static int greco_special_blocks_config(struct hl_device *hdev)
 		prop->skip_special_blocks_cfg.block_types_len = ARRAY_SIZE(skip_block_types);
 	}
 
-	if (ARRAY_SIZE(skip_block_ranges)) {
+	if (ARRAY_SIZE(greco_special_blocks_skip_ranges)) {
 		prop->skip_special_blocks_cfg.block_ranges =
-				kmalloc_array(ARRAY_SIZE(skip_block_ranges),
-					sizeof(skip_block_ranges[0]), GFP_KERNEL);
+				kmalloc_array(ARRAY_SIZE(greco_special_blocks_skip_ranges),
+					sizeof(greco_special_blocks_skip_ranges[0]), GFP_KERNEL);
 		if (!prop->skip_special_blocks_cfg.block_ranges) {
 			rc = -ENOMEM;
 			goto free_types;
 		}
 
-		for (i = 0 ; i < ARRAY_SIZE(skip_block_ranges) ; i++)
+		for (i = 0 ; i < ARRAY_SIZE(greco_special_blocks_skip_ranges) ; i++)
 			memcpy(&prop->skip_special_blocks_cfg.block_ranges[i],
-					&skip_block_ranges[i], sizeof(struct range));
-		prop->skip_special_blocks_cfg.block_ranges_len = ARRAY_SIZE(skip_block_ranges);
+					&greco_special_blocks_skip_ranges[i], sizeof(struct range));
+		prop->skip_special_blocks_cfg.block_ranges_len =
+				ARRAY_SIZE(greco_special_blocks_skip_ranges);
 	}
 
 	return 0;
@@ -1814,6 +1827,32 @@ free_special_blocks:
 	kfree(prop->special_blocks);
 
 	return rc;
+}
+
+static void greco_special_blocks_update_skipped_ranges(struct hl_device *hdev)
+{
+	struct range *block_ranges = hdev->asic_prop.skip_special_blocks_cfg.block_ranges, *range;
+	struct asic_fixed_properties *prop = &hdev->asic_prop;
+
+	/* Remove DCORE0_VDEC4 from skipped ranges if not binned-out */
+	if (prop->decoder_enabled_mask & 0x10) {
+		range = &block_ranges[GRECO_SPECIAL_BLOCKS_SKIP_RANGES_D0_DEC4_IDX];
+		range->start = range->end = 0x0;
+	}
+
+	/* Remove DCORE1_VDEC4 from skipped ranges if not binned-out */
+	if (prop->decoder_enabled_mask & 0x200) {
+		range = &block_ranges[GRECO_SPECIAL_BLOCKS_SKIP_RANGES_D1_DEC4_IDX];
+		range->start = range->end = 0x0;
+	}
+
+	/* Remove DCORE1_MME_QM from skipped ranges if DCORE1_MME doesn't work in slave mode */
+	if (!prop->hw_queues_props[GRECO_QUEUE_ID_DCORE1_MME_0_0].slave) {
+		range = &block_ranges[GRECO_SPECIAL_BLOCKS_SKIP_RANGES_D1_MME_QM_IDX];
+		range->start = range->end = 0x0;
+	}
+
+	/* Assuming that DCORE1_TPC4 is always binned-out, so not updating next ranges entries */
 }
 
 static void greco_special_blocks_free(struct hl_device *hdev)
@@ -3987,6 +4026,9 @@ static int greco_hw_init(struct hl_device *hdev)
 	}
 
 	greco_init_golden_registers(hdev);
+
+	/* Update special blocks skipped ranges after binning info is known */
+	greco_special_blocks_update_skipped_ranges(hdev);
 
 	/* SRAM scrambler must be initialized after CPU is running from DRAM
 	 * and after binning is performed
