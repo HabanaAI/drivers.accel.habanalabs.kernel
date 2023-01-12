@@ -277,6 +277,9 @@ int gaudi3_init_hbm(struct hl_device *hdev)
 		return 0;
 
 	for (dev = 0 ; dev < (hdev->asic_prop.num_of_dies * NUM_HBM_PER_DIE); dev++) {
+		if (!(prop->dram_enabled_mask & BIT_ULL(dev)))
+			continue;
+
 		hbm_cfg->phy_chiplet = 0xff;
 		phy_init_config(hdev, dev);
 		enable_hbm_compression(hdev, dev);
