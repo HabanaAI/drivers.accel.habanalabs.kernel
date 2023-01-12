@@ -1881,12 +1881,9 @@ static void gaudi3_nic_config_hw_mac(struct hl_nic_macro *nic_macro)
 	}
 
 	/* enable link status change EQ notify */
-	/*
-	 * TODO: enable MAC rx FIFO drop indication to EQ ?
-	 * D0_NIC0_MAC_CORE_MAC_EQ_EN_RX_FIFO_VIOLATION_EN_S
-	 */
 	NIC_WREG32(mmD0_NIC0_MAC_CORE_BASE + mmPRT_MAC_CORE_MAC_EQ_EN,
-			(1 << D0_NIC0_MAC_CORE_MAC_EQ_EN_LINK_STATUS_EN_S));
+			(1 << D0_NIC0_MAC_CORE_MAC_EQ_EN_LINK_STATUS_EN_S) |
+			(1 << D0_NIC0_MAC_CORE_MAC_EQ_EN_RX_FIFO_VIOLATION_EN_S));
 }
 
 static void gaudi3_nic_config_hw_rxb(struct hl_nic_macro *nic_macro)
