@@ -8,6 +8,10 @@
 #ifndef SECURITY_H_
 #define SECURITY_H_
 
+#include <linux/io-64-nonatomic-lo-hi.h>
+
+extern struct hl_device *hdev;
+
 /* special blocks */
 #define HL_MAX_NUM_OF_GLBL_ERR_CAUSE		10
 #define HL_GLBL_ERR_ADDRESS_MASK		GENMASK(11, 0)
