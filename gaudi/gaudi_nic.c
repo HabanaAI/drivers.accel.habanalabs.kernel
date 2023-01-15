@@ -2541,6 +2541,11 @@ static u32 gaudi_nic_get_max_msg_sz(struct hl_device *hdev)
 	return SZ_4K;
 }
 
+static void gaudi_nic_app_params_clear(struct hl_device *hdev)
+{
+
+}
+
 static struct hl_nic_port_funcs gaudi_nic_port_funcs = {
 	.port_hw_init = gaudi_nic_port_hw_init,
 	.port_hw_fini = gaudi_nic_port_hw_fini,
@@ -2612,5 +2617,6 @@ struct hl_nic_funcs gaudi_nic_funcs = {
 	.set_en_core_data = gaudi_nic_en_set_core_data,
 	.is_coll_conn_id = gaudi_nic_is_coll_conn_id,
 	.get_max_msg_sz = gaudi_nic_get_max_msg_sz,
+	.app_params_clear = gaudi_nic_app_params_clear,
 	.port_funcs = &gaudi_nic_port_funcs,
 };

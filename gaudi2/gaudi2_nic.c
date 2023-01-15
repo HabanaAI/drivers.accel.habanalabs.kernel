@@ -4893,6 +4893,11 @@ static u32 gaudi2_nic_get_max_msg_sz(struct hl_device *hdev)
 	return SZ_1G;
 }
 
+static void gaudi2_nic_app_params_clear(struct hl_device *hdev)
+{
+
+}
+
 static struct hl_nic_port_funcs gaudi2_nic_port_funcs = {
 	.port_hw_init = gaudi2_nic_port_hw_init,
 	.port_hw_fini = gaudi2_nic_port_hw_fini,
@@ -4985,5 +4990,6 @@ struct hl_nic_funcs gaudi2_nic_funcs = {
 	.phy_dump_serdes_params = gaudi2_nic_phy_dump_serdes_params,
 	.get_max_msg_sz = gaudi2_nic_get_max_msg_sz,
 	.qp_syndrome_to_str = gaudi2_nic_qp_err_syndrom_to_str,
+	.app_params_clear = gaudi2_nic_app_params_clear,
 	.port_funcs = &gaudi2_nic_port_funcs,
 };

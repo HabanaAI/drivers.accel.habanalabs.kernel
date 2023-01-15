@@ -1244,6 +1244,7 @@ struct hl_nic_port_funcs {
  * @is_coll_conn_id: true if the provided conn_id is collective, false otherwise.
  * @phy_dump_serdes_params: dump the serdes parameters.
  * @get_max_msg_sz: get maximum message size.
+ * @app_params_clear: clear app params.
  * @port_funcs: functions called from common code on a specific NIC port.
  */
 struct hl_nic_funcs {
@@ -1292,6 +1293,7 @@ struct hl_nic_funcs {
 	void (*phy_dump_serdes_params)(struct hl_device *hdev, char *buf, size_t size);
 	u32 (*get_max_msg_sz)(struct hl_device *hdev);
 	char *(*qp_syndrome_to_str)(u32 syndrome);
+	void (*app_params_clear)(struct hl_device *hdev);
 	struct hl_nic_port_funcs *port_funcs;
 };
 

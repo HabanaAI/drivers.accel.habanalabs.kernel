@@ -5398,10 +5398,16 @@ static void ccqs_destroy(struct hl_device *hdev, struct hl_ctx *ctx)
 
 static void set_app_params_clear(struct hl_device *hdev)
 {
+	struct hl_nic_funcs *nic_funcs;
 	struct hl_nic_port *nic_port;
-	int port;
+	u32 max_num_of_ports, port;
 
-	for (port = 0 ; port < hdev->asic_prop.nic_props.max_num_of_ports ; port++) {
+	nic_funcs = hdev->asic_funcs->nic_funcs;
+	max_num_of_ports = hdev->asic_prop.nic_props.max_num_of_ports;
+
+	nic_funcs->app_params_clear(hdev);
+
+	for (port = 0 ; port < max_num_of_ports ; port++) {
 		if (!(hdev->nic_ports_mask & BIT(port)))
 			continue;
 

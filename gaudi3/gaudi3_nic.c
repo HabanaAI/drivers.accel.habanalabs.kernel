@@ -3820,23 +3820,6 @@ static void gaudi3_nic_ctx_dispatcher_fini(struct hl_ctx *ctx)
 		}
 }
 
-static void gaudi3_nic_reset_macro_params(struct hl_ctx *ctx)
-{
-	struct hl_device *hdev = ctx->hdev;
-	struct gaudi3_nic_macro *gaudi3_macro;
-	struct hl_nic_macro *nic_macro;
-	int i;
-
-	for (i = 0 ; i < NIC_NUMBER_OF_MACROS ; i++) {
-		nic_macro = &hdev->nic.nic_macros[i];
-
-		if (hdev->nic_ports_mask & gaudi3_nic_get_macro_ports_mask(nic_macro)) {
-			gaudi3_macro = nic_macro->asic_priv;
-			gaudi3_macro->bp_off_num = 0;
-		}
-	}
-}
-
 static int gaudi3_nic_ctx_init(struct hl_ctx *ctx)
 {
 	return gaudi3_nic_ctx_dispatcher_init(ctx);
@@ -3846,8 +3829,6 @@ static void gaudi3_nic_ctx_fini(struct hl_ctx *ctx)
 {
 	gaudi3_nic_ctx_dispatcher_fini(ctx);
 	hl_nic_user_db_fifo_ctx_destroy(ctx);
-
-	gaudi3_nic_reset_macro_params(ctx);
 }
 
 static int gaudi3_nic_kernel_ctx_init(struct hl_ctx *ctx)
@@ -5532,6 +5513,22 @@ void gaudi3_nic_handle_bmon_spmu_event(struct hl_device *hdev, u32 macro_index,
 				macro_index, rc);
 }
 
+static void gaudi3_nic_app_params_clear(struct hl_device *hdev)
+{
+	struct gaudi3_nic_macro *gaudi3_macro;
+	struct hl_nic_macro *nic_macro;
+	int i;
+
+	for (i = 0 ; i < NIC_NUMBER_OF_MACROS ; i++) {
+		nic_macro = &hdev->nic.nic_macros[i];
+
+		if (hdev->nic_ports_mask & gaudi3_nic_get_macro_ports_mask(nic_macro)) {
+			gaudi3_macro = nic_macro->asic_priv;
+			gaudi3_macro->bp_off_num = 0;
+		}
+	}
+}
+
 static struct hl_nic_port_funcs gaudi3_nic_port_funcs = {
 	.port_hw_init = gaudi3_nic_port_hw_init,
 	.port_hw_fini = gaudi3_nic_port_hw_fini,
@@ -5627,5 +5624,6 @@ struct hl_nic_funcs gaudi3_nic_funcs = {
 	.is_coll_conn_id = gaudi3_nic_is_coll_conn_id,
 	.get_max_msg_sz = gaudi3_nic_get_max_msg_sz,
 	.qp_syndrome_to_str = gaudi3_nic_qp_err_syndrom_to_str,
+	.app_params_clear = gaudi3_nic_app_params_clear,
 	.port_funcs = &gaudi3_nic_port_funcs,
 };
