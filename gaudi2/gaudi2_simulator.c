@@ -1161,7 +1161,7 @@ static int gaudi2_sim_sw_init(struct hl_device *hdev)
 
 	hdev->asic_funcs->set_pci_memory_regions(hdev);
 
-	rc = gaudi2_special_blocks_config(hdev);
+	rc = gaudi2_special_blocks_iterator_config(hdev);
 	if (rc)
 		goto nic_sw_fini;
 
@@ -1186,7 +1186,7 @@ static int gaudi2_sim_sw_fini(struct hl_device *hdev)
 	struct asic_fixed_properties *prop = &hdev->asic_prop;
 	struct gaudi2_device *gaudi2 = hdev->asic_specific;
 
-	gaudi2_special_blocks_free(hdev);
+	gaudi2_special_blocks_iterator_free(hdev);
 
 	hl_nic_sw_fini(hdev);
 
