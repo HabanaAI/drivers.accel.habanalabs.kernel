@@ -8,7 +8,7 @@
 #include "gaudi3_nic.h"
 #include "../include/gaudi3/asic_reg/gaudi3_regs.h"
 #include "../include/hw_ip/nic/nic_general.h"
-#include "uapi/misc/habanalabs.h"
+#include "uapi/drm/habanalabs_accel.h"
 #include <uapi/linux/ethtool.h>
 #include <linux/etherdevice.h>
 #include <linux/pci.h>
