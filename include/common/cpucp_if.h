@@ -59,9 +59,80 @@ struct hl_eq_hbm_ecc_data {
  * EVENT QUEUE
  */
 
+enum hl_agg_grp_type {
+	INT_GRP_TYPE_SERR,
+	INT_GRP_TYPE_DERR,
+	INT_GRP_TYPE_SEI,
+	INT_GRP_TYPE_SPI,
+	INT_GRP_TYPE_ECO,
+	INT_GRP_TYPE_MAX
+};
+
+enum hl_agg_component_type {
+	INT_COMP_TYPE_ARC_FARM,
+	INT_COMP_TYPE_CPU,
+	INT_COMP_TYPE_CS,
+	INT_COMP_TYPE_D2D_MAC,
+	INT_COMP_TYPE_D2D_PHY,
+	INT_COMP_TYPE_DCH0,
+	INT_COMP_TYPE_DCH1,
+	INT_COMP_TYPE_DEC,
+	INT_COMP_TYPE_DRTR0,
+	INT_COMP_TYPE_DRTR1,
+	INT_COMP_TYPE_ECON,
+	INT_COMP_TYPE_EDMA,
+	INT_COMP_TYPE_EDUP,
+	INT_COMP_TYPE_GRTR1,
+	INT_COMP_TYPE_GRTR3,
+	INT_COMP_TYPE_HFT,
+	INT_COMP_TYPE_HIF,
+	INT_COMP_TYPE_MC,
+	INT_COMP_TYPE_MME,
+	INT_COMP_TYPE_NCH,
+	INT_COMP_TYPE_NCHL,
+	INT_COMP_TYPE_NIC,
+	INT_COMP_TYPE_NRTR0,
+	INT_COMP_TYPE_NRTR2,
+	INT_COMP_TYPE_PARC,
+	INT_COMP_TYPE_PCIE,
+	INT_COMP_TYPE_PDMA,
+	INT_COMP_TYPE_PLL,
+	INT_COMP_TYPE_PMMU,
+	INT_COMP_TYPE_PSOC,
+	INT_COMP_TYPE_RFT,
+	INT_COMP_TYPE_ROT,
+	INT_COMP_TYPE_RRTR,
+	INT_COMP_TYPE_SOB,
+	INT_COMP_TYPE_STLB,
+	INT_COMP_TYPE_TPC,
+	INT_COMP_TYPE_TS,
+	INT_COMP_TYPE_VM,
+	INT_COMP_TYPE_MAX
+};
+
+enum hl_agg_hdcore_type {
+	INT_HDCORE0,
+	INT_HDCORE1,
+	INT_HDCORE2,
+	INT_HDCORE3,
+	INT_SHARED,
+	INT_PSOC,
+	INT_HDCORE_MAX
+};
+
 struct hl_eq_header {
-	__le32 reserved;
+	__le16 reserved;
+	__le16 size; /* actual data size */
 	__le32 ctl;
+};
+
+struct hl_agg_eq_header {
+	__u8 int_grp_type; /* hl_agg_grp_type */
+	__u8 int_comp_type; /* hl_agg_component_type */
+	__u8 die_id;
+	__u8 hdcore_type; /* hl_agg_hdcore_type */
+	__u8 comp_instance;
+	__u8 pad[3];
 };
 
 struct hl_eq_ecc_data {
@@ -395,10 +466,26 @@ struct hl_eq_entry {
 	};
 };
 
+struct hl_eq_dynamic_entry {
+	struct hl_eq_header hdr;
+	struct hl_agg_eq_header agg_hdr; /* valid only for aggregator events */
+	union {
+		__le64 data[6]; /* size is dynamic as entry size is passed during boot */
+	};
+};
+
 #define HL_EQ_ENTRY_SIZE		sizeof(struct hl_eq_entry)
+#define HL_EQ_DYNAMIC_ENTRY_SIZE	sizeof(struct hl_eq_dynamic_entry)
 
 #define EQ_CTL_READY_SHIFT		31
 #define EQ_CTL_READY_MASK		0x80000000
+
+/*
+ * MODE 0 - struct hl_eq_header
+ * MODE 1 - struct hl_agg_eq_header
+ */
+#define EQ_CTL_EVENT_MODE_SHIFT		28
+#define EQ_CTL_EVENT_MODE_MASK		0x70000000
 
 #define EQ_CTL_EVENT_TYPE_SHIFT		16
 #define EQ_CTL_EVENT_TYPE_MASK		0x0FFF0000

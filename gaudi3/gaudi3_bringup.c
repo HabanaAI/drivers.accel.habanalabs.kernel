@@ -63,6 +63,14 @@ enum err_grp {
 	ERR_GRP_SPI_ECO,
 };
 
+struct eq_agg_header_params {
+	enum hl_agg_component_type component_type;
+	enum err_grp grp_type;
+	u32 die;
+	u32 hdcore;
+	u32 instance;
+};
+
 enum shared_handler_type {
 	SHARED_PCIE_EVENT,
 	SHARED_NIC_EVENT,
@@ -2915,241 +2923,82 @@ static void gaudi3_handle_psoc_aggr(struct hl_device *hdev, u32 intr_aggr_irq, u
 			mmINT_AGG_PSOC_UART_COMB_MSG_PENDING + offset, 1);
 }
 
-static const enum gaudi3_async_event_id
-cs_derr_events_id_map[MAX_NUM_OF_DIES][8 * NUM_OF_HDCORES_PER_DIE] = {
-		{GAUDI3_EVENT_CS0_DIE0_HD0_DERR,
-		GAUDI3_EVENT_CS1_DIE0_HD0_DERR,
-		GAUDI3_EVENT_CS2_DIE0_HD0_DERR,
-		GAUDI3_EVENT_CS3_DIE0_HD0_DERR,
-		GAUDI3_EVENT_CS4_DIE0_HD0_DERR,
-		GAUDI3_EVENT_CS5_DIE0_HD0_DERR,
-		GAUDI3_EVENT_CS6_DIE0_HD0_DERR,
-		GAUDI3_EVENT_CS7_DIE0_HD0_DERR,
-		GAUDI3_EVENT_CS0_DIE0_HD1_DERR,
-		GAUDI3_EVENT_CS1_DIE0_HD1_DERR,
-		GAUDI3_EVENT_CS2_DIE0_HD1_DERR,
-		GAUDI3_EVENT_CS3_DIE0_HD1_DERR,
-		GAUDI3_EVENT_CS4_DIE0_HD1_DERR,
-		GAUDI3_EVENT_CS5_DIE0_HD1_DERR,
-		GAUDI3_EVENT_CS6_DIE0_HD1_DERR,
-		GAUDI3_EVENT_CS7_DIE0_HD1_DERR,
-		GAUDI3_EVENT_CS0_DIE0_HD2_DERR,
-		GAUDI3_EVENT_CS1_DIE0_HD2_DERR,
-		GAUDI3_EVENT_CS2_DIE0_HD2_DERR,
-		GAUDI3_EVENT_CS3_DIE0_HD2_DERR,
-		GAUDI3_EVENT_CS4_DIE0_HD2_DERR,
-		GAUDI3_EVENT_CS5_DIE0_HD2_DERR,
-		GAUDI3_EVENT_CS6_DIE0_HD2_DERR,
-		GAUDI3_EVENT_CS7_DIE0_HD2_DERR,
-		GAUDI3_EVENT_CS0_DIE0_HD3_DERR,
-		GAUDI3_EVENT_CS1_DIE0_HD3_DERR,
-		GAUDI3_EVENT_CS2_DIE0_HD3_DERR,
-		GAUDI3_EVENT_CS3_DIE0_HD3_DERR,
-		GAUDI3_EVENT_CS4_DIE0_HD3_DERR,
-		GAUDI3_EVENT_CS5_DIE0_HD3_DERR,
-		GAUDI3_EVENT_CS6_DIE0_HD3_DERR,
-		GAUDI3_EVENT_CS7_DIE0_HD3_DERR},
-		{GAUDI3_EVENT_CS0_DIE1_HD0_DERR,
-		GAUDI3_EVENT_CS1_DIE1_HD0_DERR,
-		GAUDI3_EVENT_CS2_DIE1_HD0_DERR,
-		GAUDI3_EVENT_CS3_DIE1_HD0_DERR,
-		GAUDI3_EVENT_CS4_DIE1_HD0_DERR,
-		GAUDI3_EVENT_CS5_DIE1_HD0_DERR,
-		GAUDI3_EVENT_CS6_DIE1_HD0_DERR,
-		GAUDI3_EVENT_CS7_DIE1_HD0_DERR,
-		GAUDI3_EVENT_CS0_DIE1_HD1_DERR,
-		GAUDI3_EVENT_CS1_DIE1_HD1_DERR,
-		GAUDI3_EVENT_CS2_DIE1_HD1_DERR,
-		GAUDI3_EVENT_CS3_DIE1_HD1_DERR,
-		GAUDI3_EVENT_CS4_DIE1_HD1_DERR,
-		GAUDI3_EVENT_CS5_DIE1_HD1_DERR,
-		GAUDI3_EVENT_CS6_DIE1_HD1_DERR,
-		GAUDI3_EVENT_CS7_DIE1_HD1_DERR,
-		GAUDI3_EVENT_CS0_DIE1_HD2_DERR,
-		GAUDI3_EVENT_CS1_DIE1_HD2_DERR,
-		GAUDI3_EVENT_CS2_DIE1_HD2_DERR,
-		GAUDI3_EVENT_CS3_DIE1_HD2_DERR,
-		GAUDI3_EVENT_CS4_DIE1_HD2_DERR,
-		GAUDI3_EVENT_CS5_DIE1_HD2_DERR,
-		GAUDI3_EVENT_CS6_DIE1_HD2_DERR,
-		GAUDI3_EVENT_CS7_DIE1_HD2_DERR,
-		GAUDI3_EVENT_CS0_DIE1_HD3_DERR,
-		GAUDI3_EVENT_CS1_DIE1_HD3_DERR,
-		GAUDI3_EVENT_CS2_DIE1_HD3_DERR,
-		GAUDI3_EVENT_CS3_DIE1_HD3_DERR,
-		GAUDI3_EVENT_CS4_DIE1_HD3_DERR,
-		GAUDI3_EVENT_CS5_DIE1_HD3_DERR,
-		GAUDI3_EVENT_CS6_DIE1_HD3_DERR,
-		GAUDI3_EVENT_CS7_DIE1_HD3_DERR}
-};
+static enum hl_agg_grp_type to_agg_grp_type(enum err_grp type)
+{
+	switch (type) {
+	case ERR_GRP_DERR:
+		return INT_GRP_TYPE_DERR;
+	case ERR_GRP_SERR:
+		return INT_GRP_TYPE_SERR;
+	case ERR_GRP_SEI:
+		return INT_GRP_TYPE_SEI;
+	case ERR_GRP_SPI_ECO:
+		return INT_GRP_TYPE_SPI;
+	}
 
-static const enum gaudi3_async_event_id
-cs_sei_events_id_map[MAX_NUM_OF_DIES][8 * NUM_OF_HDCORES_PER_DIE] = {
-		{GAUDI3_EVENT_CS0_DIE0_HD0_SEI,
-		GAUDI3_EVENT_CS1_DIE0_HD0_SEI,
-		GAUDI3_EVENT_CS2_DIE0_HD0_SEI,
-		GAUDI3_EVENT_CS3_DIE0_HD0_SEI,
-		GAUDI3_EVENT_CS4_DIE0_HD0_SEI,
-		GAUDI3_EVENT_CS5_DIE0_HD0_SEI,
-		GAUDI3_EVENT_CS6_DIE0_HD0_SEI,
-		GAUDI3_EVENT_CS7_DIE0_HD0_SEI,
-		GAUDI3_EVENT_CS0_DIE0_HD1_SEI,
-		GAUDI3_EVENT_CS1_DIE0_HD1_SEI,
-		GAUDI3_EVENT_CS2_DIE0_HD1_SEI,
-		GAUDI3_EVENT_CS3_DIE0_HD1_SEI,
-		GAUDI3_EVENT_CS4_DIE0_HD1_SEI,
-		GAUDI3_EVENT_CS5_DIE0_HD1_SEI,
-		GAUDI3_EVENT_CS6_DIE0_HD1_SEI,
-		GAUDI3_EVENT_CS7_DIE0_HD1_SEI,
-		GAUDI3_EVENT_CS0_DIE0_HD2_SEI,
-		GAUDI3_EVENT_CS1_DIE0_HD2_SEI,
-		GAUDI3_EVENT_CS2_DIE0_HD2_SEI,
-		GAUDI3_EVENT_CS3_DIE0_HD2_SEI,
-		GAUDI3_EVENT_CS4_DIE0_HD2_SEI,
-		GAUDI3_EVENT_CS5_DIE0_HD2_SEI,
-		GAUDI3_EVENT_CS6_DIE0_HD2_SEI,
-		GAUDI3_EVENT_CS7_DIE0_HD2_SEI,
-		GAUDI3_EVENT_CS0_DIE0_HD3_SEI,
-		GAUDI3_EVENT_CS1_DIE0_HD3_SEI,
-		GAUDI3_EVENT_CS2_DIE0_HD3_SEI,
-		GAUDI3_EVENT_CS3_DIE0_HD3_SEI,
-		GAUDI3_EVENT_CS4_DIE0_HD3_SEI,
-		GAUDI3_EVENT_CS5_DIE0_HD3_SEI,
-		GAUDI3_EVENT_CS6_DIE0_HD3_SEI,
-		GAUDI3_EVENT_CS7_DIE0_HD3_SEI},
-		{GAUDI3_EVENT_CS0_DIE1_HD0_SEI,
-		GAUDI3_EVENT_CS1_DIE1_HD0_SEI,
-		GAUDI3_EVENT_CS2_DIE1_HD0_SEI,
-		GAUDI3_EVENT_CS3_DIE1_HD0_SEI,
-		GAUDI3_EVENT_CS4_DIE1_HD0_SEI,
-		GAUDI3_EVENT_CS5_DIE1_HD0_SEI,
-		GAUDI3_EVENT_CS6_DIE1_HD0_SEI,
-		GAUDI3_EVENT_CS7_DIE1_HD0_SEI,
-		GAUDI3_EVENT_CS0_DIE1_HD1_SEI,
-		GAUDI3_EVENT_CS1_DIE1_HD1_SEI,
-		GAUDI3_EVENT_CS2_DIE1_HD1_SEI,
-		GAUDI3_EVENT_CS3_DIE1_HD1_SEI,
-		GAUDI3_EVENT_CS4_DIE1_HD1_SEI,
-		GAUDI3_EVENT_CS5_DIE1_HD1_SEI,
-		GAUDI3_EVENT_CS6_DIE1_HD1_SEI,
-		GAUDI3_EVENT_CS7_DIE1_HD1_SEI,
-		GAUDI3_EVENT_CS0_DIE1_HD2_SEI,
-		GAUDI3_EVENT_CS1_DIE1_HD2_SEI,
-		GAUDI3_EVENT_CS2_DIE1_HD2_SEI,
-		GAUDI3_EVENT_CS3_DIE1_HD2_SEI,
-		GAUDI3_EVENT_CS4_DIE1_HD2_SEI,
-		GAUDI3_EVENT_CS5_DIE1_HD2_SEI,
-		GAUDI3_EVENT_CS6_DIE1_HD2_SEI,
-		GAUDI3_EVENT_CS7_DIE1_HD2_SEI,
-		GAUDI3_EVENT_CS0_DIE1_HD3_SEI,
-		GAUDI3_EVENT_CS1_DIE1_HD3_SEI,
-		GAUDI3_EVENT_CS2_DIE1_HD3_SEI,
-		GAUDI3_EVENT_CS3_DIE1_HD3_SEI,
-		GAUDI3_EVENT_CS4_DIE1_HD3_SEI,
-		GAUDI3_EVENT_CS5_DIE1_HD3_SEI,
-		GAUDI3_EVENT_CS6_DIE1_HD3_SEI,
-		GAUDI3_EVENT_CS7_DIE1_HD3_SEI}
-};
+	return INT_GRP_TYPE_MAX;
+}
 
-static const enum gaudi3_async_event_id
-cs_spi_events_id_map[MAX_NUM_OF_DIES][8 * NUM_OF_HDCORES_PER_DIE] = {
-		{GAUDI3_EVENT_CS0_DIE0_HD0_SPI_0,
-		GAUDI3_EVENT_CS1_DIE0_HD0_SPI_0,
-		GAUDI3_EVENT_CS2_DIE0_HD0_SPI_0,
-		GAUDI3_EVENT_CS3_DIE0_HD0_SPI_0,
-		GAUDI3_EVENT_CS4_DIE0_HD0_SPI_0,
-		GAUDI3_EVENT_CS5_DIE0_HD0_SPI_0,
-		GAUDI3_EVENT_CS6_DIE0_HD0_SPI_0,
-		GAUDI3_EVENT_CS7_DIE0_HD0_SPI_0,
-		GAUDI3_EVENT_CS0_DIE0_HD1_SPI_0,
-		GAUDI3_EVENT_CS1_DIE0_HD1_SPI_0,
-		GAUDI3_EVENT_CS2_DIE0_HD1_SPI_0,
-		GAUDI3_EVENT_CS3_DIE0_HD1_SPI_0,
-		GAUDI3_EVENT_CS4_DIE0_HD1_SPI_0,
-		GAUDI3_EVENT_CS5_DIE0_HD1_SPI_0,
-		GAUDI3_EVENT_CS6_DIE0_HD1_SPI_0,
-		GAUDI3_EVENT_CS7_DIE0_HD1_SPI_0,
-		GAUDI3_EVENT_CS0_DIE0_HD2_SPI_0,
-		GAUDI3_EVENT_CS1_DIE0_HD2_SPI_0,
-		GAUDI3_EVENT_CS2_DIE0_HD2_SPI_0,
-		GAUDI3_EVENT_CS3_DIE0_HD2_SPI_0,
-		GAUDI3_EVENT_CS4_DIE0_HD2_SPI_0,
-		GAUDI3_EVENT_CS5_DIE0_HD2_SPI_0,
-		GAUDI3_EVENT_CS6_DIE0_HD2_SPI_0,
-		GAUDI3_EVENT_CS7_DIE0_HD2_SPI_0,
-		GAUDI3_EVENT_CS0_DIE0_HD3_SPI_0,
-		GAUDI3_EVENT_CS1_DIE0_HD3_SPI_0,
-		GAUDI3_EVENT_CS2_DIE0_HD3_SPI_0,
-		GAUDI3_EVENT_CS3_DIE0_HD3_SPI_0,
-		GAUDI3_EVENT_CS4_DIE0_HD3_SPI_0,
-		GAUDI3_EVENT_CS5_DIE0_HD3_SPI_0,
-		GAUDI3_EVENT_CS6_DIE0_HD3_SPI_0,
-		GAUDI3_EVENT_CS7_DIE0_HD3_SPI_0},
-		{GAUDI3_EVENT_CS0_DIE1_HD0_SPI_0,
-		GAUDI3_EVENT_CS1_DIE1_HD0_SPI_0,
-		GAUDI3_EVENT_CS2_DIE1_HD0_SPI_0,
-		GAUDI3_EVENT_CS3_DIE1_HD0_SPI_0,
-		GAUDI3_EVENT_CS4_DIE1_HD0_SPI_0,
-		GAUDI3_EVENT_CS5_DIE1_HD0_SPI_0,
-		GAUDI3_EVENT_CS6_DIE1_HD0_SPI_0,
-		GAUDI3_EVENT_CS7_DIE1_HD0_SPI_0,
-		GAUDI3_EVENT_CS0_DIE1_HD1_SPI_0,
-		GAUDI3_EVENT_CS1_DIE1_HD1_SPI_0,
-		GAUDI3_EVENT_CS2_DIE1_HD1_SPI_0,
-		GAUDI3_EVENT_CS3_DIE1_HD1_SPI_0,
-		GAUDI3_EVENT_CS4_DIE1_HD1_SPI_0,
-		GAUDI3_EVENT_CS5_DIE1_HD1_SPI_0,
-		GAUDI3_EVENT_CS6_DIE1_HD1_SPI_0,
-		GAUDI3_EVENT_CS7_DIE1_HD1_SPI_0,
-		GAUDI3_EVENT_CS0_DIE1_HD2_SPI_0,
-		GAUDI3_EVENT_CS1_DIE1_HD2_SPI_0,
-		GAUDI3_EVENT_CS2_DIE1_HD2_SPI_0,
-		GAUDI3_EVENT_CS3_DIE1_HD2_SPI_0,
-		GAUDI3_EVENT_CS4_DIE1_HD2_SPI_0,
-		GAUDI3_EVENT_CS5_DIE1_HD2_SPI_0,
-		GAUDI3_EVENT_CS6_DIE1_HD2_SPI_0,
-		GAUDI3_EVENT_CS7_DIE1_HD2_SPI_0,
-		GAUDI3_EVENT_CS0_DIE1_HD3_SPI_0,
-		GAUDI3_EVENT_CS1_DIE1_HD3_SPI_0,
-		GAUDI3_EVENT_CS2_DIE1_HD3_SPI_0,
-		GAUDI3_EVENT_CS3_DIE1_HD3_SPI_0,
-		GAUDI3_EVENT_CS4_DIE1_HD3_SPI_0,
-		GAUDI3_EVENT_CS5_DIE1_HD3_SPI_0,
-		GAUDI3_EVENT_CS6_DIE1_HD3_SPI_0,
-		GAUDI3_EVENT_CS7_DIE1_HD3_SPI_0}
-};
+static enum hl_agg_hdcore_type to_agg_hdcore_type(u32 hdcore)
+{
+	switch (hdcore) {
+	case 0:
+		return INT_HDCORE0;
+	case 1:
+		return INT_HDCORE1;
+	case 2:
+		return INT_HDCORE2;
+	case 3:
+		return INT_HDCORE3;
+	}
+
+	return INT_HDCORE_MAX;
+}
+
+static void prepare_eq_dynamic_entry_agg_header(struct hl_eq_dynamic_entry *eq_dynamic_entry,
+						struct eq_agg_header_params *params)
+{
+	eq_dynamic_entry->hdr.ctl = cpu_to_le32(FIELD_PREP(EQ_CTL_EVENT_MODE_MASK, 1));
+
+	eq_dynamic_entry->agg_hdr.int_grp_type = to_agg_grp_type(params->grp_type);
+	eq_dynamic_entry->agg_hdr.int_comp_type = params->component_type;
+	eq_dynamic_entry->agg_hdr.die_id = (u8) params->die;
+	eq_dynamic_entry->agg_hdr.hdcore_type = to_agg_hdcore_type(params->hdcore);
+	eq_dynamic_entry->agg_hdr.comp_instance = (u8) params->instance;
+}
 
 /* HDCORE_CS_EVENT */
 static void handle_and_clear_cs_events(struct hl_device *hdev, u32 die, u32 hdcore,
 					enum err_grp type, u32 sts, u32 sts_idx, u32 idx,
 					u32 aggr_mask_reg, u32 events_mask)
 {
-	enum gaudi3_async_event_id event_id;
+	struct hl_eq_dynamic_entry eq_dynamic_entry = {};
+	struct eq_agg_header_params params = {};
 	bool unmask_event_in_aggr = false;
-	struct hl_eq_entry eq_entry;
-	u32 index;
-
-	memset(&eq_entry, 0, sizeof(struct hl_eq_entry));
+	u32 instance;
 
 	switch (type) {
-	case ERR_GRP_SPI_ECO:
-		index = (idx / 2) * (8 * hdcore);
-		event_id = cs_spi_events_id_map[die][index];
-		break;
 	case ERR_GRP_DERR:
-		index = idx + (8 * hdcore);
-		event_id = cs_derr_events_id_map[die][index];
+		instance = idx;
 		break;
 	case ERR_GRP_SEI:
-		index = idx + (8 * hdcore);
-		event_id = cs_sei_events_id_map[die][index];
+		instance = idx;
+		break;
+	case ERR_GRP_SPI_ECO:
+		instance = idx / 2;
 		break;
 	default:
 		return;
 	}
 
-	eq_entry.hdr.ctl = cpu_to_le32(event_id << EQ_CTL_EVENT_TYPE_SHIFT);
-	gaudi3_handle_eqe(hdev, &eq_entry);
+	params.component_type = INT_COMP_TYPE_CS;
+	params.grp_type = type;
+	params.die = die;
+	params.hdcore = hdcore;
+	params.instance = instance;
+	prepare_eq_dynamic_entry_agg_header(&eq_dynamic_entry, &params);
+
+	gaudi3_handle_eqe(hdev, &eq_dynamic_entry);
 
 	if (unmask_event_in_aggr)
 		WREG32_AND(aggr_mask_reg, events_mask);
@@ -3253,7 +3102,7 @@ static void handle_and_clear_hbm_events(struct hl_device *hdev, u32 die, u32 hdc
 	}
 
 	eq_entry.hdr.ctl = cpu_to_le32(event_id << EQ_CTL_EVENT_TYPE_SHIFT);
-	gaudi3_handle_eqe(hdev, &eq_entry);
+	gaudi3_handle_eqe_old(hdev, &eq_entry);
 
 	if (unmask_event_in_aggr)
 		WREG32_AND(aggr_mask_reg, events_mask);
@@ -3432,7 +3281,7 @@ static void handle_and_clear_pcie_events(struct hl_device *hdev, u32 die,
 	}
 
 	eq_entry.hdr.ctl = cpu_to_le32(event_id << EQ_CTL_EVENT_TYPE_SHIFT);
-	gaudi3_handle_eqe(hdev, &eq_entry);
+	gaudi3_handle_eqe_old(hdev, &eq_entry);
 
 	if (type == ERR_GRP_SEI) {
 		/* PCIE SEI cause register may not be fully cleared. It is possible that we need to
@@ -3497,7 +3346,7 @@ static void handle_and_clear_psoc_events(struct hl_device *hdev, u32 die,
 	}
 
 	eq_entry.hdr.ctl = cpu_to_le32(event_id << EQ_CTL_EVENT_TYPE_SHIFT);
-	gaudi3_handle_eqe(hdev, &eq_entry);
+	gaudi3_handle_eqe_old(hdev, &eq_entry);
 
 	if (unmask_event_in_aggr)
 		WREG32_AND(aggr_mask_reg, events_mask);
@@ -3547,7 +3396,7 @@ static void handle_and_clear_pmmu_events(struct hl_device *hdev, u32 die,
 	}
 
 	eq_entry.hdr.ctl = cpu_to_le32(event_id << EQ_CTL_EVENT_TYPE_SHIFT);
-	gaudi3_handle_eqe(hdev, &eq_entry);
+	gaudi3_handle_eqe_old(hdev, &eq_entry);
 
 	if (unmask_event_in_aggr)
 		WREG32_AND(aggr_mask_reg, events_mask);
@@ -3883,7 +3732,7 @@ static void handle_and_clear_tpc_events(struct hl_device *hdev, u32 die, u32 hdc
 	}
 
 	eq_entry.hdr.ctl = cpu_to_le32(event_id << EQ_CTL_EVENT_TYPE_SHIFT);
-	gaudi3_handle_eqe(hdev, &eq_entry);
+	gaudi3_handle_eqe_old(hdev, &eq_entry);
 
 	if (unmask_event_in_aggr)
 		WREG32_AND(aggr_mask_reg, events_mask);
@@ -4139,7 +3988,7 @@ static void handle_and_clear_mme_events(struct hl_device *hdev, u32 die, u32 hdc
 	}
 
 	eq_entry.hdr.ctl = cpu_to_le32(event_id << EQ_CTL_EVENT_TYPE_SHIFT);
-	gaudi3_handle_eqe(hdev, &eq_entry);
+	gaudi3_handle_eqe_old(hdev, &eq_entry);
 
 	if (unmask_event_in_aggr)
 		WREG32_AND(aggr_mask_reg, events_mask);
@@ -4217,7 +4066,7 @@ static void handle_and_clear_stlb_events(struct hl_device *hdev, u32 die, u32 hd
 	}
 
 	eq_entry.hdr.ctl = cpu_to_le32(event_id << EQ_CTL_EVENT_TYPE_SHIFT);
-	gaudi3_handle_eqe(hdev, &eq_entry);
+	gaudi3_handle_eqe_old(hdev, &eq_entry);
 
 	if (unmask_event_in_aggr)
 		WREG32_AND(aggr_mask_reg, events_mask);
@@ -4268,7 +4117,7 @@ static void handle_and_clear_pdma_events(struct hl_device *hdev, u32 die,
 	}
 
 	eq_entry.hdr.ctl = cpu_to_le32(event_id << EQ_CTL_EVENT_TYPE_SHIFT);
-	gaudi3_handle_eqe(hdev, &eq_entry);
+	gaudi3_handle_eqe_old(hdev, &eq_entry);
 
 	if (unmask_event_in_aggr)
 		WREG32_AND(aggr_mask_reg, events_mask);
@@ -4330,7 +4179,7 @@ static void handle_and_clear_arc_farm_events(struct hl_device *hdev, u32 die, u3
 	}
 
 	eq_entry.hdr.ctl = cpu_to_le32(event_id << EQ_CTL_EVENT_TYPE_SHIFT);
-	gaudi3_handle_eqe(hdev, &eq_entry);
+	gaudi3_handle_eqe_old(hdev, &eq_entry);
 
 	/* Clear event */
 	if (type == ERR_GRP_SEI) {
@@ -4430,7 +4279,7 @@ static void handle_and_clear_nic_events(struct hl_device *hdev, u32 die,
 	}
 
 	eq_entry.hdr.ctl = cpu_to_le32(event_id << EQ_CTL_EVENT_TYPE_SHIFT);
-	gaudi3_handle_eqe(hdev, &eq_entry);
+	gaudi3_handle_eqe_old(hdev, &eq_entry);
 
 	if (unmask_event_in_aggr)
 		WREG32_AND(aggr_mask_reg, events_mask);

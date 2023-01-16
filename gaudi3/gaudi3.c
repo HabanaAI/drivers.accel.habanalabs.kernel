@@ -1655,6 +1655,64 @@ static struct razwi_initiator_info sdup_razwi_params[] = {
 		{"HD7_SDUP", 0, mmD1_NRTR0_2CH_CTRL0_LBW_CH_RAZWI_LBW_CH0_BASE}
 };
 
+static const char * const gaudi3_interrupt_grp_name[INT_GRP_TYPE_MAX] = {
+	[INT_GRP_TYPE_SERR] = "SERR",
+	[INT_GRP_TYPE_DERR] = "DERR",
+	[INT_GRP_TYPE_SEI]  = "SEI",
+	[INT_GRP_TYPE_SPI]  = "SPI",
+	[INT_GRP_TYPE_ECO]  = "ECO"
+};
+
+static const char * const gaudi3_interrupt_comp_name[INT_COMP_TYPE_MAX] = {
+	[INT_COMP_TYPE_ARC_FARM] = "ARC_FARM",
+	[INT_COMP_TYPE_CPU]      = "CPU",
+	[INT_COMP_TYPE_CS]       = "CS",
+	[INT_COMP_TYPE_D2D_MAC]  = "D2D_MAC",
+	[INT_COMP_TYPE_D2D_PHY]  = "D2D_PHY",
+	[INT_COMP_TYPE_DCH0]     = "DCH0",
+	[INT_COMP_TYPE_DCH1]     = "DCH1",
+	[INT_COMP_TYPE_DEC]      = "DEC",
+	[INT_COMP_TYPE_DRTR0]    = "DRTR0",
+	[INT_COMP_TYPE_DRTR1]    = "DRTR1",
+	[INT_COMP_TYPE_ECON]     = "ECON",
+	[INT_COMP_TYPE_EDMA]     = "EDMA",
+	[INT_COMP_TYPE_EDUP]     = "EDUP",
+	[INT_COMP_TYPE_GRTR1]    = "GRTR1",
+	[INT_COMP_TYPE_GRTR3]    = "GRTR3",
+	[INT_COMP_TYPE_HFT]      = "HFT",
+	[INT_COMP_TYPE_HIF]      = "HIF",
+	[INT_COMP_TYPE_MC]       = "MC",
+	[INT_COMP_TYPE_MME]      = "MME",
+	[INT_COMP_TYPE_NCH]      = "NCH",
+	[INT_COMP_TYPE_NCHL]     = "NCHL",
+	[INT_COMP_TYPE_NIC]      = "NIC",
+	[INT_COMP_TYPE_NRTR0]    = "NRTR0",
+	[INT_COMP_TYPE_NRTR2]    = "NRTR2",
+	[INT_COMP_TYPE_PARC]     = "PARC",
+	[INT_COMP_TYPE_PCIE]     = "PCIE",
+	[INT_COMP_TYPE_PDMA]     = "PDMA",
+	[INT_COMP_TYPE_PLL]      = "PLL",
+	[INT_COMP_TYPE_PMMU]     = "PMMU",
+	[INT_COMP_TYPE_PSOC]     = "PSOC",
+	[INT_COMP_TYPE_RFT]      = "RFT",
+	[INT_COMP_TYPE_ROT]      = "ROT",
+	[INT_COMP_TYPE_RRTR]     = "RRTR",
+	[INT_COMP_TYPE_SOB]      = "SOB",
+	[INT_COMP_TYPE_STLB]     = "STLB",
+	[INT_COMP_TYPE_TPC]      = "TPC",
+	[INT_COMP_TYPE_TS]       = "TS",
+	[INT_COMP_TYPE_VM]       = "VM"
+};
+
+static const char * const gaudi3_interrupt_hdcore_name[INT_HDCORE_MAX] = {
+	[INT_HDCORE0] = "HD0",
+	[INT_HDCORE1] = "HD1",
+	[INT_HDCORE2] = "HD2",
+	[INT_HDCORE3] = "HD3",
+	[INT_SHARED]  = "SHARED",
+	[INT_PSOC]    = "PSOC"
+};
+
 void gaudi3_iterate_edmas(struct hl_device *hdev, struct iterate_module_ctx *ctx)
 {
 	u32 hdcore_array[] = {1, 3, 4, 6}, hdcore_index, inst, edma_id, offset;
@@ -11128,7 +11186,7 @@ static void gaudi3_handle_ecc_event(struct hl_device *hdev, u16 event_type,
 		ecc_address, ecc_syndrom, memory_wrapper_idx, ecc_data->is_critical);
 }
 
-void gaudi3_handle_eqe(struct hl_device *hdev, struct hl_eq_entry *eq_entry)
+void gaudi3_handle_eqe_old(struct hl_device *hdev, struct hl_eq_entry *eq_entry)
 {
 	u64 event_mask = 0;
 	u16 event_type;
@@ -11302,6 +11360,129 @@ void gaudi3_handle_eqe(struct hl_device *hdev, struct hl_eq_entry *eq_entry)
 		hl_notifier_event_send_all(hdev, event_mask);
 }
 
+static void gaudi3_print_msg_event_info(struct hl_device *hdev, u16 event_type)
+{
+	char desc[64] = "";
+
+	if (gaudi3_irq_map_table[event_type].valid)
+		snprintf(desc, sizeof(desc), gaudi3_irq_map_table[event_type].name);
+	else
+		snprintf(desc, sizeof(desc), "N/A");
+
+	dev_err_ratelimited(hdev->dev, "Received MSG interrupt %d [\"%s\"]\n", event_type, desc);
+}
+
+static void gaudi3_handle_msg_event(struct hl_device *hdev,
+				struct hl_eq_dynamic_entry *eq_dynamic_entry, u64 *event_mask)
+{
+	u16 event_type;
+	u32 ctl;
+
+	ctl = le32_to_cpu(eq_dynamic_entry->hdr.ctl);
+	event_type = FIELD_GET(EQ_CTL_EVENT_TYPE_MASK, ctl);
+
+	gaudi3_print_msg_event_info(hdev, event_type);
+
+	/* TODO: add handling of MSG events */
+	switch (event_type) {
+	default:
+		return;
+	}
+}
+
+static const char * const gaudi3_get_interrupt_grp_name(u8 int_grp_type)
+{
+	if (int_grp_type >= INT_GRP_TYPE_MAX)
+		return "N/A";
+
+	return gaudi3_interrupt_grp_name[int_grp_type];
+}
+
+static const char * const gaudi3_get_interrupt_comp_name(u8 int_comp_type)
+{
+	if (int_comp_type >= INT_COMP_TYPE_MAX)
+		return "N/A";
+
+	return gaudi3_interrupt_comp_name[int_comp_type];
+}
+
+static const char * const gaudi3_get_interrupt_hdcore_name(u8 hdcore_type)
+{
+	if (hdcore_type >= INT_HDCORE_MAX)
+		return "N/A";
+
+	return gaudi3_interrupt_hdcore_name[hdcore_type];
+}
+
+static void gaudi3_print_hw_event_info(struct hl_device *hdev, struct hl_agg_eq_header *agg_hdr)
+{
+	dev_err_ratelimited(hdev->dev,
+			"Received H/W interrupt [%s, DIE%d, %s, instance %d, %s]\n",
+			gaudi3_get_interrupt_comp_name(agg_hdr->int_comp_type),
+			agg_hdr->die_id,
+			gaudi3_get_interrupt_hdcore_name(agg_hdr->hdcore_type),
+			agg_hdr->comp_instance,
+			gaudi3_get_interrupt_grp_name(agg_hdr->int_grp_type));
+}
+
+static void gaudi3_handle_derr_event(struct hl_device *hdev,
+				struct hl_eq_dynamic_entry *eq_dynamic_entry, u64 *event_mask)
+{
+	/* TODO: add handling of DERR events */
+}
+
+static void gaudi3_handle_sei_event(struct hl_device *hdev,
+				struct hl_eq_dynamic_entry *eq_dynamic_entry, u64 *event_mask)
+{
+	/* TODO: add handling of SEI events */
+}
+
+static void gaudi3_handle_spi_event(struct hl_device *hdev,
+				struct hl_eq_dynamic_entry *eq_dynamic_entry, u64 *event_mask)
+{
+	/* TODO: add handling of SPI events */
+}
+
+static void gaudi3_handle_hw_event(struct hl_device *hdev,
+				struct hl_eq_dynamic_entry *eq_dynamic_entry, u64 *event_mask)
+{
+	enum hl_agg_grp_type agg_grp_type = eq_dynamic_entry->agg_hdr.int_grp_type;
+
+	gaudi3_print_hw_event_info(hdev, &eq_dynamic_entry->agg_hdr);
+
+	switch (agg_grp_type) {
+	case INT_GRP_TYPE_DERR:
+		gaudi3_handle_derr_event(hdev, eq_dynamic_entry, event_mask);
+		break;
+	case INT_GRP_TYPE_SEI:
+		gaudi3_handle_sei_event(hdev, eq_dynamic_entry, event_mask);
+		break;
+	case INT_GRP_TYPE_SPI:
+		gaudi3_handle_spi_event(hdev, eq_dynamic_entry, event_mask);
+		break;
+	default:
+		return;
+	}
+}
+
+void gaudi3_handle_eqe(struct hl_device *hdev, struct hl_eq_dynamic_entry *eq_dynamic_entry)
+{
+	u64 event_mask = 0;
+	bool is_hw_event;
+	u32 ctl;
+
+	ctl = le32_to_cpu(eq_dynamic_entry->hdr.ctl);
+	is_hw_event = !!FIELD_GET(EQ_CTL_EVENT_MODE_MASK, ctl);
+
+	if (is_hw_event)
+		gaudi3_handle_hw_event(hdev, eq_dynamic_entry, &event_mask);
+	else
+		gaudi3_handle_msg_event(hdev, eq_dynamic_entry, &event_mask);
+
+	if (event_mask)
+		hl_notifier_event_send_all(hdev, event_mask);
+}
+
 int gaudi3_send_device_activity(struct hl_device *hdev, bool open)
 {
 	return 0;
@@ -11378,7 +11559,7 @@ static const struct hl_asic_funcs gaudi3_funcs = {
 	.restore_phase_topology = gaudi3_restore_phase_topology,
 	.debugfs_read_dma = gaudi3_debugfs_read_dma,
 	.add_device_attr = gaudi3_add_device_attr,
-	.handle_eqe = gaudi3_handle_eqe,
+	.handle_eqe = gaudi3_handle_eqe_old,
 	.get_events_stat = gaudi3_get_events_stat,
 	.read_pte = NULL,
 	.write_pte = NULL,
