@@ -454,3 +454,7 @@ endif
 ifneq ($(shell grep -w "uverbs_copy_to_struct_or_zero" $(IB_PATH)/Module.symvers > /dev/null 2>&1 && echo 1),)
 	ccflags-y += -D_HAS_UVERBS_COPY_TO_STRUCT_OR_ZERO
 endif
+
+ifneq ($(shell grep "unsigned int txqueue" include/linux/netdevice.h > /dev/null 2>&1 && echo 1),)
+	ccflags-y += -D_HAS_NDO_TX_TIMEOUT_TXQUEUE
+endif
