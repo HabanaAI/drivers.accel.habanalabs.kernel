@@ -1041,11 +1041,13 @@ struct hl_mmap_mem_buf;
  * @dev: back pointer to the owning device
  * @lock: protects handles
  * @handles: an idr holding all active handles to the memory buffers in the system.
+ * @refcount: refcount of all active handles.
  */
 struct hl_mem_mgr {
 	struct device *dev;
 	spinlock_t lock;
 	struct idr handles;
+	struct kref refcount;
 };
 
 /**

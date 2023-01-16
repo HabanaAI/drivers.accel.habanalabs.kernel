@@ -7,6 +7,48 @@
 
 #include "habanalabs.h"
 
+/*
+ * hl_mem_mgr_release - Release the memory manager resources
+ *
+ * @kref: kref that reached 0.
+ *
+ * Internal function, used for kref put when a buffer is freed.
+ * Assumes mmg lock is taken.
+ * Will remove the idr when no longer in use.
+ */
+static void hl_mem_mgr_release(struct kref *ref)
+{
+	struct hl_mem_mgr *mmg;
+
+	mmg = container_of(ref, struct hl_mem_mgr, refcount);
+	idr_destroy(&mmg->handles);
+}
+
+/*
+ * hl_mem_mgr_get - increment the refcount of the mem-manager
+ *
+ * @mmg: the memory manager its refcount we want to increase.
+ *
+ * Internal function, used for kref get by handle. Assumes mmg lock is taken.
+ */
+static void hl_mem_mgr_get(struct hl_mem_mgr *mmg)
+{
+	kref_get(&mmg->refcount);
+}
+
+/*
+ * hl_mem_mgr_put - decrement the refcount of the mem-manager and free it when it reaches 0
+ *
+ * @mmg: the memory manager its refcount we want to decrease.
+ *
+ * Internal function, used for kref put by handle. Assumes mmg lock is taken.
+ * Will remove the idr if this is the last use of it.
+ */
+static int hl_mem_mgr_put(struct hl_mem_mgr *mmg)
+{
+	return kref_put(&mmg->refcount, hl_mem_mgr_release);
+}
+
 /**
  * hl_mmap_mem_buf_get - increase the buffer refcount and return a pointer to
  *                        the buffer descriptor.
@@ -65,6 +107,7 @@ static void hl_mmap_mem_buf_release(struct kref *kref)
 
 	spin_lock(&buf->mmg->lock);
 	idr_remove(&buf->mmg->handles, lower_32_bits(buf->handle >> PAGE_SHIFT));
+	hl_mem_mgr_put(buf->mmg);
 	spin_unlock(&buf->mmg->lock);
 
 	hl_mmap_mem_buf_destroy(buf);
@@ -84,6 +127,7 @@ static void hl_mmap_mem_buf_remove_idr_locked(struct kref *kref)
 		container_of(kref, struct hl_mmap_mem_buf, refcount);
 
 	idr_remove(&buf->mmg->handles, lower_32_bits(buf->handle >> PAGE_SHIFT));
+	hl_mem_mgr_put(buf->mmg);
 }
 
 /**
@@ -157,14 +201,17 @@ hl_mmap_mem_buf_alloc(struct hl_mem_mgr *mmg,
 		return NULL;
 
 	spin_lock(&mmg->lock);
+	hl_mem_mgr_get(mmg);
+
 	rc = idr_alloc(&mmg->handles, buf, 1, 0, GFP_ATOMIC);
-	spin_unlock(&mmg->lock);
 	if (rc < 0) {
 		dev_err(mmg->dev,
 			"%s: Failed to allocate IDR for a new buffer, rc=%d\n",
 			behavior->topic, rc);
 		goto free_buf;
 	}
+
+	spin_unlock(&mmg->lock);
 
 	buf->mmg = mmg;
 	buf->behavior = behavior;
@@ -183,8 +230,10 @@ hl_mmap_mem_buf_alloc(struct hl_mem_mgr *mmg,
 remove_idr:
 	spin_lock(&mmg->lock);
 	idr_remove(&mmg->handles, lower_32_bits(buf->handle >> PAGE_SHIFT));
-	spin_unlock(&mmg->lock);
 free_buf:
+	hl_mem_mgr_put(mmg);
+	spin_unlock(&mmg->lock);
+
 	kfree(buf);
 	return NULL;
 }
@@ -316,6 +365,7 @@ void hl_mem_mgr_init(struct device *dev, struct hl_mem_mgr *mmg)
 	mmg->dev = dev;
 	spin_lock_init(&mmg->lock);
 	idr_init(&mmg->handles);
+	kref_init(&mmg->refcount);
 }
 
 /**
@@ -342,7 +392,8 @@ void hl_mem_mgr_fini(struct hl_mem_mgr *mmg)
 				topic, id);
 	}
 
-	/* TODO: can it happen that some buffer is still in use at this point? */
-
-	idr_destroy(&mmg->handles);
+	/* it is possible that some buffers are still in use at this point so let the
+	 * "last user/usage" to free it
+	 */
+	hl_mem_mgr_put(mmg);
 }
