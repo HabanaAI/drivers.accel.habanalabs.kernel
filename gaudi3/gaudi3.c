@@ -6701,11 +6701,11 @@ void gaudi3_user_interrupt_setup(struct hl_device *hdev)
 
 	/* Initialize common user CQ interrupt */
 	HL_USR_INTR_STRUCT_INIT(hdev->common_user_cq_interrupt, hdev,
-				HL_COMMON_USER_CQ_INTERRUPT_ID, false);
+				HL_COMMON_USER_CQ_INTERRUPT_ID, HL_USR_INTERRUPT_CQ);
 
 	/* Initialize common decoder interrupt */
 	HL_USR_INTR_STRUCT_INIT(hdev->common_decoder_interrupt, hdev,
-				HL_COMMON_DEC_INTERRUPT_ID, true);
+				HL_COMMON_DEC_INTERRUPT_ID, HL_USR_INTERRUPT_DECODER);
 
 	/* User interrupts structure holds both decoder and user interrupts from various engines.
 	 * We first initialize the decoder interrupts and then we add the user interrupts.
@@ -6717,13 +6717,15 @@ void gaudi3_user_interrupt_setup(struct hl_device *hdev)
 	for (i = 0, j = 0, intr_id = GAUDI3_IRQ_NUM_DEC_NRM_FIRST;
 			i < prop->user_dec_intr_count;
 			i++, j++, intr_id++)
-		HL_USR_INTR_STRUCT_INIT(hdev->user_interrupt[j], hdev, intr_id, true);
+		HL_USR_INTR_STRUCT_INIT(hdev->user_interrupt[j], hdev, intr_id,
+							HL_USR_INTERRUPT_DECODER);
 
 	/* Initialize user interrupt */
 	for (i = 0, intr_id = GAUDI3_IRQ_NUM_USER_FIRST;
 			i < prop->user_interrupt_count;
 			i++, j++, intr_id++)
-		HL_USR_INTR_STRUCT_INIT(hdev->user_interrupt[j], hdev, intr_id, false);
+		HL_USR_INTR_STRUCT_INIT(hdev->user_interrupt[j], hdev, intr_id,
+								HL_USR_INTERRUPT_CQ);
 }
 
 void gaudi3_sync_irqs(struct hl_device *hdev)

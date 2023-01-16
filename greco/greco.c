@@ -1733,14 +1733,15 @@ void greco_user_interrupt_setup(struct hl_device *hdev)
 
 	/* Initialize common decoder interrupt */
 	HL_USR_INTR_STRUCT_INIT(hdev->common_decoder_interrupt, hdev,
-				HL_COMMON_DEC_INTERRUPT_ID, true);
+				HL_COMMON_DEC_INTERRUPT_ID, HL_USR_INTERRUPT_DECODER);
 
 	/* Initialize decoder interrupts, expose only normal interrupts,
 	 * error interrupts to be handled by driver
 	 */
 	for (i = GRECO_IRQ_NUM_DCORE0_DEC0_NRM, j = 0 ; i <= GRECO_IRQ_NUM_DCORE1_DEC4_NRM;
 										i += 2, j++)
-		HL_USR_INTR_STRUCT_INIT(hdev->user_interrupt[j], hdev, i, true);
+		HL_USR_INTR_STRUCT_INIT(hdev->user_interrupt[j], hdev, i,
+						HL_USR_INTERRUPT_DECODER);
 }
 
 static int greco_special_blocks_config(struct hl_device *hdev)
