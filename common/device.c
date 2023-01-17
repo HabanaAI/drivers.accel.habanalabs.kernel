@@ -1944,7 +1944,7 @@ kill_processes:
 	rc = hdev->asic_funcs->scrub_device_mem(hdev);
 	if (rc) {
 		dev_err(hdev->dev, "scrub mem failed from device reset (%d)\n", rc);
-		return rc;
+		goto out_err;
 	}
 
 	spin_lock(&hdev->reset_info.lock);
