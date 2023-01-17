@@ -680,16 +680,21 @@ static int hl_init_pb_block(struct hl_device *hdev,
 			HL_GLBL_PRIV_REG_OFFSET :
 			HL_GLBL_SEC_REG_OFFSET;
 	u32 block_base_addr, pb_reg_addr, val;
-	u8 b_idx = 0, d_idx = 0;
+	u8 b_idx = 0, d_idx = 0, pb_regs_num;
 
 	block_base_addr = hl_automated_get_block_base_addr(
 			hdev, block_info, major, minor, sub_minor);
 
-	/* The x32 PB regs represent 32bit bitmaps, each can protect x32 sequential regs.
-	 * Here, we will ONLY write to the 1st x29 regs, excluding the last x3 which can
-	 * protect x96 regs located between address offsets 0xE80-0x1000.
+	/* The x32 PB regs represent 32bit bitmaps, each can protect x32 sequential PB regs.
+	 * If we configure privileged PBs, we will ONLY write to the first x29 PB regs,
+	 * excluding the last x3 PB regs which can protect x96 regs located between
+	 * address offsets 0xE80-0x1000. It's done to support reconfiguration of PB regs.
 	 */
-	while (b_idx < (HL_PROT_BITS_REGS_NUM - 3)) {
+	pb_regs_num = special_blocks_cfg->prot_lvl_priv ?
+			HL_PROT_BITS_REGS_NUM - 3 :
+			HL_PROT_BITS_REGS_NUM;
+
+	while (b_idx < pb_regs_num) {
 		pb_reg_addr = block_base_addr + (b_idx * 4) + prot_lvl_reg_offset;
 		if (auto_pb_cfg->data_map & BIT(b_idx)) {
 			if (!auto_pb_cfg->data) {
