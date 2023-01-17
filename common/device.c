@@ -1707,6 +1707,7 @@ do_reset:
 						&hdev->device_release_watchdog_work.reset_work);
 
 			if (from_dev_release) {
+				hdev->reset_info.in_compute_reset = 0;
 				flags |= HL_DRV_RESET_HARD;
 				flags &= ~HL_DRV_RESET_DEV_RELEASE;
 				hard_reset = true;
