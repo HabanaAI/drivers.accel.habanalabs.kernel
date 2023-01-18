@@ -5701,6 +5701,8 @@ static void gaudi3_init_mstr_if(struct hl_device *hdev)
 static const char *gaudi3_irq_name(u16 irq_number)
 {
 	switch (irq_number) {
+	case GAUDI3_IRQ_NUM_EVENT_QUEUE:
+		return "gaudi3 event queue";
 	case GAUDI3_IRQ_NUM_PAGE_FAULT_0:
 		return "gaudi3 page fault queue d0";
 	case GAUDI3_IRQ_NUM_PAGE_FAULT_1:
@@ -6663,6 +6665,45 @@ static void gaudi3_etrs_disable_msix(struct hl_device *hdev)
 		gaudi3_etr_disable_msix(hdev, etr_idx);
 }
 
+static irqreturn_t gaudi3_irq_handler_eq(int irq, void *arg)
+{
+	return IRQ_WAKE_THREAD;
+}
+
+static irqreturn_t gaudi3_threaded_irq_handler_eq(int irq, void *arg)
+{
+	/* Invoking the common eq handler here means that eq handler will be executed
+	 * from threaded irq context. Which is different from other asics where it
+	 * executes inside irq context.
+	 */
+	return hl_irq_handler_eq(irq, arg);
+}
+
+static int gaudi3_eq_enable_msix(struct hl_device *hdev)
+{
+	enum gaudi3_irq_num irq_nr = GAUDI3_IRQ_NUM_EVENT_QUEUE;
+	int irq;
+
+	/* While there is already use of hl_irq_handler_eq (outside gaudi3), as a direct irq
+	 * handler (not a threaded irq), a specific gaudi3 irq handler is created to implement
+	 * a threaded irq mechanism
+	 */
+	irq = hl_irq_vector(hdev, irq_nr);
+	if (irq < 0)
+		return -ENOMEM;
+
+	return request_threaded_irq(irq, gaudi3_irq_handler_eq,
+			gaudi3_threaded_irq_handler_eq, IRQF_ONESHOT,
+			gaudi3_irq_name(irq_nr), &hdev->event_queue);
+}
+
+static void gaudi3_eq_disable_msix(struct hl_device *hdev)
+{
+	int irq = hl_irq_vector(hdev, GAUDI3_IRQ_NUM_EVENT_QUEUE);
+
+	free_irq(irq, &hdev->event_queue);
+}
+
 int gaudi3_enable_msix(struct hl_device *hdev)
 {
 	struct gaudi3_device *gaudi3 = hdev->asic_specific;
@@ -6723,6 +6764,12 @@ int gaudi3_enable_msix(struct hl_device *hdev)
 				}
 				goto free_etr_irqs;
 			}
+		}
+	} else {
+		rc = gaudi3_eq_enable_msix(hdev);
+		if (rc) {
+			dev_err(hdev->dev, "MSI-X: Failed to enable EQ interrupt - %d\n", rc);
+			goto free_etr_irqs;
 		}
 	}
 
@@ -6841,6 +6888,8 @@ void gaudi3_disable_msix(struct hl_device *hdev)
 			irq = hl_irq_vector(hdev, i);
 			free_irq(irq, hdev);
 		}
+	} else {
+		gaudi3_eq_disable_msix(hdev);
 	}
 
 	hl_nic_free_irqs(hdev);
