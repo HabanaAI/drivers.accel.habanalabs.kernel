@@ -3331,7 +3331,7 @@ static inline int gaudi2_get_non_zero_random_int(void)
 	return rand ? rand : 1;
 }
 
-static void gaudi2_pb_blocks_free(struct hl_device *hdev)
+static void gaudi2_special_blocks_free(struct hl_device *hdev)
 {
 	struct asic_fixed_properties *prop = &hdev->asic_prop;
 	struct hl_skip_blocks_cfg *skip_special_blocks_cfg =
@@ -3342,7 +3342,7 @@ static void gaudi2_pb_blocks_free(struct hl_device *hdev)
 	kfree(skip_special_blocks_cfg->block_ranges);
 }
 
-static void gaudi2_special_blocks_free(struct hl_device *hdev)
+static void gaudi2_pb_blocks_free(struct hl_device *hdev)
 {
 	struct hl_skip_blocks_cfg *skip_pb_blocks_cfg =
 			&hdev->asic_prop.skip_pb_blocks_cfg;
@@ -3454,10 +3454,8 @@ static int gaudi2_pb_blocks_config(struct hl_device *hdev)
 		prop->skip_pb_blocks_cfg.block_types =
 				kmalloc_array(ARRAY_SIZE(gaudi2_iterator_skip_block_types),
 					sizeof(gaudi2_iterator_skip_block_types[0]), GFP_KERNEL);
-		if (!prop->skip_pb_blocks_cfg.block_types) {
-			rc = -ENOMEM;
-			goto free_skip_special_blocks_ranges;
-		}
+		if (!prop->skip_pb_blocks_cfg.block_types)
+			return -ENOMEM;
 
 		memcpy(prop->skip_pb_blocks_cfg.block_types, gaudi2_iterator_skip_block_types,
 				sizeof(gaudi2_iterator_skip_block_types));
@@ -3488,8 +3486,6 @@ static int gaudi2_pb_blocks_config(struct hl_device *hdev)
 
 free_skip_pb_blocks_types:
 	kfree(prop->skip_pb_blocks_cfg.block_types);
-free_skip_special_blocks_ranges:
-	kfree(prop->skip_special_blocks_cfg.block_ranges);
 
 	return rc;
 }
