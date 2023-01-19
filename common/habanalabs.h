@@ -1257,10 +1257,10 @@ enum hl_user_interrupt_type {
 /**
  * struct hl_user_interrupt - holds user interrupt information
  * @hdev: pointer to the device structure
+ * @type: user interrupt type
  * @wait_list_head: head to the list of user threads pending on this interrupt
  * @wait_list_lock: protects wait_list_head
  * @interrupt_id: msix interrupt id
- * @type: user interrupt type
  */
 struct hl_user_interrupt {
 	struct hl_device		*hdev;
