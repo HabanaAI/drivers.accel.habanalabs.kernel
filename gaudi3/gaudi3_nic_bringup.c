@@ -345,6 +345,9 @@ void gaudi3_nic_override_phy_readiness(struct hl_nic_port *nic_port, bool set_re
 	if (hdev->fw_components & FW_TYPE_BOOT_CPU)
 		return;
 
+	/* Simulator and PLDM don't receive indication from PHY to MAC as there is no
+	 * PHY, hence we need to override this registers manually
+	 */
 	hdev->asic_funcs->set_priv_assertions(hdev, false);
 
 	if (hdev->nic_lanes_per_port == PORT_LANES_4) {
