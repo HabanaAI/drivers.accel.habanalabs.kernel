@@ -462,3 +462,7 @@ endif
 ifneq ($(shell ls include/drm/drm_accel.h > /dev/null 2>&1 && echo 1),)
 	ccflags-y += -D_HAS_DRM_ACCEL_H
 endif
+
+ifdef OFED_PATH
+	ccflags-y += -D_HAS_IB_DEV_DBG
+endif
