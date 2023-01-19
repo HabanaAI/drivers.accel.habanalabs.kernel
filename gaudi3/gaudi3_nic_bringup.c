@@ -248,6 +248,7 @@ static void gaudi3_nic_config_hw_qpc_no_fw(struct hl_device *hdev, u32 port)
 	 */
 	NIC_RMWREG32(mmD0_NIC0_QPC_LBW_PROT, 0, NIC_QPC_LBW_PROT_INTERRUPT_M);
 }
+
 static void gaudi3_nic_config_hw_txe_no_fw(struct hl_device *hdev, u32 port)
 {
 	if (hdev->fw_components & FW_TYPE_BOOT_CPU)
