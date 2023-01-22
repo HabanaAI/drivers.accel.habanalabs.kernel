@@ -458,3 +458,7 @@ endif
 ifneq ($(shell grep "unsigned int txqueue" include/linux/netdevice.h > /dev/null 2>&1 && echo 1),)
 	ccflags-y += -D_HAS_NDO_TX_TIMEOUT_TXQUEUE
 endif
+
+ifneq ($(shell ls include/drm/drm_accel.h > /dev/null 2>&1 && echo 1),)
+	ccflags-y += -D_HAS_DRM_ACCEL_H
+endif
