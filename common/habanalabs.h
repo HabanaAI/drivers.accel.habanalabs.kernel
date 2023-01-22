@@ -3456,6 +3456,7 @@ struct hl_etr_buf_store {
  *		   (required only for PCI address match mode)
  * @pcie_bar: array of available PCIe bars virtual addresses.
  * @rmmio: configuration area address on SRAM.
+ * @hclass: pointer to the habanalabs class.
  * @cdev: related char device.
  * @cdev_ctrl: char device for control operations only (INFO IOCTL)
  * @dev: related kernel basic device structure.
@@ -3664,6 +3665,7 @@ struct hl_device {
 	u64				pcie_bar_phys[HL_PCI_NUM_BARS];
 	void __iomem			*pcie_bar[HL_PCI_NUM_BARS];
 	void __iomem			*rmmio;
+	struct class			*hclass;
 	struct cdev			cdev;
 	struct cdev			cdev_ctrl;
 	struct device			*dev;
@@ -4108,7 +4110,7 @@ int hl_ctx_get_fences(struct hl_ctx *ctx, u64 *seq_arr,
 void hl_ctx_mgr_init(struct hl_ctx_mgr *mgr);
 void hl_ctx_mgr_fini(struct hl_device *hdev, struct hl_ctx_mgr *mgr);
 
-int hl_device_init(struct hl_device *hdev, struct class *hclass);
+int hl_device_init(struct hl_device *hdev);
 void hl_device_fini(struct hl_device *hdev);
 int hl_device_suspend(struct hl_device *hdev);
 int hl_device_resume(struct hl_device *hdev);

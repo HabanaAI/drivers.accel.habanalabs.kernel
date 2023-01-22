@@ -1487,6 +1487,7 @@ static void copy_kernel_module_params_to_device(struct hl_device *hdev)
 	hdev->ifh = ifh;
 	hdev->major = hl_major;
 	hdev->accel_major = hl_accel_get_major();
+	hdev->hclass = hl_class;
 	hdev->low_freq = low_freq;
 	hdev->card_type = card_type;
 	hdev->memory_scrub = memory_scrub;
@@ -1977,7 +1978,7 @@ static int hl_pci_probe(struct pci_dev *pdev, const struct pci_device_id *id)
 
 	pci_enable_pcie_error_reporting(pdev);
 
-	rc = hl_device_init(hdev, hl_class);
+	rc = hl_device_init(hdev);
 	if (rc) {
 		dev_err(&pdev->dev,
 			"Fatal error during habanalabs device init\n");

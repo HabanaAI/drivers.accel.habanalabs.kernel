@@ -523,7 +523,7 @@ static int goya_sim_start(struct hl_simulator_device *edev, int major,
 
 	(*hdev)->sdev = &edev->sdev;
 
-	rc = hl_device_init(*hdev, edev->hclass);
+	rc = hl_device_init(*hdev);
 	if (rc) {
 		dev_err(edev->dev, "fatal error during GOYA simulator init\n");
 		rc = -ENODEV;

@@ -415,7 +415,7 @@ static int gaudi3_sim_start(struct hl_simulator_device *edev, int major,
 
 	hl_sim_set_priv_assertions(edev, true);
 
-	rc = hl_device_init(*hdev, edev->hclass);
+	rc = hl_device_init(*hdev);
 	if (rc) {
 		dev_err(edev->dev, "fatal error during GAUDI3 simulator init\n");
 		rc = -ENODEV;
