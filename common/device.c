@@ -2259,27 +2259,17 @@ int hl_read_memory_block(struct hl_device *hdev, u32 *buf, u64 start_addr, u32 s
 	return rc;
 }
 
-/*
- * hl_device_init - main initialization function for habanalabs device
- *
- * @hdev: pointer to habanalabs device structure
- *
- * Allocate an id for the device, do early initialization and then call the
- * ASIC specific initialization functions. Finally, create the cdev and the
- * Linux device to expose it to the user
- */
-int hl_device_init(struct hl_device *hdev, struct class *hclass)
+static int create_cdev(struct hl_device *hdev, struct class *hclass)
 {
-	int i, rc, cq_cnt, user_interrupt_cnt, cq_ready_cnt;
 	char *name;
-	bool add_cdev_sysfs_on_err = false;
+	int rc;
 
 	hdev->cdev_idx = hdev->id / 2;
 
 	name = kasprintf(GFP_KERNEL, "hl%d", hdev->cdev_idx);
 	if (!name) {
 		rc = -ENOMEM;
-		goto out_disabled;
+		goto out_err;
 	}
 
 	/* Initialize cdev and device structures */
@@ -2289,7 +2279,7 @@ int hl_device_init(struct hl_device *hdev, struct class *hclass)
 	kfree(name);
 
 	if (rc)
-		goto out_disabled;
+		goto out_err;
 
 	name = kasprintf(GFP_KERNEL, "hl_controlD%d", hdev->cdev_idx);
 	if (!name) {
@@ -2306,10 +2296,36 @@ int hl_device_init(struct hl_device *hdev, struct class *hclass)
 	if (rc)
 		goto free_dev;
 
+	return 0;
+
+free_dev:
+	put_device(hdev->dev);
+out_err:
+	return rc;
+}
+
+/*
+ * hl_device_init - main initialization function for habanalabs device
+ *
+ * @hdev: pointer to habanalabs device structure
+ *
+ * Allocate an id for the device, do early initialization and then call the
+ * ASIC specific initialization functions. Finally, create the cdev and the
+ * Linux device to expose it to the user
+ */
+int hl_device_init(struct hl_device *hdev, struct class *hclass)
+{
+	int i, rc, cq_cnt, user_interrupt_cnt, cq_ready_cnt;
+	bool add_cdev_sysfs_on_err = false;
+
+	rc = create_cdev(hdev, hclass);
+	if (rc)
+		goto out_disabled;
+
 	/* Initialize ASIC function pointers and perform early init */
 	rc = device_early_init(hdev);
 	if (rc)
-		goto free_dev_ctrl;
+		goto free_dev;
 
 	user_interrupt_cnt = hdev->asic_prop.user_dec_intr_count +
 				hdev->asic_prop.user_interrupt_count;
@@ -2570,9 +2586,8 @@ free_usr_intr_mem:
 	kfree(hdev->user_interrupt);
 early_fini:
 	device_early_fini(hdev);
-free_dev_ctrl:
-	put_device(hdev->dev_ctrl);
 free_dev:
+	put_device(hdev->dev_ctrl);
 	put_device(hdev->dev);
 out_disabled:
 	hdev->disabled = true;
