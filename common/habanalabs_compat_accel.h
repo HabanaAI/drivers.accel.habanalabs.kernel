@@ -10,5 +10,6 @@
 
 int hl_accel_init(void);
 void hl_accel_exit(void);
+int hl_accel_get_major(void);
 
 #endif /* HABANALABS_COMPAT_ACCEL_H_ */

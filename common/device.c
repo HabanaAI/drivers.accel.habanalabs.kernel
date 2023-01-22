@@ -699,7 +699,7 @@ static void device_release_func(struct device *dev)
 static int device_init_cdev(struct hl_device *hdev, struct class *hclass,
 				int minor, const struct file_operations *fops,
 				char *name, struct cdev *cdev,
-				struct device **dev)
+				struct device **dev, int major)
 {
 	cdev_init(cdev, fops);
 	cdev->owner = THIS_MODULE;
@@ -709,7 +709,7 @@ static int device_init_cdev(struct hl_device *hdev, struct class *hclass,
 		return -ENOMEM;
 
 	device_initialize(*dev);
-	(*dev)->devt = MKDEV(hdev->major, minor);
+	(*dev)->devt = MKDEV(major, minor);
 	(*dev)->class = hclass;
 	(*dev)->release = device_release_func;
 	dev_set_drvdata(*dev, hdev);
@@ -2274,7 +2274,7 @@ static int create_cdev(struct hl_device *hdev, struct class *hclass)
 
 	/* Initialize cdev and device structures */
 	rc = device_init_cdev(hdev, hclass, hdev->id, &hl_ops, name,
-				&hdev->cdev, &hdev->dev);
+				&hdev->cdev, &hdev->dev, hdev->major);
 
 	kfree(name);
 
@@ -2289,7 +2289,7 @@ static int create_cdev(struct hl_device *hdev, struct class *hclass)
 
 	/* Initialize cdev and device structures for control device */
 	rc = device_init_cdev(hdev, hclass, hdev->id_control, &hl_ctrl_ops,
-				name, &hdev->cdev_ctrl, &hdev->dev_ctrl);
+				name, &hdev->cdev_ctrl, &hdev->dev_ctrl, hdev->major);
 
 	kfree(name);
 

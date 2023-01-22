@@ -3584,6 +3584,7 @@ struct hl_etr_buf_store {
  * @card_type: Various ASICs have several card types. This indicates the card
  *             type of the current device.
  * @major: habanalabs kernel driver major.
+ * @accel_major: major for accel emulation code.
  * @high_pll: high PLL profile frequency.
  * @decoder_binning: contains mask of decoder engines that is received from the f/w which
  *                   indicates which decoder engines are binned-out
@@ -3777,6 +3778,7 @@ struct hl_device {
 
 	enum cpucp_card_types		card_type;
 	u32				major;
+	u32				accel_major;
 	u32				high_pll;
 	u32				decoder_binning;
 	u32				edma_binning;

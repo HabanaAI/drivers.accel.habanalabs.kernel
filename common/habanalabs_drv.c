@@ -1486,6 +1486,7 @@ static void copy_kernel_module_params_to_device(struct hl_device *hdev)
 
 	hdev->ifh = ifh;
 	hdev->major = hl_major;
+	hdev->accel_major = hl_accel_get_major();
 	hdev->low_freq = low_freq;
 	hdev->card_type = card_type;
 	hdev->memory_scrub = memory_scrub;

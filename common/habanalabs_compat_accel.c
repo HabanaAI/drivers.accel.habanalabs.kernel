@@ -42,6 +42,11 @@ static void accel_sysfs_destroy(void)
 	accel_class = NULL;
 }
 
+int hl_accel_get_major(void)
+{
+	return accel_major;
+}
+
 void hl_accel_exit(void)
 {
 	unregister_chrdev_region(MKDEV(accel_major, 0), ACCEL_MAX_MINORS);
