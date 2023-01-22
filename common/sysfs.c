@@ -578,6 +578,13 @@ int hl_sysfs_init(struct hl_device *hdev)
 		return rc;
 	}
 
+	rc = device_add_groups(hdev->accel_dev, hl_dev_attr_groups);
+	if (rc) {
+		dev_err(hdev->accel_dev,
+			"Failed to add groups to device, error %d\n", rc);
+		return rc;
+	}
+
 	if (!hdev->asic_prop.allow_inference_soft_reset)
 		return 0;
 
@@ -588,15 +595,24 @@ int hl_sysfs_init(struct hl_device *hdev)
 		return rc;
 	}
 
+	rc = device_add_groups(hdev->accel_dev, hl_dev_inference_attr_groups);
+	if (rc) {
+		dev_err(hdev->accel_dev,
+			"Failed to add groups to device, error %d\n", rc);
+		return rc;
+	}
+
 	return 0;
 }
 
 void hl_sysfs_fini(struct hl_device *hdev)
 {
 	device_remove_groups(hdev->dev, hl_dev_attr_groups);
+	device_remove_groups(hdev->accel_dev, hl_dev_attr_groups);
 
 	if (!hdev->asic_prop.allow_inference_soft_reset)
 		return;
 
 	device_remove_groups(hdev->dev, hl_dev_inference_attr_groups);
+	device_remove_groups(hdev->accel_dev, hl_dev_inference_attr_groups);
 }

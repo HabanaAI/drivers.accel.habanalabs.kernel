@@ -724,28 +724,25 @@ static int device_cdev_sysfs_add(struct hl_device *hdev)
 
 	rc = cdev_device_add(&hdev->cdev, hdev->dev);
 	if (rc) {
-		dev_err(hdev->dev,
-			"failed to add a char device to the system\n");
+		dev_err(hdev->dev, "failed to add a char device to the system\n");
 		return rc;
 	}
 
 	rc = cdev_device_add(&hdev->cdev_ctrl, hdev->dev_ctrl);
 	if (rc) {
-		dev_err(hdev->dev,
-			"failed to add a control char device to the system\n");
+		dev_err(hdev->dev_ctrl, "failed to add a control char device to the system\n");
 		goto delete_cdev_device;
 	}
 
 	rc = cdev_device_add(&hdev->accel_cdev, hdev->accel_dev);
 	if (rc) {
-		dev_err(hdev->dev,
-			"failed to add accel char device to the system\n");
+		dev_err(hdev->accel_dev, "failed to add accel char device to the system\n");
 		goto delete_ctrl_cdev_device;
 	}
 
 	rc = cdev_device_add(&hdev->accel_cdev_ctrl, hdev->accel_dev_ctrl);
 	if (rc) {
-		dev_err(hdev->dev,
+		dev_err(hdev->accel_dev_ctrl,
 			"failed to add accel control char device to the system\n");
 		goto delete_accel_cdev_device;
 	}
