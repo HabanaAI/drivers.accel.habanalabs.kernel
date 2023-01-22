@@ -507,6 +507,7 @@
 #include "dcore0_mme_mstr_if_core_hbw_regs.h"
 #include "dcore1_mme_mstr_if_core_hbw_regs.h"
 #include "dcore0_tpc0_mstr_if_core_lbw_regs.h"
+#include "dcore0_tpc0_cfg_special_regs.h"
 
 #include "dcore0_ddma_core_masks.h"
 #include "dcore0_ddma_qm_masks.h"
