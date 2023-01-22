@@ -710,6 +710,8 @@ struct hl_mem_block_info {
  * @etr_buf_dram_size: size of a single ETR buffer in DRAM, assumed to be a power of 2.
  * @etr_buf_dram_size_aligned: size of a single ETR buffer in DRAM with
  *                             alignment overhead, always >= etr_buf_dram_size.
+ * @engine_core_interrupt_reg_addr: interrupt register address for engine core to use
+ *                                  in order to raise events toward FW.
  * @etr_buf_number: total number of ETR bufs in DRAM, varies per number of dies
  * @pdma_ch_max: single/dual die dependent max num of PDMA channels.
  * @pdma_grp_max: single/dual die dependent max num of PDMA groups (SPDMAs).
@@ -882,6 +884,7 @@ struct asic_fixed_properties {
 	u64				etr_bufs_dram_phys_base;
 	u64				etr_buf_dram_size;
 	u64				etr_buf_dram_size_aligned;
+	u64				engine_core_interrupt_reg_addr;
 	u32				etr_buf_number;
 	u32				pdma_ch_max;
 	u32				pdma_grp_max;

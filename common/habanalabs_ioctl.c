@@ -209,6 +209,7 @@ static int hw_ip_info(struct hl_device *hdev, struct hl_info_args *args)
 	hw_ip.odp_supported = hl_is_odp_supported(hdev);
 	hw_ip.revision_id = hdev->pci_revision_id;
 	hw_ip.rotator_enabled_mask = prop->rotator_enabled_mask;
+	hw_ip.engine_core_interrupt_reg_addr = prop->engine_core_interrupt_reg_addr;
 
 	return copy_to_user(out, &hw_ip,
 		min((size_t) size, sizeof(hw_ip))) ? -EFAULT : 0;
