@@ -2573,6 +2573,7 @@ struct hl_debugfs_entry {
 /**
  * struct hl_dbg_device_entry - ASIC specific debugfs manager.
  * @root: root dentry.
+ * @accel_root: accel root dentry.
  * @hdev: habanalabs device structure.
  * @entry_arr: array of available hl_debugfs_entry.
  * @file_list: list of available debugfs files.
@@ -2604,6 +2605,7 @@ struct hl_debugfs_entry {
  */
 struct hl_dbg_device_entry {
 	struct dentry			*root;
+	struct dentry			*accel_root;
 	struct hl_device		*hdev;
 	struct hl_debugfs_entry		*entry_arr;
 	struct list_head		file_list;

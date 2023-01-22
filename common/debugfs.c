@@ -7,6 +7,7 @@
 
 #include "habanalabs.h"
 #include "../include/hw_ip/mmu/mmu_general.h"
+#include "habanalabs_compat_accel.h"
 
 #include <linux/pci.h>
 #include <linux/uaccess.h>
@@ -1861,11 +1862,10 @@ void hl_debugfs_add_device(struct hl_device *hdev)
 {
 	struct hl_dbg_device_entry *dev_entry = &hdev->hl_debugfs;
 	int count = ARRAY_SIZE(hl_debugfs_list);
+	char name[64];
 
 	dev_entry->hdev = hdev;
-	dev_entry->entry_arr = kmalloc_array(count,
-					sizeof(struct hl_debugfs_entry),
-					GFP_KERNEL);
+	dev_entry->entry_arr = kmalloc_array(count, sizeof(struct hl_debugfs_entry), GFP_KERNEL);
 	if (!dev_entry->entry_arr)
 		return;
 
@@ -1888,13 +1888,18 @@ void hl_debugfs_add_device(struct hl_device *hdev)
 	spin_lock_init(&dev_entry->userptr_spinlock);
 	spin_lock_init(&dev_entry->ctx_mem_hash_spinlock);
 
-	dev_entry->root = debugfs_create_dir(dev_name(hdev->dev),
-						hl_debug_root);
+	dev_entry->root = debugfs_create_dir(dev_name(hdev->dev), hl_debug_root);
+
+	sprintf(name, "%d", hdev->cdev_idx);
+	dev_entry->accel_root = debugfs_create_dir(name, hl_accel_get_debugfs_root());
 
 	add_files_to_device(hdev, dev_entry, dev_entry->root);
+	add_files_to_device(hdev, dev_entry, dev_entry->accel_root);
 
-	if (!hdev->asic_prop.fw_security_enabled)
+	if (!hdev->asic_prop.fw_security_enabled) {
 		add_secured_nodes(dev_entry, dev_entry->root);
+		add_secured_nodes(dev_entry, dev_entry->accel_root);
+	}
 }
 
 void hl_debugfs_remove_device(struct hl_device *hdev)
@@ -1903,6 +1908,7 @@ void hl_debugfs_remove_device(struct hl_device *hdev)
 	int i;
 
 	debugfs_remove_recursive(entry->root);
+	debugfs_remove_recursive(entry->accel_root);
 
 	mutex_destroy(&entry->file_mutex);
 

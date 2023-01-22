@@ -51,6 +51,11 @@ struct class *hl_accel_get_class(void)
 	return accel_class;
 }
 
+struct dentry *hl_accel_get_debugfs_root(void)
+{
+	return accel_debugfs_root;
+}
+
 void hl_accel_exit(void)
 {
 	unregister_chrdev_region(MKDEV(accel_major, 0), ACCEL_MAX_MINORS);
