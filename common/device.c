@@ -736,17 +736,35 @@ static int device_cdev_sysfs_add(struct hl_device *hdev)
 		goto delete_cdev_device;
 	}
 
+	rc = cdev_device_add(&hdev->accel_cdev, hdev->accel_dev);
+	if (rc) {
+		dev_err(hdev->dev,
+			"failed to add accel char device to the system\n");
+		goto delete_ctrl_cdev_device;
+	}
+
+	rc = cdev_device_add(&hdev->accel_cdev_ctrl, hdev->accel_dev_ctrl);
+	if (rc) {
+		dev_err(hdev->dev,
+			"failed to add accel control char device to the system\n");
+		goto delete_accel_cdev_device;
+	}
+
 	/* hl_sysfs_init() must be done after adding the device to the system */
 	rc = hl_sysfs_init(hdev);
 	if (rc) {
 		dev_err(hdev->dev, "failed to initialize sysfs\n");
-		goto delete_ctrl_cdev_device;
+		goto delete_accel_ctrl_cdev_device;
 	}
 
 	hdev->cdev_sysfs_created = true;
 
 	return 0;
 
+delete_accel_ctrl_cdev_device:
+	cdev_device_del(&hdev->accel_cdev_ctrl, hdev->accel_dev_ctrl);
+delete_accel_cdev_device:
+	cdev_device_del(&hdev->accel_cdev, hdev->accel_dev);
 delete_ctrl_cdev_device:
 	cdev_device_del(&hdev->cdev_ctrl, hdev->dev_ctrl);
 delete_cdev_device:
@@ -760,10 +778,14 @@ static void device_cdev_sysfs_del(struct hl_device *hdev)
 		goto put_devices;
 
 	hl_sysfs_fini(hdev);
+	cdev_device_del(&hdev->accel_cdev_ctrl, hdev->accel_dev_ctrl);
+	cdev_device_del(&hdev->accel_cdev, hdev->accel_dev);
 	cdev_device_del(&hdev->cdev_ctrl, hdev->dev_ctrl);
 	cdev_device_del(&hdev->cdev, hdev->dev);
 
 put_devices:
+	put_device(hdev->accel_dev);
+	put_device(hdev->accel_dev_ctrl);
 	put_device(hdev->dev);
 	put_device(hdev->dev_ctrl);
 }
@@ -2259,6 +2281,49 @@ int hl_read_memory_block(struct hl_device *hdev, u32 *buf, u64 start_addr, u32 s
 	return rc;
 }
 
+static int create_accel_cdev(struct hl_device *hdev)
+{
+	char *name;
+	int rc;
+
+	name = kasprintf(GFP_KERNEL, "accel%d", hdev->cdev_idx);
+	if (!name) {
+		rc = -ENOMEM;
+		goto out_err;
+	}
+
+	/* Initialize cdev and device structures */
+	rc = device_init_cdev(hdev, hdev->aclass, hdev->id, &hl_ops, name,
+				&hdev->accel_cdev, &hdev->accel_dev, hdev->accel_major);
+
+	kfree(name);
+
+	if (rc)
+		goto out_err;
+
+	name = kasprintf(GFP_KERNEL, "accel_controlD%d", hdev->cdev_idx);
+	if (!name) {
+		rc = -ENOMEM;
+		goto free_dev;
+	}
+
+	/* Initialize cdev and device structures for control device */
+	rc = device_init_cdev(hdev, hdev->aclass, hdev->id_control, &hl_ctrl_ops, name,
+				&hdev->accel_cdev_ctrl, &hdev->accel_dev_ctrl, hdev->accel_major);
+
+	kfree(name);
+
+	if (rc)
+		goto free_dev;
+
+	return 0;
+
+free_dev:
+	put_device(hdev->accel_dev);
+out_err:
+	return rc;
+}
+
 static int create_cdev(struct hl_device *hdev)
 {
 	char *name;
@@ -2296,8 +2361,14 @@ static int create_cdev(struct hl_device *hdev)
 	if (rc)
 		goto free_dev;
 
+	rc = create_accel_cdev(hdev);
+	if (rc)
+		goto free_ctrl_dev;
+
 	return 0;
 
+free_ctrl_dev:
+	put_device(hdev->dev_ctrl);
 free_dev:
 	put_device(hdev->dev);
 out_err:
@@ -2587,6 +2658,8 @@ free_usr_intr_mem:
 early_fini:
 	device_early_fini(hdev);
 free_dev:
+	put_device(hdev->accel_dev_ctrl);
+	put_device(hdev->accel_dev);
 	put_device(hdev->dev_ctrl);
 	put_device(hdev->dev);
 out_disabled:

@@ -3460,8 +3460,12 @@ struct hl_etr_buf_store {
  * @aclass: pointer to the accel class.
  * @cdev: related char device.
  * @cdev_ctrl: char device for control operations only (INFO IOCTL)
+ * @accel_cdev: accel related char device.
+ * @accel_cdev_ctrl: accel char device for control operations only (INFO IOCTL)
  * @dev: related kernel basic device structure.
  * @dev_ctrl: related kernel device structure for the control device
+ * @accel_dev: accel related kernel basic device structure.
+ * @accel_dev_ctrl: related kernel device structure for the accel control device
  * @sdev: pointer to simulator device, NULL in case of PCI device.
  * @work_heartbeat: delayed work for CPU-CP is-alive check.
  * @work_no_fw_monitor: monitor work when running without firmware.
@@ -3670,8 +3674,12 @@ struct hl_device {
 	struct class			*aclass;
 	struct cdev			cdev;
 	struct cdev			cdev_ctrl;
+	struct cdev			accel_cdev;
+	struct cdev			accel_cdev_ctrl;
 	struct device			*dev;
 	struct device			*dev_ctrl;
+	struct device			*accel_dev;
+	struct device			*accel_dev_ctrl;
 	struct device			*sdev;
 	struct delayed_work		work_heartbeat;
 	struct delayed_work		work_no_fw_monitor;
