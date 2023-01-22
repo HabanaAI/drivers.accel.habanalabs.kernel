@@ -472,13 +472,10 @@ static int gaudi3_init_pll(struct hl_device *hdev,
 	return 0;
 }
 
-static int gaudi3_plls_preboot_configs(struct hl_device *hdev, struct gaudi3_device *gaudi3)
+static int gaudi3_nominal_hbm_1800(struct hl_device *hdev, struct gaudi3_device *gaudi3)
 {
 	struct gaudi3_pll_params pll;
 	int rc;
-
-	if (hdev->fw_components & FW_TYPE_PREBOOT_CPU)
-		return 0;
 
 	/* PCIe PSOC ARM PLL */
 	GAUDI3_INIT_PLL_COEFFICIENT(pll, 1, 240, 3, 2);
@@ -575,16 +572,6 @@ static int gaudi3_plls_preboot_configs(struct hl_device *hdev, struct gaudi3_dev
 	rc = gaudi3_init_pll(hdev, GAUDI3_D0_G6_D2D_PLL, &pll);
 	if (rc)
 		return rc;
-
-	return 0;
-}
-
-static int gaudi3_nominal_hbm_1800(struct hl_device *hdev, struct gaudi3_device *gaudi3)
-{
-	struct gaudi3_pll_params pll;
-	int rc;
-
-	gaudi3_plls_preboot_configs(hdev, gaudi3);
 
 	/* MME PLL */
 	GAUDI3_INIT_PLL_COEFFICIENT(pll, 1, 224, 6, 0);
@@ -717,6 +704,9 @@ int gaudi3_init_plls(struct hl_device *hdev)
 		return 0;
 
 	if (gaudi3->hw_cap_initialized & HW_CAP_PLL)
+		return 0;
+
+	if (hdev->fw_components & FW_TYPE_PREBOOT_CPU)
 		return 0;
 
 	dev_dbg(hdev->dev, "PLL init\n");
