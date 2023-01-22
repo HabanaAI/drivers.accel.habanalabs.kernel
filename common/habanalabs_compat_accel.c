@@ -7,7 +7,6 @@
  */
 
 #include <linux/debugfs.h>
-#include <linux/device.h>
 
 #include "habanalabs_compat_accel.h"
 
@@ -45,6 +44,11 @@ static void accel_sysfs_destroy(void)
 int hl_accel_get_major(void)
 {
 	return accel_major;
+}
+
+struct class *hl_accel_get_class(void)
+{
+	return accel_class;
 }
 
 void hl_accel_exit(void)

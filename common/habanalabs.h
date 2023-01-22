@@ -3457,6 +3457,7 @@ struct hl_etr_buf_store {
  * @pcie_bar: array of available PCIe bars virtual addresses.
  * @rmmio: configuration area address on SRAM.
  * @hclass: pointer to the habanalabs class.
+ * @aclass: pointer to the accel class.
  * @cdev: related char device.
  * @cdev_ctrl: char device for control operations only (INFO IOCTL)
  * @dev: related kernel basic device structure.
@@ -3666,6 +3667,7 @@ struct hl_device {
 	void __iomem			*pcie_bar[HL_PCI_NUM_BARS];
 	void __iomem			*rmmio;
 	struct class			*hclass;
+	struct class			*aclass;
 	struct cdev			cdev;
 	struct cdev			cdev_ctrl;
 	struct device			*dev;
