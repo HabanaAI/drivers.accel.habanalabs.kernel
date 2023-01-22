@@ -11,6 +11,7 @@
 #include "habanalabs.h"
 #include "version.h"
 #include "../include/hw_ip/pci/pci_general.h"
+#include "habanalabs_compat_accel.h"
 
 #include <linux/pci.h>
 #include <linux/aer.h>
@@ -2300,11 +2301,15 @@ static int __init hl_init(void)
 
 	hl_enable_trace_events();
 
+	rc = hl_accel_init();
+	if (rc)
+		goto remove_debugfs;
+
 	/* SIMULATOR CODE */
 	rc = hl_sim_init(hl_class, hl_major, &hl_devs_idr, &hl_devs_idr_lock);
 	if (rc < 0) {
 		pr_err("fatal error during simulator mode device init\n");
-		goto remove_debugfs;
+		goto remove_accel;
 	} else if (rc > 0) {
 		pr_info("driver loaded in simulator only mode\n");
 		return 0;
@@ -2367,6 +2372,8 @@ remove_importer:
 remove_sim:
 	hl_sim_fini();
 /* END OF SIMULATOR CODE */
+remove_accel:
+	hl_accel_exit();
 remove_debugfs:
 	hl_debugfs_fini();
 	class_destroy(hl_class);
@@ -2399,6 +2406,8 @@ static void __exit hl_exit(void)
 /* SIMULATOR CODE */
 skip_pci:
 /* END OF SIMULATOR CODE */
+
+	hl_accel_exit();
 
 	/*
 	 * Removing debugfs must be after all devices or simulator devices

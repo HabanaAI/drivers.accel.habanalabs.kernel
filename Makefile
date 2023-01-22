@@ -38,7 +38,7 @@ include $(src)/common/Makefile.compat
 ccflags-y += $(HL_CFLAGS)
 
 habanalabs-y += common/simulator.o common/habanalabs_compat.o \
-		common/importer_drv.o
+		common/importer_drv.o common/habanalabs_compat_accel.o
 
 ifdef OFED_PATH
 LINUXINCLUDE := -I$(OFED_PATH)/include $(LINUXINCLUDE)
