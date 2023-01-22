@@ -581,7 +581,7 @@ static int hl_nic_ib_alloc_ucontext(struct hl_aux_dev *aux_dev, int core_fd, voi
 	/* IB core can independently manages its resources and context.
 	 * However, for HL devices, corresponding HW resources can also be
 	 * managed by core. To avoid contention (e.g. abrupt application close)
-	 * between them, enforce orderly FD closure. Thsi facilitates that IB destroy
+	 * between them, enforce orderly FD closure. This facilitates that IB destroy
 	 * runs first, followed by core fini.
 	 */
 	file = fget(core_fd);
