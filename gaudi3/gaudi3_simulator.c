@@ -239,6 +239,14 @@ static int gaudi3_simulator_pci_access_ioctl(struct hl_simulator_device *edev, v
 	return 0;
 }
 
+static int gaudi3_simulator_reset_device_ioctl(struct hl_simulator_device *edev, void *data)
+{
+	struct hl_device *hdev = edev->hdev;
+
+	dev_warn(hdev->dev, "Gaudi3 simulator encountered a failure, going to reset device\n");
+
+	return hl_device_reset(hdev, HL_DRV_RESET_HARD);
+}
 /*
  * Ioctl function type.
  *
@@ -262,6 +270,8 @@ static const struct gaudi3_simulator_ioctl_desc gaudi3_simulator_ioctls[] = {
 			gaudi3_simulator_gen_int_ioctl),
 	GAUDI3_SIMULATOR_IOCTL_DEF(SIMULATOR_IOCTL_PCI_ACCESS_FROM_DEVICE,
 			gaudi3_simulator_pci_access_ioctl),
+	GAUDI3_SIMULATOR_IOCTL_DEF(SIMULATOR_IOCTL_RESET_DEVICE,
+			gaudi3_simulator_reset_device_ioctl),
 };
 
 #define GAUDI3_SIMULATOR_IOCTL_COUNT	ARRAY_SIZE(gaudi3_simulator_ioctls)

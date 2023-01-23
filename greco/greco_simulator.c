@@ -359,6 +359,13 @@ static int greco_simulator_pci_access_ioctl(struct hl_simulator_device *edev, vo
 	return rc;
 }
 
+static int greco_simulator_reset_device_ioctl(struct hl_simulator_device *edev, void *data)
+{
+	dev_err(edev->dev, "Greco simulator hard-reset request isn't supported\n");
+
+	return -EIO;
+}
+
 /*
  * Ioctl function type.
  *
@@ -379,9 +386,11 @@ struct greco_simulator_ioctl_desc {
 /** Ioctl table */
 static const struct greco_simulator_ioctl_desc greco_simulator_ioctls[] = {
 	GRECO_SIMULATOR_IOCTL_DEF(SIMULATOR_IOCTL_GEN_INT,
-					greco_simulator_gen_int_ioctl),
+			greco_simulator_gen_int_ioctl),
 	GRECO_SIMULATOR_IOCTL_DEF(SIMULATOR_IOCTL_PCI_ACCESS_FROM_DEVICE,
-					greco_simulator_pci_access_ioctl),
+			greco_simulator_pci_access_ioctl),
+	GRECO_SIMULATOR_IOCTL_DEF(SIMULATOR_IOCTL_RESET_DEVICE,
+			greco_simulator_reset_device_ioctl),
 };
 
 #define GRECO_SIMULATOR_IOCTL_COUNT	ARRAY_SIZE(greco_simulator_ioctls)

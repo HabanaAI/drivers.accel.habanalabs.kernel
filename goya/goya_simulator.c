@@ -343,6 +343,12 @@ static int goya_simulator_pci_access_ioctl(
 	return rc;
 }
 
+static int goya_simulator_reset_device_ioctl(struct hl_simulator_device *edev, void *data)
+{
+	dev_err(edev->dev, "Goya simulator hard-reset request isn't supported\n");
+
+	return -EIO;
+}
 /*
  * Ioctl function type.
  *
@@ -366,6 +372,8 @@ static const struct goya_simulator_ioctl_desc goya_simulator_ioctls[] = {
 			goya_simulator_gen_int_ioctl),
 	GOYA_SIMULATOR_IOCTL_DEF(SIMULATOR_IOCTL_PCI_ACCESS_FROM_DEVICE,
 			goya_simulator_pci_access_ioctl),
+	GOYA_SIMULATOR_IOCTL_DEF(SIMULATOR_IOCTL_RESET_DEVICE,
+			goya_simulator_reset_device_ioctl),
 };
 
 #define GOYA_SIMULATOR_IOCTL_COUNT	ARRAY_SIZE(goya_simulator_ioctls)

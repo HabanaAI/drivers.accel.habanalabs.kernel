@@ -96,6 +96,10 @@ struct simulator_pci_access_args {
 	__u8 pad[3];
 };
 
+struct simulator_reset_device_args {
+	__u64 pad;
+};
+
 int hl_sim_alloc_irq_vectors(struct hl_simulator_device *edev, unsigned int min_vecs,
 			unsigned int max_vecs, unsigned int flags);
 void hl_sim_free_irq_vectors(struct hl_simulator_device *edev);
@@ -109,8 +113,11 @@ int hl_sim_send_irq(struct hl_simulator_device *edev, unsigned int irq);
 #define SIMULATOR_IOCTL_PCI_ACCESS_FROM_DEVICE \
 			_IOW('O', 0x02, struct simulator_pci_access_args)
 
+#define SIMULATOR_IOCTL_RESET_DEVICE \
+			_IOW('O', 0x03, struct simulator_reset_device_args)
+
 #define SIMULATOR_COMMAND_START		0x01
-#define SIMULATOR_COMMAND_END		0x03
+#define SIMULATOR_COMMAND_END		0x04
 
 /* Get the device type from user-space and pass it its allocated minor number */
 #define HLV_SIMULATOR_IOCTL_SET_DEVTYPE_GET_MINOR \
