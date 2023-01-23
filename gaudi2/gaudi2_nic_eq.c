@@ -217,7 +217,6 @@ static void gaudi2_nic_link_event_handler(struct gaudi2_nic_port *gaudi2_nic)
 		link_status_mask = gaudi2_nic_get_link_status_mask(gaudi2_nic_curr);
 		link_up = (curr_link_sts >> port_shift) & link_status_mask;
 		prev_link_up = nic_port_curr->pcs_link;
-		nic_port_curr->pcs_link = link_up;
 
 		if (prev_link_up != link_up && !link_up) {
 			mutex_lock(&gaudi2_nic_curr->qp_destroy_lock);
@@ -231,8 +230,23 @@ static void gaudi2_nic_link_event_handler(struct gaudi2_nic_port *gaudi2_nic)
 			mutex_unlock(&gaudi2_nic_curr->qp_destroy_lock);
 		}
 
-		if (!hdev->nic.phy_config_fw || nic_port_curr->phy_fw_tuned)
+		/* Record the current link status that we got.
+		 * In case it is UP, and PHY is not ready, we don't want to actually set it and
+		 * reflect it to the user - this will be done later once the PHY will be ready.
+		 */
+		gaudi2_nic_curr->eq_pcs_link = link_up;
+
+		/* In case of link DOWN, set the actual link and reflect it to the user */
+		if (!link_up)
+			nic_port_curr->pcs_link = false;
+
+		/* Set the actual link status that is reflected to the user and print it in case
+		 * either we don't have PHY or we have PHY and it's ready.
+		 */
+		if (!hdev->nic.phy_config_fw || nic_port_curr->phy_fw_tuned) {
+			nic_port_curr->pcs_link = link_up;
 			hl_nic_phy_set_port_status(nic_port_curr, link_up);
+		}
 
 		mutex_unlock(&nic_port_curr->control_lock);
 	}

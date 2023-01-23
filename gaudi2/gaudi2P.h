@@ -523,6 +523,7 @@ struct dup_block_ctx {
  * @qp_timeout_cnt: count of timeouts occurred on a port operating a QP.
  * @advanced: true if advanced features are supported.
  * @qp_destroy_mac_lpbk: port in is MAC loopback due to QP destroy flow.
+ * @eq_pcs_link: true if the NIC got PCS link in the EQ, false otherwise.
  */
 struct gaudi2_nic_port {
 	struct hl_device	*hdev;
@@ -555,6 +556,7 @@ struct gaudi2_nic_port {
 
 	u8			advanced;
 	u8			qp_destroy_mac_lpbk;
+	u8			eq_pcs_link;
 };
 
 /**
