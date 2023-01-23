@@ -369,7 +369,7 @@ void gaudi3_nic_override_phy_readiness(struct hl_nic_port *nic_port, bool set_re
 	hdev->asic_funcs->set_priv_assertions(hdev, true);
 }
 
-void gaudi3_nic_disable_wqe_index_checker_no_fw(struct hl_nic_port *nic_port)
+int gaudi3_nic_disable_wqe_index_checker_fw(struct hl_nic_port *nic_port)
 {
 	struct hl_device *hdev = nic_port->hdev;
 	u32 port = nic_port->port;
@@ -379,12 +379,17 @@ void gaudi3_nic_disable_wqe_index_checker_no_fw(struct hl_nic_port *nic_port)
 	 * enable security assertion back. We enter this section only if FW security
 	 * is not enabled.
 	 */
-	hdev->asic_funcs->set_priv_assertions(hdev, false);
+	if (!(hdev->fw_components & FW_TYPE_BOOT_CPU)) {
+		hdev->asic_funcs->set_priv_assertions(hdev, false);
 
-	/* Disable the WQE index checker on the RX side */
-	NIC_RMWREG32(mmD0_NIC0_RXE_WQE_CHECKS_EN, 0, NIC_RXE_WQE_CHECKS_EN_WQE_IDX_MISMATCH_M);
+		/* Disable the WQE index checker on the RX side */
+		NIC_RMWREG32(mmD0_NIC0_RXE_WQE_CHECKS_EN, 0,
+			NIC_RXE_WQE_CHECKS_EN_WQE_IDX_MISMATCH_M);
 
-	hdev->asic_funcs->set_priv_assertions(hdev, true);
+		hdev->asic_funcs->set_priv_assertions(hdev, true);
+	}
+
+	return 0;
 }
 
 static void gaudi3_nic_set_rx_drop_eco_no_fw(struct hl_nic_macro *nic_macro)

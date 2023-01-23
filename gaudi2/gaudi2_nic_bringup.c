@@ -351,25 +351,58 @@ void gaudi2_nic_override_phy_readiness(struct hl_nic_port *nic_port, bool set_re
 	hdev->asic_funcs->set_priv_assertions(hdev, true);
 }
 
-void gaudi2_nic_disable_wqe_index_checker_no_fw(struct hl_nic_port *nic_port)
+int gaudi2_nic_disable_wqe_index_checker_fw(struct hl_nic_port *nic_port)
 {
 	struct hl_device *hdev = nic_port->hdev;
 	u32 port = nic_port->port;
+	struct cpucp_packet pkt;
+	int rc;
 
 	/* This is a privilege register that is modified on the go, hence we should disable
 	 * assertion on simulator to allow us the modification. At the end of this section we
 	 * enable security assertion back. We enter this section only if FW security
 	 * is not enabled.
 	 */
-	hdev->asic_funcs->set_priv_assertions(hdev, false);
+	if (!(hdev->fw_components & FW_TYPE_BOOT_CPU)) {
+		hdev->asic_funcs->set_priv_assertions(hdev, false);
+		/* Disable the WQE index checker on the RX side */
+		NIC_RMWREG32(mmNIC0_RXE0_RXE_CHECKS, 0,
+			NIC0_RXE0_RXE_CHECKS_WQE_IDX_MISMATCH_EN_MASK);
+		/* Disable the WQE index checker on the TX side */
+		NIC_RMWREG32(mmNIC0_TXE0_WQE_CHECK_EN, 0,
+			NIC0_TXE0_WQE_CHECK_EN_WQE_INDEX_EN_MASK);
+		hdev->asic_funcs->set_priv_assertions(hdev, true);
+
+		return 0;
+	}
 
 	/* Disable the WQE index checker on the RX side */
-	NIC_RMWREG32(mmNIC0_RXE0_RXE_CHECKS, 0, NIC0_RXE0_RXE_CHECKS_WQE_IDX_MISMATCH_EN_MASK);
+	memset(&pkt, 0, sizeof(pkt));
+	pkt.ctl = cpu_to_le32(CPUCP_PACKET_NIC_SET_CHECKERS << CPUCP_PKT_CTL_OPCODE_SHIFT);
+	pkt.value = cpu_to_le64(RX_WQE_IDX_MISMATCH);
+	pkt.port_index = cpu_to_le32(port);
+
+	rc = hdev->asic_funcs->send_cpu_message(hdev, (u32 *) &pkt, sizeof(pkt), 0, NULL);
+	if (rc) {
+		dev_err(hdev->dev,
+			"Failed to disable Rx WQE idx mismatch checker, port %d, rc %d\n",
+			port, rc);
+		return rc;
+	}
 
 	/* Disable the WQE index checker on the TX side */
-	NIC_RMWREG32(mmNIC0_TXE0_WQE_CHECK_EN, 0, NIC0_TXE0_WQE_CHECK_EN_WQE_INDEX_EN_MASK);
+	memset(&pkt, 0, sizeof(pkt));
+	pkt.ctl = cpu_to_le32(CPUCP_PACKET_NIC_SET_CHECKERS << CPUCP_PKT_CTL_OPCODE_SHIFT);
+	pkt.value = cpu_to_le64(TX_WQE_IDX_MISMATCH);
+	pkt.port_index = cpu_to_le32(port);
 
-	hdev->asic_funcs->set_priv_assertions(hdev, true);
+	rc = hdev->asic_funcs->send_cpu_message(hdev, (u32 *) &pkt, sizeof(pkt), 0, NULL);
+	if (rc)
+		dev_err(hdev->dev,
+			"Failed to disable Tx WQE idx mismatch checker, port %d, rc %d\n",
+			port, rc);
+
+	return rc;
 }
 
 void gaudi2_nic_quiescence_phy_no_fw(struct hl_device *hdev)

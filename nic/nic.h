@@ -1196,7 +1196,7 @@ struct hl_nic_port_funcs {
 	void (*user_ccq_unset)(struct hl_nic_port *nic_port, u32 *ccqn);
 	void (*reset_mac_stats)(struct hl_nic_port *nic_port);
 	void (*print_fec_stats)(struct hl_nic_port *nic_port);
-	void (*disable_wqe_index_checker)(struct hl_nic_port *nic_port);
+	int (*disable_wqe_index_checker)(struct hl_nic_port *nic_port);
 	void (*fill_nic_status)(struct hl_nic_port *nic_port, struct cpucp_nic_status *nic_status);
 	void (*cfg_lock)(struct hl_nic_port *nic_port);
 	void (*cfg_unlock)(struct hl_nic_port *nic_port);

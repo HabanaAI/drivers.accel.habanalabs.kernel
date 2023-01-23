@@ -924,7 +924,7 @@ int gaudi2_is_fw_ver_below_1_8_1(struct hl_device *hdev);
 /* Bringup functions (w/o F/W support) */
 int gaudi2_nic_config_wqe_asid(struct hl_nic_port *nic_port, u32 asid, bool set_asid);
 void gaudi2_nic_override_phy_readiness(struct hl_nic_port *nic_port, bool set_ready);
-void gaudi2_nic_disable_wqe_index_checker_no_fw(struct hl_nic_port *nic_port);
+int gaudi2_nic_disable_wqe_index_checker_fw(struct hl_nic_port *nic_port);
 void gaudi2_nic_quiescence_phy_no_fw(struct hl_device *hdev);
 void gaudi2_nic_blocks_fw_config(struct hl_device *hdev);
 

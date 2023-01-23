@@ -3620,48 +3620,6 @@ out:
 	return rc;
 }
 
-static int hl_nic_modify_wqe_checkers(struct hl_nic_port *nic_port)
-{
-	struct hl_device *hdev = nic_port->hdev;
-	u32 port = nic_port->port;
-	struct cpucp_packet pkt;
-	int rc;
-
-	if (!(hdev->fw_components & FW_TYPE_BOOT_CPU)) {
-		hdev->asic_funcs->nic_funcs->port_funcs->disable_wqe_index_checker(nic_port);
-		return 0;
-	}
-
-	/* Disable the WQE index checker on the RX side */
-	memset(&pkt, 0, sizeof(pkt));
-	pkt.ctl = cpu_to_le32(CPUCP_PACKET_NIC_SET_CHECKERS << CPUCP_PKT_CTL_OPCODE_SHIFT);
-	pkt.value = cpu_to_le64(RX_WQE_IDX_MISMATCH);
-	pkt.port_index = cpu_to_le32(port);
-
-	rc = hdev->asic_funcs->send_cpu_message(hdev, (u32 *) &pkt, sizeof(pkt), 0, NULL);
-	if (rc) {
-		dev_err(hdev->dev,
-			"Failed to disable Rx WQE idx mismatch checker, port %d, rc %d\n",
-			port, rc);
-		return rc;
-	}
-
-	/* Disable the WQE index checker on the TX side */
-	memset(&pkt, 0, sizeof(pkt));
-	pkt.ctl = cpu_to_le32(CPUCP_PACKET_NIC_SET_CHECKERS << CPUCP_PKT_CTL_OPCODE_SHIFT);
-	pkt.value = cpu_to_le64(TX_WQE_IDX_MISMATCH);
-	pkt.port_index = cpu_to_le32(port);
-
-	rc = hdev->asic_funcs->send_cpu_message(hdev, (u32 *) &pkt, sizeof(pkt), 0, NULL);
-	if (rc)
-		dev_err(hdev->dev,
-			"Failed to disable Tx WQE idx mismatch checker, port %d, rc %d\n",
-			port, rc);
-
-	return rc;
-}
-
-
 static int user_set_app_params(struct hl_device *hdev, struct hl_nic_set_user_app_params_in *in,
 				struct hl_ctx *ctx)
 {
@@ -3704,7 +3662,7 @@ static int user_set_app_params(struct hl_device *hdev, struct hl_nic_set_user_ap
 		goto out;
 
 	if (modify_wqe_checkers) {
-		rc = hl_nic_modify_wqe_checkers(nic_port);
+		rc = hdev->asic_funcs->nic_funcs->port_funcs->disable_wqe_index_checker(nic_port);
 		if (rc)
 			goto out;
 	}
