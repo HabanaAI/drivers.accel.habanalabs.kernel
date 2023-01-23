@@ -1655,6 +1655,10 @@ int hl_device_reset(struct hl_device *hdev, u32 flags)
 	delay_reset = !!(flags & HL_DRV_RESET_DELAY);
 	from_watchdog_thread = !!(flags & HL_DRV_RESET_FROM_WD_THR);
 
+	/* We should not execute reset flow in case simulator is already going down */
+	if (from_dev_release && hdev->simulator_crashed)
+		return 0;
+
 	if (!hard_reset && (hl_device_status(hdev) == HL_DEVICE_STATUS_MALFUNCTION)) {
 		dev_dbg(hdev->dev, "soft-reset isn't supported on a malfunctioning device\n");
 		return 0;
@@ -2022,7 +2026,11 @@ out_err:
 	spin_lock(&hdev->reset_info.lock);
 	hdev->reset_info.in_compute_reset = 0;
 
-	if (hard_reset) {
+	if (hdev->simulator_crashed) {
+		dev_err(hdev->dev,
+			"%s simulator was closed during reset, aborting execution\n",
+									HL_DEV_NAME(hdev));
+	} else if (hard_reset) {
 		dev_err(hdev->dev,
 			"%s Failed to reset! Device is NOT usable\n", HL_DEV_NAME(hdev));
 		hdev->reset_info.hard_reset_cnt++;
@@ -2689,7 +2697,7 @@ void hl_device_fini(struct hl_device *hdev)
 	u64 reset_sec;
 	int i, rc;
 
-	dev_info(hdev->dev, "Removing device\n");
+	dev_info(hdev->dev, "Removing device %s\n", HL_DEV_NAME(hdev));
 
 	hdev->device_fini_pending = 1;
 	flush_delayed_work(&hdev->device_reset_work.reset_work);

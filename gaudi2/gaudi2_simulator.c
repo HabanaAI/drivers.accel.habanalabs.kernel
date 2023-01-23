@@ -1675,6 +1675,15 @@ static void gaudi2_sim_set_priv_assertions(struct hl_device *hdev, bool enable)
 	hl_sim_set_priv_assertions(edev, enable);
 }
 
+static bool gaudi2_sim_is_device_idle(struct hl_device *hdev, u64 *mask_arr, u8 mask_len,
+					struct engines_data *e)
+{
+	if (hdev->simulator_crashed)
+		return true;
+
+	return gaudi2_is_device_idle(hdev, mask_arr, mask_len, e);
+}
+
 static const struct hl_asic_funcs gaudi2_sim_funcs = {
 	.early_init = gaudi2_sim_early_init,
 	.early_fini = gaudi2_sim_early_fini,
@@ -1721,7 +1730,7 @@ static const struct hl_asic_funcs gaudi2_sim_funcs = {
 	.mmu_prefetch_cache_range = NULL,
 	.send_heartbeat = gaudi2_send_heartbeat,
 	.debug_coresight = gaudi2_debug_coresight,
-	.is_device_idle = gaudi2_is_device_idle,
+	.is_device_idle = gaudi2_sim_is_device_idle,
 	.compute_reset_late_init = gaudi2_compute_reset_late_init,
 	.hw_queues_lock = gaudi2_sim_hw_queues_lock,
 	.hw_queues_unlock = gaudi2_sim_hw_queues_unlock,
