@@ -2136,11 +2136,9 @@ static int gaudi2_set_req_qp_ctx(struct hl_device *hdev,
 	encap_id = 0;
 	encap_en = 0;
 
-	/* SW-61290: Enforce sender (remote) WQ to be at least 4 times bigger than receiver WQ to
-	 * avoid H/W bug - RDV roll-back may stuck the QP.
-	 */
+	/* SW-61290: Check for HW bug. RDV rollback may stuck the QP. */
 	if (in->wq_type == QPC_REQ_WQ_TYPE_WRITE && in->wq_remote_log_size &&
-		(in->wq_size * 4 > BIT(in->wq_remote_log_size))) {
+		(in->wq_size * 4 < BIT(in->wq_remote_log_size))) {
 		dev_dbg(hdev->dev, "Invalid RDV WQ size. local %d, remote %lu, port %d\n",
 			in->wq_size, BIT(in->wq_remote_log_size), port);
 		return -EINVAL;
