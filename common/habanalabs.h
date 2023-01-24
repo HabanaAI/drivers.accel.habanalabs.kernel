@@ -3951,6 +3951,7 @@ struct hl_device {
 	u8				hbm_compression_enable;
 	u8				nic_enable_h9_rx_drop_eco;
 	u8				enable_h9_cache_eta_eco;
+	u8				force_h9_single_die;
 };
 
 /* Retrieve PCI device name in case of a PCI device or dev name in simulator */

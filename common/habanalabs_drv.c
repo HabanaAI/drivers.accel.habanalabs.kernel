@@ -154,6 +154,7 @@ static uint bfe_rotator_binning;
 static int bfe_hbm_compression_enable = 1;
 static int bfe_nic_enable_h9_rx_drop_eco = 1;
 static int bfe_enable_h9_cache_eta_eco;
+static int bfe_force_h9_single_die;
 
 /* special-case of parameter handling - polling */
 static bool nic_poll_enable_param_was_set;
@@ -516,6 +517,10 @@ module_param(bfe_enable_h9_cache_eta_eco, int, 0444);
 MODULE_PARM_DESC(bfe_enable_h9_cache_eta_eco,
 	"Enable H9 Cache ETA ECO (0 - disabled, 1 - enabled, default 0)");
 
+module_param(bfe_force_h9_single_die, int, 0444);
+MODULE_PARM_DESC(bfe_force_h9_single_die,
+	"Force H9 device to work in single-die mode (0 - disabled, 1 - enabled, default 0)");
+
 #define PCI_VENDOR_ID_HABANALABS	0x1da3
 
 #define PCI_IDS_GOYA			0x0001
@@ -620,7 +625,10 @@ static enum hl_asic_type get_asic_type(struct hl_device *hdev)
 		}
 		break;
 	case PCI_IDS_GAUDI3:
-		asic_type = ASIC_GAUDI3;
+		if (hdev->force_h9_single_die)
+			asic_type = ASIC_GAUDI3_SINGLE_DIE;
+		else
+			asic_type = ASIC_GAUDI3;
 		break;
 	case PCI_IDS_GAUDI3_SINGLE_DIE:
 		asic_type = ASIC_GAUDI3_SINGLE_DIE;
@@ -1575,6 +1583,7 @@ static void copy_bfe_params_to_device(struct hl_device *hdev)
 	hdev->hbm_compression_enable = bfe_hbm_compression_enable;
 	hdev->nic_enable_h9_rx_drop_eco = bfe_nic_enable_h9_rx_drop_eco;
 	hdev->enable_h9_cache_eta_eco = bfe_enable_h9_cache_eta_eco;
+	hdev->force_h9_single_die = bfe_force_h9_single_die;
 
 	/* Debug feature:
 	 * Store a copy of binning information to override f/w binning configuration later

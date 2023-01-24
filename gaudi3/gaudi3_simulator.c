@@ -1365,11 +1365,17 @@ static u32 gaudi3_sim_get_pci_id(struct hl_device *hdev)
 {
 	switch (hdev->asic_type) {
 	case ASIC_GAUDI3_SIM:
+		if (hdev->force_h9_single_die)
+			return PCI_IDS_GAUDI3_SIMULATOR_SINGLE_DIE;
+
 		return PCI_IDS_GAUDI3_SIMULATOR;
 	case ASIC_GAUDI3_SIM_SINGLE_DIE:
 		return PCI_IDS_GAUDI3_SIMULATOR_SINGLE_DIE;
 	case ASIC_GAUDI3_SIM_ARC:
-		return PCI_IDS_GAUDI3_ARC_SIMULATOR;
+		if (hdev->force_h9_single_die)
+			return ASIC_GAUDI3_SIM_ARC;
+
+		fallthrough;
 	case ASIC_GAUDI3_SIM_SINGLE_DIE_ARC:
 		return PCI_IDS_GAUDI3_ARC_SIMULATOR;
 	default:
