@@ -373,12 +373,15 @@ int gaudi3_nic_disable_wqe_index_checker_fw(struct hl_nic_port *nic_port)
 {
 	struct hl_device *hdev = nic_port->hdev;
 	u32 port = nic_port->port;
+	struct cpucp_packet pkt;
+	int rc;
 
 	/* This is a privilege register that is modified on the go, hence we should disable
 	 * assertion on simulator to allow us the modification. At the end of this section we
 	 * enable security assertion back. We enter this section only if FW security
 	 * is not enabled.
 	 */
+
 	if (!(hdev->fw_components & FW_TYPE_BOOT_CPU)) {
 		hdev->asic_funcs->set_priv_assertions(hdev, false);
 
@@ -389,7 +392,19 @@ int gaudi3_nic_disable_wqe_index_checker_fw(struct hl_nic_port *nic_port)
 		hdev->asic_funcs->set_priv_assertions(hdev, true);
 	}
 
-	return 0;
+	/* Disable the WQE index checker on the RX side */
+	memset(&pkt, 0, sizeof(pkt));
+	pkt.ctl = cpu_to_le32(CPUCP_PACKET_NIC_SET_CHECKERS << CPUCP_PKT_CTL_OPCODE_SHIFT);
+	pkt.value = cpu_to_le64(RX_WQE_IDX_MISMATCH);
+	pkt.macro_index = cpu_to_le32(nic_port->nic_macro->idx);
+
+	rc = hdev->asic_funcs->send_cpu_message(hdev, (u32 *) &pkt, sizeof(pkt), 0, NULL);
+	if (rc)
+		dev_err(hdev->dev,
+			"Failed to disable Rx WQE idx mismatch checker, port %d, rc %d\n",
+			port, rc);
+
+	return rc;
 }
 
 static void gaudi3_nic_set_rx_drop_eco_no_fw(struct hl_nic_macro *nic_macro)
