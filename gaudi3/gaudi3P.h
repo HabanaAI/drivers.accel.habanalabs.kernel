@@ -197,18 +197,8 @@ static_assert(GAUDI3_NIC_MAX_CCQS_NUM <= NIC_DRV_MAX_CCQS_NUM);
 
 static_assert(IS_POWER_OF_2(ETR_BUF_SIZE));
 
-/*
- * DRAM Memory Map
- */
 #define CPU_FW_IMAGE_SIZE	0x1000000				/* 16MB */
 #define NIC_DRV_SIZE		0x20000000				/* 512MB */
-#define ETR_BUFS_SIZE		(ETR_BUF_SIZE * GAUDI3_NUM_ETR)		/* 256MB */
-
-#define CPU_FW_IMAGE_ADDR	DRAM_PHYS_BASE
-#define NIC_DRV_ADDR		(CPU_FW_IMAGE_ADDR + CPU_FW_IMAGE_SIZE)
-#define ETR_BUFS_ADDR		(NIC_DRV_ADDR + NIC_DRV_SIZE)
-
-#define DRAM_DRV_END_ADDR	(ETR_BUFS_ADDR + ETR_BUFS_SIZE)
 
 /* 4 entries of 32 bit each i.e. 16 bytes */
 #define GAUDI3_RAW_EQE_SIZE	16
