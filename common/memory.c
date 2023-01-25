@@ -692,10 +692,8 @@ static int dma_map_host_va(struct hl_device *hdev, u64 addr,
 	userptr->is_odp = !!is_odp;
 
 	rc = hl_pin_host_memory(hdev, addr, size, userptr);
-	if (rc) {
-		dev_err(hdev->dev, "Failed to pin host memory\n");
+	if (rc)
 		goto pin_err;
-	}
 
 	userptr->dma_mapped = true;
 	userptr->dir = DMA_BIDIRECTIONAL;
@@ -1591,10 +1589,8 @@ int map_device_va(struct hl_ctx *ctx, struct hl_mem_in *args, u64 *device_addr)
 			huge_page_size = hdev->asic_prop.pmmu_huge.page_size;
 
 		rc = dma_map_host_va(hdev, addr, false, is_odp, size, &userptr);
-		if (rc) {
-			dev_err(hdev->dev, "failed to get userptr from va\n");
+		if (rc)
 			return rc;
-		}
 
 		rc = init_phys_pg_pack_from_userptr(ctx, userptr,
 				&phys_pg_pack, false);

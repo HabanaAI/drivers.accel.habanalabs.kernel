@@ -5350,16 +5350,12 @@ static int greco_parse_cb_no_mmu(struct hl_device *hdev,
 	rc = hl_cb_create(hdev, &hdev->kernel_mem_mgr, hdev->kernel_ctx,
 				parser->patched_cb_size, false, false,
 				&handle);
-	if (rc) {
-		dev_err(hdev->dev,
-			"Failed to allocate patched CB for DMA CS %d\n", rc);
+	if (rc)
 		goto free_userptr;
-	}
 
 	parser->patched_cb = hl_cb_get(&hdev->kernel_mem_mgr, handle);
 	/* hl_cb_get should never fail here */
 	if (!parser->patched_cb) {
-		dev_crit(hdev->dev, "DMA CB handle invalid 0x%llx\n", handle);
 		rc = -EFAULT;
 		goto out;
 	}
