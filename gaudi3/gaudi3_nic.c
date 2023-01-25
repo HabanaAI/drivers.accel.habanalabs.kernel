@@ -273,10 +273,10 @@ enum gaudi3_nic_perf_stats_type {
 };
 
 static struct gaudi3_nic_stat gaudi3_nic_perf_stats[] = {
-	{"bandwidth_gbps_int"},
-	{"bandwidth_gbps_frac"},
-	{"last_data_latency_usec_int"},
-	{"last_data_latency_usec_frac"},
+	{"mcro_bandwidth_gbps_int"},
+	{"mcro_bandwidth_gbps_frac"},
+	{"mcro_last_data_latency_usec_int"},
+	{"mcro_last_data_latency_usec_frac"},
 };
 
 static size_t gaudi3_nic_err_stats_len = ARRAY_SIZE(gaudi3_nic_err_stats);
