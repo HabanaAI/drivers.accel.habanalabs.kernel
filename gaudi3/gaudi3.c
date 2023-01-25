@@ -6744,6 +6744,12 @@ int gaudi3_enable_msix(struct hl_device *hdev)
 		goto free_user_irqs;
 	}
 
+	rc = gaudi3_eq_enable_msix(hdev);
+	if (rc) {
+		dev_err(hdev->dev, "MSI-X: Failed to enable EQ interrupt - %d\n", rc);
+		goto free_etr_irqs;
+	}
+
 	if (hdev->pldm) {
 		u32 pldm_irq_cnt;
 
@@ -6764,12 +6770,6 @@ int gaudi3_enable_msix(struct hl_device *hdev)
 				}
 				goto free_etr_irqs;
 			}
-		}
-	} else {
-		rc = gaudi3_eq_enable_msix(hdev);
-		if (rc) {
-			dev_err(hdev->dev, "MSI-X: Failed to enable EQ interrupt - %d\n", rc);
-			goto free_etr_irqs;
 		}
 	}
 
@@ -6857,14 +6857,14 @@ void gaudi3_sync_irqs(struct hl_device *hdev)
 		synchronize_irq(irq);
 	}
 
+	irq = hl_irq_vector(hdev, GAUDI3_IRQ_NUM_EVENT_QUEUE);
+	synchronize_irq(irq);
+
 	if (hdev->pldm) {
 		for (i = GAUDI3_PLDM_IRQ_FIRST ; i <= GAUDI3_PLDM_IRQ_LAST ; i++) {
 			irq = hl_irq_vector(hdev, i);
 			synchronize_irq(irq);
 		}
-	} else {
-		irq = hl_irq_vector(hdev, GAUDI3_IRQ_NUM_EVENT_QUEUE);
-		synchronize_irq(irq);
 	}
 
 	hl_nic_synchronize_irqs(hdev);
@@ -6886,13 +6886,13 @@ void gaudi3_disable_msix(struct hl_device *hdev)
 
 	gaudi3_etrs_disable_msix(hdev);
 
+	gaudi3_eq_disable_msix(hdev);
+
 	if (hdev->pldm) {
 		for (i = GAUDI3_PLDM_IRQ_FIRST ; i <= GAUDI3_PLDM_IRQ_LAST ; i++) {
 			irq = hl_irq_vector(hdev, i);
 			free_irq(irq, hdev);
 		}
-	} else {
-		gaudi3_eq_disable_msix(hdev);
 	}
 
 	hl_nic_free_irqs(hdev);
