@@ -4369,6 +4369,13 @@ static int validate_encap_ioctl(struct hl_nic_port *nic_port, u32 encap_id)
 	return validate_encap_id_range(nic_port, encap_id);
 }
 
+static bool is_encap_supported(struct hl_device *hdev, struct hl_nic_user_encap_set_in *in)
+{
+	struct hl_nic_funcs *nic_funcs = hdev->asic_funcs->nic_funcs;
+
+	return nic_funcs->is_encap_supported(hdev, in);
+}
+
 static int user_encap_set(struct hl_device *hdev, struct hl_nic_user_encap_set_in *in)
 {
 	int rc, i;
@@ -4390,6 +4397,10 @@ static int user_encap_set(struct hl_device *hdev, struct hl_nic_user_encap_set_i
 			dev_dbg(hdev->dev, "Padding bytes must be 0\n");
 			return -EINVAL;
 		}
+
+	/* Check if the user requeset for encap set is supported */
+	if (!is_encap_supported(hdev, in))
+		return -EOPNOTSUPP;
 
 	rc = hl_nic_ioctl_port_check(hdev, in->port, NIC_PORT_CHECK_OPEN | NIC_PORT_PRINT_ON_ERR);
 	if (rc)
@@ -4472,6 +4483,7 @@ static int user_encap_set(struct hl_device *hdev, struct hl_nic_user_encap_set_i
 	idr_pdata->encap_type = in->encap_type;
 	idr_pdata->encap_type_data = encap_type_data;
 	idr_pdata->src_ip = in->ipv4_addr;
+	idr_pdata->is_set = true;
 
 	rc = port_funcs->encap_set(nic_port, id, idr_pdata);
 	if (rc)
@@ -4524,10 +4536,12 @@ static int user_encap_unset(struct hl_device *hdev, struct hl_nic_user_encap_uns
 		goto out;
 	}
 
-	port_funcs->encap_unset(nic_port, id, idr_pdata);
+	if (idr_pdata->is_set) {
+		port_funcs->encap_unset(nic_port, id, idr_pdata);
 
-	if (idr_pdata->encap_type != HL_NIC_ENCAP_NONE)
-		kfree(idr_pdata->encap_header);
+		if (idr_pdata->encap_type != HL_NIC_ENCAP_NONE)
+			kfree(idr_pdata->encap_header);
+	}
 
 	idr_remove(&nic_port->encap_ids, id);
 	kfree(idr_pdata);

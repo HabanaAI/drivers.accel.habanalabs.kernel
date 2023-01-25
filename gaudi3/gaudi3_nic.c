@@ -5690,6 +5690,17 @@ static void gaudi3_nic_set_port_status(struct hl_nic_port *nic_port, bool up)
 	nic_port->link_eqe.data[2] = !!up;
 }
 
+static bool gaudi3_nic_is_encap_supported(struct hl_device *hdev,
+						struct hl_nic_user_encap_set_in *in)
+{
+	if (hdev->nic_enable_h9_rx_drop_eco) {
+		dev_dbg(hdev->dev, "Encap is not supported\n");
+		return false;
+	}
+
+	return true;
+}
+
 static struct hl_nic_port_funcs gaudi3_nic_port_funcs = {
 	.port_hw_init = gaudi3_nic_port_hw_init,
 	.port_hw_fini = gaudi3_nic_port_hw_fini,
@@ -5789,5 +5800,6 @@ struct hl_nic_funcs gaudi3_nic_funcs = {
 	.qp_syndrome_to_str = gaudi3_nic_qp_err_syndrom_to_str,
 	.app_params_clear = gaudi3_nic_app_params_clear,
 	.inject_rx_err = gaudi3_nic_debugfs_inject_rx_err,
+	.is_encap_supported = gaudi3_nic_is_encap_supported,
 	.port_funcs = &gaudi3_nic_port_funcs,
 };

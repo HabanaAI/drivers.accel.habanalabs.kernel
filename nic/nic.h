@@ -392,6 +392,7 @@ struct hl_nic_db_fifo_idr_pdata {
  * @encap_type_data: IPv4 protocol or UDP port
  * @encap_header: Encapsulation header
  * @encap_header_size: Encapsulation header size
+ * @is_set: True if encap was set, false otherwise
  */
 struct hl_nic_encap_idr_pdata {
 	u32			port;
@@ -401,6 +402,7 @@ struct hl_nic_encap_idr_pdata {
 	u32			encap_type_data;
 	void			*encap_header;
 	u32			encap_header_size;
+	u8			is_set;
 };
 
 /**
@@ -1341,6 +1343,7 @@ struct hl_nic_funcs {
 	char *(*qp_syndrome_to_str)(u32 syndrome);
 	void (*app_params_clear)(struct hl_device *hdev);
 	int (*inject_rx_err)(struct hl_device *hdev, u8 drop_percent);
+	bool (*is_encap_supported)(struct hl_device *hdev, struct hl_nic_user_encap_set_in *in);
 	struct hl_nic_port_funcs *port_funcs;
 };
 

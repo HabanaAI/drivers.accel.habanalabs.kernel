@@ -4965,6 +4965,22 @@ static int gaudi2_nic_inject_rx_err(struct hl_device *hdev, u8 drop_percent)
 	return 0;
 }
 
+static bool gaudi2_nic_is_encap_supported(struct hl_device *hdev,
+						struct hl_nic_user_encap_set_in *in)
+{
+	if (in->encap_type != HL_NIC_ENCAP_OVER_UDP) {
+		dev_dbg(hdev->dev, "Encap type %u is not supported\n", in->encap_type);
+		return false;
+	}
+
+	if (in->tnl_hdr_size != NIC_MAX_TNL_HDR_SIZE) {
+		dev_dbg(hdev->dev, "Encap hdr-size must be %d\n", NIC_MAX_TNL_HDR_SIZE);
+		return false;
+	}
+
+	return true;
+}
+
 static struct hl_nic_port_funcs gaudi2_nic_port_funcs = {
 	.port_hw_init = gaudi2_nic_port_hw_init,
 	.port_hw_fini = gaudi2_nic_port_hw_fini,
@@ -5061,5 +5077,6 @@ struct hl_nic_funcs gaudi2_nic_funcs = {
 	.qp_syndrome_to_str = gaudi2_nic_qp_err_syndrom_to_str,
 	.app_params_clear = gaudi2_nic_app_params_clear,
 	.inject_rx_err = gaudi2_nic_inject_rx_err,
+	.is_encap_supported = gaudi2_nic_is_encap_supported,
 	.port_funcs = &gaudi2_nic_port_funcs,
 };
