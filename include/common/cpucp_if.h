@@ -466,11 +466,12 @@ struct hl_eq_entry {
 	};
 };
 
+/* entry size is dynamic and maximum size is passed during boot */
 struct hl_eq_dynamic_entry {
 	struct hl_eq_header hdr;
 	struct hl_agg_eq_header agg_hdr; /* valid only for aggregator events */
 	union {
-		__le64 data[6]; /* size is dynamic as entry size is passed during boot */
+		struct hl_eq_ecc_data ecc_data;
 	};
 };
 

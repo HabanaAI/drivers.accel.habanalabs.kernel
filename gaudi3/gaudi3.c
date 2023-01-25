@@ -11171,8 +11171,7 @@ static void gaudi3_handle_pcie0_sei_err(struct hl_device *hdev, struct hl_eq_int
 	hl_check_for_glbl_errors(hdev);
 }
 
-static void gaudi3_handle_ecc_event(struct hl_device *hdev, u16 event_type,
-		struct hl_eq_ecc_data *ecc_data)
+static void gaudi3_handle_ecc_event(struct hl_device *hdev, struct hl_eq_ecc_data *ecc_data)
 {
 	u64 ecc_address = 0, ecc_syndrom = 0;
 	u8 memory_wrapper_idx = 0;
@@ -11349,7 +11348,7 @@ void gaudi3_handle_eqe_old(struct hl_device *hdev, struct hl_eq_entry *eq_entry)
 
 	case GAUDI3_EVENT_NIC0_DIE0_HDSHARED_DERR ... GAUDI3_EVENT_NIC5_DIE0_HDSHARED_DERR:
 	case GAUDI3_EVENT_NIC0_DIE1_HDSHARED_DERR ... GAUDI3_EVENT_NIC5_DIE1_HDSHARED_DERR:
-		gaudi3_handle_ecc_event(hdev, event_type, &eq_entry->ecc_data);
+		gaudi3_handle_ecc_event(hdev, &eq_entry->ecc_data);
 		break;
 
 	default:
@@ -11428,7 +11427,15 @@ static void gaudi3_print_hw_event_info(struct hl_device *hdev, struct hl_agg_eq_
 static void gaudi3_handle_derr_event(struct hl_device *hdev,
 				struct hl_eq_dynamic_entry *eq_dynamic_entry, u64 *event_mask)
 {
-	/* TODO: add handling of DERR events */
+	u16 data_size = le16_to_cpu(eq_dynamic_entry->hdr.size);
+
+	if (data_size != sizeof(eq_dynamic_entry->ecc_data)) {
+		dev_err_ratelimited(hdev->dev, "EQ entry data size is %u while expecting %zu\n",
+					data_size, sizeof(eq_dynamic_entry->ecc_data));
+		return;
+	}
+
+	gaudi3_handle_ecc_event(hdev, &eq_dynamic_entry->ecc_data);
 }
 
 static void gaudi3_handle_sei_event(struct hl_device *hdev,

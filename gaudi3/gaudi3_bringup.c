@@ -39,6 +39,23 @@
 #define NIC_SPI_INTR_MASK_0			0xFFE00000
 #define NIC_SPI_INTR_MASK_1			0x1
 
+/* There is no dedicated header just for the special registers, so add defines using the special
+ * registers defines of some arbitrary block.
+ */
+#define mmSPECIAL_MEM_NUMOF		mmVDEC_CTRL_SPECIAL_MEM_NUMOF
+#define mmSPECIAL_MEM_ECC_SEL		mmVDEC_CTRL_SPECIAL_MEM_ECC_SEL
+#define mmSPECIAL_MEM_ECC_CTL		mmVDEC_CTRL_SPECIAL_MEM_ECC_CTL
+#define mmSPECIAL_MEM_ECC_ERR_STS	mmVDEC_CTRL_SPECIAL_MEM_ECC_ERR_STS
+#define mmSPECIAL_MEM_ECC_ERR_ADDR	mmVDEC_CTRL_SPECIAL_MEM_ECC_ERR_ADDR
+
+#define SPECIAL_MEM_ECC_CTL_DERR_CLR_S	VDEC_CTRL_SPECIAL_MEM_ECC_CTL_DERR_CLR_S
+#define SPECIAL_MEM_ECC_CTL_DERR_CLR_M	VDEC_CTRL_SPECIAL_MEM_ECC_CTL_DERR_CLR_M
+
+#define SPECIAL_MEM_ECC_ERR_STS_SYND_S	VDEC_CTRL_SPECIAL_MEM_ECC_ERR_STS_SYND_S
+#define SPECIAL_MEM_ECC_ERR_STS_SYND_M	VDEC_CTRL_SPECIAL_MEM_ECC_ERR_STS_SYND_M
+#define SPECIAL_MEM_ECC_ERR_STS_DERR_S	VDEC_CTRL_SPECIAL_MEM_ECC_ERR_STS_DERR_S
+#define SPECIAL_MEM_ECC_ERR_STS_DERR_M	VDEC_CTRL_SPECIAL_MEM_ECC_ERR_STS_DERR_M
+
 /* A DUMMY block isn't a regular block, but in fact a block with a manually
  * configured block response, and used by PCIE 'Fabric Serialization' feature.
  * Although listed in SOL, it has no 'specs' record associated to it.
@@ -2923,6 +2940,41 @@ static void gaudi3_handle_psoc_aggr(struct hl_device *hdev, u32 intr_aggr_irq, u
 			mmINT_AGG_PSOC_UART_COMB_MSG_PENDING + offset, 1);
 }
 
+static void handle_and_clear_derr_events(struct hl_device *hdev, u32 special_regs_base,
+						struct hl_eq_ecc_data *ecc_data)
+{
+	u32 mem, num_of_mem, ecc_err_sts, ecc_address, ecc_syndrom;
+	bool ecc_err_found = false;
+
+	num_of_mem = RREG32(special_regs_base + mmSPECIAL_MEM_NUMOF);
+
+	for (mem = 0 ; mem < num_of_mem ; ++mem) {
+		WREG32(special_regs_base + mmSPECIAL_MEM_ECC_SEL, mem);
+
+		ecc_err_sts = RREG32(special_regs_base + mmSPECIAL_MEM_ECC_ERR_STS);
+		if (!FIELD_GET(SPECIAL_MEM_ECC_ERR_STS_DERR_M, ecc_err_sts))
+			continue;
+
+		/* ECC data is sent only for the first ECC error that is found */
+		if (!ecc_err_found) {
+			ecc_address = RREG32(special_regs_base + mmSPECIAL_MEM_ECC_ERR_ADDR);
+			ecc_data->ecc_address = cpu_to_le64(ecc_address);
+			ecc_syndrom = FIELD_GET(SPECIAL_MEM_ECC_ERR_STS_SYND_M, ecc_err_sts);
+			ecc_data->ecc_syndrom = cpu_to_le64(ecc_syndrom);
+			ecc_data->memory_wrapper_idx = (u8) mem;
+			ecc_data->is_critical = 0;
+
+			ecc_err_found = true;
+		}
+
+		WREG32(special_regs_base + mmVDEC_CTRL_SPECIAL_MEM_ECC_CTL,
+				FIELD_PREP(SPECIAL_MEM_ECC_CTL_DERR_CLR_M, 0x1));
+
+		WREG32(special_regs_base + mmSPECIAL_MEM_ECC_ERR_STS,
+				FIELD_PREP(SPECIAL_MEM_ECC_ERR_STS_DERR_M, 0x1));
+	}
+}
+
 static enum hl_agg_grp_type to_agg_grp_type(enum err_grp type)
 {
 	switch (type) {
@@ -2974,12 +3026,17 @@ static void handle_and_clear_cs_events(struct hl_device *hdev, u32 die, u32 hdco
 {
 	struct hl_eq_dynamic_entry eq_dynamic_entry = {};
 	struct eq_agg_header_params params = {};
+	u32 instance, offset, special_regs_base;
 	bool unmask_event_in_aggr = false;
-	u32 instance;
 
 	switch (type) {
 	case ERR_GRP_DERR:
 		instance = idx;
+		offset = hdcore * HDCORE_OFFSET + instance * CSLICE_OFFSET;
+		special_regs_base = mmHD0_CS0_SPECIAL_BASE + offset;
+		handle_and_clear_derr_events(hdev, special_regs_base, &eq_dynamic_entry.ecc_data);
+		eq_dynamic_entry.hdr.size = cpu_to_le16(sizeof(struct hl_eq_ecc_data));
+		unmask_event_in_aggr = true;
 		break;
 	case ERR_GRP_SEI:
 		instance = idx;
