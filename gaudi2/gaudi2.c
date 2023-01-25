@@ -2171,6 +2171,11 @@ static int set_number_of_functional_hbms(struct hl_device *hdev)
 	struct asic_fixed_properties *prop = &hdev->asic_prop;
 	u8 faulty_hbms = hweight64(hdev->dram_binning);
 
+	if (!hdev->dram_enable) {
+		dev_err(hdev->dev, "Device without HBMs is not supported\n");
+		return -EINVAL;
+	}
+
 	/* check if all HBMs should be used */
 	if (!faulty_hbms) {
 		dev_dbg(hdev->dev, "All HBM are in use (no binning)\n");
