@@ -309,8 +309,11 @@ static void gaudi3_nic_config_hw_txe_no_fw(struct hl_device *hdev, u32 port)
 
 	/* invalid WQE opcode bit map for WQ type RDV */
 	NIC_WREG32(mmD0_NIC0_TXE_WQE_CHECK_CFG6, (u32) ~WQ_RDV_VALID_WQE_OPCODES);
+	/* H9-5500 : HW blocks remote log sizes which are equal to MIN_REMOTE_LOG_SIZE, therefore
+	 * the value set below is actually 1 less than the actual minimum.
+	 */
 	NIC_RMWREG32(mmD0_NIC0_TXE_WQE_CHECK_CFG7,
-			4, NIC_TXE_WQE_CHECK_CFG7_MIN_REMOTE_LOG_SIZE_M);
+			3, NIC_TXE_WQE_CHECK_CFG7_MIN_REMOTE_LOG_SIZE_M);
 
 	NIC_WREG32(mmD0_NIC0_TXE_WQE_CHECK_WQE_OPCODE_ERR, (u32) ~VALID_WQE_OPCODES);
 	NIC_WREG32(mmD0_NIC0_TXE_WQE_CHECK_UPSCALE_ERR, (u32) ~UPSCALE_VALID_WQE_OPCODES);
