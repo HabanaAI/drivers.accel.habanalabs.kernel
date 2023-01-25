@@ -6496,8 +6496,10 @@ static int gaudi3_enable_user_msix(struct hl_device *hdev)
 			i < prop->user_dec_intr_count;
 			i++, j++, intr_id++, decoder_irq_init_cnt++) {
 		irq = hl_irq_vector(hdev, intr_id);
-		rc = request_irq(irq, hl_irq_handler_user_interrupt, 0, gaudi3_irq_name(intr_id),
-					&hdev->user_interrupt[j]);
+		rc = request_threaded_irq(irq, NULL,
+					hl_irq_user_interrupt_thread_handler, IRQF_ONESHOT,
+					gaudi3_irq_name(intr_id), &hdev->user_interrupt[j]);
+
 		if (rc) {
 			dev_err(hdev->dev, "Failed to request decoder IRQ %d", irq);
 			goto free_decoder_irqs;
@@ -6508,8 +6510,10 @@ static int gaudi3_enable_user_msix(struct hl_device *hdev)
 			i < prop->user_interrupt_count;
 			i++, j++, intr_id++, user_irq_init_cnt++) {
 		irq = hl_irq_vector(hdev, intr_id);
-		rc = request_irq(irq, hl_irq_handler_user_interrupt, 0, gaudi3_irq_name(intr_id),
-					&hdev->user_interrupt[j]);
+		rc = request_threaded_irq(irq, NULL,
+					hl_irq_user_interrupt_thread_handler, IRQF_ONESHOT,
+					gaudi3_irq_name(intr_id), &hdev->user_interrupt[j]);
+
 		if (rc) {
 			dev_err(hdev->dev, "Failed to request user IRQ %d", irq);
 			goto free_user_irqs;
@@ -6517,8 +6521,8 @@ static int gaudi3_enable_user_msix(struct hl_device *hdev)
 	}
 
 	irq = hl_irq_vector(hdev, GAUDI3_IRQ_NUM_UNEXPECTED_ERROR);
-	rc = request_irq(irq, hl_irq_handler_user_interrupt, 0,
-			gaudi3_irq_name(GAUDI3_IRQ_NUM_UNEXPECTED_ERROR),
+	rc = request_threaded_irq(irq, NULL, hl_irq_user_interrupt_thread_handler, IRQF_ONESHOT,
+					gaudi3_irq_name(GAUDI3_IRQ_NUM_UNEXPECTED_ERROR),
 					&hdev->unexpected_error_interrupt);
 	if (rc) {
 		dev_err(hdev->dev, "Failed to request IRQ %d", irq);
