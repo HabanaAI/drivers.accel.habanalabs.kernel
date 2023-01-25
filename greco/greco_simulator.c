@@ -283,7 +283,7 @@ static int greco_simulator_gen_int_ioctl(struct hl_simulator_device *edev, void 
 				goto out;
 			}
 
-			hl_irq_handler_user_interrupt(args->id,
+			hl_irq_user_interrupt_thread_handler(args->id,
 							&hdev->user_interrupt[dec->core_id]);
 		}
 

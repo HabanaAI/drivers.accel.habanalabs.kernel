@@ -304,7 +304,7 @@ static int gaudi2_simulator_gen_int_ioctl(struct hl_simulator_device *edev, void
 				goto out;
 			}
 
-			hl_irq_handler_user_interrupt(args->id,
+			hl_irq_user_interrupt_thread_handler(args->id,
 							&hdev->user_interrupt[dec->core_id]);
 		}
 
@@ -332,7 +332,7 @@ static int gaudi2_simulator_gen_int_ioctl(struct hl_simulator_device *edev, void
 				args->id, user_interrupt->interrupt_id);
 			goto out;
 		}
-		hl_irq_handler_user_interrupt(args->id, user_interrupt);
+		hl_irq_user_interrupt_thread_handler(args->id, user_interrupt);
 
 	} else {
 		dev_err(edev->dev, "unexpected interrupt id %d", args->id);
