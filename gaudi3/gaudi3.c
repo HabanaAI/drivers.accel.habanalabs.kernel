@@ -6862,6 +6862,9 @@ void gaudi3_sync_irqs(struct hl_device *hdev)
 			irq = hl_irq_vector(hdev, i);
 			synchronize_irq(irq);
 		}
+	} else {
+		irq = hl_irq_vector(hdev, GAUDI3_IRQ_NUM_EVENT_QUEUE);
+		synchronize_irq(irq);
 	}
 
 	hl_nic_synchronize_irqs(hdev);
