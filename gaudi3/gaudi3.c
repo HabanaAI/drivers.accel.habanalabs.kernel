@@ -3564,7 +3564,8 @@ static void gaudi3_split_job_between_all_pdma_engines(struct hl_device *hdev, vo
 	int i;
 
 	memset(&curr_job, 0, sizeof(struct gaudi3_pdma_job_params));
-	curr_job.size = div_u64_rem(job_params->size, num_of_pdma, &remainder);
+	curr_job.size = job_params->size / num_of_pdma;
+	remainder = job_params->size % num_of_pdma;
 	curr_job.is_memset = job_params->is_memset;
 
 	for (i = 0 ; i < num_of_pdma ; i++) {
@@ -3655,15 +3656,26 @@ static int gaudi3_memset_device_memory(struct hl_device *hdev, u64 addr, u64 siz
 					const char *desc)
 {
 	struct gaudi3_pdma_job_params job_params;
+	int rc = 0;
 
 	job_params.is_memset = true;
 	job_params.dst = addr;
-	job_params.size = size;
 	/* When memset is set, set value written in source registers */
 	job_params.src = val;
 	strncpy(job_params.job_str, desc, HL_STR_MAX - 1);
 
-	return gaudi3_trigger_all_pdma_job_and_wait_for_cq_completion(hdev, &job_params);
+	while ((size > U32_MAX) && !rc) {
+		job_params.size = U32_MAX;
+		rc = gaudi3_trigger_all_pdma_job_and_wait_for_cq_completion(hdev, &job_params);
+		size -= U32_MAX;
+	}
+
+	if (!rc && size) {
+		job_params.size = size;
+		rc = gaudi3_trigger_all_pdma_job_and_wait_for_cq_completion(hdev, &job_params);
+	}
+
+	return rc;
 }
 
 int gaudi3_scrub_device_dram(struct hl_device *hdev, u64 val)
