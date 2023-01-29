@@ -9838,7 +9838,7 @@ void gaudi2_handle_eqe(struct hl_device *hdev, struct hl_eq_entry *eq_entry)
 {
 	struct gaudi2_device *gaudi2 = hdev->asic_specific;
 	bool reset_required = false, is_critical = false;
-	u32 index, ctl, reset_flags, error_count = 0;
+	u32 index, ctl, reset_flags = HL_DRV_RESET_HARD, error_count = 0;
 	u64 event_mask = 0;
 	u16 event_type;
 
@@ -10307,14 +10307,7 @@ void gaudi2_handle_eqe(struct hl_device *hdev, struct hl_eq_entry *eq_entry)
 		gaudi2_print_event(hdev, event_type, true,
 				"No error cause for H/W event %u\n", event_type);
 
-	if ((gaudi2_irq_map_table[event_type].reset != EVENT_RESET_TYPE_NONE) ||
-				reset_required) {
-		if (reset_required ||
-				(gaudi2_irq_map_table[event_type].reset == EVENT_RESET_TYPE_HARD))
-			reset_flags |= HL_DRV_RESET_HARD;
-		else
-			reset_flags |= HL_DRV_RESET_DEV_RELEASE;
-
+	if (gaudi2_irq_map_table[event_type].reset || reset_required) {
 		if (hdev->hard_reset_on_fw_events ||
 				(hdev->asic_prop.fw_security_enabled && is_critical))
 			goto reset_device;
