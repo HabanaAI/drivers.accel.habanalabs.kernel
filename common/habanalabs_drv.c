@@ -1483,6 +1483,9 @@ static void set_driver_behavior_per_device(struct hl_device *hdev)
 	hdev->debug_wreg = 1;
 	hdev->debug_rreg = 1;
 	hdev->enable_h9_cache_eta_eco = 0;
+
+	/* ECOs should be enabled by default */
+	hdev->nic_enable_h9_rx_drop_eco = 1;
 }
 
 static void copy_kernel_module_params_to_device(struct hl_device *hdev)
