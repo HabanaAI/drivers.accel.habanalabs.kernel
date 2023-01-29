@@ -141,6 +141,7 @@
 #include "intr_gen_regs.h"
 #include "timestamp_regs.h"
 #include "nic_rxe_special_regs.h"
+#include "nic_qpc_special_regs.h"
 
 #include "pdma_cmn_b_masks.h"
 #include "pdma_cmn_b_pqm_cmn_b_masks.h"

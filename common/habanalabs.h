@@ -3715,6 +3715,8 @@ struct hl_etr_buf_store {
  * @supports_ctx_switch: true if a ctx switch is required upon first submission.
  * @pci_revision_id: PCI revision ID
  * @support_preboot_binning: true if we support read binning info from preboot.
+ * @nic_enable_h9_qp_doorbells_eco: enable erratum 4960 ECO, fixes unexpectedly doorbells for QPs
+ *		with no work in QPC.
  */
 struct hl_device {
 	struct pci_dev			*pdev;
@@ -3962,6 +3964,7 @@ struct hl_device {
 	u8				nic_enable_h9_rx_drop_eco;
 	u8				enable_h9_cache_eta_eco;
 	u8				force_h9_single_die;
+	u8				nic_enable_h9_qp_doorbells_eco;
 };
 
 /* Retrieve PCI device name in case of a PCI device or dev name in simulator */

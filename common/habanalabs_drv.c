@@ -155,6 +155,7 @@ static int bfe_hbm_compression_enable = 1;
 static int bfe_nic_enable_h9_rx_drop_eco = 1;
 static int bfe_enable_h9_cache_eta_eco;
 static int bfe_force_h9_single_die;
+static int bfe_nic_enable_h9_qp_doorbells_eco = 1;
 
 /* special-case of parameter handling - polling */
 static bool nic_poll_enable_param_was_set;
@@ -520,6 +521,10 @@ MODULE_PARM_DESC(bfe_enable_h9_cache_eta_eco,
 module_param(bfe_force_h9_single_die, int, 0444);
 MODULE_PARM_DESC(bfe_force_h9_single_die,
 	"Force H9 device to work in single-die mode (0 - disabled, 1 - enabled, default 0)");
+
+module_param(bfe_nic_enable_h9_qp_doorbells_eco, int, 0444);
+MODULE_PARM_DESC(bfe_nic_enable_h9_qp_doorbells_eco,
+	"Enable erratum 4960 ECO, fixes unexpectedly doorbells for QPs with no work in QPC (0 - disabled, 1 - enabled, default 1)");
 
 #define PCI_VENDOR_ID_HABANALABS	0x1da3
 
@@ -1486,6 +1491,7 @@ static void set_driver_behavior_per_device(struct hl_device *hdev)
 
 	/* ECOs should be enabled by default */
 	hdev->nic_enable_h9_rx_drop_eco = 1;
+	hdev->nic_enable_h9_qp_doorbells_eco = 1;
 }
 
 static void copy_kernel_module_params_to_device(struct hl_device *hdev)
@@ -1587,6 +1593,7 @@ static void copy_bfe_params_to_device(struct hl_device *hdev)
 	hdev->nic_enable_h9_rx_drop_eco = bfe_nic_enable_h9_rx_drop_eco;
 	hdev->enable_h9_cache_eta_eco = bfe_enable_h9_cache_eta_eco;
 	hdev->force_h9_single_die = bfe_force_h9_single_die;
+	hdev->nic_enable_h9_qp_doorbells_eco = bfe_nic_enable_h9_qp_doorbells_eco;
 
 	/* Debug feature:
 	 * Store a copy of binning information to override f/w binning configuration later

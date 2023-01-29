@@ -39,6 +39,10 @@
 #define NIC_RXE_SPECIAL_GLBL_SPARE_0_BACK_PRESSURE_TH_S 0
 #define NIC_RXE_SPECIAL_GLBL_SPARE_0_BACK_PRESSURE_TH_M 0x7F
 
+/* mmNIC_QPC_SPECIAL_GLBL_SPARE_0 */
+#define NIC_QPC_SPECIAL_GLBL_SPARE_0_ECO_4960_DISABLE_S 0
+#define NIC_QPC_SPECIAL_GLBL_SPARE_0_ECO_4960_DISABLE_M 0x1
+
 static void gaudi3_nic_config_hw_mac_no_fw(struct hl_device *hdev, u32 port)
 {
 	if (hdev->fw_components & FW_TYPE_BOOT_CPU)
@@ -451,6 +455,21 @@ static void gaudi3_nic_set_rx_drop_eco_no_fw(struct hl_nic_macro *nic_macro)
 			NIC_RXE_QPC_CHECKS_EN_QPC_RES_RKEY_INV_M);
 }
 
+static void gaudi3_nic_set_qpc_doorbells_eco_no_fw(struct hl_nic_macro *nic_macro)
+{
+	struct hl_device *hdev = nic_macro->hdev;
+	u32 port;
+
+	/* erratum 4960 is by default enabled in HW, this function disables it upon request */
+	if ((hdev->fw_components & FW_TYPE_BOOT_CPU) || hdev->nic_enable_h9_qp_doorbells_eco)
+		return;
+
+	port = gaudi3_nic_get_first_port(nic_macro);
+
+	NIC_RMWREG32(mmD0_NIC0_QPC_SPECIAL_BASE + mmNIC_QPC_SPECIAL_GLBL_SPARE_0, 1,
+			NIC_QPC_SPECIAL_GLBL_SPARE_0_ECO_4960_DISABLE_M);
+}
+
 static void gaudi3_nic_hw_macro_config_no_fw(struct hl_nic_macro *nic_macro)
 {
 	struct hl_device *hdev = nic_macro->hdev;
@@ -470,6 +489,10 @@ static void gaudi3_nic_hw_macro_config_no_fw(struct hl_nic_macro *nic_macro)
 	gaudi3_nic_config_hw_txe_no_fw(hdev, port);
 
 	gaudi3_nic_set_rx_drop_eco_no_fw(nic_macro);
+
+	/* ECO fix disable flows - used for debug */
+
+	gaudi3_nic_set_qpc_doorbells_eco_no_fw(nic_macro);
 }
 
 void gaudi3_nic_macros_fw_config(struct hl_device *hdev)
