@@ -3717,6 +3717,8 @@ struct hl_etr_buf_store {
  * @support_preboot_binning: true if we support read binning info from preboot.
  * @nic_enable_h9_qp_doorbells_eco: enable erratum 4960 ECO, fixes unexpectedly doorbells for QPs
  *		with no work in QPC.
+ * @nic_enable_h9_cc_msg_drops_eco: Enable erratum 5456 ECO, fixes message drops in CC mode when
+ *		SACK enabled.
  */
 struct hl_device {
 	struct pci_dev			*pdev;
@@ -3965,6 +3967,7 @@ struct hl_device {
 	u8				enable_h9_cache_eta_eco;
 	u8				force_h9_single_die;
 	u8				nic_enable_h9_qp_doorbells_eco;
+	u8				nic_enable_h9_cc_msg_drops_eco;
 };
 
 /* Retrieve PCI device name in case of a PCI device or dev name in simulator */
