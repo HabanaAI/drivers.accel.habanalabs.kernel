@@ -3719,6 +3719,8 @@ struct hl_etr_buf_store {
  *		with no work in QPC.
  * @nic_enable_h9_cc_msg_drops_eco: Enable erratum 5456 ECO, fixes message drops in CC mode when
  *		SACK enabled.
+ * @nic_enable_h9_remote_pi_update_eco: Enable erratum 5490 ECO, fixes remote PI wrong update on
+ *		wraparound.
  */
 struct hl_device {
 	struct pci_dev			*pdev;
@@ -3968,6 +3970,7 @@ struct hl_device {
 	u8				force_h9_single_die;
 	u8				nic_enable_h9_qp_doorbells_eco;
 	u8				nic_enable_h9_cc_msg_drops_eco;
+	u8				nic_enable_h9_remote_pi_update_eco;
 };
 
 /* Retrieve PCI device name in case of a PCI device or dev name in simulator */

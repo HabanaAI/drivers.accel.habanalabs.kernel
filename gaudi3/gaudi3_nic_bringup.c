@@ -46,6 +46,9 @@
 #define NIC_QPC_SPECIAL_GLBL_SPARE_0_ECO_5456_DISABLE_S 1
 #define NIC_QPC_SPECIAL_GLBL_SPARE_0_ECO_5456_DISABLE_M 0x2
 
+#define NIC_QPC_SPECIAL_GLBL_SPARE_0_ECO_5490_DISABLE_S 2
+#define NIC_QPC_SPECIAL_GLBL_SPARE_0_ECO_5490_DISABLE_M 0x4
+
 static void gaudi3_nic_config_hw_mac_no_fw(struct hl_device *hdev, u32 port)
 {
 	if (hdev->fw_components & FW_TYPE_BOOT_CPU)
@@ -488,6 +491,21 @@ static void gaudi3_nic_set_cc_message_drops_eco_no_fw(struct hl_nic_macro *nic_m
 			NIC_QPC_SPECIAL_GLBL_SPARE_0_ECO_5456_DISABLE_M);
 }
 
+static void gaudi3_nic_set_remote_pi_update_eco_no_fw(struct hl_nic_macro *nic_macro)
+{
+	struct hl_device *hdev = nic_macro->hdev;
+	u32 port;
+
+	/* erratum 5490 is by default enabled in HW, this function disables it upon request */
+	if ((hdev->fw_components & FW_TYPE_BOOT_CPU) || hdev->nic_enable_h9_remote_pi_update_eco)
+		return;
+
+	port = gaudi3_nic_get_first_port(nic_macro);
+
+	NIC_RMWREG32(mmD0_NIC0_QPC_SPECIAL_BASE + mmNIC_QPC_SPECIAL_GLBL_SPARE_0, 1,
+			NIC_QPC_SPECIAL_GLBL_SPARE_0_ECO_5490_DISABLE_M);
+}
+
 static void gaudi3_nic_hw_macro_config_no_fw(struct hl_nic_macro *nic_macro)
 {
 	struct hl_device *hdev = nic_macro->hdev;
@@ -513,6 +531,8 @@ static void gaudi3_nic_hw_macro_config_no_fw(struct hl_nic_macro *nic_macro)
 	gaudi3_nic_set_qpc_doorbells_eco_no_fw(nic_macro);
 
 	gaudi3_nic_set_cc_message_drops_eco_no_fw(nic_macro);
+
+	gaudi3_nic_set_remote_pi_update_eco_no_fw(nic_macro);
 }
 
 void gaudi3_nic_macros_fw_config(struct hl_device *hdev)
