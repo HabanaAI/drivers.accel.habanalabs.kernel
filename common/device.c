@@ -2221,7 +2221,7 @@ void hl_notifier_event_send_all(struct hl_device *hdev, u64 event_mask)
  * hl_get_fetch_block_range - check if the address fits to fetch memory ranges. In case it
  * fits, the function returns the entry block index that fits the requested read address.
  * @hdev: pointer to habanalabs device structure
- * @addr: 64-bit device address to strat reading
+ * @addr: 64-bit device address to start reading
  * @size: how many bytes to read
  * @block_entry: the entry index of the block in block_ranges, or -1 if the address doesn't
  * fit to any of the block_ranges array's entries.
@@ -2254,39 +2254,6 @@ static int hl_get_fetch_block_range(struct hl_device *hdev, u64 addr, u32 size, 
 			return -EINVAL;
 	}
 
-	/* No fit in fetch ranges */
-	return 0;
-}
-
-/*
- * hl_is_config_block_range - check if address is in config range
- * @hdev: pointer to habanalabs device structure
- * @start_addr: 64-bit device address to check
- * @size: how many bytes to read
- * Returns 0 for success or an error on failure.
- */
-static int hl_is_config_block_range(struct hl_device *hdev, u64 start_addr, u32 size)
-{
-	u64 cfg_base_start = hdev->asic_prop.cfg_base_address;
-	u64 cfg_base_end = hdev->asic_prop.cfg_base_address + hdev->asic_prop.cfg_size;
-
-	/* verify that address and size are a multiple of 4 */
-	if ((start_addr & 0x3) || (size & 0x3)) {
-		dev_err(hdev->dev,
-			"Read debug device memory unaligned address %#llx, or size %u\n",
-			start_addr, size);
-
-		return -EINVAL;
-	}
-
-	if (!hl_mem_area_inside_range(start_addr, size, cfg_base_start, cfg_base_end)) {
-		dev_err(hdev->dev,
-			"Read debug device memory not in config range address %#llx - %#llx , size %u. start_addr=%#llx\n",
-			cfg_base_start, cfg_base_end, size, start_addr);
-
-		return -EFAULT;
-	}
-
 	return 0;
 }
 
@@ -2300,38 +2267,54 @@ static int hl_is_config_block_range(struct hl_device *hdev, u64 start_addr, u32 
  */
 int hl_read_memory_block(struct hl_device *hdev, u32 *buf, u64 start_addr, u32 size)
 {
-	int i, rc;
+	u64 cfg_base_start = hdev->asic_prop.cfg_base_address;
+	u64 cfg_base_end = hdev->asic_prop.cfg_base_address + hdev->asic_prop.cfg_size;
 	u32 block_entry;
-	u64 addr, val;
+	u64 val, addr;
+	int i, rc;
 
-	/* check if in cfg region */
-	rc = hl_is_config_block_range(hdev, start_addr, size);
-	if (rc)
-		return rc;
+	/* verify that address and size are a multiple of 4 */
+	if ((start_addr & 0x3) || (size & 0x3)) {
+		dev_err(hdev->dev,
+			"Read debug device memory unaligned address %#llx, or size %u\n",
+			start_addr, size);
 
-	/* check if the requested address is in a range that can't be accessed with pci
-	 * bar access. In such case, fetches this address range by specific asic implementation
-	 */
-	rc = hl_get_fetch_block_range(hdev, start_addr, size, &block_entry);
-	if (rc)
-		return rc;
-
-	/* block_entry indicates the requested block to read */
-	if (block_entry != -1) {
-		rc = hdev->asic_funcs->read_fetch_memory_block(hdev, buf,
-						start_addr, size, block_entry);
-	} else {
-		for (i = 0 ; i < (size / sizeof(u32)) ; i++) {
-			addr =  start_addr + (i * sizeof(u32));
-			rc = hl_access_cfg_region(hdev, addr, &val, DEBUGFS_READ32);
-			if (rc)
-				return rc;
-
-			buf[i] = val;
-		}
+		return -EINVAL;
 	}
 
-	return rc;
+	/* read from config range */
+	if (hl_mem_area_inside_range(start_addr, size, cfg_base_start, cfg_base_end)) {
+
+		/* if the address is in a range that can't be accessed with pci bar - fetch
+		 * the address range by specific asic implementation
+		 */
+		rc = hl_get_fetch_block_range(hdev, start_addr, size, &block_entry);
+		if (rc)
+			return rc;
+
+		/* block_entry indicates the requested block to read */
+		if (block_entry != -1) {
+			rc = hdev->asic_funcs->read_fetch_memory_block(hdev, buf,
+							start_addr, size, block_entry);
+			if (rc)
+				return rc;
+		} else {
+			for (i = 0 ; i < (size / sizeof(u32)) ; i++) {
+				addr =  start_addr + (i * sizeof(u32));
+				rc = hl_access_cfg_region(hdev, addr, &val, DEBUGFS_READ32);
+				if (rc)
+					return rc;
+				buf[i] = val;
+			}
+		}
+	} else {
+		dev_err(hdev->dev,
+			"Read debug device memory not in config range address %#llx - %#llx , size %u. start_addr=%#llx\n",
+				cfg_base_start, cfg_base_end, size, start_addr);
+		return -EINVAL;
+	}
+
+	return 0;
 }
 
 static int create_accel_cdev(struct hl_device *hdev)
