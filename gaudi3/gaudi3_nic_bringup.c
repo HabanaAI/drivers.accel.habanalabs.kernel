@@ -177,7 +177,8 @@ static void gaudi3_nic_config_hw_rxe_no_fw(struct hl_device *hdev, u32 port)
 			(0 << NIC_RXE_WQE_CHECKS_ACTION_WQE_MULTI_BIG_S));
 
 	/* H9-5454: configure back-pressure threshold */
-	NIC_RMWREG32(mmD0_NIC0_RXE_SPECIAL_BASE + mmNIC_RXE_SPECIAL_GLBL_SPARE_0, 64,
+	NIC_RMWREG32(mmD0_NIC0_RXE_SPECIAL_BASE + mmNIC_RXE_SPECIAL_GLBL_SPARE_0,
+			hdev->nic_enable_h9_rxb_mem_deadlock_eco ? 0x40 : 0x3f,
 			NIC_RXE_SPECIAL_GLBL_SPARE_0_BACK_PRESSURE_TH_M);
 }
 
