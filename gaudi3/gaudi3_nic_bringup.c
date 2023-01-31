@@ -17,6 +17,9 @@
 #define NIC_TXE_SPECIAL_GLBL_SPARE_0_ECO_5457_ENABLE_S 23
 #define NIC_TXE_SPECIAL_GLBL_SPARE_0_ECO_5457_ENABLE_M 0x800000
 
+#define NIC_TXE_SPECIAL_GLBL_SPARE_0_ECO_5471_DISABLE_S 24
+#define NIC_TXE_SPECIAL_GLBL_SPARE_0_ECO_5471_DISABLE_M 0x1000000
+
 /* mmNIC_TXE_SPECIAL_GLBL_SPARE_3 */
 #define NIC_TXE_SPECIAL_GLBL_SPARE_3_WR_RDV_LIN_PAD_SIZE_S 0
 #define NIC_TXE_SPECIAL_GLBL_SPARE_3_WR_RDV_LIN_PAD_SIZE_M 0x1F
@@ -544,6 +547,21 @@ static void gaudi3_nic_set_sal_override_eco_no_fw(struct hl_nic_macro *nic_macro
 			NIC_QPC_SPECIAL_GLBL_SPARE_0_ECO_5499_DISABLE_M);
 }
 
+static void gaudi3_nic_set_txe_buff_alloc_eco_no_fw(struct hl_nic_macro *nic_macro)
+{
+	struct hl_device *hdev = nic_macro->hdev;
+	u32 port;
+
+	/* erratum 5471 is by default enabled in HW, this function disables it upon request */
+	if ((hdev->fw_components & FW_TYPE_BOOT_CPU) || hdev->nic_enable_h9_txe_buff_alloc_eco)
+		return;
+
+	port = gaudi3_nic_get_first_port(nic_macro);
+
+	NIC_RMWREG32(mmD0_NIC0_TXE_SPECIAL_BASE + mmNIC_TXE_SPECIAL_GLBL_SPARE_0, 1,
+			NIC_TXE_SPECIAL_GLBL_SPARE_0_ECO_5471_DISABLE_M);
+}
+
 static void gaudi3_nic_hw_macro_config_no_fw(struct hl_nic_macro *nic_macro)
 {
 	struct hl_device *hdev = nic_macro->hdev;
@@ -573,6 +591,8 @@ static void gaudi3_nic_hw_macro_config_no_fw(struct hl_nic_macro *nic_macro)
 	gaudi3_nic_set_remote_pi_update_eco_no_fw(nic_macro);
 
 	gaudi3_nic_set_sal_override_eco_no_fw(nic_macro);
+
+	gaudi3_nic_set_txe_buff_alloc_eco_no_fw(nic_macro);
 }
 
 void gaudi3_nic_macros_fw_config(struct hl_device *hdev)
