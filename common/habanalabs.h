@@ -3725,6 +3725,7 @@ struct hl_etr_buf_store {
  *		deadlock.
  * @nic_enable_h9_single_qp_perf_fix_eco: Enable erratum 5216 ECO, fixes single QP performance.
  * @nic_enable_h9_sal_override_eco: Enable erratum 5499 ECO, fixes SAL override.
+ * @nic_enable_h9_sack_deadlock_eco: Enable erratum 5457, fixes SACK deadlock.
  */
 struct hl_device {
 	struct pci_dev			*pdev;
@@ -3978,6 +3979,7 @@ struct hl_device {
 	u8				nic_enable_h9_rxb_mem_deadlock_eco;
 	u8				nic_enable_h9_single_qp_perf_fix_eco;
 	u8				nic_enable_h9_sal_override_eco;
+	u8				nic_enable_h9_sack_deadlock_eco;
 };
 
 /* Retrieve PCI device name in case of a PCI device or dev name in simulator */

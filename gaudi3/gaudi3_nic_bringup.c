@@ -365,8 +365,11 @@ static void gaudi3_nic_config_hw_txe_no_fw(struct hl_device *hdev, u32 port)
 	NIC_WREG32(mmD0_NIC0_TXE_WQE_FETCH_AXI_PROT_UNSEC, SECURED_LVL);
 	NIC_WREG32(mmD0_NIC0_QPC_WQE_MEM_WRITE_AXI_PROT, 0);
 
-	/* H9-5457: enable the ECO by default */
-	NIC_RMWREG32(mmD0_NIC0_TXE_SPECIAL_BASE + mmNIC_TXE_SPECIAL_GLBL_SPARE_0, 1,
+	/* H9-5457: ECO to solve daedlock in SACK, enabled by default, but can be disabled
+	 * through a BFE.
+	 */
+	NIC_RMWREG32(mmD0_NIC0_TXE_SPECIAL_BASE + mmNIC_TXE_SPECIAL_GLBL_SPARE_0,
+			hdev->nic_enable_h9_sack_deadlock_eco ? 1 : 0,
 			NIC_TXE_SPECIAL_GLBL_SPARE_0_ECO_5457_ENABLE_M);
 }
 
