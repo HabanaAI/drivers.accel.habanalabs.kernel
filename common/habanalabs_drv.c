@@ -160,6 +160,7 @@ static int bfe_nic_enable_h9_cc_msg_drops_eco = 1;
 static int bfe_nic_enable_h9_remote_pi_update_eco = 1;
 static int bfe_nic_enable_h9_rxb_mem_deadlock_eco = 1;
 static int bfe_nic_enable_h9_single_qp_perf_fix_eco = 1;
+static int bfe_nic_enable_h9_sal_override_eco = 1;
 
 /* special-case of parameter handling - polling */
 static bool nic_poll_enable_param_was_set;
@@ -545,6 +546,10 @@ MODULE_PARM_DESC(bfe_nic_enable_h9_rxb_mem_read_deadlock_eco,
 module_param(bfe_nic_enable_h9_single_qp_perf_fix_eco, int, 0444);
 MODULE_PARM_DESC(bfe_nic_enable_h9_single_qp_perf_fix_eco,
 	"Enable erratum 5216 ECO, fixes single QP performance (0 - disabled, 1 - enabled, default 1)");
+
+module_param(bfe_nic_enable_h9_sal_override_eco, int, 0444);
+MODULE_PARM_DESC(bfe_nic_enable_h9_sal_override_eco,
+	"Enable erratum 5499 ECO, fixes SAL override issue (0 - disabled, 1 - enabled, default 1)");
 
 #define PCI_VENDOR_ID_HABANALABS	0x1da3
 
@@ -1516,6 +1521,7 @@ static void set_driver_behavior_per_device(struct hl_device *hdev)
 	hdev->nic_enable_h9_remote_pi_update_eco = 1;
 	hdev->nic_enable_h9_rxb_mem_deadlock_eco = 1;
 	hdev->nic_enable_h9_single_qp_perf_fix_eco = 1;
+	hdev->nic_enable_h9_sal_override_eco = 1;
 }
 
 static void copy_kernel_module_params_to_device(struct hl_device *hdev)
@@ -1622,6 +1628,7 @@ static void copy_bfe_params_to_device(struct hl_device *hdev)
 	hdev->nic_enable_h9_remote_pi_update_eco = bfe_nic_enable_h9_remote_pi_update_eco;
 	hdev->nic_enable_h9_rxb_mem_deadlock_eco = bfe_nic_enable_h9_rxb_mem_deadlock_eco;
 	hdev->nic_enable_h9_single_qp_perf_fix_eco = bfe_nic_enable_h9_single_qp_perf_fix_eco;
+	hdev->nic_enable_h9_sal_override_eco = bfe_nic_enable_h9_sal_override_eco;
 
 	/* Debug feature:
 	 * Store a copy of binning information to override f/w binning configuration later
