@@ -4113,6 +4113,8 @@ void hl_asic_dma_pool_free_caller(struct hl_device *hdev, void *vaddr, dma_addr_
 int hl_dma_map_sgtable(struct hl_device *hdev, struct sg_table *sgt, enum dma_data_direction dir);
 void hl_dma_unmap_sgtable(struct hl_device *hdev, struct sg_table *sgt,
 				enum dma_data_direction dir);
+bool hl_is_device_va(struct hl_device *hdev, u64 addr);
+int hl_device_va_to_pa(struct hl_device *hdev, u64 virt_addr, u32 size, u64 *phys_addr);
 int hl_access_sram_dram_region(struct hl_device *hdev, u64 addr, u64 *val,
 	enum debugfs_access_type acc_type, enum pci_region region_type, bool set_dram_bar);
 int hl_access_cfg_region(struct hl_device *hdev, u64 addr, u64 *val,

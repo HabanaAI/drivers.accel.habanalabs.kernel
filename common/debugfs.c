@@ -658,7 +658,7 @@ static ssize_t hl_memory_scrub(struct file *f, const char __user *buf,
 	return count;
 }
 
-static bool hl_is_device_va(struct hl_device *hdev, u64 addr)
+bool hl_is_device_va(struct hl_device *hdev, u64 addr)
 {
 	struct asic_fixed_properties *prop = &hdev->asic_prop;
 
@@ -708,8 +708,7 @@ static bool hl_is_device_internal_memory_va(struct hl_device *hdev, u64 addr,
 	return false;
 }
 
-static int device_va_to_pa(struct hl_device *hdev, u64 virt_addr, u32 size,
-			u64 *phys_addr)
+int hl_device_va_to_pa(struct hl_device *hdev, u64 virt_addr, u32 size, u64 *phys_addr)
 {
 	struct hl_vm_phys_pg_pack *phys_pg_pack;
 	struct hl_ctx *ctx;
@@ -829,7 +828,7 @@ static int hl_access_mem(struct hl_device *hdev, u64 addr, u64 *val,
 
 	user_address = hl_is_device_va(hdev, addr);
 	if (user_address) {
-		rc = device_va_to_pa(hdev, addr, acc_size, &addr);
+		rc = hl_device_va_to_pa(hdev, addr, acc_size, &addr);
 		if (rc)
 			return rc;
 	}

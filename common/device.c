@@ -2269,8 +2269,9 @@ int hl_read_memory_block(struct hl_device *hdev, u32 *buf, u64 start_addr, u32 s
 {
 	u64 cfg_base_start = hdev->asic_prop.cfg_base_address;
 	u64 cfg_base_end = hdev->asic_prop.cfg_base_address + hdev->asic_prop.cfg_size;
+	struct pci_mem_region *dram_region;
+	u64 val, addr, phys_addr;
 	u32 block_entry;
-	u64 val, addr;
 	int i, rc;
 
 	/* verify that address and size are a multiple of 4 */
@@ -2307,11 +2308,33 @@ int hl_read_memory_block(struct hl_device *hdev, u32 *buf, u64 start_addr, u32 s
 				buf[i] = val;
 			}
 		}
-	} else {
-		dev_err(hdev->dev,
-			"Read debug device memory not in config range address %#llx - %#llx , size %u. start_addr=%#llx\n",
-				cfg_base_start, cfg_base_end, size, start_addr);
-		return -EINVAL;
+	} else { /* read from dram range */
+		if (!hl_is_device_va(hdev, start_addr)) {
+			dev_err(hdev->dev,
+				"address %#llx is not a config address nor a virtual address\n",
+				start_addr);
+			return -EINVAL;
+		}
+
+		rc = hl_device_va_to_pa(hdev, start_addr, size, &phys_addr);
+		if (rc)
+			return rc;
+
+		dram_region = &hdev->pci_mem_region[PCI_REGION_DRAM];
+		if (!hl_mem_area_inside_range(phys_addr, size, dram_region->region_base,
+					dram_region->region_base + dram_region->region_size)) {
+			dev_err(hdev->dev, "address is not a config address nor a dram address\n");
+			return -EINVAL;
+		}
+
+		for (i = 0 ; i < (size / sizeof(u32)) ; i++) {
+			addr =  phys_addr + (i * sizeof(u32));
+			rc = hdev->asic_funcs->access_dev_mem(hdev, PCI_REGION_DRAM, addr,
+								&val, DEBUGFS_READ32);
+			if (rc)
+				return rc;
+			buf[i] = val;
+		}
 	}
 
 	return 0;
