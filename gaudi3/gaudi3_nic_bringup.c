@@ -8,6 +8,12 @@
 #include "gaudi3_nic.h"
 
 /* mmNIC_TXE_SPECIAL_GLBL_SPARE_0 */
+#define NIC_TXE_SPECIAL_GLBL_SPARE_0_ECO_5216_BURST_SIZE_S 0
+#define NIC_TXE_SPECIAL_GLBL_SPARE_0_ECO_5216_BURST_SIZE_M 0x3FFFFF
+
+#define NIC_TXE_SPECIAL_GLBL_SPARE_0_ECO_5216_ENABLE_S 22
+#define NIC_TXE_SPECIAL_GLBL_SPARE_0_ECO_5216_ENABLE_M 0x400000
+
 #define NIC_TXE_SPECIAL_GLBL_SPARE_0_ECO_5457_ENABLE_S 23
 #define NIC_TXE_SPECIAL_GLBL_SPARE_0_ECO_5457_ENABLE_M 0x800000
 
@@ -258,6 +264,16 @@ static void gaudi3_nic_config_hw_qpc_no_fw(struct hl_device *hdev, u32 port)
 	 * secured unprivileged.
 	 */
 	NIC_RMWREG32(mmD0_NIC0_QPC_LBW_PROT, 0, NIC_QPC_LBW_PROT_INTERRUPT_M);
+
+	/* ECO H9-5216 - solves performance issue for single QP, the ECO can be disabled through
+	 * a BFE parameter. The burst size is the same as we configure in QPC.
+	 */
+	NIC_RMWREG32(mmD0_NIC0_TXE_SPECIAL_BASE + mmNIC_TXE_SPECIAL_GLBL_SPARE_0,
+			QPC_REQ_BURST_SIZE, NIC_TXE_SPECIAL_GLBL_SPARE_0_ECO_5216_BURST_SIZE_M);
+	/* H9-5216 is enabled upon bit set to 0 */
+	NIC_RMWREG32(mmD0_NIC0_TXE_SPECIAL_BASE + mmNIC_TXE_SPECIAL_GLBL_SPARE_0,
+			hdev->nic_enable_h9_single_qp_perf_fix_eco ? 0 : 1,
+			NIC_TXE_SPECIAL_GLBL_SPARE_0_ECO_5216_ENABLE_M);
 }
 
 static void gaudi3_nic_config_hw_txe_no_fw(struct hl_device *hdev, u32 port)

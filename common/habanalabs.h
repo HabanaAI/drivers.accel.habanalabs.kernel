@@ -3723,6 +3723,7 @@ struct hl_etr_buf_store {
  *		wraparound.
  * @nic_enable_h9_rxb_mem_read_deadlock_eco: Enable erratum 5454 ECO, fixes RXB memory read
  *		deadlock.
+ * @nic_enable_h9_single_qp_perf_fix_eco: Enable erratum 5216 ECO, fixes single QP performance.
  */
 struct hl_device {
 	struct pci_dev			*pdev;
@@ -3974,6 +3975,7 @@ struct hl_device {
 	u8				nic_enable_h9_cc_msg_drops_eco;
 	u8				nic_enable_h9_remote_pi_update_eco;
 	u8				nic_enable_h9_rxb_mem_deadlock_eco;
+	u8				nic_enable_h9_single_qp_perf_fix_eco;
 };
 
 /* Retrieve PCI device name in case of a PCI device or dev name in simulator */
