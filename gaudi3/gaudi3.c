@@ -11240,46 +11240,6 @@ void gaudi3_handle_eqe_old(struct hl_device *hdev, struct hl_eq_entry *eq_entry)
 		gaudi3_razwi_handler(hdev, RAZWI_PDMA, 1, 0, 1, GAUDI3_DIE1_ENGINE_ID_PDMA_1_CH_0,
 					&event_mask);
 		break;
-	case GAUDI3_EVENT_STLB0_DIE0_HD0_SPI:
-	case GAUDI3_EVENT_STLB1_DIE0_HD0_SPI:
-	case GAUDI3_EVENT_STLB2_DIE0_HD0_SPI:
-		handle_hmmu_events(hdev, 0, 0, &event_mask);
-		break;
-	case GAUDI3_EVENT_STLB0_DIE1_HD0_SPI:
-	case GAUDI3_EVENT_STLB1_DIE1_HD0_SPI:
-	case GAUDI3_EVENT_STLB2_DIE1_HD0_SPI:
-		handle_hmmu_events(hdev, 1, 4, &event_mask);
-		break;
-	case GAUDI3_EVENT_STLB0_DIE0_HD1_SPI:
-	case GAUDI3_EVENT_STLB1_DIE0_HD1_SPI:
-	case GAUDI3_EVENT_STLB2_DIE0_HD1_SPI:
-		handle_hmmu_events(hdev, 0, 1, &event_mask);
-		break;
-	case GAUDI3_EVENT_STLB0_DIE1_HD1_SPI:
-	case GAUDI3_EVENT_STLB1_DIE1_HD1_SPI:
-	case GAUDI3_EVENT_STLB2_DIE1_HD1_SPI:
-		handle_hmmu_events(hdev, 1, 5, &event_mask);
-		break;
-	case GAUDI3_EVENT_STLB0_DIE0_HD2_SPI:
-	case GAUDI3_EVENT_STLB1_DIE0_HD2_SPI:
-	case GAUDI3_EVENT_STLB2_DIE0_HD2_SPI:
-		handle_hmmu_events(hdev, 0, 2, &event_mask);
-		break;
-	case GAUDI3_EVENT_STLB0_DIE1_HD2_SPI:
-	case GAUDI3_EVENT_STLB1_DIE1_HD2_SPI:
-	case GAUDI3_EVENT_STLB2_DIE1_HD2_SPI:
-		handle_hmmu_events(hdev, 1, 6, &event_mask);
-		break;
-	case GAUDI3_EVENT_STLB0_DIE0_HD3_SPI:
-	case GAUDI3_EVENT_STLB1_DIE0_HD3_SPI:
-	case GAUDI3_EVENT_STLB2_DIE0_HD3_SPI:
-		handle_hmmu_events(hdev, 0, 3, &event_mask);
-		break;
-	case GAUDI3_EVENT_STLB0_DIE1_HD3_SPI:
-	case GAUDI3_EVENT_STLB1_DIE1_HD3_SPI:
-	case GAUDI3_EVENT_STLB2_DIE1_HD3_SPI:
-		handle_hmmu_events(hdev, 1, 7, &event_mask);
-		break;
 
 	/* Reason for using 'divide by 2' while calculating macro index:
 	 * NIC0_DIE0_HDSHARED_SPI_0 - Triggered upon a BMON/SPMU interrupt on D0_NIC0_XXX block
@@ -11447,7 +11407,21 @@ static void gaudi3_handle_sei_event(struct hl_device *hdev,
 static void gaudi3_handle_spi_event(struct hl_device *hdev,
 				struct hl_eq_dynamic_entry *eq_dynamic_entry, u64 *event_mask)
 {
-	/* TODO: add handling of SPI events */
+	enum hl_agg_component_type agg_component_type;
+	u32 die, hdcore = 0;
+
+	agg_component_type = eq_dynamic_entry->agg_hdr.int_comp_type;
+	die = eq_dynamic_entry->agg_hdr.die_id;
+	if (eq_dynamic_entry->agg_hdr.hdcore_type <= INT_HDCORE3)
+		hdcore = die * NUM_OF_HDCORES_PER_DIE + eq_dynamic_entry->agg_hdr.hdcore_type;
+
+	switch (agg_component_type) {
+	case INT_COMP_TYPE_STLB:
+		handle_hmmu_events(hdev, die, hdcore, event_mask);
+		break;
+	default:
+		return;
+	}
 }
 
 static void gaudi3_handle_hw_event(struct hl_device *hdev,
