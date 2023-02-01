@@ -332,6 +332,8 @@ static int gaudi2_simulator_gen_int_ioctl(struct hl_simulator_device *edev, void
 				args->id, user_interrupt->interrupt_id);
 			goto out;
 		}
+
+		user_interrupt->timestamp = ktime_get();
 		hl_irq_user_interrupt_thread_handler(args->id, user_interrupt);
 
 	} else {
