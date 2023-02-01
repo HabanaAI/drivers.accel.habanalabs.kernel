@@ -284,37 +284,36 @@ static void gaudi2_nic_config_hw_eq_no_fw(struct hl_device *hdev, u32 port)
 int gaudi2_nic_config_wqe_asid(struct hl_nic_port *nic_port, u32 asid, bool set_asid)
 {
 	struct hl_device *hdev = nic_port->hdev;
+	struct hl_nic_port_funcs *port_funcs;
 	u32 port = nic_port->port;
-	struct cpucp_packet pkt;
 	int rc = 0;
 
 	/* This is a privilege register that is modified on the go, hence we should disable
 	 * assertion on simulator to allow us the modification. At the end of this section we
 	 * enable security assertion back.
 	 */
-	hdev->asic_funcs->set_priv_assertions(hdev, false);
 
 	/* change asid to secured asid */
 	if (!(hdev->fw_components & FW_TYPE_BOOT_CPU)) {
+		hdev->asic_funcs->set_priv_assertions(hdev, false);
+
 		/* set chicken bit before changing asid */
 		NIC_WREG32(mmNIC0_TXE0_CHICKEN_BITS, set_asid ? 0x1 : 0);
 		if (set_asid)
 			NIC_WREG32(mmNIC0_TXE0_WQE_FETCH_AXI_USER_LO, asid);
-	} else {
-		pkt.ctl = set_asid ?
-			cpu_to_le32(CPUCP_PACKET_NIC_WQE_ASID_SET << CPUCP_PKT_CTL_OPCODE_SHIFT) :
-			cpu_to_le32(CPUCP_PACKET_NIC_WQE_ASID_UNSET << CPUCP_PKT_CTL_OPCODE_SHIFT);
-		pkt.value = cpu_to_le64(asid);
-		pkt.port_index = cpu_to_le32(port);
 
-		rc = hdev->asic_funcs->send_cpu_message(hdev, (u32 *) &pkt, sizeof(pkt), 0, NULL);
-		if (rc)
-			dev_err(hdev->dev,
-				"Failed to %s NIC WQE ASID via FW, port %d, rc %d\n",
-				set_asid ? "set" : "unset", port, rc);
+		hdev->asic_funcs->set_priv_assertions(hdev, true);
+	} else {
+		port_funcs = hdev->asic_funcs->nic_funcs->port_funcs;
+		rc = port_funcs->send_cpucp_packet(nic_port, set_asid ?
+					CPUCP_PACKET_NIC_WQE_ASID_SET :
+					CPUCP_PACKET_NIC_WQE_ASID_UNSET,
+					asid);
 	}
 
-	hdev->asic_funcs->set_priv_assertions(hdev, true);
+	if (rc)
+		dev_err(hdev->dev, "Failed to %s NIC WQE ASID, port %d, rc %d\n",
+				set_asid ? "set" : "unset", port, rc);
 
 	return rc;
 }
@@ -354,9 +353,9 @@ void gaudi2_nic_override_phy_readiness(struct hl_nic_port *nic_port, bool set_re
 int gaudi2_nic_disable_wqe_index_checker_fw(struct hl_nic_port *nic_port)
 {
 	struct hl_device *hdev = nic_port->hdev;
+	struct hl_nic_port_funcs *port_funcs;
 	u32 port = nic_port->port;
-	struct cpucp_packet pkt;
-	int rc;
+	int rc = 0;
 
 	/* This is a privilege register that is modified on the go, hence we should disable
 	 * assertion on simulator to allow us the modification. At the end of this section we
@@ -372,35 +371,27 @@ int gaudi2_nic_disable_wqe_index_checker_fw(struct hl_nic_port *nic_port)
 		NIC_RMWREG32(mmNIC0_TXE0_WQE_CHECK_EN, 0,
 			NIC0_TXE0_WQE_CHECK_EN_WQE_INDEX_EN_MASK);
 		hdev->asic_funcs->set_priv_assertions(hdev, true);
+	} else {
+		port_funcs = hdev->asic_funcs->nic_funcs->port_funcs;
+		rc = port_funcs->send_cpucp_packet(nic_port, CPUCP_PACKET_NIC_SET_CHECKERS,
+					RX_WQE_IDX_MISMATCH);
 
-		return 0;
+		if (rc) {
+			dev_err(hdev->dev,
+				"Failed to disable Rx WQE idx mismatch checker, port %d, rc %d\n",
+				port, rc);
+			return rc;
+		}
+
+		rc = port_funcs->send_cpucp_packet(nic_port, CPUCP_PACKET_NIC_SET_CHECKERS,
+					TX_WQE_IDX_MISMATCH);
+		if (rc) {
+			dev_err(hdev->dev,
+				"Failed to disable Tx WQE idx mismatch checker, port %d, rc %d\n",
+				port, rc);
+			return rc;
+		}
 	}
-
-	/* Disable the WQE index checker on the RX side */
-	memset(&pkt, 0, sizeof(pkt));
-	pkt.ctl = cpu_to_le32(CPUCP_PACKET_NIC_SET_CHECKERS << CPUCP_PKT_CTL_OPCODE_SHIFT);
-	pkt.value = cpu_to_le64(RX_WQE_IDX_MISMATCH);
-	pkt.port_index = cpu_to_le32(port);
-
-	rc = hdev->asic_funcs->send_cpu_message(hdev, (u32 *) &pkt, sizeof(pkt), 0, NULL);
-	if (rc) {
-		dev_err(hdev->dev,
-			"Failed to disable Rx WQE idx mismatch checker, port %d, rc %d\n",
-			port, rc);
-		return rc;
-	}
-
-	/* Disable the WQE index checker on the TX side */
-	memset(&pkt, 0, sizeof(pkt));
-	pkt.ctl = cpu_to_le32(CPUCP_PACKET_NIC_SET_CHECKERS << CPUCP_PKT_CTL_OPCODE_SHIFT);
-	pkt.value = cpu_to_le64(TX_WQE_IDX_MISMATCH);
-	pkt.port_index = cpu_to_le32(port);
-
-	rc = hdev->asic_funcs->send_cpu_message(hdev, (u32 *) &pkt, sizeof(pkt), 0, NULL);
-	if (rc)
-		dev_err(hdev->dev,
-			"Failed to disable Tx WQE idx mismatch checker, port %d, rc %d\n",
-			port, rc);
 
 	return rc;
 }

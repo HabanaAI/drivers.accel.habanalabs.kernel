@@ -2607,6 +2607,12 @@ void gaudi3_fabric_serialization_init_fw_config(struct hl_device *hdev)
 
 void gaudi3_hw_init_fw_config(struct hl_device *hdev)
 {
+	/* This function is a BFE configuration that accesses privilege registers
+	 * it is used for PLDM and ASIC bringup regardless of FW presence. As long
+	 * as security is not enabled.
+	 */
+	gaudi3_nic_ecos_override(hdev);
+
 	/* TODO (SW-108260): Temporary allow those configs for SIM_GAUDI3_ARC */
 	if ((hdev->fw_components & FW_TYPE_BOOT_CPU) && (hdev->asic_type != ASIC_GAUDI3_SIM_ARC))
 		return;

@@ -4899,6 +4899,27 @@ static void gaudi2_nic_app_params_clear(struct hl_device *hdev)
 
 }
 
+static int gaudi2_nic_send_cpucp_packet(struct hl_nic_port *nic_port,
+					enum cpucp_packet_id packet_id, int val)
+{
+	struct hl_device *hdev = nic_port->hdev;
+	struct cpucp_packet pkt;
+	int rc = 0;
+
+	memset(&pkt, 0, sizeof(pkt));
+	pkt.ctl = cpu_to_le32(packet_id << CPUCP_PKT_CTL_OPCODE_SHIFT);
+	pkt.value = cpu_to_le64(val);
+	pkt.macro_index = cpu_to_le32(nic_port->port);
+
+	rc = hdev->asic_funcs->send_cpu_message(hdev, (u32 *) &pkt, sizeof(pkt), 0, NULL);
+	if (rc)
+		dev_err(hdev->dev,
+			"Failed to send cpucp packet, port %d packet id %d, val %d, error %d\n",
+			nic_port->port, packet_id, val, rc);
+
+	return rc;
+}
+
 static struct hl_nic_port_funcs gaudi2_nic_port_funcs = {
 	.port_hw_init = gaudi2_nic_port_hw_init,
 	.port_hw_fini = gaudi2_nic_port_hw_fini,
@@ -4955,6 +4976,7 @@ static struct hl_nic_port_funcs gaudi2_nic_port_funcs = {
 	.override_phy_readiness = gaudi2_nic_override_phy_readiness,
 	.qp_pre_destroy = gaudi2_nic_qp_pre_destroy,
 	.qp_post_destroy = gaudi2_nic_qp_post_destroy,
+	.send_cpucp_packet = gaudi2_nic_send_cpucp_packet,
 };
 
 struct hl_nic_funcs gaudi2_nic_funcs = {

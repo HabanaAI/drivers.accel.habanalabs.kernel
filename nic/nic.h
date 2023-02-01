@@ -1132,6 +1132,7 @@ struct hl_nic_user_cq_unset_in_params {
  * @qp_pre_destroy: prepare for a QP destroy. Called under the cfg lock.
  * @qp_post_destroy: cleanup after a QP destroy. Called under the cfg lock.
  * @get_coll_qps_offset: Get collective QPs offset.
+ * @send_cpucp_packet: Send cpucp nic packets to FW.
  */
 struct hl_nic_port_funcs {
 	int (*port_hw_init)(struct hl_nic_port *nic_port);
@@ -1205,6 +1206,8 @@ struct hl_nic_port_funcs {
 	void (*qp_pre_destroy)(struct hl_qp *qp);
 	void (*qp_post_destroy)(struct hl_qp *qp);
 	u32 (*get_coll_qps_offset)(struct hl_nic_port *nic_port);
+	int (*send_cpucp_packet)(struct hl_nic_port *nic_port, enum cpucp_packet_id packet_id,
+				int val);
 };
 
 /**

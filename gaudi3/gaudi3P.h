@@ -829,6 +829,7 @@ irqreturn_t hl_pldm_irq_handler(int irq, void *arg);
 void gaudi3_pdma_print_debug_info(struct hl_device *hdev, u32 ch_idx);
 void gaudi3_halt_engines_fw_config(struct hl_device *hdev);
 void gaudi3_set_isolation(struct hl_device *hdev, bool isolate_engines, bool isolate_hbm);
+void gaudi3_nic_ecos_override(struct hl_device *hdev);
 
 /* Functions exported for FPGA support */
 int gaudi3_early_fini(struct hl_device *hdev);
@@ -858,7 +859,7 @@ int gaudi3_pll_info_get(struct hl_device *hdev, u32 pll_index,
 				u16 *pll_freq_arr);
 
 /* Bringup functions (w/o F/W support) */
-void gaudi3_nic_override_phy_readiness(struct hl_nic_port *nic_port, bool set_ready);
+void gaudi3_nic_override_phy_readiness_pldm(struct hl_nic_port *nic_port, bool set_ready);
 int gaudi3_nic_disable_wqe_index_checker_fw(struct hl_nic_port *nic_port);
 void gaudi3_nic_macros_fw_config(struct hl_device *hdev);
 void gaudi3_handle_axi_drain(struct hl_device *hdev, bool *pci_link_error);

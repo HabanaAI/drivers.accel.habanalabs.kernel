@@ -8,6 +8,7 @@
 #include "gaudi3_nic.h"
 #include "../include/gaudi3/asic_reg/gaudi3_regs.h"
 #include "../include/hw_ip/nic/nic_general.h"
+#include "gaudi3P.h"
 #include "uapi/drm/habanalabs_accel.h"
 #include <uapi/linux/ethtool.h>
 #include <linux/etherdevice.h>
@@ -5546,6 +5547,27 @@ static void gaudi3_nic_app_params_clear(struct hl_device *hdev)
 	}
 }
 
+static int gaudi3_nic_send_cpucp_packet(struct hl_nic_port *nic_port,
+					enum cpucp_packet_id packet_id, int val)
+{
+	struct hl_device *hdev = nic_port->hdev;
+	struct cpucp_packet pkt;
+	int rc = 0;
+
+	memset(&pkt, 0, sizeof(pkt));
+	pkt.ctl = cpu_to_le32(packet_id << CPUCP_PKT_CTL_OPCODE_SHIFT);
+	pkt.value = cpu_to_le64(val);
+	pkt.macro_index = cpu_to_le32(nic_port->nic_macro->idx);
+
+	rc = hdev->asic_funcs->send_cpu_message(hdev, (u32 *) &pkt, sizeof(pkt), 0, NULL);
+	if (rc)
+		dev_err(hdev->dev,
+			"Failed to send cpucp packet, port %d packet id %d, val %d, error %d\n",
+			nic_port->port, packet_id, val, rc);
+
+	return rc;
+}
+
 static struct hl_nic_port_funcs gaudi3_nic_port_funcs = {
 	.port_hw_init = gaudi3_nic_port_hw_init,
 	.port_hw_fini = gaudi3_nic_port_hw_fini,
@@ -5599,10 +5621,11 @@ static struct hl_nic_port_funcs gaudi3_nic_port_funcs = {
 	.cfg_lock = gaudi3_nic_cfg_lock,
 	.cfg_unlock = gaudi3_nic_cfg_unlock,
 	.cfg_is_locked = gaudi3_nic_cfg_is_locked,
-	.override_phy_readiness = gaudi3_nic_override_phy_readiness,
+	.override_phy_readiness = gaudi3_nic_override_phy_readiness_pldm,
 	.qp_pre_destroy = gaudi3_nic_qp_pre_destroy,
 	.qp_post_destroy = gaudi3_nic_qp_post_destroy,
 	.get_coll_qps_offset = gaudi3_nic_get_coll_qps_offset,
+	.send_cpucp_packet = gaudi3_nic_send_cpucp_packet,
 };
 
 struct hl_nic_funcs gaudi3_nic_funcs = {

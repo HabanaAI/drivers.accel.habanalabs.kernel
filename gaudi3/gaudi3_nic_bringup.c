@@ -61,21 +61,15 @@
 #define NIC_QPC_SPECIAL_GLBL_SPARE_0_ECO_5490_DISABLE_S 2
 #define NIC_QPC_SPECIAL_GLBL_SPARE_0_ECO_5490_DISABLE_M 0x4
 
-static void gaudi3_nic_config_hw_mac_no_fw(struct hl_device *hdev, u32 port)
+static void gaudi3_nic_config_hw_mac_fw(struct hl_device *hdev, u32 port)
 {
-	if (hdev->fw_components & FW_TYPE_BOOT_CPU)
-		return;
-
 	NIC_WREG32(mmD0_NIC0_MAC_AUX_MAC_CFG_SEC, 0);
 }
 
-static void gaudi3_nic_config_hw_rxe_no_fw(struct hl_device *hdev, u32 port)
+static void gaudi3_nic_config_hw_rxe_fw(struct hl_device *hdev, u32 port)
 {
 	uint32_t rxe_qpc_checks_mask;
 	int i;
-
-	if (hdev->fw_components & FW_TYPE_BOOT_CPU)
-		return;
 
 	NIC_WREG32(mmD0_NIC0_RXE_ARPROT_HBW_UNSEC, 0);
 
@@ -194,11 +188,8 @@ static void gaudi3_nic_config_hw_rxe_no_fw(struct hl_device *hdev, u32 port)
 			NIC_RXE_SPECIAL_GLBL_SPARE_0_BACK_PRESSURE_TH_M);
 }
 
-static void gaudi3_nic_config_hw_qpc_no_fw(struct hl_device *hdev, u32 port)
+static void gaudi3_nic_config_hw_qpc_fw(struct hl_device *hdev, u32 port)
 {
-	if (hdev->fw_components & FW_TYPE_BOOT_CPU)
-		return;
-
 	NIC_WREG32(mmD0_NIC0_QPC_AXI_PROT, 0);
 
 	/* QP checkers and cfg bits reside in CFG7 and CFG8 and all should be enabled */
@@ -282,11 +273,8 @@ static void gaudi3_nic_config_hw_qpc_no_fw(struct hl_device *hdev, u32 port)
 			NIC_TXE_SPECIAL_GLBL_SPARE_0_ECO_5216_ENABLE_M);
 }
 
-static void gaudi3_nic_config_hw_txe_no_fw(struct hl_device *hdev, u32 port)
+static void gaudi3_nic_config_hw_txe_fw(struct hl_device *hdev, u32 port)
 {
-	if (hdev->fw_components & FW_TYPE_BOOT_CPU)
-		return;
-
 	/* SW-33416: For rendezvous read request if WQE size is 0,
 	 * TX gets stuck. So enable WQE check in HW to check for WQE size == 0
 	 * by setting NIC0_TXE_WQE_CHECK_EN_RDV_WR_RD_SIZE_ZERO_EN_S bit.
@@ -376,84 +364,11 @@ static void gaudi3_nic_config_hw_txe_no_fw(struct hl_device *hdev, u32 port)
 			NIC_TXE_SPECIAL_GLBL_SPARE_0_ECO_5457_ENABLE_M);
 }
 
-void gaudi3_nic_override_phy_readiness(struct hl_nic_port *nic_port, bool set_ready)
-{
-	u32 enable_mask, port = nic_port->port, val = 0;
-	struct hl_device *hdev = nic_port->hdev;
-	struct gaudi3_device *gaudi3;
-
-	if (hdev->fw_components & FW_TYPE_BOOT_CPU)
-		return;
-
-	/* Simulator and PLDM don't receive indication from PHY to MAC as there is no
-	 * PHY, hence we need to override this registers manually
-	 */
-	hdev->asic_funcs->set_priv_assertions(hdev, false);
-
-	if (hdev->nic_lanes_per_port == PORT_LANES_4) {
-		if (set_ready)
-			val = PRT_MAC_AUX_PHY_SIG_DETECT_OVRD_SIG_DETECT_ASSERT_M;
-
-		NIC_WREG32(mmD0_NIC0_MAC_AUX_PHY_SIG_DETECT_OVRD, val);
-	} else if (hdev->nic_lanes_per_port == PORT_LANES_2) {
-		gaudi3 = hdev->asic_specific;
-
-		if (set_ready)
-			val = 0x3;
-
-		enable_mask = 0x3 << get_lane_offset(&gaudi3->nic_ports[port]);
-		NIC_RMWREG32(mmD0_NIC0_MAC_AUX_PHY_SIG_DETECT_OVRD, val, enable_mask);
-	}
-
-	hdev->asic_funcs->set_priv_assertions(hdev, true);
-}
-
-int gaudi3_nic_disable_wqe_index_checker_fw(struct hl_nic_port *nic_port)
-{
-	struct hl_device *hdev = nic_port->hdev;
-	u32 port = nic_port->port;
-	struct cpucp_packet pkt;
-	int rc;
-
-	/* This is a privilege register that is modified on the go, hence we should disable
-	 * assertion on simulator to allow us the modification. At the end of this section we
-	 * enable security assertion back. We enter this section only if FW security
-	 * is not enabled.
-	 */
-
-	if (!(hdev->fw_components & FW_TYPE_BOOT_CPU)) {
-		hdev->asic_funcs->set_priv_assertions(hdev, false);
-
-		/* Disable the WQE index checker on the RX side */
-		NIC_RMWREG32(mmD0_NIC0_RXE_WQE_CHECKS_EN, 0,
-			NIC_RXE_WQE_CHECKS_EN_WQE_IDX_MISMATCH_M);
-
-		hdev->asic_funcs->set_priv_assertions(hdev, true);
-	}
-
-	/* Disable the WQE index checker on the RX side */
-	memset(&pkt, 0, sizeof(pkt));
-	pkt.ctl = cpu_to_le32(CPUCP_PACKET_NIC_SET_CHECKERS << CPUCP_PKT_CTL_OPCODE_SHIFT);
-	pkt.value = cpu_to_le64(RX_WQE_IDX_MISMATCH);
-	pkt.macro_index = cpu_to_le32(nic_port->nic_macro->idx);
-
-	rc = hdev->asic_funcs->send_cpu_message(hdev, (u32 *) &pkt, sizeof(pkt), 0, NULL);
-	if (rc)
-		dev_err(hdev->dev,
-			"Failed to disable Rx WQE idx mismatch checker, port %d, rc %d\n",
-			port, rc);
-
-	return rc;
-}
-
-static void gaudi3_nic_set_rx_drop_eco_no_fw(struct hl_nic_macro *nic_macro)
+static void gaudi3_nic_set_rx_drop_eco_fw(struct hl_nic_macro *nic_macro)
 {
 	u32 port, txe_val, txb_disable_eco, rxb_disable_eco;
 	struct hl_device *hdev = nic_macro->hdev;
 	bool qpc_res_rkey_check_en;
-
-	if (hdev->fw_components & FW_TYPE_BOOT_CPU)
-		return;
 
 	port = gaudi3_nic_get_first_port(nic_macro);
 
@@ -487,82 +402,7 @@ static void gaudi3_nic_set_rx_drop_eco_no_fw(struct hl_nic_macro *nic_macro)
 			NIC_RXE_QPC_CHECKS_EN_QPC_RES_RKEY_INV_M);
 }
 
-static void gaudi3_nic_set_qpc_doorbells_eco_no_fw(struct hl_nic_macro *nic_macro)
-{
-	struct hl_device *hdev = nic_macro->hdev;
-	u32 port;
-
-	/* erratum 4960 is by default enabled in HW, this function disables it upon request */
-	if ((hdev->fw_components & FW_TYPE_BOOT_CPU) || hdev->nic_enable_h9_qp_doorbells_eco)
-		return;
-
-	port = gaudi3_nic_get_first_port(nic_macro);
-
-	NIC_RMWREG32(mmD0_NIC0_QPC_SPECIAL_BASE + mmNIC_QPC_SPECIAL_GLBL_SPARE_0, 1,
-			NIC_QPC_SPECIAL_GLBL_SPARE_0_ECO_4960_DISABLE_M);
-}
-
-static void gaudi3_nic_set_cc_message_drops_eco_no_fw(struct hl_nic_macro *nic_macro)
-{
-	struct hl_device *hdev = nic_macro->hdev;
-	u32 port;
-
-	/* erratum 5456 is by default enabled in HW, this function disables it upon request */
-	if ((hdev->fw_components & FW_TYPE_BOOT_CPU) || hdev->nic_enable_h9_cc_msg_drops_eco)
-		return;
-
-	port = gaudi3_nic_get_first_port(nic_macro);
-
-	NIC_RMWREG32(mmD0_NIC0_QPC_SPECIAL_BASE + mmNIC_QPC_SPECIAL_GLBL_SPARE_0, 1,
-			NIC_QPC_SPECIAL_GLBL_SPARE_0_ECO_5456_DISABLE_M);
-}
-
-static void gaudi3_nic_set_remote_pi_update_eco_no_fw(struct hl_nic_macro *nic_macro)
-{
-	struct hl_device *hdev = nic_macro->hdev;
-	u32 port;
-
-	/* erratum 5490 is by default enabled in HW, this function disables it upon request */
-	if ((hdev->fw_components & FW_TYPE_BOOT_CPU) || hdev->nic_enable_h9_remote_pi_update_eco)
-		return;
-
-	port = gaudi3_nic_get_first_port(nic_macro);
-
-	NIC_RMWREG32(mmD0_NIC0_QPC_SPECIAL_BASE + mmNIC_QPC_SPECIAL_GLBL_SPARE_0, 1,
-			NIC_QPC_SPECIAL_GLBL_SPARE_0_ECO_5490_DISABLE_M);
-}
-
-static void gaudi3_nic_set_sal_override_eco_no_fw(struct hl_nic_macro *nic_macro)
-{
-	struct hl_device *hdev = nic_macro->hdev;
-	u32 port;
-
-	/* erratum 5499 is by default enabled in HW, this function disables it upon request */
-	if ((hdev->fw_components & FW_TYPE_BOOT_CPU) || hdev->nic_enable_h9_sal_override_eco)
-		return;
-
-	port = gaudi3_nic_get_first_port(nic_macro);
-
-	NIC_RMWREG32(mmD0_NIC0_RXE_SPECIAL_BASE + mmNIC_QPC_SPECIAL_GLBL_SPARE_0, 1,
-			NIC_RXE_SPECIAL_GLBL_SPARE_0_ECO_5499_DISABLE_M);
-}
-
-static void gaudi3_nic_set_txe_buff_alloc_eco_no_fw(struct hl_nic_macro *nic_macro)
-{
-	struct hl_device *hdev = nic_macro->hdev;
-	u32 port;
-
-	/* erratum 5471 is by default enabled in HW, this function disables it upon request */
-	if ((hdev->fw_components & FW_TYPE_BOOT_CPU) || hdev->nic_enable_h9_txe_buff_alloc_eco)
-		return;
-
-	port = gaudi3_nic_get_first_port(nic_macro);
-
-	NIC_RMWREG32(mmD0_NIC0_TXE_SPECIAL_BASE + mmNIC_TXE_SPECIAL_GLBL_SPARE_0, 1,
-			NIC_TXE_SPECIAL_GLBL_SPARE_0_ECO_5471_DISABLE_M);
-}
-
-static void gaudi3_nic_hw_macro_config_no_fw(struct hl_nic_macro *nic_macro)
+static void gaudi3_nic_hw_macro_config_fw(struct hl_nic_macro *nic_macro)
 {
 	struct hl_device *hdev = nic_macro->hdev;
 	struct hl_nic_properties *nic_prop;
@@ -572,27 +412,15 @@ static void gaudi3_nic_hw_macro_config_no_fw(struct hl_nic_macro *nic_macro)
 
 	port = gaudi3_nic_get_first_port(nic_macro);
 
-	gaudi3_nic_config_hw_mac_no_fw(hdev, port);
+	gaudi3_nic_config_hw_mac_fw(hdev, port);
 
-	gaudi3_nic_config_hw_rxe_no_fw(hdev, port);
+	gaudi3_nic_config_hw_rxe_fw(hdev, port);
 
-	gaudi3_nic_config_hw_qpc_no_fw(hdev, port);
+	gaudi3_nic_config_hw_qpc_fw(hdev, port);
 
-	gaudi3_nic_config_hw_txe_no_fw(hdev, port);
+	gaudi3_nic_config_hw_txe_fw(hdev, port);
 
-	gaudi3_nic_set_rx_drop_eco_no_fw(nic_macro);
-
-	/* ECO fix disable flows - used for debug */
-
-	gaudi3_nic_set_qpc_doorbells_eco_no_fw(nic_macro);
-
-	gaudi3_nic_set_cc_message_drops_eco_no_fw(nic_macro);
-
-	gaudi3_nic_set_remote_pi_update_eco_no_fw(nic_macro);
-
-	gaudi3_nic_set_sal_override_eco_no_fw(nic_macro);
-
-	gaudi3_nic_set_txe_buff_alloc_eco_no_fw(nic_macro);
+	gaudi3_nic_set_rx_drop_eco_fw(nic_macro);
 }
 
 void gaudi3_nic_macros_fw_config(struct hl_device *hdev)
@@ -614,6 +442,188 @@ void gaudi3_nic_macros_fw_config(struct hl_device *hdev)
 		if (!gaudi3_nic_is_macro_enabled(hdev, nic_macro))
 			continue;
 
-		gaudi3_nic_hw_macro_config_no_fw(nic_macro);
+		gaudi3_nic_hw_macro_config_fw(nic_macro);
 	}
+}
+
+int gaudi3_nic_disable_wqe_index_checker_fw(struct hl_nic_port *nic_port)
+{
+	struct hl_device *hdev = nic_port->hdev;
+	struct hl_nic_port_funcs *port_funcs;
+	u32 port = nic_port->port;
+	int rc = 0;
+
+	/* This is a privilege register that is modified on the go, hence we should disable
+	 * assertion on simulator to allow us the modification. At the end of this section we
+	 * enable security assertion back. We enter this section only if FW security
+	 * is not enabled.
+	 */
+	if (!(hdev->fw_components & FW_TYPE_BOOT_CPU)) {
+		hdev->asic_funcs->set_priv_assertions(hdev, false);
+
+		NIC_RMWREG32(mmD0_NIC0_RXE_WQE_CHECKS_EN, 0,
+			NIC_RXE_WQE_CHECKS_EN_WQE_IDX_MISMATCH_M);
+
+		hdev->asic_funcs->set_priv_assertions(hdev, true);
+	} else {
+		port_funcs = hdev->asic_funcs->nic_funcs->port_funcs;
+		rc = port_funcs->send_cpucp_packet(nic_port, CPUCP_PACKET_NIC_SET_CHECKERS,
+						RX_WQE_IDX_MISMATCH);
+	}
+
+	if (rc)
+		dev_err(hdev->dev,
+			"Failed to disable Rx WQE idx mismatch checker, port %d, rc %d\n",
+			port, rc);
+
+	return rc;
+}
+
+static void gaudi3_nic_set_qpc_doorbells_eco_pldm(struct hl_nic_macro *nic_macro)
+{
+	struct hl_device *hdev = nic_macro->hdev;
+	u32 port;
+
+	/* erratum 4960 is by default enabled in HW, this function disables it upon request */
+	if (hdev->nic_enable_h9_qp_doorbells_eco)
+		return;
+
+	port = gaudi3_nic_get_first_port(nic_macro);
+
+	NIC_RMWREG32(mmD0_NIC0_QPC_SPECIAL_BASE + mmNIC_QPC_SPECIAL_GLBL_SPARE_0, 1,
+			NIC_QPC_SPECIAL_GLBL_SPARE_0_ECO_4960_DISABLE_M);
+}
+
+static void gaudi3_nic_set_cc_message_drops_eco_pldm(struct hl_nic_macro *nic_macro)
+{
+	struct hl_device *hdev = nic_macro->hdev;
+	u32 port;
+
+	/* erratum 5456 is by default enabled in HW, this function disables it upon request */
+	if (hdev->nic_enable_h9_cc_msg_drops_eco)
+		return;
+
+	port = gaudi3_nic_get_first_port(nic_macro);
+
+	NIC_RMWREG32(mmD0_NIC0_QPC_SPECIAL_BASE + mmNIC_QPC_SPECIAL_GLBL_SPARE_0, 1,
+			NIC_QPC_SPECIAL_GLBL_SPARE_0_ECO_5456_DISABLE_M);
+}
+
+static void gaudi3_nic_set_remote_pi_update_eco_pldm(struct hl_nic_macro *nic_macro)
+{
+	struct hl_device *hdev = nic_macro->hdev;
+	u32 port;
+
+	/* erratum 5490 is by default enabled in HW, this function disables it upon request */
+	if (hdev->nic_enable_h9_remote_pi_update_eco)
+		return;
+
+	port = gaudi3_nic_get_first_port(nic_macro);
+
+	NIC_RMWREG32(mmD0_NIC0_QPC_SPECIAL_BASE + mmNIC_QPC_SPECIAL_GLBL_SPARE_0, 1,
+			NIC_QPC_SPECIAL_GLBL_SPARE_0_ECO_5490_DISABLE_M);
+}
+
+static void gaudi3_nic_set_sal_override_eco_pldm(struct hl_nic_macro *nic_macro)
+{
+	struct hl_device *hdev = nic_macro->hdev;
+	u32 port;
+
+	/* erratum 5499 is by default enabled in HW, this function disables it upon request */
+	if (hdev->nic_enable_h9_sal_override_eco)
+		return;
+
+	port = gaudi3_nic_get_first_port(nic_macro);
+
+	NIC_RMWREG32(mmD0_NIC0_RXE_SPECIAL_BASE + mmNIC_QPC_SPECIAL_GLBL_SPARE_0, 1,
+			NIC_RXE_SPECIAL_GLBL_SPARE_0_ECO_5499_DISABLE_M);
+}
+
+static void gaudi3_nic_set_txe_buff_alloc_eco_pldm(struct hl_nic_macro *nic_macro)
+{
+	struct hl_device *hdev = nic_macro->hdev;
+	u32 port;
+
+	/* erratum 5471 is by default enabled in HW, this function disables it upon request */
+	if (hdev->nic_enable_h9_txe_buff_alloc_eco)
+		return;
+
+	port = gaudi3_nic_get_first_port(nic_macro);
+
+	NIC_RMWREG32(mmD0_NIC0_TXE_SPECIAL_BASE + mmNIC_TXE_SPECIAL_GLBL_SPARE_0, 1,
+			NIC_TXE_SPECIAL_GLBL_SPARE_0_ECO_5471_DISABLE_M);
+}
+
+void gaudi3_nic_ecos_override(struct hl_device *hdev)
+{
+	struct hl_nic_macro *nic_macro;
+	int i;
+
+	/* This ECOs override function is relvant as long as security is not enabled,
+	 * regardless of FW presence.
+	 */
+	if (hdev->reset_info.in_compute_reset || hdev->asic_prop.fw_security_enabled)
+		return;
+
+	for (i = 0 ; i < NIC_NUMBER_OF_MACROS ; i++) {
+		nic_macro = &hdev->nic.nic_macros[i];
+
+		/* It's not allowed to configure a macro that its port or ports are disabled.
+		 * In 400Gbps mode we have a single port in each macro.
+		 * In 200Gbps mode we need to check also the second port in the macro. Only if both
+		 * of the ports are disabled, we should skip this macro.
+		 */
+		if (!gaudi3_nic_is_macro_enabled(hdev, nic_macro))
+			continue;
+
+		/* ECO BFE flag configuration flow - used for debug on PLDM
+		 * regardless if there is FW or no
+		 */
+
+		gaudi3_nic_set_qpc_doorbells_eco_pldm(nic_macro);
+
+		gaudi3_nic_set_cc_message_drops_eco_pldm(nic_macro);
+
+		gaudi3_nic_set_remote_pi_update_eco_pldm(nic_macro);
+
+		gaudi3_nic_set_sal_override_eco_pldm(nic_macro);
+
+		gaudi3_nic_set_txe_buff_alloc_eco_pldm(nic_macro);
+	}
+}
+
+void gaudi3_nic_override_phy_readiness_pldm(struct hl_nic_port *nic_port, bool set_ready)
+{
+	u32 enable_mask, port = nic_port->port, val = 0;
+	struct hl_device *hdev = nic_port->hdev;
+	struct gaudi3_device *gaudi3;
+
+	if (hdev->fw_components & FW_TYPE_BOOT_CPU)
+		return;
+
+	/* PLDM don't receive indication from PHY to MAC as there is no
+	 * PHY, hence we need to override this registers manually.
+	 * In PLDM FW don't receive indication upon hard reset and hence it won't be
+	 * able to override that bit upon teardown. As in PLDM the protection privilege
+	 * bits won't be configured, driver should continue writing to this register,
+	 * though it is privilege register.
+	 */
+	hdev->asic_funcs->set_priv_assertions(hdev, false);
+
+	if (hdev->nic_lanes_per_port == PORT_LANES_4) {
+		if (set_ready)
+			val = PRT_MAC_AUX_PHY_SIG_DETECT_OVRD_SIG_DETECT_ASSERT_M;
+
+		NIC_WREG32(mmD0_NIC0_MAC_AUX_PHY_SIG_DETECT_OVRD, val);
+	} else if (hdev->nic_lanes_per_port == PORT_LANES_2) {
+		gaudi3 = hdev->asic_specific;
+
+		if (set_ready)
+			val = 0x3;
+
+		enable_mask = 0x3 << get_lane_offset(&gaudi3->nic_ports[port]);
+		NIC_RMWREG32(mmD0_NIC0_MAC_AUX_PHY_SIG_DETECT_OVRD, val, enable_mask);
+	}
+
+	hdev->asic_funcs->set_priv_assertions(hdev, true);
 }

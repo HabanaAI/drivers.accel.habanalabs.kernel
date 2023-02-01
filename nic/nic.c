@@ -3663,8 +3663,11 @@ static int user_set_app_params(struct hl_device *hdev, struct hl_nic_set_user_ap
 
 	if (modify_wqe_checkers) {
 		rc = hdev->asic_funcs->nic_funcs->port_funcs->disable_wqe_index_checker(nic_port);
-		if (rc)
+		if (rc) {
+			dev_err(hdev->dev, "Failed disable wqe index checker, port %d rc %d\n",
+					port, rc);
 			goto out;
+		}
 	}
 
 	nic_port->set_app_params = true;
