@@ -3628,11 +3628,11 @@ struct hl_etr_buf_store {
  *                drams are binned-out
  * @tpc_binning: contains mask of tpc engines that is received from the f/w which indicates which
  *               tpc engines are binned-out
- * nic_ports_mask: contains mask of the nic ports that are enabled, as received from the f/w. This
- *                 field can contain different values based on the server type
- * nic_ports_ext_mask: contains mask of the nic ports that are external (used for scale-out), as
- *                     received from the f/w. This field can contain different values based on the
- *                     server type.
+ * @nic_ports_mask: contains mask of the nic ports that are enabled, as received from the f/w. This
+ *                  field can contain different values based on the server type
+ * @nic_ports_ext_mask: contains mask of the nic ports that are external (used for scale-out), as
+ *                      received from the f/w. This field can contain different values based on the
+ *                      server type.
  * @dmabuf_export_cnt: number of dma-buf exporting.
  * @card_type: Various ASICs have several card types. This indicates the card
  *             type of the current device.
@@ -3695,7 +3695,9 @@ struct hl_etr_buf_store {
  *                             device.
  * @skip_iatu_for_unsecured_device: skip the device PCI controller initialization when working
  *                                  with device that runs f/w that is not secured.
- * @nic_ports_mask: Controls which NIC ports are enabled. Used only for testing.
+ * @supports_ctx_switch: true if a ctx switch is required upon first submission.
+ * @pci_revision_id: PCI revision ID
+ * @support_preboot_binning: true if we support read binning info from preboot.
  * @fw_components: Controls which f/w components to load to the device. There are multiple f/w
  *                 stages and sometimes we want to stop at a certain stage. Used only for testing.
  * @mmu_enable: Whether to enable or disable the device MMU(s). Used only for testing.
@@ -3708,9 +3710,6 @@ struct hl_etr_buf_store {
  *                         Used only for testing.
  * @heartbeat: Controls if we want to enable the heartbeat mechanism vs. the f/w, which verifies
  *             that the f/w is always alive. Used only for testing.
- * @supports_ctx_switch: true if a ctx switch is required upon first submission.
- * @pci_revision_id: PCI revision ID
- * @support_preboot_binning: true if we support read binning info from preboot.
  */
 struct hl_device {
 	struct pci_dev			*pdev;
@@ -3886,11 +3885,20 @@ struct hl_device {
 	u8				pci_revision_id;
 	u8				support_preboot_binning;
 
-	/* Parameters for bring-up */
+	/* Parameters for bring-up to be upstreamed */
+	u64				fw_components;
+	u8				mmu_enable;
+	u8				cpu_queues_enable;
+	u8				pldm;
+	u8				hard_reset_on_fw_events;
+	u8				bmc_enable;
+	u8				reset_on_preboot_fail;
+	u8				heartbeat;
+
+	/* Parameters for bring-up (not to be upstreamed) */
 	u64				nic_auto_neg_mask;
 	u64				tpc_mask;
 	u64				mme_binning;
-	u64				fw_components;
 	u64				pdma_ch_mask;
 	u64				sched_arc_mask;
 	u64				hmmu_supported_pages_mask;
@@ -3901,13 +3909,10 @@ struct hl_device {
 	u32				mme_mask;
 	u32				edma_mask;
 	u32				usr_hbm_pll_freq;
-	u8				mmu_enable;
 	u8				mmu_huge_page_opt;
 	u8				reset_pcilink;
 	u8				config_pll;
 	u8				fw_communication_enable;
-	u8				cpu_queues_enable;
-	u8				pldm;
 	u8				dram_enable;
 	u8				axi_drain;
 	u8				security_enable;
@@ -3915,14 +3920,11 @@ struct hl_device {
 	u8				dram_scrambler_enable;
 	u8				hbm_ecc_enable;
 	u8				compatibility_mode;
-	u8				hard_reset_on_fw_events;
-	u8				bmc_enable;
 	u8				bringup_flags_enable;
 	u8				nic_load_fw;
 	u8				rl_enable;
 	u8				sram_binning;
 	u8				ifh;
-	u8				reset_on_preboot_fail;
 	u8				force_driver_reset;
 	u8				force_driver_clock_gating;
 	u8				pll_async_if_enable;
@@ -3949,7 +3951,6 @@ struct hl_device {
 	u8				halt_eng_upon_fw_events;
 	u8				supports_custom_fw_binning;
 	u8				supports_fw_cfg_skip;
-	u8				heartbeat;
 	u8				priv_security_enable;
 	u8				pci_rev_id_override;
 	u8				ptw_bypass_enable;
