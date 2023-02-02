@@ -5938,8 +5938,11 @@ static irqreturn_t gaudi3_page_fault_queue_threaded_irq_handler(int irq, void *p
 		pgf_q_entry++;
 	}
 
-	if (!actual_num_of_pgf)
+	if (!actual_num_of_pgf) {
+		dev_err(hdev->dev, "ODP page fault queue entry is empty, ci = %u\n",
+				page_fault_queue->ci);
 		return IRQ_HANDLED;
+	}
 
 	WREG32(mmD0_PMMU_HBW_MMU_BASE + mmMMU_FAULTQ_CI, page_fault_queue->ci);
 	pgf_q_entry = &gaudi3->pgf_q_entries[0];
