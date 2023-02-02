@@ -3077,76 +3077,10 @@ static void handle_and_clear_cs_events(struct hl_device *hdev, u32 die, u32 hdco
 		WREG32_AND(aggr_mask_reg, events_mask);
 }
 
-static const enum gaudi3_async_event_id
-mc_derr_events_id_map[MAX_NUM_OF_DIES][4 * NUM_OF_HDCORES_PER_DIE] = {
-		{GAUDI3_EVENT_MC0_DIE0_HD0_DERR,
-		GAUDI3_EVENT_MC1_DIE0_HD0_DERR,
-		GAUDI3_EVENT_MC2_DIE0_HD0_DERR,
-		GAUDI3_EVENT_MC3_DIE0_HD0_DERR,
-		GAUDI3_EVENT_MC0_DIE0_HD1_DERR,
-		GAUDI3_EVENT_MC1_DIE0_HD1_DERR,
-		GAUDI3_EVENT_MC2_DIE0_HD1_DERR,
-		GAUDI3_EVENT_MC3_DIE0_HD1_DERR,
-		GAUDI3_EVENT_MC0_DIE0_HD2_DERR,
-		GAUDI3_EVENT_MC1_DIE0_HD2_DERR,
-		GAUDI3_EVENT_MC2_DIE0_HD2_DERR,
-		GAUDI3_EVENT_MC3_DIE0_HD2_DERR,
-		GAUDI3_EVENT_MC0_DIE0_HD3_DERR,
-		GAUDI3_EVENT_MC1_DIE0_HD3_DERR,
-		GAUDI3_EVENT_MC2_DIE0_HD3_DERR,
-		GAUDI3_EVENT_MC3_DIE0_HD3_DERR},
-		{GAUDI3_EVENT_MC0_DIE1_HD0_DERR,
-		GAUDI3_EVENT_MC1_DIE1_HD0_DERR,
-		GAUDI3_EVENT_MC2_DIE1_HD0_DERR,
-		GAUDI3_EVENT_MC3_DIE1_HD0_DERR,
-		GAUDI3_EVENT_MC0_DIE1_HD1_DERR,
-		GAUDI3_EVENT_MC1_DIE1_HD1_DERR,
-		GAUDI3_EVENT_MC2_DIE1_HD1_DERR,
-		GAUDI3_EVENT_MC3_DIE1_HD1_DERR,
-		GAUDI3_EVENT_MC0_DIE1_HD2_DERR,
-		GAUDI3_EVENT_MC1_DIE1_HD2_DERR,
-		GAUDI3_EVENT_MC2_DIE1_HD2_DERR,
-		GAUDI3_EVENT_MC3_DIE1_HD2_DERR,
-		GAUDI3_EVENT_MC0_DIE1_HD3_DERR,
-		GAUDI3_EVENT_MC1_DIE1_HD3_DERR,
-		GAUDI3_EVENT_MC2_DIE1_HD3_DERR,
-		GAUDI3_EVENT_MC3_DIE1_HD3_DERR}
-};
-
-static const enum gaudi3_async_event_id
-mc_sei_events_id_map[MAX_NUM_OF_DIES][4 * NUM_OF_HDCORES_PER_DIE] = {
-		{GAUDI3_EVENT_MC0_DIE0_HD0_SEI,
-		GAUDI3_EVENT_MC1_DIE0_HD0_SEI,
-		GAUDI3_EVENT_MC2_DIE0_HD0_SEI,
-		GAUDI3_EVENT_MC3_DIE0_HD0_SEI,
-		GAUDI3_EVENT_MC0_DIE0_HD1_SEI,
-		GAUDI3_EVENT_MC1_DIE0_HD1_SEI,
-		GAUDI3_EVENT_MC2_DIE0_HD1_SEI,
-		GAUDI3_EVENT_MC3_DIE0_HD1_SEI,
-		GAUDI3_EVENT_MC0_DIE0_HD2_SEI,
-		GAUDI3_EVENT_MC1_DIE0_HD2_SEI,
-		GAUDI3_EVENT_MC2_DIE0_HD2_SEI,
-		GAUDI3_EVENT_MC3_DIE0_HD2_SEI,
-		GAUDI3_EVENT_MC0_DIE0_HD3_SEI,
-		GAUDI3_EVENT_MC1_DIE0_HD3_SEI,
-		GAUDI3_EVENT_MC2_DIE0_HD3_SEI,
-		GAUDI3_EVENT_MC3_DIE0_HD3_SEI},
-		{GAUDI3_EVENT_MC0_DIE1_HD0_SEI,
-		GAUDI3_EVENT_MC1_DIE1_HD0_SEI,
-		GAUDI3_EVENT_MC2_DIE1_HD0_SEI,
-		GAUDI3_EVENT_MC3_DIE1_HD0_SEI,
-		GAUDI3_EVENT_MC0_DIE1_HD1_SEI,
-		GAUDI3_EVENT_MC1_DIE1_HD1_SEI,
-		GAUDI3_EVENT_MC2_DIE1_HD1_SEI,
-		GAUDI3_EVENT_MC3_DIE1_HD1_SEI,
-		GAUDI3_EVENT_MC0_DIE1_HD2_SEI,
-		GAUDI3_EVENT_MC1_DIE1_HD2_SEI,
-		GAUDI3_EVENT_MC2_DIE1_HD2_SEI,
-		GAUDI3_EVENT_MC3_DIE1_HD2_SEI,
-		GAUDI3_EVENT_MC0_DIE1_HD3_SEI,
-		GAUDI3_EVENT_MC1_DIE1_HD3_SEI,
-		GAUDI3_EVENT_MC2_DIE1_HD3_SEI,
-		GAUDI3_EVENT_MC3_DIE1_HD3_SEI}
+static u32 mc_special_regs_base[] = {
+	mmD0_HBM0_MC0_SPECIAL_BASE,
+	mmD0_HBM0_MC1_SPECIAL_BASE,
+	mmD0_HBM0_CMN01_SPECIAL_BASE
 };
 
 /* HDCORE_HBM_EVENT */
@@ -3154,28 +3088,36 @@ static void handle_and_clear_hbm_events(struct hl_device *hdev, u32 die, u32 hdc
 					enum err_grp type, u32 sts, u32 sts_idx, u32 idx,
 					u32 aggr_mask_reg, u32 events_mask)
 {
-	enum gaudi3_async_event_id event_id;
+	struct hl_eq_dynamic_entry eq_dynamic_entry = {};
+	struct eq_agg_header_params params = {};
 	bool unmask_event_in_aggr = false;
-	struct hl_eq_entry eq_entry;
-	u32 index;
-
-	memset(&eq_entry, 0, sizeof(struct hl_eq_entry));
+	u32 offset;
 
 	switch (type) {
 	case ERR_GRP_DERR:
-		index = idx + (4 * hdcore);
-		event_id = mc_derr_events_id_map[die][index];
+		/* Per HBM, 4 DERR interrupts for MC_CH0/1, MC_CH2/3, MC_CH4/5 and MC_CH6/7 */
+		offset = die * DIE_OFFSET + hdcore * HBM_DEV_OFFSET +
+				(idx % 4) * (2 * HBM_MC_OFFSET);
+		handle_and_clear_derr_events(hdev, mc_special_regs_base,
+						ARRAY_SIZE(mc_special_regs_base), offset,
+						&eq_dynamic_entry.ecc_data);
+		eq_dynamic_entry.hdr.size = cpu_to_le16(sizeof(struct hl_eq_ecc_data));
+		unmask_event_in_aggr = true;
 		break;
 	case ERR_GRP_SEI:
-		index = idx + (4 * hdcore);
-		event_id = mc_sei_events_id_map[die][index];
 		break;
 	default:
 		return;
 	}
 
-	eq_entry.hdr.ctl = cpu_to_le32(event_id << EQ_CTL_EVENT_TYPE_SHIFT);
-	gaudi3_handle_eqe_old(hdev, &eq_entry);
+	params.component_type = INT_COMP_TYPE_MC;
+	params.grp_type = type;
+	params.die = die;
+	params.hdcore = hdcore;
+	params.instance = 0;
+	prepare_eq_dynamic_entry_agg_header(&eq_dynamic_entry, &params);
+
+	gaudi3_handle_eqe(hdev, &eq_dynamic_entry);
 
 	if (unmask_event_in_aggr)
 		WREG32_AND(aggr_mask_reg, events_mask);
