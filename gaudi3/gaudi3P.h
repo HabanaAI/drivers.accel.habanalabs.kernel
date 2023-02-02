@@ -863,5 +863,6 @@ void gaudi3_nic_override_phy_readiness_pldm(struct hl_nic_port *nic_port, bool s
 int gaudi3_nic_disable_wqe_index_checker_fw(struct hl_nic_port *nic_port);
 void gaudi3_nic_macros_fw_config(struct hl_device *hdev);
 void gaudi3_handle_axi_drain(struct hl_device *hdev, bool *pci_link_error);
+void gaudi3_nic_restore_dynamic_cfg_soft_reset_fw(struct hl_device *hdev);
 
 #endif /* GAUDI3P_H_ */

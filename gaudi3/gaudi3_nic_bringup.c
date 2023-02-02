@@ -475,6 +475,25 @@ int gaudi3_nic_disable_wqe_index_checker_fw(struct hl_nic_port *nic_port)
 	return rc;
 }
 
+void gaudi3_nic_restore_dynamic_cfg_soft_reset_fw(struct hl_device *hdev)
+{
+	struct hl_nic_macro *nic_macro;
+	u32 port;
+	int i;
+
+
+	for (i = 0 ; i < NIC_NUMBER_OF_MACROS ; i++) {
+		nic_macro = &hdev->nic.nic_macros[i];
+		port = gaudi3_nic_get_first_port(nic_macro);
+		/* It's not allowed to configure a macro that its port or ports are disabled. */
+		if (!gaudi3_nic_is_macro_enabled(hdev, nic_macro))
+			continue;
+
+		NIC_RMWREG32(mmD0_NIC0_RXE_WQE_CHECKS_EN, 1,
+				NIC_RXE_WQE_CHECKS_EN_WQE_IDX_MISMATCH_M);
+	}
+}
+
 static void gaudi3_nic_set_qpc_doorbells_eco_pldm(struct hl_nic_macro *nic_macro)
 {
 	u32 port = gaudi3_nic_get_first_port(nic_macro);

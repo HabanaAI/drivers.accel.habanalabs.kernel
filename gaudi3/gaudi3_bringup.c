@@ -2642,6 +2642,7 @@ void gaudi3_hw_init_fw_config(struct hl_device *hdev)
 	gaudi3_ac_program_all(hdev);
 	gaudi3_enable_ptw_bypass(hdev);
 	gaudi3_init_qos(hdev);
+	gaudi3_nic_restore_dynamic_cfg_soft_reset_fw(hdev);
 
 	gaudi3_nic_macros_fw_config(hdev);
 

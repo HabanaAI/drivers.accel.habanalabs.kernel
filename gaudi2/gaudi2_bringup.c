@@ -6836,6 +6836,7 @@ int gaudi2_init_golden_registers(struct hl_device *hdev)
 	gaudi2_init_nic_fw_config(hdev);
 	gaudi2_configure_msix_axi_slave(hdev);
 	gaudi2_init_range_registers_fw_config(hdev);
+	gaudi2_nic_restore_dynamic_cfg_soft_reset_fw(hdev);
 
 	gaudi2_nic_blocks_fw_config(hdev);
 

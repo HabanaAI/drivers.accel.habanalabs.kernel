@@ -929,5 +929,6 @@ void gaudi2_nic_override_phy_readiness(struct hl_nic_port *nic_port, bool set_re
 int gaudi2_nic_disable_wqe_index_checker_fw(struct hl_nic_port *nic_port);
 void gaudi2_nic_quiescence_phy_no_fw(struct hl_device *hdev);
 void gaudi2_nic_blocks_fw_config(struct hl_device *hdev);
+void gaudi2_nic_restore_dynamic_cfg_soft_reset_fw(struct hl_device *hdev);
 
 #endif /* GAUDI2P_H_ */

@@ -500,3 +500,20 @@ void gaudi2_nic_blocks_fw_config(struct hl_device *hdev)
 
 	gaudi2_nic_set_correct_address_for_errors(hdev);
 }
+
+void gaudi2_nic_restore_dynamic_cfg_soft_reset_fw(struct hl_device *hdev)
+{
+	struct hl_nic_properties *nic_props = &hdev->asic_prop.nic_props;
+	int port;
+
+	for (port = 0 ; port < nic_props->max_num_of_ports ; port++) {
+		/* Don't initialize disabled ports */
+		if (!(hdev->nic_ports_mask & BIT(port)))
+			continue;
+
+		NIC_RMWREG32(mmNIC0_RXE0_RXE_CHECKS, 1,
+			NIC0_RXE0_RXE_CHECKS_WQE_IDX_MISMATCH_EN_MASK);
+		NIC_RMWREG32(mmNIC0_TXE0_WQE_CHECK_EN, 1,
+			NIC0_TXE0_WQE_CHECK_EN_WQE_INDEX_EN_MASK);
+	}
+}
