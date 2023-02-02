@@ -11,8 +11,8 @@
 #define NIC_TXE_SPECIAL_GLBL_SPARE_0_ECO_5216_BURST_SIZE_S 0
 #define NIC_TXE_SPECIAL_GLBL_SPARE_0_ECO_5216_BURST_SIZE_M 0x3FFFFF
 
-#define NIC_TXE_SPECIAL_GLBL_SPARE_0_ECO_5216_ENABLE_S 22
-#define NIC_TXE_SPECIAL_GLBL_SPARE_0_ECO_5216_ENABLE_M 0x400000
+#define NIC_TXE_SPECIAL_GLBL_SPARE_0_ECO_5216_DISABLE_S 22
+#define NIC_TXE_SPECIAL_GLBL_SPARE_0_ECO_5216_DISABLE_M 0x400000
 
 #define NIC_TXE_SPECIAL_GLBL_SPARE_0_ECO_5457_ENABLE_S 23
 #define NIC_TXE_SPECIAL_GLBL_SPARE_0_ECO_5457_ENABLE_M 0x800000
@@ -267,10 +267,6 @@ static void gaudi3_nic_config_hw_qpc_fw(struct hl_device *hdev, u32 port)
 	 */
 	NIC_RMWREG32(mmD0_NIC0_TXE_SPECIAL_BASE + mmNIC_TXE_SPECIAL_GLBL_SPARE_0,
 			QPC_REQ_BURST_SIZE, NIC_TXE_SPECIAL_GLBL_SPARE_0_ECO_5216_BURST_SIZE_M);
-	/* H9-5216 is enabled upon bit set to 0 */
-	NIC_RMWREG32(mmD0_NIC0_TXE_SPECIAL_BASE + mmNIC_TXE_SPECIAL_GLBL_SPARE_0,
-			hdev->nic_enable_h9_single_qp_perf_fix_eco ? 0 : 1,
-			NIC_TXE_SPECIAL_GLBL_SPARE_0_ECO_5216_ENABLE_M);
 }
 
 static void gaudi3_nic_config_hw_txe_fw(struct hl_device *hdev, u32 port)
@@ -554,6 +550,23 @@ static void gaudi3_nic_set_txe_buff_alloc_eco_pldm(struct hl_nic_macro *nic_macr
 			NIC_TXE_SPECIAL_GLBL_SPARE_0_ECO_5471_DISABLE_M);
 }
 
+static void gaudi3_nic_set_single_qp_perf_eco_pldm(struct hl_nic_macro *nic_macro)
+{
+	struct hl_device *hdev = nic_macro->hdev;
+	u32 port;
+
+	/* erratum 5216 is by default enabled in HW, this function disables it upon request.
+	 * The configuration of the burst size for that ECO resides in QPC configuration function.
+	 */
+	if (hdev->nic_enable_h9_single_qp_perf_fix_eco)
+		return;
+
+	port = gaudi3_nic_get_first_port(nic_macro);
+
+	NIC_RMWREG32(mmD0_NIC0_TXE_SPECIAL_BASE + mmNIC_TXE_SPECIAL_GLBL_SPARE_0, 1,
+			NIC_TXE_SPECIAL_GLBL_SPARE_0_ECO_5216_DISABLE_M);
+}
+
 void gaudi3_nic_ecos_override(struct hl_device *hdev)
 {
 	struct hl_nic_macro *nic_macro;
@@ -589,6 +602,8 @@ void gaudi3_nic_ecos_override(struct hl_device *hdev)
 		gaudi3_nic_set_sal_override_eco_pldm(nic_macro);
 
 		gaudi3_nic_set_txe_buff_alloc_eco_pldm(nic_macro);
+
+		gaudi3_nic_set_single_qp_perf_eco_pldm(nic_macro);
 	}
 }
 
