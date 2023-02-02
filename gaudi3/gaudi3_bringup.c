@@ -3123,16 +3123,22 @@ static void handle_and_clear_hbm_events(struct hl_device *hdev, u32 die, u32 hdc
 		WREG32_AND(aggr_mask_reg, events_mask);
 }
 
-static const enum gaudi3_async_event_id pcie_spi_events_id_map[MAX_NUM_OF_DIES][6] = {
+static const enum gaudi3_async_event_id pcie_spi_events_id_map[MAX_NUM_OF_DIES][9] = {
 		{GAUDI3_EVENT_PCIE1_DIE0_HDSHARED_SPI,
 		GAUDI3_EVENT_PCIE4_DIE0_HDSHARED_SPI,
 		GAUDI3_EVENT_PCIE5_DIE0_HDSHARED_SPI,
+		GAUDI3_EVENT_PCIE6_DIE0_HDSHARED_SPI,
+		GAUDI3_EVENT_PCIE7_DIE0_HDSHARED_SPI,
+		GAUDI3_EVENT_PCIE8_DIE0_HDSHARED_SPI,
 		GAUDI3_EVENT_PCIE9_DIE0_HDSHARED_SPI,
 		GAUDI3_EVENT_PCIE13_DIE0_HDSHARED_SPI,
 		GAUDI3_EVENT_PCIE14_DIE0_HDSHARED_SPI},
-		{GAUDI3_EVENT_PCIE1_DIE0_HDSHARED_SPI,
+		{GAUDI3_EVENT_PCIE1_DIE1_HDSHARED_SPI,
 		GAUDI3_EVENT_PCIE4_DIE1_HDSHARED_SPI,
 		GAUDI3_EVENT_PCIE5_DIE1_HDSHARED_SPI,
+		GAUDI3_EVENT_PCIE6_DIE1_HDSHARED_SPI,
+		GAUDI3_EVENT_PCIE7_DIE1_HDSHARED_SPI,
+		GAUDI3_EVENT_PCIE8_DIE1_HDSHARED_SPI,
 		GAUDI3_EVENT_PCIE9_DIE1_HDSHARED_SPI,
 		GAUDI3_EVENT_PCIE13_DIE1_HDSHARED_SPI,
 		GAUDI3_EVENT_PCIE14_DIE1_HDSHARED_SPI}
@@ -3765,9 +3771,8 @@ static void gaudi3_shared_spi_event_info(struct hl_device *hdev, u32 die)
 {
 	u32 offset, sts0, sts1, sts2, idx,
 			sts0_pcie_mask0 = BIT(3),
-			sts0_pcie_mask1 = GENMASK(7, 6),
-			sts0_pcie_mask2 = BIT(11),
-			sts0_pcie_mask3 = GENMASK(16, 15),
+			sts0_pcie_mask1 = GENMASK(11, 6),
+			sts0_pcie_mask2 = GENMASK(16, 15),
 			sts0_nic_mask = GENMASK(31, 21),
 			sts1_nic_mask = BIT(0),
 			sts1_nch_mask = GENMASK(2, 1),
@@ -3821,29 +3826,16 @@ static void gaudi3_shared_spi_event_info(struct hl_device *hdev, u32 die)
 	}
 
 	if (sts0 & sts0_pcie_mask2) {
-		idx = 9;
+		idx = ffs(sts0 & sts0_pcie_mask2) - 3;
 		snprintf(str, 512, "PCIE%u_DIE%u_HDSHARED_SPI", idx, die);
 		dev_err(hdev->dev, "Received %s event\n", str);
 
 		if (shared_handle_and_clear[SHARED_PCIE_EVENT])
 			shared_handle_and_clear[SHARED_PCIE_EVENT](hdev, die,
-				ERR_GRP_SPI_ECO, sts0, 0, 3,
+				ERR_GRP_SPI_ECO, sts0, 0, idx - 6,
 				mmD0_CPU_INT_AGG_SHARED_SPI_ECO_INT_MSG_BASE +
 				mmINT_AGG_SHARED_SPI_ECO_INT_MSG_MASK_0 + offset,
 				~(sts0 & sts0_pcie_mask2));
-	}
-
-	if (sts0 & sts0_pcie_mask3) {
-		idx = ffs(sts0 & sts0_pcie_mask3) - 3;
-		snprintf(str, 512, "PCIE%u_DIE%u_HDSHARED_SPI", idx, die);
-		dev_err(hdev->dev, "Received %s event\n", str);
-
-		if (shared_handle_and_clear[SHARED_PCIE_EVENT])
-			shared_handle_and_clear[SHARED_PCIE_EVENT](hdev, die,
-				ERR_GRP_SPI_ECO, sts0, 0, idx - 9,
-				mmD0_CPU_INT_AGG_SHARED_SPI_ECO_INT_MSG_BASE +
-				mmINT_AGG_SHARED_SPI_ECO_INT_MSG_MASK_0 + offset,
-				~(sts0 & sts0_pcie_mask3));
 	}
 
 	/* Handle NIC */
