@@ -3473,7 +3473,7 @@ int gaudi2_nic_set_info(struct hl_device *hdev, bool get_from_fw)
 					mac[ETH_ALEN - 1] = i;
 					memcpy(mac_addr, mac, ETH_ALEN);
 				} else {
-					dev_dbg(hdev->dev,
+					dev_err(hdev->dev,
 						"bad MAC OUI %pM, port %d - failing the initialization\n",
 						mac_addr, i);
 					return -EFAULT;

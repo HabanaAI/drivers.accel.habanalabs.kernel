@@ -3028,9 +3028,9 @@ static int gaudi2_cpucp_info_get(struct hl_device *hdev)
 	prop->max_power_default = (u64) max_power;
 
 	if (!hdev->ignore_fw_nic_info)
-		gaudi2_nic_set_info(hdev, true);
+		rc = gaudi2_nic_set_info(hdev, true);
 
-	return 0;
+	return rc;
 }
 
 static int gaudi2_fetch_frequency(struct hl_device *hdev, u32 pll_index, u16 *pll_freq_arr)
