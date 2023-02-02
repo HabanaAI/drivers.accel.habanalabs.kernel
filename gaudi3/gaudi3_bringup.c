@@ -3660,10 +3660,6 @@ static void handle_and_clear_arc_farm_events(struct hl_device *hdev, u32 die, u3
 		break;
 	case ERR_GRP_SEI:
 		event_id = arc_sei_events_id_map[die][hdcore];
-		eq_entry.intr_cause.intr_cause_data =
-				cpu_to_le64(RREG32(hdcore * HDCORE_OFFSET +
-						mmHD0_ARC_FARM_ARC0_AUX_BASE +
-						mmQMAN_ARC_AUX_ARC_SEI_INTR_STS));
 		unmask_event_in_aggr = true;
 		break;
 	default:
@@ -3676,7 +3672,8 @@ static void handle_and_clear_arc_farm_events(struct hl_device *hdev, u32 die, u3
 
 	/* Clear event */
 	if (type == ERR_GRP_SEI) {
-		err_msk = lower_32_bits(le64_to_cpu(eq_entry.intr_cause.intr_cause_data));
+		err_msk = RREG32(hdcore * HDCORE_OFFSET + mmHD0_ARC_FARM_ARC0_AUX_BASE +
+					mmQMAN_ARC_AUX_ARC_SEI_INTR_STS);
 		WREG32(hdcore * HDCORE_OFFSET + mmHD0_ARC_FARM_ARC0_AUX_BASE +
 				mmQMAN_ARC_AUX_ARC_SEI_INTR_CLR, err_msk);
 	}

@@ -11159,11 +11159,10 @@ static void gaudi3_handle_pdma_sei_err(struct hl_device *hdev, u8 die)
 	hl_check_for_glbl_errors(hdev);
 }
 
-static void gaudi3_handle_arc_farm_sei_err(struct hl_device *hdev, struct hl_eq_intr_cause *i)
+static void gaudi3_handle_arc_farm_sei_err(struct hl_device *hdev, u32 hdcore)
 {
-	u32 err_msk;
-
-	err_msk = lower_32_bits(le64_to_cpu(i->intr_cause_data));
+	u32 err_msk = RREG32(hdcore * HDCORE_OFFSET + mmHD0_ARC_FARM_ARC0_AUX_BASE +
+				mmQMAN_ARC_AUX_ARC_SEI_INTR_STS);
 
 	gaudi3_err_cause_iterator(hdev, err_msk, gaudi3_arc_sei_err_cause, "ARC", "SEI");
 
@@ -11197,9 +11196,9 @@ static void gaudi3_handle_ecc_event(struct hl_device *hdev, struct hl_eq_ecc_dat
 
 void gaudi3_handle_eqe_old(struct hl_device *hdev, struct hl_eq_entry *eq_entry)
 {
+	u32 ctl, index, hdcore;
 	u64 event_mask = 0;
 	u16 event_type;
-	u32 ctl, index;
 
 	ctl = le32_to_cpu(eq_entry->hdr.ctl);
 	event_type = ((ctl & EQ_CTL_EVENT_TYPE_MASK) >> EQ_CTL_EVENT_TYPE_SHIFT);
@@ -11224,7 +11223,10 @@ void gaudi3_handle_eqe_old(struct hl_device *hdev, struct hl_eq_entry *eq_entry)
 	case GAUDI3_EVENT_ARC_FARM0_DIE1_HD1_SEI:
 	case GAUDI3_EVENT_ARC_FARM0_DIE1_HD2_SEI:
 	case GAUDI3_EVENT_ARC_FARM0_DIE1_HD3_SEI:
-		gaudi3_handle_arc_farm_sei_err(hdev, &eq_entry->intr_cause);
+		hdcore = (event_type - GAUDI3_EVENT_ARC_FARM0_DIE0_HD0_SEI) /
+				(GAUDI3_EVENT_ARC_FARM0_DIE0_HD1_SEI -
+						GAUDI3_EVENT_ARC_FARM0_DIE0_HD0_SEI);
+		gaudi3_handle_arc_farm_sei_err(hdev, hdcore);
 		break;
 
 	case GAUDI3_EVENT_PMMU1_DIE0_HDSHARED_SPI:
