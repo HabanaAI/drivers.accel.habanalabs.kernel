@@ -3616,30 +3616,9 @@ static void handle_and_clear_pdma_events(struct hl_device *hdev, u32 die,
 		WREG32_AND(aggr_mask_reg, events_mask);
 }
 
-static enum gaudi3_async_event_id
-arc_sei_events_id_map[MAX_NUM_OF_DIES][NUM_OF_HDCORES_PER_DIE] = {
-		{GAUDI3_EVENT_ARC_FARM0_DIE0_HD0_SEI,
-		GAUDI3_EVENT_ARC_FARM0_DIE0_HD1_SEI,
-		GAUDI3_EVENT_ARC_FARM0_DIE0_HD2_SEI,
-		GAUDI3_EVENT_ARC_FARM0_DIE0_HD3_SEI},
-
-		{GAUDI3_EVENT_ARC_FARM0_DIE1_HD0_SEI,
-		GAUDI3_EVENT_ARC_FARM0_DIE1_HD1_SEI,
-		GAUDI3_EVENT_ARC_FARM0_DIE1_HD2_SEI,
-		GAUDI3_EVENT_ARC_FARM0_DIE1_HD3_SEI}
-};
-
-static enum gaudi3_async_event_id
-arc_derr_events_id_map[MAX_NUM_OF_DIES][NUM_OF_HDCORES_PER_DIE] = {
-		{GAUDI3_EVENT_ARC_FARM0_DIE0_HD0_DERR,
-		GAUDI3_EVENT_ARC_FARM0_DIE0_HD1_DERR,
-		GAUDI3_EVENT_ARC_FARM0_DIE0_HD2_DERR,
-		GAUDI3_EVENT_ARC_FARM0_DIE0_HD3_DERR},
-
-		{GAUDI3_EVENT_ARC_FARM0_DIE1_HD0_DERR,
-		GAUDI3_EVENT_ARC_FARM0_DIE1_HD1_DERR,
-		GAUDI3_EVENT_ARC_FARM0_DIE1_HD2_DERR,
-		GAUDI3_EVENT_ARC_FARM0_DIE1_HD3_DERR}
+static u32 arc_farm_special_regs_base[] = {
+	mmHD0_ARC_FARM_ARC0_AUX_SPECIAL_BASE,
+	mmHD0_ARC_FARM_ARC1_AUX_SPECIAL_BASE
 };
 
 /* HDCORE_ARCFARM_EVENT */
@@ -3647,28 +3626,35 @@ static void handle_and_clear_arc_farm_events(struct hl_device *hdev, u32 die, u3
 					enum err_grp type, u32 sts, u32 sts_idx, u32 idx,
 					u32 aggr_mask_reg, u32 events_mask)
 {
-	enum gaudi3_async_event_id event_id;
+	struct hl_eq_dynamic_entry eq_dynamic_entry = {};
+	struct eq_agg_header_params params = {};
 	bool unmask_event_in_aggr = false;
-	struct hl_eq_entry eq_entry;
-	u32 err_msk;
-
-	memset(&eq_entry, 0, sizeof(struct hl_eq_entry));
+	u32 offset, err_msk;
 
 	switch (type) {
 	case ERR_GRP_DERR:
-		event_id = arc_derr_events_id_map[die][hdcore];
+		offset = hdcore * HDCORE_OFFSET;
+		handle_and_clear_derr_events(hdev, arc_farm_special_regs_base,
+						ARRAY_SIZE(arc_farm_special_regs_base), offset,
+						&eq_dynamic_entry.ecc_data);
+		eq_dynamic_entry.hdr.size = cpu_to_le16(sizeof(struct hl_eq_ecc_data));
+		unmask_event_in_aggr = true;
 		break;
 	case ERR_GRP_SEI:
-		event_id = arc_sei_events_id_map[die][hdcore];
 		unmask_event_in_aggr = true;
 		break;
 	default:
-		dev_err(hdev->dev, "Unexpected error group(%u)\n", type);
 		return;
 	}
 
-	eq_entry.hdr.ctl = cpu_to_le32(event_id << EQ_CTL_EVENT_TYPE_SHIFT);
-	gaudi3_handle_eqe_old(hdev, &eq_entry);
+	params.component_type = INT_COMP_TYPE_ARC_FARM;
+	params.grp_type = type;
+	params.die = die;
+	params.hdcore = hdcore;
+	params.instance = 0;
+	prepare_eq_dynamic_entry_agg_header(&eq_dynamic_entry, &params);
+
+	gaudi3_handle_eqe(hdev, &eq_dynamic_entry);
 
 	/* Clear event */
 	if (type == ERR_GRP_SEI) {
