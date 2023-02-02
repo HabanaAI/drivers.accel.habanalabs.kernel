@@ -26,7 +26,7 @@
 
 #define RAND_STAT_CNT(cnt) \
 	do { \
-		u32 __tmp = (u32)get_random_int(); \
+		u32 __tmp = get_random_u32(); \
 		(cnt) = cpu_to_le32(__tmp); \
 		dev_info(hdev->dev, "port %d, %s: %u\n", port, #cnt, __tmp); \
 	} while (0)
