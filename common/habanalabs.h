@@ -3717,18 +3717,6 @@ struct hl_etr_buf_store {
  * @supports_ctx_switch: true if a ctx switch is required upon first submission.
  * @pci_revision_id: PCI revision ID
  * @support_preboot_binning: true if we support read binning info from preboot.
- * @nic_enable_h9_qp_doorbells_eco: enable erratum 4960 ECO, fixes unexpectedly doorbells for QPs
- *		with no work in QPC.
- * @nic_enable_h9_cc_msg_drops_eco: Enable erratum 5456 ECO, fixes message drops in CC mode when
- *		SACK enabled.
- * @nic_enable_h9_remote_pi_update_eco: Enable erratum 5490 ECO, fixes remote PI wrong update on
- *		wraparound.
- * @nic_enable_h9_rxb_mem_read_deadlock_eco: Enable erratum 5454 ECO, fixes RXB memory read
- *		deadlock.
- * @nic_enable_h9_single_qp_perf_fix_eco: Enable erratum 5216 ECO, fixes single QP performance.
- * @nic_enable_h9_sal_override_eco: Enable erratum 5499 ECO, fixes SAL override.
- * @nic_enable_h9_sack_deadlock_eco: Enable erratum 5457, fixes SACK deadlock.
- * @nic_enable_h9_txe_buff_alloc_eco: Enable erratum 5471 ECO, fixes TXE buff allocation issue.
  */
 struct hl_device {
 	struct pci_dev			*pdev;
