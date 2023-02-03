@@ -2326,7 +2326,7 @@ static int gaudi2_set_res_qp_ctx(struct hl_device *hdev,
 
 	u32 port = in->port, priority, encap_id;
 	struct gaudi2_qpc_responder res_qpc;
-	u8 mac[ETH_ALEN], cqn, encap_en;
+	u8 mac[ETH_ALEN], cqn, encap_en, wq_mmu_bypass;
 	struct hl_nic *nic = &hdev->nic;
 	struct hl_nic_user_cq *user_cq;
 	struct hl_nic_port *nic_port;
@@ -2394,7 +2394,9 @@ static int gaudi2_set_res_qp_ctx(struct hl_device *hdev,
 	 * rather to pass WQEs as data, therefore the QPC MMU-BP attribute shall
 	 * be taken according to the configuration of the WQ array.
 	 */
-	if (!(in->rdv && nic->wq_mmu_bypass))
+	wq_mmu_bypass = nic_port->wq_arr_props[HL_NIC_USER_WQ_SEND].wq_mmu_bypass;
+
+	if (!(in->rdv && wq_mmu_bypass))
 		RES_QPC_SET_DATA_MMU_BYPASS(res_qpc, 0);
 	else
 		RES_QPC_SET_DATA_MMU_BYPASS(res_qpc, 1);
@@ -2466,7 +2468,6 @@ static int gaudi2_user_wq_arr_set(struct hl_device *hdev,
 	struct hl_wq_array_properties *wq_arr_props;
 	struct hl_nic_mem_data mem_data = {};
 	struct gaudi2_nic_port *gaudi2_nic;
-	struct hl_nic *nic = &hdev->nic;
 	struct gaudi2_device *gaudi2;
 	struct hl_nic_port *nic_port;
 	u64 wq_base_addr, wq_size_cline_log, wq_size, wq_arr_size, num_of_wqs,
@@ -2686,7 +2687,7 @@ static int gaudi2_user_wq_arr_set(struct hl_device *hdev,
 	/* We are using a separate flag for wq mmu bypass as the nic->mmu_bypass is being used by
 	 * other NIC data structures.
 	 */
-	nic->wq_mmu_bypass = phys_addr;
+	wq_arr_props->wq_mmu_bypass = phys_addr;
 
 	return 0;
 

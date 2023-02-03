@@ -447,6 +447,7 @@ enum hl_nic_coll_conn_type {
  * @on_device_mem: true if this WQ array resides on HBM, false if on host.
  * @is_send: true if this WQ array should contain send WQEs, false if recv WQEs.
  * @is_coll: true if this WQ array is for collective connections.
+ * @wq_mmu_bypass: true if WQs has MMU-BP access, false otherwise.
  */
 struct hl_wq_array_properties {
 	char				*type_str;
@@ -461,6 +462,7 @@ struct hl_wq_array_properties {
 	u8				on_device_mem;
 	u8				is_send;
 	u8				is_coll;
+	u8				wq_mmu_bypass;
 };
 
 /**
@@ -694,7 +696,6 @@ struct hl_coll_properties {
  * @rand_status: randomize the NIC status counters (used for testing).
  * @mmu_bypass: true if the NIC use MMU bypass for its allocated data structures
  *              (false only for testing).
- * @wq_mmu_bypass: true if WQs has MMU-BP access, false otherwise.
  * @has_eq: true if event queue is supported.
  * @eth_loopback: enable hack in hl_en_handle_tx to test eth traffic.
  * @phy_regs_print: print all PHY registers reads/writes.
@@ -734,7 +735,6 @@ struct hl_nic {
 	u8				debugfs_reset;
 	u8				rand_status;
 	u8				mmu_bypass;
-	u8				wq_mmu_bypass;
 	u8				has_eq;
 	u8				eth_loopback;
 	u8				phy_regs_print;

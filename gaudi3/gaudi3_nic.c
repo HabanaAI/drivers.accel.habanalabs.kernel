@@ -2531,8 +2531,9 @@ static int gaudi3_nic_set_res_qp_ctx(struct hl_device *hdev,
 	struct hl_nic_user_cq *user_cq;
 	bool loopback, plain_rdma, atomic_fna;
 	u32 port = in->port, encap_id, priority, encap_en;
-	u8 mac[ETH_ALEN], cqn;
+	u8 mac[ETH_ALEN], cqn, wq_mmu_bypass;
 	int logical_port, rc;
+	enum hl_nic_mem_type wq_type;
 
 	nic_port = &nic->nic_ports[port];
 	gaudi3_nic = nic_port->nic_specific;
@@ -2620,12 +2621,21 @@ static int gaudi3_nic_set_res_qp_ctx(struct hl_device *hdev,
 
 	RES_QPC_SET_TRANSPORT_SERVICE(res_qpc, TS_RC);
 
+	if (qp->is_coll)
+		wq_type = (qp->coll_conn_type == HL_NIC_COLL_CONN_TYPE_SCALE_OUT) ?
+				HL_NIC_USER_COLL_SCALE_OUT_WQ_SEND :
+				HL_NIC_USER_COLL_WQ_SEND;
+	else
+		wq_type = HL_NIC_USER_WQ_SEND;
+
 	/* config MMU-BP
 	 * In RDV QPs, the responded side is not used for 'real' user data but
 	 * rather to pass WQEs as data, therefore the QPC MMU-BP attribute shall
 	 * be taken according to the configuration of the WQ array.
 	 */
-	if (hdev->mmu_enable && !(in->rdv && nic->wq_mmu_bypass))
+	wq_mmu_bypass = nic_port->wq_arr_props[wq_type].wq_mmu_bypass;
+
+	if (hdev->mmu_enable && !(in->rdv && wq_mmu_bypass))
 		RES_QPC_SET_DATA_MMU_BYPASS(res_qpc, 0);
 	else
 		RES_QPC_SET_DATA_MMU_BYPASS(res_qpc, 1);
@@ -2894,7 +2904,7 @@ static int gaudi3_user_wq_arr_set(struct hl_device *hdev,
 	/* We are using a separate flag for wq mmu bypass as the nic->mmu_bypass is being used by
 	 * other NIC data structures.
 	 */
-	nic->wq_mmu_bypass = is_mmu_bp;
+	wq_arr_props->wq_mmu_bypass = is_mmu_bp;
 
 	return 0;
 }
