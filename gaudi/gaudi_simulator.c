@@ -1571,6 +1571,9 @@ static void gaudi_sim_add_device_attr(struct hl_device *hdev,
 static int gaudi_sim_mmu_invalidate_cache_range(struct hl_device *hdev,
 		bool is_hard, u32 flags, u32 asid, u64 va, u64 size)
 {
+	if (hdev->simulator_crashed)
+		return 0;
+
 	/* Treat as invalidate all */
 	return gaudi_mmu_invalidate_cache(hdev, is_hard, flags);
 }

@@ -1398,6 +1398,9 @@ static int greco_sim_mmu_invalidate_cache_range(struct hl_device *hdev,
 				bool is_hard, u32 flags,
 				u32 asid, u64 va, u64 size)
 {
+	if (hdev->simulator_crashed)
+		return 0;
+
 	/* Not supported by simulator yet, treat as invalidate all */
 	return greco_mmu_invalidate_cache(hdev, is_hard, flags);
 }
