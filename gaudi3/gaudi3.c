@@ -11235,15 +11235,6 @@ void gaudi3_handle_eqe_old(struct hl_device *hdev, struct hl_eq_entry *eq_entry)
 	gaudi3_print_irq_info(hdev, event_type);
 
 	switch (event_type) {
-	case GAUDI3_EVENT_PMMU1_DIE0_HDSHARED_SPI:
-	case GAUDI3_EVENT_PMMU2_DIE0_HDSHARED_SPI:
-		handle_pmmu_events(hdev, 0, &event_mask);
-		break;
-
-	case GAUDI3_EVENT_PMMU1_DIE1_HDSHARED_SPI:
-	case GAUDI3_EVENT_PMMU2_DIE1_HDSHARED_SPI:
-		handle_pmmu_events(hdev, 1, &event_mask);
-		break;
 	case GAUDI3_EVENT_PDMA0_DIE0_HDSHARED_SEI:
 		gaudi3_handle_pdma_sei_err(hdev, 0);
 		gaudi3_razwi_handler(hdev, RAZWI_PDMA, 0, 0, 0, GAUDI3_DIE0_ENGINE_ID_PDMA_0_CH_0,
@@ -11394,6 +11385,9 @@ static void gaudi3_handle_spi_event(struct hl_device *hdev,
 		break;
 	case INT_COMP_TYPE_PCIE:
 		gaudi3_handle_pcie0_spi_err(hdev, data_size, &eq_dynamic_entry->pcie_spi_data);
+		break;
+	case INT_COMP_TYPE_PMMU:
+		handle_pmmu_events(hdev, die, event_mask);
 		break;
 	case INT_COMP_TYPE_STLB:
 		handle_hmmu_events(hdev, die, hdcore, event_mask);
