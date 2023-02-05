@@ -62,7 +62,6 @@ int gaudi2_nic_eq_request_irqs(struct hl_device *hdev)
 
 	for (i = 0 ; i < NIC_NUMBER_OF_PORTS ; i++) {
 		gaudi2_nic = &gaudi2->nic_ports[i];
-		dev_dbg(hdev->dev, "Assigning MSI-X interrupt to port %d EQ\n", i);
 		irq = pci_irq_vector(hdev->pdev, GAUDI2_IRQ_NUM_NIC_PORT_FIRST + i);
 		rc = request_threaded_irq(irq,
 					gaudi2_nic_eq_isr,
@@ -101,7 +100,6 @@ void gaudi2_nic_eq_sync_irqs(struct hl_device *hdev)
 		return;
 
 	for (i = 0 ; i < NIC_NUMBER_OF_PORTS ; i++) {
-		dev_dbg(hdev->dev, "Going to sync MSI-X interrupt for port %d EQ\n", i);
 		irq = pci_irq_vector(hdev->pdev, GAUDI2_IRQ_NUM_NIC_PORT_FIRST + i);
 		synchronize_irq(irq);
 	}
@@ -119,7 +117,6 @@ void gaudi2_nic_eq_free_irqs(struct hl_device *hdev)
 		return;
 
 	for (i = 0 ; i < NIC_NUMBER_OF_PORTS ; i++) {
-		dev_dbg(hdev->dev, "Going to free MSI-X interrupt for port %d EQ\n", i);
 		gaudi2_nic = &gaudi2->nic_ports[i];
 		irq = pci_irq_vector(hdev->pdev, GAUDI2_IRQ_NUM_NIC_PORT_FIRST + i);
 		free_irq(irq, gaudi2_nic);
@@ -608,12 +605,8 @@ static int gaudi2_nic_eq_port_init(struct gaudi2_nic_port *gaudi2_nic)
 
 	gaudi2_nic_eq_interrupts_enable_conditionally(gaudi2_nic, hdev->nic_poll_enable);
 
-	if (hdev->nic_poll_enable) {
-		dev_dbg(hdev->dev, "Going to use a workqueue for polling the NIC EQ\n");
+	if (hdev->nic_poll_enable)
 		schedule_delayed_work(&gaudi2_nic->eq_work, msecs_to_jiffies(1));
-	} else {
-		dev_dbg(hdev->dev, "Going to enable MSI-X interrupt for NIC EQ\n");
-	}
 
 	return 0;
 }
