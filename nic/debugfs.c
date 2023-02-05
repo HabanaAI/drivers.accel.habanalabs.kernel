@@ -1273,137 +1273,137 @@ NIC_DEBUGFS(mac_loopback, "0x%llx", true);
 NIC_DEBUGFS(pcs_fail_time_frame, "%d", false);
 NIC_DEBUGFS(pcs_fail_threshold, "%d", false);
 
-void hl_nic_debugfs_init(struct hl_device *hdev)
+void hl_nic_debugfs_init(struct hl_device *hdev, struct dentry *root_dir)
 {
 	struct hl_nic *nic = &hdev->nic;
 
 	debugfs_create_file("nic_mac_loopback",
 				0644,
-				hdev->hl_debugfs.root,
+				root_dir,
 				hdev,
 				&debugfs_mac_loopback_fops);
 
 	debugfs_create_file("nic_pcs_fail_time_frame",
 				0644,
-				hdev->hl_debugfs.root,
+				root_dir,
 				hdev,
 				&debugfs_pcs_fail_time_frame_fops);
 
 	debugfs_create_file("nic_pcs_fail_threshold",
 				0644,
-				hdev->hl_debugfs.root,
+				root_dir,
 				hdev,
 				&debugfs_pcs_fail_threshold_fops);
 
 	debugfs_create_file("nic_pam4_tx_taps",
 				0444,
-				hdev->hl_debugfs.root,
+				root_dir,
 				hdev,
 				&debugfs_pam4_tx_taps_fops);
 
 	debugfs_create_file("nic_nrz_tx_taps",
 				0444,
-				hdev->hl_debugfs.root,
+				root_dir,
 				hdev,
 				&debugfs_nrz_tx_taps_fops);
 
 	debugfs_create_file("nic_polarity",
 				0444,
-				hdev->hl_debugfs.root,
+				root_dir,
 				hdev,
 				&debugfs_polarity_fops);
 
 	debugfs_create_file("nic_qp",
 				0444,
-				hdev->hl_debugfs.root,
+				root_dir,
 				hdev,
 				&debugfs_qp_fops);
 
 	debugfs_create_file("nic_wqe",
 				0444,
-				hdev->hl_debugfs.root,
+				root_dir,
 				hdev,
 				&debugfs_wqe_fops);
 
 	debugfs_create_file("nic_reset_cnt",
 				0444,
-				hdev->hl_debugfs.root,
+				root_dir,
 				hdev,
 				&debugfs_reset_ethtool_cnt_fops);
 
 	debugfs_create_file("nic_mac_lane_remap",
 				0644,
-				hdev->hl_debugfs.root,
+				root_dir,
 				hdev,
 				&debugfs_mac_lane_remap_fops);
 
 	debugfs_create_u8("nic_rand_status",
 				0644,
-				hdev->hl_debugfs.root,
+				root_dir,
 				&nic->rand_status);
 
 	debugfs_create_u8("nic_mmu_bypass",
 				0644,
-				hdev->hl_debugfs.root,
+				root_dir,
 				&nic->mmu_bypass);
 
 	debugfs_create_file("nic_eth_loopback",
 				0644,
-				hdev->hl_debugfs.root,
+				root_dir,
 				hdev,
 				&debugfs_eth_loopback_fops);
 
 	debugfs_create_file("nic_phy_regs_print",
 				0444,
-				hdev->hl_debugfs.root,
+				root_dir,
 				hdev,
 				&debugfs_phy_regs_print_fops);
 
 	debugfs_create_file("nic_phy_show_ber",
 				0444,
-				hdev->hl_debugfs.root,
+				root_dir,
 				hdev,
 				&debugfs_phy_show_ber_fops);
 
 	debugfs_create_file("nic_show_internal_ports_status",
 				0444,
-				hdev->hl_debugfs.root,
+				root_dir,
 				hdev,
 				&debugfs_show_internal_ports_status_fops);
 
 	debugfs_create_file("nic_print_fec_stats",
 				0444,
-				hdev->hl_debugfs.root,
+				root_dir,
 				hdev,
 				&debugfs_print_fec_stats_fops);
 
 	debugfs_create_u8("nic_disable_decap",
 				0644,
-				hdev->hl_debugfs.root,
+				root_dir,
 				&nic->is_decap_disabled);
 
 	debugfs_create_file("nic_phy_set_nrz",
 				0444,
-				hdev->hl_debugfs.root,
+				root_dir,
 				hdev,
 				&debugfs_phy_set_nrz_fops);
 
 	debugfs_create_file("nic_coll_lag_size",
 				0644,
-				hdev->hl_debugfs.root,
+				root_dir,
 				hdev,
 				&debugfs_coll_lag_size_fops);
 
 	debugfs_create_file("nic_phy_dump_serdes_params",
 				0444,
-				hdev->hl_debugfs.root,
+				root_dir,
 				hdev,
 				&debugfs_phy_dump_serdes_params_fops);
 }
 
 #else
 
-void hl_nic_debugfs_init(struct hl_device *hdev)
+void hl_nic_debugfs_init(struct hl_device *hdev, struct dentry *root_dir)
 {
 }
 

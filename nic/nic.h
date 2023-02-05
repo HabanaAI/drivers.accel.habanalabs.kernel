@@ -1337,7 +1337,7 @@ int hl_nic_get_statistics(struct hl_device *hdev, u32 port,
 				struct hl_info_habana_link_counters *out);
 int hl_nic_ctx_init(struct hl_ctx *ctx);
 void hl_nic_ctx_fini(struct hl_ctx *ctx);
-void hl_nic_debugfs_init(struct hl_device *hdev);
+void hl_nic_debugfs_init(struct hl_device *hdev, struct dentry *root_dir);
 u32 hl_nic_get_max_qp_id(struct hl_nic_port *nic_port);
 void hl_nic_qps_stop(struct hl_nic_port *nic_port);
 int hl_nic_mem_alloc(struct hl_ctx *ctx, struct hl_nic_mem_data *mem_data);
