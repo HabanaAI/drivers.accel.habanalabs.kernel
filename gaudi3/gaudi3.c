@@ -2860,21 +2860,22 @@ int gaudi3_set_fixed_properties(struct hl_device *hdev)
 
 	prop->pdma_ch_max = prop->num_of_dies * NUM_OF_PDMA_CH_PER_DIE;
 	prop->pdma_grp_max = prop->num_of_dies * NUM_OF_PDMA_GRP_PER_DIE;
+	prop->pdma_grp_ch_max = NUM_OF_PDMA_CH_PER_GRP;
 
-	/* TODO: Handle the case of SRAM in cache mode */
+	/* Note that SRAM memory might be used before operating as a cache */
 	sram_start_offset = prop->num_of_dies == 1 ?
 			SRAM_MODE_0_SINGLE_DIE_OFFSET : SRAM_MODE_0_DOUBLE_DIE_OFFSET;
+	prop->sram_base_address = SRAM_BASE_ADDR + sram_start_offset;
+	prop->sram_size = SRAM_SIZE - sram_start_offset;
+	prop->sram_end_address = prop->sram_base_address + prop->sram_size;
+	prop->sram_user_base_address = prop->sram_base_address;
 
-	prop->pdma_grp_ch_max = NUM_OF_PDMA_CH_PER_GRP;
 	prop->cache_line_size = DEVICE_CACHE_LINE_SIZE;
 	prop->cfg_base_address = CFG_BAR_BASE;
 	prop->device_dma_offset_for_host_access = HOST_PHYS_BASE_0;
 	prop->host_base_address = HOST_PHYS_BASE_0;
 	prop->host_end_address = prop->host_base_address + HOST_PHYS_SIZE_0;
-	prop->sram_base_address = SRAM_BASE_ADDR + sram_start_offset;
-	prop->sram_size = SRAM_SIZE - sram_start_offset;
-	prop->sram_end_address = prop->sram_base_address + prop->sram_size;
-	prop->sram_user_base_address = prop->sram_base_address;
+
 	prop->num_engine_cores = CPU_ID_MAX;
 	prop->cfg_size = CFG_BAR_SIZE;
 	prop->max_asid = MAX_ASID;
