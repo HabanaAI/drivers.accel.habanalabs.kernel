@@ -529,7 +529,6 @@ void gaudi2_nic_eq_enter_temporal_polling_mode(struct hl_device *hdev)
 		if (!(hdev->nic_ports_mask & BIT(i)))
 			continue;
 
-		dev_dbg(hdev->dev, "moving port %d EQ to polling mode\n", i);
 		gaudi2_nic = &gaudi2->nic_ports[i];
 		gaudi2_nic_eq_interrupts_enable_conditionally(gaudi2_nic, true);
 	}
@@ -565,7 +564,6 @@ void gaudi2_nic_eq_exit_temporal_polling_mode(struct hl_device *hdev)
 		if (!(hdev->nic_ports_mask & BIT(i)))
 			continue;
 
-		dev_dbg(hdev->dev, "moving port %d EQ to interrupt mode\n", i);
 		gaudi2_nic = &gaudi2->nic_ports[i];
 		cancel_delayed_work_sync(&gaudi2_nic->eq_work);
 	}
