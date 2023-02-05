@@ -3678,64 +3678,16 @@ static void handle_and_clear_arc_farm_events(struct hl_device *hdev, u32 die, u3
 		WREG32_AND(aggr_mask_reg, events_mask);
 }
 
-static enum gaudi3_async_event_id nic_spi_events_id_map[MAX_NUM_OF_DIES][12] = {
-		{GAUDI3_EVENT_NIC0_DIE0_HDSHARED_SPI,
-		GAUDI3_EVENT_NIC1_DIE0_HDSHARED_SPI,
-		GAUDI3_EVENT_NIC2_DIE0_HDSHARED_SPI,
-		GAUDI3_EVENT_NIC3_DIE0_HDSHARED_SPI,
-		GAUDI3_EVENT_NIC4_DIE0_HDSHARED_SPI,
-		GAUDI3_EVENT_NIC5_DIE0_HDSHARED_SPI,
-		GAUDI3_EVENT_NIC6_DIE0_HDSHARED_SPI,
-		GAUDI3_EVENT_NIC7_DIE0_HDSHARED_SPI,
-		GAUDI3_EVENT_NIC8_DIE0_HDSHARED_SPI,
-		GAUDI3_EVENT_NIC9_DIE0_HDSHARED_SPI,
-		GAUDI3_EVENT_NIC10_DIE0_HDSHARED_SPI,
-		GAUDI3_EVENT_NIC11_DIE0_HDSHARED_SPI},
-
-		{GAUDI3_EVENT_NIC0_DIE1_HDSHARED_SPI,
-		GAUDI3_EVENT_NIC1_DIE1_HDSHARED_SPI,
-		GAUDI3_EVENT_NIC2_DIE1_HDSHARED_SPI,
-		GAUDI3_EVENT_NIC3_DIE1_HDSHARED_SPI,
-		GAUDI3_EVENT_NIC4_DIE1_HDSHARED_SPI,
-		GAUDI3_EVENT_NIC5_DIE1_HDSHARED_SPI,
-		GAUDI3_EVENT_NIC6_DIE1_HDSHARED_SPI,
-		GAUDI3_EVENT_NIC7_DIE1_HDSHARED_SPI,
-		GAUDI3_EVENT_NIC8_DIE1_HDSHARED_SPI,
-		GAUDI3_EVENT_NIC9_DIE1_HDSHARED_SPI,
-		GAUDI3_EVENT_NIC10_DIE1_HDSHARED_SPI,
-		GAUDI3_EVENT_NIC11_DIE1_HDSHARED_SPI}
-};
-
-static enum gaudi3_async_event_id nic_sei_events_id_map[MAX_NUM_OF_DIES][6] = {
-		{GAUDI3_EVENT_NIC0_DIE0_HDSHARED_SEI,
-		GAUDI3_EVENT_NIC1_DIE0_HDSHARED_SEI,
-		GAUDI3_EVENT_NIC2_DIE0_HDSHARED_SEI,
-		GAUDI3_EVENT_NIC3_DIE0_HDSHARED_SEI,
-		GAUDI3_EVENT_NIC4_DIE0_HDSHARED_SEI,
-		GAUDI3_EVENT_NIC5_DIE0_HDSHARED_SEI},
-
-		{GAUDI3_EVENT_NIC0_DIE1_HDSHARED_SEI,
-		GAUDI3_EVENT_NIC1_DIE1_HDSHARED_SEI,
-		GAUDI3_EVENT_NIC2_DIE1_HDSHARED_SEI,
-		GAUDI3_EVENT_NIC3_DIE1_HDSHARED_SEI,
-		GAUDI3_EVENT_NIC4_DIE1_HDSHARED_SEI,
-		GAUDI3_EVENT_NIC5_DIE1_HDSHARED_SEI}
-};
-
-static enum gaudi3_async_event_id nic_derr_events_id_map[MAX_NUM_OF_DIES][6] = {
-		{GAUDI3_EVENT_NIC0_DIE0_HDSHARED_DERR,
-		GAUDI3_EVENT_NIC1_DIE0_HDSHARED_DERR,
-		GAUDI3_EVENT_NIC2_DIE0_HDSHARED_DERR,
-		GAUDI3_EVENT_NIC3_DIE0_HDSHARED_DERR,
-		GAUDI3_EVENT_NIC4_DIE0_HDSHARED_DERR,
-		GAUDI3_EVENT_NIC5_DIE0_HDSHARED_DERR},
-
-		{GAUDI3_EVENT_NIC0_DIE1_HDSHARED_DERR,
-		GAUDI3_EVENT_NIC1_DIE1_HDSHARED_DERR,
-		GAUDI3_EVENT_NIC2_DIE1_HDSHARED_DERR,
-		GAUDI3_EVENT_NIC3_DIE1_HDSHARED_DERR,
-		GAUDI3_EVENT_NIC4_DIE1_HDSHARED_DERR,
-		GAUDI3_EVENT_NIC5_DIE1_HDSHARED_DERR}
+static u32 nic_special_regs_base[] = {
+	mmD0_NIC0_RXB_CORE_SPECIAL_BASE,
+	mmD0_NIC0_RXE_SPECIAL_BASE,
+	mmD0_NIC0_TXS_SPECIAL_BASE,
+	mmD0_NIC0_TXE_SPECIAL_BASE,
+	mmD0_NIC0_TMR_SPECIAL_BASE,
+	mmD0_NIC0_QPC_SPECIAL_BASE,
+	mmD0_NIC0_TXB_SPECIAL_BASE,
+	mmD0_NIC0_MSTR_IF_CTRL_SPECIAL_BASE,
+	mmD0_NIC0_MSTR_IF_DATA_SPECIAL_BASE
 };
 
 /* SHARED_NIC_EVENT */
@@ -3743,29 +3695,43 @@ static void handle_and_clear_nic_events(struct hl_device *hdev, u32 die,
 					enum err_grp type, u32 sts, u32 sts_idx, u32 idx,
 					u32 aggr_mask_reg, u32 events_mask)
 {
-	enum gaudi3_async_event_id event_id;
+	struct hl_eq_dynamic_entry eq_dynamic_entry = {};
+	struct eq_agg_header_params params = {};
 	bool unmask_event_in_aggr = false;
-	struct hl_eq_entry eq_entry;
-
-	memset(&eq_entry, 0, sizeof(struct hl_eq_entry));
+	u32 instance, offset;
 
 	switch (type) {
-	case ERR_GRP_SPI_ECO:
-		event_id = nic_spi_events_id_map[die][idx];
+	case ERR_GRP_DERR:
+		instance = idx;
+		offset = die * NIC_DIE_OFFSET + instance * NIC_OFFSET;
+		handle_and_clear_derr_events(hdev, nic_special_regs_base,
+						ARRAY_SIZE(nic_special_regs_base), offset,
+						&eq_dynamic_entry.ecc_data);
+		eq_dynamic_entry.hdr.size = cpu_to_le16(sizeof(struct hl_eq_ecc_data));
+		unmask_event_in_aggr = true;
 		break;
 	case ERR_GRP_SEI:
-		event_id = nic_sei_events_id_map[die][idx];
+		instance = idx;
+		unmask_event_in_aggr = true;
 		break;
-	case ERR_GRP_DERR:
-		event_id = nic_derr_events_id_map[die][idx];
+	case ERR_GRP_SPI_ECO:
+		instance = idx / 2;
+		eq_dynamic_entry.nic_spi_data.spi_type = idx & 0x1;
+		eq_dynamic_entry.hdr.size = cpu_to_le16(sizeof(struct hl_eq_nic_spi_data));
+		unmask_event_in_aggr = true;
 		break;
 	default:
-		dev_err(hdev->dev, "Unexpected error group(%u)\n", type);
 		return;
 	}
 
-	eq_entry.hdr.ctl = cpu_to_le32(event_id << EQ_CTL_EVENT_TYPE_SHIFT);
-	gaudi3_handle_eqe_old(hdev, &eq_entry);
+	params.component_type = INT_COMP_TYPE_NIC;
+	params.grp_type = type;
+	params.die = die;
+	params.hdcore = INT_SHARED;
+	params.instance = instance;
+	prepare_eq_dynamic_entry_agg_header(&eq_dynamic_entry, &params);
+
+	gaudi3_handle_eqe(hdev, &eq_dynamic_entry);
 
 	if (unmask_event_in_aggr)
 		WREG32_AND(aggr_mask_reg, events_mask);

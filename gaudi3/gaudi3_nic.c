@@ -5392,8 +5392,7 @@ void gaudi3_handle_nic_port_reset_locked(struct hl_nic_port *nic_port)
 	}
 }
 
-void gaudi3_handle_nic_spi_event(struct hl_device *hdev, u32 macro_index,
-						struct hl_eq_intr_cause *nic_intr_cause)
+void gaudi3_handle_nic_spi_event(struct hl_device *hdev, u32 macro_index)
 {
 	u32 rxe_spi_intr_cause_0, rxe_spi_intr_cause_1, rxb_core_spi_intr_cause,
 		rxe_spi_intr_mask_0, rxe_spi_intr_mask_1, rxb_core_spi_intr_mask,
@@ -5505,8 +5504,7 @@ void gaudi3_handle_nic_spi_event(struct hl_device *hdev, u32 macro_index,
 	hl_check_for_glbl_errors(hdev);
 }
 
-void gaudi3_handle_nic_sei_error_event(struct hl_device *hdev, u32 macro_index,
-						struct hl_eq_intr_cause *nic_intr_cause)
+void gaudi3_handle_nic_sei_error_event(struct hl_device *hdev, u32 macro_index)
 {
 	u32 rxe_sei_intr_cause, rxb_core_sei_intr_cause, tmr_intr_cause,
 		rxe_sei_intr_mask, rxb_core_sei_intr_mask, tmr_intr_mask, port,
@@ -5632,8 +5630,7 @@ void gaudi3_handle_nic_sei_error_event(struct hl_device *hdev, u32 macro_index,
 	hl_check_for_glbl_errors(hdev);
 }
 
-void gaudi3_nic_handle_bmon_spmu_event(struct hl_device *hdev, u32 macro_index,
-					struct hl_eq_intr_cause *nic_intr_cause, u64 *event_mask)
+void gaudi3_nic_handle_bmon_spmu_event(struct hl_device *hdev, u32 macro_index)
 {
 	int rc;
 

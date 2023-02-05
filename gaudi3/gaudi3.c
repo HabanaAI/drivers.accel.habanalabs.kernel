@@ -11194,6 +11194,21 @@ static void gaudi3_handle_pcie0_spi_err(struct hl_device *hdev, u16 data_size,
 	gaudi3_handle_pcie_drain(hdev);
 }
 
+static void gaudi3_handle_nic_spi(struct hl_device *hdev, u32 macro_index, u16 data_size,
+					struct hl_eq_nic_spi_data *nic_spi_data)
+{
+	if (data_size != sizeof(*nic_spi_data)) {
+		dev_err_ratelimited(hdev->dev, "EQ entry data size is %u while expecting %zu\n",
+					data_size, sizeof(*nic_spi_data));
+		return;
+	}
+
+	if (nic_spi_data->spi_type == NIC_SPI_BMON_SPMU)
+		gaudi3_nic_handle_bmon_spmu_event(hdev, macro_index);
+	else /* NIC_SPI_SW_ERROR */
+		gaudi3_handle_nic_spi_event(hdev, macro_index);
+}
+
 static void gaudi3_handle_ecc_event(struct hl_device *hdev, struct hl_eq_ecc_data *ecc_data)
 {
 	u64 ecc_address = 0, ecc_syndrom = 0;
@@ -11212,7 +11227,7 @@ void gaudi3_handle_eqe_old(struct hl_device *hdev, struct hl_eq_entry *eq_entry)
 {
 	u64 event_mask = 0;
 	u16 event_type;
-	u32 ctl, index;
+	u32 ctl;
 
 	ctl = le32_to_cpu(eq_entry->hdr.ctl);
 	event_type = ((ctl & EQ_CTL_EVENT_TYPE_MASK) >> EQ_CTL_EVENT_TYPE_SHIFT);
@@ -11242,76 +11257,6 @@ void gaudi3_handle_eqe_old(struct hl_device *hdev, struct hl_eq_entry *eq_entry)
 					&event_mask);
 		gaudi3_razwi_handler(hdev, RAZWI_PDMA, 1, 0, 1, GAUDI3_DIE1_ENGINE_ID_PDMA_1_CH_0,
 					&event_mask);
-		break;
-
-	/* Reason for using 'divide by 2' while calculating macro index:
-	 * NIC0_DIE0_HDSHARED_SPI_0 - Triggered upon a BMON/SPMU interrupt on D0_NIC0_XXX block
-	 * NIC0_DIE0_HDSHARED_SPI_1 - Triggered upon a SW ERROR on D0_NIC0_XXX block
-	 * NIC1_DIE0_HDSHARED_SPI_0 - Triggered upon a BMON/SPMU interrupt on D0_NIC1_XXX block
-	 * NIC1_DIE0_HDSHARED_SPI_1 - Triggered upon a SW ERROR on D0_NIC1_XXX block
-	 * .... etc.
-	 * So, (event_type - GAUDI3_EVENT_NIC0_DIE0_HDSHARED_SPI_1) / 2
-	 * ==> would give the macro index
-	 */
-	case GAUDI3_EVENT_NIC0_DIE0_HDSHARED_SPI:
-	case GAUDI3_EVENT_NIC2_DIE0_HDSHARED_SPI:
-	case GAUDI3_EVENT_NIC4_DIE0_HDSHARED_SPI:
-	case GAUDI3_EVENT_NIC6_DIE0_HDSHARED_SPI:
-	case GAUDI3_EVENT_NIC8_DIE0_HDSHARED_SPI:
-	case GAUDI3_EVENT_NIC10_DIE0_HDSHARED_SPI:
-		index = (event_type - GAUDI3_EVENT_NIC0_DIE0_HDSHARED_SPI) / 2;
-		gaudi3_nic_handle_bmon_spmu_event(hdev, index, &eq_entry->intr_cause, &event_mask);
-		break;
-
-	case GAUDI3_EVENT_NIC1_DIE0_HDSHARED_SPI:
-	case GAUDI3_EVENT_NIC3_DIE0_HDSHARED_SPI:
-	case GAUDI3_EVENT_NIC5_DIE0_HDSHARED_SPI:
-	case GAUDI3_EVENT_NIC7_DIE0_HDSHARED_SPI:
-	case GAUDI3_EVENT_NIC9_DIE0_HDSHARED_SPI:
-	case GAUDI3_EVENT_NIC11_DIE0_HDSHARED_SPI:
-		index = (event_type - GAUDI3_EVENT_NIC1_DIE0_HDSHARED_SPI) / 2;
-		gaudi3_handle_nic_spi_event(hdev, index, &eq_entry->intr_cause);
-		break;
-
-	case GAUDI3_EVENT_NIC0_DIE1_HDSHARED_SPI:
-	case GAUDI3_EVENT_NIC2_DIE1_HDSHARED_SPI:
-	case GAUDI3_EVENT_NIC4_DIE1_HDSHARED_SPI:
-	case GAUDI3_EVENT_NIC6_DIE1_HDSHARED_SPI:
-	case GAUDI3_EVENT_NIC8_DIE1_HDSHARED_SPI:
-	case GAUDI3_EVENT_NIC10_DIE1_HDSHARED_SPI:
-		/* Adding number of macros of DIE0 as offset */
-		index = (event_type - GAUDI3_EVENT_NIC0_DIE1_HDSHARED_SPI) / 2 +
-			NIC_NUM_MACROS_PER_DIE;
-		gaudi3_nic_handle_bmon_spmu_event(hdev, index, &eq_entry->intr_cause, &event_mask);
-		break;
-
-	case GAUDI3_EVENT_NIC1_DIE1_HDSHARED_SPI:
-	case GAUDI3_EVENT_NIC3_DIE1_HDSHARED_SPI:
-	case GAUDI3_EVENT_NIC5_DIE1_HDSHARED_SPI:
-	case GAUDI3_EVENT_NIC7_DIE1_HDSHARED_SPI:
-	case GAUDI3_EVENT_NIC9_DIE1_HDSHARED_SPI:
-	case GAUDI3_EVENT_NIC11_DIE1_HDSHARED_SPI:
-		/* Adding number of macros of DIE0 as offset */
-		index = (event_type - GAUDI3_EVENT_NIC1_DIE1_HDSHARED_SPI) / 2 +
-			NIC_NUM_MACROS_PER_DIE;
-		gaudi3_handle_nic_spi_event(hdev, index, &eq_entry->intr_cause);
-		break;
-
-	case GAUDI3_EVENT_NIC0_DIE0_HDSHARED_SEI ... GAUDI3_EVENT_NIC5_DIE0_HDSHARED_SEI:
-		index = (event_type - GAUDI3_EVENT_NIC0_DIE0_HDSHARED_SEI);
-		gaudi3_handle_nic_sei_error_event(hdev, index, &eq_entry->intr_cause);
-		break;
-
-	case GAUDI3_EVENT_NIC0_DIE1_HDSHARED_SEI ... GAUDI3_EVENT_NIC5_DIE1_HDSHARED_SEI:
-		/* Adding number of macros of DIE0 as offset */
-		index = (event_type - GAUDI3_EVENT_NIC0_DIE1_HDSHARED_SEI) +
-			NIC_NUM_MACROS_PER_DIE;
-		gaudi3_handle_nic_sei_error_event(hdev, index, &eq_entry->intr_cause);
-		break;
-
-	case GAUDI3_EVENT_NIC0_DIE0_HDSHARED_DERR ... GAUDI3_EVENT_NIC5_DIE0_HDSHARED_DERR:
-	case GAUDI3_EVENT_NIC0_DIE1_HDSHARED_DERR ... GAUDI3_EVENT_NIC5_DIE1_HDSHARED_DERR:
-		gaudi3_handle_ecc_event(hdev, &eq_entry->ecc_data);
 		break;
 
 	default:
@@ -11406,16 +11351,20 @@ static void gaudi3_handle_sei_event(struct hl_device *hdev,
 {
 	u16 data_size = le16_to_cpu(eq_dynamic_entry->hdr.size);
 	enum hl_agg_component_type agg_component_type;
-	u32 die, hdcore = 0;
+	u32 die, hdcore = 0, instance;
 
 	agg_component_type = eq_dynamic_entry->agg_hdr.int_comp_type;
 	die = eq_dynamic_entry->agg_hdr.die_id;
 	if (eq_dynamic_entry->agg_hdr.hdcore_type <= INT_HDCORE3)
 		hdcore = die * NUM_OF_HDCORES_PER_DIE + eq_dynamic_entry->agg_hdr.hdcore_type;
+	instance = eq_dynamic_entry->agg_hdr.comp_instance;
 
 	switch (agg_component_type) {
 	case INT_COMP_TYPE_ARC_FARM:
 		gaudi3_handle_arc_farm_sei_err(hdev, hdcore);
+		break;
+	case INT_COMP_TYPE_NIC:
+		gaudi3_handle_nic_sei_error_event(hdev, die * NIC_NUM_MACROS_PER_DIE + instance);
 		break;
 	case INT_COMP_TYPE_PCIE:
 		gaudi3_handle_pcie0_sei_err(hdev, data_size, &eq_dynamic_entry->pcie_sei_data);
@@ -11430,14 +11379,19 @@ static void gaudi3_handle_spi_event(struct hl_device *hdev,
 {
 	u16 data_size = le16_to_cpu(eq_dynamic_entry->hdr.size);
 	enum hl_agg_component_type agg_component_type;
-	u32 die, hdcore = 0;
+	u32 die, hdcore = 0, instance;
 
 	agg_component_type = eq_dynamic_entry->agg_hdr.int_comp_type;
 	die = eq_dynamic_entry->agg_hdr.die_id;
 	if (eq_dynamic_entry->agg_hdr.hdcore_type <= INT_HDCORE3)
 		hdcore = die * NUM_OF_HDCORES_PER_DIE + eq_dynamic_entry->agg_hdr.hdcore_type;
+	instance = eq_dynamic_entry->agg_hdr.comp_instance;
 
 	switch (agg_component_type) {
+	case INT_COMP_TYPE_NIC:
+		gaudi3_handle_nic_spi(hdev, die * NIC_NUM_MACROS_PER_DIE + instance, data_size,
+					&eq_dynamic_entry->nic_spi_data);
+		break;
 	case INT_COMP_TYPE_PCIE:
 		gaudi3_handle_pcie0_spi_err(hdev, data_size, &eq_dynamic_entry->pcie_spi_data);
 		break;
