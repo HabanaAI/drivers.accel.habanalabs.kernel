@@ -3571,22 +3571,9 @@ static void handle_and_clear_stlb_events(struct hl_device *hdev, u32 die, u32 hd
 		WREG32_AND(aggr_mask_reg, events_mask);
 }
 
-static const enum gaudi3_async_event_id
-pdma_derr_events_id_map[MAX_NUM_OF_DIES][1] = {
-		{GAUDI3_EVENT_PDMA0_DIE0_HDSHARED_DERR},
-		{GAUDI3_EVENT_PDMA0_DIE1_HDSHARED_DERR}
-};
-
-static const enum gaudi3_async_event_id
-pdma_sei_events_id_map[MAX_NUM_OF_DIES][1] = {
-		{GAUDI3_EVENT_PDMA0_DIE0_HDSHARED_SEI},
-		{GAUDI3_EVENT_PDMA0_DIE1_HDSHARED_SEI}
-};
-
-static const enum gaudi3_async_event_id
-pdma_spi_events_id_map[MAX_NUM_OF_DIES][1] = {
-		{GAUDI3_EVENT_PDMA0_DIE0_HDSHARED_SPI},
-		{GAUDI3_EVENT_PDMA0_DIE1_HDSHARED_SPI}
+static u32 pdma_special_regs_base[] = {
+	mmD0_SPDMA0_CMN_B_SPECIAL_BASE,
+	mmD0_SPDMA1_CMN_B_SPECIAL_BASE
 };
 
 /* SHARED_PDMA_EVENT */
@@ -3594,29 +3581,37 @@ static void handle_and_clear_pdma_events(struct hl_device *hdev, u32 die,
 					enum err_grp type, u32 sts, u32 sts_idx, u32 idx,
 					u32 aggr_mask_reg, u32 events_mask)
 {
-	enum gaudi3_async_event_id event_id;
+	struct hl_eq_dynamic_entry eq_dynamic_entry = {};
+	struct eq_agg_header_params params = {};
 	bool unmask_event_in_aggr = false;
-	struct hl_eq_entry eq_entry;
-
-	memset(&eq_entry, 0, sizeof(struct hl_eq_entry));
+	u32 offset;
 
 	switch (type) {
-	case ERR_GRP_SPI_ECO:
-		event_id = pdma_spi_events_id_map[die][idx];
-		break;
 	case ERR_GRP_DERR:
-		event_id = pdma_derr_events_id_map[die][idx];
+		offset = die * DIE_OFFSET;
+		handle_and_clear_derr_events(hdev, pdma_special_regs_base,
+						ARRAY_SIZE(pdma_special_regs_base), offset,
+						&eq_dynamic_entry.ecc_data);
+		eq_dynamic_entry.hdr.size = cpu_to_le16(sizeof(struct hl_eq_ecc_data));
+		unmask_event_in_aggr = true;
 		break;
 	case ERR_GRP_SEI:
-		event_id = pdma_sei_events_id_map[die][idx];
 		unmask_event_in_aggr = true;
+		break;
+	case ERR_GRP_SPI_ECO:
 		break;
 	default:
 		return;
 	}
 
-	eq_entry.hdr.ctl = cpu_to_le32(event_id << EQ_CTL_EVENT_TYPE_SHIFT);
-	gaudi3_handle_eqe_old(hdev, &eq_entry);
+	params.component_type = INT_COMP_TYPE_PDMA;
+	params.grp_type = type;
+	params.die = die;
+	params.hdcore = INT_SHARED;
+	params.instance = 0;
+	prepare_eq_dynamic_entry_agg_header(&eq_dynamic_entry, &params);
+
+	gaudi3_handle_eqe(hdev, &eq_dynamic_entry);
 
 	if (unmask_event_in_aggr)
 		WREG32_AND(aggr_mask_reg, events_mask);

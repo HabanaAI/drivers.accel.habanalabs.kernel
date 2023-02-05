@@ -11235,21 +11235,6 @@ void gaudi3_handle_eqe_old(struct hl_device *hdev, struct hl_eq_entry *eq_entry)
 	gaudi3_print_irq_info(hdev, event_type);
 
 	switch (event_type) {
-	case GAUDI3_EVENT_PDMA0_DIE0_HDSHARED_SEI:
-		gaudi3_handle_pdma_sei_err(hdev, 0);
-		gaudi3_razwi_handler(hdev, RAZWI_PDMA, 0, 0, 0, GAUDI3_DIE0_ENGINE_ID_PDMA_0_CH_0,
-					&event_mask);
-		gaudi3_razwi_handler(hdev, RAZWI_PDMA, 0, 0, 1, GAUDI3_DIE0_ENGINE_ID_PDMA_1_CH_0,
-					&event_mask);
-		break;
-	case GAUDI3_EVENT_PDMA0_DIE1_HDSHARED_SEI:
-		gaudi3_handle_pdma_sei_err(hdev, 1);
-		gaudi3_razwi_handler(hdev, RAZWI_PDMA, 1, 0, 0, GAUDI3_DIE1_ENGINE_ID_PDMA_0_CH_0,
-					&event_mask);
-		gaudi3_razwi_handler(hdev, RAZWI_PDMA, 1, 0, 1, GAUDI3_DIE1_ENGINE_ID_PDMA_1_CH_0,
-					&event_mask);
-		break;
-
 	default:
 		return;
 	}
@@ -11359,6 +11344,15 @@ static void gaudi3_handle_sei_event(struct hl_device *hdev,
 		break;
 	case INT_COMP_TYPE_PCIE:
 		gaudi3_handle_pcie0_sei_err(hdev, data_size, &eq_dynamic_entry->pcie_sei_data);
+		break;
+	case INT_COMP_TYPE_PDMA:
+		gaudi3_handle_pdma_sei_err(hdev, die);
+		gaudi3_razwi_handler(hdev, RAZWI_PDMA, die, hdcore, 0,
+				GAUDI3_DIE0_ENGINE_ID_PDMA_0_CH_0 + die * NUM_OF_PDMA_CH_PER_DIE,
+				event_mask);
+		gaudi3_razwi_handler(hdev, RAZWI_PDMA, die, hdcore, 1,
+				GAUDI3_DIE0_ENGINE_ID_PDMA_1_CH_0 + die * NUM_OF_PDMA_CH_PER_DIE,
+				event_mask);
 		break;
 	default:
 		return;
