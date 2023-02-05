@@ -3123,41 +3123,27 @@ static void handle_and_clear_hbm_events(struct hl_device *hdev, u32 die, u32 hdc
 		WREG32_AND(aggr_mask_reg, events_mask);
 }
 
-static const enum gaudi3_async_event_id pcie_spi_events_id_map[MAX_NUM_OF_DIES][9] = {
-		{GAUDI3_EVENT_PCIE1_DIE0_HDSHARED_SPI,
-		GAUDI3_EVENT_PCIE4_DIE0_HDSHARED_SPI,
-		GAUDI3_EVENT_PCIE5_DIE0_HDSHARED_SPI,
-		GAUDI3_EVENT_PCIE6_DIE0_HDSHARED_SPI,
-		GAUDI3_EVENT_PCIE7_DIE0_HDSHARED_SPI,
-		GAUDI3_EVENT_PCIE8_DIE0_HDSHARED_SPI,
-		GAUDI3_EVENT_PCIE9_DIE0_HDSHARED_SPI,
-		GAUDI3_EVENT_PCIE13_DIE0_HDSHARED_SPI,
-		GAUDI3_EVENT_PCIE14_DIE0_HDSHARED_SPI},
-		{GAUDI3_EVENT_PCIE1_DIE1_HDSHARED_SPI,
-		GAUDI3_EVENT_PCIE4_DIE1_HDSHARED_SPI,
-		GAUDI3_EVENT_PCIE5_DIE1_HDSHARED_SPI,
-		GAUDI3_EVENT_PCIE6_DIE1_HDSHARED_SPI,
-		GAUDI3_EVENT_PCIE7_DIE1_HDSHARED_SPI,
-		GAUDI3_EVENT_PCIE8_DIE1_HDSHARED_SPI,
-		GAUDI3_EVENT_PCIE9_DIE1_HDSHARED_SPI,
-		GAUDI3_EVENT_PCIE13_DIE1_HDSHARED_SPI,
-		GAUDI3_EVENT_PCIE14_DIE1_HDSHARED_SPI}
+static const enum gaudi3_async_event_id pcie_spi_events_id_map[9] = {
+	GAUDI3_EVENT_PCIE1_DIE0_HDSHARED_SPI,
+	GAUDI3_EVENT_PCIE4_DIE0_HDSHARED_SPI,
+	GAUDI3_EVENT_PCIE5_DIE0_HDSHARED_SPI,
+	GAUDI3_EVENT_PCIE6_DIE0_HDSHARED_SPI,
+	GAUDI3_EVENT_PCIE7_DIE0_HDSHARED_SPI,
+	GAUDI3_EVENT_PCIE8_DIE0_HDSHARED_SPI,
+	GAUDI3_EVENT_PCIE9_DIE0_HDSHARED_SPI,
+	GAUDI3_EVENT_PCIE13_DIE0_HDSHARED_SPI,
+	GAUDI3_EVENT_PCIE14_DIE0_HDSHARED_SPI
 };
 
-static const enum gaudi3_async_event_id pcie_derr_events_id_map[MAX_NUM_OF_DIES][3] = {
-		{GAUDI3_EVENT_PCIE0_DIE0_HDSHARED_DERR,
-		GAUDI3_EVENT_PCIE1_DIE0_HDSHARED_DERR,
-		GAUDI3_EVENT_PCIE2_DIE0_HDSHARED_DERR},
-		{GAUDI3_EVENT_PCIE0_DIE1_HDSHARED_DERR,
-		GAUDI3_EVENT_PCIE1_DIE1_HDSHARED_DERR,
-		GAUDI3_EVENT_PCIE2_DIE1_HDSHARED_DERR},
+static const enum gaudi3_async_event_id pcie_derr_events_id_map[3] = {
+	GAUDI3_EVENT_PCIE0_DIE0_HDSHARED_DERR,
+	GAUDI3_EVENT_PCIE1_DIE0_HDSHARED_DERR,
+	GAUDI3_EVENT_PCIE2_DIE0_HDSHARED_DERR
 };
 
-static const enum gaudi3_async_event_id pcie_sei_events_id_map[MAX_NUM_OF_DIES][2] = {
-		{GAUDI3_EVENT_PCIE0_DIE0_HDSHARED_SEI,
-		GAUDI3_EVENT_PCIE1_DIE0_HDSHARED_SEI},
-		{GAUDI3_EVENT_PCIE0_DIE1_HDSHARED_SEI,
-		GAUDI3_EVENT_PCIE1_DIE1_HDSHARED_SEI},
+static const enum gaudi3_async_event_id pcie_sei_events_id_map[2] = {
+	GAUDI3_EVENT_PCIE0_DIE0_HDSHARED_SEI,
+	GAUDI3_EVENT_PCIE1_DIE0_HDSHARED_SEI
 };
 
 static void gaudi3_print_pcie_err_resp_data(struct hl_device *hdev, bool hbw, bool read)
@@ -3193,7 +3179,7 @@ static void gaudi3_clear_xresp_block(struct hl_device *hdev, u64 base, bool is_r
 	WREG32(base + mmMSTR_IF_XRESP_LBW_INTR_CTRL_CLEAR, val);
 }
 
-static void gaudi3_clear_pcie_sei_cause_events(struct hl_device *hdev, u32 die, u32 err_msk)
+static void gaudi3_clear_pcie_sei_cause_events(struct hl_device *hdev, u32 err_msk)
 {
 	u32 idx = 0;
 
@@ -3268,8 +3254,10 @@ static void handle_and_clear_pcie_events(struct hl_device *hdev, u32 die,
 	u32 err_idx = 0, err_msk;
 	u64 intr_cause_data;
 
-	if (die == 1)
+	if (die == 1) {
 		dev_err(hdev->dev, "PCIE events from DIE1 are not supported\n");
+		return;
+	}
 
 	/* If event is GAUDI3_EVENT_PCIE1_DIE0_HDSHARED_SEI, there is nothing to do in LKD.
 	 * Only need to clear it in FW.
@@ -3281,19 +3269,17 @@ static void handle_and_clear_pcie_events(struct hl_device *hdev, u32 die,
 
 	switch (type) {
 	case ERR_GRP_SPI_ECO:
-		event_id = pcie_spi_events_id_map[die][idx];
-		if (event_id == GAUDI3_EVENT_PCIE14_DIE0_HDSHARED_SPI ||
-			event_id == GAUDI3_EVENT_PCIE14_DIE1_HDSHARED_SPI)
+		event_id = pcie_spi_events_id_map[idx];
+		if (event_id == GAUDI3_EVENT_PCIE14_DIE0_HDSHARED_SPI)
 			unmask_event_in_aggr = true;
 		break;
 	case ERR_GRP_DERR:
-		event_id = pcie_derr_events_id_map[die][idx];
+		event_id = pcie_derr_events_id_map[idx];
 		break;
 	case ERR_GRP_SEI:
-		event_id = pcie_sei_events_id_map[die][idx];
+		event_id = pcie_sei_events_id_map[idx];
 		/* Clear on read */
-		intr_cause_data = RREG32((die * DIE_OFFSET) + mmD0_PCIE_WRAP_BASE +
-						mmPCIE_WRAP_PCIE_SEI_INTR_STATUS);
+		intr_cause_data = RREG32(mmD0_PCIE_WRAP_BASE + mmPCIE_WRAP_PCIE_SEI_INTR_STATUS);
 		eq_entry.intr_cause.intr_cause_data = cpu_to_le64(intr_cause_data);
 		unmask_event_in_aggr = true;
 		break;
@@ -3313,10 +3299,9 @@ static void handle_and_clear_pcie_events(struct hl_device *hdev, u32 die,
 		 * read it another cause added and now reg value is 0x4004001. This will clear the
 		 * additional event without handling it.
 		 */
-		gaudi3_clear_pcie_sei_cause_events(hdev, die, intr_cause_data);
+		gaudi3_clear_pcie_sei_cause_events(hdev, intr_cause_data);
 		/* Clearing SEI cause register once again */
-		err_msk = RREG32((die * DIE_OFFSET) + mmD0_PCIE_WRAP_BASE +
-					mmPCIE_WRAP_PCIE_SEI_INTR_STATUS);
+		err_msk = RREG32(mmD0_PCIE_WRAP_BASE + mmPCIE_WRAP_PCIE_SEI_INTR_STATUS);
 
 		while (err_msk) {
 			/* In case new event raised */

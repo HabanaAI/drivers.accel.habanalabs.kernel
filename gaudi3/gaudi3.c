@@ -11197,7 +11197,6 @@ void gaudi3_handle_eqe_old(struct hl_device *hdev, struct hl_eq_entry *eq_entry)
 
 	switch (event_type) {
 	case GAUDI3_EVENT_PCIE14_DIE0_HDSHARED_SPI:
-	case GAUDI3_EVENT_PCIE14_DIE1_HDSHARED_SPI:
 		gaudi3_handle_pcie_drain(hdev, &eq_entry->pcie_drain_ind_data);
 		break;
 
