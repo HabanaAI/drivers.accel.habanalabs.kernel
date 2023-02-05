@@ -906,7 +906,7 @@ struct cpucp_packet {
 		__le32 port_index;
 
 		/* For NIC requests */
-		uint32_t macro_index;
+		__le32 macro_index;
 
 		/* For Generic packet sub index */
 		__le32 pkt_subidx;
