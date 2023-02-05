@@ -733,20 +733,23 @@ static int gaudi3_sim_set_fixed_properties(struct hl_device *hdev)
 	prop->pdma_ch_max = prop->num_of_dies * NUM_OF_PDMA_CH_PER_DIE;
 	prop->pdma_grp_max = prop->num_of_dies * NUM_OF_PDMA_GRP_PER_DIE;
 
-	/* TODO: Handle the case of SRAM in cache mode */
+	/* Coral uses SRAM while being loaded, regardless of it configuration.
+	 * It means that Coral always expects to have valid LKD SRAM sizes.
+	 * After that, if SRAM mode is disabled (cache_enable=1), then
+	 * Coral switches to use SRAM as a cache.
+	 */
 	sram_start_offset = prop->num_of_dies == 1 ?
 			SRAM_MODE_0_SINGLE_DIE_OFFSET : SRAM_MODE_0_DOUBLE_DIE_OFFSET;
-
 	prop->sram_base_address = SRAM_BASE_ADDR + sram_start_offset;
 	prop->sram_size = SRAM_SIZE - sram_start_offset;
+	prop->sram_end_address = prop->sram_base_address + prop->sram_size;
+	prop->sram_user_base_address = prop->sram_base_address;
 	if (edev->sram_size != prop->sram_size) {
 		dev_err(hdev->dev, "Simulator SRAM size is %#llx while expected value is %#x\n",
 			edev->sram_size, prop->sram_size);
 		return -EINVAL;
 	}
 
-	prop->sram_end_address = prop->sram_base_address + prop->sram_size;
-	prop->sram_user_base_address = prop->sram_base_address;
 	prop->user_interrupt_count = GAUDI3_IRQ_NUM_USER_LAST - GAUDI3_IRQ_NUM_USER_FIRST + 1;
 
 	if (hdev->dram_enable) {

@@ -53,10 +53,12 @@ static int gaudi3_fpga_set_fixed_properties(struct hl_device *hdev)
 	prop->host_base_address = HOST_PHYS_BASE_1;
 	prop->host_end_address = prop->host_base_address + HOST_PHYS_SIZE_1;
 
-	prop->sram_base_address = GAUDI3_FPGA_SRAM_USR_BASE;
-	prop->sram_size = GAUDI3_FPGA_SRAM_SIZE;
-	prop->sram_end_address = prop->sram_base_address + prop->sram_size;
-	prop->sram_user_base_address = prop->sram_base_address;
+	if (!hdev->cache_enable) {
+		prop->sram_base_address = GAUDI3_FPGA_SRAM_USR_BASE;
+		prop->sram_size = GAUDI3_FPGA_SRAM_SIZE;
+		prop->sram_end_address = prop->sram_base_address + prop->sram_size;
+		prop->sram_user_base_address = prop->sram_base_address;
+	}
 
 	prop->dram_size = GAUDI3_FPGA_DRAM_SIZE;
 	prop->dram_end_address = prop->dram_base_address +
