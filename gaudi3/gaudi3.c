@@ -11051,8 +11051,7 @@ int gaudi3_get_monitor_dump(struct hl_device *hdev, void *data)
 	return -EOPNOTSUPP;
 }
 
-static void gaudi3_handle_pcie_drain(struct hl_device *hdev,
-				struct hl_eq_pcie_drain_ind_data *drain_data)
+static void gaudi3_handle_pcie_drain(struct hl_device *hdev)
 {
 	bool dummy;
 
@@ -11159,15 +11158,40 @@ static void gaudi3_handle_arc_farm_sei_err(struct hl_device *hdev, u32 hdcore)
 	hl_check_for_glbl_errors(hdev);
 }
 
-static void gaudi3_handle_pcie0_sei_err(struct hl_device *hdev, struct hl_eq_intr_cause *i)
+static void gaudi3_handle_pcie0_sei_err(struct hl_device *hdev, u16 data_size,
+					struct hl_eq_pcie_sei_data *pcie_sei_data)
 {
 	u32 err_msk;
 
-	err_msk = lower_32_bits(le64_to_cpu(i->intr_cause_data));
+	if (data_size != sizeof(*pcie_sei_data)) {
+		dev_err_ratelimited(hdev->dev, "EQ entry data size is %u while expecting %zu\n",
+					data_size, sizeof(*pcie_sei_data));
+		return;
+	}
+
+	if (pcie_sei_data->sei_type != PCIE_SEI_AXI_RESP_ERR)
+		return;
+
+	err_msk = lower_32_bits(le64_to_cpu(pcie_sei_data->intr_cause.intr_cause_data));
 
 	gaudi3_err_cause_iterator(hdev, err_msk, gaudi3_pcie_sei_err_cause, "PCIE", "SEI");
 
 	hl_check_for_glbl_errors(hdev);
+}
+
+static void gaudi3_handle_pcie0_spi_err(struct hl_device *hdev, u16 data_size,
+					struct hl_eq_pcie_spi_data *pcie_spi_data)
+{
+	if (data_size != sizeof(*pcie_spi_data)) {
+		dev_err_ratelimited(hdev->dev, "EQ entry data size is %u while expecting %zu\n",
+					data_size, sizeof(*pcie_spi_data));
+		return;
+	}
+
+	if (pcie_spi_data->spi_type != PCIE_SPI_DRAIN)
+		return;
+
+	gaudi3_handle_pcie_drain(hdev);
 }
 
 static void gaudi3_handle_ecc_event(struct hl_device *hdev, struct hl_eq_ecc_data *ecc_data)
@@ -11196,14 +11220,6 @@ void gaudi3_handle_eqe_old(struct hl_device *hdev, struct hl_eq_entry *eq_entry)
 	gaudi3_print_irq_info(hdev, event_type);
 
 	switch (event_type) {
-	case GAUDI3_EVENT_PCIE14_DIE0_HDSHARED_SPI:
-		gaudi3_handle_pcie_drain(hdev, &eq_entry->pcie_drain_ind_data);
-		break;
-
-	case GAUDI3_EVENT_PCIE0_DIE0_HDSHARED_SEI:
-		gaudi3_handle_pcie0_sei_err(hdev, &eq_entry->intr_cause);
-		break;
-
 	case GAUDI3_EVENT_PMMU1_DIE0_HDSHARED_SPI:
 	case GAUDI3_EVENT_PMMU2_DIE0_HDSHARED_SPI:
 		handle_pmmu_events(hdev, 0, &event_mask);
@@ -11388,6 +11404,7 @@ static void gaudi3_handle_derr_event(struct hl_device *hdev,
 static void gaudi3_handle_sei_event(struct hl_device *hdev,
 				struct hl_eq_dynamic_entry *eq_dynamic_entry, u64 *event_mask)
 {
+	u16 data_size = le16_to_cpu(eq_dynamic_entry->hdr.size);
 	enum hl_agg_component_type agg_component_type;
 	u32 die, hdcore = 0;
 
@@ -11400,6 +11417,9 @@ static void gaudi3_handle_sei_event(struct hl_device *hdev,
 	case INT_COMP_TYPE_ARC_FARM:
 		gaudi3_handle_arc_farm_sei_err(hdev, hdcore);
 		break;
+	case INT_COMP_TYPE_PCIE:
+		gaudi3_handle_pcie0_sei_err(hdev, data_size, &eq_dynamic_entry->pcie_sei_data);
+		break;
 	default:
 		return;
 	}
@@ -11408,6 +11428,7 @@ static void gaudi3_handle_sei_event(struct hl_device *hdev,
 static void gaudi3_handle_spi_event(struct hl_device *hdev,
 				struct hl_eq_dynamic_entry *eq_dynamic_entry, u64 *event_mask)
 {
+	u16 data_size = le16_to_cpu(eq_dynamic_entry->hdr.size);
 	enum hl_agg_component_type agg_component_type;
 	u32 die, hdcore = 0;
 
@@ -11417,6 +11438,9 @@ static void gaudi3_handle_spi_event(struct hl_device *hdev,
 		hdcore = die * NUM_OF_HDCORES_PER_DIE + eq_dynamic_entry->agg_hdr.hdcore_type;
 
 	switch (agg_component_type) {
+	case INT_COMP_TYPE_PCIE:
+		gaudi3_handle_pcie0_spi_err(hdev, data_size, &eq_dynamic_entry->pcie_spi_data);
+		break;
 	case INT_COMP_TYPE_STLB:
 		handle_hmmu_events(hdev, die, hdcore, event_mask);
 		break;

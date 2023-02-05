@@ -446,6 +446,31 @@ struct hl_eq_nic_intr_cause {
 	struct hl_eq_intr_cause intr_cause[MAX_PORTS_PER_NIC];
 };
 
+enum hl_pcie_sei_type {
+	PCIE_SEI_AXI_RESP_ERR,
+	PCIE_SEI_BUS_MSTR_EN_CLR
+};
+
+struct hl_eq_pcie_sei_data {
+	__u8 sei_type; /* enum hl_pcie_sei_type */
+	__u8 pad[7];
+	struct hl_eq_intr_cause intr_cause; /* relevant only to PCIE_SEI_AXI_RESP_ERR */
+};
+
+enum hl_pcie_spi_type {
+	PCIE_SPI_FLR,
+	PCIE_SPI_APB_ACCESS_TIMEOUT,
+	PCIE_SPI_BMON_SPMU,
+	PCIE_SPI_FATAL_ERR,
+	PCIE_SPI_P2P_OR_MSIX_GW_INTR,
+	PCIE_SPI_DRAIN
+};
+
+struct hl_eq_pcie_spi_data {
+	__u8 spi_type; /* enum hl_pcie_spi_type */
+	__u8 pad[7];
+};
+
 struct hl_eq_entry {
 	struct hl_eq_header hdr;
 	union {
@@ -472,6 +497,8 @@ struct hl_eq_dynamic_entry {
 	struct hl_agg_eq_header agg_hdr; /* valid only for aggregator events */
 	union {
 		struct hl_eq_ecc_data ecc_data;
+		struct hl_eq_pcie_sei_data pcie_sei_data;
+		struct hl_eq_pcie_spi_data pcie_spi_data;
 	};
 };
 

@@ -3004,18 +3004,10 @@ static enum hl_agg_grp_type to_agg_grp_type(enum err_grp type)
 
 static enum hl_agg_hdcore_type to_agg_hdcore_type(u32 hdcore)
 {
-	switch (hdcore) {
-	case 0:
-		return INT_HDCORE0;
-	case 1:
-		return INT_HDCORE1;
-	case 2:
-		return INT_HDCORE2;
-	case 3:
-		return INT_HDCORE3;
-	}
+	if (hdcore >= INT_HDCORE_MAX)
+		return INT_HDCORE_MAX;
 
-	return INT_HDCORE_MAX;
+	return hdcore;
 }
 
 static void prepare_eq_dynamic_entry_agg_header(struct hl_eq_dynamic_entry *eq_dynamic_entry,
@@ -3243,75 +3235,102 @@ static void gaudi3_clear_pcie_sei_cause_events(struct hl_device *hdev, u32 err_m
 	WREG32(mmD0_PCIE_WRAP_BASE + mmPCIE_WRAP_AXI_INTR, 1);
 }
 
+static u32 pcie_special_regs_base[] = {
+	mmD0_PCIE_CORE_SPECIAL_BASE,
+	mmD0_PCIE_WRAP_SPECIAL_BASE,
+	mmD0_PCIE_PHY_SPECIAL_BASE
+};
+
 /* SHARED_PCIE_EVENT */
 static void handle_and_clear_pcie_events(struct hl_device *hdev, u32 die,
 						enum err_grp type, u32 sts, u32 sts_idx, u32 idx,
 						u32 aggr_mask_reg, u32 events_mask)
 {
-	enum gaudi3_async_event_id event_id;
+	struct hl_eq_dynamic_entry eq_dynamic_entry = {};
+	struct eq_agg_header_params params = {};
+	u32 intr_cause = 0x0, err_idx = 0, err_msk;
 	bool unmask_event_in_aggr = false;
-	struct hl_eq_entry eq_entry;
-	u32 err_idx = 0, err_msk;
-	u64 intr_cause_data;
 
 	if (die == 1) {
 		dev_err(hdev->dev, "PCIE events from DIE1 are not supported\n");
 		return;
 	}
 
-	/* If event is GAUDI3_EVENT_PCIE1_DIE0_HDSHARED_SEI, there is nothing to do in LKD.
-	 * Only need to clear it in FW.
-	 */
-	if (idx == 1)
-		WREG32(mmD0_PCIE_AUX_BASE + mmPCIE_AUX_BUS_MSTR_EN_CLR_INTR, 0x1);
-
-	memset(&eq_entry, 0, sizeof(struct hl_eq_entry));
-
 	switch (type) {
-	case ERR_GRP_SPI_ECO:
-		event_id = pcie_spi_events_id_map[idx];
-		if (event_id == GAUDI3_EVENT_PCIE14_DIE0_HDSHARED_SPI)
-			unmask_event_in_aggr = true;
-		break;
 	case ERR_GRP_DERR:
-		event_id = pcie_derr_events_id_map[idx];
+		handle_and_clear_derr_events(hdev, pcie_special_regs_base, 1, 0x0,
+						&eq_dynamic_entry.ecc_data);
+		eq_dynamic_entry.hdr.size = cpu_to_le16(sizeof(struct hl_eq_ecc_data));
+		unmask_event_in_aggr = true;
 		break;
 	case ERR_GRP_SEI:
-		event_id = pcie_sei_events_id_map[idx];
-		/* Clear on read */
-		intr_cause_data = RREG32(mmD0_PCIE_WRAP_BASE + mmPCIE_WRAP_PCIE_SEI_INTR_STATUS);
-		eq_entry.intr_cause.intr_cause_data = cpu_to_le64(intr_cause_data);
+		eq_dynamic_entry.pcie_sei_data.sei_type = idx;
+		if (eq_dynamic_entry.pcie_sei_data.sei_type == PCIE_SEI_AXI_RESP_ERR) {
+			/* Clear on read */
+			intr_cause = RREG32(mmD0_PCIE_WRAP_BASE + mmPCIE_WRAP_PCIE_SEI_INTR_STATUS);
+			eq_dynamic_entry.pcie_sei_data.intr_cause.intr_cause_data =
+									cpu_to_le64(intr_cause);
+		} else {
+			/* PCIE_SEI_BUS_MSTR_EN_CLR: clear PCIE_BUS_MSTR_EN_CLR interrupt */
+			WREG32(mmD0_PCIE_AUX_BASE + mmPCIE_AUX_BUS_MSTR_EN_CLR_INTR, 0x1);
+		}
+		eq_dynamic_entry.hdr.size = cpu_to_le16(sizeof(struct hl_eq_pcie_sei_data));
 		unmask_event_in_aggr = true;
+		break;
+	case ERR_GRP_SPI_ECO:
+		if (idx == 0)
+			eq_dynamic_entry.pcie_spi_data.spi_type = PCIE_SPI_FLR;
+		else if (idx == 1)
+			eq_dynamic_entry.pcie_spi_data.spi_type = PCIE_SPI_APB_ACCESS_TIMEOUT;
+		else if (2 >= idx && idx <= 5)
+			eq_dynamic_entry.pcie_spi_data.spi_type = PCIE_SPI_BMON_SPMU;
+		else if (idx == 6)
+			eq_dynamic_entry.pcie_spi_data.spi_type = PCIE_SPI_FATAL_ERR;
+		else if (idx == 7)
+			eq_dynamic_entry.pcie_spi_data.spi_type = PCIE_SPI_P2P_OR_MSIX_GW_INTR;
+		else /* 8 */
+			eq_dynamic_entry.pcie_spi_data.spi_type = PCIE_SPI_DRAIN;
+		eq_dynamic_entry.hdr.size = cpu_to_le16(sizeof(struct hl_eq_pcie_spi_data));
+		if (eq_dynamic_entry.pcie_spi_data.spi_type == PCIE_SPI_DRAIN)
+			unmask_event_in_aggr = true;
 		break;
 	default:
 		return;
 	}
 
-	eq_entry.hdr.ctl = cpu_to_le32(event_id << EQ_CTL_EVENT_TYPE_SHIFT);
-	gaudi3_handle_eqe_old(hdev, &eq_entry);
+	params.component_type = INT_COMP_TYPE_PCIE;
+	params.grp_type = type;
+	params.die = die;
+	params.hdcore = INT_SHARED;
+	params.instance = 0;
+	prepare_eq_dynamic_entry_agg_header(&eq_dynamic_entry, &params);
 
-	if (type == ERR_GRP_SEI) {
+	gaudi3_handle_eqe(hdev, &eq_dynamic_entry);
+
+	if (type == ERR_GRP_SEI &&
+			eq_dynamic_entry.pcie_sei_data.sei_type == PCIE_SEI_AXI_RESP_ERR) {
 		/* PCIE SEI cause register may not be fully cleared. It is possible that we need to
 		 * clear other registers and clear cause register once again.
 		 * Note!! there might be a corner case which is not handled:
 		 * Lets say reg value before eqe is 0x4001. After eqe we clear other registers which
-		 * relates for those error, and we read the cause reg again to clear it, but when we
-		 * read it another cause added and now reg value is 0x4004001. This will clear the
-		 * additional event without handling it.
+		 * relate for those error, and we read the cause reg again to clear it, but when we
+		 * read it another cause is added and now reg value is 0x4004001. This will clear
+		 * the additional event without handling it.
 		 */
-		gaudi3_clear_pcie_sei_cause_events(hdev, intr_cause_data);
+		gaudi3_clear_pcie_sei_cause_events(hdev, intr_cause);
+
 		/* Clearing SEI cause register once again */
 		err_msk = RREG32(mmD0_PCIE_WRAP_BASE + mmPCIE_WRAP_PCIE_SEI_INTR_STATUS);
 
 		while (err_msk) {
 			/* In case new event raised */
-			if ((err_msk & 1) && !(intr_cause_data & 1))
+			if ((err_msk & 1) && !(intr_cause & 1))
 				dev_err(hdev->dev,
 					"PCIE SEI event %u raised after PCIE SEI handling\n",
 					err_idx);
 			err_idx++;
 			err_msk >>= 1;
-			intr_cause_data >>= 1;
+			intr_cause >>= 1;
 		}
 	}
 
