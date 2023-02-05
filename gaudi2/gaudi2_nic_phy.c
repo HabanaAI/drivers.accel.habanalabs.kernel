@@ -347,8 +347,6 @@ static int twos_to_int(unsigned int val, u8 bitwidth)
 static void set_tx_taps(struct hl_device *hdev, u32 port, int lane, s32 tx_pre2, s32 tx_pre1,
 			s32 tx_main, s32 tx_post1, s32 tx_post2)
 {
-	u32 card_location = hdev->nic.card_location;
-
 	NIC_PHY_RMWREG32_LANE(mmNIC0_SERDES0_LANE0_REGISTER_0PA5, int_to_twos(tx_pre2, 8),
 				NIC0_SERDES0_LANE0_REGISTER_0PA5_TX_PRE_2_MASK);
 	NIC_PHY_RMWREG32_LANE(mmNIC0_SERDES0_LANE0_REGISTER_0PA7, int_to_twos(tx_pre1, 8),
@@ -359,10 +357,6 @@ static void set_tx_taps(struct hl_device *hdev, u32 port, int lane, s32 tx_pre2,
 				NIC0_SERDES0_LANE0_REGISTER_0PAB_TX_POST_1_MASK);
 	NIC_PHY_RMWREG32_LANE(mmNIC0_SERDES0_LANE0_REGISTER_0PAD, int_to_twos(tx_post2, 8),
 				NIC0_SERDES0_LANE0_REGISTER_0PAD_TX_POST_2_MASK);
-
-	dev_dbg(hdev->dev,
-		"Card %u Port %u lane %d tx taps: pre2 %d, pre1 %d, main %d, post1 %d, post2 %d\n",
-		card_location, port, lane, tx_pre2, tx_pre1, tx_main, tx_post1, tx_post2);
 }
 
 static void init_pam4_tx(struct hl_device *hdev, u32 port, int lane)
@@ -658,8 +652,6 @@ static void set_pol_tx(struct hl_device *hdev, u32 port, int lane, u32 tx_pol)
 {
 	NIC_PHY_RMWREG32_LANE(mmNIC0_SERDES0_LANE0_REGISTER_0PA0, tx_pol,
 				NIC0_SERDES0_LANE0_REGISTER_0PA0_TX_ANA_OUT_FLIP_MASK);
-
-	dev_dbg(hdev->dev, "Port %u lane %d: tx_pol %u\n", port, lane, tx_pol);
 }
 
 static void set_pol_rx(struct hl_device *hdev, u32 port, int lane, u32 rx_pol)
@@ -668,8 +660,6 @@ static void set_pol_rx(struct hl_device *hdev, u32 port, int lane, u32 rx_pol)
 				NIC0_SERDES0_LANE0_REGISTER_0P43_RX_DATA_FLIP_MASK);
 	NIC_PHY_RMWREG32_LANE(mmNIC0_SERDES0_LANE0_REGISTER_0N61, rx_pol,
 				NIC0_SERDES0_LANE0_REGISTER_0N61_PRBS_CHECK_FLIP_MASK);
-
-	dev_dbg(hdev->dev, "Port %u lane %d: rx_pol %u\n", port, lane, rx_pol);
 }
 
 static void set_gc_tx(struct hl_device *hdev, u32 port, int lane, u32 tx_gc)
@@ -773,9 +763,6 @@ static void set_functional_mode_lane(struct hl_device *hdev, u32 port, int lane,
 		NIC_PHY_WREG32_LANE(mmNIC0_SERDES0_LANE0_REGISTER_AN10, 0x5);
 	else
 		NIC_PHY_WREG32_LANE(mmNIC0_SERDES0_LANE0_REGISTER_AN10, 0);
-
-	dev_dbg(hdev->dev, "Card %u Port %u lane %d: Switched to functional mode\n",
-		hdev->nic.card_location, port, lane);
 }
 
 static void set_functional_mode(struct hl_device *hdev, u32 port)
@@ -1335,8 +1322,6 @@ static void phy_port_reset(struct hl_device *hdev, u32 port)
 {
 	int lane;
 
-	dev_dbg(hdev->dev, "Port %u: reset PHY\n", port);
-
 	soft_reset(hdev, port);
 	usleep_range(500, 1000);
 
@@ -1563,8 +1548,9 @@ static void check_pcs_link(struct hl_nic_port *nic_port)
 	nic_port->retry_cnt++;
 
 	if (nic_port->retry_cnt == NIC_PHY_PCS_LINK_CNT) {
-		dev_dbg(hdev->dev, "Card %u Port %u: PHY reconfig due to PCS link cnt\n",
-			card_location, port);
+		dev_dbg(hdev->dev,
+			"Card %u Port %u: %d sequential seconds of PCS link down - reconfiguring PHY\n",
+			card_location, port, NIC_PHY_PCS_LINK_CNT);
 
 		hl_nic_phy_port_reconfig(nic_port);
 	}
@@ -1616,7 +1602,8 @@ static void do_fw_tuning(struct hl_nic_port *nic_port)
 		rc = fw_tuning(hdev, port, lane, pam4);
 		if (rc) {
 			if (ktime_after(ktime_get(), nic_port->fw_tuning_limit_ts)) {
-				dev_dbg(hdev->dev, "Card %u Port %u lane %d: F/W tuning limit\n",
+				dev_dbg(hdev->dev,
+					"Card %u Port %u lane %d: F/W tuning limit - reconfiguring PHY\n",
 					card_location, port, lane);
 
 				hl_nic_phy_port_reconfig(nic_port);
@@ -1643,7 +1630,6 @@ static void do_fw_tuning(struct hl_nic_port *nic_port)
 				return;
 
 		nic_port->phy_fw_tuned = true;
-		dev_dbg(hdev->dev, "Card %u Port %u: F/W tuning passed\n", card_location, port);
 
 		/* If we got link up event, set it now when PHY is ready */
 		if (gaudi2_nic->eq_pcs_link) {
@@ -1676,8 +1662,9 @@ static int fw_tuning_an(struct hl_device *hdev, u32 port, int lane)
 	if (((u16) state) != 0xA01F && ((u16) state) != 0xA020 && ((u16) state) != 0xAF00) {
 		u32 error_status = rv_debug(hdev, port, lane, 0, 3);
 
-		dev_dbg_ratelimited(hdev->dev, "Port %u lane %d: state 0x%x error 0x%x\n",
-					port, lane, state, error_status);
+		dev_dbg_ratelimited(hdev->dev,
+					"Card %u Port %u lane %d: auto neg fw is not ready, state 0x%x error 0x%x\n",
+					hdev->nic.card_location, port, lane, state, error_status);
 		return -EAGAIN;
 	}
 
@@ -1699,21 +1686,13 @@ static void tx_quite(struct hl_device *hdev, u32 port, int lane)
 static int do_anlt(struct hl_nic_port *nic_port)
 {
 	struct hl_device *hdev = nic_port->hdev;
-	u32 card_location, port, tx_port;
+	u32 port = nic_port->port, tx_port;
 	int tx_lane, rc;
-
-	card_location = hdev->nic.card_location;
-	port = nic_port->port;
 
 	/* fw_tuning_an needs to be done only on lane 0 */
 	rc = fw_tuning_an(hdev, port, 0);
-	if (rc) {
-		dev_dbg_ratelimited(hdev->dev,
-					"Card %u Port %u lane 0: PHY auto neg fw is not ready\n",
-					card_location, port);
-
+	if (rc)
 		return rc;
-	}
 
 	get_tx_port_and_lane(hdev, port, 0, &tx_port, &tx_lane);
 	tx_quite(hdev, tx_port, tx_lane);
@@ -1721,8 +1700,8 @@ static int do_anlt(struct hl_nic_port *nic_port)
 	rc = fw_config(hdev, port, NIC_DR_50, true);
 	if (rc) {
 		dev_dbg(hdev->dev,
-			"Card %u Port %u: PHY link training failed, rc %d\n",
-			card_location, port, rc);
+			"Card %u Port %u: PHY link training failed, rc %d - reconfiguring PHY\n",
+			hdev->nic.card_location, port, rc);
 
 		hl_nic_phy_port_reconfig(nic_port);
 
@@ -1953,8 +1932,6 @@ void gaudi2_nic_phy_port_reconfig(struct hl_nic_port *nic_port)
 
 	card_location = hdev->nic.card_location;
 	port = nic_port->port;
-
-	dev_dbg(hdev->dev, "Card %u Port %u: reconfiguring PHY\n", card_location, port);
 
 	rc = gaudi2_nic_phy_port_power_up(nic_port);
 	if (rc)
