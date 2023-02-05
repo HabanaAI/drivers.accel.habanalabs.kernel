@@ -3338,40 +3338,31 @@ static void handle_and_clear_pcie_events(struct hl_device *hdev, u32 die,
 		WREG32_AND(aggr_mask_reg, events_mask);
 }
 
-static const enum gaudi3_async_event_id psoc_spi_events_id_map[1][2] = {
-		{GAUDI3_EVENT_PSOC0_DIE0_HDPSOC_PRSTN_SPI,
-		GAUDI3_EVENT_PSOC0_DIE0_HDPSOC_PRSTN1_SPI}
-};
-
-static const enum gaudi3_async_event_id psoc_sei_events_id_map[MAX_NUM_OF_DIES][1] = {
-		{GAUDI3_EVENT_PSOC0_DIE0_HDSHARED_SEI},
-		{GAUDI3_EVENT_PSOC0_DIE1_HDSHARED_SEI},
-};
-
 /* SHARED_PSOC_EVENT */
 static void handle_and_clear_psoc_events(struct hl_device *hdev, u32 die,
 					enum err_grp type, u32 sts, u32 sts_idx, u32 idx,
 					u32 aggr_mask_reg, u32 events_mask)
 {
-	enum gaudi3_async_event_id event_id;
+	struct hl_eq_dynamic_entry eq_dynamic_entry = {};
+	struct eq_agg_header_params params = {};
 	bool unmask_event_in_aggr = false;
-	struct hl_eq_entry eq_entry;
-
-	memset(&eq_entry, 0, sizeof(struct hl_eq_entry));
 
 	switch (type) {
-	case ERR_GRP_SPI_ECO:
-		event_id = psoc_spi_events_id_map[0][idx];
-		break;
 	case ERR_GRP_SEI:
-		event_id = psoc_sei_events_id_map[die][idx];
+	case ERR_GRP_SPI_ECO:
 		break;
 	default:
 		return;
 	}
 
-	eq_entry.hdr.ctl = cpu_to_le32(event_id << EQ_CTL_EVENT_TYPE_SHIFT);
-	gaudi3_handle_eqe_old(hdev, &eq_entry);
+	params.component_type = INT_COMP_TYPE_PSOC;
+	params.grp_type = type;
+	params.die = die;
+	params.hdcore = INT_PSOC;
+	params.instance = 0;
+	prepare_eq_dynamic_entry_agg_header(&eq_dynamic_entry, &params);
+
+	gaudi3_handle_eqe(hdev, &eq_dynamic_entry);
 
 	if (unmask_event_in_aggr)
 		WREG32_AND(aggr_mask_reg, events_mask);
