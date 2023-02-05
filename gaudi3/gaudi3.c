@@ -3548,9 +3548,6 @@ static void gaudi3_send_job_to_pdma(struct hl_device *hdev, void *data)
 	WREG32(ch_reg_base + PDMA_CH_A_CTX_OFFSET + mmPDMA_CH_A_CTX_DST_TSIZE_0,
 			job_params->size);
 
-	/* TODO - PDMA_CH_A_CTX_SRC_TSIZE_0 might not be needed, verify on PLDM when possible */
-	WREG32(ch_reg_base + PDMA_CH_A_CTX_OFFSET + mmPDMA_CH_A_CTX_SRC_TSIZE_0, job_params->size);
-
 	WREG32(ch_reg_base + PDMA_CH_A_CTX_OFFSET + mmPDMA_CH_A_CTX_COMMIT, commit_mask);
 
 	/* Flush writes */
