@@ -1599,38 +1599,6 @@ static int fw_tuning(struct hl_device *hdev, u32 port, int lane, bool pam4)
 	return 0;
 }
 
-static void print_taps_after_tuning(struct hl_device *hdev, u32 port)
-{
-	u32 card_location, tx_pre2, tx_pre1, tx_main, tx_post1, tx_post2;
-	int lane;
-
-	card_location = hdev->nic.card_location;
-
-	for (lane = 0 ; lane < 2 ; lane++) {
-		tx_pre2 = (NIC_PHY_RREG32_LANE(mmNIC0_SERDES0_LANE0_REGISTER_0PA5) &
-				NIC0_SERDES0_LANE0_REGISTER_0PA5_TX_PRE_2_MASK) >>
-				NIC0_SERDES0_LANE0_REGISTER_0PA5_TX_PRE_2_SHIFT;
-		tx_pre1 = (NIC_PHY_RREG32_LANE(mmNIC0_SERDES0_LANE0_REGISTER_0PA7) &
-				NIC0_SERDES0_LANE0_REGISTER_0PA7_TX_PRE_1_MASK) >>
-				NIC0_SERDES0_LANE0_REGISTER_0PA7_TX_PRE_1_SHIFT;
-		tx_main = (NIC_PHY_RREG32_LANE(mmNIC0_SERDES0_LANE0_REGISTER_0PA9) &
-				NIC0_SERDES0_LANE0_REGISTER_0PA9_TX_MAIN_MASK) >>
-				NIC0_SERDES0_LANE0_REGISTER_0PA9_TX_MAIN_SHIFT;
-		tx_post1 = (NIC_PHY_RREG32_LANE(mmNIC0_SERDES0_LANE0_REGISTER_0PAB) &
-				NIC0_SERDES0_LANE0_REGISTER_0PAB_TX_POST_1_MASK) >>
-				NIC0_SERDES0_LANE0_REGISTER_0PAB_TX_POST_1_SHIFT;
-		tx_post2 = (NIC_PHY_RREG32_LANE(mmNIC0_SERDES0_LANE0_REGISTER_0PAD) &
-				NIC0_SERDES0_LANE0_REGISTER_0PAD_TX_POST_2_MASK) >>
-				NIC0_SERDES0_LANE0_REGISTER_0PAD_TX_POST_2_SHIFT;
-
-		dev_dbg(hdev->dev,
-			"Card %u Port %u lane %d tx taps after F/W tuning: pre2 %d, pre1 %d, main %d, post1 %d, post2 %d\n",
-			card_location, port, lane,
-			twos_to_int(tx_pre2, 8), twos_to_int(tx_pre1, 8), twos_to_int(tx_main, 8),
-			twos_to_int(tx_post1, 8), twos_to_int(tx_post2, 8));
-	}
-}
-
 static void do_fw_tuning(struct hl_nic_port *nic_port)
 {
 	struct hl_device *hdev = nic_port->hdev;
@@ -1685,7 +1653,6 @@ static void do_fw_tuning(struct hl_nic_port *nic_port)
 
 		mutex_unlock(&nic_port->control_lock);
 
-		print_taps_after_tuning(hdev, port);
 		nic_port->retry_cnt = 0;
 
 		if (hdev->nic.phy_show_ber) {
@@ -2344,6 +2311,33 @@ static void get_channel_estimation_params(struct hl_device *hdev, u32 port, int 
 	}
 }
 
+static void get_tx_taps(struct hl_device *hdev, u32 port, int lane, int *tx_taps)
+{
+	u32 tx_pre2, tx_pre1, tx_main, tx_post1, tx_post2;
+
+	tx_pre2 = (NIC_PHY_RREG32_LANE(mmNIC0_SERDES0_LANE0_REGISTER_0PA5) &
+			NIC0_SERDES0_LANE0_REGISTER_0PA5_TX_PRE_2_MASK) >>
+			NIC0_SERDES0_LANE0_REGISTER_0PA5_TX_PRE_2_SHIFT;
+	tx_pre1 = (NIC_PHY_RREG32_LANE(mmNIC0_SERDES0_LANE0_REGISTER_0PA7) &
+			NIC0_SERDES0_LANE0_REGISTER_0PA7_TX_PRE_1_MASK) >>
+			NIC0_SERDES0_LANE0_REGISTER_0PA7_TX_PRE_1_SHIFT;
+	tx_main = (NIC_PHY_RREG32_LANE(mmNIC0_SERDES0_LANE0_REGISTER_0PA9) &
+			NIC0_SERDES0_LANE0_REGISTER_0PA9_TX_MAIN_MASK) >>
+			NIC0_SERDES0_LANE0_REGISTER_0PA9_TX_MAIN_SHIFT;
+	tx_post1 = (NIC_PHY_RREG32_LANE(mmNIC0_SERDES0_LANE0_REGISTER_0PAB) &
+			NIC0_SERDES0_LANE0_REGISTER_0PAB_TX_POST_1_MASK) >>
+			NIC0_SERDES0_LANE0_REGISTER_0PAB_TX_POST_1_SHIFT;
+	tx_post2 = (NIC_PHY_RREG32_LANE(mmNIC0_SERDES0_LANE0_REGISTER_0PAD) &
+			NIC0_SERDES0_LANE0_REGISTER_0PAD_TX_POST_2_MASK) >>
+			NIC0_SERDES0_LANE0_REGISTER_0PAD_TX_POST_2_SHIFT;
+
+	tx_taps[0] = twos_to_int(tx_pre2, 8);
+	tx_taps[1] = twos_to_int(tx_pre1, 8);
+	tx_taps[2] = twos_to_int(tx_main, 8);
+	tx_taps[3] = twos_to_int(tx_post1, 8);
+	tx_taps[4] = twos_to_int(tx_post2, 8);
+}
+
 static void copy_info(char *buf, char *name, int *data, u8 count)
 {
 	int i;
@@ -2406,7 +2400,7 @@ static void dump_mac_params(struct hl_device *hdev, u32 port, char *buf)
 void gaudi2_nic_phy_dump_serdes_params(struct hl_device *hdev, char *buf, size_t size)
 {
 	u32 port, card_location, sd, phy_ready, ch_est_of, ch_est_hf, ppm_twos, adapt_state;
-	int lane, i, ppm, eye[3], isi[18];
+	int lane, i, ppm, eye[3], isi[18], tx_taps[5];
 
 	port = hdev->nic.phy_port_to_dump;
 	card_location = hdev->nic.card_location;
@@ -2441,6 +2435,8 @@ void gaudi2_nic_phy_dump_serdes_params(struct hl_device *hdev, char *buf, size_t
 		for (i = 0 ; i < 2 ; i++)
 			isi[16+i] = fw_read_s16(hdev, port, i);
 
+		get_tx_taps(hdev, port, lane, tx_taps);
+
 		sprintf(buf + strlen(buf),
 			"Card %u Port %u lane %d:\n", card_location, port, lane);
 		sprintf(buf + strlen(buf),
@@ -2449,6 +2445,7 @@ void gaudi2_nic_phy_dump_serdes_params(struct hl_device *hdev, char *buf, size_t
 			sd, phy_ready, ppm, ch_est_of, ch_est_hf, adapt_state);
 		copy_info(buf, "eyes", eye, 3);
 		copy_info(buf, "isi", isi, 18);
+		copy_info(buf, "tx_taps", tx_taps, 5);
 		sprintf(buf + strlen(buf), "\n");
 	}
 
