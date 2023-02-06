@@ -11490,18 +11490,6 @@ static void gaudi3_handle_pcie_drain(struct hl_device *hdev)
 		gaudi3_handle_axi_drain(hdev, &dummy);
 }
 
-static void gaudi3_print_irq_info(struct hl_device *hdev, u16 event_type)
-{
-	char desc[64] = "";
-
-	if (gaudi3_irq_map_table[event_type].valid)
-		snprintf(desc, sizeof(desc), gaudi3_irq_map_table[event_type].name);
-	else
-		snprintf(desc, sizeof(desc), "N/A");
-
-	dev_err_ratelimited(hdev->dev, "Received H/W interrupt %d [\"%s\"]\n", event_type, desc);
-}
-
 static void gaudi3_pdma_mask_err_int(struct hl_device *hdev,
 		u64 err_cause_reg, u32 err_ignore_msk, u64 err_int_mask_reg)
 {
@@ -11646,26 +11634,6 @@ static void gaudi3_handle_ecc_event(struct hl_device *hdev, struct hl_eq_ecc_dat
 	dev_err(hdev->dev,
 		"ECC error detected. address: %#llx. Syndrom: %#llx. block id %u. critical %u.\n",
 		ecc_address, ecc_syndrom, memory_wrapper_idx, ecc_data->is_critical);
-}
-
-void gaudi3_handle_eqe_old(struct hl_device *hdev, struct hl_eq_entry *eq_entry)
-{
-	u64 event_mask = 0;
-	u16 event_type;
-	u32 ctl;
-
-	ctl = le32_to_cpu(eq_entry->hdr.ctl);
-	event_type = ((ctl & EQ_CTL_EVENT_TYPE_MASK) >> EQ_CTL_EVENT_TYPE_SHIFT);
-
-	gaudi3_print_irq_info(hdev, event_type);
-
-	switch (event_type) {
-	default:
-		return;
-	}
-
-	if (event_mask)
-		hl_notifier_event_send_all(hdev, event_mask);
 }
 
 static void gaudi3_print_msg_event_info(struct hl_device *hdev, u16 event_type)
@@ -11934,7 +11902,7 @@ static const struct hl_asic_funcs gaudi3_funcs = {
 	.restore_phase_topology = gaudi3_restore_phase_topology,
 	.debugfs_read_dma = gaudi3_debugfs_read_dma,
 	.add_device_attr = gaudi3_add_device_attr,
-	.handle_eqe = gaudi3_handle_eqe_old,
+	.handle_eqe = NULL,
 	.get_events_stat = gaudi3_get_events_stat,
 	.read_pte = NULL,
 	.write_pte = NULL,
