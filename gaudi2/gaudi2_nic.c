@@ -1766,7 +1766,8 @@ static int gaudi2_nic_qpc_op(struct hl_nic_port *nic_port, u64 ctrl, bool wait_f
 
 	NIC_WREG32(mmNIC0_QPC0_GW_BUSY, 1);
 
-	if (wait_for_completion)
+	/* do not poll on registers when reset was initiated by FW */
+	if (wait_for_completion && !hdev->reset_info.fw_reset)
 		rc = hl_poll_timeout(
 			hdev,
 			mmNIC0_QPC0_GW_BUSY + NIC_CFG_BASE(port, mmNIC0_QPC0_GW_BUSY),
@@ -3058,6 +3059,7 @@ static void gaudi2_nic_stop_traffic_port(struct hl_nic_port *nic_port)
 	NIC_MACRO_RREG32(mmNIC0_TXS0_CACHE_CFG);
 }
 
+/* FW must be aligned with any changes done to this function */
 static void gaudi2_nic_stop_traffic(struct hl_device *hdev)
 {
 	struct hl_nic *nic = &hdev->nic;

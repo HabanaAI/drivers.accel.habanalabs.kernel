@@ -92,7 +92,8 @@ static int gaudi_nic_qpc_op(struct hl_nic_port *nic_port, u32 qpn, bool is_req,
 
 	NIC_WREG32(mmNIC0_QPC0_GW_BUSY, 1);
 
-	if (wait_for_completion)
+	/* do not poll on registers when reset was initiated by FW */
+	if (wait_for_completion && !hdev->reset_info.fw_reset)
 		rc = hl_poll_timeout(
 			hdev,
 			mmNIC0_QPC0_GW_BUSY + NIC_CFG_BASE(port),

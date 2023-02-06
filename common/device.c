@@ -1810,6 +1810,7 @@ escalate_reset_flow:
 
 	if ((hard_reset) && (!from_hard_reset_thread)) {
 		hdev->reset_info.hard_reset_pending = true;
+		hdev->reset_info.fw_reset = fw_reset;
 
 		hdev->process_kill_trial_cnt = 0;
 
@@ -1895,6 +1896,7 @@ kill_processes:
 	if (hard_reset) {
 		hdev->device_cpu_disabled = false;
 		hdev->reset_info.hard_reset_pending = false;
+		hdev->reset_info.fw_reset = false;
 
 		if (hdev->reset_info.reset_trigger_repeated &&
 				(hdev->reset_info.prev_reset_trigger ==

@@ -3405,6 +3405,7 @@ struct hl_error_info {
  * @skip_reset_on_timeout: Skip device reset if CS has timed out, wait for it to
  *                         complete instead.
  * @watchdog_active: true if a device release watchdog work is scheduled.
+ * @fw_reset: true if reset was initiated by FW.
  */
 struct hl_reset_info {
 	spinlock_t	lock;
@@ -3420,6 +3421,7 @@ struct hl_reset_info {
 	u8		reset_trigger_repeated;
 	u8		skip_reset_on_timeout;
 	u8		watchdog_active;
+	u8		fw_reset;
 };
 
 /**
