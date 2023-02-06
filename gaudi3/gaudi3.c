@@ -3866,19 +3866,6 @@ static void gaudi3_pdma_mmu_prepare(struct hl_device *hdev, u32 asid)
 	}
 }
 
-/* Configure CMN_B, MSTR_IF */
-static void gaudi3_init_pdma_grp(struct hl_device *hdev, u32 reg_base)
-{
-	/* TODO - verify channel/s is/are idle before configuring b/cmn blk:
-	 *		Location	Reset Value	Short Description
-	 * STATE	0..2		0x0		pdma engine state
-	 * ANY_CH	3		0x0		0 - all idle, 1 - at least 1 active
-	 * CH		4..27		0x0		ch[i]=0 ch i is idle
-	 */
-
-	/* TODO - set all related error blocks. */
-}
-
 /* Configure DUP_P, DUP_ENG, DUP_MSTR_IF */
 static void gaudi3_init_dup(struct hl_device *hdev, u32 reg_base)
 {
@@ -3903,7 +3890,6 @@ void gaudi3_init_pdma(struct hl_device *hdev)
 
 	for (i = 0 ; i < prop->pdma_grp_max ; i++) {
 		reg_base = gaudi3_pdma_grp_blocks_bases[i];
-		gaudi3_init_pdma_grp(hdev, reg_base);
 		gaudi3_init_dup(hdev, reg_base);
 
 		for (j = 0 ; j < prop->pdma_grp_ch_max ; j++) {
