@@ -7227,7 +7227,7 @@ static irqreturn_t gaudi3_eq_irq_handler(int irq, void *arg)
 	return IRQ_HANDLED;
 }
 
-static int gaudi3_eq_enable_msix(struct hl_device *hdev)
+int gaudi3_eq_enable_msix(struct hl_device *hdev)
 {
 	enum gaudi3_irq_num irq_nr = GAUDI3_IRQ_NUM_EVENT_QUEUE;
 	int irq;
@@ -7240,7 +7240,7 @@ static int gaudi3_eq_enable_msix(struct hl_device *hdev)
 					gaudi3_irq_name(irq_nr), &hdev->event_queue);
 }
 
-static void gaudi3_eq_disable_msix(struct hl_device *hdev)
+void gaudi3_eq_disable_msix(struct hl_device *hdev)
 {
 	int irq = hl_irq_vector(hdev, GAUDI3_IRQ_NUM_EVENT_QUEUE);
 

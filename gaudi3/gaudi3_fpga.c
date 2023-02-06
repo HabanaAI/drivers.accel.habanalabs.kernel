@@ -213,26 +213,20 @@ static void gaudi3_fpga_set_pci_memory_regions(struct hl_device *hdev)
 static int gaudi3_fpga_enable_msix(struct hl_device *hdev)
 {
 	struct gaudi3_device *gaudi3 = hdev->asic_specific;
-	int rc, irq;
+	int rc;
 
 	if (gaudi3->hw_cap_initialized & HW_CAP_MSIX)
 		return 0;
 
 	rc = hl_alloc_irq_vectors(hdev, 1, 1, PCI_IRQ_MSI);
 	if (rc < 0) {
-		dev_err(hdev->dev,
-			"MSI-X: Failed to enable support -- %d/%d\n",
-			1, rc);
+		dev_err(hdev->dev, "MSI-X: Failed to enable support -- %d/%d\n", 1, rc);
 		return rc;
 	}
 
-	dev_dbg(hdev->dev, "Going to enable MSI-X EQ\n");
-
-	irq = pci_irq_vector(hdev->pdev, GAUDI3_IRQ_NUM_EVENT_QUEUE);
-	rc = request_irq(irq, hl_irq_handler_eq, 0,
-			"gaudi3 cpu eq", &hdev->event_queue);
+	rc = gaudi3_eq_enable_msix(hdev);
 	if (rc) {
-		dev_err(hdev->dev, "Failed to request IRQ %d", irq);
+		dev_err(hdev->dev, "MSI-X: Failed to enable EQ interrupt, %d", rc);
 		goto free_irq_vectors;
 	}
 
@@ -259,7 +253,6 @@ static void gaudi3_fpga_sync_irqs(struct hl_device *hdev)
 static void gaudi3_fpga_disable_msix(struct hl_device *hdev)
 {
 	struct gaudi3_device *gaudi3 = hdev->asic_specific;
-	int irq;
 
 	if (!gaudi3)
 		return;
@@ -269,8 +262,7 @@ static void gaudi3_fpga_disable_msix(struct hl_device *hdev)
 
 	gaudi3_fpga_sync_irqs(hdev);
 
-	irq = pci_irq_vector(hdev->pdev, GAUDI3_IRQ_NUM_EVENT_QUEUE);
-	free_irq(irq, &hdev->event_queue);
+	gaudi3_eq_disable_msix(hdev);
 
 	hl_free_irq_vectors(hdev);
 
