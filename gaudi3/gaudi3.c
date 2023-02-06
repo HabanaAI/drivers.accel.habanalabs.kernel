@@ -7176,18 +7176,55 @@ static void gaudi3_etrs_disable_msix(struct hl_device *hdev)
 		gaudi3_etr_disable_msix(hdev, etr_idx);
 }
 
-static irqreturn_t gaudi3_irq_handler_eq(int irq, void *arg)
+static irqreturn_t gaudi3_eq_irq_handler(int irq, void *arg)
 {
-	return IRQ_WAKE_THREAD;
-}
+	struct hl_eq_dynamic_entry *eq_entry, *eq_base;
+	struct hl_device *hdev;
+	u16 cur_eqe_index;
+	struct hl_eq *eq;
+	bool entry_ready;
+	u32 ctl;
 
-static irqreturn_t gaudi3_threaded_irq_handler_eq(int irq, void *arg)
-{
-	/* Invoking the common eq handler here means that eq handler will be executed
-	 * from threaded irq context. Which is different from other asics where it
-	 * executes inside irq context.
-	 */
-	return hl_irq_handler_eq(irq, arg);
+	eq = arg;
+	hdev = eq->hdev;
+	eq_base = eq->kernel_address;
+
+	while (true) {
+		ctl = le32_to_cpu(eq_base[eq->ci].hdr.ctl);
+
+		entry_ready = !!FIELD_GET(EQ_CTL_READY_MASK, ctl);
+		if (!entry_ready)
+			break;
+
+		cur_eqe_index = FIELD_GET(EQ_CTL_INDEX_MASK, ctl);
+		if (((eq->prev_eqe_index + 1) & EQ_CTL_INDEX_MASK) != cur_eqe_index) {
+			dev_dbg(hdev->dev,
+				"EQE %#x in queue is ready but index does not match %d!=%d",
+				ctl, (eq->prev_eqe_index + 1) & EQ_CTL_INDEX_MASK, cur_eqe_index);
+			break;
+		}
+
+		eq->prev_eqe_index++;
+
+		eq_entry = &eq_base[eq->ci];
+
+		/* Make sure we read EQ entry contents after we've checked the ownership bit */
+		dma_rmb();
+
+		if (hdev->disabled && !hdev->reset_info.in_compute_reset)
+			dev_warn(hdev->dev, "Device disabled but received an EQ event\n");
+		else
+			gaudi3_handle_eqe(hdev, eq_entry);
+
+		/* Clear EQ entry ready bit */
+		eq_entry->hdr.ctl = cpu_to_le32(ctl & ~EQ_CTL_READY_MASK);
+
+		eq->ci = hl_eq_inc_ptr(eq->ci);
+
+		hdev->asic_funcs->update_eq_ci(hdev, eq->ci);
+	}
+
+	return IRQ_HANDLED;
 }
 
 static int gaudi3_eq_enable_msix(struct hl_device *hdev)
@@ -7195,17 +7232,12 @@ static int gaudi3_eq_enable_msix(struct hl_device *hdev)
 	enum gaudi3_irq_num irq_nr = GAUDI3_IRQ_NUM_EVENT_QUEUE;
 	int irq;
 
-	/* While there is already use of hl_irq_handler_eq (outside gaudi3), as a direct irq
-	 * handler (not a threaded irq), a specific gaudi3 irq handler is created to implement
-	 * a threaded irq mechanism
-	 */
 	irq = hl_irq_vector(hdev, irq_nr);
 	if (irq < 0)
-		return -ENOMEM;
+		return irq;
 
-	return request_threaded_irq(irq, gaudi3_irq_handler_eq,
-			gaudi3_threaded_irq_handler_eq, IRQF_ONESHOT,
-			gaudi3_irq_name(irq_nr), &hdev->event_queue);
+	return request_threaded_irq(irq, NULL, gaudi3_eq_irq_handler, IRQF_ONESHOT,
+					gaudi3_irq_name(irq_nr), &hdev->event_queue);
 }
 
 static void gaudi3_eq_disable_msix(struct hl_device *hdev)
