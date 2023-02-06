@@ -3857,21 +3857,15 @@ static void gaudi3_pdma_mmu_prepare(struct hl_device *hdev, u32 asid)
 	struct asic_fixed_properties *prop = &hdev->asic_prop;
 	struct gaudi3_device *gaudi3 = hdev->asic_specific;
 	u32 ch_reg_base;
-	int ch_id, i, j;
+	int ch_id;
 
-	/* TODO - if no PDMA group related config are added in the future,
-	 * this can be refactored to be a single for-loop over the channels only.
-	 */
-	for (i = 0 ; i < prop->pdma_grp_max ; i++) {
-		ch_reg_base = gaudi3_pdma_grp_blocks_bases[i];
-		for (j = 0 ; j < prop->pdma_grp_ch_max ; j++) {
-			ch_id = i * prop->pdma_grp_ch_max + j;
-			if (!(gaudi3->hw_cap_pdma_initialized & BIT(ch_id)))
-				continue;
+	for (ch_id = 0 ; ch_id < prop->pdma_ch_max ; ch_id++) {
+		if (!(gaudi3->hw_cap_pdma_initialized & BIT(ch_id)))
+			continue;
 
-			if (prop->pdma_user_owned_ch_mask & BIT(ch_id))
-				gaudi3_config_pdma_ch_mmu_mode(hdev,
-						ch_reg_base + j * PDMA_CH_OFFSET, false, asid);
+		if (prop->pdma_user_owned_ch_mask & BIT(ch_id)) {
+			ch_reg_base = gaudi3_pdma_get_ch_reg_base(hdev, ch_id);
+			gaudi3_config_pdma_ch_mmu_mode(hdev, ch_reg_base, false, asid);
 		}
 	}
 }
