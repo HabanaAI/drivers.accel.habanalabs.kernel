@@ -730,16 +730,12 @@ static int gaudi3_sim_set_fixed_properties(struct hl_device *hdev)
 				(hdev->asic_type == ASIC_GAUDI3_SIM_SINGLE_DIE_ARC)) ? 1 : 2;
 	prop->num_of_hdcores = prop->num_of_dies * NUM_OF_HDCORES_PER_DIE;
 
+	prop->pdma_ch_max = prop->num_of_dies * NUM_OF_PDMA_CH_PER_DIE;
+	prop->pdma_grp_max = prop->num_of_dies * NUM_OF_PDMA_GRP_PER_DIE;
+
 	/* TODO: Handle the case of SRAM in cache mode */
-	if (prop->num_of_dies == 1) {
-		sram_start_offset = SRAM_MODE_0_SINGLE_DIE_OFFSET;
-		prop->pdma_ch_max = NUM_OF_PDMA_CH / 2;
-		prop->pdma_grp_max = NUM_OF_PDMA_GRP / 2;
-	} else {
-		sram_start_offset = SRAM_MODE_0_DOUBLE_DIE_OFFSET;
-		prop->pdma_ch_max = NUM_OF_PDMA_CH;
-		prop->pdma_grp_max = NUM_OF_PDMA_GRP;
-	}
+	sram_start_offset = prop->num_of_dies == 1 ?
+			SRAM_MODE_0_SINGLE_DIE_OFFSET : SRAM_MODE_0_DOUBLE_DIE_OFFSET;
 
 	prop->sram_base_address = SRAM_BASE_ADDR + sram_start_offset;
 	prop->sram_size = SRAM_SIZE - sram_start_offset;
