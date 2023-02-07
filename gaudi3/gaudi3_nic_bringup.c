@@ -499,7 +499,7 @@ static void gaudi3_nic_set_qpc_doorbells_eco_pldm(struct hl_nic_macro *nic_macro
 	u32 port = gaudi3_nic_get_first_port(nic_macro);
 	struct hl_device *hdev = nic_macro->hdev;
 
-	/* erratum 4960 register is active low == 0 is enabled. It is enabled by default. */
+	/* H9-4960 register is active low == 0 is enabled. It is enabled by default. */
 	NIC_RMWREG32(mmD0_NIC0_QPC_SPECIAL_BASE + mmNIC_QPC_SPECIAL_GLBL_SPARE_0,
 			hdev->nic_enable_h9_qp_doorbells_eco ? 0 : 1,
 			NIC_QPC_SPECIAL_GLBL_SPARE_0_ECO_4960_DISABLE_M);
@@ -510,7 +510,7 @@ static void gaudi3_nic_set_cc_message_drops_eco_pldm(struct hl_nic_macro *nic_ma
 	u32 port = gaudi3_nic_get_first_port(nic_macro);
 	struct hl_device *hdev = nic_macro->hdev;
 
-	/* erratum 5456 register is active low == 0 is enabled. It is enabled by default. */
+	/* H9-5456 register is active low == 0 is enabled. It is enabled by default. */
 	NIC_RMWREG32(mmD0_NIC0_QPC_SPECIAL_BASE + mmNIC_QPC_SPECIAL_GLBL_SPARE_0,
 			hdev->nic_enable_h9_cc_msg_drops_eco ? 0 : 1,
 			NIC_QPC_SPECIAL_GLBL_SPARE_0_ECO_5456_DISABLE_M);
@@ -521,7 +521,7 @@ static void gaudi3_nic_set_remote_pi_update_eco_pldm(struct hl_nic_macro *nic_ma
 	u32 port = gaudi3_nic_get_first_port(nic_macro);
 	struct hl_device *hdev = nic_macro->hdev;
 
-	/* erratum 5490 register is active low == 0 is enabled. It is enabled by default. */
+	/* H9-5490 register is active low == 0 is enabled. It is enabled by default. */
 	NIC_RMWREG32(mmD0_NIC0_QPC_SPECIAL_BASE + mmNIC_QPC_SPECIAL_GLBL_SPARE_0,
 			hdev->nic_enable_h9_remote_pi_update_eco ? 0 : 1,
 			NIC_QPC_SPECIAL_GLBL_SPARE_0_ECO_5490_DISABLE_M);
@@ -532,7 +532,7 @@ static void gaudi3_nic_set_sal_override_eco_pldm(struct hl_nic_macro *nic_macro)
 	u32 port = gaudi3_nic_get_first_port(nic_macro);
 	struct hl_device *hdev = nic_macro->hdev;
 
-	/* erratum 5499 is by default enabled in HW, this function disables it upon request */
+	/* H9-5499 is by default enabled in HW, this function disables it upon request */
 	if (hdev->nic_enable_h9_sal_override_eco)
 		return;
 
@@ -545,7 +545,7 @@ static void gaudi3_nic_set_txe_buff_alloc_eco_pldm(struct hl_nic_macro *nic_macr
 	u32 port = gaudi3_nic_get_first_port(nic_macro);
 	struct hl_device *hdev = nic_macro->hdev;
 
-	/* erratum 5471 register is active low == 0 is enabled. It is enabled by default. */
+	/* H9-5471 register is active low == 0 is enabled. It is enabled by default. */
 	NIC_RMWREG32(mmD0_NIC0_TXE_SPECIAL_BASE + mmNIC_TXE_SPECIAL_GLBL_SPARE_0,
 			hdev->nic_enable_h9_txe_buff_alloc_eco ? 0 : 1,
 			NIC_TXE_SPECIAL_GLBL_SPARE_0_ECO_5471_DISABLE_M);
@@ -556,7 +556,7 @@ static void gaudi3_nic_set_single_qp_perf_eco_pldm(struct hl_nic_macro *nic_macr
 	u32 port = gaudi3_nic_get_first_port(nic_macro);
 	struct hl_device *hdev = nic_macro->hdev;
 
-	/* erratum 5216 register is active low == 0 is enabled. It is enabled by default.
+	/* H9-5216 register is active low == 0 is enabled. It is enabled by default.
 	 * The configuration of the burst size for that ECO resides in QPC configuration function.
 	 */
 	NIC_RMWREG32(mmD0_NIC0_TXE_SPECIAL_BASE + mmNIC_TXE_SPECIAL_GLBL_SPARE_0,

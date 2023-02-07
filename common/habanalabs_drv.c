@@ -519,7 +519,7 @@ MODULE_PARM_DESC(bfe_hbm_compression_enable,
 
 module_param(bfe_nic_enable_h9_rx_drop_eco, int, 0444);
 MODULE_PARM_DESC(bfe_nic_enable_h9_rx_drop_eco,
-	"Enable erratum 5384 ECO, which avoids packet drops in RXB (0 - disabled, 1 - enabled, default 1)");
+	"Enable H9-5384 ECO, which avoids packet drops in RXB (0 - disabled, 1 - enabled, default 1)");
 
 module_param(bfe_enable_h9_cache_eta_eco, int, 0444);
 MODULE_PARM_DESC(bfe_enable_h9_cache_eta_eco,
@@ -531,35 +531,35 @@ MODULE_PARM_DESC(bfe_force_h9_single_die,
 
 module_param(bfe_nic_enable_h9_qp_doorbells_eco, int, 0444);
 MODULE_PARM_DESC(bfe_nic_enable_h9_qp_doorbells_eco,
-	"Enable erratum 4960 ECO, fixes unexpectedly doorbells for QPs with no work in QPC (0 - disabled, 1 - enabled, default 1)");
+	"Enable H9-4960 ECO, fixes unexpectedly doorbells for QPs with no work in QPC (0 - disabled, 1 - enabled, default 1)");
 
 module_param(bfe_nic_enable_h9_cc_msg_drops_eco, int, 0444);
 MODULE_PARM_DESC(bfe_nic_enable_h9_cc_msg_drops_eco,
-	"Enable erratum 5456 ECO, fixes message drops in CC mode when SACK enabled (0 - disabled, 1 - enabled, default 1)");
+	"Enable H9-5456 ECO, fixes message drops in CC mode when SACK enabled (0 - disabled, 1 - enabled, default 1)");
 
 module_param(bfe_nic_enable_h9_remote_pi_update_eco, int, 0444);
 MODULE_PARM_DESC(bfe_nic_enable_h9_remote_pi_update_eco,
-	"Enable erratum 5490 ECO, fixes remote PI wrong update on wraparound (0 - disabled, 1 - enabled, default 1)");
+	"Enable H9-5490 ECO, fixes remote PI wrong update on wraparound (0 - disabled, 1 - enabled, default 1)");
 
 module_param(bfe_nic_enable_h9_rxb_mem_deadlock_eco, int, 0444);
 MODULE_PARM_DESC(bfe_nic_enable_h9_rxb_mem_read_deadlock_eco,
-	"Enable erratum 5454 ECO, fixes RXB memory read deadlock (0 - disabled, 1 - enabled, default 1)");
+	"Enable H9-5454 ECO, fixes RXB memory read deadlock (0 - disabled, 1 - enabled, default 1)");
 
 module_param(bfe_nic_enable_h9_single_qp_perf_fix_eco, int, 0444);
 MODULE_PARM_DESC(bfe_nic_enable_h9_single_qp_perf_fix_eco,
-	"Enable erratum 5216 ECO, fixes single QP performance (0 - disabled, 1 - enabled, default 1)");
+	"Enable H9-5216 ECO, fixes single QP performance (0 - disabled, 1 - enabled, default 1)");
 
 module_param(bfe_nic_enable_h9_sal_override_eco, int, 0444);
 MODULE_PARM_DESC(bfe_nic_enable_h9_sal_override_eco,
-	"Enable erratum 5499 ECO, fixes SAL override issue (0 - disabled, 1 - enabled, default 1)");
+	"Enable H9-5499 ECO, fixes SAL override issue (0 - disabled, 1 - enabled, default 1)");
 
 module_param(bfe_nic_enable_h9_sack_deadlock_eco, int, 0444);
 MODULE_PARM_DESC(bfe_nic_enable_h9_sack_deadlock_eco,
-	"Enable erratum 5457 ECO, fixes SACK deadlock (0 - disabled, 1 - enabled, default 1)");
+	"Enable H9-5457 ECO, fixes SACK deadlock (0 - disabled, 1 - enabled, default 1)");
 
 module_param(bfe_nic_enable_h9_txe_buff_alloc_eco, int, 0444);
 MODULE_PARM_DESC(bfe_nic_enable_h9_txe_buff_alloc_eco,
-	"Enable erratum 5471 ECO, fixes TXE buff allocation issue (0 - disabled, 1 - enabled, default 1)");
+	"Enable H9-5471 ECO, fixes TXE buff allocation issue (0 - disabled, 1 - enabled, default 1)");
 
 #define PCI_VENDOR_ID_HABANALABS	0x1da3
 
