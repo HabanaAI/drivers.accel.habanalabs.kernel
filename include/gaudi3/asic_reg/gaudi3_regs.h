@@ -149,6 +149,7 @@
 #include "qman_masks.h"
 #include "qman_cgm_masks.h"
 #include "edma_cmn_masks.h"
+#include "edma_chn_masks.h"
 #include "tpc_masks.h"
 #include "tpc_qm_masks.h"
 #include "tpc_kernel_masks.h"
@@ -275,8 +276,6 @@
 #include "d0_hbm0_bcast_cmn_masks.h"
 #include "mc_ch_masks.h"
 #include "hbm_phy_p0_master_masks.h"
-#include "hd1_sedma0_cmn_masks.h"
-#include "hd1_sedma0_ch0_masks.h"
 #include "hd0_sync_mngr_mstr_if_axuser_hbw_masks.h"
 #include "arc_af_eng_masks.h"
 #include "hd0_rrtr0_rtr_ctrl_rr_lbw_masks.h"
@@ -352,11 +351,6 @@
 /* DUP */
 #define DUP_CONTROL_HALT_OFFSET \
 	(mmD0_SPDMA0_DUP_ENG_BASE + mmPDUP_ENG_DUP_CONTROL_HALT - mmD0_SPDMA0_CH0_A_PQM_CH_BASE)
-
-/* SEDMA_CH */
-#define SEDMA_CH_ERR_MSG_ADDR_LO_OFFSET	(mmHD1_SEDMA0_CH0_ERR_MSG_ADDR_LO - mmHD1_SEDMA0_CH0_BASE)
-#define SEDMA_CH_ERR_MSG_ADDR_HI_OFFSET	(mmHD1_SEDMA0_CH0_ERR_MSG_ADDR_HI - mmHD1_SEDMA0_CH0_BASE)
-#define SEDMA_CH_ERR_MSG_WDATA_OFFSET	(mmHD1_SEDMA0_CH0_ERR_MSG_WDATA - mmHD1_SEDMA0_CH0_BASE)
 
 /* NIC */
 #define NIC_UMR_OFFSET			(mmD0_NIC0_UMR_1_BASE - mmD0_NIC0_UMR_0_BASE)
