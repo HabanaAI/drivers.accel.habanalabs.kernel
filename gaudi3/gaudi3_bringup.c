@@ -1005,6 +1005,79 @@ static int gaudi3_init_axi_drain(struct hl_device *hdev)
 	return 0;
 }
 
+static u64 gaudi3_get_drain_address(struct hl_device *hdev, u64 addr_base)
+{
+	u64 addr_high;
+	u32 addr_low;
+
+	addr_low = RREG32(addr_base);
+	addr_high = RREG32(addr_base + 0x4);
+
+	return ((addr_high << 32) + addr_low);
+}
+
+/*
+ * AXI drain address registers layout (with offsets form drain_addr_base):
+ * [0]: DRAIN_WR_ADDR_0
+ * [4]: DRAIN_WR_ADDR_1
+ * [8]: DRAIN_RD_ADDR_0
+ * [C]: DRAIN_RD_ADDR_1
+ */
+static void gaudi3_print_axi_drain_address(struct hl_device *hdev, u64 drain_addr_base,
+						const char *type)
+{
+	u64 wr_addr, rd_addr;
+
+	wr_addr = gaudi3_get_drain_address(hdev, drain_addr_base);
+	rd_addr = gaudi3_get_drain_address(hdev, drain_addr_base + 0x8);
+
+	if ((wr_addr == 0) && (rd_addr == 0))
+		return;
+
+	dev_err(hdev->dev, "AXI drain %s event: read address %#llx, write address %#llx\n",
+						type, rd_addr, wr_addr);
+}
+
+void gaudi3_handle_axi_drain(struct hl_device *hdev, bool *pci_link_error)
+{
+	u32 drain_indication;
+
+	drain_indication = RREG32(mmD0_PCIE_WRAP_BASE + mmPCIE_WRAP_AXI_DRAIN_IND);
+	if (drain_indication == 0xFFFFFFFF) {
+		dev_err(hdev->dev, "PCI link error\n");
+		*pci_link_error = true;
+		return;
+	}
+
+	drain_indication &= (PCIE_WRAP_AXI_DRAIN_IND_LBW_AXI_DRAIN_IND_M |
+				PCIE_WRAP_AXI_DRAIN_IND_HBW_AXI_DRAIN_IND_M);
+	if (!drain_indication)
+		return;
+
+	if (drain_indication & PCIE_WRAP_AXI_DRAIN_IND_LBW_AXI_DRAIN_IND_M) {
+		gaudi3_print_axi_drain_address(hdev,
+					mmD0_PCIE_WRAP_BASE + mmPCIE_WRAP_LBW_DRAIN_WR_ADDR_0,
+					"LBW TIMEOUT");
+		gaudi3_print_axi_drain_address(hdev,
+					mmD0_PCIE_WRAP_BASE + mmPCIE_WRAP_LBW_WR_ERR_ADDR_0,
+					"LBW ERR");
+	}
+	if (drain_indication & PCIE_WRAP_AXI_DRAIN_IND_HBW_AXI_DRAIN_IND_M) {
+		gaudi3_print_axi_drain_address(hdev,
+					mmD0_PCIE_WRAP_BASE + mmPCIE_WRAP_HBW_DRAIN_WR_ADDR_0,
+					"HBW TIMEOUT");
+		gaudi3_print_axi_drain_address(hdev,
+					mmD0_PCIE_WRAP_BASE + mmPCIE_WRAP_HBW_WR_ERR_ADDR_0,
+					"HBW ERR");
+	}
+
+	WREG32(mmD0_PCIE_WRAP_BASE + mmPCIE_WRAP_LBW_RSP_ERR_DRAIN_STAMP, 0x1);
+	WREG32(mmD0_PCIE_WRAP_BASE + mmPCIE_WRAP_HBW_RSP_ERR_DRAIN_STAMP, 0x1);
+
+	/* Ack the event */
+	WREG32(mmD0_PCIE_WRAP_BASE + mmPCIE_WRAP_AXI_DRAIN_IND, 0);
+}
+
 static void gaudi3_init_dbi_gateway(struct hl_device *hdev)
 {
 	/* we don't access DIE1 PCIE_WRAP */
