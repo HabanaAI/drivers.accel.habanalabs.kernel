@@ -48,6 +48,9 @@
 #define NIC_RXE_SPECIAL_GLBL_SPARE_0_BACK_PRESSURE_TH_S 0
 #define NIC_RXE_SPECIAL_GLBL_SPARE_0_BACK_PRESSURE_TH_M 0x7F
 
+#define NIC_RXE_SPECIAL_GLBL_SPARE_0_ECO_5499_DISABLE_S 7
+#define NIC_RXE_SPECIAL_GLBL_SPARE_0_ECO_5499_DISABLE_M 0x80
+
 /* mmNIC_QPC_SPECIAL_GLBL_SPARE_0 */
 #define NIC_QPC_SPECIAL_GLBL_SPARE_0_ECO_4960_DISABLE_S 0
 #define NIC_QPC_SPECIAL_GLBL_SPARE_0_ECO_4960_DISABLE_M 0x1
@@ -57,9 +60,6 @@
 
 #define NIC_QPC_SPECIAL_GLBL_SPARE_0_ECO_5490_DISABLE_S 2
 #define NIC_QPC_SPECIAL_GLBL_SPARE_0_ECO_5490_DISABLE_M 0x4
-
-#define NIC_QPC_SPECIAL_GLBL_SPARE_0_ECO_5499_DISABLE_S 3
-#define NIC_QPC_SPECIAL_GLBL_SPARE_0_ECO_5499_DISABLE_M 0x8
 
 static void gaudi3_nic_config_hw_mac_no_fw(struct hl_device *hdev, u32 port)
 {
@@ -543,8 +543,8 @@ static void gaudi3_nic_set_sal_override_eco_no_fw(struct hl_nic_macro *nic_macro
 
 	port = gaudi3_nic_get_first_port(nic_macro);
 
-	NIC_RMWREG32(mmD0_NIC0_QPC_SPECIAL_BASE + mmNIC_QPC_SPECIAL_GLBL_SPARE_0, 1,
-			NIC_QPC_SPECIAL_GLBL_SPARE_0_ECO_5499_DISABLE_M);
+	NIC_RMWREG32(mmD0_NIC0_RXE_SPECIAL_BASE + mmNIC_QPC_SPECIAL_GLBL_SPARE_0, 1,
+			NIC_RXE_SPECIAL_GLBL_SPARE_0_ECO_5499_DISABLE_M);
 }
 
 static void gaudi3_nic_set_txe_buff_alloc_eco_no_fw(struct hl_nic_macro *nic_macro)
