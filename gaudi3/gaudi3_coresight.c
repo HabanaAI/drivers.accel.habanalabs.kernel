@@ -6531,9 +6531,9 @@ int gaudi3_coresight_init(struct hl_device *hdev)
 		enabled_mask = hdev->nic_ports_mask;
 
 		/*
-		 * if PORT_LANES_4 - we have 2 bits in port mask per nic
+		 * if PORT_LANES_2 - we have 2 bits in port mask per nic
 		 */
-		if (hdev->nic_lanes_per_port == PORT_LANES_4) {
+		if (hdev->nic_lanes_per_port == PORT_LANES_2) {
 			enabled_mask = 0x0;
 			tmp_mask_index = 0;
 
