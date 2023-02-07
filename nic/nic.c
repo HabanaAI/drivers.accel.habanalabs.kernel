@@ -3765,6 +3765,25 @@ static int eq_poll(struct hl_device *hdev, struct hl_ctx *ctx, struct hl_nic_eq_
 	return 0;
 }
 
+static void get_user_db_fifo_id_range(struct hl_nic_port *nic_port, u32 *min_id,
+					u32 *max_id, u32 id_hint)
+{
+	struct hl_nic_port_funcs *port_funcs;
+
+	port_funcs = nic_port->hdev->asic_funcs->nic_funcs->port_funcs;
+
+	/* id_hint comes from user. Driver enforces allocation of the requested
+	 * db fifo HW resource. i.e. driver fails if requested resource is not
+	 * available. Reason, user stack has hard coded user fifo resource IDs.
+	 */
+	if (id_hint) {
+		*min_id = id_hint;
+		*max_id = id_hint;
+	} else {
+		port_funcs->get_db_fifo_id_range(nic_port, min_id, max_id);
+	}
+}
+
 static int alloc_user_db_fifo(struct hl_device *hdev, struct hl_ctx *ctx,
 				struct hl_nic_alloc_user_db_fifo_in *in,
 				struct hl_nic_alloc_user_db_fifo_out *out)
@@ -3781,11 +3800,6 @@ static int alloc_user_db_fifo(struct hl_device *hdev, struct hl_ctx *ctx,
 		return -EINVAL;
 	}
 
-	if (in->pad) {
-		dev_dbg(hdev->dev, "Padding bytes must be 0\n");
-		return -EINVAL;
-	}
-
 	port = in->port;
 	rc = hl_nic_ioctl_port_check(hdev, port, NIC_PORT_CHECK_OPEN | NIC_PORT_PRINT_ON_ERR);
 	if (rc)
@@ -3794,7 +3808,7 @@ static int alloc_user_db_fifo(struct hl_device *hdev, struct hl_ctx *ctx,
 	nic_port = &hdev->nic.nic_ports[port];
 	port_funcs = hdev->asic_funcs->nic_funcs->port_funcs;
 
-	port_funcs->get_db_fifo_id_range(nic_port, &min_id, &max_id);
+	get_user_db_fifo_id_range(nic_port, &min_id, &max_id, in->id_hint);
 
 	/* IDR private data. */
 	idr_pdata = kzalloc(sizeof(*idr_pdata), GFP_KERNEL);
