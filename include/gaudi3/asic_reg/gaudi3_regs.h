@@ -142,6 +142,23 @@
 #include "timestamp_regs.h"
 #include "nic_rxe_special_regs.h"
 #include "nic_qpc_special_regs.h"
+#include "dtlb_regs.h"
+#include "dtlb_special_regs.h"
+#include "rtr_ctrl_rtr_ctrl_scram_regs.h"
+#include "stlb_regs.h"
+#include "nic_txs_regs.h"
+#include "nic_txe_regs.h"
+#include "nic_qpc_regs.h"
+#include "nic_rxe_regs.h"
+#include "nic_tmr_regs.h"
+#include "nic_rxb_core_regs.h"
+#include "nic_rxb_core_nic_rxb_prt_regs.h"
+#include "nic_umr_regs.h"
+#include "nic_cq_umr_regs.h"
+#include "mstr_if_v3_max_os_regs.h"
+#include "nic_tmr_axuser_axuser_hbw_regs.h"
+#include "prt_phy_regs.h"
+#include "prt_mac_aux_regs.h"
 
 #include "pdma_cmn_b_masks.h"
 #include "pdma_cmn_b_pqm_cmn_b_masks.h"
@@ -232,35 +249,6 @@
 
 /****************************** h9 specs [END]   ******************************/
 
-#include "hd0_rrtr0_dtlb_regs.h"
-#include "hd0_rrtr1_dtlb_regs.h"
-#include "hd0_rrtr0_dtlb_special_regs.h"
-#include "hd0_rrtr0_rtr_ctrl_hbw_scram_regs.h"
-#include "hd0_rrtr1_rtr_ctrl_hbw_scram_regs.h"
-#include "hd0_stlb_regs.h"
-#include "d0_nic0_txs_regs.h"
-#include "d0_nic0_txe_regs.h"
-#include "d0_nic0_qpc_regs.h"
-#include "d1_nic0_qpc_regs.h"
-#include "d0_nic0_rxe_regs.h"
-#include "d0_nic0_qpc_axuser_lbw_db_fifo_regs.h"
-#include "d0_nic0_qpc_axuser_hbw_qpc_req_regs.h"
-#include "d0_nic0_qpc_axuser_hbw_qpc_resp_regs.h"
-#include "d0_nic0_qpc_axuser_hbw_rxwqe_regs.h"
-#include "d0_nic0_qpc_axuser_lbw_qman_bp_regs.h"
-#include "d0_nic0_qpc_axuser_hbw_cong_que_regs.h"
-#include "d0_nic0_tmr_regs.h"
-#include "d0_nic0_rxb_core_regs.h"
-#include "d0_nic0_rxb_core_prt_regs.h"
-#include "d0_nic0_umr_0_regs.h"
-#include "d0_nic0_cq_umr_0_regs.h"
-#include "d0_nic0_mstr_if_ctrl_max_os_hbw_regs.h"
-#include "d0_nic0_mstr_if_data_max_os_hbw_regs.h"
-#include "d0_nic0_mstr_if_ctrl_max_os_lbw_regs.h"
-#include "d0_nic0_tmr_axuser_axuser_regs.h"
-#include "d0_nic0_qpc_axuser_hbw_db_fifo_regs.h"
-#include "d0_nic0_phy_regs.h"
-#include "d0_nic0_mac_aux_regs.h"
 #include "d0_nic0_mac_aux_special_regs.h"
 #include "d0_nic0_mac_pcs_rsfec400_regs.h"
 #include "d0_nic0_phy_special_regs.h"
@@ -356,47 +344,13 @@
 #define NIC_UMR_OFFSET			(mmD0_NIC0_UMR_1_BASE - mmD0_NIC0_UMR_0_BASE)
 #define NIC_CQ_UMR_OFFSET		(mmD0_NIC0_CQ_UMR_1_BASE - mmD0_NIC0_CQ_UMR_0_BASE)
 #define NIC_OFFSET			(mmD0_NIC1_QM_DCCM_BASE - mmD0_NIC0_QM_DCCM_BASE)
-#define NIC_DIE_OFFSET			(mmD1_NIC0_QPC_MAX_QPN - mmD0_NIC0_QPC_MAX_QPN)
+#define NIC_DIE_OFFSET			(mmD1_NIC0_QPC_BASE - mmD0_NIC0_QPC_BASE)
 #define NIC_QM_SIZE			(mmD0_NIC0_QM_BASE - mmD0_NIC0_QM_DCCM_BASE)
 #define NIC_AUX_SIZE			(mmD0_NIC0_ARC_AUX_BASE - mmD0_NIC0_QM_DCCM_BASE)
 
-/* STLB */
-#define STLB_CNTRL_MAIN_OFFSET		(mmHD0_STLB_CNTRL_MAIN - mmHD0_STLB_BASE)
-#define STLB_CNTRL_CACHE_OFFSET		(mmHD0_STLB_CNTRL_CACHE - mmHD0_STLB_BASE)
-#define STLB_CNTRL_PAGE_SIZE_OFFSET	(mmHD0_STLB_CNTRL_PAGE_SIZE - mmHD0_STLB_BASE)
-#define STLB_MAINT_BASE_ADDR_OFFSET	(mmHD0_STLB_MAINT_BASE_ADDR - mmHD0_STLB_BASE)
-#define STLB_MAINT_DATA_OFFSET		(mmHD0_STLB_MAINT_DATA - mmHD0_STLB_BASE)
-#define STLB_MAINT_TRIGGER_OFFSET	(mmHD0_STLB_MAINT_TRIGGER - mmHD0_STLB_BASE)
-#define STLB_MAINT_STATUS_OFFSET	(mmHD0_STLB_MAINT_STATUS - mmHD0_STLB_BASE)
-#define STLB_INV_VA_START_OFFSET	(mmHD0_STLB_INV_VA_START - mmHD0_STLB_BASE)
-#define STLB_INV_VA_END_OFFSET		(mmHD0_STLB_INV_VA_END - mmHD0_STLB_BASE)
-#define STLB_PF_VA_START_OFFSET		(mmHD0_STLB_PF_VA_START - mmHD0_STLB_BASE)
-#define STLB_PF_VA_END_OFFSET		(mmHD0_STLB_PF_VA_END - mmHD0_STLB_BASE)
-#define STLB_FAULT_CNTRL_OFFSET		(mmHD0_STLB_FAULT_CNTRL - mmHD0_STLB_BASE)
-#define STLB_INTR_SPI_CAUSE_OFFSET	(mmHD0_STLB_INTR_SPI_CAUSE - mmHD0_STLB_BASE)
-#define STLB_INTR_SPI_MASK_OFFSET	(mmHD0_STLB_INTR_SPI_MASK - mmHD0_STLB_BASE)
-#define STLB_INTR_SEI_MASK_OFFSET	(mmHD0_STLB_INTR_SEI_MASK - mmHD0_STLB_BASE)
-#define STLB_ASID_TBL_LSB_OFFSET	(mmHD0_STLB_ASID_TBL_LSB - mmHD0_STLB_BASE)
-#define STLB_ASID_TBL_MSB_OFFSET	(mmHD0_STLB_ASID_TBL_MSB - mmHD0_STLB_BASE)
-#define STLB_ASID_TBL_WR_OFFSET		(mmHD0_STLB_ASID_TBL_WR - mmHD0_STLB_BASE)
-#define STLB_ASID_TBL_ADDR_OFFSET	(mmHD0_STLB_ASID_TBL_ADDR - mmHD0_STLB_BASE)
-
 /* DTLB */
-#define DTLB_REG_OFF(HD0_RRTR0_DTLB_REG)	(HD0_RRTR0_DTLB_REG - mmHD0_RRTR0_DTLB_BASE)
-#define HDCORE_DTLB_OFFSET			(mmHD0_DTLB1_BASE - mmHD0_DTLB0_BASE)
-#define DTLB_FLT_SYNDROM1_OFFSET		DTLB_REG_OFF(mmHD0_RRTR0_DTLB_FLT_SYNDROM1)
-#define DTLB_FLT_SYNDROM2_OFFSET		DTLB_REG_OFF(mmHD0_RRTR0_DTLB_FLT_SYNDROM2)
-#define DTLB_FLT_SYNDROM3_OFFSET		DTLB_REG_OFF(mmHD0_RRTR0_DTLB_FLT_SYNDROM3)
-#define DTLB_FLT_SYNDROM4_OFFSET		DTLB_REG_OFF(mmHD0_RRTR0_DTLB_FLT_SYNDROM4)
-#define DTLB_FLT_SYNDROM_CLR_OFFSET		DTLB_REG_OFF(mmHD0_RRTR0_DTLB_FLT_SYNDROM_CLR)
-
-#define DTLB_UNIT_ID_OFFSET			DTLB_REG_OFF(mmHD0_RRTR0_DTLB_UNIT_ID)
-#define DTLB_CNTRL_PAGE_SIZE_OFFSET		DTLB_REG_OFF(mmHD0_RRTR0_DTLB_CNTRL_PAGE_SIZE)
-#define DTLB_RR_GLBL_PA_END0_OFFSET		DTLB_REG_OFF(mmHD0_RRTR0_DTLB_RR_GLBL_PA_END0)
-#define DTLB_RR_GLBL_PA_END1_OFFSET		DTLB_REG_OFF(mmHD0_RRTR0_DTLB_RR_GLBL_PA_END1)
-#define DTLB_HBM_CONF_OFFSET			DTLB_REG_OFF(mmHD0_RRTR0_DTLB_HBM_CONF)
-#define DTLB_SCRAM_P5_EXTMEM_EN_OFFSET		DTLB_REG_OFF(mmHD0_RRTR0_DTLB_SCRAM_P5_EXTMEM_EN)
-#define DTLB_SPECIAL_GLBL_SPARE_0_OFFSET	DTLB_REG_OFF(mmHD0_RRTR0_DTLB_SPECIAL_GLBL_SPARE_0)
+#define DTLB_SPECIAL_GLBL_SPARE_0_OFFSET ((mmHD0_RRTR0_DTLB_SPECIAL_BASE - mmHD0_RRTR0_DTLB_BASE) \
+						+ mmDTLB_SPECIAL_GLBL_SPARE_0)
 
 /* RTR */
 #define RTR_CTRL_REG_OFF(HD0_RRTR0_CTRL_REG)	\
@@ -405,19 +359,11 @@
 #define RRTR_DTLB_OFFSET	(mmHD0_RRTR0_DTLB_BASE - mmHD0_RRTR0_BASE)
 #define NRTR_DTLB_OFFSET	(mmD0_NRTR0_DTLB_PDMA_BASE - mmD0_NRTR0_DTLB_NW0_BASE)
 #define GRTR_OFFSET		(mmD0_GRTR1_BASE - mmD0_GRTR0_BASE)
-#define RTR_CTRL_HBW_SCRAM_NUM_HBM_OFFSET	\
-			RTR_CTRL_REG_OFF(mmHD0_RRTR0_RTR_CTRL_HBW_SCRAM_NUM_HBM)
-#define RTR_CTRL_HBW_SCRAM_SCRAM_P1_EXTMEM_EN_OFFSET	\
-			RTR_CTRL_REG_OFF(mmHD0_RRTR0_RTR_CTRL_HBW_SCRAM_SCRAM_P1_EXTMEM_EN)
-#define RTR_CTRL_HBW_SCRAM_SCRAM_P2_EXTMEM_EN_OFFSET	\
-			RTR_CTRL_REG_OFF(mmHD0_RRTR0_RTR_CTRL_HBW_SCRAM_SCRAM_P2_EXTMEM_EN)
-#define RTR_CTRL_HBW_SCRAM_SCRAM_P3_EXTMEM_EN_OFFSET	\
-			RTR_CTRL_REG_OFF(mmHD0_RRTR0_RTR_CTRL_HBW_SCRAM_SCRAM_P3_EXTMEM_EN)
+
+
 #define RTR_CTRL_ADEC_HBW_ADEC_REGION_EN_1_OFFSET	\
 			RTR_CTRL_REG_OFF((mmHD0_RRTR0_RTR_CTRL_ADEC_HBW_BASE + \
 						mmRTR_CTRL_ADEC_HBW_ADEC_REGION_EN_1))
-#define RTR_CTRL_HBW_SCRAM_SRAM_MODE_OFFSET	\
-			RTR_CTRL_REG_OFF(mmHD0_RRTR0_RTR_CTRL_HBW_SCRAM_SRAM_MODE)
 
 #define RTR_CTRL_RR_LBW_SEC_RANGE_EN_SHORT_OFFSET	\
 			RTR_CTRL_REG_OFF((mmHD0_RRTR0_RTR_CTRL_RR_LBW_BASE + \

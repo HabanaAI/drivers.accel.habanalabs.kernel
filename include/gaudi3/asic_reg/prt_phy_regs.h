@@ -10,12 +10,12 @@
  **       DO NOT EDIT BELOW        **
  ************************************/
 
-#ifndef ASIC_REG_D0_NIC0_PHY_REGS_H_
-#define ASIC_REG_D0_NIC0_PHY_REGS_H_
+#ifndef ASIC_REG_PRT_PHY_REGS_H_
+#define ASIC_REG_PRT_PHY_REGS_H_
 
 /*
  *****************************************
- *   D0_NIC0_PHY
+ *   PRT_PHY
  *   (Prototype: PRT_PHY)
  *****************************************
  */
@@ -40,4 +40,24 @@
 
 #define mmD0_NIC0_PHY_PHY_SIG_DETECT 0xD03E024
 
-#endif /* ASIC_REG_D0_NIC0_PHY_REGS_H_ */
+#define mmPRT_PHY_PHY_CFG_ACCESS 0x0
+
+#define mmPRT_PHY_PHY_CFG_ADDR 0x4
+
+#define mmPRT_PHY_PHY_CFG_SEC 0x8
+
+#define mmPRT_PHY_PRT_AXI2APB_CFG 0xC
+
+#define mmPRT_PHY_PHY_RST_CFG 0x10
+
+#define mmPRT_PHY_PHY_REFCLK_MUX 0x14
+
+#define mmPRT_PHY_PHY_SD_CFG 0x18
+
+#define mmPRT_PHY_PHY_EQ_EN 0x1C
+
+#define mmPRT_PHY_PHY_ANLT 0x20
+
+#define mmPRT_PHY_PHY_SIG_DETECT 0x24
+
+#endif /* ASIC_REG_PRT_PHY_REGS_H_ */

@@ -374,7 +374,7 @@ static void gaudi3_init_dtlb_pa_range_registers(struct hl_device *hdev, int bloc
 	struct dtlb_rr_cfg_data *cfg_data = ctx->data;
 
 	/* set bits 20-39 of DRAM phys end address */
-	WREG32(offset + DTLB_RR_GLBL_PA_END0_OFFSET, cfg_data->rr_glbl_pa_end0);
+	WREG32(offset + mmDTLB_RR_GLBL_PA_END0, cfg_data->rr_glbl_pa_end0);
 }
 
 static void gaudi3_init_pa_range_registers(struct hl_device *hdev)

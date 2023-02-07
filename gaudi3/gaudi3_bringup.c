@@ -732,13 +732,13 @@ static void gaudi3_set_cache_mode_rtr_cntrl_clr_sram_mode(struct hl_device *hdev
 								int inst, u32 offset,
 								struct iterate_module_ctx *ctx)
 {
-	WREG32(offset + RTR_CTRL_HBW_SCRAM_SRAM_MODE_OFFSET, 0);
+	WREG32(offset + mmRTR_CTRL_RTR_CTRL_SCRAM_SRAM_MODE, 0);
 }
 
 static void gaudi3_set_cache_mode_dtlb(struct hl_device *hdev, int block, int inst,
 						u32 offset, struct iterate_module_ctx *ctx)
 {
-	WREG32(offset + DTLB_RR_GLBL_PA_END1_OFFSET, 0);
+	WREG32(offset + mmDTLB_RR_GLBL_PA_END1, 0);
 }
 
 static void gaudi3_set_cache_mode_cslice(struct hl_device *hdev, int hdcore, int inst,
@@ -1217,7 +1217,7 @@ static bool gaudi3_d2d_sanity_test(struct hl_device *hdev)
 		hdcore < (hdev->asic_prop.num_of_dies * NUM_OF_HDCORES_PER_DIE); hdcore++) {
 		for (rtr = 0 ; rtr < NUM_OF_RRTR_PER_HDCORE ; rtr++) {
 			orig_id = 9 - rtr;
-			addr = mmHD0_RRTR0_DTLB_UNIT_ID + (hdcore * HDCORE_OFFSET) +
+			addr = mmHD0_RRTR0_DTLB_BASE + (hdcore * HDCORE_OFFSET) +
 						(rtr * RRTR_OFFSET);
 			WREG32(addr, orig_id);
 			cmp_id = RREG32(addr);
@@ -2321,10 +2321,10 @@ static void gaudi3_dtlb_init(struct hl_device *hdev, int block, int inst, u32 of
 	/* the iterator already supplies the DTLB base in offset so it will be used as dtlb base */
 
 	/* set DTLB unit ID */
-	WREG32(offset + DTLB_UNIT_ID_OFFSET, inst);
+	WREG32(offset + mmDTLB_UNIT_ID, inst);
 
 	/* set supported page sizes */
-	WREG32(offset + DTLB_CNTRL_PAGE_SIZE_OFFSET, init_data->cntrl_page_size);
+	WREG32(offset + mmDTLB_CNTRL_PAGE_SIZE, init_data->cntrl_page_size);
 
 	/*
 	 * set HBM params: single HBM memory size and number of HBMs
@@ -2332,7 +2332,7 @@ static void gaudi3_dtlb_init(struct hl_device *hdev, int block, int inst, u32 of
 	 * this is RMW to avoid overriding the value in DCORE0_HAS_*HBM field
 	 * written by FW in the binning phase.
 	 */
-	RMWREG32_SHIFTED(offset + DTLB_HBM_CONF_OFFSET,
+	RMWREG32_SHIFTED(offset + mmDTLB_HBM_CONF,
 				FIELD_PREP(DTLB_HBM_CONF_INDX_M, 0x4) |
 				FIELD_PREP(DTLB_HBM_CONF_NUM_HBM_M,
 						hdev->asic_prop.num_functional_hbms),
@@ -2355,17 +2355,17 @@ static void gaudi3_hdcore_stlb_init_fw_config(struct hl_device *hdev)
 
 	/* set page size types */
 	val = build_tlb_ctrl_page_size(hdev);
-	gaudi3_lbw_dup_group_push(hdev,	GAUDI3_DUP_GRP_STLB_BASE, STLB_CNTRL_PAGE_SIZE_OFFSET, val);
+	gaudi3_lbw_dup_group_push(hdev,	GAUDI3_DUP_GRP_STLB_BASE, mmSTLB_CNTRL_PAGE_SIZE, val);
 
 	/* unmask STLB interrupts */
 	for (i = 0; i < hdev->asic_prop.num_of_hdcores ; ++i) {
-		WREG32(mmHD0_STLB_BASE + STLB_INTR_SPI_MASK_OFFSET + (i * HDCORE_OFFSET),
+		WREG32(mmHD0_STLB_BASE + mmSTLB_INTR_SPI_MASK + (i * HDCORE_OFFSET),
 			FIELD_PREP(STLB_INTR_SPI_MASK_FAULT_UNMAPPED_MSK_M, 1) |
 			FIELD_PREP(STLB_INTR_SPI_MASK_FAULT_PERMISSION_MSK_M, 1) |
 			FIELD_PREP(STLB_INTR_SPI_MASK_FAULT_PTW_DATA_MSK_M, 1) |
 			FIELD_PREP(STLB_INTR_SPI_MASK_MAINT_QUEUE_FULL_MSK_M, 1) |
 			FIELD_PREP(STLB_INTR_SPI_MASK_MAINT_PREFETCH_FAIL_MSK_M, 1));
-		WREG32(mmHD0_STLB_BASE + STLB_INTR_SEI_MASK_OFFSET + (i * HDCORE_OFFSET),
+		WREG32(mmHD0_STLB_BASE + mmSTLB_INTR_SEI_MASK + (i * HDCORE_OFFSET),
 			FIELD_PREP(STLB_INTR_SEI_MASK_LBW_RSP_ERR_MSK_M, 1) |
 			FIELD_PREP(STLB_INTR_SEI_MASK_PTW_RSP_ERR_MSK_M, 1) |
 			FIELD_PREP(STLB_INTR_SEI_MASK_TRANS_REQ_ERR_MSK_M, 1) |

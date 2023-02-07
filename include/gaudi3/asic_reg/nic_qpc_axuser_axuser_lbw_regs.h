@@ -10,12 +10,12 @@
  **       DO NOT EDIT BELOW        **
  ************************************/
 
-#ifndef ASIC_REG_D0_NIC0_QPC_AXUSER_LBW_DB_FIFO_REGS_H_
-#define ASIC_REG_D0_NIC0_QPC_AXUSER_LBW_DB_FIFO_REGS_H_
+#ifndef ASIC_REG_NIC_QPC_AXUSER_AXUSER_LBW_REGS_H_
+#define ASIC_REG_NIC_QPC_AXUSER_AXUSER_LBW_REGS_H_
 
 /*
  *****************************************
- *   D0_NIC0_QPC_AXUSER_LBW_DB_FIFO
+ *   NIC_QPC_AXUSER_AXUSER_LBW
  *   (Prototype: AXUSER_LBW)
  *****************************************
  */
@@ -28,4 +28,12 @@
 
 #define mmD0_NIC0_QPC_AXUSER_LBW_DB_FIFO_LB_RESERVED_OVRD 0xD023314
 
-#endif /* ASIC_REG_D0_NIC0_QPC_AXUSER_LBW_DB_FIFO_REGS_H_ */
+#define mmNIC_QPC_AXUSER_AXUSER_LBW_LB_LOCK_IND 0x0
+
+#define mmNIC_QPC_AXUSER_AXUSER_LBW_LB_RESERVED 0x4
+
+#define mmNIC_QPC_AXUSER_AXUSER_LBW_LB_LOCK_IND_OVRD 0x10
+
+#define mmNIC_QPC_AXUSER_AXUSER_LBW_LB_RESERVED_OVRD 0x14
+
+#endif /* ASIC_REG_NIC_QPC_AXUSER_AXUSER_LBW_REGS_H_ */

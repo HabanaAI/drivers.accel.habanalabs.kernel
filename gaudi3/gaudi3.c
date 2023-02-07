@@ -1123,8 +1123,8 @@ struct gaudi3_dup_grp_info {
 
 static const struct gaudi3_dup_grp_info gadui3_dup_grp_info[GAUDI3_DUP_GRP_MAX] = {
 	{GAUDI3_DUP_GRP_PMMU_BASE, mmMMU_TRACE_CTRL, mmD0_PMMU_HBW_MMU_BASE},
-	{GAUDI3_DUP_GRP_STLB_BASE, STLB_CNTRL_MAIN_OFFSET, mmHD0_STLB_BASE},
-	{GAUDI3_DUP_GRP_STLB_INTR_SPI_CAUSE, STLB_INTR_SPI_CAUSE_OFFSET, mmHD0_STLB_INTR_SPI_CAUSE},
+	{GAUDI3_DUP_GRP_STLB_BASE, mmSTLB_CNTRL_MAIN, mmHD0_STLB_BASE},
+	{GAUDI3_DUP_GRP_STLB_INTR_SPI_CAUSE, mmSTLB_INTR_SPI_CAUSE, mmHD0_STLB_INTR_SPI_CAUSE},
 };
 
 enum razwi_initiztor {
@@ -2370,16 +2370,16 @@ static void gaudi3_dtlb_fault_desc(struct hl_device *hdev, int hdcore, int inst,
 	struct dtlb_fault_desc *desc = ctx->data;
 	u64 dtlb_addr47_20, axi_id1, axi_id2, axi_id, va;
 	enum gaudi3_engine_id initiator = GAUDI3_ENGINE_ID_SIZE;
-	u32 fault_type = RREG32(DTLB_FLT_SYNDROM1_OFFSET + offset);
+	u32 fault_type = RREG32(mmDTLB_FLT_SYNDROM1 + offset);
 	bool is_read;
 
 	if (fault_type) {
 		is_read = !FIELD_GET(DTLB_FLT_SYNDROM1_RD_OR_WR_M, fault_type);
 		dtlb_addr47_20 = FIELD_GET(DTLB_FLT_SYNDROM2_ADDR_47_20_M,
-					RREG32(DTLB_FLT_SYNDROM2_OFFSET + offset));
+					RREG32(mmDTLB_FLT_SYNDROM2 + offset));
 		va = DRAM_PHYS_BASE + (dtlb_addr47_20 << 20);
-		axi_id1 = RREG32(DTLB_FLT_SYNDROM3_OFFSET + offset);
-		axi_id2 = RREG32(DTLB_FLT_SYNDROM4_OFFSET + offset);
+		axi_id1 = RREG32(mmDTLB_FLT_SYNDROM3 + offset);
+		axi_id2 = RREG32(mmDTLB_FLT_SYNDROM4 + offset);
 		axi_id = (axi_id2 << 32) | axi_id1;
 		initiator = gaudi3_axid_mapping(hdev, axi_id, desc->die, is_read);
 
@@ -2400,7 +2400,7 @@ static void gaudi3_dtlb_fault_desc(struct hl_device *hdev, int hdcore, int inst,
 						"%s page fault dtlb-id: %u, va: 0x%.16llx, initiator=%s",
 						is_read ? "read" : "write",
 						inst, va, GAUDI3_ENG_ID_TO_STR(initiator));
-		WREG32(DTLB_FLT_SYNDROM_CLR_OFFSET + offset,
+		WREG32(mmDTLB_FLT_SYNDROM_CLR + offset,
 			FIELD_PREP(DTLB_FLT_SYNDROM_CLR_FLT_CLR_M, 0x1));
 	}
 }
@@ -4634,30 +4634,30 @@ static void gaudi3_hmmu_update_hop0_addr(struct hl_device *hdev)
 		/* configure ASID index of which we update HOP0 */
 		gaudi3_lbw_dup_group_push(hdev,
 				GAUDI3_DUP_GRP_STLB_INTR_SPI_CAUSE,
-				STLB_ASID_TBL_ADDR_OFFSET,
+				mmSTLB_ASID_TBL_ADDR,
 				asid);
 
 		/* configure LSB of HOP0 + valid indication */
 		gaudi3_lbw_dup_group_push(hdev,
 				GAUDI3_DUP_GRP_STLB_INTR_SPI_CAUSE,
-				STLB_ASID_TBL_LSB_OFFSET,
+				mmSTLB_ASID_TBL_LSB,
 				FIELD_PREP(STLB_ASID_TBL_LSB_VLD_M, 1) |
 				FIELD_PREP(STLB_ASID_TBL_LSB_PA_31_13_M, hop0_pa_31_13));
 
 		/* configure MSB of HOP0 */
 		gaudi3_lbw_dup_group_push(hdev,
 				GAUDI3_DUP_GRP_STLB_INTR_SPI_CAUSE,
-				STLB_ASID_TBL_MSB_OFFSET,
+				mmSTLB_ASID_TBL_MSB,
 				upper_32_bits(hop0_addr));
 
 		/* trigger write */
 		gaudi3_lbw_dup_group_push(hdev,
 				GAUDI3_DUP_GRP_STLB_INTR_SPI_CAUSE,
-				STLB_ASID_TBL_WR_OFFSET,
+				mmSTLB_ASID_TBL_WR,
 				1);
 
 		/* flush HOP0 config writes */
-		(void)RREG32(mmHD0_STLB_BASE + STLB_ASID_TBL_MSB_OFFSET);
+		(void)RREG32(mmHD0_STLB_BASE + mmSTLB_ASID_TBL_MSB);
 	}
 }
 
@@ -4676,7 +4676,7 @@ static void gaudi3_hdcore_stlb_init(struct hl_device *hdev)
 
 	/* configure STLB not to perform LBW write when invalidation/prefetch command is done */
 	gaudi3_lbw_dup_group_push(hdev, GAUDI3_DUP_GRP_STLB_BASE,
-			STLB_MAINT_BASE_ADDR_OFFSET,
+			mmSTLB_MAINT_BASE_ADDR,
 			FIELD_PREP(STLB_MAINT_BASE_ADDR_COMPLETION_MSG_EN_M, 1) |
 			FIELD_PREP(STLB_MAINT_BASE_ADDR_COMPLETION_LBW_ADDR_M, sob_lbw_off));
 
@@ -4685,18 +4685,18 @@ static void gaudi3_hdcore_stlb_init(struct hl_device *hdev)
 			FIELD_PREP(SOB_OBJS_SOB_OBJ_0_VAL_M, 1);
 	gaudi3_lbw_dup_group_push(hdev,
 			GAUDI3_DUP_GRP_STLB_BASE,
-			STLB_MAINT_DATA_OFFSET,
+			mmSTLB_MAINT_DATA,
 			inc_sob_value);
 
 	/* enable PTE caching */
 	gaudi3_lbw_dup_group_push(hdev,	GAUDI3_DUP_GRP_STLB_BASE,
-			STLB_CNTRL_CACHE_OFFSET,
+			mmSTLB_CNTRL_CACHE,
 			FIELD_PREP(STLB_CNTRL_CACHE_H1PTE_CACHE_EN_M, 1) |
 			FIELD_PREP(STLB_CNTRL_CACHE_H2PTE_CACHE_EN_M, 1));
 
 	/* configure STLB to trigger interrupt upon failure */
 	gaudi3_lbw_dup_group_push(hdev, GAUDI3_DUP_GRP_STLB_BASE,
-			STLB_FAULT_CNTRL_OFFSET,
+			mmSTLB_FAULT_CNTRL,
 			FIELD_PREP(STLB_FAULT_CNTRL_FAULT_INT_EN_M, 1));
 
 	gaudi3_hmmu_update_hop0_addr(hdev);
@@ -4705,7 +4705,7 @@ static void gaudi3_hdcore_stlb_init(struct hl_device *hdev)
 	 * enable STLB, set correct number of DTLBs.
 	 * the value is unique per STLB and for that reason the DUP is not used but a loop
 	 */
-	regval = RREG32(mmHD0_STLB_BASE + STLB_CNTRL_MAIN_OFFSET);
+	regval = RREG32(mmHD0_STLB_BASE + mmSTLB_CNTRL_MAIN);
 	for (hdcore = 0 ; hdcore < hdev->asic_prop.num_of_hdcores; hdcore++) {
 		u64 address = mmHD0_STLB_CNTRL_MAIN + (hdcore * HDCORE_OFFSET);
 		u32 val = regval;
@@ -9300,11 +9300,11 @@ static void gaudi3_hmmus_cache_maint_trig(struct hl_device *hdev, void *data)
 
 		maint_type = 0x1; /* 0x1- execute on all range and ASID */
 		if  (maint_data->maint_type == GAUDI3_CACHE_MAINT_INV) {
-			start_off = STLB_INV_VA_START_OFFSET;
-			end_off = STLB_INV_VA_END_OFFSET;
+			start_off = mmSTLB_INV_VA_START;
+			end_off = mmSTLB_INV_VA_END;
 		} else {
-			start_off = STLB_PF_VA_START_OFFSET;
-			end_off = STLB_PF_VA_END_OFFSET;
+			start_off = mmSTLB_PF_VA_START;
+			end_off = mmSTLB_PF_VA_END;
 		}
 
 		gaudi3_lbw_dup_group_push(hdev, GAUDI3_DUP_GRP_STLB_BASE, start_off,
@@ -9316,7 +9316,7 @@ static void gaudi3_hmmus_cache_maint_trig(struct hl_device *hdev, void *data)
 	}
 
 	/* trigger maintenance command */
-	gaudi3_lbw_dup_group_push(hdev, GAUDI3_DUP_GRP_STLB_BASE, STLB_MAINT_TRIGGER_OFFSET,
+	gaudi3_lbw_dup_group_push(hdev, GAUDI3_DUP_GRP_STLB_BASE, mmSTLB_MAINT_TRIGGER,
 		FIELD_PREP(STLB_MAINT_TRIGGER_ASID_M, maint_data->asid) |
 		FIELD_PREP(STLB_MAINT_TRIGGER_INV_OR_PF_M, maint_data->maint_type) |
 		FIELD_PREP(STLB_MAINT_TRIGGER_TARGET_TYPE_M, maint_type) |

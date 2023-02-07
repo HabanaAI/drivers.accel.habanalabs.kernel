@@ -10,12 +10,12 @@
  **       DO NOT EDIT BELOW        **
  ************************************/
 
-#ifndef ASIC_REG_D0_NIC0_MAC_AUX_REGS_H_
-#define ASIC_REG_D0_NIC0_MAC_AUX_REGS_H_
+#ifndef ASIC_REG_PRT_MAC_AUX_REGS_H_
+#define ASIC_REG_PRT_MAC_AUX_REGS_H_
 
 /*
  *****************************************
- *   D0_NIC0_MAC_AUX
+ *   PRT_MAC_AUX
  *   (Prototype: PRT_MAC_AUX)
  *****************************************
  */
@@ -32,4 +32,16 @@
 
 #define mmD0_NIC0_MAC_AUX_MAC_LINK_STATUS_OVRD 0xD03F014
 
-#endif /* ASIC_REG_D0_NIC0_MAC_AUX_REGS_H_ */
+#define mmPRT_MAC_AUX_MAC_CFG_ADDR 0x0
+
+#define mmPRT_MAC_AUX_MAC_CFG_SEC 0x4
+
+#define mmPRT_MAC_AUX_MAC_CLOCK_RATE 0x8
+
+#define mmPRT_MAC_AUX_MAC_PCS_LINK_STS_INTR 0xC
+
+#define mmPRT_MAC_AUX_PHY_SIG_DETECT_OVRD 0x10
+
+#define mmPRT_MAC_AUX_MAC_LINK_STATUS_OVRD 0x14
+
+#endif /* ASIC_REG_PRT_MAC_AUX_REGS_H_ */
