@@ -822,6 +822,9 @@ enum pq_init_status {
  * CPUCP_PACKET_NIC_WQE_ASID_UNSET -
  *       Packet to unset nic wqe asid as the registers needed are privilege and to be configured
  *       by FW.
+ *
+ * CPUCP_PACKET_EXPECTED_EQE_SIZE_SET -
+ *       LKD sends FW expected size (in bytes) of EQ entry.
  */
 
 enum cpucp_packet_id {
@@ -886,6 +889,7 @@ enum cpucp_packet_id {
 	CPUCP_PACKET_NIC_MAC_TX_RESET,		/* internal */
 	CPUCP_PACKET_WD_DISABLE,		/* debugfs */
 	CPUCP_PACKET_NIC_WQE_ASID_UNSET,	/* internal */
+	CPUCP_PACKET_EXPECTED_EQE_SIZE_SET,	/* internal */
 	CPUCP_PACKET_ID_MAX			/* must be last */
 };
 

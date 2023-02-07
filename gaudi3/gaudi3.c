@@ -7069,6 +7069,24 @@ int gaudi3_init_cpu(struct hl_device *hdev)
 	return 0;
 }
 
+static int gaudi3_fw_send_eqe_size(struct hl_device *hdev)
+{
+	struct cpucp_packet pkt;
+	int rc;
+
+	memset(&pkt, 0, sizeof(pkt));
+
+	pkt.ctl = cpu_to_le32(CPUCP_PACKET_EXPECTED_EQE_SIZE_SET << CPUCP_PKT_CTL_OPCODE_SHIFT);
+	pkt.value = cpu_to_le64(HL_EQ_DYNAMIC_ENTRY_SIZE);
+
+	rc = hdev->asic_funcs->send_cpu_message(hdev, (u32 *) &pkt, sizeof(pkt), 0, NULL);
+
+	if (rc)
+		dev_err(hdev->dev, "Failed to send eq entry size, error %d\n", rc);
+
+	return rc;
+}
+
 int gaudi3_init_cpu_queues(struct hl_device *hdev, u32 cpu_timeout)
 {
 	struct hl_hw_queue *cpu_pq = &hdev->kernel_queues[GAUDI3_QUEUE_ID_CPU_PQ];
@@ -7132,7 +7150,7 @@ int gaudi3_init_cpu_queues(struct hl_device *hdev, u32 cpu_timeout)
 
 	gaudi3->hw_cap_initialized |= HW_CAP_CPU_Q;
 
-	return 0;
+	return gaudi3_fw_send_eqe_size(hdev);
 }
 
 static uint64_t gaudi3_set_hbm_bar_base(struct hl_device *hdev, u64 addr)
