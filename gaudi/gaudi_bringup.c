@@ -3181,281 +3181,281 @@ HBM_DEBUGFS(dbg_write_read_full);
 HBM_DEBUGFS(dbg_read_mcbist_status);
 HBM_DEBUGFS(dbg_dump_regs);
 
-static void gaudi_hbm_debugfs_init(struct hl_device *hdev, struct dentry *root_dir)
+static void gaudi_hbm_debugfs_init(struct hl_device *hdev)
 {
 	struct gaudi_device *gaudi = hdev->asic_specific;
 
 	debugfs_create_u32("hbm_sdii_cnt",
 				0644,
-				root_dir,
+				hdev->hl_debugfs.root,
 				&gaudi->hbm_sdii_cnt);
 
 	debugfs_create_u32("hbm_static_dll_aword",
 				0644,
-				root_dir,
+				hdev->hl_debugfs.root,
 				&gaudi->hbm_static_dll_aword);
 
 	debugfs_create_u32("hbm_static_dll_dword_wr",
 				0644,
-				root_dir,
+				hdev->hl_debugfs.root,
 				&gaudi->hbm_static_dll_dword_wr);
 
 	debugfs_create_u32("hbm_static_dll_dword_rd",
 				0644,
-				root_dir,
+				hdev->hl_debugfs.root,
 				&gaudi->hbm_static_dll_dword_rd);
 
 	debugfs_create_u32("hbm_acc_initial",
 				0644,
-				root_dir,
+				hdev->hl_debugfs.root,
 				&gaudi->hbm_acc_initial);
 
 	debugfs_create_u32("hbm_set_mode_reg_by_mlb_num",
 				0644,
-				root_dir,
+				hdev->hl_debugfs.root,
 				&gaudi->hbm_set_mode_reg_by_mlb_num);
 
 	debugfs_create_u32("hbm_set_mode_reg_by_mlb_op",
 				0644,
-				root_dir,
+				hdev->hl_debugfs.root,
 				&gaudi->hbm_set_mode_reg_by_mlb_op);
 
 	debugfs_create_u32("hbm_internal_lb_length_usec",
 				0644,
-				root_dir,
+				hdev->hl_debugfs.root,
 				&gaudi->hbm_internal_lb_length_usec);
 
 	debugfs_create_u32("hbm_freq",
 				0644,
-				root_dir,
+				hdev->hl_debugfs.root,
 				&gaudi->hbm_freq);
 
 	debugfs_create_u8("hbm_device",
 				0644,
-				root_dir,
+				hdev->hl_debugfs.root,
 				&gaudi->hbm_device);
 
 	debugfs_create_u8("hbm_continuous",
 				0644,
-				root_dir,
+				hdev->hl_debugfs.root,
 				&gaudi->hbm_continuous);
 
 	debugfs_create_u8("hbm_ecc_enable",
 				0644,
-				root_dir,
+				hdev->hl_debugfs.root,
 				&gaudi->hbm_ecc_enable);
 
 	debugfs_create_u8("hbm_dbi_enable",
 				0644,
-				root_dir,
+				hdev->hl_debugfs.root,
 				&gaudi->hbm_dbi_enable);
 
 	debugfs_create_u8("hbm_inc",
 				0644,
-				root_dir,
+				hdev->hl_debugfs.root,
 				&gaudi->hbm_inc);
 
 	debugfs_create_u8("hbm_mode",
 				0644,
-				root_dir,
+				hdev->hl_debugfs.root,
 				&gaudi->hbm_mode);
 
 	debugfs_create_u8("hbm_loop",
 				0644,
-				root_dir,
+				hdev->hl_debugfs.root,
 				&gaudi->hbm_loop);
 
 	debugfs_create_u8("hbm_interleave",
 				0644,
-				root_dir,
+				hdev->hl_debugfs.root,
 				&gaudi->hbm_interleave);
 
 	debugfs_create_u8("hbm_training_delay",
 				0644,
-				root_dir,
+				hdev->hl_debugfs.root,
 				&gaudi->hbm_training_delay);
 
 	debugfs_create_u8("hbm_hardware_training_repeat",
 				0644,
-				root_dir,
+				hdev->hl_debugfs.root,
 				&gaudi->hbm_hardware_training_repeat);
 
 	debugfs_create_u8("hbm_debug",
 				0644,
-				root_dir,
+				hdev->hl_debugfs.root,
 				&gaudi->hbm_debug);
 
 	debugfs_create_file("hbm_mc_rstn",
 				0644,
-				root_dir,
+				hdev->hl_debugfs.root,
 				hdev,
 				&gaudi_hbm_mc_rstn_fops);
 
 	debugfs_create_file("hbm_phy_init",
 				0644,
-				root_dir,
+				hdev->hl_debugfs.root,
 				hdev,
 				&gaudi_hbm_phy_init_fops);
 
 	debugfs_create_file("hbm_init_mc",
 				0644,
-				root_dir,
+				hdev->hl_debugfs.root,
 				hdev,
 				&gaudi_hbm_init_mc_fops);
 
 	debugfs_create_file("hbm_internal_loopback",
 				0644,
-				root_dir,
+				hdev->hl_debugfs.root,
 				hdev,
 				&gaudi_hbm_internal_loopback_test_fops);
 
 	debugfs_create_file("hbm_hardware_training",
 				0644,
-				root_dir,
+				hdev->hl_debugfs.root,
 				hdev,
 				&gaudi_hbm_hardware_training_fops);
 
 	debugfs_create_file("hbm_write_read",
 				0644,
-				root_dir,
+				hdev->hl_debugfs.root,
 				hdev,
 				&gaudi_hbm_write_read_fops);
 
 	debugfs_create_file("hbm_write_read_infinite",
 				0644,
-				root_dir,
+				hdev->hl_debugfs.root,
 				hdev,
 				&gaudi_hbm_write_read_infinite_fops);
 
 	debugfs_create_file("hbm_stop_mc_bist",
 				0644,
-				root_dir,
+				hdev->hl_debugfs.root,
 				hdev,
 				&gaudi_hbm_stop_mc_bist_fops);
 
 	debugfs_create_file("hbm_software_training_by_bist",
 				0644,
-				root_dir,
+				hdev->hl_debugfs.root,
 				hdev,
 				&gaudi_hbm_software_training_by_bist_fops);
 
 	debugfs_create_file("hbm_software_training_by_1500",
 				0644,
-				root_dir,
+				hdev->hl_debugfs.root,
 				hdev,
 				&gaudi_hbm_software_training_by_1500_fops);
 
 	debugfs_create_file("hbm_set_static_params",
 				0644,
-				root_dir,
+				hdev->hl_debugfs.root,
 				hdev,
 				&gaudi_hbm_set_static_params_fops);
 
 	debugfs_create_file("hbm_print_training_result",
 				0644,
-				root_dir,
+				hdev->hl_debugfs.root,
 				hdev,
 				&gaudi_hbm_print_training_result_fops);
 
 	debugfs_create_file("hbm_config_dram_state_wrap",
 				0644,
-				root_dir,
+				hdev->hl_debugfs.root,
 				hdev,
 				&gaudi_hbm_config_dram_state_wrap_fops);
 
 	debugfs_create_file("hbm_set_mode_reg_by_mlb_wrap",
 				0644,
-				root_dir,
+				hdev->hl_debugfs.root,
 				hdev,
 				&gaudi_hbm_set_mode_reg_by_mlb_wrap_fops);
 
 	debugfs_create_file("hbm_config_mlb_state_bypass",
 				0644,
-				root_dir,
+				hdev->hl_debugfs.root,
 				hdev,
 				&gaudi_hbm_config_mlb_state_bypass_fops);
 
 	debugfs_create_file("hbm_config_mlb_state_dword",
 				0644,
-				root_dir,
+				hdev->hl_debugfs.root,
 				hdev,
 				&gaudi_hbm_config_mlb_state_dword_fops);
 
 	debugfs_create_file("hbm_config_mlb_state_initial",
 				0644,
-				root_dir,
+				hdev->hl_debugfs.root,
 				hdev,
 				&gaudi_hbm_config_mlb_state_initial_fops);
 
 	debugfs_create_file("hbm_config_mlb_state_aword",
 				0644,
-				root_dir,
+				hdev->hl_debugfs.root,
 				hdev,
 				&gaudi_hbm_config_mlb_state_aword_fops);
 
 	debugfs_create_file("hbm_config_mc_state_bist",
 				0644,
-				root_dir,
+				hdev->hl_debugfs.root,
 				hdev,
 				&gaudi_hbm_config_mc_state_bist_fops);
 
 	debugfs_create_file("hbm_config_mc_state_normal",
 				0644,
-				root_dir,
+				hdev->hl_debugfs.root,
 				hdev,
 				&gaudi_hbm_config_mc_state_normal_fops);
 
 	debugfs_create_file("hbm_temperature_read",
 				0644,
-				root_dir,
+				hdev->hl_debugfs.root,
 				hdev,
 				&gaudi_hbm_temperature_read_fops);
 
 	debugfs_create_file("hbm_device_id_read",
 				0644,
-				root_dir,
+				hdev->hl_debugfs.root,
 				hdev,
 				&gaudi_hbm_device_id_read_fops);
 
 	debugfs_create_file("hbm_mr_read",
 				0644,
-				root_dir,
+				hdev->hl_debugfs.root,
 				hdev,
 				&gaudi_hbm_mr_read_fops);
 
 	debugfs_create_file("hbm_read_ecc_counters",
 				0644,
-				root_dir,
+				hdev->hl_debugfs.root,
 				hdev,
 				&gaudi_hbm_read_ecc_counters_fops);
 
 	debugfs_create_file("hbm_read_interrupts",
 				0644,
-				root_dir,
+				hdev->hl_debugfs.root,
 				hdev,
 				&gaudi_hbm_read_interrupts_fops);
 
 	debugfs_create_file("hbm_init_ecc",
 				0644,
-				root_dir,
+				hdev->hl_debugfs.root,
 				hdev,
 				&gaudi_hbm_init_ecc_fops);
 
 	debugfs_create_file("hbm_dbg_write_read_full",
 				0644,
-				root_dir,
+				hdev->hl_debugfs.root,
 				hdev,
 				&gaudi_hbm_dbg_write_read_full_fops);
 
 	debugfs_create_file("hbm_dbg_read_mcbist_status",
 				0644,
-				root_dir,
+				hdev->hl_debugfs.root,
 				hdev,
 				&gaudi_hbm_dbg_read_mcbist_status_fops);
 
 	debugfs_create_file("hbm_dbg_dump_regs",
 				0644,
-				root_dir,
+				hdev->hl_debugfs.root,
 				hdev,
 				&gaudi_hbm_dbg_dump_regs_fops);
 
@@ -3814,8 +3814,7 @@ int gaudi_init_hbm(struct hl_device *hdev)
 	gaudi->hbm_static_dll_dword_rd = STATIC_DLL_DWORD_RD_RISE;
 	gaudi->hbm_freq = 950;
 
-	gaudi_hbm_debugfs_init(hdev, hdev->hl_debugfs.root);
-	gaudi_hbm_debugfs_init(hdev, hdev->hl_debugfs.accel_root);
+	gaudi_hbm_debugfs_init(hdev);
 
 	for (dev = 0 ; dev < GAUDI_HBM_DEVICES ; dev++) {
 		/* PHY requires 100ns delay from mc_rstn */

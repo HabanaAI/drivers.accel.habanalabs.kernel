@@ -1384,8 +1384,7 @@ int hl_nic_init(struct hl_device *hdev)
 		goto ib_aux_drv_fail;
 	}
 
-	hl_nic_debugfs_init(hdev, hdev->hl_debugfs.root);
-	hl_nic_debugfs_init(hdev, hdev->hl_debugfs.accel_root);
+	hl_nic_debugfs_init(hdev);
 
 	nic_funcs->set_hw_cap(hdev, true);
 
