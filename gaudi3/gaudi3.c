@@ -3824,13 +3824,6 @@ static void gaudi3_init_pdma_ch_blk_b(struct hl_device *hdev, u32 reg_base, u8 c
 		is_lbw = true;
 	}
 
-	/* TODO - verify current ch is idle before configuring b/channe blk:
-	 *		Location	Reset Value	Short Description
-	 * STATE	0..2		0x0		pdma engine state
-	 * ANY_CH	3		0x0		0 - all idle, 1 - at least 1 active
-	 * CH		4..27		0x0		ch[i]=0 ch i is idle
-	 */
-
 	gaudi3_config_pdma_ch_bw_access(hdev, reg_base, is_lbw);
 	gaudi3_config_pdma_ch_protection(hdev, reg_base, is_secured);
 	/* A new ASID will be updated for each FD opened, on pdma_mmu_prepare */
