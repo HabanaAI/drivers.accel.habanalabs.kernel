@@ -40,8 +40,21 @@
 
 #define GRECO_PLL_TIMEOUT_USEC			10000		/* 10ms */
 
-#define NUM_OF_DECODE_BASE_ADDR 4
-#define NUM_OF_DCONS 4
+#define RTR_CTRL_LBW_DECODE_BASE_ADDR_VAL_MASK \
+					DCON0_LBW_RTR_IF_RTR_CTRL_LBW_DECODE_BASE_ADDR_VAL_MASK
+#define RTR_CTRL_LBW_DECODE_CTRL_EN_MASK \
+					DCON0_LBW_RTR_IF_RTR_CTRL_LBW_DECODE_CTRL_EN_MASK
+#define RTR_CTRL_LBW_DECODE_CTRL_START_BIT_MASK \
+					DCON0_LBW_RTR_IF_RTR_CTRL_LBW_DECODE_CTRL_START_BIT_MASK
+#define RTR_CTRL_LBW_DECODE_CTRL_END_BIT_MASK \
+					DCON0_LBW_RTR_IF_RTR_CTRL_LBW_DECODE_CTRL_END_BIT_MASK
+#define RTR_CTRL_LBW_DECODE_CTRL_YX_MASK \
+					DCON0_LBW_RTR_IF_RTR_CTRL_LBW_DECODE_CTRL_YX_MASK
+
+#define NUM_OF_DCONS			4
+#define NUM_OF_MME_TPC_RTR_PER_DCORE	4
+
+#define RTR_LBW_DECODE_ENTRY_0_TPC	0
 
 /* The init is based on ddr_init_cfg_8g */
 
@@ -1667,57 +1680,61 @@ static void greco_cfg_tpc_mux(struct hl_device *hdev, u32 binned_tpcs)
 	WREG32_OR(mmDCON3_E2E_MST_RD_MID_CRD, dcon_tpc_mux);
 }
 
-/*
- * routing tpc4 to tpc9 when binning a tpc in Dcore 0
- * changing in each one of the 4 Dcons:
- * the base address offset to 0x40000 (mmDCORE0_TPC4_QM_GLBL_CFG0)
- * the decode ctrl offset to 0x01919101 (tpc 9 address on the interconnect structure):
- * XY = 19   endBit = 19   startBit = 10   enable = 1
- */
-static void greco_cfg_tpc_route_tpc4_to_tpc9(struct hl_device *hdev, u32 binned_tpcs)
+static void greco_route_block1_to_block2(struct hl_device *hdev, u64 block1_addr, u32 block2_xy,
+						u32 match_start_bit, u32 rtr_lbw_decode_entry)
 {
-	u32 i, j, curr_dcon, curr_rtr, tpc9_xy_address = 0x01919101;
-	/* going over all 4 Dcons and rtrs */
-	for (i = 0; i < NUM_OF_DCONS; i++) {
-		curr_dcon = i * DCON_OFFSET;
-		curr_rtr = i * RTR_OFFSET;
-		/*
-		 * each one of the Dcons and the rtrs is configured
-		 * with the alternative tpc9 base address.
-		 * each Dcon has 4 address configuration registers and
-		 * each register is being used by the designated Dcon.
-		 */
-		for (j = 0; j < NUM_OF_DECODE_BASE_ADDR; j++) {
-			WREG32(mmDCON0_HBW_RTR_IF0_RTR_CTRL_BASE + curr_dcon +
-				LBW_DECODE_BASE_ADDR_OFFSET + 4*j, mmDCORE0_TPC4_QM_GLBL_CFG0);
-			WREG32(mmDCON0_HBW_RTR_IF0_RTR_CTRL_BASE + curr_dcon +
-				LBW_DECODE_CTRL_OFFSET + 4*j, tpc9_xy_address);
-			WREG32(mmDCON0_HBW_RTR_IF1_RTR_CTRL_BASE + curr_dcon +
-				LBW_DECODE_BASE_ADDR_OFFSET + 4*j, mmDCORE0_TPC4_QM_GLBL_CFG0);
-			WREG32(mmDCON0_HBW_RTR_IF1_RTR_CTRL_BASE + curr_dcon +
-				LBW_DECODE_CTRL_OFFSET + 4*j, tpc9_xy_address);
-			WREG32(mmDCON0_LBW_RTR_IF_RTR_CTRL_BASE + curr_dcon +
-				LBW_DECODE_BASE_ADDR_OFFSET + 4*j, mmDCORE0_TPC4_QM_GLBL_CFG0);
-			WREG32(mmDCON0_LBW_RTR_IF_RTR_CTRL_BASE + curr_dcon +
-				LBW_DECODE_CTRL_OFFSET + 4*j, tpc9_xy_address);
-			WREG32(mmDCORE0_MMEIF_RTR0_CTRL_BASE + curr_rtr +
-				LBW_DECODE_BASE_ADDR_OFFSET + 4*j, mmDCORE0_TPC4_QM_GLBL_CFG0);
-			WREG32(mmDCORE0_MMEIF_RTR0_CTRL_BASE + curr_rtr +
-				LBW_DECODE_CTRL_OFFSET + 4*j, tpc9_xy_address);
-			WREG32(mmDCORE1_MMEIF_RTR0_CTRL_BASE + curr_rtr +
-				LBW_DECODE_BASE_ADDR_OFFSET + 4*j, mmDCORE0_TPC4_QM_GLBL_CFG0);
-			WREG32(mmDCORE1_MMEIF_RTR0_CTRL_BASE + curr_rtr +
-				LBW_DECODE_CTRL_OFFSET + 4*j, tpc9_xy_address);
-			WREG32(mmDCORE0_TPCIF_RTR0_CTRL_BASE + curr_rtr +
-				LBW_DECODE_BASE_ADDR_OFFSET + 4*j, mmDCORE0_TPC4_QM_GLBL_CFG0);
-			WREG32(mmDCORE0_TPCIF_RTR0_CTRL_BASE + curr_rtr +
-				LBW_DECODE_CTRL_OFFSET + 4*j, tpc9_xy_address);
-			WREG32(mmDCORE1_TPCIF_RTR0_CTRL_BASE + curr_rtr +
-				LBW_DECODE_BASE_ADDR_OFFSET + 4*j, mmDCORE0_TPC4_QM_GLBL_CFG0);
-			WREG32(mmDCORE1_TPCIF_RTR0_CTRL_BASE + curr_rtr +
-				LBW_DECODE_CTRL_OFFSET + 4*j, tpc9_xy_address);
-		}
+	u32 match_end_bit, entry_offset, lbw_decode_addr, lbw_decode_ctrl, i, base;
+
+	match_end_bit = 25; /* LBW address space is 32MB */
+	entry_offset = rtr_lbw_decode_entry * 0x4;
+
+	lbw_decode_addr = lower_32_bits(block1_addr) & RTR_CTRL_LBW_DECODE_BASE_ADDR_VAL_MASK;
+	lbw_decode_ctrl = FIELD_PREP(RTR_CTRL_LBW_DECODE_CTRL_EN_MASK, 0x1) |
+			FIELD_PREP(RTR_CTRL_LBW_DECODE_CTRL_START_BIT_MASK, match_start_bit) |
+			FIELD_PREP(RTR_CTRL_LBW_DECODE_CTRL_END_BIT_MASK, match_end_bit) |
+			FIELD_PREP(RTR_CTRL_LBW_DECODE_CTRL_YX_MASK, block2_xy);
+
+	/* 4 DCONs */
+	for (i = 0 ; i < NUM_OF_DCONS ; ++i) {
+		base = mmDCON0_LBW_RTR_IF_RTR_CTRL_BASE + i * DCON_OFFSET;
+		WREG32(base + LBW_DECODE_BASE_ADDR_OFFSET + entry_offset, lbw_decode_addr);
+		WREG32(base + LBW_DECODE_CTRL_OFFSET + entry_offset, lbw_decode_ctrl);
 	}
+
+	/* 8 MME RTRs */
+	for (i = 0 ; i < NUM_OF_MME_TPC_RTR_PER_DCORE ; ++i) {
+		base = mmDCORE0_MMEIF_RTR0_CTRL_BASE + i * RTR_OFFSET;
+		WREG32(base + LBW_DECODE_BASE_ADDR_OFFSET + entry_offset, lbw_decode_addr);
+		WREG32(base + LBW_DECODE_CTRL_OFFSET + entry_offset, lbw_decode_ctrl);
+
+		base = mmDCORE1_MMEIF_RTR0_CTRL_BASE + i * RTR_OFFSET;
+		WREG32(base + LBW_DECODE_BASE_ADDR_OFFSET + entry_offset, lbw_decode_addr);
+		WREG32(base + LBW_DECODE_CTRL_OFFSET + entry_offset, lbw_decode_ctrl);
+	}
+
+	/* 8 TPC RTRs */
+	for (i = 0 ; i < NUM_OF_MME_TPC_RTR_PER_DCORE ; ++i) {
+		base = mmDCORE0_TPCIF_RTR0_CTRL_BASE + i * RTR_OFFSET;
+		WREG32(base + LBW_DECODE_BASE_ADDR_OFFSET + entry_offset, lbw_decode_addr);
+		WREG32(base + LBW_DECODE_CTRL_OFFSET + entry_offset, lbw_decode_ctrl);
+
+		base = mmDCORE1_TPCIF_RTR0_CTRL_BASE + i * RTR_OFFSET;
+		WREG32(base + LBW_DECODE_BASE_ADDR_OFFSET + entry_offset, lbw_decode_addr);
+		WREG32(base + LBW_DECODE_CTRL_OFFSET + entry_offset, lbw_decode_ctrl);
+	}
+}
+
+static void greco_route_tpc4_to_tpc9(struct hl_device *hdev)
+{
+	u32 tpc9_xy, match_start_bit;
+	u64 tpc4_addr;
+
+	tpc4_addr = CFG_BASE + mmDCORE0_TPC4_QM_BASE;
+	tpc9_xy = 0x19; /* X=9, Y=1 */
+	match_start_bit = 16; /* TPC CFG address is 64KB */
+
+	greco_route_block1_to_block2(hdev, tpc4_addr, tpc9_xy, match_start_bit,
+					RTR_LBW_DECODE_ENTRY_0_TPC);
 }
 
 static void greco_init_binning_tpc_dec(struct hl_device *hdev)
@@ -1809,8 +1826,9 @@ static void greco_init_binning_tpc_dec(struct hl_device *hdev)
 
 	greco_cfg_tpc_mux(hdev, prop->tpc_binning_mask);
 
+	/* If TPC binning is done in DCORE0, route TPC4 to TPC9 to have 9 consecutive TPCs */
 	if (prop->tpc_binning_mask & 0x1F)
-		greco_cfg_tpc_route_tpc4_to_tpc9(hdev, prop->tpc_binning_mask);
+		greco_route_tpc4_to_tpc9(hdev);
 
 	/* Configure decoders and their binning */
 	if (prop->decoder_binning_mask & 0x1F) {
@@ -2029,7 +2047,7 @@ void greco_kdma_e2e_init(struct hl_device *hdev)
 static void greco_init_e2e(struct hl_device *hdev)
 {
 	struct asic_fixed_properties *prop = &hdev->asic_prop;
-	u32 value;
+	u32 value, orig_addr, orig_ctrl;
 
 	/* EMEM shared update values */
 	WREG32(mmCPU_MSTR_IF_E2E_CRDT_E2E_EMEM_RD_SIZE_0, 9);
@@ -2433,6 +2451,8 @@ static void greco_init_e2e(struct hl_device *hdev)
 		/* Due to H/W issue we cannot access DCORE1 VSI registers from PCI, hence
 		 * we need to temporarily re-route transaction through DCORE0
 		 */
+		orig_addr = RREG32(mmDCON0_LBW_RTR_IF_RTR_CTRL_BASE + LBW_DECODE_BASE_ADDR_OFFSET);
+		orig_ctrl = RREG32(mmDCON0_LBW_RTR_IF_RTR_CTRL_BASE + LBW_DECODE_CTRL_OFFSET);
 		WREG32(mmDCON0_LBW_RTR_IF_RTR_CTRL_BASE + LBW_DECODE_BASE_ADDR_OFFSET, 0xBE000);
 		WREG32(mmDCON0_LBW_RTR_IF_RTR_CTRL_BASE + LBW_DECODE_CTRL_OFFSET, 0x2A190C1);
 
@@ -2445,8 +2465,8 @@ static void greco_init_e2e(struct hl_device *hdev)
 		WREG32(mmDCORE0_VSI_WRAP_MSTR_IF_E2E_CRDT_E2E_EMEM_WR_SIZE_2, 27);
 		WREG32(mmDCORE0_VSI_WRAP_MSTR_IF_E2E_CRDT_E2E_EMEM_WR_SIZE_3, 27);
 
-		WREG32(mmDCON0_LBW_RTR_IF_RTR_CTRL_BASE + LBW_DECODE_BASE_ADDR_OFFSET, 0x0);
-		WREG32(mmDCON0_LBW_RTR_IF_RTR_CTRL_BASE + LBW_DECODE_CTRL_OFFSET, 0x0);
+		WREG32(mmDCON0_LBW_RTR_IF_RTR_CTRL_BASE + LBW_DECODE_BASE_ADDR_OFFSET, orig_addr);
+		WREG32(mmDCON0_LBW_RTR_IF_RTR_CTRL_BASE + LBW_DECODE_CTRL_OFFSET, orig_ctrl);
 	}
 
 	if (hdev->rotator_mask & 0x2) {
@@ -2534,13 +2554,15 @@ static void greco_init_e2e(struct hl_device *hdev)
 		/* Due to H/W issue we cannot access DCORE1 VSI registers from PCI, hence
 		 * we need to temporarily re-route transaction through DCORE0
 		 */
+		orig_addr = RREG32(mmDCON0_LBW_RTR_IF_RTR_CTRL_BASE + LBW_DECODE_BASE_ADDR_OFFSET);
+		orig_ctrl = RREG32(mmDCON0_LBW_RTR_IF_RTR_CTRL_BASE + LBW_DECODE_CTRL_OFFSET);
 		WREG32(mmDCON0_LBW_RTR_IF_RTR_CTRL_BASE + LBW_DECODE_BASE_ADDR_OFFSET, 0xBE000);
 		WREG32(mmDCON0_LBW_RTR_IF_RTR_CTRL_BASE + LBW_DECODE_CTRL_OFFSET, 0x2A190C1);
 
 		WREG32(mmDCORE0_VSI_WRAP_MSTR_IF_E2E_CRDT_E2E_EMEM_EN, 0x1);
 
-		WREG32(mmDCON0_LBW_RTR_IF_RTR_CTRL_BASE + LBW_DECODE_BASE_ADDR_OFFSET, 0x0);
-		WREG32(mmDCON0_LBW_RTR_IF_RTR_CTRL_BASE + LBW_DECODE_CTRL_OFFSET, 0x0);
+		WREG32(mmDCON0_LBW_RTR_IF_RTR_CTRL_BASE + LBW_DECODE_BASE_ADDR_OFFSET, orig_addr);
+		WREG32(mmDCON0_LBW_RTR_IF_RTR_CTRL_BASE + LBW_DECODE_CTRL_OFFSET, orig_ctrl);
 	}
 
 	if (hdev->rotator_mask & 0x2)
@@ -2694,6 +2716,8 @@ static void greco_init_e2e(struct hl_device *hdev)
 		/* Due to H/W issue we cannot access DCORE1 VSI registers from PCI, hence
 		 * we need to temporarily re-route transaction through DCORE0
 		 */
+		orig_addr = RREG32(mmDCON0_LBW_RTR_IF_RTR_CTRL_BASE + LBW_DECODE_BASE_ADDR_OFFSET);
+		orig_ctrl = RREG32(mmDCON0_LBW_RTR_IF_RTR_CTRL_BASE + LBW_DECODE_CTRL_OFFSET);
 		WREG32(mmDCON0_LBW_RTR_IF_RTR_CTRL_BASE + LBW_DECODE_BASE_ADDR_OFFSET, 0xBE000);
 		WREG32(mmDCON0_LBW_RTR_IF_RTR_CTRL_BASE + LBW_DECODE_CTRL_OFFSET, 0x2A190C1);
 
@@ -2701,8 +2725,8 @@ static void greco_init_e2e(struct hl_device *hdev)
 		WREG32(mmDCORE0_VSI_WRAP_MSTR_IF_E2E_CRDT_E2E_PCI_RD_SIZE, value);
 		WREG32(mmDCORE0_VSI_WRAP_MSTR_IF_E2E_CRDT_E2E_PCI_WR_SIZE, value);
 
-		WREG32(mmDCON0_LBW_RTR_IF_RTR_CTRL_BASE + LBW_DECODE_BASE_ADDR_OFFSET, 0x0);
-		WREG32(mmDCON0_LBW_RTR_IF_RTR_CTRL_BASE + LBW_DECODE_CTRL_OFFSET, 0x0);
+		WREG32(mmDCON0_LBW_RTR_IF_RTR_CTRL_BASE + LBW_DECODE_BASE_ADDR_OFFSET, orig_addr);
+		WREG32(mmDCON0_LBW_RTR_IF_RTR_CTRL_BASE + LBW_DECODE_CTRL_OFFSET, orig_ctrl);
 	}
 
 	if (hdev->rotator_mask & 0x2) {
@@ -2786,13 +2810,15 @@ static void greco_init_e2e(struct hl_device *hdev)
 		/* Due to H/W issue we cannot access DCORE1 VSI registers from PCI, hence
 		 * we need to temporarily re-route transaction through DCORE0
 		 */
+		orig_addr = RREG32(mmDCON0_LBW_RTR_IF_RTR_CTRL_BASE + LBW_DECODE_BASE_ADDR_OFFSET);
+		orig_ctrl = RREG32(mmDCON0_LBW_RTR_IF_RTR_CTRL_BASE + LBW_DECODE_CTRL_OFFSET);
 		WREG32(mmDCON0_LBW_RTR_IF_RTR_CTRL_BASE + LBW_DECODE_BASE_ADDR_OFFSET, 0xBE000);
 		WREG32(mmDCON0_LBW_RTR_IF_RTR_CTRL_BASE + LBW_DECODE_CTRL_OFFSET, 0x2A190C1);
 
 		WREG32(mmDCORE0_VSI_WRAP_MSTR_IF_E2E_CRDT_E2E_PCI_EN, 0x1);
 
-		WREG32(mmDCON0_LBW_RTR_IF_RTR_CTRL_BASE + LBW_DECODE_BASE_ADDR_OFFSET, 0x0);
-		WREG32(mmDCON0_LBW_RTR_IF_RTR_CTRL_BASE + LBW_DECODE_CTRL_OFFSET, 0x0);
+		WREG32(mmDCON0_LBW_RTR_IF_RTR_CTRL_BASE + LBW_DECODE_BASE_ADDR_OFFSET, orig_addr);
+		WREG32(mmDCON0_LBW_RTR_IF_RTR_CTRL_BASE + LBW_DECODE_CTRL_OFFSET, orig_ctrl);
 	}
 
 	if (hdev->rotator_mask & 0x2)
@@ -3140,6 +3166,7 @@ void greco_cpu_init_scrambler_dram(struct hl_device *hdev)
 void greco_init_scrambler_dram(struct hl_device *hdev)
 {
 	struct greco_device *greco = hdev->asic_specific;
+	u32 orig_addr, orig_ctrl;
 
 	if (!hdev->dram_scrambler_enable)
 		return;
@@ -3231,13 +3258,15 @@ void greco_init_scrambler_dram(struct hl_device *hdev)
 		/* Due to H/W issue we cannot access DCORE1 VSI registers from PCI, hence
 		 * we need to temporarily re-route transaction through DCORE0
 		 */
+		orig_addr = RREG32(mmDCON0_LBW_RTR_IF_RTR_CTRL_BASE + LBW_DECODE_BASE_ADDR_OFFSET);
+		orig_ctrl = RREG32(mmDCON0_LBW_RTR_IF_RTR_CTRL_BASE + LBW_DECODE_CTRL_OFFSET);
 		WREG32(mmDCON0_LBW_RTR_IF_RTR_CTRL_BASE + LBW_DECODE_BASE_ADDR_OFFSET, 0xBE000);
 		WREG32(mmDCON0_LBW_RTR_IF_RTR_CTRL_BASE + LBW_DECODE_CTRL_OFFSET, 0x2A190C1);
 
 		WREG32(mmDCORE0_VSI_WRAP_MSTR_IF_CORE_HBW_SCRAM_EXTMEM_EN, 0x1);
 
-		WREG32(mmDCON0_LBW_RTR_IF_RTR_CTRL_BASE + LBW_DECODE_BASE_ADDR_OFFSET, 0x0);
-		WREG32(mmDCON0_LBW_RTR_IF_RTR_CTRL_BASE + LBW_DECODE_CTRL_OFFSET, 0x0);
+		WREG32(mmDCON0_LBW_RTR_IF_RTR_CTRL_BASE + LBW_DECODE_BASE_ADDR_OFFSET, orig_addr);
+		WREG32(mmDCON0_LBW_RTR_IF_RTR_CTRL_BASE + LBW_DECODE_CTRL_OFFSET, orig_ctrl);
 	}
 
 	if (hdev->rotator_mask & 0x1)

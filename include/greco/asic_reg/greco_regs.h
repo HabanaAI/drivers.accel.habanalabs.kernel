@@ -541,6 +541,7 @@
 #include "dcore0_rot_masks.h"
 #include "dcore0_sync_mngr_glbl_masks.h"
 #include "dcore0_vdec0_ctrl_special_masks.h"
+#include "dcon0_lbw_rtr_if_rtr_ctrl_masks.h"
 
 #define mmPCIE_DBI_DEVICE_ID_VENDOR_ID_REG                           0xC02000
 #define mmPCIE_DBI_MSIX_DOORBELL_OFF                                 0xC02948
@@ -800,11 +801,11 @@
 #define MMU_STATIC_MULTI_PAGE_SIZE_OFFSET	(mmDCORE0_HMMU0_MMU_STATIC_MULTI_PAGE_SIZE - \
 							mmDCORE0_HMMU0_MMU_BASE)
 
-#define LBW_DECODE_BASE_ADDR_OFFSET (mmDCON0_HBW_RTR_IF0_RTR_CTRL_LBW_DECODE_BASE_ADDR_0 - \
-							mmDCON0_HBW_RTR_IF0_RTR_CTRL_BASE)
+#define LBW_DECODE_BASE_ADDR_OFFSET	(mmDCON0_LBW_RTR_IF_RTR_CTRL_LBW_DECODE_BASE_ADDR_0 - \
+						mmDCON0_LBW_RTR_IF_RTR_CTRL_BASE)
 
-#define LBW_DECODE_CTRL_OFFSET (mmDCON0_HBW_RTR_IF0_RTR_CTRL_LBW_DECODE_CTRL_0 - \
-							mmDCON0_HBW_RTR_IF0_RTR_CTRL_BASE)
+#define LBW_DECODE_CTRL_OFFSET		(mmDCON0_LBW_RTR_IF_RTR_CTRL_LBW_DECODE_CTRL_0 - \
+						mmDCON0_LBW_RTR_IF_RTR_CTRL_BASE)
 
 #define DCON_OFFSET (mmDCON1_LBW_RTR_IF_RTR_CTRL_BASE - mmDCON0_LBW_RTR_IF_RTR_CTRL_BASE)
 
