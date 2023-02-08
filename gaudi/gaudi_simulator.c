@@ -1342,7 +1342,7 @@ static int gaudi_sim_hw_init(struct hl_device *hdev)
 	return rc;
 }
 
-static void gaudi_sim_hw_fini(struct hl_device *hdev, bool hard_reset, bool fw_reset)
+static int gaudi_sim_hw_fini(struct hl_device *hdev, bool hard_reset, bool fw_reset)
 {
 	struct gaudi_device *gaudi = hdev->asic_specific;
 	u32 status, reset_timeout_ms, reset_timeout_us;
@@ -1350,7 +1350,7 @@ static void gaudi_sim_hw_fini(struct hl_device *hdev, bool hard_reset, bool fw_r
 
 	if (!hard_reset) {
 		dev_err(hdev->dev, "GAUDI doesn't support soft-reset\n");
-		return;
+		return 0;
 	}
 
 	reset_timeout_ms = GAUDI_SIM_RESET_WAIT_MSEC;
@@ -1410,6 +1410,7 @@ static void gaudi_sim_hw_fini(struct hl_device *hdev, bool hard_reset, bool fw_r
 
 		memset(gaudi->events_stat, 0, sizeof(gaudi->events_stat));
 	}
+	return 0;
 }
 
 static int gaudi_sim_mmap(struct hl_device *hdev, struct vm_area_struct *vma,

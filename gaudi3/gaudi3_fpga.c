@@ -318,9 +318,10 @@ static int gaudi3_fpga_hw_init(struct hl_device *hdev)
 	return 0;
 }
 
-static void gaudi3_fpga_hw_fini(struct hl_device *hdev, bool hard_reset, bool fw_reset)
+static int gaudi3_fpga_hw_fini(struct hl_device *hdev, bool hard_reset, bool fw_reset)
 {
 	gaudi3_fpga_disable_msix(hdev);
+	return 0;
 }
 
 static int gaudi3_fpga_late_init(struct hl_device *hdev)

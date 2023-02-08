@@ -4582,7 +4582,7 @@ disable_queues:
 	return rc;
 }
 
-static void gaudi_hw_fini(struct hl_device *hdev, bool hard_reset, bool fw_reset)
+static int gaudi_hw_fini(struct hl_device *hdev, bool hard_reset, bool fw_reset)
 {
 	struct cpu_dyn_regs *dyn_regs =
 			&hdev->fw_loader.dynamic_loader.comm_desc.cpu_dyn_regs;
@@ -4592,7 +4592,7 @@ static void gaudi_hw_fini(struct hl_device *hdev, bool hard_reset, bool fw_reset
 
 	if (!hard_reset) {
 		dev_err(hdev->dev, "GAUDI doesn't support soft-reset\n");
-		return;
+		return 0;
 	}
 
 	if (hdev->pldm) {
@@ -4729,6 +4729,7 @@ skip_reset:
 
 		hdev->device_cpu_is_halted = false;
 	}
+	return 0;
 }
 
 int gaudi_suspend(struct hl_device *hdev)

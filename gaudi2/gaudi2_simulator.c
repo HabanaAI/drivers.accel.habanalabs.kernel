@@ -1352,7 +1352,7 @@ static int gaudi2_sim_hw_init(struct hl_device *hdev)
 	return 0;
 }
 
-static void gaudi2_sim_hw_fini(struct hl_device *hdev, bool hard_reset, bool fw_reset)
+static int gaudi2_sim_hw_fini(struct hl_device *hdev, bool hard_reset, bool fw_reset)
 {
 	struct gaudi2_device *gaudi2 = hdev->asic_specific;
 	u32 status, reset_timeout_ms, reset_timeout_us, reg_val;
@@ -1425,7 +1425,7 @@ static void gaudi2_sim_hw_fini(struct hl_device *hdev, bool hard_reset, bool fw_
 		 */
 		gaudi2->nic_hw_cap_initialized &= ~(HW_CAP_NIC_MASK);
 
-		return;
+		return 0;
 	}
 
 	if (gaudi2) {
@@ -1442,6 +1442,7 @@ static void gaudi2_sim_hw_fini(struct hl_device *hdev, bool hard_reset, bool fw_
 
 		memset(gaudi2->events_stat, 0, sizeof(gaudi2->events_stat));
 	}
+	return 0;
 }
 
 static int gaudi2_sim_suspend(struct hl_device *hdev)

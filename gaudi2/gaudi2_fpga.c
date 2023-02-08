@@ -283,11 +283,12 @@ static void gaudi2_fpga_disable_msix(struct hl_device *hdev)
 	gaudi2->hw_cap_initialized &= ~HW_CAP_MSIX;
 }
 
-static void gaudi2_fpga_hw_fini(struct hl_device *hdev, bool hard_reset, bool fw_reset)
+static int gaudi2_fpga_hw_fini(struct hl_device *hdev, bool hard_reset, bool fw_reset)
 {
 	gaudi2_fpga_disable_msix(hdev);
 
 	WREG32(mmCPU_IF_QUEUE_INIT, PQ_INIT_STATUS_NA);
+	return 0;
 }
 
 static int gaudi2_fpga_late_init(struct hl_device *hdev)

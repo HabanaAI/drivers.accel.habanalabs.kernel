@@ -4048,7 +4048,7 @@ disable_queues:
 	return rc;
 }
 
-static void greco_hw_fini(struct hl_device *hdev, bool hard_reset, bool fw_reset)
+static int greco_hw_fini(struct hl_device *hdev, bool hard_reset, bool fw_reset)
 {
 	struct cpu_dyn_regs *dyn_regs =
 			&hdev->fw_loader.dynamic_loader.comm_desc.cpu_dyn_regs;
@@ -4202,7 +4202,7 @@ skip_reset:
 				HW_CAP_PDMA_MASK | HW_CAP_DDMA_MASK | HW_CAP_MME_MASK |
 				HW_CAP_TPC_MASK | HW_CAP_ROT_MASK | HW_CAP_DEC_MASK |
 				HW_CAP_CLK_GATE);
-		return;
+		return 0;
 	}
 
 	if (greco) {
@@ -4217,6 +4217,7 @@ skip_reset:
 
 		hdev->device_cpu_is_halted = false;
 	}
+	return 0;
 }
 
 static int greco_suspend(struct hl_device *hdev)

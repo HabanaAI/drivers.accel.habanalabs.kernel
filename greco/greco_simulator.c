@@ -1156,7 +1156,7 @@ static int greco_sim_hw_init(struct hl_device *hdev)
 	return 0;
 }
 
-static void greco_sim_hw_fini(struct hl_device *hdev, bool hard_reset, bool fw_reset)
+static int greco_sim_hw_fini(struct hl_device *hdev, bool hard_reset, bool fw_reset)
 {
 	struct greco_device *greco = hdev->asic_specific;
 	u32 status, reset_timeout_ms, reset_timeout_us;
@@ -1199,6 +1199,7 @@ static void greco_sim_hw_fini(struct hl_device *hdev, bool hard_reset, bool fw_r
 
 		memset(greco->events_stat, 0, sizeof(greco->events_stat));
 	}
+	return 0;
 }
 
 static int greco_sim_suspend(struct hl_device *hdev)

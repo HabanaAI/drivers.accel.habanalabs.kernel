@@ -7225,7 +7225,7 @@ void gaudi3_clear_hw_cap(struct hl_device *hdev, bool hard_reset)
 						HW_CAP_SET_CACHE_MODE_MASK | HW_CAP_SRAM);
 }
 
-static void gaudi3_hw_fini(struct hl_device *hdev, bool hard_reset, bool fw_reset)
+static int gaudi3_hw_fini(struct hl_device *hdev, bool hard_reset, bool fw_reset)
 {
 	struct gaudi3_device *gaudi3 = hdev->asic_specific;
 	u32 poll_timeout_us, reset_sleep_ms, status;
@@ -7292,6 +7292,7 @@ skip_reset:
 		dev_err(hdev->dev, "Error %d while waiting for device to reset\n", rc);
 
 	gaudi3_clear_hw_cap(hdev, hard_reset);
+	return 0; /* TODO - return rc here ? */
 }
 
 static int gaudi3_user_mapped_dec_blocks_init(struct hl_device *hdev, int block_idx)

@@ -1227,7 +1227,7 @@ static void gaudi3_sim_poll_on_reset_complete(struct hl_device *hdev, u32 die)
 			reg_val);
 }
 
-static void gaudi3_sim_hw_fini(struct hl_device *hdev, bool hard_reset, bool fw_reset)
+static int gaudi3_sim_hw_fini(struct hl_device *hdev, bool hard_reset, bool fw_reset)
 {
 	struct asic_fixed_properties *prop = &hdev->asic_prop;
 	int die;
@@ -1255,6 +1255,7 @@ static void gaudi3_sim_hw_fini(struct hl_device *hdev, bool hard_reset, bool fw_
 
 clear_hw_cap:
 	gaudi3_clear_hw_cap(hdev, hard_reset);
+	return 0;
 }
 
 static int gaudi3_sim_mmap(struct hl_device *hdev,
