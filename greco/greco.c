@@ -1322,14 +1322,15 @@ int greco_set_binning_masks(struct hl_device *hdev)
 
 	if ((hdev->decoder_mask & 0x3FF) != 0x3FF) {
 		prop->decoder_binning_mask = 0;
-		prop->decoder_enabled_mask = hdev->decoder_mask &
-							~hdev->decoder_binning;
+		prop->decoder_enabled_mask = hdev->decoder_mask & ~hdev->decoder_binning;
 	} else {
 		prop->decoder_binning_mask = hdev->decoder_binning;
 		prop->decoder_enabled_mask = hdev->decoder_mask;
-		if (hdev->decoder_binning & 0x1F)
-			prop->decoder_enabled_mask &= ~0x10ull;
-		if (hdev->decoder_binning & 0x3E0)
+
+		/* Remove DEC9 even if binning is done in DCORE0, because in this case DEC4 will be
+		 * routed to DEC9.
+		 */
+		if (hdev->decoder_binning)
 			prop->decoder_enabled_mask &= ~0x200ull;
 	}
 

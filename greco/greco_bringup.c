@@ -55,6 +55,9 @@
 #define NUM_OF_MME_TPC_RTR_PER_DCORE	4
 
 #define RTR_LBW_DECODE_ENTRY_0_TPC	0
+#define RTR_LBW_DECODE_ENTRY_1_DEC	1
+#define RTR_LBW_DECODE_ENTRY_2_DEC	2
+#define RTR_LBW_DECODE_ENTRY_3_DEC	3
 
 /* The init is based on ddr_init_cfg_8g */
 
@@ -1737,6 +1740,27 @@ static void greco_route_tpc4_to_tpc9(struct hl_device *hdev)
 					RTR_LBW_DECODE_ENTRY_0_TPC);
 }
 
+static void greco_route_dec4_to_dec9(struct hl_device *hdev)
+{
+	u32 dec9_xy, match_start_bit;
+	u64 dec4_addr;
+
+	dec9_xy = 0x2A; /* X=10, Y=2 */
+	match_start_bit = 13; /* DEC CFG address is 24KB so need 3 x 8KB */
+
+	dec4_addr = CFG_BASE + mmDCORE0_VDEC4_BRDG_CTRL_BASE;
+	greco_route_block1_to_block2(hdev, dec4_addr, dec9_xy, match_start_bit,
+					RTR_LBW_DECODE_ENTRY_1_DEC);
+
+	dec4_addr = CFG_BASE + mmDCORE0_DEC4_L2C_BASE;
+	greco_route_block1_to_block2(hdev, dec4_addr, dec9_xy, match_start_bit,
+					RTR_LBW_DECODE_ENTRY_2_DEC);
+
+	dec4_addr = CFG_BASE + mmDCORE0_DEC4_CMD_BASE;
+	greco_route_block1_to_block2(hdev, dec4_addr, dec9_xy, match_start_bit,
+					RTR_LBW_DECODE_ENTRY_3_DEC);
+}
+
 static void greco_init_binning_tpc_dec(struct hl_device *hdev)
 {
 	u32 tpc_binning, dec_binning, dcore1_dec_binning, binned_decoder;
@@ -1862,6 +1886,10 @@ static void greco_init_binning_tpc_dec(struct hl_device *hdev)
 	} else if (prop->decoder_enabled_mask & 0x3E0) {
 		WREG32(mmDCORE1_VSI_WRAP_DEC_BIN_MASK, 0);
 	}
+
+	/* If DEC binning is done in DCORE0, route DEC4 to DEC9 to have 9 consecutive decoders */
+	if (prop->decoder_binning_mask & 0x1F)
+		greco_route_dec4_to_dec9(hdev);
 }
 
 static void greco_init_binning_sram(struct hl_device *hdev)
