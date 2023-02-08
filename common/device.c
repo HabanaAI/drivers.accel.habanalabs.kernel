@@ -1687,7 +1687,7 @@ static void handle_reset_trigger(struct hl_device *hdev, u32 flags)
 int hl_device_reset(struct hl_device *hdev, u32 flags)
 {
 	bool hard_reset, from_hard_reset_thread, fw_reset, hard_instead_soft = false,
-			reset_upon_device_release = false, schedule_hard_reset = false,
+			reset_upon_device_release, schedule_hard_reset = false,
 			delay_reset, from_dev_release, from_watchdog_thread;
 	u64 idle_mask[HL_BUSY_ENGINES_MASK_EXT_SIZE] = {0};
 	struct hl_ctx *ctx;
@@ -1704,6 +1704,7 @@ int hl_device_reset(struct hl_device *hdev, u32 flags)
 	from_dev_release = !!(flags & HL_DRV_RESET_DEV_RELEASE);
 	delay_reset = !!(flags & HL_DRV_RESET_DELAY);
 	from_watchdog_thread = !!(flags & HL_DRV_RESET_FROM_WD_THR);
+	reset_upon_device_release = hdev->reset_upon_device_release && from_dev_release;
 
 	/* We should not execute reset flow in case simulator is already going down */
 	if (from_dev_release && hdev->simulator_crashed)
@@ -1719,14 +1720,12 @@ int hl_device_reset(struct hl_device *hdev, u32 flags)
 		hard_reset = true;
 	}
 
-	if (hdev->reset_upon_device_release && from_dev_release) {
+	if (reset_upon_device_release) {
 		if (hard_reset) {
 			dev_crit(hdev->dev,
 				"Aborting reset because hard-reset is mutually exclusive with reset-on-device-release\n");
 			return -EINVAL;
 		}
-
-		reset_upon_device_release = true;
 
 		goto do_reset;
 	}
