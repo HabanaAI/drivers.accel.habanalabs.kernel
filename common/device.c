@@ -2084,17 +2084,16 @@ out_err:
 		dev_err(hdev->dev,
 			"%s Failed to reset! Device is NOT usable\n", HL_DEV_NAME(hdev));
 		hdev->reset_info.hard_reset_cnt++;
-	} else if (reset_upon_device_release) {
-		spin_unlock(&hdev->reset_info.lock);
-		dev_err(hdev->dev, "Failed to reset device after user release\n");
-		flags |= HL_DRV_RESET_HARD;
-		flags &= ~HL_DRV_RESET_DEV_RELEASE;
-		hard_reset = true;
-		goto escalate_reset_flow;
 	} else {
+		if (reset_upon_device_release) {
+			dev_err(hdev->dev, "Failed to reset device after user release\n");
+			flags &= ~HL_DRV_RESET_DEV_RELEASE;
+		} else {
+			dev_err(hdev->dev, "Failed to do compute reset\n");
+			hdev->reset_info.compute_reset_cnt++;
+		}
+
 		spin_unlock(&hdev->reset_info.lock);
-		dev_err(hdev->dev, "Failed to do compute reset\n");
-		hdev->reset_info.compute_reset_cnt++;
 		flags |= HL_DRV_RESET_HARD;
 		hard_reset = true;
 		goto escalate_reset_flow;
