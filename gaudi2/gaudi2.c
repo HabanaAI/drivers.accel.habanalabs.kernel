@@ -6611,22 +6611,28 @@ static void gaudi2_get_soft_rst_done_indication(struct hl_device *hdev, u32 poll
  *
  * This function executes soft reset based on if driver/FW should do the reset
  */
-static void gaudi2_execute_soft_reset(struct hl_device *hdev, u32 reset_sleep_ms,
+static int gaudi2_execute_soft_reset(struct hl_device *hdev, u32 reset_sleep_ms,
 						bool driver_performs_reset, u32 poll_timeout_us)
 {
 	struct cpu_dyn_regs *dyn_regs = &hdev->fw_loader.dynamic_loader.comm_desc.cpu_dyn_regs;
+	int rc = 0;
 
 	if (!driver_performs_reset) {
-		/* set SP to indicate reset request sent to FW */
-		if (dyn_regs->cpu_rst_status)
-			WREG32(le32_to_cpu(dyn_regs->cpu_rst_status), CPU_RST_STATUS_NA);
-		else
-			WREG32(mmCPU_RST_STATUS_TO_HOST, CPU_RST_STATUS_NA);
+		if (hl_is_fw_ver_below_1_10(hdev)) {
+			/* set SP to indicate reset request sent to FW */
+			if (dyn_regs->cpu_rst_status)
+				WREG32(le32_to_cpu(dyn_regs->cpu_rst_status), CPU_RST_STATUS_NA);
+			else
+				WREG32(mmCPU_RST_STATUS_TO_HOST, CPU_RST_STATUS_NA);
+			WREG32(le32_to_cpu(dyn_regs->gic_host_soft_rst_irq),
+				gaudi2_irq_map_table[GAUDI2_EVENT_CPU_SOFT_RESET].cpu_id);
 
-		WREG32(le32_to_cpu(dyn_regs->gic_host_soft_rst_irq),
-			gaudi2_irq_map_table[GAUDI2_EVENT_CPU_SOFT_RESET].cpu_id);
-		gaudi2_get_soft_rst_done_indication(hdev, poll_timeout_us);
-		return;
+			/* wait for f/w response */
+			gaudi2_get_soft_rst_done_indication(hdev, poll_timeout_us);
+		} else {
+			rc = hl_fw_send_soft_reset(hdev);
+		}
+		return rc;
 	}
 
 	if (hdev->security_enable) {
@@ -6643,6 +6649,7 @@ static void gaudi2_execute_soft_reset(struct hl_device *hdev, u32 reset_sleep_ms
 	}
 
 	WREG32(mmPSOC_RESET_CONF_SOFT_RST, 1);
+	return 0;
 }
 
 static void gaudi2_poll_btm_indication(struct hl_device *hdev, u32 reset_sleep_ms,
@@ -6674,7 +6681,7 @@ static int gaudi2_hw_fini(struct hl_device *hdev, bool hard_reset, bool fw_reset
 {
 	struct gaudi2_device *gaudi2 = hdev->asic_specific;
 	u32 poll_timeout_us, reset_sleep_ms;
-	bool driver_performs_reset = false;
+	bool driver_performs_reset = false, rc;
 
 	if (hdev->pldm) {
 		reset_sleep_ms = hard_reset ? GAUDI2_PLDM_HRESET_TIMEOUT_MSEC :
@@ -6703,8 +6710,10 @@ static int gaudi2_hw_fini(struct hl_device *hdev, bool hard_reset, bool fw_reset
 		driver_performs_reset = (hdev->force_driver_reset & FORCE_DRIVER_RESET_SOFT) ||
 					((hdev->fw_components == FW_TYPE_PREBOOT_CPU) &&
 							!hdev->asic_prop.fw_security_enabled);
-		gaudi2_execute_soft_reset(hdev, reset_sleep_ms, driver_performs_reset,
+		rc = gaudi2_execute_soft_reset(hdev, reset_sleep_ms, driver_performs_reset,
 						poll_timeout_us);
+		if (rc)
+			return rc;
 	}
 
 skip_reset:

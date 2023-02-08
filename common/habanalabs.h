@@ -4054,6 +4054,10 @@ struct hl_ioctl_desc {
 	hl_ioctl_t *func;
 };
 
+static inline bool hl_is_fw_ver_below_1_10(struct hl_device *hdev)
+{
+	return (hdev->fw_major_version <= 41);
+}
 
 /*
  * Kernel module functions that can be accessed by entire module
@@ -4398,6 +4402,7 @@ int hl_fw_dram_replaced_row_get(struct hl_device *hdev,
 int hl_fw_dram_pending_row_get(struct hl_device *hdev, u32 *pend_rows_num);
 int hl_fw_cpucp_engine_core_asid_set(struct hl_device *hdev, u32 asid);
 int hl_fw_send_device_activity(struct hl_device *hdev, bool open);
+int hl_fw_send_soft_reset(struct hl_device *hdev);
 int hl_fw_send_psoc_wd_disable_msg(struct hl_device *hdev, bool disable);
 int hl_pci_bars_map(struct hl_device *hdev, const char * const name[3],
 			bool is_wc[3]);

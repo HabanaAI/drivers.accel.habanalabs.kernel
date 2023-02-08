@@ -863,6 +863,9 @@ enum pq_init_status {
  *
  * CPUCP_PACKET_EXPECTED_EQE_SIZE_SET -
  *       LKD sends FW expected size (in bytes) of EQ entry.
+ *
+ * CPUCP_PACKET_SOFT_RESET -
+ *	 Packet to perform soft-reset.
  */
 
 enum cpucp_packet_id {
@@ -928,6 +931,7 @@ enum cpucp_packet_id {
 	CPUCP_PACKET_WD_DISABLE,		/* debugfs */
 	CPUCP_PACKET_NIC_WQE_ASID_UNSET,	/* internal */
 	CPUCP_PACKET_EXPECTED_EQE_SIZE_SET,	/* internal */
+	CPUCP_PACKET_SOFT_RESET,		/* internal */
 	CPUCP_PACKET_ID_MAX			/* must be last */
 };
 
