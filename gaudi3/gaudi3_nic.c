@@ -82,7 +82,7 @@
 #define GAUDI3_MAX_LAG_SIZE		63
 
 #define GAUDI3_CC_MIN_WINDOW_SIZE	1
-#define GAUDI3_CC_MAX_WINDOW_SIZE	1024
+#define GAUDI3_CC_MAX_WINDOW_SIZE	1023
 
 #define AFA_REG_NUM	REG_NUM(mmD0_NIC0_RXE_AFA_LBW_ADDR_0_3 - mmD0_NIC0_RXE_AFA_LBW_ADDR_0_0)
 #define AFA_ARUSER_REG_NUM	REG_NUM(mmD0_NIC0_RXE_AFA_ARUSER_ATTR_3 - \
@@ -2354,6 +2354,13 @@ static int gaudi3_nic_set_req_qp_ctx(struct hl_device *hdev,
 		return -EINVAL;
 	}
 
+	if (in->congestion_wnd > GAUDI3_CC_MAX_WINDOW_SIZE && in->sack_en) {
+		dev_dbg(hdev->dev,
+			"With SACK, congestion window size(%u) can't be > max allowed size(%u), port %d\n",
+			in->congestion_wnd, GAUDI3_CC_MAX_WINDOW_SIZE, port);
+		return -EINVAL;
+	}
+
 	if (in->cq_number) {
 		/* User CQ. */
 		cqn = in->cq_number;
@@ -2467,12 +2474,14 @@ static int gaudi3_nic_set_req_qp_ctx(struct hl_device *hdev,
 
 	REQ_QPC_SET_RTT_STATE(req_qpc, in->congestion_en);
 
+	/* In case SACK is enabled, max CC window cannot be more than 1023 */
 	if (in->congestion_wnd)
 		congestion_wnd = in->congestion_wnd;
 	else if (in->congestion_en)
 		congestion_wnd = GAUDI3_CC_MAX_WINDOW_SIZE;
 	else
-		congestion_wnd = 1 << 23;
+		congestion_wnd = (in->sack_en) ? GAUDI3_CC_MAX_WINDOW_SIZE : 1 << 23;
+
 	REQ_QPC_SET_CONGESTION_WIN(req_qpc, congestion_wnd);
 
 	/* HW accelerated congestion control default values. */
