@@ -2547,6 +2547,11 @@ static void gaudi_nic_app_params_clear(struct hl_device *hdev)
 
 }
 
+static void gaudi_nic_set_port_status(struct hl_nic_port *nic_port, bool up)
+{
+	/* NoOps */
+}
+
 static struct hl_nic_port_funcs gaudi_nic_port_funcs = {
 	.port_hw_init = gaudi_nic_port_hw_init,
 	.port_hw_fini = gaudi_nic_port_hw_fini,
@@ -2588,6 +2593,7 @@ static struct hl_nic_port_funcs gaudi_nic_port_funcs = {
 	.override_phy_readiness = gaudi_nic_override_phy_readiness,
 	.qp_pre_destroy = gaudi_nic_qp_pre_destroy,
 	.qp_post_destroy = gaudi_nic_qp_post_destroy,
+	.set_port_status = gaudi_nic_set_port_status,
 };
 
 struct hl_nic_funcs gaudi_nic_funcs = {

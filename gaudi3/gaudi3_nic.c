@@ -3606,6 +3606,14 @@ static void gaudi3_nic_port_sw_fini(struct hl_nic_port *nic_port)
 		free_no_dram_port_resources(gaudi3_nic);
 }
 
+static void link_eqe_init(struct hl_nic_port *nic_port)
+{
+	/* Init only header. Data field(i.e. link status) would be updated
+	 * when event is ready to be sent to user.
+	 */
+	nic_port->link_eqe.data[0] = EQE_HEADER(true, EQE_LINK_STATUS);
+}
+
 static int gaudi3_nic_port_sw_init(struct hl_nic_port *nic_port)
 {
 	struct hl_wq_array_properties *wq_arr_props;
@@ -3652,6 +3660,14 @@ static int gaudi3_nic_port_sw_init(struct hl_nic_port *nic_port)
 	}
 
 	hl_nic_eq_dispatcher_init(gaudi3_nic->nic_port);
+
+	/* Userspace might not be notified immediately of link event from HW.
+	 * e.g. if serdes is not yet configured or link is not stable, SW might
+	 * defer sending link event to userspace.
+	 * Hence we cache HW link EQE and updated with real link status just
+	 * before sending to userspace.
+	 */
+	link_eqe_init(nic_port);
 
 	return 0;
 
@@ -4296,6 +4312,9 @@ static int gaudi3_eq_poll(struct hl_nic_port *nic_port, u32 asid, struct hl_nic_
 	case EQE_NUMERICAL_ERR:
 		event->ev_type = HL_NIC_EQ_EVENT_TYPE_NUMERICAL_ERR;
 		event->idx = EQE_RAW_TX_EVENT_QPN(&eqe);
+		break;
+	case EQE_LINK_STATUS:
+		event->ev_type = HL_NIC_EQ_EVENT_TYPE_LINK_STATUS;
 		break;
 	default:
 		/* if the event should not be reported to the user then return
@@ -5577,6 +5596,11 @@ static int gaudi3_nic_send_cpucp_packet(struct hl_nic_port *nic_port,
 	return rc;
 }
 
+static void gaudi3_nic_set_port_status(struct hl_nic_port *nic_port, bool up)
+{
+	nic_port->link_eqe.data[2] = !!up;
+}
+
 static struct hl_nic_port_funcs gaudi3_nic_port_funcs = {
 	.port_hw_init = gaudi3_nic_port_hw_init,
 	.port_hw_fini = gaudi3_nic_port_hw_fini,
@@ -5635,6 +5659,7 @@ static struct hl_nic_port_funcs gaudi3_nic_port_funcs = {
 	.qp_post_destroy = gaudi3_nic_qp_post_destroy,
 	.get_coll_qps_offset = gaudi3_nic_get_coll_qps_offset,
 	.send_cpucp_packet = gaudi3_nic_send_cpucp_packet,
+	.set_port_status = gaudi3_nic_set_port_status,
 };
 
 struct hl_nic_funcs gaudi3_nic_funcs = {

@@ -62,18 +62,44 @@ static u32 get_data_rate(struct hl_nic_port *nic_port)
 void hl_nic_phy_set_port_status(struct hl_nic_port *nic_port, bool up)
 {
 	struct hl_device *hdev = nic_port->hdev;
+	struct hl_nic_port_funcs *port_funcs;
 	struct hl_en_aux_ops *aux_ops;
 	struct hl_aux_dev *aux_dev;
 	u32 port = nic_port->port;
+	int rc;
+	bool is_ibdev;
 
 	aux_dev = &hdev->nic.en_aux_dev;
 	aux_ops = aux_dev->aux_ops;
+	port_funcs = hdev->asic_funcs->nic_funcs->port_funcs;
+	is_ibdev = hl_nic_is_ibdev(&hdev->nic);
+
+	port_funcs->set_port_status(nic_port, up);
 
 	if (nic_port->eth_enable)
 		aux_ops->set_port_status(aux_dev, port, up);
-	else if (!hdev->reset_info.in_reset)
+	else
 		dev_dbg(hdev->dev, "Card %u Port %u: link %s\n",
 			hdev->nic.card_location, port, up ? "up" : "down");
+
+	/* IB flow. User polls for IB events.
+	 *  - internal ports: Enqueue link event in EQ dispatcher. IB event
+	 *                    would be dispatched in response.
+	 *  - external ports: Do not enqueue. HL IB driver dispatches
+	 *                    IB events from netdev notifier chain handler.
+	 * non-IB flow. User polls for EQ events.
+	 *  - internal ports: Enqueue link event in EQ dispatcher.
+	 *  - external ports: Enqueue link event in EQ dispatcher.
+	 */
+	if (!is_ibdev || !nic_port->eth_enable) {
+		if (hdev->nic.has_eq) {
+			rc = hl_nic_eq_dispatcher_enqueue_bcast(nic_port, &nic_port->link_eqe);
+			if (rc)
+				dev_dbg_ratelimited(hdev->dev,
+					"Port %d, failed to dispatch link event %s, %d\n",
+					port, up ? "up" : "down", rc);
+		}
+	}
 }
 
 int hl_nic_phy_init(struct hl_nic_port *nic_port)

@@ -648,6 +648,14 @@ static void gaudi2_nic_port_sw_fini(struct hl_nic_port *nic_port)
 	gaudi2_nic_free_rings_resources(gaudi2_nic);
 }
 
+static void link_eqe_init(struct hl_nic_port *nic_port)
+{
+	/* Init only header. Data field(i.e. link status) would be updated
+	 * when event is ready to be sent to user.
+	 */
+	nic_port->link_eqe.data[0] = EQE_HEADER(true, EQE_LINK_STATUS);
+}
+
 static int gaudi2_nic_port_sw_init(struct hl_nic_port *nic_port)
 {
 	struct hl_device *hdev = nic_port->hdev;
@@ -674,6 +682,14 @@ static int gaudi2_nic_port_sw_init(struct hl_nic_port *nic_port)
 
 	mutex_init(&gaudi2_nic->cfg_lock);
 	mutex_init(&gaudi2_nic->qp_destroy_lock);
+
+	/* Userspace might not be notified immediately of link event from HW.
+	 * e.g. if serdes is not yet configured or link is not stable, SW might
+	 * defer sending link event to userspace.
+	 * Hence we cache HW link EQE and updated with real link status just
+	 * before sending to userspace.
+	 */
+	link_eqe_init(nic_port);
 
 	return 0;
 }
@@ -3976,6 +3992,9 @@ static int gaudi2_eq_poll(struct hl_nic_port *nic_port, u32 asid, struct hl_nic_
 		event->ev_type = HL_NIC_EQ_EVENT_TYPE_CCQ;
 		event->idx = EQE_CQ_EVENT_CQ_NUM(&eqe);
 		break;
+	case EQE_LINK_STATUS:
+		event->ev_type = HL_NIC_EQ_EVENT_TYPE_LINK_STATUS;
+		break;
 	default:
 		/* if the event should not be reported to the user then return
 		 * as if no event was found
@@ -4920,6 +4939,11 @@ static int gaudi2_nic_send_cpucp_packet(struct hl_nic_port *nic_port,
 	return rc;
 }
 
+static void gaudi2_nic_set_port_status(struct hl_nic_port *nic_port, bool up)
+{
+	nic_port->link_eqe.data[2] = !!up;
+}
+
 static struct hl_nic_port_funcs gaudi2_nic_port_funcs = {
 	.port_hw_init = gaudi2_nic_port_hw_init,
 	.port_hw_fini = gaudi2_nic_port_hw_fini,
@@ -4977,6 +5001,7 @@ static struct hl_nic_port_funcs gaudi2_nic_port_funcs = {
 	.qp_pre_destroy = gaudi2_nic_qp_pre_destroy,
 	.qp_post_destroy = gaudi2_nic_qp_post_destroy,
 	.send_cpucp_packet = gaudi2_nic_send_cpucp_packet,
+	.set_port_status = gaudi2_nic_set_port_status,
 };
 
 struct hl_nic_funcs gaudi2_nic_funcs = {

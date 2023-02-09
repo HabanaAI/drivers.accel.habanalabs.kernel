@@ -531,6 +531,7 @@ struct hl_wq_array_properties {
  * @phy_func_mode_en: true if PHY is set to functional mode, false otherwise.
  * @pcs_link: true if the NIC has PCS link, false otherwise.
  * @prev_pcs_link: previous state of the PCS link.
+ * @link_eqe: cache link status EQE. Dispatched to user for internal ports only.
  * @auto_neg_enable: true if this port supports Autonegotiation, false
  *                   otherwise.
  * @auto_neg_resolved: true if Autonegotiation was completed for this port,
@@ -572,6 +573,7 @@ struct hl_nic_port {
 	struct idr			cq_ids;
 	struct idr			encap_ids;
 	struct kfifo			pcs_fail_fifo;
+	struct hl_nic_eqe		link_eqe;
 	ktime_t				last_fw_tuning_ts;
 	ktime_t				last_pcs_link_drop_ts;
 	ktime_t				fw_tuning_limit_ts;
@@ -1131,8 +1133,9 @@ struct hl_nic_user_cq_unset_in_params {
  * @override_phy_readiness: indicate if port's phy is ready or not, used for pldm and simulator.
  * @qp_pre_destroy: prepare for a QP destroy. Called under the cfg lock.
  * @qp_post_destroy: cleanup after a QP destroy. Called under the cfg lock.
- * @get_coll_qps_offset: Get collective QPs offset.
+ * @get_coll_qps_offset: get collective QPs offset.
  * @send_cpucp_packet: Send cpucp nic packets to FW.
+ * @set_port_status: config port status before notifying user.
  */
 struct hl_nic_port_funcs {
 	int (*port_hw_init)(struct hl_nic_port *nic_port);
@@ -1208,6 +1211,7 @@ struct hl_nic_port_funcs {
 	u32 (*get_coll_qps_offset)(struct hl_nic_port *nic_port);
 	int (*send_cpucp_packet)(struct hl_nic_port *nic_port, enum cpucp_packet_id packet_id,
 				int val);
+	void (*set_port_status)(struct hl_nic_port *nic_port, bool up);
 };
 
 /**
@@ -1384,6 +1388,7 @@ int hl_nic_eq_dispatcher_dequeue(struct hl_nic_port *nic_port, u32 asid,
 int hl_nic_eq_dispatcher_register_ccq(struct hl_nic_port *nic_port, u32 asid, u32 ccqn);
 int hl_nic_eq_dispatcher_unregister_ccq(struct hl_nic_port *nic_port, u32 asid, u32 ccqn);
 int hl_nic_eq_dispatcher_enqueue(struct hl_nic_port *nic_port, const struct hl_nic_eqe *eqe);
+int hl_nic_eq_dispatcher_enqueue_bcast(struct hl_nic_port *nic_port, const struct hl_nic_eqe *eqe);
 struct hl_nic_user_cq *hl_nic_user_cq_get(struct hl_nic_port *nic_port, u8 cq_id);
 int hl_nic_user_cq_put(struct hl_nic_user_cq *user_cq);
 
@@ -1398,6 +1403,7 @@ u64 hl_nic_reserve_wq_dva(struct hl_device *hdev, struct hl_ctx *ctx, struct hl_
 int hl_nic_unreserve_wq_dva(struct hl_device *hdev, struct hl_ctx *ctx,
 				struct hl_nic_port *nic_port, u32 type);
 u32 hl_nic_get_wq_array_type(bool is_send, bool is_coll, bool is_scale_out);
+bool hl_nic_is_ibdev(struct hl_nic *nic);
 
 #ifndef _HAS_AUX_BUS_H
 extern int hl_en_probe(struct hl_aux_dev *aux_dev);

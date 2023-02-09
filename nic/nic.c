@@ -570,6 +570,12 @@ static void hl_nic_en_aux_data_fini(struct hl_device *hdev)
 	core_info->mac_addr = NULL;
 }
 
+/* Check for initialized HL IB device. */
+bool hl_nic_is_ibdev(struct hl_nic *nic)
+{
+	return !!nic->ib_aux_dev.priv;
+}
+
 static int hl_nic_ib_alloc_ucontext(struct hl_aux_dev *aux_dev, int core_fd, void **core_ctx)
 {
 	struct hl_nic *nic = HL_AUX2NIC(aux_dev);
@@ -6131,11 +6137,69 @@ int hl_nic_eq_dispatcher_unregister_db(struct hl_nic_port *nic_port, u32 dbn)
 	return 0;
 }
 
-int hl_nic_eq_dispatcher_enqueue(struct hl_nic_port *nic_port, const struct hl_nic_eqe *eqe)
+static int __hl_nic_eq_dispatcher_enqueue(struct hl_nic_port *nic_port, struct hl_nic_ev_dq *dq,
+						const struct hl_nic_eqe *eqe)
 {
 	struct hl_aux_dev *aux_dev =  &nic_port->hdev->nic.ib_aux_dev;
-	struct hl_nic_ev_dqs *ev_dqs = &nic_port->ev_dqs;
 	struct hl_ib_aux_ops *aux_ops = aux_dev->aux_ops;
+	int rc = 0;
+
+	if (hl_nic_eq_dispatcher_is_full(dq)) {
+		dq->overflow++;
+		rc = -ENOSPC;
+		goto exit;
+	}
+
+	memcpy(&dq->buf.events[dq->buf.head], eqe,
+		min(sizeof(*eqe), sizeof(dq->buf.events[0])));
+	dq->buf.head = (dq->buf.head + 1) & (NIC_EQ_INFO_BUF_SIZE - 1);
+	dq->buf.events_count++;
+
+	/* If IB device exist, call work scheduler for hlib to poll eq */
+	if (aux_ops->eqe_work_schd)
+		aux_ops->eqe_work_schd(aux_dev, nic_port->port);
+
+exit:
+	return rc;
+}
+
+/* Broadcast event to all user ASIDs */
+int hl_nic_eq_dispatcher_enqueue_bcast(struct hl_nic_port *nic_port, const struct hl_nic_eqe *eqe)
+{
+	struct hl_nic_ev_dqs *ev_dqs = &nic_port->ev_dqs;
+	struct hl_nic_ev_dq *dq;
+	int i, rc = 0;
+
+	if (!hl_nic_is_port_open(nic_port))
+		return 0;
+
+	mutex_lock(&ev_dqs->lock);
+
+	for (i = 0 ; i < NIC_NUM_CONCUR_ASIDS ; i++) {
+		if (i == HL_KERNEL_ASID_ID)
+			continue;
+
+		dq = hl_nic_asid_to_dq(ev_dqs, i);
+		if (!dq)
+			continue;
+
+		rc = __hl_nic_eq_dispatcher_enqueue(nic_port, dq, eqe);
+		if (rc) {
+			dev_dbg_ratelimited(nic_port->hdev->dev,
+					"Port %d, failed to enqueue dispatcher for ASID %d. %d\n",
+					nic_port->port, i, rc);
+			break;
+		}
+	}
+
+	mutex_unlock(&ev_dqs->lock);
+
+	return rc;
+}
+
+int hl_nic_eq_dispatcher_enqueue(struct hl_nic_port *nic_port, const struct hl_nic_eqe *eqe)
+{
+	struct hl_nic_ev_dqs *ev_dqs = &nic_port->ev_dqs;
 	struct hl_nic_port_funcs *port_funcs;
 	struct hl_nic_ev_dq *dq;
 	int rc;
@@ -6153,22 +6217,11 @@ int hl_nic_eq_dispatcher_enqueue(struct hl_nic_port *nic_port, const struct hl_n
 		goto exit;
 	}
 
-	if (hl_nic_eq_dispatcher_is_full(dq)) {
-		dq->overflow++;
-		rc = -ENOSPC;
-		goto exit;
-	}
-
-	memcpy(&dq->buf.events[dq->buf.head], eqe,
-		min(sizeof(*eqe), sizeof(dq->buf.events[0])));
-	dq->buf.head = (dq->buf.head + 1) & (NIC_EQ_INFO_BUF_SIZE - 1);
-	dq->buf.events_count++;
-
-	/* If IB device exist, call work scheduler for hlib to poll eq */
-	if (aux_ops->eqe_work_schd)
-		aux_ops->eqe_work_schd(aux_dev, nic_port->port);
-
-	rc = 0;
+	rc = __hl_nic_eq_dispatcher_enqueue(nic_port, dq, eqe);
+	if (rc)
+		dev_dbg_ratelimited(nic_port->hdev->dev,
+					"Port %d, failed to enqueue dispatcher. %d\n",
+					nic_port->port, rc);
 
 exit:
 	mutex_unlock(&ev_dqs->lock);
