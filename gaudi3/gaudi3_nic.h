@@ -40,9 +40,16 @@
 
 #define NIC_MAX_RC_MTU		SZ_8K
 
+#define UDP_HDR_SIZE		8
+#define NIC_MAX_TNL_HDR_SIZE	32 /* Bytes */
+#define NIC_MAX_TNL_HDRS	(NIC_MAX_TNL_HDR_SIZE + UDP_HDR_SIZE)
+
 /* This is the max frame length the H/W supports (Tx/Rx) */
-#define NIC_MAX_RDMA_HDRS	128
+#define NIC_MAX_RDMA_HDRS	234
 #define NIC_MAX_FRM_LEN		(NIC_MAX_RC_MTU + NIC_MAX_RDMA_HDRS)
+
+#define NIC_MAC_MAX_FRM_LEN	(NIC_MAX_FRM_LEN + HL_EN_MAX_HEADERS_SZ + NIC_MAX_TNL_HDRS)
+
 #define NIC_RAW_MIN_MTU		(SZ_1K - HL_EN_MAX_HEADERS_SZ)
 #define NIC_RAW_MAX_MTU		(NIC_MAX_RC_MTU - HL_EN_MAX_HEADERS_SZ)
 
@@ -60,7 +67,6 @@ static_assert(IS_POWER_OF_2(NIC_RAW_ELEM_SIZE));
 #define NIC_MAX_GEN_QP_NUM	(NIC_MAX_QP_NUM / 2)
 #define NIC_MAX_COLL_QP_NUM	(NIC_MAX_QP_NUM - NIC_MAX_GEN_QP_NUM)
 
-#define NIC_MAX_TNL_HDR_SIZE	32 /* Bytes */
 
 #define NIC_DEFAULT_COLL_LAG_SIZE	0x3
 

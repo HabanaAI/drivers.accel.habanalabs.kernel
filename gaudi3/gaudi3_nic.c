@@ -1273,7 +1273,7 @@ static void gaudi3_nic_config_port_hw_mac(struct gaudi3_nic_port *gaudi3_nic)
 	gaudi3_nic_hw_mac_ch_reset(gaudi3_nic, lane);
 
 	/* TODO: SW-70999 */
-	NIC_MAC_WREG32(mmNIC_MAC_CH_MAC_CH0_FRM_LENGTH, lane, 8400);
+	NIC_MAC_WREG32(mmNIC_MAC_CH_MAC_CH0_FRM_LENGTH, lane, NIC_MAC_MAX_FRM_LEN);
 	NIC_MAC_WREG32(mmNIC_MAC_CH_MAC_CH0_COMMAND_CONFIG, lane,
 			NIC_MAC_CH_MAC_CH0_COMMAND_CONFIG_TX_ENA_M |
 			NIC_MAC_CH_MAC_CH0_COMMAND_CONFIG_RX_ENA_M |
