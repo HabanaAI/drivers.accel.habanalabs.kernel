@@ -4094,8 +4094,6 @@ static bool gaudi3_pb_block_skip_with_mask(struct hl_device *hdev,
 	u32 num_of_instances, instance_idx, max_instances;
 	struct hl_nic_macro *nic_macro;
 
-	/* TODO - consider adding single/dual die check as well */
-
 	/* 'major' is either the die index or the half-dcores index.
 	 * It's unlikely having 'major' < '1', other than if the Python parser went bad,
 	 * or specs file structure has changed unexpectedly.

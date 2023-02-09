@@ -1303,7 +1303,7 @@ static void set_driver_behavior_per_device(struct hl_device *hdev)
 		hdev->dram_enable = 0;
 		hdev->fw_components = FW_TYPE_PREBOOT_CPU;
 		hdev->mmu_enable = 0;
-		hdev->security_enable = 1;
+		hdev->security_enable = 0;
 		hdev->tpc_mask = 0;
 		hdev->mme_mask = 0;
 		hdev->pdma_ch_mask = 0xFFF;
@@ -1385,7 +1385,7 @@ static void set_driver_behavior_per_device(struct hl_device *hdev)
 		hdev->dram_enable = 1;
 		hdev->fw_components = 0;
 		hdev->mmu_enable = MMU_EN_ALL;
-		hdev->security_enable = 1;
+		hdev->security_enable = 0;
 		hdev->tpc_mask = 0xFFFFFFFF;
 		hdev->mme_mask = 0xF;
 		hdev->pdma_ch_mask = 0xFFF;
@@ -1402,7 +1402,7 @@ static void set_driver_behavior_per_device(struct hl_device *hdev)
 		hdev->sched_arc_mask = 0xFF;
 		hdev->rotator_mask = 0xF;
 		hdev->use_8_bit_hops = 0;
-		hdev->priv_security_enable = 1;
+		hdev->priv_security_enable = 0;
 		hdev->cache_enable = 1;
 		hdev->rotator_binning = 0;
 		hdev->hbm_compression_enable = 1;
@@ -1412,7 +1412,7 @@ static void set_driver_behavior_per_device(struct hl_device *hdev)
 		hdev->dram_enable = 1;
 		hdev->fw_components = FW_TYPE_BOOT_CPU | FW_TYPE_PREBOOT_CPU;
 		hdev->mmu_enable = MMU_EN_ALL;
-		hdev->security_enable = 1;
+		hdev->security_enable = 0;
 		hdev->tpc_mask = 0xFFFFFFFF;
 		hdev->mme_mask = 0xF;
 		hdev->pdma_ch_mask = 0xFFF;
@@ -1429,7 +1429,7 @@ static void set_driver_behavior_per_device(struct hl_device *hdev)
 		hdev->sched_arc_mask = 0xFF;
 		hdev->rotator_mask = 0xF;
 		hdev->use_8_bit_hops = 0;
-		hdev->priv_security_enable = 1;
+		hdev->priv_security_enable = 0;
 		hdev->cache_enable = 1;
 		hdev->rotator_binning = 0;
 		hdev->hbm_compression_enable = 1;
@@ -1678,6 +1678,8 @@ static void fixup_fw_components_param(struct hl_device *hdev)
 
 static void fixup_device_params_per_asic(struct hl_device *hdev, int timeout)
 {
+	bool single_die_asic = false;
+
 	switch (hdev->asic_type) {
 	case ASIC_GAUDI:
 	case ASIC_GAUDI_HL2000M:
@@ -1718,6 +1720,8 @@ static void fixup_device_params_per_asic(struct hl_device *hdev, int timeout)
 	case ASIC_GAUDI3_SIM_SINGLE_DIE:
 	case ASIC_GAUDI3_SIM_SINGLE_DIE_ARC:
 	case ASIC_GAUDI3_SINGLE_DIE:
+		single_die_asic = true;
+		fallthrough;
 	case ASIC_GAUDI3_SIM:
 	case ASIC_GAUDI3_SIM_ARC:
 	case ASIC_GAUDI3:
@@ -1727,6 +1731,13 @@ static void fixup_device_params_per_asic(struct hl_device *hdev, int timeout)
 		/* DRAM cannot be used if SRAM is enabled */
 		if (!hdev->cache_enable)
 			hdev->dram_enable = 0;
+
+		if ((single_die_asic || hdev->force_h9_single_die) &&
+				(hdev->security_enable || hdev->priv_security_enable)) {
+			pr_err("Security is disabled (sec/priv) as it isn't supported on single-die mode\n");
+			hdev->security_enable = false;
+			hdev->priv_security_enable = false;
+		}
 
 		break;
 
