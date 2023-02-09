@@ -7394,24 +7394,6 @@ static void gaudi3_execute_hard_reset(struct hl_device *hdev, u32 reset_sleep_ms
 	dev_dbg(hdev->dev, "Firmware performs HARD reset, sleeping %ums\n", reset_sleep_ms);
 }
 
-/**
- * gaudi3_execute_soft_reset - execute soft reset by driver/FW
- *
- * @hdev: pointer to the habanalabs device structure
- * @reset_sleep_ms: sleep time in msec after reset
- *
- * This function executes soft reset based on if driver/FW should do the reset
- */
-static void gaudi3_execute_soft_reset(struct hl_device *hdev, u32 reset_sleep_ms)
-{
-	/*
-	 * TODO: Enable firmware soft reset when gaudi3_irq_map_table is added.
-	 * for now, only soft reset by driver is supported
-	 */
-
-	gaudi3_execute_reset_no_fw(hdev, reset_sleep_ms, false);
-}
-
 void gaudi3_clear_hw_cap(struct hl_device *hdev, bool hard_reset)
 {
 	struct gaudi3_device *gaudi3 = hdev->asic_specific;
@@ -7434,11 +7416,41 @@ void gaudi3_clear_hw_cap(struct hl_device *hdev, bool hard_reset)
 						HW_CAP_SET_CACHE_MODE_MASK | HW_CAP_SRAM);
 }
 
+static int gaudi3_wait_hard_reset(struct hl_device *hdev, u32 poll_timeout_us, u32 reset_sleep_ms)
+{
+	u32 status;
+	int rc;
+
+	msleep(reset_sleep_ms);
+
+	rc = hl_poll_timeout_elbi(
+			hdev,
+			CFG_BAR_BASE + mmD0_PCIE_WRAP_BASE + mmPCIE_WRAP_PSOC_BOOT_MNG_DONE,
+			status,
+			(status & PCIE_WRAP_PSOC_BOOT_MNG_DONE_PSOC_BOOT_MNG_DONE_M),
+			1000,
+			poll_timeout_us);
+	if (rc)
+		dev_err(hdev->dev, "Error %d while waiting for device to reset\n", rc);
+	return rc;
+}
+
+static int gaudi3_execute_soft_reset(struct hl_device *hdev, u32 reset_sleep_ms)
+{
+	int rc = 0;
+
+	if (!(hdev->fw_components & FW_TYPE_BOOT_CPU))
+		gaudi3_execute_reset_no_fw(hdev, reset_sleep_ms, false);
+	else
+		rc = hl_fw_send_soft_reset(hdev);
+	return rc;
+}
+
 static int gaudi3_hw_fini(struct hl_device *hdev, bool hard_reset, bool fw_reset)
 {
 	struct gaudi3_device *gaudi3 = hdev->asic_specific;
-	u32 poll_timeout_us, reset_sleep_ms, status;
-	int rc;
+	u32 poll_timeout_us, reset_sleep_ms;
+	int rc = 0;
 
 	if (hdev->pldm) {
 		/* Using different poll timeouts when psoc is configured to reset
@@ -7465,7 +7477,9 @@ static int gaudi3_hw_fini(struct hl_device *hdev, bool hard_reset, bool fw_reset
 
 	if (fw_reset) {
 		dev_dbg(hdev->dev, "Firmware performs self HARD reset\n");
-		goto skip_reset;
+		/* we wait for the FW to finish the reset before we continue initializing the HW */
+		gaudi3_wait_hard_reset(hdev, poll_timeout_us, reset_sleep_ms);
+		goto end;
 	}
 
 	/* TODO - if FW does the reset, 'reset_arcs' & 'page_fault_queue_fini' are skipped.
@@ -7480,28 +7494,20 @@ static int gaudi3_hw_fini(struct hl_device *hdev, bool hard_reset, bool fw_reset
 
 	gaudi3_page_fault_queue_fini(hdev);
 
-	if (hard_reset)
+	if (hard_reset) {
 		gaudi3_execute_hard_reset(hdev, reset_sleep_ms);
-	else
-		gaudi3_execute_soft_reset(hdev, reset_sleep_ms);
+		gaudi3_wait_hard_reset(hdev, poll_timeout_us, reset_sleep_ms);
+	} else {
+		rc = gaudi3_execute_soft_reset(hdev, reset_sleep_ms);
+		if (rc) {
+			dev_err(hdev->dev, "soft reset failed (%d)\n", rc);
+			return rc;
+		}
+	}
 
-skip_reset:
-
-	msleep(reset_sleep_ms);
-
-	rc = hl_poll_timeout_elbi(
-			hdev,
-			CFG_BAR_BASE + mmD0_PCIE_WRAP_BASE + mmPCIE_WRAP_PSOC_BOOT_MNG_DONE,
-			status,
-			(status & PCIE_WRAP_PSOC_BOOT_MNG_DONE_PSOC_BOOT_MNG_DONE_M),
-			1000,
-			poll_timeout_us);
-
-	if (rc)
-		dev_err(hdev->dev, "Error %d while waiting for device to reset\n", rc);
-
+end:
 	gaudi3_clear_hw_cap(hdev, hard_reset);
-	return 0; /* TODO - return rc here ? */
+	return rc;
 }
 
 static int gaudi3_user_mapped_dec_blocks_init(struct hl_device *hdev, int block_idx)
