@@ -4251,9 +4251,8 @@ static bool gaudi3_pb_block_skip_with_mask(struct hl_device *hdev,
 
 int gaudi3_special_blocks_config(struct hl_device *hdev)
 {
-	/* TODO - remove exclusion of PSOC/ARC_FARM once implemented by Coral team */
+	/* TODO - remove exclusion of ARC_FARM once SW-123176 is resolved */
 	int pb_skip_block_types[] = {
-			GAUDI3_BLOCK_TYPE_PLL, GAUDI3_BLOCK_TYPE_PSOC,
 			GAUDI3_BLOCK_TYPE_ARC_FARM, GAUDI3_BLOCK_TYPE_EU_BIST};
 	struct range pb_skip_block_ranges[] = {
 			/* DBG regions */
