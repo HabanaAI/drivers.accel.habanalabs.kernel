@@ -4781,7 +4781,6 @@ void gaudi3_init_sm(struct hl_device *hdev)
 	/* Enable HBW CQ for completion monitors */
 	reg_val = FIELD_PREP(SOB_OBJS_MON_CONFIG_0_CQ_EN_M, 1);
 
-	/* TODO: Add some mechanism to ensure user cannot access reserved monitors */
 	for (i = 0 ; i < GAUDI3_RESERVED_MON_NUMBER ; i++)
 		WREG32(mmHD0_SYNC_MNGR_OBJS_BASE + mmSOB_OBJS_MON_CONFIG_0_0 +
 				sizeof(u32) * i, reg_val);
