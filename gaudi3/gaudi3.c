@@ -8984,7 +8984,6 @@ static int gaudi3_test_kdma_access(struct hl_device *hdev)
 	}
 
 	/* Zero the regs after usage */
-	/* TODO: when zeroing moves to context init, this may be removed */
 	for (i = 0 ; i < num_regs ; i++)
 		WREG32(regs_address + i * sizeof(u32), 0);
 
