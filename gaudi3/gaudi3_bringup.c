@@ -39,11 +39,6 @@
 #define NIC_SPI_INTR_MASK_0			0xFFE00000
 #define NIC_SPI_INTR_MASK_1			0x1
 
-/* @TODO: remove this CAP bit (SW-115621)
- * Temporary FW capability bit used for D2D preboot integration
- */
-#define CPU_BOOT_DEV_STS0_D2D_INIT_EN		30
-
 /* A DUMMY block isn't a regular block, but in fact a block with a manually
  * configured block response, and used by PCIE 'Fabric Serialization' feature.
  * Although listed in SOL, it has no 'specs' record associated to it.
@@ -1246,11 +1241,8 @@ static int gaudi3_d2d_init(struct hl_device *hdev)
 	if (!hdev->pdev)
 		return 0;
 
-	if ((hdev->fw_components & FW_TYPE_PREBOOT_CPU) &&
-			(prop->fw_preboot_cpu_boot_dev_sts0 & CPU_BOOT_DEV_STS0_D2D_INIT_EN)) {
-		dev_info(hdev->dev, "D2D configs skipped!\n");
+	if (hdev->fw_components & FW_TYPE_PREBOOT_CPU)
 		return 0;
-	}
 
 	if (gaudi3->hw_cap_initialized & HW_CAP_D2D)
 		return 0;
