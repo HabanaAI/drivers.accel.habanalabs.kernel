@@ -1300,6 +1300,7 @@ struct timestamp_reg_work_obj {
 /* struct timestamp_reg_info - holds the timestamp registration related data.
  * @buf: pointer to the timestamp buffer which include both user/kernel buffers.
  *       relevant only when doing timestamps records registration.
+ * @free_node: node to be added to the free ts nodes list in handle_user_interrupt.
  * @cq_cb: pointer to CQ counter CB.
  * @timestamp_kernel_addr: timestamp handle address, where to set timestamp
  *                         relevant only when doing timestamps records
@@ -1310,10 +1311,11 @@ struct timestamp_reg_work_obj {
  *          allocating records dynamically.
  */
 struct timestamp_reg_info {
-	struct hl_mmap_mem_buf	*buf;
-	struct hl_cb		*cq_cb;
-	u64			*timestamp_kernel_addr;
-	u8			in_use;
+	struct hl_mmap_mem_buf		*buf;
+	struct timestamp_reg_free_node	free_node;
+	struct hl_cb			*cq_cb;
+	u64				*timestamp_kernel_addr;
+	u8				in_use;
 };
 
 /**
