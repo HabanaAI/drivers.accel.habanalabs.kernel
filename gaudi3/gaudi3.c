@@ -5782,10 +5782,13 @@ int gaudi3_page_fault_queue_init(struct hl_device *hdev)
 void gaudi3_page_fault_queue_fini(struct hl_device *hdev)
 {
 	struct gaudi3_device *gaudi3 = hdev->asic_specific;
-	struct hl_page_fault_queue *page_fault_queue = &gaudi3->page_fault_queue;
+	struct hl_page_fault_queue *page_fault_queue;
 
-	if (!(gaudi3->hw_cap_initialized & HW_CAP_PFQ))
+	if (!gaudi3 || !(gaudi3->hw_cap_initialized & HW_CAP_PFQ))
 		return;
+
+	page_fault_queue = &gaudi3->page_fault_queue;
+
 	hl_asic_dma_free_coherent(hdev, page_fault_queue->size, page_fault_queue->host_virt,
 					page_fault_queue->host_dma);
 	gaudi3->hw_cap_initialized &= ~HW_CAP_PFQ;
@@ -7234,7 +7237,7 @@ static void gaudi3_hw_fini(struct hl_device *hdev, bool hard_reset, bool fw_rese
 		 */
 		reset_sleep_ms = GAUDI3_PLDM_RESET_WAIT_MSEC;
 
-		if (gaudi3->psoc_reset) {
+		if (gaudi3 && gaudi3->psoc_reset) {
 			poll_timeout_us = GAUDI3_PLDM_BOOT_FIT_RESET_POLL_TIMEOUT_USEC;
 			if (hard_reset)
 				reset_sleep_ms = GAUDI3_PLDM_PSOC_HARD_RESET_TIMEOUT_MSEC;
