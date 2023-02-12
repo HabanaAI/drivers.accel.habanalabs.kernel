@@ -3999,10 +3999,7 @@ static int greco_hw_fini(struct hl_device *hdev, bool hard_reset, bool fw_reset)
 			"Firmware performs HARD reset, going to wait %dms\n",
 			reset_timeout_ms);
 
-		goto skip_reset;
-	}
-
-	if (hard_reset) {
+	} else if (hard_reset) {
 		driver_performs_reset = !!(!hdev->asic_prop.fw_security_enabled
 				&& !hdev->asic_prop.hard_reset_done_by_fw);
 
@@ -4085,7 +4082,6 @@ static int greco_hw_fini(struct hl_device *hdev, bool hard_reset, bool fw_reset)
 		}
 	}
 
-skip_reset:
 	/* Wait a certain amount of time before checking if the reset has
 	 * finished
 	 */
