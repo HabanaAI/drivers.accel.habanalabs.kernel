@@ -25,6 +25,7 @@
 #define PORT_LANES_4			4
 #define NIC_EQ_INFO_BUF_SIZE		256
 #define NIC_NUM_CONCUR_ASIDS		4
+#define RDMA_OFFSET			1
 
 /* driver specific value, should always be >= asic specific h/w resource */
 #define NIC_DRV_MAX_CQS_NUM		32

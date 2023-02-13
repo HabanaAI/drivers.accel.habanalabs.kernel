@@ -322,12 +322,7 @@ static int gaudi_nic_port_sw_init(struct hl_nic_port *nic_port)
 		goto free_rx_mem;
 	}
 
-	/* SW-83137: As part of unused field removal, some functionality should be derived from
-	 * advanced flag, like in future generations. Currently, Gaudi is considered to work
-	 * in advanced mode always, hence we set it harcoded. In future work when we move to
-	 * work with IBverbs we will implement Gaudi call to user_set_app_params and set the
-	 * advance flag from a user call explicitly.
-	 */
+	/* Gaudi is considered to work in advanced mode by default */
 	gaudi_nic->advanced = true;
 
 	mutex_init(&gaudi_nic->cfg_lock);
@@ -1551,6 +1546,45 @@ static int gaudi_user_wq_arr_unset(struct hl_nic_port *nic_port, u32 type, struc
 	return rc;
 }
 
+static int gaudi_user_set_app_params(struct hl_device *hdev,
+					struct hl_nic_set_user_app_params_in *in,
+					bool *modify_wqe_checkers, struct hl_ctx *ctx)
+{
+	struct gaudi_nic_port *gaudi_nic;
+	struct hl_nic_port *nic_port;
+	u32 port = in->port;
+
+	nic_port = &hdev->nic.nic_ports[port];
+	gaudi_nic = nic_port->nic_specific;
+
+	gaudi_nic->advanced = in->advanced;
+
+	*modify_wqe_checkers = false;
+
+	return 0;
+}
+
+static void gaudi_user_get_app_params(struct hl_device *hdev,
+					struct hl_nic_get_user_app_params_in *in,
+					struct hl_nic_get_user_app_params_out *out)
+{
+	struct gaudi_device *gaudi = hdev->asic_specific;
+	struct hl_nic_port *nic_port;
+	struct gaudi_nic_port *gaudi_nic;
+	u32 port;
+
+	port = in->port;
+	gaudi_nic = &gaudi->nic_ports[port];
+	nic_port = gaudi_nic->nic_port;
+
+	out->max_num_of_qps = NIC_MAX_QP_NUM;
+	/* indicates how many QPs are already taken */
+	out->num_allocated_qps = RDMA_OFFSET + atomic_read(&nic_port->num_of_allocated_qps);
+	out->max_allocated_qp_idx = hl_nic_get_max_qp_id(nic_port);
+	out->max_cq_size = sizeof(struct cqe) * USER_CQ_MAX_ENTRIES;
+	out->max_num_of_cqs = 1;
+}
+
 static int get_src_ip(struct hl_nic_port *nic_port, u32 *src_ip)
 {
 	struct hl_aux_dev *aux_dev = &nic_port->hdev->nic.en_aux_dev;
@@ -2386,6 +2420,8 @@ static int gaudi_nic_sw_init(struct hl_device *hdev)
 			BIT(HL_NIC_OP_DESTROY_CONN) |
 			BIT(HL_NIC_OP_USER_WQ_SET) |
 			BIT(HL_NIC_OP_USER_WQ_UNSET) |
+			BIT(HL_NIC_OP_SET_USER_APP_PARAMS) |
+			BIT(HL_NIC_OP_GET_USER_APP_PARAMS) |
 			BIT(HL_NIC_OP_USER_CQ_SET) |
 			BIT(HL_NIC_OP_USER_CQ_UNSET) |
 			BIT(HL_NIC_OP_USER_CQ_UPDATE_CI);
@@ -2612,6 +2648,8 @@ struct hl_nic_funcs gaudi_nic_funcs = {
 	.set_res_qp_ctx = gaudi_set_res_qp_ctx,
 	.mac_addr_convert = gaudi_nic_mac_addr_convert,
 	.user_wq_arr_set = gaudi_user_wq_arr_set,
+	.user_set_app_params = gaudi_user_set_app_params,
+	.user_get_app_params = gaudi_user_get_app_params,
 	.get_default_port_speed = gaudi_nic_get_default_port_speed,
 	.phy_reset_macro = gaudi_nic_phy_reset_macro,
 	.get_phy_fw_name = gaudi_nic_phy_get_fw_name,
