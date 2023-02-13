@@ -655,6 +655,19 @@ static void hl_nic_ib_query_port(struct hl_aux_dev *aux_dev, u32 port,
 	port_attr->rwqe_size = nic_prop->rwqe_size;
 }
 
+static inline int parse_fw_ver(char *str, u32 *maj, u16 *min, u16 *sub)
+{
+	char *ver = strstr(str, "fw-");
+	int ret;
+
+	if (!ver)
+		return -1;
+
+	ret = sscanf(ver, "fw-%d.%hu.%hu", maj, min, sub);
+
+	return ret;
+}
+
 static void hl_nic_ib_query_device(struct hl_aux_dev *aux_dev,
 					struct hl_ib_device_attr *dev_attr)
 {
@@ -663,12 +676,21 @@ static void hl_nic_ib_query_device(struct hl_aux_dev *aux_dev,
 	struct hl_device *hdev = container_of(nic, struct hl_device, nic);
 	struct asic_fixed_properties *asic_props = &hdev->asic_prop;
 	struct hl_ib_core_info *core_info;
+	u16 minor, sub_ver;
+	u32 major;
+	int ret;
 
 	core_info = aux_dev->core_info;
 	nic_props = &asic_props->nic_props;
 
-	/* TODO: SW-101785 don't expose Gaudi fw ver */
-	dev_attr->fw_ver = 0;
+	ret = parse_fw_ver(core_info->fw_ver, &major, &minor, &sub_ver);
+
+	if (ret < 3) {
+		dev_dbg(hdev->dev, "Failed to read version string\n");
+		major = minor = sub_ver = 0;
+	}
+
+	dev_attr->fw_ver = ((u64)major << 32) | (minor << 16) | sub_ver;
 
 	dev_attr->max_mr_size = core_info->dram_size;
 	dev_attr->page_size_cap = PAGE_SIZE;
