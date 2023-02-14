@@ -2254,8 +2254,9 @@ static int hl_get_fetch_block_range(struct hl_device *hdev, u64 addr, u32 size, 
  */
 int hl_read_memory_block(struct hl_device *hdev, u32 *buf, u64 start_addr, u32 size)
 {
-	u64 cfg_base_start = hdev->asic_prop.cfg_base_address;
 	u64 cfg_base_end = hdev->asic_prop.cfg_base_address + hdev->asic_prop.cfg_size;
+	u64 cfg_base_start = hdev->asic_prop.cfg_base_address;
+	struct asic_fixed_properties *prop = &hdev->asic_prop;
 	struct pci_mem_region *dram_region;
 	u64 val, addr, phys_addr;
 	u32 block_entry;
@@ -2296,16 +2297,20 @@ int hl_read_memory_block(struct hl_device *hdev, u32 *buf, u64 start_addr, u32 s
 			}
 		}
 	} else { /* read from dram range */
-		if (!hl_is_device_va(hdev, start_addr)) {
-			dev_err(hdev->dev,
-				"address %#llx is not a config address nor a virtual address\n",
-				start_addr);
-			return -EINVAL;
-		}
+		if (prop->dram_supports_virtual_memory) {
+			if (!hl_is_device_va(hdev, start_addr)) {
+				dev_err(hdev->dev,
+					"addr %#llx isn't a config address nor a virtual address\n",
+					start_addr);
+				return -EINVAL;
+			}
 
-		rc = hl_device_va_to_pa(hdev, start_addr, size, &phys_addr);
-		if (rc)
-			return rc;
+			rc = hl_device_va_to_pa(hdev, start_addr, size, &phys_addr);
+			if (rc)
+				return rc;
+		} else {
+			phys_addr = start_addr;
+		}
 
 		dram_region = &hdev->pci_mem_region[PCI_REGION_DRAM];
 		if (!hl_mem_area_inside_range(phys_addr, size, dram_region->region_base,
