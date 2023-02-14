@@ -3448,6 +3448,10 @@ static int gaudi3_trigger_job_and_wait_for_cq_completion(struct hl_device *hdev,
 	return 0;
 
 timeout:
+	/* We should avoid any error in case simulator is already going down */
+	if (hdev->simulator_crashed)
+		return 0;
+
 	dev_err_ratelimited(hdev->dev,
 				"CQ completion: timeout waiting for job (%s), SOB val: %#x\n",
 				cq_params->job_str,
