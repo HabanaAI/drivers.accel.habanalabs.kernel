@@ -1232,6 +1232,9 @@ int hl_nic_core_init(struct hl_device *hdev)
 	int rc, i, nics_init = 0;
 	u32 port;
 
+	/* RX packet drop config is not preserved across hard reset. */
+	nic->rx_drop_percent = 0;
+
 	if (nic->phy_load_fw) {
 		rc = hl_nic_phy_has_fw(hdev);
 		if (rc) {

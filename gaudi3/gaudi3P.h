@@ -792,6 +792,7 @@ void gaudi3_send_hard_reset_cmd(struct hl_device *hdev);
 void gaudi3_handle_eqe(struct hl_device *hdev, struct hl_eq_entry *eq_entry);
 int gaudi3_nic_debugfs_write_coll_lag_size(struct hl_device *hdev, u32 coll_lag_size);
 int gaudi3_nic_debugfs_read_coll_lag_size(struct hl_device *hdev, u32 *coll_lag_size);
+int gaudi3_nic_debugfs_inject_rx_err(struct hl_device *hdev, u8 drop_percent);
 bool gaudi3_nic_is_macro_enabled(struct hl_device *hdev, struct hl_nic_macro *nic_macro);
 u32 gaudi3_nic_get_first_port(struct hl_nic_macro *nic_macro);
 int gaudi3_alloc_irq_vectors(struct hl_device *hdev, unsigned int min_vecs,

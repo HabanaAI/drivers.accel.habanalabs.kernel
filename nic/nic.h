@@ -711,6 +711,7 @@ struct hl_coll_properties {
  * @ib_support: InfiniBand support.
  * @skip_cq_arm_timeout: Used to skip CQ arm timeout settings when running on simulator.
  * @skip_wq_arrays_pool: Used to skip allocation and destruction of WQ arrays pool.
+ * @rx_drop_percent: RX packet drop percentage set via debugfs.
  */
 struct hl_nic {
 	struct hl_nic_port		*nic_ports;
@@ -751,6 +752,7 @@ struct hl_nic {
 	u8				ib_support;
 	u8				skip_cq_arm_timeout;
 	u8				skip_wq_arrays_pool;
+	u8				rx_drop_percent;
 };
 
 /**
@@ -1252,6 +1254,7 @@ struct hl_nic_port_funcs {
  * @phy_dump_serdes_params: dump the serdes parameters.
  * @get_max_msg_sz: get maximum message size.
  * @app_params_clear: clear app params.
+ * @inject_rx_err: Force RX packet drops.
  * @port_funcs: functions called from common code on a specific NIC port.
  */
 struct hl_nic_funcs {
@@ -1301,6 +1304,7 @@ struct hl_nic_funcs {
 	u32 (*get_max_msg_sz)(struct hl_device *hdev);
 	char *(*qp_syndrome_to_str)(u32 syndrome);
 	void (*app_params_clear)(struct hl_device *hdev);
+	int (*inject_rx_err)(struct hl_device *hdev, u8 drop_percent);
 	struct hl_nic_port_funcs *port_funcs;
 };
 

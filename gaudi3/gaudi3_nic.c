@@ -5725,5 +5725,6 @@ struct hl_nic_funcs gaudi3_nic_funcs = {
 	.get_max_msg_sz = gaudi3_nic_get_max_msg_sz,
 	.qp_syndrome_to_str = gaudi3_nic_qp_err_syndrom_to_str,
 	.app_params_clear = gaudi3_nic_app_params_clear,
+	.inject_rx_err = gaudi3_nic_debugfs_inject_rx_err,
 	.port_funcs = &gaudi3_nic_port_funcs,
 };

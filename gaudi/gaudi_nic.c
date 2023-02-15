@@ -2552,6 +2552,12 @@ static void gaudi_nic_set_port_status(struct hl_nic_port *nic_port, bool up)
 	/* NoOps */
 }
 
+static int gaudi_nic_inject_rx_err(struct hl_device *hdev, u8 drop_percent)
+{
+	/* NoOps */
+	return 0;
+}
+
 static struct hl_nic_port_funcs gaudi_nic_port_funcs = {
 	.port_hw_init = gaudi_nic_port_hw_init,
 	.port_hw_fini = gaudi_nic_port_hw_fini,
@@ -2625,5 +2631,6 @@ struct hl_nic_funcs gaudi_nic_funcs = {
 	.is_coll_conn_id = gaudi_nic_is_coll_conn_id,
 	.get_max_msg_sz = gaudi_nic_get_max_msg_sz,
 	.app_params_clear = gaudi_nic_app_params_clear,
+	.inject_rx_err = gaudi_nic_inject_rx_err,
 	.port_funcs = &gaudi_nic_port_funcs,
 };

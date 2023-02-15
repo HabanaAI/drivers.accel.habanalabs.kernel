@@ -7,6 +7,9 @@
 
 #include "gaudi3_nic.h"
 
+/* Reset or no drop config. */
+#define GAUDI3_NIC_ERR_INJ_RESET_VALUE	0x4000
+
 #define __snprintf(buf, bsize, fmt, ...)							\
 		do {										\
 			size_t _blen = strlen(buf);						\
@@ -723,6 +726,58 @@ int gaudi3_nic_debugfs_read_coll_lag_size(struct hl_device *hdev, u32 *coll_lag_
 	}
 
 	*coll_lag_size = gaudi3->coll_lag_size;
+
+	return 0;
+}
+
+static void nic_macro_inject_rx_err(struct hl_nic_macro *nic_macro, u8 drop_percent)
+{
+	struct hl_device *hdev;
+	u32 reg_val, reg_drop_percent, port;
+
+	hdev = nic_macro->hdev;
+	port = gaudi3_nic_get_first_port(nic_macro);
+
+	if (!drop_percent) {
+		reg_val = FIELD_PREP(PRT_MAC_CORE_MAC_ERR_INJ_CFG_DROP_PERCENTAGE_M,
+					GAUDI3_NIC_ERR_INJ_RESET_VALUE);
+	} else {
+		reg_drop_percent = FIELD_GET(PRT_MAC_CORE_MAC_ERR_INJ_CFG_DROP_PERCENTAGE_M,
+						PRT_MAC_CORE_MAC_ERR_INJ_CFG_DROP_PERCENTAGE_M) *
+						drop_percent / 100;
+
+		reg_val = PRT_MAC_CORE_MAC_ERR_INJ_CFG_INJ_EN_M;
+		reg_val |= PRT_MAC_CORE_MAC_ERR_INJ_CFG_LFSR_ALWAYS_ON_M;
+		reg_val |= FIELD_PREP(PRT_MAC_CORE_MAC_ERR_INJ_CFG_DROP_PERCENTAGE_M,
+					reg_drop_percent);
+	}
+
+	NIC_WREG32(mmD0_NIC0_MAC_CORE_BASE + mmPRT_MAC_CORE_MAC_ERR_INJ_CFG, reg_val);
+}
+
+int gaudi3_nic_debugfs_inject_rx_err(struct hl_device *hdev, u8 drop_percent)
+{
+	struct hl_nic_macro *nic_macro;
+	enum hl_device_status status;
+	int i;
+
+	if (hdev->nic.rx_drop_percent == drop_percent)
+		return 0;
+
+	if (!hl_device_operational(hdev, &status)) {
+		dev_dbg(hdev->dev, "Device is %s. Can't config RX err injection\n",
+			hdev->status[status]);
+		return -EBUSY;
+	}
+
+	for (i = 0 ; i < NIC_NUMBER_OF_MACROS ; i++) {
+		nic_macro = &hdev->nic.nic_macros[i];
+
+		if (gaudi3_nic_is_macro_enabled(hdev, nic_macro))
+			nic_macro_inject_rx_err(nic_macro, drop_percent);
+	}
+
+	hdev->nic.rx_drop_percent = drop_percent;
 
 	return 0;
 }

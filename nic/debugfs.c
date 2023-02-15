@@ -1182,6 +1182,52 @@ static const struct file_operations debugfs_phy_dump_serdes_params_fops = {
 	.write = debugfs_phy_dump_serdes_params_write,
 };
 
+static ssize_t debugfs_inject_rx_err_read(struct file *f, char __user *buf, size_t count,
+						loff_t *ppos)
+{
+	struct hl_device *hdev = file_inode(f)->i_private;
+	struct hl_nic *nic = &hdev->nic;
+	u32 val;
+
+	if (*ppos)
+		return 0;
+
+	snprintf((char *) &val, sizeof(val), "%u", nic->rx_drop_percent);
+
+	return simple_read_from_buffer(buf, count, ppos, &val, sizeof(val));
+}
+
+static ssize_t debugfs_inject_rx_err_write(struct file *f, const char __user *buf,
+						size_t count, loff_t *ppos)
+{
+	struct hl_device *hdev = file_inode(f)->i_private;
+	struct hl_nic_funcs *nic_funcs = hdev->asic_funcs->nic_funcs;
+	int rc;
+	u32 val;
+
+	if (*ppos)
+		return 0;
+
+	rc = kstrtou32_from_user(buf, count, 10, &val);
+	if (rc)
+		return rc;
+
+	if (val > 100) {
+		dev_dbg_ratelimited(hdev->dev, "Invalid drop percentage %d\n", val);
+		return -EINVAL;
+	}
+
+	nic_funcs->inject_rx_err(hdev, val);
+
+	return count;
+}
+
+static const struct file_operations debugfs_inject_rx_err_fops = {
+	.owner = THIS_MODULE,
+	.read = debugfs_inject_rx_err_read,
+	.write = debugfs_inject_rx_err_write,
+};
+
 #define NIC_DEBUGFS(X, fmt, do_reset) \
 static ssize_t debugfs_##X##_read(struct file *f, \
 					char __user *buf, \
@@ -1397,6 +1443,12 @@ void hl_nic_debugfs_init(struct hl_device *hdev, struct dentry *root_dir)
 				root_dir,
 				hdev,
 				&debugfs_phy_dump_serdes_params_fops);
+
+	debugfs_create_file("nic_inject_rx_err",
+				0444,
+				root_dir,
+				hdev,
+				&debugfs_inject_rx_err_fops);
 }
 
 #else
