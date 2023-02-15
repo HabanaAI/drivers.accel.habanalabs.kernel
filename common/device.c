@@ -1684,7 +1684,7 @@ int hl_device_reset(struct hl_device *hdev, u32 flags)
 		schedule_hard_reset = false, delay_reset, from_dev_release, from_watchdog_thread;
 	u64 idle_mask[HL_BUSY_ENGINES_MASK_EXT_SIZE] = {0};
 	struct hl_ctx *ctx;
-	int i, rc;
+	int i, rc, hw_fini_rc;
 
 	if (!hdev->init_done) {
 		dev_err(hdev->dev, "Can't reset before initialization is done\n");
@@ -1854,7 +1854,7 @@ kill_processes:
 	hdev->asic_funcs->fw_security_emulation_fini(hdev, false);
 
 	/* Reset the H/W. It will be in idle state after this returns */
-	hdev->asic_funcs->hw_fini(hdev, hard_reset, fw_reset);
+	hw_fini_rc = hdev->asic_funcs->hw_fini(hdev, hard_reset, fw_reset);
 
 	if (hard_reset) {
 		hdev->fw_loader.fw_comp_loaded = FW_TYPE_NONE;
@@ -1881,6 +1881,12 @@ kill_processes:
 		hl_ctx_put(ctx);
 	}
 
+	if (hw_fini_rc) {
+		rc = hw_fini_rc;
+		dev_err(hdev->dev, "hw_fini failed for %s\n", hard_reset ?
+				"hard reset" : "soft reset - try hard reset");
+		goto out_err;
+	}
 	/* Finished tear-down, starting to re-initialize */
 
 	if (hard_reset) {
@@ -2853,7 +2859,9 @@ void hl_device_fini(struct hl_device *hdev)
 	hdev->asic_funcs->nic_fini(hdev);
 
 	/* Reset the H/W. It will be in idle state after this returns */
-	hdev->asic_funcs->hw_fini(hdev, true, false);
+	rc = hdev->asic_funcs->hw_fini(hdev, true, false);
+	if (rc)
+		dev_err(hdev->dev, "hw_fini failed in device fini while removing device %d\n", rc);
 
 	hdev->fw_loader.fw_comp_loaded = FW_TYPE_NONE;
 
