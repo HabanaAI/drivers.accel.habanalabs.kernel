@@ -107,7 +107,6 @@ static ulong bfe_tpc_binning = 0x1000000; /* 25th tpc is binned by default */
 static ulong bfe_dram_binning;
 static uint bfe_edma_binning;
 static uint bfe_decoder_binning = 0x200; /* 10th decoder is binned by default */
-static uint bfe_mme_redundancy = 0x820820; /* 4 MMEs, column index 32 is redundant for all */
 static int bfe_reset_on_preboot_fail = 1;
 static int bfe_force_driver_reset = FORCE_DRIVER_RESET_NONE;
 static int bfe_force_driver_clock_gating;
@@ -385,10 +384,6 @@ MODULE_PARM_DESC(bfe_dram_binning,
 module_param(bfe_decoder_binning, uint, 0444);
 MODULE_PARM_DESC(bfe_decoder_binning,
 	"Decoder binning mask, 1 bit per decoder instance (0 = functional, 1 = binned), maximum 1 per dcore");
-
-module_param(bfe_mme_redundancy, uint, 0444);
-MODULE_PARM_DESC(bfe_mme_redundancy,
-	"MME redundancy mask, (6 bits per mme represents a column, default 0x820820. relevant for GAUDI2 and later)");
 
 module_param(bfe_edma_binning, uint, 0444);
 MODULE_PARM_DESC(bfe_edma_binning,
@@ -1576,7 +1571,6 @@ static void copy_bfe_params_to_device(struct hl_device *hdev)
 	hdev->dram_binning = bfe_dram_binning;
 	hdev->decoder_binning = bfe_decoder_binning;
 	hdev->edma_binning = bfe_edma_binning;
-	hdev->mme_redundancy = bfe_mme_redundancy;
 	hdev->usr_hbm_pll_freq = bfe_hbm_pll_freq;
 	hdev->reset_on_preboot_fail = bfe_reset_on_preboot_fail;
 	hdev->force_driver_reset = bfe_force_driver_reset;

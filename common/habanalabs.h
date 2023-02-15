@@ -3906,7 +3906,6 @@ struct hl_device {
 	u64				hmmu_supported_pages_mask;
 	u64				hmmu_default_page_size;
 	u32				decoder_mask;
-	u32				mme_redundancy;
 	u32				rotator_mask;
 	u32				mme_mask;
 	u32				edma_mask;
