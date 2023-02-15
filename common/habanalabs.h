@@ -464,6 +464,7 @@ enum hl_cs_type {
 	CS_RESERVE_SIGNALS,
 	CS_UNRESERVE_SIGNALS,
 	CS_TYPE_ENGINE_CORE,
+	CS_TYPE_ENGINES,
 	CS_TYPE_FLUSH_PCI_HBW_WRITES,
 };
 
@@ -1776,6 +1777,7 @@ struct engines_data {
  * @access_dev_mem: access device memory
  * @set_dram_bar_base: set the base of the DRAM BAR
  * @set_engine_cores: set a config command to engine cores
+ * @set_engines: set a config command to user engines
  * @send_device_activity: indication to FW about device availability
  * @read_fetch_memory_block: read memory area for debug read operation
  * @set_dram_properties: set DRAM related properties.
@@ -1936,6 +1938,8 @@ struct hl_asic_funcs {
 	u64 (*set_dram_bar_base)(struct hl_device *hdev, u64 addr);
 	int (*set_engine_cores)(struct hl_device *hdev, u32 *core_ids,
 					u32 num_cores, u32 core_command);
+	int (*set_engines)(struct hl_device *hdev, u32 *engine_ids,
+					u32 num_engines, u32 engine_command);
 	int (*send_device_activity)(struct hl_device *hdev, bool open);
 	int (*read_fetch_memory_block)(struct hl_device *hdev, u32 *buf,
 						u64 start_addr, u32 size, int entry);
@@ -2069,7 +2073,7 @@ struct hl_cs_outcome_store {
  * @hpriv: pointer to the private (Kernel Driver) data of the process (fd).
  * @hdev: pointer to the device structure.
  * @refcount: reference counter for the context. Context is released only when
- *		this hits 0l. It is incremented on CS and CS_WAIT.
+ *		this hits 0. It is incremented on CS and CS_WAIT.
  * @cs_pending: array of hl fence objects representing pending CS.
  * @outcome_store: storage data structure used to remember outcomes of completed
  *                 command submissions for a long time after CS id wraparound.

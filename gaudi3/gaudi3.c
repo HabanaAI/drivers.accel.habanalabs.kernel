@@ -8920,6 +8920,20 @@ int gaudi3_set_engine_cores(struct hl_device *hdev, u32 *core_ids,
 	return 0;
 }
 
+int gaudi3_set_engines(struct hl_device *hdev, u32 *engine_ids,
+					u32 num_engines, u32 engine_command)
+{
+	switch (engine_command) {
+	case HL_ENGINE_CORE_HALT ... HL_ENGINE_CORE_RUN:
+		return gaudi3_set_engine_cores(hdev, engine_ids, num_engines, engine_command);
+
+	case HL_ENGINE_STALL ... HL_ENGINE_RESUME:
+	default:
+		dev_err(hdev->dev, "failed to execute command id %u\n", engine_command);
+		return -EINVAL;
+	}
+}
+
 static void gaudi3_verify_mstr_if_dbg_counters_func(struct hl_device *hdev,
 					struct gaudi3_mstr_if_dbg_block_operation *operation)
 {
@@ -11962,6 +11976,7 @@ static const struct hl_asic_funcs gaudi3_funcs = {
 	.access_dev_mem = gaudi3_access_dev_mem,
 	.set_dram_bar_base = gaudi3_set_hbm_bar_base,
 	.set_engine_cores = gaudi3_set_engine_cores,
+	.set_engines = gaudi3_set_engines,
 	.send_device_activity = gaudi3_send_device_activity,
 	.read_fetch_memory_block = NULL,
 	.fw_security_emulation_init = gaudi3_fw_security_emulation_init,

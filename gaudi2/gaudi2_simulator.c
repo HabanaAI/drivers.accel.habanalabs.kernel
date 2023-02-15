@@ -1808,6 +1808,7 @@ static const struct hl_asic_funcs gaudi2_sim_funcs = {
 	.set_dram_bar_base = NULL,
 	.init_firmware_preload_params = NULL,
 	.set_engine_cores = gaudi2_set_engine_cores,
+	.set_engines = gaudi2_set_engines,
 	.send_device_activity = gaudi2_send_device_activity,
 	.read_fetch_memory_block = NULL,
 	.fw_security_emulation_init = gaudi2_fw_security_emulation_init,

@@ -872,6 +872,8 @@ int gaudi3_set_engine_cores(struct hl_device *hdev, u32 *core_ids,
 int gaudi3_pll_info_get(struct hl_device *hdev, u32 pll_index, u16 *pll_freq_arr);
 int gaudi3_eq_enable_msix(struct hl_device *hdev);
 void gaudi3_eq_disable_msix(struct hl_device *hdev);
+int gaudi3_set_engines(struct hl_device *hdev, u32 *engine_ids,
+					u32 num_engines, u32 engine_command);
 
 /* Bringup functions (w/o F/W support) */
 void gaudi3_nic_override_phy_readiness_pldm(struct hl_nic_port *nic_port, bool set_ready);

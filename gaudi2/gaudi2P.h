@@ -920,6 +920,8 @@ int gaudi2_mmu_invalidate_cache_range(struct hl_device *hdev, bool is_hard, u32 
 int gaudi2_get_hw_block_id(struct hl_device *hdev, u64 block_addr, u32 *block_size, u32 *block_id);
 int gaudi2_set_engine_cores(struct hl_device *hdev, u32 *core_ids,
 			u32 num_cores, u32 core_command);
+int gaudi2_set_engines(struct hl_device *hdev, u32 *engine_ids,
+					u32 num_engines, u32 engine_command);
 int gaudi2_is_fw_ver_below_1_8(struct hl_device *hdev);
 
 /* Bringup functions (w/o F/W support) */

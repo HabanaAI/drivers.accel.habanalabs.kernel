@@ -1599,6 +1599,7 @@ static const struct hl_asic_funcs gaudi3_sim_funcs = {
 	.init_firmware_preload_params = gaudi3_init_firmware_preload_params,
 	.init_firmware_loader = gaudi3_init_firmware_loader,
 	.set_engine_cores = gaudi3_set_engine_cores,
+	.set_engines = gaudi3_set_engines,
 	.send_device_activity = gaudi3_send_device_activity,
 	.read_fetch_memory_block = NULL,
 	.fw_security_emulation_init = gaudi3_fw_security_emulation_init,
