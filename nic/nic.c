@@ -351,8 +351,7 @@ static int hl_nic_update_mtu(struct hl_aux_dev *aux_dev, u32 port, u32 mtu)
 	port_funcs->cfg_lock(nic_port);
 	idr_for_each_entry(&nic_port->qp_ids, qp, qp_id) {
 		if (qp->mtu_type == MTU_FROM_NETDEV && qp->mtu != mtu) {
-			rc = hdev->asic_funcs->nic_funcs->port_funcs->update_qp_mtu(nic_port, qp,
-					mtu);
+			rc = port_funcs->update_qp_mtu(nic_port, qp, mtu);
 			if (rc) {
 				dev_err(hdev->dev, "Failed to update MTU, port: %d, qpn: %d, %d\n",
 					port, qp_id, rc);
@@ -377,8 +376,7 @@ static int hl_nic_qpc_write(struct hl_aux_dev *aux_dev, u32 port, void *qpc,
 	port_funcs = hdev->asic_funcs->nic_funcs->port_funcs;
 
 	port_funcs->cfg_lock(nic_port);
-	rc = hdev->asic_funcs->nic_funcs->port_funcs->qpc_write(nic_port, qpc, qpc_mask, qpn,
-									is_req);
+	rc = port_funcs->qpc_write(nic_port, qpc, qpc_mask, qpn, is_req);
 	port_funcs->cfg_unlock(nic_port);
 
 	return rc;

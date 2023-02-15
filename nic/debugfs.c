@@ -21,8 +21,6 @@
 #define KBUF_OUT_SIZE			BIT(12)
 #define MAC_LANE_REMAP_READ_SIZE	10
 #define MAX_INT_PORT_STS_KBUF_SIZE	20
-/* overcome checkpatch 80 characters limitation */
-#define LPBK_TIMEOUT_STR	"Hard reset timeout in NIC loopback debugfs"
 
 static int hl_device_hard_reset_sync(struct hl_device *hdev)
 {
