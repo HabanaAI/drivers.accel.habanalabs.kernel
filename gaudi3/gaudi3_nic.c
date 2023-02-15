@@ -72,7 +72,6 @@
 #define GAUDI3_SYNDROM_IS_RX(src)	((src == 4) || (src == 6))
 #define GAUDI3_SYNDROM_IS_TX(src)	(src == 5)
 #define GAUDI3_MAX_SYNDROM_STRING_LEN	256
-#define GAUDI3_MAX_SYNDROMS		0x400
 #define GAUDI3_MAX_SYNDROME_TYPE	3
 #define GAUDI3_ERR_CAUSE_QPC_SHIFT	64
 

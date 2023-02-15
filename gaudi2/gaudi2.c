@@ -2539,6 +2539,7 @@ int gaudi2_set_fixed_properties(struct hl_device *hdev)
 	nic_prop->status_packet_size = sizeof(struct cpucp_nic_status);
 	nic_prop->clk = GAUDI2_NIC_CLK_FREQ / USEC_PER_SEC;
 	nic_prop->max_wq_arr_type = NIC_MAX_WQ_ARRAY_TYPE;
+	nic_prop->max_qp_error_syndroms = NIC_MAX_QP_ERR_SYNDROMS;
 
 	return 0;
 
@@ -8223,6 +8224,7 @@ static int gaudi2_handle_nic_sw_error_event(struct hl_device *hdev, u16 event_ty
 
 		nic_port = &hdev->nic.nic_ports[port];
 		mutex_lock(&nic_port->control_lock);
+		hl_nic_track_port_reset(nic_port, NIC_EQ_ERR_SYNDROM);
 		gaudi2_handle_nic_port_reset_locked(nic_port);
 		mutex_unlock(&nic_port->control_lock);
 	}

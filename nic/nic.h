@@ -197,6 +197,7 @@ struct hl_nic_ev_dqs {
  * @raw_elem_size: size of element in raw buffers.
  * @status_packet_size: size of the NIC status packet we are going to send to F/W.
  * @cqe_size: Size of the Completion queue Entry.
+ * @max_qp_error_syndroms: maximum number of QP error syndroms.
  * @max_raw_mtu: maximum MTU size for raw packets.
  * @min_raw_mtu: minimum MTU size for raw packets.
  * @clk: NIC clock frequency in MHz.
@@ -248,6 +249,7 @@ struct hl_nic_properties {
 	u32			raw_elem_size;
 	u32			status_packet_size;
 	u32			cqe_size;
+	u32			max_qp_error_syndroms;
 	u16			max_raw_mtu;
 	u16			min_raw_mtu;
 	u16			clk;
@@ -467,6 +469,16 @@ struct hl_wq_array_properties {
 };
 
 /**
+ * struct hl_nic_reset_tracker - port reset tracking information.
+ * @timeout_jiffies: end of the measurement window.
+ * @num_seq_resets: how many sequential resets were triggered inside the measurement window.
+ */
+struct hl_nic_reset_tracker {
+	unsigned long			timeout_jiffies;
+	u8				num_seq_resets;
+};
+
+/**
  * struct hl_nic_port - manage specific NIC port common structure.
  * @hdev: habanalabs device structure.
  * @nic_specific: pointer to an ASIC specific NIC port structure.
@@ -549,6 +561,7 @@ struct hl_wq_array_properties {
  * @ccq_enable: true if the CCQ was initialized successfully for this port, false otherwise.
  * @set_app_params: set_app_params operation was executed by the user. This is mandatory step for
  *                  Gaudi2 and above in order to initialize the NIC uAPI.
+ * @disabled: true if this port is disabled, i.e. need to block its initialization, false otherwise.
  */
 struct hl_nic_port {
 	struct hl_device		*hdev;
@@ -561,6 +574,7 @@ struct hl_nic_port {
 
 	struct hl_wq_array_properties	wq_arr_props[HL_NIC_USER_WQ_TYPE_MAX];
 	struct hl_nic_ev_dqs		ev_dqs;
+	struct hl_nic_reset_tracker	*reset_tracker;
 
 	atomic_t			num_of_allocated_qps;
 	atomic_t			num_of_allocated_coll_qps;
@@ -617,6 +631,7 @@ struct hl_nic_port {
 	u8				eth_enable;
 	u8				ccq_enable;
 	u8				set_app_params;
+	u8				disabled;
 };
 
 /**
@@ -1409,6 +1424,7 @@ int hl_nic_unreserve_wq_dva(struct hl_device *hdev, struct hl_ctx *ctx,
 				struct hl_nic_port *nic_port, u32 type);
 u32 hl_nic_get_wq_array_type(bool is_send, bool is_coll, bool is_scale_out);
 bool hl_nic_is_ibdev(struct hl_nic *nic);
+void hl_nic_track_port_reset(struct hl_nic_port *nic_port, u32 syndrom);
 
 #ifndef _HAS_AUX_BUS_H
 extern int hl_en_probe(struct hl_aux_dev *aux_dev);

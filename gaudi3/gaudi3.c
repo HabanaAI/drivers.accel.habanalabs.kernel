@@ -3205,6 +3205,7 @@ int gaudi3_set_fixed_properties(struct hl_device *hdev)
 	/* SW-69799: TODO fetch nic clock frequency from F/W once available. */
 	nic_prop->clk = GAUDI3_NIC_CLK_FREQ / USEC_PER_SEC;
 	nic_prop->max_wq_arr_type = NIC_MAX_WQ_ARRAY_TYPE;
+	nic_prop->max_qp_error_syndroms = NIC_MAX_QP_ERR_SYNDROMS;
 
 	if (hdev->dram_enable) {
 		prop->etr_bufs_dram_phys_base = DRAM_PHYS_BASE + hbm_etr_off_offset;

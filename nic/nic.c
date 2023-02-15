@@ -18,6 +18,9 @@
 #define NIC_MIN_WQS_PER_PORT		2
 #define NIC_MIN_COLL_WQS_PER_PORT	1
 
+#define NIC_SEQ_RESETS_TIMEOUT_MS	15000 /* 15 seconds */
+#define NIC_MAX_SEQ_RESETS		3
+
 #define HL_NIC_IPv4_PROTOCOL_UDP	17
 
 /* SOB mask is not expected to change across ASIC. Hence common defines. */
@@ -186,7 +189,14 @@ static void __hl_nic_get_cnts_values(struct hl_nic_port *nic_port, u64 *data)
 
 static int __hl_nic_port_hw_init(struct hl_nic_port *nic_port)
 {
-	return nic_port->hdev->asic_funcs->nic_funcs->port_funcs->port_hw_init(nic_port);
+	struct hl_device *hdev = nic_port->hdev;
+
+	if (nic_port->disabled) {
+		dev_err(hdev->dev, "Port %u is disabled\n", nic_port->port);
+		return -EPERM;
+	}
+
+	return hdev->asic_funcs->nic_funcs->port_funcs->port_hw_init(nic_port);
 }
 
 static void __hl_nic_port_hw_fini(struct hl_nic_port *nic_port)
@@ -424,6 +434,26 @@ static u32 hl_nic_get_speed(struct hl_aux_dev *aux_dev, u32 port)
 	return nic->nic_ports[port].speed;
 }
 
+static void hl_nic_reset_core_mac_stats(struct hl_aux_dev *aux_dev, u32 port)
+{
+	struct hl_nic *nic = HL_AUX2NIC(aux_dev);
+	struct hl_nic_port *nic_port = &nic->nic_ports[port];
+	struct hl_device *hdev = container_of(nic, struct hl_device, nic);
+	struct hl_nic_port_funcs *port_funcs;
+
+	port_funcs = hdev->asic_funcs->nic_funcs->port_funcs;
+
+	port_funcs->reset_mac_stats(nic_port);
+}
+
+static void hl_nic_track_ext_port_reset(struct hl_aux_dev *aux_dev, u32 port, u32 syndrom)
+{
+	struct hl_nic *nic = HL_AUX2NIC(aux_dev);
+	struct hl_nic_port *nic_port = &nic->nic_ports[port];
+
+	hl_nic_track_port_reset(nic_port, syndrom);
+}
+
 static int hl_nic_get_asic_type(struct hl_device *hdev, enum hl_nic_asic_type *asic_type)
 {
 	switch (hdev->asic_type) {
@@ -459,19 +489,6 @@ static int hl_nic_get_asic_type(struct hl_device *hdev, enum hl_nic_asic_type *a
 	}
 
 	return 0;
-}
-
-
-static void hl_nic_reset_core_mac_stats(struct hl_aux_dev *aux_dev, u32 port)
-{
-	struct hl_nic *nic = HL_AUX2NIC(aux_dev);
-	struct hl_nic_port *nic_port = &nic->nic_ports[port];
-	struct hl_device *hdev = container_of(nic, struct hl_device, nic);
-	struct hl_nic_port_funcs *port_funcs;
-
-	port_funcs = hdev->asic_funcs->nic_funcs->port_funcs;
-
-	port_funcs->reset_mac_stats(nic_port);
 }
 
 static int hl_nic_en_aux_data_init(struct hl_device *hdev)
@@ -556,6 +573,7 @@ static int hl_nic_en_aux_data_init(struct hl_device *hdev)
 	aux_ops->eq_dispatcher_unregister_qp = hl_nic_dispatcher_unregister_qp;
 	aux_ops->get_speed = hl_nic_get_speed;
 	aux_ops->reset_core_mac_stats = hl_nic_reset_core_mac_stats;
+	aux_ops->track_ext_port_reset = hl_nic_track_ext_port_reset;
 
 	nic_funcs->set_en_core_data(hdev);
 
@@ -1310,6 +1328,9 @@ int hl_nic_core_init(struct hl_device *hdev)
 		nic_port = &nic->nic_ports[i];
 		nic_macro = nic_port->nic_macro;
 		port = nic_port->port;
+
+		/* In case this port got disabled, enable it back here */
+		nic_port->disabled = false;
 
 		/* Reset the NIC macro PHY once on boot.
 		 * This function resets all the 4 lanes in the PHY macro, therefore only one of the
@@ -5032,6 +5053,8 @@ static void nic_port_sw_fini(struct hl_nic_port *nic_port)
 	mutex_destroy(&nic_port->cnt_lock);
 	mutex_destroy(&nic_port->control_lock);
 
+	kfree(nic_port->reset_tracker);
+
 	destroy_workqueue(nic_port->qp_wq);
 	destroy_workqueue(nic_port->wq);
 }
@@ -5072,13 +5095,15 @@ static void nic_wq_arr_props_init(struct hl_wq_array_properties *wq_arr_props)
 static int nic_port_sw_init(struct hl_nic_port *nic_port)
 {
 	struct hl_wq_array_properties *wq_arr_props;
+	struct hl_nic_reset_tracker *reset_tracker;
 	struct hl_device *hdev = nic_port->hdev;
 	struct hl_nic_port_funcs *port_funcs;
 	struct hl_nic_funcs *nic_funcs;
-	u32 port = nic_port->port;
+	u32 port, max_qp_error_syndroms;
 	char wq_name[32] = {0};
 	int rc;
 
+	port = nic_port->port;
 	nic_funcs = hdev->asic_funcs->nic_funcs;
 	port_funcs = nic_funcs->port_funcs;
 	wq_arr_props = nic_port->wq_arr_props;
@@ -5094,8 +5119,19 @@ static int nic_port_sw_init(struct hl_nic_port *nic_port)
 	nic_port->qp_wq = alloc_workqueue(wq_name, WQ_UNBOUND, 0);
 	if (!nic_port->qp_wq) {
 		dev_err(hdev->dev, "Failed to create NIC QP WQ, port: %d\n", port);
-		destroy_workqueue(nic_port->wq);
-		return -ENOMEM;
+		rc = -ENOMEM;
+		goto qp_wq_err;
+	}
+
+	max_qp_error_syndroms = hdev->asic_prop.nic_props.max_qp_error_syndroms;
+	if (max_qp_error_syndroms) {
+		reset_tracker = kcalloc(max_qp_error_syndroms, sizeof(*reset_tracker), GFP_KERNEL);
+		if (!reset_tracker) {
+			rc = -ENOMEM;
+			goto reset_tracker_err;
+		}
+
+		nic_port->reset_tracker = reset_tracker;
 	}
 
 	mutex_init(&nic_port->control_lock);
@@ -5117,13 +5153,13 @@ static int nic_port_sw_init(struct hl_nic_port *nic_port)
 
 	rc = port_funcs->port_sw_init(nic_port);
 	if (rc)
-		goto err;
+		goto sw_init_err;
 
 	nic_port->sw_initialized = true;
 
 	return 0;
 
-err:
+sw_init_err:
 	idr_destroy(&nic_port->cq_ids);
 	idr_destroy(&nic_port->encap_ids);
 	idr_destroy(&nic_port->db_fifo_ids);
@@ -5132,7 +5168,11 @@ err:
 	mutex_destroy(&nic_port->cnt_lock);
 	mutex_destroy(&nic_port->control_lock);
 
+	if (max_qp_error_syndroms)
+		kfree(reset_tracker);
+reset_tracker_err:
 	destroy_workqueue(nic_port->qp_wq);
+qp_wq_err:
 	destroy_workqueue(nic_port->wq);
 
 	return rc;
@@ -6405,4 +6445,40 @@ int hl_nic_unreserve_wq_dva(struct hl_device *hdev, struct hl_ctx *ctx,
 	wq_arr_props->dva_base = 0;
 
 	return rc;
+}
+
+void hl_nic_track_port_reset(struct hl_nic_port *nic_port, u32 syndrom)
+{
+	struct hl_device *hdev = nic_port->hdev;
+	struct hl_nic_reset_tracker *reset_tracker;
+	unsigned long timestamp_jiffies = jiffies;
+	u32 max_qp_error_syndroms;
+
+	max_qp_error_syndroms = hdev->asic_prop.nic_props.max_qp_error_syndroms;
+	if (syndrom >= max_qp_error_syndroms) {
+		dev_dbg(hdev->dev, "Invalid syndrom %u\n", syndrom);
+		return;
+	}
+
+	reset_tracker = &nic_port->reset_tracker[syndrom];
+
+	/* In case the timeout passed, reset the tracker parameters and return */
+	if (time_after_eq(timestamp_jiffies, reset_tracker->timeout_jiffies)) {
+		reset_tracker->num_seq_resets = 1;
+		reset_tracker->timeout_jiffies = timestamp_jiffies +
+						msecs_to_jiffies(NIC_SEQ_RESETS_TIMEOUT_MS);
+		return;
+	}
+
+	reset_tracker->num_seq_resets++;
+
+	/* In case the max sequential resets was reached before we passed the timeout,
+	 * disable that port.
+	 */
+	if (reset_tracker->num_seq_resets == NIC_MAX_SEQ_RESETS) {
+		dev_err(hdev->dev,
+			"Disabling port %u due to %d sequential resets, syndrom %u\n",
+			nic_port->port, NIC_MAX_SEQ_RESETS, syndrom);
+		nic_port->disabled = true;
+	}
 }

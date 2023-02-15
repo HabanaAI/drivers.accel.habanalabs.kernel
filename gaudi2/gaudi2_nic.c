@@ -123,10 +123,9 @@ static size_t gaudi2_nic_perf_stats_len = ARRAY_SIZE(gaudi2_nic_perf_stats);
 
 #define GAUDI2_SYNDROME_TYPE(syndrome)	(((syndrome) >> 6) & 0x3)
 #define GAUDI2_MAX_SYNDROM_STRING_LEN	256
-#define GAUDI2_MAX_SYNDROMS		0x100
 #define GAUDI2_MAX_SYNDROME_TYPE	3
 
-static char qp_syndroms[GAUDI2_MAX_SYNDROMS][GAUDI2_MAX_SYNDROM_STRING_LEN] = {
+static char qp_syndroms[NIC_MAX_QP_ERR_SYNDROMS][GAUDI2_MAX_SYNDROM_STRING_LEN] = {
 	/* Rx packet errors*/
 	[0x1]  = "[RX] pkt err, pkt bad format",
 	[0x2]  = "[RX] pkt err, pkt tunnel invalid",
@@ -233,7 +232,7 @@ char *gaudi2_nic_qp_err_syndrom_to_str(u32 syndrome)
 	 *   2 - tx packet error
 	 */
 
-	if (syndrome >= GAUDI2_MAX_SYNDROMS)
+	if (syndrome >= NIC_MAX_QP_ERR_SYNDROMS)
 		return "syndrome unknown";
 
 	syndrome_type = GAUDI2_SYNDROME_TYPE(syndrome);
