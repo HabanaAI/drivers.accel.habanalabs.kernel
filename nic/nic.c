@@ -5246,6 +5246,7 @@ void hl_nic_sw_fini(struct hl_device *hdev)
 	kfree(nic->en_aux_dev.core_info);
 	kfree(nic->en_aux_dev.aux_ops);
 	kfree(nic->mac_lane_remap);
+	kfree(nic->phy_ber_info);
 	kfree(nic->phy_tx_taps);
 	kfree(nic->nic_macros);
 	kfree(nic->nic_ports);
@@ -5262,6 +5263,7 @@ int hl_nic_sw_init(struct hl_device *hdev)
 	struct hl_ib_core_info *ib_core_info;
 	struct hl_en_aux_ops *en_aux_ops;
 	struct hl_ib_aux_ops *ib_aux_ops;
+	struct hl_nic_ber_info *ber_info;
 	struct hl_nic *nic = &hdev->nic;
 	struct hl_nic_tx_taps *tx_taps;
 	u32 *mac_lane_remap;
@@ -5282,6 +5284,12 @@ int hl_nic_sw_init(struct hl_device *hdev)
 	if (!tx_taps) {
 		rc = -ENOMEM;
 		goto taps_alloc_fail;
+	}
+
+	ber_info = kcalloc(nic_props->max_num_of_lanes, sizeof(*ber_info), GFP_KERNEL);
+	if (!ber_info) {
+		rc = -ENOMEM;
+		goto ber_info_alloc_fail;
 	}
 
 	mac_lane_remap = kcalloc(nic_props->num_of_macros, sizeof(*mac_lane_remap), GFP_KERNEL);
@@ -5341,11 +5349,13 @@ int hl_nic_sw_init(struct hl_device *hdev)
 	}
 
 	nic->phy_tx_taps = tx_taps;
+	nic->phy_ber_info = ber_info;
 	nic->mac_lane_remap = mac_lane_remap;
 	nic->pcs_fail_time_frame = NIC_PCS_FAIL_TIME_FRAME_SEC;
 	nic->pcs_fail_threshold = NIC_PCS_FAIL_THRESHOLD;
 	nic->phy_config_fw = !hdev->pldm && !hdev->skip_nic_phy_init;
 	nic->mmu_bypass = 1;
+	nic->phy_calc_ber_wait_sec = 30;
 
 	/* Boot CPU loads the PHY F/W at boot */
 	nic->phy_load_fw = (!(hdev->fw_components & FW_TYPE_BOOT_CPU) && !hdev->pldm) ||
@@ -5395,6 +5405,8 @@ en_aux_ops_alloc_fail:
 en_core_info_alloc_fail:
 	kfree(mac_lane_remap);
 mac_remap_alloc_fail:
+	kfree(ber_info);
+ber_info_alloc_fail:
 	kfree(tx_taps);
 taps_alloc_fail:
 	kfree(nic_macros);

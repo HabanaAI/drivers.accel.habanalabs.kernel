@@ -327,6 +327,21 @@ struct hl_nic_tx_taps {
 };
 
 /**
+ * struct hl_nic_ber_info - holds the last calculated BER info for a specific lane.
+ * the BER (bit error rate) value is represented by "integer.frac * e ^ -exp".
+ * @integer: the integer part of the BER value.
+ * @frac: the fracture part of the BER value.
+ * @exp: the exponent part of the BER value.
+ * @valid: is info valid.
+ */
+struct hl_nic_ber_info {
+	u64			integer;
+	u64			frac;
+	u8			exp;
+	u8			valid;
+};
+
+/**
  * enum db_fifo_state - Describes db fifo's current state. Starting it from 1 because by default
  *                      on reset when the state is 0, it shouldn't be confused as Allocated state.
  * @DB_FIFO_STATE_ALLOC: db fifo id has been allocated.
@@ -689,6 +704,7 @@ struct hl_coll_properties {
  * @nic_ports: pointer to an array that holds all NIC ports manage common structures.
  * @nic_macros: pointer to an array that holds all NIC macros manage structures.
  * @phy_tx_taps: array that holds all PAM4 Tx taps of all NIC lanes.
+ * @phy_ber_info: array that holds last calculated BER info of all NIC lanes.
  * @en_aux_dev: pointer to eth auxiliary device structure.
  * @ib_aux_dev: pointer to IB auxiliary device structure.
  * @qp_info: details of a QP to read via debugfs.
@@ -719,7 +735,7 @@ struct hl_coll_properties {
  * @has_eq: true if event queue is supported.
  * @eth_loopback: enable hack in hl_en_handle_tx to test eth traffic.
  * @phy_regs_print: print all PHY registers reads/writes.
- * @phy_show_ber: show PHY BER statistics during power-up.
+ * @phy_calc_ber: show PHY BER statistics during power-up.
  * @is_eth_aux_dev_initialized: true if the eth auxiliary device is initialized.
  * @is_ib_aux_dev_initialized: true if the IB auxiliary device is initialized.
  * @skip_mac_reset: skip MAC reset.
@@ -735,6 +751,7 @@ struct hl_nic {
 	struct hl_nic_port		*nic_ports;
 	struct hl_nic_macro		*nic_macros;
 	struct hl_nic_tx_taps		*phy_tx_taps;
+	struct hl_nic_ber_info		*phy_ber_info;
 	struct hl_aux_dev		en_aux_dev;
 	struct hl_aux_dev		ib_aux_dev;
 	struct hl_nic_qp_info		qp_info;
@@ -750,6 +767,7 @@ struct hl_nic {
 	u32				pcs_fail_threshold;
 	u32				card_location;
 	u32				phy_port_to_dump;
+	u16				phy_calc_ber_wait_sec;
 	u8				phy_load_fw;
 	u8				phy_config_fw;
 	u8				use_fw_serdes_info;
@@ -759,7 +777,7 @@ struct hl_nic {
 	u8				has_eq;
 	u8				eth_loopback;
 	u8				phy_regs_print;
-	u8				phy_show_ber;
+	u8				phy_calc_ber;
 	u8				is_eth_aux_dev_initialized;
 	u8				is_ib_aux_dev_initialized;
 	u8				is_decap_disabled;

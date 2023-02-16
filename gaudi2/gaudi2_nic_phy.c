@@ -117,10 +117,7 @@
 #define NIC_PHY_FW_TIME_CONSTANT_RATIO		64
 #define NIC_PHY_FW_TUNING_INTERVAL_MS		100
 #define NIC_PHY_FW_TUNING_TIMEOUT_MS		30000 /* 30 seconds */
-#define NIC_PHY_POST_FW_TUNING_WAIT_LONG_MS	90000 /* 1.5 minutes */
-#define NIC_PHY_POST_FW_TUNING_WAIT_SHORT_MS	1000 /* 1 second */
 #define NIC_PHY_CHECK_LINK_INTERVAL_MS		1000 /* 1 second */
-#define NIC_PHY_PORT_FW_TUNED			0x3
 #define NIC_PHY_PAM4_BER_FACTOR			53125000
 #define NIC_PHY_NRZ_BER_FACTOR			25781250
 
@@ -1125,7 +1122,7 @@ static int fw_config_speed_pam4(struct hl_device *hdev, u32 port, int lane, bool
 	}
 
 	if (do_lt) {
-		if (!hdev->nic.phy_show_ber) {
+		if (!hdev->nic.phy_calc_ber) {
 			/* tell the F/W to do LT with PCS data instead of PRBS */
 			val = get_fw_reg(hdev, port, 366);
 			val &= 0xFEFE;
@@ -1307,7 +1304,7 @@ static int fw_config(struct hl_device *hdev, u32 port, u32 data_rate, bool do_lt
 
 	reset_mac_tx(hdev, port);
 
-	if (!nic->phy_show_ber)
+	if (!nic->phy_calc_ber)
 		set_functional_mode(hdev, port);
 
 	/* set go bit */
@@ -1407,15 +1404,14 @@ static enum lane_state get_prbs_cnt(struct hl_nic_port *nic_port, int lane, bool
 	return READY;
 }
 
-static void _print_ber(struct hl_nic_port *nic_port, int lane, u64 total_cnt, u64 error_cnt)
+static void _calc_ber_lane(struct hl_nic_port *nic_port, int lane, u64 total_cnt, u64 error_cnt,
+				struct hl_nic_ber_info *ber_info)
 {
-	struct hl_device *hdev = nic_port->hdev;
 	u64 total_high_digits, error_high_digits, integer, frac;
-	u32 card_location, port;
+	u32 port;
 	u8 total_num_digits, error_num_digits, exp;
 	int i;
 
-	card_location = hdev->nic.card_location;
 	port = nic_port->port;
 
 	total_num_digits = hl_nic_get_num_of_digits(total_cnt);
@@ -1453,23 +1449,29 @@ static void _print_ber(struct hl_nic_port *nic_port, int lane, u64 total_cnt, u6
 	frac = div_u64(((error_high_digits - (integer * total_high_digits)) * 10),
 			total_high_digits);
 
-	dev_info(hdev->dev,
-		"Card %u Port %u lane %d: total_cnt %llu error_cnt %llu BER %llu.%llue-%u\n",
-		card_location, port, lane, total_cnt, error_cnt, integer, frac, exp);
+	ber_info->integer = integer;
+	ber_info->frac = frac;
+	ber_info->exp = exp;
+	ber_info->valid = true;
 }
 
-static void print_ber(struct hl_nic_port *nic_port, int lane, bool pam4)
+static void calc_ber_lane(struct hl_nic_port *nic_port, int lane, bool pam4)
 {
 	u64 prbs_err_cnt_pre, prbs_prev_cnt, prbs_err_cnt_post, prbs_err_cnt,
 	    prbs_reset_time_jiffies, prbs_accum_time_jiffies, prbs_accum_time_ms,
 	    factor, error_cnt, total_cnt;
 	struct hl_device *hdev = nic_port->hdev;
-	u32 card_location, port;
+	struct hl_nic_ber_info *ber_info;
+	u32 card_location, port, abs_lane_idx;
 	enum lane_state state;
 	u8 iter_num = 50;
 
 	card_location = hdev->nic.card_location;
 	port = nic_port->port;
+	abs_lane_idx = (port << 1) + lane;
+
+	ber_info = &hdev->nic.phy_ber_info[abs_lane_idx];
+	memset(ber_info, 0, sizeof(*ber_info));
 
 	prbs_reset(nic_port, lane, pam4);
 	prbs_reset_time_jiffies = jiffies;
@@ -1486,7 +1488,7 @@ static void print_ber(struct hl_nic_port *nic_port, int lane, bool pam4)
 		prbs_err_cnt = prbs_err_cnt_post - prbs_err_cnt_pre;
 
 		if (state != READY) {
-			dev_err(hdev->dev, "Card %u Port %u lane %d: No BER (state = %s)\n",
+			dev_dbg(hdev->dev, "Card %u Port %u lane %d: No BER (state = %s)\n",
 				card_location, port, lane,
 				(state == NOT_READY) ? "NOT_READY" : "FAILURE");
 			return;
@@ -1501,13 +1503,23 @@ static void print_ber(struct hl_nic_port *nic_port, int lane, bool pam4)
 
 	factor = pam4 ? NIC_PHY_PAM4_BER_FACTOR : NIC_PHY_NRZ_BER_FACTOR;
 
-	dev_info(hdev->dev, "Card %u Port %u lane %d: measurement duration - %llu ms\n",
-		card_location, port, lane, prbs_accum_time_ms);
-
 	error_cnt = prbs_err_cnt;
 	total_cnt = prbs_accum_time_ms * factor;
 
-	_print_ber(nic_port, lane, total_cnt, error_cnt);
+	_calc_ber_lane(nic_port, lane, total_cnt, error_cnt, ber_info);
+
+	dev_dbg(hdev->dev,
+		"Card %u Port %u lane %d: total_cnt %llu error_cnt %llu (%llu ms) - BER %llu.%llue-%u\n",
+		card_location, port, lane, total_cnt, error_cnt, prbs_accum_time_ms,
+		ber_info->integer, ber_info->frac, ber_info->exp);
+}
+
+static void calc_ber(struct hl_nic_port *nic_port)
+{
+	int lane;
+
+	for (lane = 0; lane < 2 ; lane++)
+		calc_ber_lane(nic_port, lane, nic_port->data_rate == NIC_DR_50);
 }
 
 static void check_pcs_link(struct hl_nic_port *nic_port)
@@ -1636,18 +1648,6 @@ static void do_fw_tuning(struct hl_nic_port *nic_port)
 		mutex_unlock(&nic_port->control_lock);
 
 		nic_port->retry_cnt = 0;
-
-		if (hdev->nic.phy_show_ber) {
-			dev_dbg(hdev->dev,
-				"Card %u Port %u: Waiting %d seconds before switching to functional mode\n",
-				card_location, port, NIC_PHY_POST_FW_TUNING_WAIT_LONG_MS / 1000);
-
-			/* Wait 5 seconds before calculating BER */
-			msleep(5000);
-
-			for (lane = 0; lane < 2 ; lane++)
-				print_ber(nic_port, lane, pam4);
-		}
 	}
 }
 
@@ -1726,17 +1726,22 @@ void gaudi2_nic_phy_link_status_work(struct work_struct *work)
 {
 	struct hl_nic_port *nic_port;
 	struct hl_device *hdev;
-	u32 port, timeout_ms;
+	u32 card_location, port, timeout_ms;
 
 	nic_port = container_of(work, struct hl_nic_port, link_status_work.work);
 	hdev = nic_port->hdev;
+	card_location = hdev->nic.card_location;
 	port = nic_port->port;
 
 	if (nic_port->phy_fw_tuned) {
-		if (nic_port->phy_func_mode_en)
-			check_pcs_link(nic_port);
-		else
-			set_functional_mode(hdev, port);
+		if (!nic_port->phy_func_mode_en) {
+			calc_ber(nic_port);
+			dev_info(hdev->dev, "Card %u Port %u: BER calculation is done\n",
+				card_location, port);
+			return;
+		}
+
+		check_pcs_link(nic_port);
 	} else {
 		if (nic_port->auto_neg_resolved || nic_port->auto_neg_skipped)
 			do_fw_tuning(nic_port);
@@ -1744,13 +1749,17 @@ void gaudi2_nic_phy_link_status_work(struct work_struct *work)
 			do_fw_tuning_auto_neg(nic_port);
 	}
 
-	if (!nic_port->phy_fw_tuned)
+	if (!nic_port->phy_fw_tuned) {
 		timeout_ms = NIC_PHY_FW_TUNING_INTERVAL_MS;
-	else if (!nic_port->phy_func_mode_en)
-		timeout_ms = hdev->nic.phy_show_ber ?
-			NIC_PHY_POST_FW_TUNING_WAIT_LONG_MS : NIC_PHY_POST_FW_TUNING_WAIT_SHORT_MS;
-	else
+	} else if (!nic_port->phy_func_mode_en) {
+		u16 timeout_sec = hdev->nic.phy_calc_ber_wait_sec;
+
+		dev_info(hdev->dev, "Card %u Port %u: Waiting %u seconds before calculating BER\n",
+			card_location, port, timeout_sec);
+		timeout_ms = timeout_sec * MSEC_PER_SEC;
+	} else {
 		timeout_ms = NIC_PHY_CHECK_LINK_INTERVAL_MS;
+	}
 
 	queue_delayed_work(nic_port->wq, &nic_port->link_status_work,
 			msecs_to_jiffies(timeout_ms));
@@ -2317,6 +2326,21 @@ static void copy_info(char *buf, char *name, int *data, u8 count)
 	sprintf(buf + strlen(buf), "\n");
 }
 
+static void dump_ber_info(struct hl_device *hdev, u32 port, int lane, char *buf)
+{
+	struct hl_nic_ber_info *ber_info;
+	u32 abs_lane_idx;
+
+	abs_lane_idx = (port << 1) + lane;
+	ber_info = &hdev->nic.phy_ber_info[abs_lane_idx];
+
+	if (ber_info->valid)
+		sprintf(buf + strlen(buf), "BER: %llu.%llue-%u\n",
+			ber_info->integer, ber_info->frac, ber_info->exp);
+	else
+		sprintf(buf + strlen(buf), "No BER information\n");
+}
+
 void gaudi2_nic_phy_dump_serdes_params(struct hl_device *hdev, char *buf, size_t size)
 {
 	u32 port, card_location, sd, phy_ready, ch_est_of, ch_est_hf, ppm_twos, adapt_state;
@@ -2366,6 +2390,9 @@ void gaudi2_nic_phy_dump_serdes_params(struct hl_device *hdev, char *buf, size_t
 		copy_info(buf, "eyes", eye, 3);
 		copy_info(buf, "isi", isi, 18);
 		copy_info(buf, "tx_taps", tx_taps, 5);
+
+		dump_ber_info(hdev, port, lane, buf);
+
 		sprintf(buf + strlen(buf), "\n");
 	}
 }

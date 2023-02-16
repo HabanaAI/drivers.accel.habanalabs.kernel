@@ -908,52 +908,6 @@ static const struct file_operations debugfs_phy_regs_print_fops = {
 	.read = debugfs_phy_regs_print_read,
 };
 
-static ssize_t debugfs_phy_show_ber_write(struct file *f,
-					const char __user *buf, size_t count,
-					loff_t *ppos)
-{
-	struct hl_device *hdev = file_inode(f)->i_private;
-	struct hl_nic *nic = &hdev->nic;
-	u32 val = 0;
-	int rc;
-
-	rc = kstrtou32_from_user(buf, count, 10, &val);
-	if (rc)
-		return rc;
-
-	nic->phy_show_ber = !!val;
-
-	dev_info(hdev->dev,
-		"%s showing PHY BER statistics\n", nic->phy_show_ber ? "enable" : "disable");
-
-	return count;
-}
-
-static ssize_t debugfs_phy_show_ber_read(struct file *f,
-					char __user *buf, size_t count,
-					loff_t *ppos)
-{
-	struct hl_device *hdev = file_inode(f)->i_private;
-	struct hl_nic *nic = &hdev->nic;
-	u32 val = 0;
-	ssize_t rc;
-
-	if (*ppos)
-		return 0;
-
-	snprintf((char *) &val, sizeof(val), "%u", nic->phy_show_ber);
-
-	rc = simple_read_from_buffer(buf, count, ppos, &val, sizeof(val));
-
-	return rc;
-}
-
-static const struct file_operations debugfs_phy_show_ber_fops = {
-	.owner = THIS_MODULE,
-	.write = debugfs_phy_show_ber_write,
-	.read = debugfs_phy_show_ber_read,
-};
-
 static ssize_t debugfs_show_internal_ports_status_read(struct file *f,
 							char __user *buf, size_t count,
 							loff_t *ppos)
@@ -1414,12 +1368,6 @@ void hl_nic_debugfs_init(struct hl_device *hdev, struct dentry *root_dir)
 				hdev,
 				&debugfs_phy_regs_print_fops);
 
-	debugfs_create_file("nic_phy_show_ber",
-				0444,
-				root_dir,
-				hdev,
-				&debugfs_phy_show_ber_fops);
-
 	debugfs_create_file("nic_show_internal_ports_status",
 				0444,
 				root_dir,
@@ -1460,6 +1408,16 @@ void hl_nic_debugfs_init(struct hl_device *hdev, struct dentry *root_dir)
 				root_dir,
 				hdev,
 				&debugfs_inject_rx_err_fops);
+
+	debugfs_create_u8("nic_phy_calc_ber",
+				0644,
+				root_dir,
+				&nic->phy_calc_ber);
+
+	debugfs_create_u16("nic_phy_calc_ber_wait_sec",
+				0644,
+				root_dir,
+				&nic->phy_calc_ber_wait_sec);
 }
 
 #else
