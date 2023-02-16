@@ -3205,7 +3205,7 @@ start_over:
 			usleep_range(100, 1000);
 			if (++iter_counter == MAX_TS_ITER_NUM) {
 				dev_err(buf->mmg->dev,
-					"Timestamp offest processing reached timeout of %lld ms\n",
+					"Timestamp offset processing reached timeout of %lld ms\n",
 					ktime_ms_delta(ktime_get(), timestamp));
 				return -EAGAIN;
 			}
