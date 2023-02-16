@@ -4826,42 +4826,56 @@ static int gaudi3_nic_get_cnts_num(struct hl_nic_port *nic_port)
 	return n_spmu_stats + mac_counters + gaudi3_nic_err_stats_len + gaudi3_nic_perf_stats_len;
 }
 
-static void gaudi3_nic_get_cnts_names(struct hl_nic_port *nic_port, u8 *data)
+static void gaudi3_nic_get_cnts_names(struct hl_nic_port *nic_port, u8 *data, bool ext)
 {
+	char str[HL_IB_CNT_NAME_LEN], *rx_fmt, *tx_fmt;
 	struct hl_en_stat *spmu_stats;
 	u32 n_spmu_stats = 0;
-	int i;
+	int i, len;
+
+	if (ext) {
+		len = HL_IB_CNT_NAME_LEN;
+		rx_fmt = "rx_%s";
+		tx_fmt = "tx_%s";
+	} else {
+		len = ETH_GSTRING_LEN;
+		rx_fmt = "%s";
+		tx_fmt = "%s";
+	}
 
 	gaudi3_nic_spmu_get_stats_info(nic_port, &spmu_stats, &n_spmu_stats);
 
 	for (i = 0 ; i < n_spmu_stats ; i++)
-		memcpy(data + i * ETH_GSTRING_LEN, spmu_stats[i].str, ETH_GSTRING_LEN);
-	data += i * ETH_GSTRING_LEN;
+		memcpy(data + i * len, spmu_stats[i].str, ETH_GSTRING_LEN);
+	data += i * len;
 
 	/* Skip MAC counters in simulator */
 	if (!nic_port->hdev->nic.skip_mac_cnts) {
-		for (i = 0 ; i < hl_nic_mac_stats_rx_len ; i++)
-			memcpy(data + i * ETH_GSTRING_LEN, hl_nic_mac_stats_rx[i].str,
-				ETH_GSTRING_LEN);
-		data += i * ETH_GSTRING_LEN;
+		for (i = 0 ; i < hl_nic_mac_stats_rx_len ; i++) {
+			memset(str, 0, len);
+			snprintf(str, len, rx_fmt, hl_nic_mac_stats_rx[i].str);
+			memcpy(data + i * len, str, len);
+		}
+		data += i * len;
 
 		for (i = 0 ; i < gaudi3_nic_mac_fec_stats_len ; i++)
-			memcpy(data + i * ETH_GSTRING_LEN, gaudi3_nic_mac_fec_stats[i].str,
-				ETH_GSTRING_LEN);
-		data += i * ETH_GSTRING_LEN;
+			memcpy(data + i * len, gaudi3_nic_mac_fec_stats[i].str, ETH_GSTRING_LEN);
+		data += i * len;
 
-		for (i = 0 ; i < hl_nic_mac_stats_tx_len ; i++)
-			memcpy(data + i * ETH_GSTRING_LEN, hl_nic_mac_stats_tx[i].str,
-				ETH_GSTRING_LEN);
-		data += i * ETH_GSTRING_LEN;
+		for (i = 0 ; i < hl_nic_mac_stats_tx_len ; i++) {
+			memset(str, 0, len);
+			snprintf(str, len, tx_fmt, hl_nic_mac_stats_tx[i].str);
+			memcpy(data + i * len, str, len);
+		}
+		data += i * len;
 	}
 
 	for (i = 0 ; i < gaudi3_nic_err_stats_len ; i++)
-		memcpy(data + i * ETH_GSTRING_LEN, gaudi3_nic_err_stats[i].str, ETH_GSTRING_LEN);
-	data += i * ETH_GSTRING_LEN;
+		memcpy(data + i * len, gaudi3_nic_err_stats[i].str, ETH_GSTRING_LEN);
+	data += i * len;
 
 	for (i = 0 ; i < gaudi3_nic_perf_stats_len ; i++)
-		memcpy(data + i * ETH_GSTRING_LEN, gaudi3_nic_perf_stats[i].str, ETH_GSTRING_LEN);
+		memcpy(data + i * len, gaudi3_nic_perf_stats[i].str, ETH_GSTRING_LEN);
 }
 
 static int gaudi3_nic_get_mac_tx_stats(struct hl_nic_port *nic_port, u64 *data)

@@ -157,16 +157,18 @@ static int __hl_nic_get_cnts_num(struct hl_nic_port *nic_port)
 		hdev->asic_funcs->nic_funcs->port_funcs->get_cnts_num(nic_port);
 }
 
-static void __hl_nic_get_cnts_names(struct hl_nic_port *nic_port, u8 *data)
+static void __hl_nic_get_cnts_names(struct hl_nic_port *nic_port, u8 *data, bool ext)
 {
 	struct hl_device *hdev = nic_port->hdev;
-	int i;
+	int i, len;
+
+	len = ext ? HL_IB_CNT_NAME_LEN : ETH_GSTRING_LEN;
 
 	for (i = 0 ; i < pcs_counters_str_len ; i++)
-		memcpy(data + i * ETH_GSTRING_LEN, pcs_counters_str[i], ETH_GSTRING_LEN);
-	data += i * ETH_GSTRING_LEN;
+		memcpy(data + i * len, pcs_counters_str[i], ETH_GSTRING_LEN);
+	data += i * len;
 
-	hdev->asic_funcs->nic_funcs->port_funcs->get_cnts_names(nic_port, data);
+	hdev->asic_funcs->nic_funcs->port_funcs->get_cnts_names(nic_port, data, ext);
 }
 
 static void __hl_nic_get_cnts_values(struct hl_nic_port *nic_port, u64 *data)
@@ -293,7 +295,7 @@ static void hl_nic_get_cnts_names(struct hl_aux_dev *aux_dev, u32 port, u8 *data
 	struct hl_nic *nic = HL_AUX2NIC(aux_dev);
 	struct hl_nic_port *nic_port = &nic->nic_ports[port];
 
-	__hl_nic_get_cnts_names(nic_port, data);
+	__hl_nic_get_cnts_names(nic_port, data, false);
 }
 
 static void hl_nic_get_cnts_values(struct hl_aux_dev *aux_dev, u32 port, u64 *data)
@@ -785,22 +787,26 @@ cfg_unlock:
 
 static int hl_nic_ib_aux_data_init(struct hl_device *hdev)
 {
-	struct asic_fixed_properties *asic_props = &hdev->asic_prop;
+	struct asic_fixed_properties *asic_props;
+	struct hl_ib_port_cnts_info *cnts_info;
 	struct hl_nic_properties *nic_props;
 	struct hl_ib_core_info *core_info;
-	struct hl_nic *nic = &hdev->nic;
 	struct hl_ib_aux_ops *aux_ops;
+	struct hl_nic_port *nic_port;
 	struct hl_aux_dev *aux_dev;
+	struct hl_nic *nic;
 	u64 dram_kmd_size;
 	int rc, i;
 	struct hl_en_aux_ops *en_aux_ops;
 
+	nic = &hdev->nic;
 	aux_dev = &nic->ib_aux_dev;
 	aux_dev->type = HL_AUX_DEV_IB;
 	core_info = aux_dev->core_info;
 	aux_ops = aux_dev->aux_ops;
+	asic_props = &hdev->asic_prop;
 	nic_props = &asic_props->nic_props;
-	en_aux_ops = hdev->nic.en_aux_dev.aux_ops;
+	en_aux_ops = nic->en_aux_dev.aux_ops;
 
 	core_info->pdev = hdev->pdev;
 	core_info->dev = hdev->dev;
@@ -816,31 +822,49 @@ static int hl_nic_ib_aux_data_init(struct hl_device *hdev)
 	if (!core_info->ndev)
 		return -ENOMEM;
 
-	for (i = 0; i < nic_props->max_num_of_ports; i++) {
+	/* There is a possibility that the ethernet driver was not loaded or not yet
+	 * initialized. In such case, the function pointer is not initialized and we
+	 * will crash.
+	 */
+	if (en_aux_ops->get_netdev) {
+		for (i = 0 ; i < nic_props->max_num_of_ports ; i++) {
+			if (!(core_info->ports_mask & BIT(i)))
+				continue;
+
+			/* For the internal ports, we would get NULL. We don't care for now if the
+			 * netdev is null as the ib_device_set_netdev accepts a NULL as input.
+			 */
+			core_info->ndev[i] = en_aux_ops->get_netdev(&nic->en_aux_dev, i);
+		}
+	}
+
+	core_info->cnts_info = kcalloc(core_info->max_num_of_ports, sizeof(*core_info->cnts_info),
+					GFP_KERNEL);
+	if (!core_info->cnts_info) {
+		rc = -ENOMEM;
+		goto free_ndev;
+	}
+
+	for (i = 0 ; i < nic_props->max_num_of_ports ; i++) {
 		if (!(core_info->ports_mask & BIT(i)))
 			continue;
 
-		/* There is a possibility that the ethernet driver was not loaded or not yet
-		 * initialized. In such case, the function pointer is not initialized and we
-		 * will crash.
-		 */
-		if (!en_aux_ops->get_netdev)
-			break;
+		nic_port = &nic->nic_ports[i];
+		cnts_info = &core_info->cnts_info[i];
 
-		/* For the internal ports, we would get NULL. We don't care for now if the netdev is
-		 * null as the ib_device_set_netdev accepts a NULL as input.
-		 */
-		core_info->ndev[i] = en_aux_ops->get_netdev(&hdev->nic.en_aux_dev, i);
+		cnts_info->num = __hl_nic_get_cnts_num(nic_port);
+
+		cnts_info->names = kcalloc(cnts_info->num, HL_IB_CNT_NAME_LEN, GFP_KERNEL);
+		if (!cnts_info->names) {
+			rc = -ENOMEM;
+			goto free_cnts_info;
+		}
+
+		__hl_nic_get_cnts_names(nic_port, cnts_info->names, true);
 	}
 
 	dram_kmd_size = asic_props->dram_user_base_address - asic_props->dram_base_address;
 	core_info->dram_size = (asic_props->dram_size < dram_kmd_size) ? 0 : dram_kmd_size;
-
-	rc = hl_nic_get_asic_type(hdev, &core_info->asic_type);
-	if (rc) {
-		dev_err(hdev->dev, "failed to set ib aux data asic type\n");
-		goto free_ndev;
-	}
 
 	/* set ib -> core ops */
 	/* the following functions are used even if the IB verbs API is disabled */
@@ -854,6 +878,7 @@ static int hl_nic_ib_aux_data_init(struct hl_device *hdev)
 	aux_ops->set_ip_addr_encap = hl_nic_ib_set_ip_addr_encap;
 	aux_ops->qp_syndrome_to_str = hl_nic_ib_qp_syndrome_to_str;
 	aux_ops->verify_qp_id = hl_nic_ib_verify_qp_id;
+	aux_ops->get_cnts_values = hl_nic_get_cnts_values;
 
 	/* these functions are used only if the IB verbs API is enabled */
 	aux_ops->cmd_ctrl = hl_nic_ib_cmd_ctrl;
@@ -861,6 +886,14 @@ static int hl_nic_ib_aux_data_init(struct hl_device *hdev)
 
 	return 0;
 
+free_cnts_info:
+	for (--i ; i >= 0 ; i--) {
+		if (!(core_info->ports_mask & BIT(i)))
+			continue;
+
+		kfree(core_info->cnts_info[i].names);
+	}
+	kfree(core_info->cnts_info);
 free_ndev:
 	kfree(core_info->ndev);
 
@@ -869,14 +902,25 @@ free_ndev:
 
 static void hl_nic_ib_aux_data_fini(struct hl_device *hdev)
 {
+	struct hl_nic_properties *nic_props;
 	struct hl_ib_core_info *core_info;
-	struct hl_nic *nic = &hdev->nic;
 	struct hl_aux_dev *aux_dev;
+	struct hl_nic *nic;
+	int i;
 
+	nic = &hdev->nic;
 	aux_dev = &nic->ib_aux_dev;
 	core_info = aux_dev->core_info;
+	nic_props = &hdev->asic_prop.nic_props;
 
-	/* Free the netdev structs */
+	for (i = 0 ; i < nic_props->max_num_of_ports ; i++) {
+		if (!(core_info->ports_mask & BIT(i)))
+			continue;
+
+		kfree(core_info->cnts_info[i].names);
+	}
+	kfree(core_info->cnts_info);
+
 	kfree(core_info->ndev);
 }
 
@@ -4528,7 +4572,7 @@ int hl_nic_get_statistics(struct hl_device *hdev, u32 port,
 		goto out;
 	}
 
-	__hl_nic_get_cnts_names(nic_port, drv_str_buf);
+	__hl_nic_get_cnts_names(nic_port, drv_str_buf, false);
 	__hl_nic_get_cnts_values(nic_port, drv_val_buf);
 
 	rc = copy_to_user(usr_str_buf, drv_str_buf, HABANA_LINK_STR_LEN * num_of_stat);

@@ -1158,7 +1158,7 @@ struct hl_nic_port_funcs {
 	void (*user_cq_destroy)(struct hl_nic_user_cq *user_cq);
 	void (*user_cq_update_ci)(struct hl_nic_port *nic_port, u32 ci);
 	int (*get_cnts_num)(struct hl_nic_port *nic_port);
-	void (*get_cnts_names)(struct hl_nic_port *nic_port, u8 *data);
+	void (*get_cnts_names)(struct hl_nic_port *nic_port, u8 *data, bool ext);
 	void (*get_cnts_values)(struct hl_nic_port *nic_port, u64 *data);
 	int (*port_sw_init)(struct hl_nic_port *nic_port);
 	void (*port_sw_fini)(struct hl_nic_port *nic_port);

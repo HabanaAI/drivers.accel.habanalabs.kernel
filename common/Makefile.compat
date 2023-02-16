@@ -478,3 +478,7 @@ endif
 ifneq ($(shell grep -A10 "struct class {" include/linux/device.h include/linux/device/class.h | grep "devnode" | grep "const struct device" > /dev/null 2>&1 && echo 1),)
 	ccflags-y += -D_HAS_DEVNODE_WITH_CONST_DEVICE
 endif
+
+ifneq ($(shell grep -w "alloc_hw_device_stats" $(IB_PATH)/include/rdma/ib_verbs.h > /dev/null 2>&1 && echo 1),)
+	ccflags-y += -D_HAS_IB_DEVICE_STATS
+endif

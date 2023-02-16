@@ -1979,7 +1979,7 @@ static void gaudi_nic_core_fini(struct hl_device *hdev)
 	gaudi_nic_cq_fini(hdev);
 }
 
-static void gaudi_nic_get_cnts_names(struct hl_nic_port *nic_port, u8 *data)
+static void gaudi_nic_get_cnts_names(struct hl_nic_port *nic_port, u8 *data, bool ext)
 {
 	struct hl_en_stat *spmu_stats;
 	u32 n_spmu_stats;
