@@ -421,7 +421,7 @@ void gaudi3_nic_macros_fw_config(struct hl_device *hdev)
 	struct hl_nic_macro *nic_macro;
 	int i;
 
-	if (hdev->reset_info.in_compute_reset)
+	if (hdev->reset_info.in_compute_reset || (hdev->fw_components & FW_TYPE_PREBOOT_CPU))
 		return;
 
 	for (i = 0 ; i < NIC_NUMBER_OF_MACROS ; i++) {
