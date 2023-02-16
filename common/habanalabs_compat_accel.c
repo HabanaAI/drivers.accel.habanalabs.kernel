@@ -17,7 +17,11 @@ static struct dentry *accel_debugfs_root;
 static struct class *accel_class;
 static int accel_major;
 
+#ifdef _HAS_DEVNODE_WITH_CONST_DEVICE
+static char *accel_devnode(const struct device *dev, umode_t *mode)
+#else
 static char *accel_devnode(struct device *dev, umode_t *mode)
+#endif
 {
 	return kasprintf(GFP_KERNEL, "accel/%s", dev_name(dev));
 }
