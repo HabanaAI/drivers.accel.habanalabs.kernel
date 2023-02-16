@@ -51,7 +51,6 @@ struct dq_qp_info {
  * initialization regardless of NIC being enabled or not, we behave the same for
  * their IRQs.
  */
-static irqreturn_t gaudi3_nic_eq_isr(int irq, void *arg);
 static irqreturn_t gaudi3_nic_eq_threaded_isr(int irq, void *arg);
 
 int gaudi3_nic_eq_request_irqs(struct hl_device *hdev)
@@ -70,7 +69,7 @@ int gaudi3_nic_eq_request_irqs(struct hl_device *hdev)
 		gaudi3_nic = &gaudi3->nic_ports[i];
 		irq = hl_irq_vector(hdev, GAUDI3_IRQ_NUM_NIC_PORT_FIRST + i);
 		rc = request_threaded_irq(irq,
-					gaudi3_nic_eq_isr,
+					NULL,
 					gaudi3_nic_eq_threaded_isr,
 					IRQF_ONESHOT,
 					gaudi3_nic_eq_irq_name[i],
@@ -425,7 +424,7 @@ static void gaudi3_nic_eq_work(struct work_struct *work)
 		gaudi3_nic_eq_clr_interrupts(gaudi3_nic);
 }
 
-/* Use the following two routines when working with real HW */
+/* Use this routine when working with real HW */
 static irqreturn_t gaudi3_nic_eq_threaded_isr(int irq, void *arg)
 {
 	struct gaudi3_nic_port *gaudi3_nic = arg;
@@ -434,11 +433,6 @@ static irqreturn_t gaudi3_nic_eq_threaded_isr(int irq, void *arg)
 	nic_eq_handler(gaudi3_nic);
 
 	return IRQ_HANDLED;
-}
-
-static irqreturn_t gaudi3_nic_eq_isr(int irq, void *arg)
-{
-	return IRQ_WAKE_THREAD;
 }
 
 static void gaudi3_nic_eq_hw_config(struct gaudi3_nic_port *gaudi3_nic)

@@ -6011,11 +6011,6 @@ report_outcome:
 	return success;
 }
 
-static irqreturn_t gaudi3_page_fault_queue_irq_handler(int irq, void *param)
-{
-	return IRQ_WAKE_THREAD;
-}
-
 static void gaudi3_page_fault_queue_entry_respond(struct hl_device *hdev,
 					struct gaudi3_page_fault_queue_entry *page_fault_queuee,
 					bool success)
@@ -6135,7 +6130,7 @@ static int gaudi3_page_fault_queue_enable_msix(struct hl_device *hdev)
 	 *    Offloading the work to a thread prevents this, as the thread is
 	 *    guaranteed to wake up again in case an IRQ arrived in such timing.
 	 */
-	return request_threaded_irq(irq, gaudi3_page_fault_queue_irq_handler,
+	return request_threaded_irq(irq, NULL,
 				gaudi3_page_fault_queue_threaded_irq_handler, IRQF_ONESHOT,
 				gaudi3_irq_name(irq_nr), gaudi3);
 }
@@ -6744,11 +6739,6 @@ int gaudi3_etr_fetch_buffer_to_host(struct hl_device *hdev, u32 etr_idx,
 	return 0;
 }
 
-static irqreturn_t gaudi3_etr_irq_handler(int irq, void *param)
-{
-	return IRQ_WAKE_THREAD;
-}
-
 static irqreturn_t gaudi3_etr_threaded_irq_handler(int irq, void *param)
 {
 	struct hl_device *hdev = param;
@@ -6775,7 +6765,7 @@ static int gaudi3_etr_enable_msix(struct hl_device *hdev, int etr_idx)
 	if (irq < 0)
 		return -ENOMEM;
 
-	return request_threaded_irq(irq, gaudi3_etr_irq_handler,
+	return request_threaded_irq(irq, NULL,
 			gaudi3_etr_threaded_irq_handler, IRQF_ONESHOT,
 			gaudi3_irq_name(irq_nr), hdev);
 }

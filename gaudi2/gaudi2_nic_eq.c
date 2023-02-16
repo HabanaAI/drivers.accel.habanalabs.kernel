@@ -46,7 +46,6 @@ gaudi2_nic_eq_irq_name[NIC_NUMBER_OF_ENGINES][GAUDI2_NIC_MAX_STRING_LEN] = {
  * initialization regardless of NIC being enabled or not, we behave the same for
  * their IRQs.
  */
-static irqreturn_t gaudi2_nic_eq_isr(int irq, void *arg);
 static irqreturn_t gaudi2_nic_eq_threaded_isr(int irq, void *arg);
 
 int gaudi2_nic_eq_request_irqs(struct hl_device *hdev)
@@ -64,7 +63,7 @@ int gaudi2_nic_eq_request_irqs(struct hl_device *hdev)
 		gaudi2_nic = &gaudi2->nic_ports[i];
 		irq = pci_irq_vector(hdev->pdev, GAUDI2_IRQ_NUM_NIC_PORT_FIRST + i);
 		rc = request_threaded_irq(irq,
-					gaudi2_nic_eq_isr,
+					NULL,
 					gaudi2_nic_eq_threaded_isr,
 					IRQF_ONESHOT,
 					gaudi2_nic_eq_irq_name[i],
@@ -404,7 +403,7 @@ static void gaudi2_nic_eq_work(struct work_struct *work)
 		gaudi2_nic_eq_clr_interrupts(gaudi2_nic);
 }
 
-/* Use the following two routines when working with real HW */
+/* Use this routine when working with real HW */
 static irqreturn_t gaudi2_nic_eq_threaded_isr(int irq, void *arg)
 {
 	struct gaudi2_nic_port *gaudi2_nic = arg;
@@ -413,11 +412,6 @@ static irqreturn_t gaudi2_nic_eq_threaded_isr(int irq, void *arg)
 	nic_eq_handler(gaudi2_nic);
 
 	return IRQ_HANDLED;
-}
-
-static irqreturn_t gaudi2_nic_eq_isr(int irq, void *arg)
-{
-	return IRQ_WAKE_THREAD;
 }
 
 /* Use this routine when working in simulator */
