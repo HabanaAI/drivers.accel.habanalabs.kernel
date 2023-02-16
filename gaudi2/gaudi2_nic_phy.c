@@ -1586,7 +1586,6 @@ static int fw_tuning(struct hl_device *hdev, u32 port, int lane, bool pam4)
 static void do_fw_tuning(struct hl_nic_port *nic_port)
 {
 	struct hl_device *hdev = nic_port->hdev;
-	struct gaudi2_nic_port *gaudi2_nic;
 	u32 card_location, port;
 	int lane, rc;
 	bool pam4;
@@ -1594,7 +1593,6 @@ static void do_fw_tuning(struct hl_nic_port *nic_port)
 	card_location = hdev->nic.card_location;
 	port = nic_port->port;
 	pam4 = (nic_port->data_rate == NIC_DR_50);
-	gaudi2_nic = nic_port->nic_specific;
 
 	for (lane = 0 ; lane < 2 ; lane++) {
 		rc = fw_tuning(hdev, port, lane, pam4);
@@ -1630,7 +1628,7 @@ static void do_fw_tuning(struct hl_nic_port *nic_port)
 		nic_port->phy_fw_tuned = true;
 
 		/* If we got link up event, set it now when PHY is ready */
-		if (gaudi2_nic->eq_pcs_link) {
+		if (nic_port->eq_pcs_link) {
 			nic_port->pcs_link = true;
 			hl_nic_phy_set_port_status(nic_port, true);
 		}

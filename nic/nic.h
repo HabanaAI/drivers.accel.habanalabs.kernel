@@ -545,7 +545,7 @@ struct hl_nic_reset_tracker {
  * @phy_fw_tuned: true if F/W is tuned, false otherwise.
  * @phy_func_mode_en: true if PHY is set to functional mode, false otherwise.
  * @pcs_link: true if the NIC has PCS link, false otherwise.
- * @prev_pcs_link: previous state of the PCS link.
+ * @eq_pcs_link: true if the NIC got PCS link in the EQ, false otherwise..
  * @link_eqe: cache link status EQE. Dispatched to user for internal ports only.
  * @auto_neg_enable: true if this port supports Autonegotiation, false
  *                   otherwise.
@@ -623,7 +623,7 @@ struct hl_nic_port {
 	u8				phy_fw_tuned;
 	u8				phy_func_mode_en;
 	u8				pcs_link;
-	u8				prev_pcs_link;
+	u8				eq_pcs_link;
 	u8				auto_neg_enable;
 	u8				auto_neg_resolved;
 	u8				auto_neg_skipped;

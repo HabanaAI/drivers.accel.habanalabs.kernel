@@ -1315,6 +1315,11 @@ int hl_nic_core_init(struct hl_device *hdev)
 	if (nic->phy_config_fw)
 		dev_dbg(hdev->dev, "NIC F/W CRC: 0x%x\n", nic_funcs->phy_get_crc(hdev));
 
+	for (i = 0 ; i < nic_props->num_of_macros ; i++) {
+		nic->nic_macros[i].phy_macro_needs_reset = true;
+		nic->nic_macros[i].rec_link_sts = 0;
+	}
+
 	rc = nic_funcs->core_init(hdev);
 	if (rc) {
 		dev_err(hdev->dev, "NIC core init failed\n");
@@ -1520,12 +1525,10 @@ void hl_nic_fini(struct hl_device *hdev)
  */
 void hl_nic_stop(struct hl_device *hdev)
 {
-	struct hl_nic_properties *nic_props = &hdev->asic_prop.nic_props;
 	struct hl_nic_funcs *nic_funcs = hdev->asic_funcs->nic_funcs;
 	struct hl_nic *nic = &hdev->nic;
 	struct hl_en_aux_ops *aux_ops;
 	struct hl_aux_dev *aux_dev;
-	int i;
 
 	aux_dev = &nic->en_aux_dev;
 	aux_ops = aux_dev->aux_ops;
@@ -1537,11 +1540,6 @@ void hl_nic_stop(struct hl_device *hdev)
 
 	if (aux_ops->ports_stop)
 		aux_ops->ports_stop(aux_dev);
-
-	for (i = 0 ; i < nic_props->num_of_macros ; i++) {
-		nic->nic_macros[i].phy_macro_needs_reset = true;
-		nic->nic_macros[i].rec_link_sts = 0;
-	}
 
 	hl_nic_internal_ports_fini(hdev);
 	hl_nic_core_fini(hdev);
@@ -5334,7 +5332,6 @@ int hl_nic_sw_init(struct hl_device *hdev)
 
 		nic_macro->hdev = hdev;
 		nic_macro->idx = i;
-		nic_macro->phy_macro_needs_reset = true;
 
 		rc = nic_macro_sw_init(nic_macro);
 		if (rc) {

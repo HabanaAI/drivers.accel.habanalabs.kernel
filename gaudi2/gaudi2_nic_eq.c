@@ -228,7 +228,7 @@ static void gaudi2_nic_link_event_handler(struct gaudi2_nic_port *gaudi2_nic)
 		 * In case it is UP, and PHY is not ready, we don't want to actually set it and
 		 * reflect it to the user - this will be done later once the PHY will be ready.
 		 */
-		gaudi2_nic_curr->eq_pcs_link = link_up;
+		nic_port_curr->eq_pcs_link = link_up;
 
 		/* In case of link DOWN, set the actual link and reflect it to the user */
 		if (!link_up)

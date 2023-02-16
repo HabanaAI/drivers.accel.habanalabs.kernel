@@ -14,8 +14,8 @@
 static void port_reset_state(struct hl_nic_port *nic_port)
 {
 	kfifo_reset(&nic_port->pcs_fail_fifo);
-	nic_port->prev_pcs_link = false;
 	nic_port->pcs_link = false;
+	nic_port->eq_pcs_link = false;
 	nic_port->auto_neg_resolved = false;
 	nic_port->auto_neg_skipped = false;
 	nic_port->phy_fw_tuned = false;
@@ -165,6 +165,7 @@ void hl_nic_phy_fini(struct hl_nic_port *nic_port)
 	if (!hdev->nic.phy_config_fw || nic_port->mac_loopback) {
 		port_funcs->override_phy_readiness(nic_port, false);
 		nic_port->pcs_link = false;
+		nic_port->eq_pcs_link = false;
 		return;
 	}
 
