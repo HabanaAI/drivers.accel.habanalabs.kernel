@@ -1230,7 +1230,6 @@ static bool gaudi3_d2d_sanity_test(struct hl_device *hdev)
 
 static int gaudi3_d2d_init(struct hl_device *hdev)
 {
-	struct asic_fixed_properties *prop = &hdev->asic_prop;
 	struct gaudi3_device *gaudi3 = hdev->asic_specific;
 	int rc = 0;
 
