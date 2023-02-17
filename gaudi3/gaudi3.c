@@ -11449,6 +11449,31 @@ static void gaudi3_handle_ecc_event(struct hl_device *hdev, struct hl_eq_ecc_dat
 		ecc_address, ecc_syndrom, memory_wrapper_idx, ecc_data->is_critical);
 }
 
+static u32 gaudi3_handle_nic_status_event(struct hl_device *hdev,
+				struct hl_eq_dynamic_entry *eq_dynamic_entry)
+{
+	u8 cmd, period;
+	u64 mask;
+	int port;
+
+	cmd = eq_dynamic_entry->nic_sts_req_data.cmd;
+	if (cmd > HL_NIC_STATUS_PERIODIC_STOP) {
+		dev_err(hdev->dev, "Received invalid NIC status cmd (%d) from F/W", cmd);
+		return -EINVAL;
+	}
+
+	mask = eq_dynamic_entry->nic_sts_req_data.port_en_mask;
+	period = eq_dynamic_entry->nic_sts_req_data.period;
+
+	for (port = 0 ; port < hdev->asic_prop.nic_props.max_num_of_ports ; port++) {
+		if (!(mask & BIT(port)))
+			continue;
+		hl_nic_send_status(hdev, port, cmd, period);
+	}
+
+	return 0;
+}
+
 static u32 gaudi3_handle_msg_event(struct hl_device *hdev,
 				struct hl_eq_dynamic_entry *eq_dynamic_entry, u64 *event_mask)
 {
@@ -11458,13 +11483,9 @@ static u32 gaudi3_handle_msg_event(struct hl_device *hdev,
 	ctl = le32_to_cpu(eq_dynamic_entry->hdr.ctl);
 	event_type = FIELD_GET(EQ_CTL_EVENT_TYPE_MASK, ctl);
 
-	/* TODO: SW-137048 remove once we have some events implemented,
-	 * we should have a single print
-	 */
-	dev_err_ratelimited(hdev->dev, "Received MSG interrupt %d\n", event_type);
-
-	/* TODO: SW-137048 add handling of MSG events */
 	switch (event_type) {
+	case EQ_EVENT_NIC_STS_REQUEST:
+		return gaudi3_handle_nic_status_event(hdev, eq_dynamic_entry);
 	default:
 		return 0;
 	}

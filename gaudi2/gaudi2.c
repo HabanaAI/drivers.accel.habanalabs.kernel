@@ -10686,7 +10686,7 @@ void gaudi2_handle_eqe(struct hl_device *hdev, struct hl_eq_entry *eq_entry)
 		break;
 
 	case GAUDI2_EVENT_CPU0_STATUS_NIC0_ENG0 ... GAUDI2_EVENT_CPU11_STATUS_NIC11_ENG1:
-		hl_nic_send_status(hdev, event_type - GAUDI2_EVENT_CPU0_STATUS_NIC0_ENG0);
+		hl_nic_send_status(hdev, event_type - GAUDI2_EVENT_CPU0_STATUS_NIC0_ENG0, 0, 0);
 		error_count = GAUDI2_NA_EVENT_CAUSE;
 		break;
 

@@ -8448,7 +8448,7 @@ void gaudi_handle_eqe(struct hl_device *hdev, struct hl_eq_entry *eq_entry)
 	case GAUDI_EVENT_STATUS_NIC0_ENG0 ... GAUDI_EVENT_STATUS_NIC4_ENG1:
 		/* the unmask packet will be sent after sending the status */
 		hl_nic_send_status(hdev,
-				event_type - GAUDI_EVENT_STATUS_NIC0_ENG0);
+				event_type - GAUDI_EVENT_STATUS_NIC0_ENG0, 0, 0);
 		break;
 
 	case GAUDI_EVENT_FIX_POWER_ENV_S ... GAUDI_EVENT_FIX_THERMAL_ENV_E:

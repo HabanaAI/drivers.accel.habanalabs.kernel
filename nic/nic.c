@@ -240,7 +240,7 @@ static void __hl_nic_port_hw_fini(struct hl_nic_port *nic_port)
 	struct hl_device *hdev = nic_port->hdev;
 	struct hl_nic_funcs *nic_funcs = hdev->asic_funcs->nic_funcs;
 
-	cancel_work_sync(&nic_port->nic_status_work);
+	cancel_delayed_work_sync(&nic_port->nic_status_work);
 
 	/* in hard reset the QPs were stopped by hl_nic_stop called from halt engines */
 	if (!hdev->reset_info.hard_reset_pending)
@@ -1276,6 +1276,27 @@ static void hl_nic_internal_ports_fini(struct hl_device *hdev)
 	}
 }
 
+static void hl_nic_ext_ports_cancel_work(struct hl_device *hdev)
+{
+	struct hl_nic_properties *nic_props = &hdev->asic_prop.nic_props;
+	struct hl_nic *nic = &hdev->nic;
+	struct hl_nic_port *nic_port;
+	int i;
+
+	for (i = 0 ; i < nic_props->max_num_of_ports ; i++) {
+		if (!(hdev->nic_ports_mask & BIT(i)) || !(nic->eth_ports_mask & BIT(i)))
+			continue;
+
+		nic_port = &nic->nic_ports[i];
+
+		if (!hl_nic_is_port_open(nic_port)) {
+			mutex_lock(&nic_port->control_lock);
+			cancel_delayed_work_sync(&nic_port->nic_status_work);
+			mutex_unlock(&nic_port->control_lock);
+		}
+	}
+}
+
 int hl_nic_internal_port_init_locked(struct hl_nic_port *nic_port)
 {
 	struct hl_device *hdev = nic_port->hdev;
@@ -1616,6 +1637,11 @@ void hl_nic_stop(struct hl_device *hdev)
 		return;
 
 	qps_stop(hdev);
+
+	/* for external ports that are not up, hl_en_ports_stop()
+	 * never gets called, so cancel nic_status_work here.
+	 */
+	hl_nic_ext_ports_cancel_work(hdev);
 
 	if (aux_ops->ports_stop)
 		aux_ops->ports_stop(aux_dev);
@@ -5168,10 +5194,13 @@ static void hl_nic_get_status(struct hl_nic_port *nic_port, struct cpucp_nic_sta
 
 static void nic_status_work(struct work_struct *work)
 {
-	struct hl_nic_port *nic_port = container_of(work, struct hl_nic_port, nic_status_work);
+	struct delayed_work *dwork = to_delayed_work(work);
+	struct hl_nic_port *nic_port = container_of(dwork, struct hl_nic_port,
+					nic_status_work);
 	struct hl_device *hdev = nic_port->hdev;
 	struct hl_nic_funcs *nic_funcs = hdev->asic_funcs->nic_funcs;
 	struct hl_nic_properties *nic_props = &hdev->asic_prop.nic_props;
+	struct hl_nic *nic = &hdev->nic;
 	struct cpucp_nic_status_packet *pkt;
 	struct cpucp_nic_status nic_status = {0};
 	size_t total_pkt_size, data_size;
@@ -5209,15 +5238,25 @@ static void nic_status_work(struct work_struct *work)
 		dev_err(hdev->dev, "failed to send NIC status\n");
 
 	kfree(pkt);
+	if (nic->status_cmd == HL_NIC_STATUS_PERIODIC_START)
+		queue_delayed_work(nic_port->wq, &nic_port->nic_status_work,
+					 msecs_to_jiffies(nic->status_period * 1000));
 out:
 	nic_funcs->port_funcs->fw_nic_status(nic_port);
 }
 
-void hl_nic_send_status(struct hl_device *hdev, int port)
+void hl_nic_send_status(struct hl_device *hdev, int port, uint8_t cmd, uint8_t period)
 {
 	struct hl_nic_port *nic_port = &hdev->nic.nic_ports[port];
+	struct hl_nic *nic = &hdev->nic;
 
-	queue_work(nic_port->wq, &nic_port->nic_status_work);
+	nic->status_cmd = cmd;
+	nic->status_period = (cmd == HL_NIC_STATUS_PERIODIC_START) ? period : 0;
+
+	if (cmd == HL_NIC_STATUS_PERIODIC_STOP)
+		cancel_delayed_work_sync(&nic_port->nic_status_work);
+	else
+		queue_delayed_work(nic_port->wq, &nic_port->nic_status_work, 0);
 }
 
 static void nic_port_sw_fini(struct hl_nic_port *nic_port)
@@ -5329,7 +5368,7 @@ static int nic_port_sw_init(struct hl_nic_port *nic_port)
 	idr_init(&nic_port->encap_ids);
 	idr_init(&nic_port->cq_ids);
 
-	INIT_WORK(&nic_port->nic_status_work, nic_status_work);
+	INIT_DELAYED_WORK(&nic_port->nic_status_work, nic_status_work);
 	INIT_DELAYED_WORK(&nic_port->link_status_work, port_funcs->phy_link_status_work);
 
 	nic_port->speed = nic_funcs->get_default_port_speed(hdev);

@@ -496,6 +496,18 @@ struct hl_nic_reset_tracker {
 };
 
 /**
+ * enum hl_nic_status_cmd - NIC status cmd type.
+ * @HL_NIC_STATUS_ONE_SHOT: one shot command.
+ * @HL_NIC_STATUS_PERIODIC_START: start periodic status update.
+ * @HL_NIC_STATUS_PERIODIC_STOP: stop periodic status update.
+ */
+enum hl_nic_status_cmd {
+	HL_NIC_STATUS_ONE_SHOT,
+	HL_NIC_STATUS_PERIODIC_START,
+	HL_NIC_STATUS_PERIODIC_STOP,
+};
+
+/**
  * struct hl_nic_port - manage specific NIC port common structure.
  * @hdev: habanalabs device structure.
  * @nic_specific: pointer to an ASIC specific NIC port structure.
@@ -598,7 +610,7 @@ struct hl_nic_port {
 	atomic_t			num_of_allocated_coll_qps;
 	atomic_t			num_of_allocated_scale_out_coll_qps;
 	struct delayed_work		link_status_work;
-	struct work_struct		nic_status_work;
+	struct delayed_work		nic_status_work;
 	struct mutex			control_lock;
 	struct mutex			cnt_lock;
 	struct idr			qp_ids;
@@ -753,6 +765,7 @@ struct hl_coll_properties {
  * @eth_loopback: enable hack in hl_en_handle_tx to test eth traffic.
  * @phy_regs_print: print all PHY registers reads/writes.
  * @phy_calc_ber: show PHY BER statistics during power-up.
+ * @status_cmd: NIC status packet command from FW.
  * @is_eth_aux_dev_initialized: true if the eth auxiliary device is initialized.
  * @is_ib_aux_dev_initialized: true if the IB auxiliary device is initialized.
  * @skip_mac_reset: skip MAC reset.
@@ -764,6 +777,7 @@ struct hl_coll_properties {
  * @skip_wq_arrays_pool: Used to skip allocation and destruction of WQ arrays pool.
  * @rx_drop_percent: RX packet drop percentage set via debugfs.
  * @skip_phy_default_tx_taps_cfg: Used to skip re-configuration of the default tx_taps.
+ * @status_period: periodic time in secs at which FW expects NIC status packet.
  */
 struct hl_nic {
 	struct hl_nic_port		*nic_ports;
@@ -786,6 +800,7 @@ struct hl_nic {
 	u32				card_location;
 	u32				phy_port_to_dump;
 	u16				phy_calc_ber_wait_sec;
+	enum hl_nic_status_cmd		status_cmd;
 	u8				phy_load_fw;
 	u8				phy_config_fw;
 	u8				use_fw_serdes_info;
@@ -808,6 +823,7 @@ struct hl_nic {
 	u8				skip_wq_arrays_pool;
 	u8				rx_drop_percent;
 	u8				skip_phy_default_tx_taps_cfg;
+	u8				status_period;
 };
 
 /**
@@ -1391,7 +1407,7 @@ void hl_nic_phy_port_reconfig(struct hl_nic_port *nic_port);
 int hl_nic_phy_has_fw(struct hl_device *hdev);
 void hl_nic_phy_set_port_status(struct hl_nic_port *nic_port, bool up);
 int hl_nic_read_spmu_counters(struct hl_nic_port *nic_port, u64 out_data[], u32 *num_out_data);
-void hl_nic_send_status(struct hl_device *hdev, int port);
+void hl_nic_send_status(struct hl_device *hdev, int port, u8 cmd, u8 period);
 bool hl_nic_disabled_or_in_reset(struct hl_nic_port *nic_port);
 void hl_nic_hard_reset_prepare(struct hl_device *hdev);
 int hl_nic_control(struct hl_device *hdev, u32 op, void *input,	void *output, struct hl_ctx *ctx);
