@@ -86,6 +86,8 @@ MODULE_FIRMWARE(GAUDI2_LINUX_FW_FILE);
 #define GAUDI2_NUM_OF_NIC_RXB_CORE_SPI_CAUSE	6
 #define GAUDI2_NUM_OF_NIC_RXE_SEI_CAUSE		4
 #define GAUDI2_NUM_OF_NIC_RXE_SPI_CAUSE		24
+#define GAUDI2_NUM_OF_NIC_QPC_RESP_ERR_CAUSE	7
+
 
 #define GAUDI2_MMU_CACHE_INV_TIMEOUT_USEC	(MMU_CONFIG_TIMEOUT_USEC * 10)
 #define GAUDI2_PLDM_MMU_TIMEOUT_USEC		(MMU_CONFIG_TIMEOUT_USEC * 200)
@@ -974,6 +976,17 @@ gaudi2_nic_rxb_core_spi_interrupts_cause[GAUDI2_NUM_OF_NIC_RXB_CORE_SPI_CAUSE] =
 	"Control pointers count illegal port 2",
 	"Control pointers count illegal port 3",
 	"Scatter pointers count illegal"
+};
+
+static const char * const
+gaudi2_nic_qpc_resp_err_interrupts_cause[GAUDI2_NUM_OF_NIC_QPC_RESP_ERR_CAUSE] = {
+	"ARC SEI error",
+	"QPC LBW AXI write slv decode err",
+	"QPC LBW AXI write slv err",
+	"QPC HBW AXI write slv decode err",
+	"QPC HBW AXI write slv err",
+	"QPC HBW AXI read slv decode err",
+	"QPC HBW AXI read slv err"
 };
 
 static const char * const gaudi2_nic_rxe_sei_interrupts_cause[GAUDI2_NUM_OF_NIC_RXE_SEI_CAUSE] = {
@@ -8022,10 +8035,16 @@ static int gaudi2_handle_nic_error(struct hl_device *hdev, u16 event_type, u8 ma
 
 		switch (intr_type) {
 		case NIC_INTR_QPC_RESP_ERR:
-			gaudi2_print_event(hdev, event_type, true,
-						"QPC response error on NIC port %d cause 0x%x\n",
-						port, intr_cause);
-			error_count++;
+			for (i = 0 ; i < GAUDI2_NUM_OF_NIC_QPC_RESP_ERR_CAUSE ; i++) {
+				if (!(intr_cause & BIT(i)))
+					continue;
+
+				gaudi2_print_event(hdev, event_type, true,
+					"QPC response error on NIC port %d cause: %s. cause bit %d\n",
+					port, gaudi2_nic_qpc_resp_err_interrupts_cause[i], i);
+				error_count++;
+			}
+
 			break;
 		case NIC_INTR_RXE_SPI:
 			for (i = 0 ; i < GAUDI2_NUM_OF_NIC_RXE_SPI_CAUSE ; i++) {
