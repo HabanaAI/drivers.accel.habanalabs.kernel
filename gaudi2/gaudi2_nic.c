@@ -4712,7 +4712,7 @@ static int gaudi2_qp_sanity_init(struct gaudi2_nic_port *gaudi2_nic)
 	if (!nic_port->eth_enable)
 		return 0;
 
-	snprintf(wq_name, sizeof(wq_name) - 1, "nic%d-qp-sanity", port);
+	snprintf(wq_name, sizeof(wq_name) - 1, "hl%u-nic%d-qp-sanity", hdev->cdev_idx, port);
 
 	gaudi2_nic->qp_sanity_wq = create_singlethread_workqueue(wq_name);
 	if (!gaudi2_nic->qp_sanity_wq) {

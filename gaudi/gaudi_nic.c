@@ -499,7 +499,7 @@ static int __gaudi_nic_cq_init(struct gaudi_nic_port *gaudi_nic)
 	char cq_wq_name[32] = {0};
 	int rc;
 
-	snprintf(cq_wq_name, sizeof(cq_wq_name) - 1, "nic%d-cq-wq", port);
+	snprintf(cq_wq_name, sizeof(cq_wq_name) - 1, "hl%u-nic%d-cq-wq", hdev->cdev_idx, port);
 
 	/*
 	 * Use only one thread because cq_irq_work() should not be executed

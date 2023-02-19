@@ -497,6 +497,7 @@ static int hl_nic_en_aux_data_init(struct hl_device *hdev)
 	core_info->auto_neg_mask = nic->auto_neg_mask;
 	core_info->max_num_of_ports = nic_props->max_num_of_ports;
 	core_info->minor = hdev->id;
+	core_info->id = hdev->cdev_idx;
 	core_info->fw_ver = asic_props->cpucp_info.cpucp_version;
 	core_info->qsfp_eeprom = hdev->asic_prop.cpucp_nic_info.qsfp_eeprom;
 	core_info->sb_base_addr = nic_props->sb_base_addr;
@@ -5038,14 +5039,14 @@ static int nic_port_sw_init(struct hl_nic_port *nic_port)
 	port_funcs = nic_funcs->port_funcs;
 	wq_arr_props = nic_port->wq_arr_props;
 
-	snprintf(wq_name, sizeof(wq_name) - 1, "nic%d-wq", port);
+	snprintf(wq_name, sizeof(wq_name) - 1, "hl%u-nic%d-wq", hdev->cdev_idx, port);
 	nic_port->wq = alloc_workqueue(wq_name, 0, 0);
 	if (!nic_port->wq) {
 		dev_err(hdev->dev, "Failed to create NIC WQ, port: %d\n", port);
 		return -ENOMEM;
 	}
 
-	snprintf(wq_name, sizeof(wq_name) - 1, "nic%d-qp_wq", port);
+	snprintf(wq_name, sizeof(wq_name) - 1, "hl%u-nic%d-qp-wq", hdev->cdev_idx, port);
 	nic_port->qp_wq = alloc_workqueue(wq_name, WQ_UNBOUND, 0);
 	if (!nic_port->qp_wq) {
 		dev_err(hdev->dev, "Failed to create NIC QP WQ, port: %d\n", port);

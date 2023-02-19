@@ -1001,7 +1001,7 @@ static int device_early_init(struct hl_device *hdev)
 	}
 
 	for (i = 0 ; i < hdev->asic_prop.completion_queues_count ; i++) {
-		snprintf(workq_name, 32, "hl-free-jobs-%u", (u32) i);
+		snprintf(workq_name, 32, "hl%u-free-jobs-%u", hdev->cdev_idx, (u32) i);
 		hdev->cq_wq[i] = create_singlethread_workqueue(workq_name);
 		if (hdev->cq_wq[i] == NULL) {
 			dev_err(hdev->dev, "Failed to allocate CQ workqueue\n");
@@ -1010,14 +1010,16 @@ static int device_early_init(struct hl_device *hdev)
 		}
 	}
 
-	hdev->eq_wq = create_singlethread_workqueue("hl-events");
+	snprintf(workq_name, 32, "hl%u-events", hdev->cdev_idx);
+	hdev->eq_wq = create_singlethread_workqueue(workq_name);
 	if (hdev->eq_wq == NULL) {
 		dev_err(hdev->dev, "Failed to allocate EQ workqueue\n");
 		rc = -ENOMEM;
 		goto free_cq_wq;
 	}
 
-	hdev->cs_cmplt_wq = alloc_workqueue("hl-cs-completions", WQ_UNBOUND, 0);
+	snprintf(workq_name, 32, "hl%u-cs-completions", hdev->cdev_idx);
+	hdev->cs_cmplt_wq = alloc_workqueue(workq_name, WQ_UNBOUND, 0);
 	if (!hdev->cs_cmplt_wq) {
 		dev_err(hdev->dev,
 			"Failed to allocate CS completions workqueue\n");
@@ -1025,7 +1027,8 @@ static int device_early_init(struct hl_device *hdev)
 		goto free_eq_wq;
 	}
 
-	hdev->ts_free_obj_wq = alloc_workqueue("hl-ts-free-obj", WQ_UNBOUND, 0);
+	snprintf(workq_name, 32, "hl%u-ts-free-obj", hdev->cdev_idx);
+	hdev->ts_free_obj_wq = alloc_workqueue(workq_name, WQ_UNBOUND, 0);
 	if (!hdev->ts_free_obj_wq) {
 		dev_err(hdev->dev,
 			"Failed to allocate Timestamp registration free workqueue\n");
@@ -1033,15 +1036,15 @@ static int device_early_init(struct hl_device *hdev)
 		goto free_cs_cmplt_wq;
 	}
 
-	hdev->prefetch_wq = alloc_workqueue("hl-prefetch", WQ_UNBOUND, 0);
+	snprintf(workq_name, 32, "hl%u-prefetch", hdev->cdev_idx);
+	hdev->prefetch_wq = alloc_workqueue(workq_name, WQ_UNBOUND, 0);
 	if (!hdev->prefetch_wq) {
 		dev_err(hdev->dev, "Failed to allocate MMU prefetch workqueue\n");
 		rc = -ENOMEM;
 		goto free_ts_free_wq;
 	}
 
-	hdev->hl_chip_info = kzalloc(sizeof(struct hwmon_chip_info),
-					GFP_KERNEL);
+	hdev->hl_chip_info = kzalloc(sizeof(struct hwmon_chip_info), GFP_KERNEL);
 	if (!hdev->hl_chip_info) {
 		rc = -ENOMEM;
 		goto free_prefetch_wq;
@@ -1053,7 +1056,8 @@ static int device_early_init(struct hl_device *hdev)
 
 	hl_mem_mgr_init(hdev->dev, &hdev->kernel_mem_mgr);
 
-	hdev->reset_wq = create_singlethread_workqueue("hl_device_reset");
+	snprintf(workq_name, 32, "hl%u_device_reset", hdev->cdev_idx);
+	hdev->reset_wq = create_singlethread_workqueue(workq_name);
 	if (!hdev->reset_wq) {
 		rc = -ENOMEM;
 		dev_err(hdev->dev, "Failed to create device reset WQ\n");
