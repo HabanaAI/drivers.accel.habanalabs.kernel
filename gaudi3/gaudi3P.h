@@ -778,7 +778,7 @@ int gaudi3_nic_spmu_sample(struct hl_nic_port *nic_port, u32 num_out_data, u64 o
 int gaudi3_nic_ack_spmu_bmon_interrupt(struct hl_device *hdev, int nic_macro_idx);
 int gaudi3_nic_debugfs_qp_read(struct hl_device *hdev, char *buf, size_t bsize);
 int gaudi3_nic_debugfs_wqe_read(struct hl_device *hdev, char *buf, size_t bsize);
-void gaudi3_nic_debugfs_print_fec_stats(struct hl_nic_port *nic_port);
+void gaudi3_nic_debugfs_collect_fec_stats(struct hl_nic_port *nic_port, char *buf, size_t size);
 int gaudi3_scheduler_submit_buf(struct hl_device *hdev, u32 cpu_id, u32 queue_id, void *buf,
 					u32 len);
 bool gaudi3_is_valid_dram_page_size(u32 page_size);

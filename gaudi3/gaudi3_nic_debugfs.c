@@ -661,21 +661,21 @@ exit:
 	return rc;
 }
 
-void gaudi3_nic_debugfs_print_fec_stats(struct hl_nic_port *nic_port)
+void gaudi3_nic_debugfs_collect_fec_stats(struct hl_nic_port *nic_port, char *buf, size_t size)
 {
-	struct hl_device *hdev = nic_port->hdev;
-	u32 card_location, port;
 	u64 data[FEC_STAT_LAST];
-
-	card_location = hdev->nic.card_location;
-	port = nic_port->port;
+	u32 port = nic_port->port;
 
 	gaudi3_nic_read_mac_fec_stats(nic_port, data);
 
-	dev_info(hdev->dev,
-		"Card %u Port %u: corrected_accumulated %llu uncorrected_accumulated %llu pre_fec_SER: %llu post_fec_SER: %llu\n",
-		card_location, port, data[FEC_CW_CORRECT], data[FEC_CW_UNCORRECTABLE],
-		data[FEC_PRE_FEC_SER], data[FEC_POST_FEC_SER]);
+	if (nic_port->pcs_link) {
+		sprintf(buf + strlen(buf),
+			"Port %u: corrected_accumulated %llu uncorrected_accumulated %llu pre_fec_SER: %llu post_fec_SER: %llu\n",
+			port, data[FEC_CW_CORRECT], data[FEC_CW_UNCORRECTABLE],
+			data[FEC_PRE_FEC_SER], data[FEC_POST_FEC_SER]);
+	} else {
+		sprintf(buf + strlen(buf), "Port %u: Link is down\n", port);
+	}
 }
 
 int gaudi3_nic_debugfs_write_coll_lag_size(struct hl_device *hdev, u32 coll_lag_size)

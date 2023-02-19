@@ -182,6 +182,6 @@ void gaudi_nic_phy_link_status_work(struct work_struct *work);
 u32 gaudi_nic_mac_read(struct hl_nic_port *nic_port, int mac, char *cfg_type, u32 addr);
 int gaudi_nic_debugfs_qp_read(struct hl_device *hdev, char *buf, size_t bsize);
 int gaudi_nic_debugfs_wqe_read(struct hl_device *hdev, char *buf, size_t bsize);
-void gaudi_nic_debugfs_print_fec_stats(struct hl_nic_port *nic_port);
+void gaudi_nic_debugfs_collect_fec_stats(struct hl_nic_port *nic_port, char *buf, size_t size);
 
 #endif /* GAUDI_NIC_H_ */

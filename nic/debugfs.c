@@ -1009,7 +1009,8 @@ static ssize_t debugfs_print_fec_stats_read(struct file *f,
 	struct hl_nic_funcs *nic_funcs;
 	struct hl_nic_port *nic_port;
 	struct hl_nic *nic;
-	int i;
+	char *kbuf;
+	int i, rc;
 
 	nic_props = &hdev->asic_prop.nic_props;
 	nic_funcs = hdev->asic_funcs->nic_funcs;
@@ -1018,16 +1019,26 @@ static ssize_t debugfs_print_fec_stats_read(struct file *f,
 	if (*ppos)
 		return 0;
 
+	kbuf = kzalloc(KBUF_OUT_SIZE, GFP_KERNEL);
+	if (!kbuf)
+		return -ENOMEM;
+
+	sprintf(kbuf + strlen(kbuf), "Card %u FEC stats:\n", hdev->nic.card_location);
+
 	for (i = 0 ; i < nic_props->max_num_of_ports ; i++) {
 		if (!(hdev->nic_ports_mask & BIT(i)))
 			continue;
 
 		nic_port = &nic->nic_ports[i];
 
-		nic_funcs->port_funcs->print_fec_stats(nic_port);
+		nic_funcs->port_funcs->collect_fec_stats(nic_port, kbuf, KBUF_OUT_SIZE);
 	}
 
-	return 0;
+	rc = simple_read_from_buffer(buf, count, ppos, kbuf, strlen(kbuf) + 1);
+
+	kfree(kbuf);
+
+	return rc;
 }
 
 static const struct file_operations debugfs_print_fec_stats_fops = {

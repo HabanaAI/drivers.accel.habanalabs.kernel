@@ -264,7 +264,7 @@ void gaudi2_nic_eq_handler_register(struct gaudi2_nic_port *gaudi2_nic,
 void gaudi2_nic_eq_handler_unregister(struct gaudi2_nic_port *gaudi2_nic);
 int gaudi2_nic_debugfs_qp_read(struct hl_device *hdev, char *buf, size_t bsize);
 int gaudi2_nic_debugfs_wqe_read(struct hl_device *hdev, char *buf, size_t bsize);
-void gaudi2_nic_debugfs_print_fec_stats(struct hl_nic_port *nic_port);
+void gaudi2_nic_debugfs_collect_fec_stats(struct hl_nic_port *nic_port, char *buf, size_t size);
 int gaudi2_nic_eq_dispatcher_register_db(struct gaudi2_nic_port *gaudi2_nic, u32 asid, u32 dbn);
 int gaudi2_nic_eq_request_irqs(struct hl_device *hdev);
 void gaudi2_nic_eq_sync_irqs(struct hl_device *hdev);

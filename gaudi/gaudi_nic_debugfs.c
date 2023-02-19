@@ -202,7 +202,7 @@ int gaudi_nic_debugfs_wqe_read(struct hl_device *hdev, char *buf, size_t bsize)
 	return 0;
 }
 
-void gaudi_nic_debugfs_print_fec_stats(struct hl_nic_port *nic_port)
+void gaudi_nic_debugfs_collect_fec_stats(struct hl_nic_port *nic_port, char *buf, size_t size)
 {
 
 }

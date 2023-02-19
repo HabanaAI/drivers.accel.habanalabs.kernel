@@ -1127,7 +1127,7 @@ struct hl_nic_user_cq_unset_in_params {
  * @user_ccq_set: set user congestion completion queue.
  * @user_ccq_unset: unset user congestion completion queue.
  * @reset_mac_stats: reset MAC statistics.
- * @print_fec_stats: print FEC statistics.
+ * @collect_fec_stats: collect FEC statistics.
  * @disable_wqe_index_checker: Disable WQE index checker for both Rx and Tx.
  * @fill_nic_status: fill information in NIC status packet for F/W.
  * @cfg_lock: acquire the port configuration lock.
@@ -1202,7 +1202,7 @@ struct hl_nic_port_funcs {
 				u32 num_of_entries, u32 *ccqn);
 	void (*user_ccq_unset)(struct hl_nic_port *nic_port, u32 *ccqn);
 	void (*reset_mac_stats)(struct hl_nic_port *nic_port);
-	void (*print_fec_stats)(struct hl_nic_port *nic_port);
+	void (*collect_fec_stats)(struct hl_nic_port *nic_port, char *buf, size_t size);
 	int (*disable_wqe_index_checker)(struct hl_nic_port *nic_port);
 	void (*fill_nic_status)(struct hl_nic_port *nic_port, struct cpucp_nic_status *nic_status);
 	void (*cfg_lock)(struct hl_nic_port *nic_port);

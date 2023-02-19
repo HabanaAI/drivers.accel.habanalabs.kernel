@@ -324,24 +324,19 @@ exit:
 	return rc;
 }
 
-void gaudi2_nic_debugfs_print_fec_stats(struct hl_nic_port *nic_port)
+void gaudi2_nic_debugfs_collect_fec_stats(struct hl_nic_port *nic_port, char *buf, size_t size)
 {
-	struct hl_device *hdev = nic_port->hdev;
-	u32 card_location, port;
 	u64 data[FEC_STAT_LAST];
-
-	card_location = hdev->nic.card_location;
-	port = nic_port->port;
+	u32 port = nic_port->port;
 
 	gaudi2_nic_get_mac_fec_stats(nic_port, data);
 
 	if (nic_port->pcs_link) {
-		dev_info(hdev->dev,
-			"Card %u Port %u: pre_fec_SER: %llue-%llu post_fec_SER: %llue-%llu\n",
-			card_location, port,
+		sprintf(buf + strlen(buf),
+			"Port %u: pre_fec_SER: %llue-%llu post_fec_SER: %llue-%llu\n", port,
 			data[FEC_PRE_FEC_SER_INT], data[FEC_PRE_FEC_SER_EXP],
 			data[FEC_POST_FEC_SER_INT], data[FEC_POST_FEC_SER_EXP]);
 	} else {
-		dev_info(hdev->dev, "Card %u Port %u: Link is down\n", card_location, port);
+		sprintf(buf + strlen(buf), "Port %u: Link is down\n", port);
 	}
 }
