@@ -19,7 +19,9 @@
 #define MMU_KBUF_SIZE		(MMU_ADDR_BUF_SIZE + MMU_ASID_BUF_SIZE)
 #define I2C_MAX_TRANSACTION_LEN	8
 
+#if !IS_ENABLED(CONFIG_DRM_ACCEL)
 static struct dentry *hl_debug_root;
+#endif
 
 static int hl_debugfs_i2c_read(struct hl_device *hdev, u8 i2c_bus, u8 i2c_addr,
 				u8 i2c_reg, u8 i2c_len, u64 *val)
@@ -1885,6 +1887,19 @@ void hl_debugfs_device_fini(struct hl_device *hdev)
 	kfree(entry->entry_arr);
 }
 
+#if IS_ENABLED(CONFIG_DRM_ACCEL)
+void hl_debugfs_add_device(struct hl_device *hdev)
+{
+	struct hl_dbg_device_entry *dev_entry = &hdev->hl_debugfs;
+
+	dev_entry->root = hdev->drm.accel->debugfs_root;
+
+	add_files_to_device(hdev, dev_entry, dev_entry->root);
+
+	if (!hdev->asic_prop.fw_security_enabled)
+		add_secured_nodes(dev_entry, dev_entry->root);
+}
+#else
 void hl_debugfs_add_device(struct hl_device *hdev)
 {
 	struct hl_dbg_device_entry *dev_entry = &hdev->hl_debugfs;
@@ -1911,6 +1926,7 @@ void hl_debugfs_remove_device(struct hl_device *hdev)
 	debugfs_remove_recursive(entry->root);
 	debugfs_remove_recursive(entry->accel_root);
 }
+#endif /* IS_ENABLED(CONFIG_DRM_ACCEL) */
 
 void hl_debugfs_add_file(struct hl_fpriv *hpriv)
 {
@@ -2043,6 +2059,7 @@ void hl_debugfs_set_state_dump(struct hl_device *hdev, char *data,
 	up_write(&dev_entry->state_dump_sem);
 }
 
+#if !IS_ENABLED(CONFIG_DRM_ACCEL)
 void __init hl_debugfs_init(void)
 {
 	hl_debug_root = debugfs_create_dir("habanalabs", NULL);
@@ -2052,3 +2069,4 @@ void hl_debugfs_fini(void)
 {
 	debugfs_remove_recursive(hl_debug_root);
 }
+#endif /* !IS_ENABLED(CONFIG_DRM_ACCEL) */

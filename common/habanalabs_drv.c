@@ -22,6 +22,11 @@
 #include <linux/sched/clock.h>
 #endif
 
+#ifdef _HAS_DRM_ACCEL_H
+#include <drm/drm_accel.h>
+#endif
+#include <drm/drm_drv.h>
+
 #define CREATE_TRACE_POINTS
 #include <trace/events/habanalabs.h>
 
@@ -41,8 +46,13 @@ MODULE_VERSION(HL_MODULE_VERSION);
 
 static int hl_major;
 static struct class *hl_class;
+#if IS_ENABLED(CONFIG_DRM_ACCEL)
 static DEFINE_IDR(hl_devs_idr);
 static DEFINE_MUTEX(hl_devs_idr_lock);
+#else
+DEFINE_IDR(hl_devs_idr);
+DEFINE_MUTEX(hl_devs_idr_lock);
+#endif
 
 static int ifh;
 
@@ -569,6 +579,33 @@ static const struct pci_device_id ids[] = {
 };
 MODULE_DEVICE_TABLE(pci, ids);
 
+#if IS_ENABLED(CONFIG_DRM_ACCEL)
+static const struct file_operations hl_fops = {
+	.owner = THIS_MODULE,
+	.open = accel_open,
+	.release = drm_release,
+	.unlocked_ioctl = hl_ioctl,
+	.compat_ioctl = hl_ioctl,
+	.llseek = noop_llseek,
+	.mmap = hl_mmap
+};
+
+static const struct drm_driver hl_driver = {
+	.driver_features = DRIVER_COMPUTE_ACCEL,
+
+	.major = HL_DRIVER_MAJOR,
+	.minor = HL_DRIVER_MINOR,
+	.patchlevel = HL_DRIVER_PATCHLEVEL,
+	.name = HL_NAME,
+	.desc = HL_DRIVER_DESC,
+	.date = HL_DRIVER_DATE,
+
+	.fops = &hl_fops,
+	.open = hl_device_open,
+	.postclose = hl_device_release
+};
+#endif /* IS_ENABLED(CONFIG_DRM_ACCEL) */
+
 static void set_pci_revision_id(struct hl_device *hdev, enum hl_asic_type asic_type)
 {
 	struct pci_dev *pdev = hdev->pdev;
@@ -692,43 +729,28 @@ static bool is_cpu_queue_enabled(struct hl_device *hdev)
 }
 
 /*
- * hl_device_open - open function for habanalabs device
- *
- * @inode: pointer to inode structure
- * @filp: pointer to file structure
+ * hl_device_open() - open function for habanalabs device.
+ * @ddev: pointer to DRM device structure.
+ * @file: pointer to DRM file private data structure.
  *
  * Called when process opens an habanalabs device.
  */
-int hl_device_open(struct inode *inode, struct file *filp)
+int hl_device_open(struct drm_device *ddev, struct drm_file *file_priv)
 {
+	struct hl_device *hdev = to_hl_device(ddev);
 	enum hl_device_status status;
-	struct hl_device *hdev;
 	struct hl_fpriv *hpriv;
 	int rc;
-
-	mutex_lock(&hl_devs_idr_lock);
-	hdev = idr_find(&hl_devs_idr, iminor(inode));
-	mutex_unlock(&hl_devs_idr_lock);
-
-	if (!hdev) {
-		pr_err("Couldn't find device %d:%d\n",
-			imajor(inode), iminor(inode));
-		return -ENXIO;
-	}
 
 	hpriv = kzalloc(sizeof(*hpriv), GFP_KERNEL);
 	if (!hpriv)
 		return -ENOMEM;
 
 	hpriv->hdev = hdev;
-	filp->private_data = hpriv;
-	hpriv->filp = filp;
-
 	mutex_init(&hpriv->notifier_event.lock);
 	mutex_init(&hpriv->restore_phase_mutex);
 	mutex_init(&hpriv->ctx_lock);
 	kref_init(&hpriv->refcount);
-	nonseekable_open(inode, filp);
 
 	hl_ctx_mgr_init(&hpriv->ctx_mgr);
 	hl_mem_mgr_init(hpriv->hdev->dev, &hpriv->mem_mgr);
@@ -794,6 +816,9 @@ int hl_device_open(struct inode *inode, struct file *filp)
 	hdev->last_successful_open_jif = jiffies;
 	hdev->last_successful_open_ktime = ktime_get();
 
+	file_priv->driver_priv = hpriv;
+	hpriv->file_priv = file_priv;
+
 	return 0;
 
 out_err:
@@ -801,7 +826,6 @@ out_err:
 	hl_mem_mgr_fini(&hpriv->mem_mgr);
 	hl_mem_mgr_idr_destroy(&hpriv->mem_mgr);
 	hl_ctx_mgr_fini(hpriv->hdev, &hpriv->ctx_mgr);
-	filp->private_data = NULL;
 	mutex_destroy(&hpriv->ctx_lock);
 	mutex_destroy(&hpriv->restore_phase_mutex);
 	mutex_destroy(&hpriv->notifier_event.lock);
@@ -837,7 +861,6 @@ int hl_device_open_ctrl(struct inode *inode, struct file *filp)
 	 */
 	hpriv->hdev = hdev;
 	filp->private_data = hpriv;
-	hpriv->filp = filp;
 
 	mutex_init(&hpriv->notifier_event.lock);
 	nonseekable_open(inode, filp);
@@ -1276,7 +1299,9 @@ static void copy_kernel_module_params_to_device(struct hl_device *hdev)
 	hdev->major = hl_major;
 	hdev->accel_major = hl_accel_get_major();
 	hdev->hclass = hl_class;
+#if !IS_ENABLED(CONFIG_DRM_ACCEL)
 	hdev->aclass = hl_accel_get_class();
+#endif
 	hdev->low_freq = low_freq;
 	hdev->card_type = card_type;
 	hdev->memory_scrub = memory_scrub;
@@ -1568,6 +1593,107 @@ static int fixup_device_params(struct hl_device *hdev)
 	return 0;
 }
 
+#if IS_ENABLED(CONFIG_DRM_ACCEL)
+static int allocate_device_id(struct hl_device *hdev, int minor)
+{
+	int rc, id;
+
+	mutex_lock(&hl_devs_idr_lock);
+
+	if (minor == -1) {
+		id = idr_alloc(&hl_devs_idr, hdev, 0, HL_MAX_MINORS, GFP_KERNEL);
+	} else {
+		void *old_idr = idr_replace(&hl_devs_idr, hdev, minor);
+
+		if (IS_ERR_VALUE(old_idr)) {
+			mutex_unlock(&hl_devs_idr_lock);
+			rc = PTR_ERR(old_idr);
+			pr_err("Error %d when trying to replace minor %d\n", rc, minor);
+			return rc;
+		}
+
+		id = minor;
+	}
+
+	mutex_unlock(&hl_devs_idr_lock);
+
+	if (id < 0) {
+		if (id == -ENOSPC)
+			pr_err("too many devices in the system\n");
+		return -EBUSY;
+	}
+
+	hdev->id = id;
+
+	/*
+	 * Firstly initialized with the internal device ID.
+	 * Will be updated later after the DRM device registration to hold the minor ID.
+	 */
+	hdev->cdev_idx = hdev->id;
+
+	return 0;
+}
+#else
+static int allocate_device_id(struct hl_device *hdev, int minor)
+{
+	int rc, main_id, ctrl_id = 0;
+
+	mutex_lock(&hl_devs_idr_lock);
+
+	if (minor == -1) {
+		/* Always save 2 numbers, 1 for main device and 1 for control.
+		 * They must be consecutive
+		 */
+		main_id = idr_alloc(&hl_devs_idr, hdev, 0, HL_MAX_MINORS, GFP_KERNEL);
+
+		if (main_id >= 0)
+			ctrl_id = idr_alloc(&hl_devs_idr, hdev, main_id + 1, main_id + 2,
+						GFP_KERNEL);
+	} else {
+		void *old_idr = idr_replace(&hl_devs_idr, hdev, minor);
+
+		if (IS_ERR_VALUE(old_idr)) {
+			mutex_unlock(&hl_devs_idr_lock);
+			rc = PTR_ERR(old_idr);
+			pr_err("Error %d when trying to replace minor %d\n", rc, minor);
+			return rc;
+		}
+
+		main_id = minor;
+
+		old_idr = idr_replace(&hl_devs_idr, hdev, main_id + 1);
+		if (IS_ERR_VALUE(old_idr)) {
+			mutex_unlock(&hl_devs_idr_lock);
+			rc = PTR_ERR(old_idr);
+			pr_err("Error %d when trying to replace 2nd minor %d\n", rc, main_id + 1);
+			return rc;
+		}
+
+		ctrl_id = main_id + 1;
+	}
+
+	mutex_unlock(&hl_devs_idr_lock);
+
+	if (main_id < 0 || ctrl_id < 0) {
+		if (main_id == -ENOSPC || ctrl_id == -ENOSPC)
+			pr_err("too many devices in the system\n");
+
+		if (main_id >= 0) {
+			mutex_lock(&hl_devs_idr_lock);
+			idr_remove(&hl_devs_idr, main_id);
+			mutex_unlock(&hl_devs_idr_lock);
+		}
+
+		return -EBUSY;
+	}
+
+	hdev->id = main_id;
+	hdev->id_control = ctrl_id;
+
+	return 0;
+}
+#endif /* IS_ENABLED(CONFIG_DRM_ACCEL) */
+
 /**
  * create_hdev - create habanalabs device instance
  *
@@ -1583,14 +1709,22 @@ static int fixup_device_params(struct hl_device *hdev)
 int create_hdev(struct hl_device **dev, struct pci_dev *pdev,
 		enum hl_asic_type asic_type, int minor)
 {
-	int rc, main_id, ctrl_id = 0;
 	struct hl_device *hdev;
+	int rc;
 
 	*dev = NULL;
 
+#if IS_ENABLED(CONFIG_DRM_ACCEL)
+	hdev = devm_drm_dev_alloc(&pdev->dev, &hl_driver, struct hl_device, drm);
+	if (IS_ERR(hdev))
+		return PTR_ERR(hdev);
+
+	hdev->dev = hdev->drm.dev;
+#else
 	hdev = kzalloc(sizeof(*hdev), GFP_KERNEL);
 	if (!hdev)
 		return -ENOMEM;
+#endif
 
 	/* Will be NULL in case of simulator device */
 	hdev->pdev = pdev;
@@ -1616,7 +1750,7 @@ int create_hdev(struct hl_device **dev, struct pci_dev *pdev,
 		if (hdev->asic_type == ASIC_INVALID) {
 			dev_err(&pdev->dev, "Unsupported ASIC\n");
 			rc = -ENODEV;
-			goto free_hdev;
+			goto out_err;
 		}
 	} else {
 		hdev->asic_type = asic_type;
@@ -1628,68 +1762,20 @@ int create_hdev(struct hl_device **dev, struct pci_dev *pdev,
 
 	rc = fixup_device_params(hdev);
 	if (rc)
-		goto free_hdev;
+		goto out_err;
 
-	mutex_lock(&hl_devs_idr_lock);
-
-	if (minor == -1) {
-		/* Always save 2 numbers, 1 for main device and 1 for control.
-		 * They must be consecutive
-		 */
-		main_id = idr_alloc(&hl_devs_idr, hdev, 0, HL_MAX_MINORS,
-					GFP_KERNEL);
-
-		if (main_id >= 0)
-			ctrl_id = idr_alloc(&hl_devs_idr, hdev, main_id + 1,
-						main_id + 2, GFP_KERNEL);
-	} else {
-		void *old_idr = idr_replace(&hl_devs_idr, hdev, minor);
-
-		if (IS_ERR_VALUE(old_idr)) {
-			rc = PTR_ERR(old_idr);
-			pr_err("Error %d when trying to replace minor %d\n",
-				rc, minor);
-			mutex_unlock(&hl_devs_idr_lock);
-			goto free_hdev;
-		}
-		main_id = minor;
-
-		old_idr = idr_replace(&hl_devs_idr, hdev, main_id + 1);
-		if (IS_ERR_VALUE(old_idr)) {
-			rc = PTR_ERR(old_idr);
-			pr_err("Error %d when trying to replace 2nd minor %d\n",
-				rc, main_id + 1);
-			mutex_unlock(&hl_devs_idr_lock);
-			goto free_hdev;
-		}
-		ctrl_id = main_id + 1;
-	}
-
-	mutex_unlock(&hl_devs_idr_lock);
-
-	if ((main_id < 0) || (ctrl_id < 0)) {
-		if ((main_id == -ENOSPC) || (ctrl_id == -ENOSPC))
-			pr_err("too many devices in the system\n");
-
-		if (main_id >= 0) {
-			mutex_lock(&hl_devs_idr_lock);
-			idr_remove(&hl_devs_idr, main_id);
-			mutex_unlock(&hl_devs_idr_lock);
-		}
-
-		rc = -EBUSY;
-		goto free_hdev;
-	}
-
-	hdev->id = main_id;
-	hdev->id_control = ctrl_id;
+	rc = allocate_device_id(hdev, minor);
+	if (rc)
+		goto out_err;
 
 	*dev = hdev;
 
 	return 0;
 
-free_hdev:
+out_err:
+#if !IS_ENABLED(CONFIG_DRM_ACCEL)
 	kfree(hdev);
+#endif
 	return rc;
 }
 
@@ -1704,10 +1790,14 @@ static void destroy_hdev(struct hl_device *hdev)
 	/* Remove device from the device list */
 	mutex_lock(&hl_devs_idr_lock);
 	idr_remove(&hl_devs_idr, hdev->id);
+#if !IS_ENABLED(CONFIG_DRM_ACCEL)
 	idr_remove(&hl_devs_idr, hdev->id_control);
+#endif
 	mutex_unlock(&hl_devs_idr_lock);
 
+#if !IS_ENABLED(CONFIG_DRM_ACCEL)
 	kfree(hdev);
+#endif
 }
 
 static int hl_pmops_suspend(struct device *dev)
@@ -2100,13 +2190,19 @@ static int __init hl_init(void)
 		goto remove_major;
 	}
 
+#if !IS_ENABLED(CONFIG_DRM_ACCEL)
 	hl_debugfs_init();
+#endif
 
 	hl_enable_trace_events();
 
 	rc = hl_accel_init();
 	if (rc)
+#if IS_ENABLED(CONFIG_DRM_ACCEL)
+		goto destroy_class;
+#else
 		goto remove_debugfs;
+#endif
 
 	/* SIMULATOR CODE */
 	rc = hl_sim_init(hl_class, hl_major, &hl_devs_idr, &hl_devs_idr_lock);
@@ -2162,8 +2258,12 @@ remove_sim:
 /* END OF SIMULATOR CODE */
 remove_accel:
 	hl_accel_exit();
+#if !IS_ENABLED(CONFIG_DRM_ACCEL)
 remove_debugfs:
 	hl_debugfs_fini();
+#else
+destroy_class:
+#endif
 	class_destroy(hl_class);
 remove_major:
 	unregister_chrdev_region(MKDEV(hl_major, 0), HL_MAX_MINORS);
@@ -2202,13 +2302,14 @@ skip_pci:
 	if (enable_events_tracing)
 		ssleep(5);
 
+#if !IS_ENABLED(CONFIG_DRM_ACCEL)
 	/*
 	 * Removing debugfs must be after all devices or simulator devices
 	 * have been removed because otherwise we get a bug in the
 	 * debugfs module for referencing NULL objects
 	 */
 	hl_debugfs_fini();
-
+#endif
 	class_destroy(hl_class);
 	unregister_chrdev_region(MKDEV(hl_major, 0), HL_MAX_MINORS);
 

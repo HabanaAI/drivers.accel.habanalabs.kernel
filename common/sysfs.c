@@ -535,6 +535,39 @@ void hl_sysfs_add_dev_vrm_attr(struct hl_device *hdev, struct attribute_group *d
 	dev_vrm_attr_grp->attrs = hl_dev_vrm_attrs;
 }
 
+#if IS_ENABLED(CONFIG_DRM_ACCEL)
+int hl_sysfs_init(struct hl_device *hdev)
+{
+	int rc;
+
+	hdev->max_power = hdev->asic_prop.max_power_default;
+
+	hdev->asic_funcs->add_device_attr(hdev, &hl_dev_clks_attr_group, &hl_dev_vrm_attr_group);
+
+	rc = device_add_groups(hdev->dev, hl_dev_attr_groups);
+	if (rc) {
+		dev_err(hdev->dev,
+			"Failed to add groups to device, error %d\n", rc);
+		return rc;
+	}
+
+	if (!hdev->asic_prop.allow_inference_soft_reset)
+		return 0;
+
+	rc = device_add_groups(hdev->dev, hl_dev_inference_attr_groups);
+	if (rc) {
+		dev_err(hdev->dev,
+			"Failed to add groups to device, error %d\n", rc);
+		goto remove_groups;
+	}
+
+	return 0;
+
+remove_groups:
+	device_remove_groups(hdev->dev, hl_dev_attr_groups);
+	return rc;
+}
+#else
 int hl_sysfs_init(struct hl_device *hdev)
 {
 	int rc;
@@ -593,7 +626,19 @@ remove_groups:
 	device_remove_groups(hdev->dev, hl_dev_attr_groups);
 	return rc;
 }
+#endif /* IS_ENABLED(CONFIG_DRM_ACCEL) */
 
+#if IS_ENABLED(CONFIG_DRM_ACCEL)
+void hl_sysfs_fini(struct hl_device *hdev)
+{
+	device_remove_groups(hdev->dev, hl_dev_attr_groups);
+
+	if (!hdev->asic_prop.allow_inference_soft_reset)
+		return;
+
+	device_remove_groups(hdev->dev, hl_dev_inference_attr_groups);
+}
+#else
 void hl_sysfs_fini(struct hl_device *hdev)
 {
 	device_remove_groups(hdev->dev, hl_dev_attr_groups);
@@ -609,3 +654,4 @@ void hl_sysfs_fini(struct hl_device *hdev)
 	device_remove_groups(hdev->dev, hl_dev_inference_attr_groups);
 	device_remove_groups(hdev->accel_dev, hl_dev_inference_attr_groups);
 }
+#endif /* IS_ENABLED(CONFIG_DRM_ACCEL) */

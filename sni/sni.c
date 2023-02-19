@@ -413,6 +413,7 @@ static int hl_sni_get_compute_user_ctx(struct hl_aux_dev *aux_dev, int user_fd)
 {
 	struct hl_sni *sni = container_of(aux_dev, struct hl_sni, sni_aux_dev);
 	struct hl_device *hdev = container_of(sni, struct hl_device, sni);
+	struct drm_file *file_priv;
 	struct hl_fpriv *hpriv;
 	struct file *file;
 	int rc = 0;
@@ -439,7 +440,8 @@ static int hl_sni_get_compute_user_ctx(struct hl_aux_dev *aux_dev, int user_fd)
 	 */
 	hpriv = list_first_entry(&hdev->fpriv_list, struct hl_fpriv, dev_node);
 
-	if (hpriv != file->private_data) {
+	file_priv = file->private_data;
+	if (hpriv != file_priv->driver_priv) {
 		dev_dbg(hdev->dev, "user FD mismatch\n");
 		rc = -EINVAL;
 	}
@@ -464,7 +466,7 @@ static void hl_sni_put_compute_user_ctx(struct hl_aux_dev *aux_dev)
 	hpriv = list_first_entry(&hdev->fpriv_list, struct hl_fpriv, dev_node);
 	mutex_unlock(&hdev->fpriv_list_lock);
 
-	file = hpriv->filp;
+	file = hpriv->file_priv->filp;
 
 	/* We can assert here that all SNI resources which might have dependency on compute side
 	 * are already released. Hence, release reference to compute file.
@@ -627,7 +629,9 @@ static int hl_sni_aux_data_init(struct hl_device *hdev)
 
 	/* TODO: SW-123246: add SNI debugfs instead of these */
 	aux_data->dentry = hdev->hl_debugfs.root;
+#if !IS_ENABLED(CONFIG_DRM_ACCEL)
 	aux_data->accel_dentry = hdev->hl_debugfs.accel_root;
+#endif
 
 	rc = hl_sni_get_asic_type(hdev, &aux_data->asic_type);
 	if (rc) {

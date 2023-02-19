@@ -9,10 +9,16 @@
 
 #include <uapi/drm/habanalabs_accel.h>
 #include "habanalabs.h"
+#include "habanalabs_compat_accel.h"
 
 #include <linux/pci.h>
 #include <linux/hwmon.h>
 #include <linux/vmalloc.h>
+
+#ifdef _HAS_DRM_ACCEL_H
+#include <drm/drm_accel.h>
+#endif
+#include <drm/drm_drv.h>
 
 #include <trace/events/habanalabs.h>
 
@@ -30,6 +36,20 @@ enum dma_alloc_type {
 };
 
 #define MEM_SCRUB_DEFAULT_VAL 0x1122334455667788
+
+#if !IS_ENABLED(CONFIG_DRM_ACCEL)
+#define drm_dev_register	hl_drm_dev_register
+#define drm_dev_unregister	hl_drm_dev_unregister
+
+static int hl_drm_dev_register(struct drm_device *ddev, unsigned long flags)
+{
+	return 0;
+}
+
+static void hl_drm_dev_unregister(struct drm_device *ddev)
+{
+}
+#endif /* !IS_ENABLED(CONFIG_DRM_ACCEL) */
 
 /*
  * hl_set_dram_bar- sets the bar to allow later access to address
@@ -585,24 +605,20 @@ static void print_device_in_use_info(struct hl_device *hdev, const char *message
 }
 
 /*
- * hl_device_release - release function for habanalabs device
- *
- * @inode: pointer to inode structure
- * @filp: pointer to file structure
+ * hl_device_release() - release function for habanalabs device.
+ * @ddev: pointer to DRM device structure.
+ * @file: pointer to DRM file private data structure.
  *
  * Called when process closes an habanalabs device
  */
-static int hl_device_release(struct inode *inode, struct file *filp)
+void hl_device_release(struct drm_device *ddev, struct drm_file *file_priv)
 {
-	struct hl_fpriv *hpriv = filp->private_data;
-	struct hl_device *hdev = hpriv->hdev;
-
-	filp->private_data = NULL;
+	struct hl_fpriv *hpriv = file_priv->driver_priv;
+	struct hl_device *hdev = to_hl_device(ddev);
 
 	if (!hdev) {
 		pr_crit("Closing FD after device was removed. Memory leak will occur and it is advised to reboot.\n");
 		put_pid(hpriv->taskpid);
-		return 0;
 	}
 
 	hl_ctx_mgr_fini(hdev, &hpriv->ctx_mgr);
@@ -620,8 +636,6 @@ static int hl_device_release(struct inode *inode, struct file *filp)
 	}
 
 	hdev->last_open_session_duration_jif = jiffies - hdev->last_successful_open_jif;
-
-	return 0;
 }
 
 static int hl_device_release_ctrl(struct inode *inode, struct file *filp)
@@ -688,19 +702,24 @@ int __hl_mmap(struct hl_fpriv *hpriv, struct vm_area_struct *vma)
  * Called when process does an mmap on habanalabs device. Call the relevant mmap
  * function at the end of the common code.
  */
-static int hl_mmap(struct file *filp, struct vm_area_struct *vma)
+int hl_mmap(struct file *filp, struct vm_area_struct *vma)
 {
-	return __hl_mmap(filp->private_data, vma);
+	struct drm_file *file_priv = filp->private_data;
+	struct hl_fpriv *hpriv = file_priv->driver_priv;
+
+	return __hl_mmap(hpriv, vma);
 }
 
+#if !IS_ENABLED(CONFIG_DRM_ACCEL)
 static const struct file_operations hl_ops = {
 	.owner = THIS_MODULE,
-	.open = hl_device_open,
-	.release = hl_device_release,
+	.open = hl_accel_device_open,
+	.release = hl_accel_device_release,
 	.mmap = hl_mmap,
 	.unlocked_ioctl = hl_ioctl,
 	.compat_ioctl = hl_ioctl
 };
+#endif /* !IS_ENABLED(CONFIG_DRM_ACCEL) */
 
 static const struct file_operations hl_ctrl_ops = {
 	.owner = THIS_MODULE,
@@ -750,6 +769,46 @@ static int device_init_cdev(struct hl_device *hdev, struct class *class,
 	return 0;
 }
 
+#if IS_ENABLED(CONFIG_DRM_ACCEL)
+static int cdev_sysfs_debugfs_add(struct hl_device *hdev)
+{
+	char name[32];
+	int rc;
+
+	hdev->cdev_idx = hdev->drm.accel->index;
+
+	/* Initialize cdev and device structures for the control device */
+	snprintf(name, sizeof(name), "hl_controlD%d", hdev->cdev_idx);
+	rc = device_init_cdev(hdev, hdev->hclass, hdev->cdev_idx, &hl_ctrl_ops, name,
+				&hdev->cdev_ctrl, &hdev->dev_ctrl, hdev->major);
+	if (rc)
+		return rc;
+
+	rc = cdev_device_add(&hdev->cdev_ctrl, hdev->dev_ctrl);
+	if (rc) {
+		dev_err(hdev->dev_ctrl, "failed to add a control char device to the system\n");
+		goto free_ctrl_device;
+	}
+
+	rc = hl_sysfs_init(hdev);
+	if (rc) {
+		dev_err(hdev->dev, "failed to initialize sysfs\n");
+		goto delete_ctrl_cdev_device;
+	}
+
+	hl_debugfs_add_device(hdev);
+
+	hdev->cdev_sysfs_debugfs_created = true;
+
+	return 0;
+
+delete_ctrl_cdev_device:
+	cdev_device_del(&hdev->cdev_ctrl, hdev->dev_ctrl);
+free_ctrl_device:
+	put_device(hdev->dev_ctrl);
+	return rc;
+}
+#else
 static int cdev_sysfs_debugfs_add(struct hl_device *hdev)
 {
 	int rc;
@@ -802,7 +861,20 @@ delete_cdev_device:
 	cdev_device_del(&hdev->cdev, hdev->dev);
 	return rc;
 }
+#endif /* IS_ENABLED(CONFIG_DRM_ACCEL) */
 
+#if IS_ENABLED(CONFIG_DRM_ACCEL)
+static void cdev_sysfs_debugfs_remove(struct hl_device *hdev)
+{
+	if (!hdev->cdev_sysfs_debugfs_created)
+		return;
+
+	hl_sysfs_fini(hdev);
+
+	cdev_device_del(&hdev->cdev_ctrl, hdev->dev_ctrl);
+	put_device(hdev->dev_ctrl);
+}
+#else
 static void cdev_sysfs_debugfs_remove(struct hl_device *hdev)
 {
 	if (!hdev->cdev_sysfs_debugfs_created)
@@ -821,6 +893,7 @@ put_devices:
 	put_device(hdev->dev);
 	put_device(hdev->dev_ctrl);
 }
+#endif /* IS_ENABLED(CONFIG_DRM_ACCEL) */
 
 static void device_hard_reset_pending(struct work_struct *work)
 {
@@ -2371,6 +2444,7 @@ int hl_read_memory_block(struct hl_device *hdev, u32 *buf, u64 start_addr, u32 s
 	return 0;
 }
 
+#if !IS_ENABLED(CONFIG_DRM_ACCEL)
 static int create_accel_cdev(struct hl_device *hdev)
 {
 	char *name;
@@ -2464,6 +2538,7 @@ free_dev:
 out_err:
 	return rc;
 }
+#endif /* !IS_ENABLED(CONFIG_DRM_ACCEL) */
 
 /*
  * hl_device_init - main initialization function for habanalabs device
@@ -2479,14 +2554,19 @@ int hl_device_init(struct hl_device *hdev)
 	int i, rc, cq_cnt, user_interrupt_cnt, cq_ready_cnt;
 	bool expose_interfaces_on_err = false;
 
+#if !IS_ENABLED(CONFIG_DRM_ACCEL)
 	rc = create_cdev(hdev);
 	if (rc)
 		goto out_disabled;
-
+#endif
 	/* Initialize ASIC function pointers and perform early init */
 	rc = device_early_init(hdev);
 	if (rc)
+#if IS_ENABLED(CONFIG_DRM_ACCEL)
+		goto out_disabled;
+#else
 		goto free_dev;
+#endif
 
 	user_interrupt_cnt = hdev->asic_prop.user_dec_intr_count +
 				hdev->asic_prop.user_interrupt_count;
@@ -2673,6 +2753,14 @@ int hl_device_init(struct hl_device *hdev)
 	 * From here there is no need to expose them in case of an error.
 	 */
 	expose_interfaces_on_err = false;
+
+	rc = drm_dev_register(&hdev->drm, 0);
+	if (rc) {
+		dev_err(hdev->dev, "Failed to register DRM device, rc %d\n", rc);
+		rc = 0;
+		goto out_disabled;
+	}
+
 	rc = cdev_sysfs_debugfs_add(hdev);
 	if (rc) {
 		dev_err(hdev->dev, "Failed to add char devices and sysfs/debugfs files\n");
@@ -2750,22 +2838,22 @@ free_usr_intr_mem:
 	kfree(hdev->user_interrupt);
 early_fini:
 	device_early_fini(hdev);
+#if !IS_ENABLED(CONFIG_DRM_ACCEL)
 free_dev:
 	put_device(hdev->accel_dev_ctrl);
 	put_device(hdev->accel_dev);
 	put_device(hdev->dev_ctrl);
 	put_device(hdev->dev);
+#endif
 out_disabled:
 	hdev->disabled = true;
-	if (expose_interfaces_on_err)
+	if (expose_interfaces_on_err) {
+		drm_dev_register(&hdev->drm, 0);
 		cdev_sysfs_debugfs_add(hdev);
-	if (hdev->pdev)
-		dev_err(&hdev->pdev->dev,
-			"Failed to initialize hl%d. Device %s is NOT usable !\n",
-			hdev->cdev_idx, HL_DEV_NAME(hdev));
-	else
-		pr_err("Failed to initialize hl%d. Device %s is NOT usable !\n",
-			hdev->cdev_idx, HL_DEV_NAME(hdev));
+	}
+
+	pr_err("Failed to initialize accel%d. Device %s is NOT usable!\n",
+		hdev->cdev_idx, HL_DEV_NAME(hdev));
 
 	return rc;
 }
@@ -2925,6 +3013,7 @@ void hl_device_fini(struct hl_device *hdev)
 
 	/* Hide devices and sysfs/debugfs files from user */
 	cdev_sysfs_debugfs_remove(hdev);
+	drm_dev_unregister(&hdev->drm);
 
 	hl_debugfs_device_fini(hdev);
 
