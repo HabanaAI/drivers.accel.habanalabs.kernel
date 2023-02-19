@@ -2317,53 +2317,6 @@ static void copy_info(char *buf, char *name, int *data, u8 count)
 	sprintf(buf + strlen(buf), "\n");
 }
 
-static void dump_mac_params(struct hl_device *hdev, u32 port, char *buf)
-{
-	u32 mac_rec_sts, mac_sd_sts, mac_gnrl_sts[4], phy_rx_sts[4];
-	int i;
-
-	mac_rec_sts = NIC_MACRO_RREG32(mmPRT0_MAC_CORE_MAC_REC_STS0);
-	mac_sd_sts = NIC_MACRO_RREG32(mmPRT0_MAC_CORE_MAC_SD_STS);
-
-	for (i = 0 ; i < 4 ; i++) {
-		mac_gnrl_sts[i] = NIC_MACRO_RREG32(mmPRT0_MAC_CORE_MAC_GNRL_STS_0 + 4*i);
-		phy_rx_sts[i] = NIC_MACRO_RREG32(mmNIC0_PHY_PHY_RX_STS_0 + 4*i);
-	}
-
-	sprintf(buf + strlen(buf),
-		"MAC_REC_STS0: REC_ALIGN_DONE 0x%x , REC_HIGH_BER 0x%x , REC_LINK_STS 0x%x , REC_AMPS_LOCK 0x%x , REC_RSFEC_ALIGNED 0x%x\n",
-		FIELD_GET(PRT0_MAC_CORE_MAC_REC_STS0_REC_ALIGN_DONE_MASK, mac_rec_sts),
-		FIELD_GET(PRT0_MAC_CORE_MAC_REC_STS0_REC_HIGH_BER_MASK, mac_rec_sts),
-		FIELD_GET(PRT0_MAC_CORE_MAC_REC_STS0_REC_LINK_STS_MASK, mac_rec_sts),
-		FIELD_GET(PRT0_MAC_CORE_MAC_REC_STS0_REC_AMPS_LOCK_MASK, mac_rec_sts),
-		FIELD_GET(PRT0_MAC_CORE_MAC_REC_STS0_REC_RSFEC_ALIGNED_MASK, mac_rec_sts));
-
-	sprintf(buf + strlen(buf),
-		"MAC_SD_STS: SD_SID_DET 0x%x\n",
-		FIELD_GET(PRT0_MAC_CORE_MAC_SD_STS_SD_SIG_DET_MASK, mac_sd_sts));
-
-	for (i = 0 ; i < 4 ; i++) {
-		sprintf(buf + strlen(buf),
-			"MAC_GNRL_STS%d: TX_OVR_ERR 0x%x , TX_UNDERFLOW 0x%x , LOC_FAULT 0x%x , REM_FAULT 0x%x , LI_FAULT 0x%x\n",
-			i,
-			FIELD_GET(PRT0_MAC_CORE_MAC_GNRL_STS_TX_OVR_ERR_MASK, mac_gnrl_sts[i]),
-			FIELD_GET(PRT0_MAC_CORE_MAC_GNRL_STS_TX_UNDERFLOW_MASK, mac_gnrl_sts[i]),
-			FIELD_GET(PRT0_MAC_CORE_MAC_GNRL_STS_LOC_FAULT_MASK, mac_gnrl_sts[i]),
-			FIELD_GET(PRT0_MAC_CORE_MAC_GNRL_STS_REM_FAULT_MASK, mac_gnrl_sts[i]),
-			FIELD_GET(PRT0_MAC_CORE_MAC_GNRL_STS_LI_FAULT_MASK, mac_gnrl_sts[i]));
-	}
-
-	for (i = 0 ; i < 4 ; i++) {
-		sprintf(buf + strlen(buf),
-			"PHY_RX_STS%d: PHY_READY 0x%x , SIGNAL_DETECT 0x%x , PLL_LOCK 0x%x , PHY_RX_CLK_TICK 0x%x\n",
-			i,
-			FIELD_GET(NIC0_PHY_PHY_RX_STS_PHY_READY_MASK, phy_rx_sts[i]),
-			FIELD_GET(NIC0_PHY_PHY_RX_STS_SIGNAL_DETECT_MASK, phy_rx_sts[i]),
-			FIELD_GET(NIC0_PHY_PHY_RX_STS_PLL_LOCK_MASK, phy_rx_sts[i]),
-			FIELD_GET(NIC0_PHY_PHY_RX_STS_PHY_RX_CLK_TICK_MASK, phy_rx_sts[i]));
-	}
-}
-
 void gaudi2_nic_phy_dump_serdes_params(struct hl_device *hdev, char *buf, size_t size)
 {
 	u32 port, card_location, sd, phy_ready, ch_est_of, ch_est_hf, ppm_twos, adapt_state;
@@ -2415,6 +2368,4 @@ void gaudi2_nic_phy_dump_serdes_params(struct hl_device *hdev, char *buf, size_t
 		copy_info(buf, "tx_taps", tx_taps, 5);
 		sprintf(buf + strlen(buf), "\n");
 	}
-
-	dump_mac_params(hdev, port, buf);
 }
