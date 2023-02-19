@@ -159,6 +159,7 @@
 #include "nic_tmr_axuser_axuser_hbw_regs.h"
 #include "prt_phy_regs.h"
 #include "prt_mac_aux_regs.h"
+#include "nic_mac_glob_stat_control_reg_regs.h"
 
 #include "pdma_cmn_b_masks.h"
 #include "pdma_cmn_b_pqm_cmn_b_masks.h"
@@ -216,6 +217,17 @@
 #include "nic_tmr_masks.h"
 #include "nic_rxb_core_masks.h"
 #include "nic_rxb_core_prt_masks.h"
+#include "prt_mac_aux_masks.h"
+#include "nic_mac_glob_stat_control_reg_masks.h"
+#include "nic_mac_ch_mac_ch0_masks.h"
+#include "prt_mac_core_masks.h"
+#include "mac_pcs_pcs400_masks.h"
+#include "mac_pcs_pcs200_masks.h"
+#include "mc_ch_masks.h"
+#include "hbm_phy_p0_master_masks.h"
+#include "arc_af_eng_masks.h"
+#include "arc_af_eng_sec_user_adapt_masks.h"
+#include "autonomous_control_masks.h"
 
 /* CSLICE */
 #define CS_MAINT_BASE_OFFSET		(mmHD0_CS0_MAINT_BASE - mmHD0_CS0_MAIN_BASE)
@@ -253,27 +265,16 @@
 #include "d0_nic0_mac_pcs_rsfec400_regs.h"
 #include "d0_nic0_phy_special_regs.h"
 #include "hd0_rrtr0_rtr_ctrl_ch0_razwi_hbw_regs.h"
-#include "d0_hbm0_bcast_cmn_masks.h"
-#include "prt_mac_aux_masks.h"
 #include "d0_nic0_phy_special_regs.h"
-#include "nic_mac_glob_stat_control_reg_masks.h"
-#include "nic_mac_ch_mac_ch0_masks.h"
-#include "prt_mac_core_masks.h"
-#include "mac_pcs_pcs400_masks.h"
-#include "mac_pcs_pcs200_masks.h"
+#include "hd0_rrtr0_rtr_ctrl_ch0_razwi_hbw_regs.h"
+
 #include "d0_hbm0_bcast_cmn_masks.h"
-#include "mc_ch_masks.h"
-#include "hbm_phy_p0_master_masks.h"
-#include "hd0_sync_mngr_mstr_if_axuser_hbw_masks.h"
-#include "arc_af_eng_masks.h"
+#include "d0_hbm0_bcast_cmn_masks.h"
 #include "hd0_rrtr0_rtr_ctrl_rr_lbw_masks.h"
 #include "hd0_rrtr0_rtr_ctrl_rr_hbw_masks.h"
-#include "nic_mac_glob_stat_control_reg_regs.h"
-#include "arc_af_eng_sec_user_adapt_masks.h"
-#include "hd0_rrtr0_rtr_ctrl_ch0_razwi_hbw_regs.h"
+#include "hd0_sync_mngr_mstr_if_axuser_hbw_masks.h"
 #include "d0_nic0_cs_dbg_bmon0_masks.h"
 #include "d0_nic0_cs_dbg_spmu_masks.h"
-#include "autonomous_control_masks.h"
 
 #define mmD0_PCIE_DBI_SNPS_BASE	0xC403000ull
 
