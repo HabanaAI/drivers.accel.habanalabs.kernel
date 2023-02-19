@@ -8210,17 +8210,6 @@ static int gaudi2_handle_nic_sw_error_event(struct hl_device *hdev, u16 event_ty
 	return error_count;
 }
 
-static int gaudi2_handle_nic_axi_error_response_event(struct hl_device *hdev, u16 event_type,
-				u8 macro_index, struct hl_eq_nic_intr_cause *nic_intr_cause)
-{
-	u32 error_count = 0;
-
-	error_count = gaudi2_handle_nic_error(hdev, event_type, macro_index, nic_intr_cause);
-	hl_check_for_glbl_errors(hdev);
-
-	return error_count;
-}
-
 /*
  * gaudi2_queue_idx_dec - decrement queue index (pi/ci) and handle wrap
  *
@@ -8701,6 +8690,21 @@ static void gaudi2_check_if_razwi_happened(struct hl_device *hdev)
 	for (mod_idx = 0 ; mod_idx < NUM_OF_ROT ; mod_idx++)
 		if (hdev->rotator_mask & BIT(mod_idx))
 			gaudi2_ack_module_razwi_event_handler(hdev, RAZWI_ROT, mod_idx, 0, NULL);
+}
+
+static int gaudi2_handle_nic_axi_error_response_event(struct hl_device *hdev, u16 event_type,
+				u8 macro_index, struct hl_eq_nic_intr_cause *nic_intr_cause,
+				u64 *event_mask)
+{
+	u32 error_count = 0;
+
+	error_count = gaudi2_handle_nic_error(hdev, event_type, macro_index, nic_intr_cause);
+
+	/* check if RAZWI happened */
+	gaudi2_ack_module_razwi_event_handler(hdev, RAZWI_NIC, macro_index, 0, event_mask);
+	hl_check_for_glbl_errors(hdev);
+
+	return error_count;
 }
 
 static int gaudi2_psoc_razwi_get_engines(struct gaudi2_razwi_info *razwi_info, u32 array_size,
@@ -10345,7 +10349,7 @@ void gaudi2_handle_eqe(struct hl_device *hdev, struct hl_eq_entry *eq_entry)
 	case GAUDI2_EVENT_NIC0_AXI_ERROR_RESPONSE ... GAUDI2_EVENT_NIC11_AXI_ERROR_RESPONSE:
 		index = (event_type - GAUDI2_EVENT_NIC0_AXI_ERROR_RESPONSE);
 		error_count = gaudi2_handle_nic_axi_error_response_event(hdev, event_type, index,
-							&eq_entry->nic_intr_cause);
+							&eq_entry->nic_intr_cause, &event_mask);
 		error_count += gaudi2_handle_qm_sei_err(hdev, event_type, false, &event_mask);
 		event_mask |= HL_NOTIFIER_EVENT_USER_ENGINE_ERR;
 		break;
