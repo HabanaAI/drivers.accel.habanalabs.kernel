@@ -475,7 +475,7 @@ ifneq ($(shell grep -w "IB_SPEED_NDR" $(IB_PATH)/include/rdma/ib_verbs.h > /dev/
 	ccflags-y += -D_HAS_IB_SPEED_NDR
 endif
 
-ifneq ($(shell grep -A10 "struct class {" include/linux/device.h include/linux/device/class.h | grep "devnode" | grep "const struct device" > /dev/null 2>&1 && echo 1),)
+ifneq ($(shell (grep -A10 "struct class {" include/linux/device.h include/linux/device/class.h | grep "devnode" | grep "const struct device") > /dev/null 2>&1 && echo 1),)
 	ccflags-y += -D_HAS_DEVNODE_WITH_CONST_DEVICE
 endif
 
