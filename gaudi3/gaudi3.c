@@ -7497,11 +7497,13 @@ skip_reset:
 			1000,
 			poll_timeout_us);
 
-	if (rc)
+	if (rc) {
 		dev_err(hdev->dev, "Error %d while waiting for device to reset\n", rc);
+		return rc;
+	}
 
 	gaudi3_clear_hw_cap(hdev, hard_reset);
-	return 0; /* TODO - return rc here ? */
+	return 0;
 }
 
 static int gaudi3_user_mapped_dec_blocks_init(struct hl_device *hdev, int block_idx)

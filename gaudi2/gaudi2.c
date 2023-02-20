@@ -6550,7 +6550,7 @@ static void gaudi2_execute_hard_reset(struct hl_device *hdev, u32 reset_sleep_ms
 	WREG32(mmPSOC_RESET_CONF_SW_ALL_RST, 1);
 }
 
-static void gaudi2_get_soft_rst_done_indication(struct hl_device *hdev, u32 poll_timeout_us)
+static int gaudi2_get_soft_rst_done_indication(struct hl_device *hdev, u32 poll_timeout_us)
 {
 	int i, rc = 0;
 	u32 reg_val;
@@ -6567,6 +6567,7 @@ static void gaudi2_get_soft_rst_done_indication(struct hl_device *hdev, u32 poll
 	if (rc)
 		dev_err(hdev->dev, "Timeout while waiting for FW to complete soft reset (0x%x)\n",
 				reg_val);
+	return rc;
 }
 
 /**
@@ -6583,7 +6584,7 @@ static int gaudi2_execute_soft_reset(struct hl_device *hdev, u32 reset_sleep_ms,
 						bool driver_performs_reset, u32 poll_timeout_us)
 {
 	struct cpu_dyn_regs *dyn_regs = &hdev->fw_loader.dynamic_loader.comm_desc.cpu_dyn_regs;
-	int rc = 0;
+	int rc;
 
 	if (!driver_performs_reset) {
 		if (hl_is_fw_ver_below_1_10(hdev)) {
@@ -6596,7 +6597,7 @@ static int gaudi2_execute_soft_reset(struct hl_device *hdev, u32 reset_sleep_ms,
 				gaudi2_irq_map_table[GAUDI2_EVENT_CPU_SOFT_RESET].cpu_id);
 
 			/* wait for f/w response */
-			gaudi2_get_soft_rst_done_indication(hdev, poll_timeout_us);
+			rc = gaudi2_get_soft_rst_done_indication(hdev, poll_timeout_us);
 		} else {
 			rc = hl_fw_send_soft_reset(hdev);
 		}
