@@ -6582,17 +6582,37 @@ static void gaudi2_execute_hard_reset(struct hl_device *hdev, u32 reset_sleep_ms
 	WREG32(mmPSOC_RESET_CONF_SW_ALL_RST, 1);
 }
 
+static void gaudi2_get_soft_rst_done_indication(struct hl_device *hdev, u32 poll_timeout_us)
+{
+	int i, rc = 0;
+	u32 reg_val;
+
+	for (i = 0 ; i < GAUDI2_RESET_POLL_CNT ; i++)
+		rc = hl_poll_timeout(
+			hdev,
+			mmCPU_RST_STATUS_TO_HOST,
+			reg_val,
+			reg_val == CPU_RST_STATUS_SOFT_RST_DONE,
+			1000,
+			poll_timeout_us);
+
+	if (rc)
+		dev_err(hdev->dev, "Timeout while waiting for FW to complete soft reset (0x%x)\n",
+				reg_val);
+}
+
 /**
  * gaudi2_execute_soft_reset - execute soft reset by driver/FW
  *
  * @hdev: pointer to the habanalabs device structure
  * @reset_sleep_ms: sleep time in msec after reset
  * @driver_performs_reset: true if driver should perform reset instead of f/w.
+ * @poll_timeout_us: time to wait for response from f/w.
  *
  * This function executes soft reset based on if driver/FW should do the reset
  */
 static void gaudi2_execute_soft_reset(struct hl_device *hdev, u32 reset_sleep_ms,
-						bool driver_performs_reset)
+						bool driver_performs_reset, u32 poll_timeout_us)
 {
 	struct cpu_dyn_regs *dyn_regs = &hdev->fw_loader.dynamic_loader.comm_desc.cpu_dyn_regs;
 
@@ -6605,6 +6625,7 @@ static void gaudi2_execute_soft_reset(struct hl_device *hdev, u32 reset_sleep_ms
 
 		WREG32(le32_to_cpu(dyn_regs->gic_host_soft_rst_irq),
 			gaudi2_irq_map_table[GAUDI2_EVENT_CPU_SOFT_RESET].cpu_id);
+		gaudi2_get_soft_rst_done_indication(hdev, poll_timeout_us);
 		return;
 	}
 
@@ -6649,25 +6670,6 @@ static void gaudi2_poll_btm_indication(struct hl_device *hdev, u32 reset_sleep_m
 		dev_err(hdev->dev, "Timeout while waiting for device to reset 0x%x\n", reg_val);
 }
 
-static void gaudi2_get_soft_rst_done_indication(struct hl_device *hdev, u32 poll_timeout_us)
-{
-	int i, rc = 0;
-	u32 reg_val;
-
-	for (i = 0 ; i < GAUDI2_RESET_POLL_CNT ; i++)
-		rc = hl_poll_timeout(
-			hdev,
-			mmCPU_RST_STATUS_TO_HOST,
-			reg_val,
-			reg_val == CPU_RST_STATUS_SOFT_RST_DONE,
-			1000,
-			poll_timeout_us);
-
-	if (rc)
-		dev_err(hdev->dev, "Timeout while waiting for FW to complete soft reset (0x%x)\n",
-				reg_val);
-}
-
 static int gaudi2_hw_fini(struct hl_device *hdev, bool hard_reset, bool fw_reset)
 {
 	struct gaudi2_device *gaudi2 = hdev->asic_specific;
@@ -6701,11 +6703,12 @@ static int gaudi2_hw_fini(struct hl_device *hdev, bool hard_reset, bool fw_reset
 		driver_performs_reset = (hdev->force_driver_reset & FORCE_DRIVER_RESET_SOFT) ||
 					((hdev->fw_components == FW_TYPE_PREBOOT_CPU) &&
 							!hdev->asic_prop.fw_security_enabled);
-		gaudi2_execute_soft_reset(hdev, reset_sleep_ms, driver_performs_reset);
+		gaudi2_execute_soft_reset(hdev, reset_sleep_ms, driver_performs_reset,
+						poll_timeout_us);
 	}
 
 skip_reset:
-	if (driver_performs_reset || hard_reset)
+	if (driver_performs_reset || hard_reset) {
 		/*
 		 * Instead of waiting for BTM indication we should wait for preboot ready:
 		 * Consider the below scenario:
@@ -6731,8 +6734,7 @@ skip_reset:
 		} else {
 			gaudi2_poll_btm_indication(hdev, reset_sleep_ms, poll_timeout_us);
 		}
-	else
-		gaudi2_get_soft_rst_done_indication(hdev, poll_timeout_us);
+	}
 
 	/* On PLDM the NIC PHY link is always up, and because the NIC interrupts are enabled by
 	 * default - need to disable the interrupts ASAP.
