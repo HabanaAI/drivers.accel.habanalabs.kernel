@@ -2117,9 +2117,7 @@ static void gaudi3_nic_config_hw_tmr(struct hl_nic_macro *nic_macro)
 	NIC_WREG32(mmD0_NIC0_TMR_TMR_AXI_CACHE, (0x3 << NIC_TMR_TMR_AXI_CACHE_CACHE_AR_S));
 	NIC_WREG32(mmD0_NIC0_TMR_TMR_AXI_CACHE, (0x3 << NIC_TMR_TMR_AXI_CACHE_CACHE_AW_S));
 
-	/* Perform read from the device to flush all configurations
-	 * TODO: SW-111594: check why w/o this read we are getting hangs in the device.
-	 */
+	/* Perform read from the device to flush all configurations */
 	NIC_RREG32(mmD0_NIC0_TMR_TMR_TIMER_EN);
 }
 
