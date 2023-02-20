@@ -3273,7 +3273,7 @@ static int gaudi3_user_set_app_params(struct hl_device *hdev,
 			return -EINVAL;
 		}
 
-		dev_info(hdev->dev, "Port %u: Working in Plain RDMA mode\n", port);
+		dev_dbg_ratelimited(hdev->dev, "Port %u: Working in Plain RDMA mode\n", port);
 		return 0;
 	}
 
@@ -3303,15 +3303,16 @@ static int gaudi3_user_set_app_params(struct hl_device *hdev,
 
 		bp_base_index = gaudi3_macro->bp_off_num;
 		if ((bp_base_index + bp_off_num) > HL_NIC_USER_BP_OFFS_MAX) {
-			dev_dbg(hdev->dev,
-			"Port %u: too many bp offsets requested. Requested - %d, available %d\n",
+			dev_dbg_ratelimited(hdev->dev,
+				"Port %u: too many bp offsets requested. Requested - %d, available %d\n",
 			port, bp_off_num, HL_NIC_USER_BP_OFFS_MAX - bp_base_index);
 			return -EINVAL;
 		}
 
 		for (i = 0 ; i < bp_off_num ; i++) {
 			if ((in->bp_offs[i] & ~NIC_QPC_WQ_BP_ADDR_R_M)) {
-				dev_dbg(hdev->dev, "Port %u: bp %u invalid BP offset 0x%x\n",
+				dev_dbg_ratelimited(hdev->dev,
+					"Port %u: bp %u invalid BP offset 0x%x\n",
 					port, i, in->bp_offs[i]);
 				return -EINVAL;
 			}
