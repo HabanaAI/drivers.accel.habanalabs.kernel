@@ -401,10 +401,7 @@ static void gaudi3_nic_set_rx_drop_eco_fw(struct hl_nic_macro *nic_macro)
 static void gaudi3_nic_hw_macro_config_fw(struct hl_nic_macro *nic_macro)
 {
 	struct hl_device *hdev = nic_macro->hdev;
-	struct hl_nic_properties *nic_prop;
 	u32 port;
-
-	nic_prop = &hdev->asic_prop.nic_props;
 
 	port = gaudi3_nic_get_first_port(nic_macro);
 

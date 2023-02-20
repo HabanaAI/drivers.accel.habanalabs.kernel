@@ -462,7 +462,7 @@ static int hl_nic_get_asic_type(struct hl_device *hdev, enum hl_nic_asic_type *a
 }
 
 
-void hl_nic_reset_core_mac_stats(struct hl_aux_dev *aux_dev, u32 port)
+static void hl_nic_reset_core_mac_stats(struct hl_aux_dev *aux_dev, u32 port)
 {
 	struct hl_nic *nic = HL_AUX2NIC(aux_dev);
 	struct hl_nic_port *nic_port = &nic->nic_ports[port];

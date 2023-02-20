@@ -2838,7 +2838,6 @@ static int gaudi3_user_wq_arr_set(struct hl_device *hdev,
 	struct hl_nic_mem_data mem_data = {};
 	struct gaudi3_nic_port *gaudi3_nic;
 	struct hl_nic_port *nic_port;
-	struct hl_nic *nic;
 	u64 wq_base_addr, wq_size_cline_log, wq_size, wq_arr_size, num_of_wqs,
 		num_of_wq_entries;
 	u32 wqe_size, type, port, wqe_asid, offset, alignment_size;
@@ -2847,7 +2846,6 @@ static int gaudi3_user_wq_arr_set(struct hl_device *hdev,
 
 	type = in->type;
 	port = in->port;
-	nic = &hdev->nic;
 	nic_port = &hdev->nic.nic_ports[port];
 	gaudi3_nic = nic_port->nic_specific;
 

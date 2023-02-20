@@ -163,13 +163,11 @@ static void gaudi2_nic_link_event_handler(struct gaudi2_nic_port *gaudi2_nic)
 	u8 l, nic_m, port_offset, port_shift;
 	struct hl_nic_macro *nic_macro;
 	struct gaudi2_device *gaudi2;
-	struct hl_aux_dev *aux_dev;
 	bool link_up, prev_link_up;
 
 	gaudi2 = hdev->asic_specific;
 	port = gaudi2_nic->nic_port->port;
 	nic_macro = gaudi2_nic->nic_port->nic_macro;
-	aux_dev = &hdev->nic.en_aux_dev;
 
 	curr_link_sts = (NIC_MACRO_RREG32(mmPRT0_MAC_CORE_MAC_REC_STS0) &
 			PRT0_MAC_CORE_MAC_REC_STS0_REC_LINK_STS_MASK) >>

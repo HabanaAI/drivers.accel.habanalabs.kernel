@@ -2347,10 +2347,8 @@ static int gaudi2_set_res_qp_ctx(struct hl_device *hdev,
 	struct hl_nic *nic = &hdev->nic;
 	struct hl_nic_user_cq *user_cq;
 	struct hl_nic_port *nic_port;
-	struct gaudi2_device *gaudi2;
 	int rc;
 
-	gaudi2 = hdev->asic_specific;
 	nic_port = &nic->nic_ports[port];
 
 	/* In case user didn't set encap, unset for internal ports. */

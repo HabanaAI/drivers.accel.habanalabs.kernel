@@ -1259,14 +1259,12 @@ static int reset_mac_tx(struct hl_device *hdev, u32 port)
 
 static int fw_config(struct hl_device *hdev, u32 port, u32 data_rate, bool do_lt)
 {
-	struct hl_nic_port *nic_port;
 	struct hl_nic *nic;
 	u32 card_location;
 	int lane, rc;
 	bool pam4;
 
 	nic = &hdev->nic;
-	nic_port = &nic->nic_ports[port];
 	card_location = nic->card_location;
 	pam4 = (data_rate == NIC_DR_50);
 
