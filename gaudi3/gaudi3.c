@@ -2435,8 +2435,6 @@ static void handle_pmmu_events(struct hl_device *hdev, u32 die, u64 *event_mask)
 		err_type = RREG32(mmD0_PMMU_HBW_MMU_BASE + mmMMU_ACCESS_PAGE_ERROR_VALID + offset);
 		mmu_spi_status = RREG32(mmD0_PMMU_HBW_MMU_BASE + mmMMU_SPI_STATUS + offset);
 	}
-
-	hl_check_for_glbl_errors(hdev);
 }
 
 struct dtlb_fault_desc {
@@ -2563,8 +2561,6 @@ static void handle_hmmu_events(struct hl_device *hdev, u32 die, u32 hdcore, u64 
 
 	dev_err(hdev->dev,
 		"STLB info: %s, DTLB info: %s\n", stlb_str, dtlb_str);
-
-	hl_check_for_glbl_errors(hdev);
 }
 
 static void gaudi3_lbw_dup_group_id_breakdown(struct hl_device *hdev, u32 dup_group_id, u32 *die,
@@ -10959,8 +10955,6 @@ static void gaudi3_razwi_handler(struct hl_device *hdev,  enum razwi_initiztor r
 	default:
 		break;
 	}
-
-	hl_check_for_glbl_errors(hdev);
 }
 
 static void gaudi3_check_if_razwi_happened(struct hl_device *hdev)
