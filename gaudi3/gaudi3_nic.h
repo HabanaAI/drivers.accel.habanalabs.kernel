@@ -357,6 +357,7 @@ void gaudi3_nic_handle_bmon_spmu_event(struct hl_device *hdev, u32 macro_index,
 					struct hl_eq_intr_cause *nic_intr_cause, u64 *event_mask);
 char *gaudi3_nic_qp_err_src_to_str(u32 syndrome);
 char *gaudi3_nic_qp_err_syndrom_to_str(u32 syndrome);
+int gaudi3_nic_set_info(struct hl_device *hdev, bool get_from_fw);
 /**
  * enum db_fifo_source - Describes db fifo's source.
  * @DB_FIFO_SRC_UMR: source of the db fifo is from the UMR registers.

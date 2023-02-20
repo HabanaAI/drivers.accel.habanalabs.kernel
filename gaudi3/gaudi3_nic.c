@@ -1715,64 +1715,92 @@ out_err:
 	return rc;
 }
 
-static int gaudi3_nic_pre_core_init(struct hl_device *hdev)
+int gaudi3_nic_set_info(struct hl_device *hdev, bool get_from_fw)
 {
 	struct cpucp_nic_info *nic_info = &hdev->asic_prop.cpucp_nic_info;
-	struct hl_nic_properties *nic_prop = &hdev->asic_prop.nic_props;
-	struct cpucp_mac_addr *mac_arr = nic_info->mac_addrs;
 	struct cpucp_info *cpucp_info = &hdev->asic_prop.cpucp_info;
-	struct gaudi3_device *gaudi3 = hdev->asic_specific;
+	struct cpucp_mac_addr *mac_arr = nic_info->mac_addrs;
 	struct hl_nic *nic = &hdev->nic;
-	u8 mac[ETH_ALEN], *mac_addr;
-	u64 nic_dram_alloc_size;
 	u32 card_location, serdes_type = MAX_NUM_SERDES_TYPE;
-	int i;
-
-	nic_dram_alloc_size = nic_prop->nic_drv_end_addr -
-				nic_prop->nic_drv_base_addr;
-
-	if (nic_dram_alloc_size > nic_prop->nic_drv_size) {
-		dev_err(hdev->dev, "DRAM allocation for NIC (%lluMB) shouldn't exceed %lluMB\n",
-			div_u64(nic_dram_alloc_size, SZ_1M),
-			div_u64(nic_prop->nic_drv_size, SZ_1M));
-		return -ENOMEM;
-	}
+	u8 mac[ETH_ALEN], *mac_addr;
+	int rc, i;
 
 	/* copy the MAC OUI in reverse */
 	for (i = 0 ; i < 3 ; i++)
 		mac[i] = HABANALABS_MAC_OUI_1 >> (8 * (2 - i));
 
-	if ((gaudi3->hw_cap_initialized & HW_CAP_CPU_Q) && !hdev->ignore_fw_nic_info) {
+	if (get_from_fw) {
+		rc = hl_fw_cpucp_nic_info_get(hdev);
+		if (rc)
+			return rc;
+
+		if (hdev->pci_rev_id_override) {
+			dev_dbg(hdev->dev,
+				"skipping NIC FW ports info with an overridden pci revision id\n");
+		} else {
+			hdev->nic_ports_mask &= le64_to_cpu(nic_info->link_mask[0]);
+			hdev->nic_ports_ext_mask &= le64_to_cpu(nic_info->link_ext_mask[0]);
+			hdev->nic_auto_neg_mask &= le64_to_cpu(nic_info->auto_neg_mask[0]);
+		}
+
 		serdes_type = le16_to_cpu(nic_info->serdes_type);
 
+		/* In case of invalid MAC from F/W, and if the user asked to ignore eeprom related
+		 * errors, the MAC addresses will be set manually according to the bus address and
+		 * the port id.
+		 * here we prepare the 3rd (bus id) and the 4th (device id) octates for such a case.
+		 */
+		if (hdev->ignore_eeprom_errors) {
+			mac[3] = hdev->pdev->bus->number;
+			mac[4] = PCI_SLOT(hdev->pdev->devfn);
+		}
+
+		/* check for invalid MAC addresses from F/W (bad OUI) */
 		for (i = 0 ; i < NIC_NUMBER_OF_PORTS ; i++) {
 			if (!(hdev->nic_ports_mask & BIT(i)))
 				continue;
 
 			mac_addr = mac_arr[i].mac_addr;
 			if (strncmp(mac, mac_addr, 3)) {
-				dev_err(hdev->dev, "bad MAC OUI %pM, port %d\n", mac_addr, i);
-				return -EFAULT;
+				if (hdev->ignore_eeprom_errors) {
+					dev_dbg(hdev->dev,
+						"bad MAC OUI %pM, port %d - setting a valid MAC\n",
+						mac_addr, i);
+					mac[ETH_ALEN - 1] = i;
+					memcpy(mac_addr, mac, ETH_ALEN);
+				} else {
+					dev_err(hdev->dev,
+						"bad MAC OUI %pM, port %d - failing the initialization\n",
+						mac_addr, i);
+					return -EFAULT;
+				}
 			}
 		}
 
 		nic->card_location = le32_to_cpu(cpucp_info->card_location);
 		nic->use_fw_serdes_info = true;
 	} else {
-		/*
-		 * No CPU, hence set the MAC addresses manually.
-		 * Each device will have its own unique MAC random.
-		 */
+		/* No F/W, hence need to set the MACs manually (randomize) */
 		get_random_bytes(&mac[3], 2);
 
 		for (i = 0 ; i < NIC_NUMBER_OF_PORTS ; i++) {
+			if (!(hdev->nic_ports_mask & BIT(i)))
+				continue;
+
 			mac[ETH_ALEN - 1] = i;
 			memcpy(mac_arr[i].mac_addr, mac, ETH_ALEN);
 		}
 
-		if (!hdev->asic_prop.fw_security_enabled) {
+		if (!(hdev->fw_components & FW_TYPE_BOOT_CPU)) {
+			/* This section reads privilege register, hence we should disable
+			 * assertion on simulator to allow this read.
+			 * Assertion is turned on right after the register is read.
+			 */
+			hdev->asic_funcs->set_priv_assertions(hdev, false);
 			card_location = RREG32(mmD0_PSOC_BOOT_CONF_BASE +
 						mmPSOC_BOOT_CONF_BOOT_STRAP_PINS_H);
+			hdev->asic_funcs->set_priv_assertions(hdev, true);
+
 			serdes_type = card_location;
 			card_location &= PSOC_BOOT_CONF_BOOT_STRAP_PINS_H_MODULE_ID_M;
 			card_location >>= PSOC_BOOT_CONF_BOOT_STRAP_PINS_H_MODULE_ID_S;
@@ -1798,7 +1826,24 @@ static int gaudi3_nic_pre_core_init(struct hl_device *hdev)
 		break;
 	}
 
+	/* PCI card is a testing card so set all ports as external */
+	if (hdev->card_type == cpucp_card_type_pci) {
+		hdev->nic_ports_ext_mask = hdev->nic_ports_mask;
+		hdev->nic_auto_neg_mask &= ~hdev->nic_ports_ext_mask;
+	}
+
 	return 0;
+}
+
+static int gaudi3_nic_pre_core_init(struct hl_device *hdev)
+{
+	struct gaudi3_device *gaudi3 = hdev->asic_specific;
+
+	/* This case is handled as part of gaudi3_cpucp_info_get() */
+	if ((gaudi3->hw_cap_initialized & HW_CAP_CPU_Q) && !hdev->ignore_fw_nic_info)
+		return 0;
+
+	return gaudi3_nic_set_info(hdev, false);
 }
 
 static bool gaudi3_nic_get_hw_cap(struct hl_device *hdev)
@@ -2190,14 +2235,17 @@ static int gaudi3_nic_core_init(struct hl_device *hdev)
 {
 	struct hl_nic_properties *nic_prop = &hdev->asic_prop.nic_props;
 	struct hl_nic *nic = &hdev->nic;
+	u64 nic_dram_alloc_size;
 
-	/* PCI card is a testing card so set all ports as external */
-	if (hdev->card_type == cpucp_card_type_pci) {
-		hdev->nic_ports_ext_mask = hdev->nic_ports_mask;
-		hdev->nic_auto_neg_mask &= ~hdev->nic_ports_ext_mask;
+	nic_dram_alloc_size = nic_prop->nic_drv_end_addr - nic_prop->nic_drv_base_addr;
+	if (nic_dram_alloc_size > nic_prop->nic_drv_size) {
+		dev_err(hdev->dev, "DRAM allocation for NIC (%lluMB) shouldn't exceed %lluMB\n",
+			div_u64(nic_dram_alloc_size, SZ_1M),
+			div_u64(nic_prop->nic_drv_size, SZ_1M));
+		return -ENOMEM;
 	}
 
-	nic->auto_neg_mask &= hdev->nic_auto_neg_mask;
+	nic->auto_neg_mask = hdev->nic_auto_neg_mask;
 
 	gaudi3_nic_macros_hw_config(hdev);
 

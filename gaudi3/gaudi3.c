@@ -4515,7 +4515,7 @@ static int gaudi3_cpucp_info_get(struct hl_device *hdev)
 {
 	struct asic_fixed_properties *prop = &hdev->asic_prop;
 	struct gaudi3_device *gaudi3 = hdev->asic_specific;
-	int rc = 0;
+	int rc;
 
 	if (!(gaudi3->hw_cap_initialized & HW_CAP_CPU_Q))
 		return 0;
@@ -4531,23 +4531,16 @@ static int gaudi3_cpucp_info_get(struct hl_device *hdev)
 			mmD0_PSOC_GLOBAL_CONF_BASE + mmCPU_BOOT_DEV_STS1,
 			mmD0_PSOC_GLOBAL_CONF_BASE + mmCPU_BOOT_ERR0,
 			mmD0_PSOC_GLOBAL_CONF_BASE + mmCPU_BOOT_ERR1);
+	if (rc)
+		return rc;
 
 	if (!strlen(prop->cpucp_info.card_name))
 		strncpy(prop->cpucp_info.card_name, GAUDI3_DEFAULT_CARD_NAME, CARD_NAME_MAX_LEN);
 
-	if (!hdev->ignore_fw_nic_info) {
-		struct cpucp_nic_info *nic_info = &prop->cpucp_nic_info;
-
-		rc = hl_fw_cpucp_nic_info_get(hdev);
-		if (rc)
-			return rc;
-
-		hdev->nic_ports_mask &= le64_to_cpu(nic_info->link_mask[0]);
-		hdev->nic_ports_ext_mask &= le64_to_cpu(nic_info->link_ext_mask[0]);
-		hdev->nic_auto_neg_mask &= le64_to_cpu(nic_info->auto_neg_mask[0]);
-	}
-
 	hdev->asic_funcs->set_binning_masks(hdev);
+
+	if (!hdev->ignore_fw_nic_info)
+		rc = gaudi3_nic_set_info(hdev, true);
 
 	return rc;
 }
