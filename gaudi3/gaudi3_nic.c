@@ -5331,10 +5331,51 @@ out:
 	return rc;
 }
 
+static void gaudi3_nic_fill_spmu_data(struct hl_nic_port *nic_port,
+					struct cpucp_nic_status *nic_status)
+{
+	/* TODO: SW-63320 add SPMU support in Gaudi3 */
+}
+
+static void gaudi3_nic_fill_fec_stats(struct hl_nic_port *nic_port,
+					struct cpucp_nic_status *nic_status)
+{
+	u64 fec_data[FEC_STAT_LAST];
+
+	memset(fec_data, 0, sizeof(fec_data));
+
+	gaudi3_nic_get_mac_fec_stats(nic_port, fec_data);
+
+	nic_status->pre_fec_ser.integer = cpu_to_le16(fec_data[FEC_PRE_FEC_SER_INT]);
+	nic_status->pre_fec_ser.exp = cpu_to_le16(fec_data[FEC_PRE_FEC_SER_EXP]);
+	nic_status->post_fec_ser.integer = cpu_to_le16(fec_data[FEC_POST_FEC_SER_INT]);
+	nic_status->post_fec_ser.exp = cpu_to_le16(fec_data[FEC_POST_FEC_SER_EXP]);
+}
+
+static u32 gaudi3_nic_get_high_ber_cnt(struct hl_nic_port *nic_port)
+{
+	struct hl_device *hdev = nic_port->hdev;
+	u32 port = nic_port->port;
+
+	if (is_400g_mode(hdev) || !(port & 1))
+		return NIC_RREG32(mmD0_NIC0_MAC_PCS_PCS400_BASE +
+				mmMAC_PCS_PCS400_BER_HIGH_ORDER_CNT);
+	else
+		return NIC_RREG32(mmD0_NIC0_MAC_PCS_PCS200_BASE +
+				mmMAC_PCS_PCS200_BER_HIGH_ORDER_CNT);
+}
+
 static void gaudi3_nic_fill_nic_status(struct hl_nic_port *nic_port,
 					struct cpucp_nic_status *nic_status)
 {
-	/* TODO: SW-68468: Implement NIC status packet */
+	u32 high_ber_cnt;
+
+	gaudi3_nic_fill_spmu_data(nic_port, nic_status);
+	gaudi3_nic_fill_fec_stats(nic_port, nic_status);
+
+	high_ber_cnt = gaudi3_nic_get_high_ber_cnt(nic_port);
+
+	nic_status->high_ber_cnt = cpu_to_le32(high_ber_cnt);
 }
 
 static void gaudi3_nic_cfg_lock(struct hl_nic_port *nic_port)
