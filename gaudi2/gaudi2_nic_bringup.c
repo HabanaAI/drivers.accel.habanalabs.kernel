@@ -491,6 +491,9 @@ static void gaudi2_nic_ports_config_no_fw(struct hl_device *hdev)
 
 void gaudi2_nic_blocks_fw_config(struct hl_device *hdev)
 {
+	if (!hdev->nic_ports_mask)
+		return;
+
 	if (hdev->reset_info.in_compute_reset)
 		return;
 
