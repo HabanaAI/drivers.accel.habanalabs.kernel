@@ -4065,8 +4065,7 @@ void gaudi3_init_pdma(struct hl_device *hdev)
 
 static enum hl_device_hw_state gaudi3_get_hw_state(struct hl_device *hdev)
 {
-	/* TODO: get state from HW */
-	return HL_DEVICE_HW_STATE_CLEAN;
+	return RREG32(mmD0_CPU_IF_BASE + mmHW_STATE);
 }
 
 static int gaudi3_fetch_frequency(struct hl_device *hdev, u32 pll_index, u16 *pll_freq_arr)
@@ -7290,6 +7289,16 @@ static int gaudi3_hw_init(struct hl_device *hdev)
 	if (rc)
 		return rc;
 
+	/* Let's mark in the H/W that we have reached this point. We check
+	 * this value in the reset_before_init function to understand whether
+	 * we need to reset the chip before doing H/W init. This register is
+	 * cleared by the H/W upon H/W reset
+	 */
+	WREG32(mmD0_CPU_IF_BASE + mmHW_STATE, HL_DEVICE_HW_STATE_DIRTY);
+
+	/* Perform read from the device to make sure device is up */
+	RREG32(mmD0_CPU_IF_BASE + mmHW_STATE);
+
 	rc = gaudi3_init_plls(hdev);
 	if (rc) {
 		dev_err(hdev->dev, "failed to initialize PLLs\n");
@@ -7401,6 +7410,9 @@ static int gaudi3_hw_init(struct hl_device *hdev)
 	rc = gaudi3_enable_msix(hdev);
 	if (rc)
 		return rc;
+
+	/* Perform read from the device to flush all configuration */
+	RREG32(mmD0_CPU_IF_BASE + mmHW_STATE);
 
 	return 0;
 }

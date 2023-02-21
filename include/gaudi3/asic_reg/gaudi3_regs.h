@@ -10,6 +10,7 @@
 
 #include "gaudi3_blocks_linux_driver.h"
 
+#include "cpu_if_regs.h"
 #include "nch_regs.h"
 #include "cache_maint_regs.h"
 #include "pdma_cmn_b_regs.h"
