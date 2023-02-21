@@ -7437,8 +7437,8 @@ static bool gaudi2_get_tpc_idle_status(struct hl_device *hdev, u64 *mask_arr, u8
 
 	if (e && prop->tpc_enabled_mask)
 		hl_engine_data_sprintf(e,
-			"\nCORE  TPC   is_idle  QM_GLBL_STS0  QM_CGM_STS  DMA_CORE_IDLE_IND_MASK\n"
-			"----  ---  --------  ------------  ----------  ----------------------\n");
+			"\nCORE  TPC  is_idle  QM_GLBL_STS0  QM_CGM_STS  STATUS\n"
+			"----  ---  -------  ------------  ----------  ------\n");
 
 	gaudi2_iterate_tpcs(hdev, &tpc_iter);
 
@@ -7518,7 +7518,7 @@ static bool gaudi2_get_rotator_idle_status(struct hl_device *hdev, u64 *mask_arr
 		struct engines_data *e)
 {
 	u32 qm_glbl_sts0, qm_glbl_sts1, qm_cgm_sts, rot_enabled_bit;
-	const char *rot_fmt = "%-6d%-5d%-9s%#-14x%#-12x%s\n";
+	const char *rot_fmt = "%-6d%-5d%-9s%#-14x%#-14x%#x\n";
 	unsigned long *mask = (unsigned long *) mask_arr;
 	bool is_idle = true, is_eng_idle;
 	int engine_idx, i;
@@ -7526,8 +7526,8 @@ static bool gaudi2_get_rotator_idle_status(struct hl_device *hdev, u64 *mask_arr
 
 	if (e && hdev->rotator_mask)
 		hl_engine_data_sprintf(e,
-			"\nCORE  ROT  is_idle  QM_GLBL_STS0  QM_CGM_STS  DMA_CORE_STS0\n"
-			"----  ----  -------  ------------  ----------  -------------\n");
+			"\nCORE  ROT  is_idle  QM_GLBL_STS0  QM_GLBL_STS1  QM_CGM_STS\n"
+			"----  ---  -------  ------------  ------------  ----------\n");
 
 	for (i = 0 ; i < NUM_OF_ROT ; i++) {
 		rot_enabled_bit = 1 << i;
@@ -7550,7 +7550,7 @@ static bool gaudi2_get_rotator_idle_status(struct hl_device *hdev, u64 *mask_arr
 
 		if (e)
 			hl_engine_data_sprintf(e, rot_fmt, i, 0, is_eng_idle ? "Y" : "N",
-					qm_glbl_sts0, qm_cgm_sts, "-");
+						qm_glbl_sts0, qm_glbl_sts1, qm_cgm_sts);
 	}
 
 	return is_idle;
