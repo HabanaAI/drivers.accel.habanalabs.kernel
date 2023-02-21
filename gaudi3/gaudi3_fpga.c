@@ -77,34 +77,11 @@ static int gaudi3_fpga_init_iatu(struct hl_device *hdev)
 	return 0;
 }
 
-static void gaudi3_fpga_init_dynamic_firmware_loader(struct hl_device *hdev)
-{
-	struct dynamic_fw_load_mgr *dynamic_loader;
-	struct cpu_dyn_regs *dyn_regs;
-
-	dynamic_loader = &hdev->fw_loader.dynamic_loader;
-
-	/*
-	 * here we update initial values for few specific dynamic regs (as
-	 * before reading the first descriptor from FW those value has to be
-	 * hard-coded) in later stages of the protocol those values will be
-	 * updated automatically by reading the FW descriptor so data there
-	 * will always be up-to-date
-	 */
-	dyn_regs = &dynamic_loader->comm_desc.cpu_dyn_regs;
-	dyn_regs->kmd_msg_to_cpu =
-				cpu_to_le32(mmD0_PSOC_GLOBAL_CONF_BASE +
-						mmGLOBAL_CONF_KMD_MSG_TO_CPU);
-	dyn_regs->cpu_cmd_status_to_host =
-				cpu_to_le32(mmD0_PSOC_GLOBAL_CONF_BASE + mmCPU_CMD_STATUS_TO_HOST);
-
-	dynamic_loader->wait_for_bl_timeout = GAUDI3_FPGA_WAIT_FOR_BL_TIMEOUT_USEC;
-}
-
 static void gaudi3_fpga_init_firmware_loader(struct hl_device *hdev)
 {
-	struct asic_fixed_properties *prop = &hdev->asic_prop;
 	struct fw_load_mgr *fw_loader = &hdev->fw_loader;
+	struct dynamic_fw_load_mgr *dynamic_loader;
+	struct cpu_dyn_regs *dyn_regs;
 
 	/* fill common fields */
 	fw_loader->fw_comp_loaded = FW_TYPE_NONE;
@@ -119,8 +96,19 @@ static void gaudi3_fpga_init_firmware_loader(struct hl_device *hdev)
 	fw_loader->dram_bar_id = SRAM_DRAM_BAR_ID;
 	fw_loader->cpu_timeout = GAUDI3_FPGA_CPU_TIMEOUT_USEC;
 
-	if (prop->dynamic_fw_load)
-		gaudi3_fpga_init_dynamic_firmware_loader(hdev);
+	/* here we update initial values for few specific dynamic regs (as
+	 * before reading the first descriptor from FW those value has to be
+	 * hard-coded) in later stages of the protocol those values will be
+	 * updated automatically by reading the FW descriptor so data there
+	 * will always be up-to-date
+	 */
+	dynamic_loader = &hdev->fw_loader.dynamic_loader;
+	dyn_regs = &dynamic_loader->comm_desc.cpu_dyn_regs;
+	dyn_regs->kmd_msg_to_cpu = cpu_to_le32(mmD0_PSOC_GLOBAL_CONF_BASE +
+						mmGLOBAL_CONF_KMD_MSG_TO_CPU);
+	dyn_regs->cpu_cmd_status_to_host = cpu_to_le32(mmD0_PSOC_GLOBAL_CONF_BASE +
+							mmCPU_CMD_STATUS_TO_HOST);
+	dynamic_loader->wait_for_bl_timeout = GAUDI3_FPGA_WAIT_FOR_BL_TIMEOUT_USEC;
 }
 
 static int gaudi3_fpga_early_init(struct hl_device *hdev)
