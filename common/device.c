@@ -1883,8 +1883,6 @@ kill_processes:
 
 	if (hw_fini_rc) {
 		rc = hw_fini_rc;
-		dev_err(hdev->dev, "hw_fini failed for %s\n", hard_reset ?
-				"hard reset" : "soft reset - try hard reset");
 		goto out_err;
 	}
 	/* Finished tear-down, starting to re-initialize */
