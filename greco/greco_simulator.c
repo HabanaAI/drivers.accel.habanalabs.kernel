@@ -1395,6 +1395,14 @@ static void greco_sim_enable_events_from_fw(struct hl_device *hdev)
 	/* Not to be implemented */
 }
 
+static int greco_sim_mmu_invalidate_cache(struct hl_device *hdev, bool is_hard, u32 flags)
+{
+	if (hdev->simulator_crashed)
+		return 0;
+
+	return greco_mmu_invalidate_cache(hdev, is_hard, flags);
+}
+
 static int greco_sim_mmu_invalidate_cache_range(struct hl_device *hdev,
 				bool is_hard, u32 flags,
 				u32 asid, u64 va, u64 size)
@@ -1460,7 +1468,7 @@ static const struct hl_asic_funcs greco_sim_funcs = {
 	.get_events_stat = greco_get_events_stat,
 	.read_pte = greco_sim_read_pte,
 	.write_pte = greco_sim_write_pte,
-	.mmu_invalidate_cache = greco_mmu_invalidate_cache,
+	.mmu_invalidate_cache = greco_sim_mmu_invalidate_cache,
 	.mmu_invalidate_cache_range = greco_sim_mmu_invalidate_cache_range,
 	.mmu_prefetch_cache_range = NULL,
 	.send_heartbeat = greco_send_heartbeat,

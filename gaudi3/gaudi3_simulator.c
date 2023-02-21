@@ -1444,6 +1444,14 @@ static void gaudi3_sim_add_device_attr(struct hl_device *hdev,
 	dev_nic_attr_grp->attrs = gaudi3_sim_dev_attrs;
 }
 
+static int gaudi3_sim_mmu_invalidate_cache(struct hl_device *hdev, bool is_hard, u32 flags)
+{
+	if (hdev->simulator_crashed)
+		return 0;
+
+	return gaudi3_mmu_invalidate_cache(hdev, is_hard, flags);
+}
+
 static int gaudi3_sim_mmu_invalidate_cache_range(struct hl_device *hdev,
 		bool is_hard, u32 flags, u32 asid, u64 va, u64 size)
 {
@@ -1538,7 +1546,7 @@ static const struct hl_asic_funcs gaudi3_sim_funcs = {
 	.get_events_stat = gaudi3_get_events_stat,
 	.read_pte = gaudi3_sim_read_pte,
 	.write_pte = gaudi3_sim_write_pte,
-	.mmu_invalidate_cache = gaudi3_mmu_invalidate_cache,
+	.mmu_invalidate_cache = gaudi3_sim_mmu_invalidate_cache,
 	.mmu_invalidate_cache_range = gaudi3_sim_mmu_invalidate_cache_range,
 	.mmu_prefetch_cache_range = gaudi3_mmu_prefetch_cache_range,
 	.send_heartbeat = gaudi3_send_heartbeat,

@@ -1648,6 +1648,14 @@ static int gaudi2_sim_get_hw_block_id(struct hl_device *hdev, u64 block_addr,
 	return -EINVAL;
 }
 
+static int gaudi2_sim_mmu_invalidate_cache(struct hl_device *hdev, bool is_hard, u32 flags)
+{
+	if (hdev->simulator_crashed)
+		return 0;
+
+	return gaudi2_mmu_invalidate_cache(hdev, is_hard, flags);
+}
+
 static int gaudi2_sim_mmu_invalidate_cache_range(struct hl_device *hdev,
 				bool is_hard, u32 flags,
 				u32 asid, u64 va, u64 size)
@@ -1742,7 +1750,7 @@ static const struct hl_asic_funcs gaudi2_sim_funcs = {
 	.get_events_stat = gaudi2_get_events_stat,
 	.read_pte = gaudi2_sim_read_pte,
 	.write_pte = gaudi2_sim_write_pte,
-	.mmu_invalidate_cache = gaudi2_mmu_invalidate_cache,
+	.mmu_invalidate_cache = gaudi2_sim_mmu_invalidate_cache,
 	.mmu_invalidate_cache_range = gaudi2_sim_mmu_invalidate_cache_range,
 	.mmu_prefetch_cache_range = NULL,
 	.send_heartbeat = gaudi2_send_heartbeat,
