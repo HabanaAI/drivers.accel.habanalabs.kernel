@@ -3174,16 +3174,13 @@ static void gaudi2_nic_config_hw_mac(struct hl_nic_macro *nic_macro)
 static void gaudi2_nic_config_hw_rxb(struct hl_nic_macro *nic_macro)
 {
 	struct hl_device *hdev = nic_macro->hdev;
-	u32 total_credits, dynamic_credits, static_credits, drop_th, small_pkt_drop_th, xoff_th,
-		xon_th, val;
+	u32 dynamic_credits, static_credits, drop_th, small_pkt_drop_th, xoff_th, xon_th, val;
 	u32 port = nic_macro->idx << 1; /* the index of the first port in the macro */
 	int i;
 
 	/* Set iCRC calculation & verification with reversed bytes */
 	NIC_MACRO_WREG32(mmNIC0_RXB_CORE_ICRC_CFG, 0x2);
 
-	/* FIXME: H/W bug H6-3376 */
-	total_credits = RXB_NUM_BUFFS;
 	/* Assuming 1 effective priority per port divided between 2 physical ports. */
 	static_credits = RXB_NUM_STATIC_CREDITS;
 	dynamic_credits = 0;
