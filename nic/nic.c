@@ -2927,7 +2927,7 @@ static int user_wq_arr_set(struct hl_device *hdev,
 	struct hl_nic_properties *nic_props;
 	struct hl_nic *nic = &hdev->nic;
 	struct hl_nic_port *nic_port;
-	u32 port, type, num_of_wqs, num_of_wq_entries, min_wqs_per_port;
+	u32 port, type, num_of_wqs, num_of_wq_entries, min_wqs_per_port, mem_id;
 	char *type_str;
 	int rc, i;
 
@@ -2954,6 +2954,13 @@ static int user_wq_arr_set(struct hl_device *hdev,
 
 	if (type > nic_props->max_wq_arr_type) {
 		dev_dbg(hdev->dev, "invalid type %d, can't set user WQ\n", type);
+		return -EINVAL;
+	}
+
+	mem_id = in->mem_id;
+
+	if (mem_id != HL_NIC_MEM_HOST && mem_id != HL_NIC_MEM_DEVICE) {
+		dev_dbg(hdev->dev, "invalid memory type %d for user WQ\n", mem_id);
 		return -EINVAL;
 	}
 
