@@ -2648,23 +2648,12 @@ static void greco_init_dma_core(struct hl_device *hdev, u32 reg_base,
 				u32 dma_core_id, bool is_secure)
 {
 	struct cpu_dyn_regs *dyn_regs = &hdev->fw_loader.dynamic_loader.comm_desc.cpu_dyn_regs;
-	u32 dma_err_cfg;
-
-	/*
-	 * TODO:
-	 * Since GIC is becoming obsolete, remove GIC support once CI
-	 * machines are running latest release (1.0.0) that supports COMMS
-	 * Meaning - use dynamic regs only to init dma cores.
-	 */
-	u32 irq_handler_offset = hdev->asic_prop.dynamic_fw_load ?
-			le32_to_cpu(dyn_regs->gic_dma_core_irq_ctrl) :
-			mmGIC_DISTRIBUTOR__5_GICD_SETSPI_NSR;
-	u32 val = 1 << DCORE0_PDMA0_CORE_PROT_ERR_VAL_SHIFT;
+	u32 val, dma_err_cfg, irq_handler_offset;
 	int map_tale_entry;
 
+	val = 1 << DCORE0_PDMA0_CORE_PROT_ERR_VAL_SHIFT;
 	if (is_secure)
 		val |= 1 << DCORE0_PDMA0_CORE_PROT_VAL_SHIFT;
-
 	WREG32(reg_base + DMA_CORE_PROT_OFFSET, val);
 
 	WREG32(reg_base + DMA_CORE_WR_HBW_MAX_AWID_OFFSET,
@@ -2675,12 +2664,12 @@ static void greco_init_dma_core(struct hl_device *hdev, u32 reg_base,
 			dma_core_id == DMA_CORE_ID_DCORE1_DDMA)
 		WREG32(reg_base + DMA_CORE_WR_COMP_MAX_OUTSTAND_OFFSET, 15);
 
-	map_tale_entry = greco_dma_core_async_event_id[dma_core_id];
-
 	dma_err_cfg = 1 << DCORE0_PDMA0_CORE_ERR_CFG_ERR_MSG_EN_SHIFT |
 			1 << DCORE0_PDMA0_CORE_ERR_CFG_STOP_ON_ERR_SHIFT;
 	WREG32(reg_base + DMA_CORE_ERR_CFG_OFFSET, dma_err_cfg);
 
+	irq_handler_offset = le32_to_cpu(dyn_regs->gic_dma_core_irq_ctrl);
+	map_tale_entry = greco_dma_core_async_event_id[dma_core_id];
 	WREG32(reg_base + DMA_CORE_ERRMSG_ADDR_LO_OFFSET,
 			lower_32_bits(CFG_BASE + irq_handler_offset));
 	WREG32(reg_base + DMA_CORE_ERRMSG_ADDR_HI_OFFSET,
@@ -2810,23 +2799,16 @@ static u32 greco_get_dyn_sp_reg(struct hl_device *hdev, u32 queue_id_base)
 static void greco_init_qman_common(struct hl_device *hdev, u32 reg_base,
 					u32 queue_id_base)
 {
-	/*
-	 * TODO:
-	 * Since GIC is becoming obsolete, remove GIC support once CI
-	 * machines are running latest release (1.0.0) that supports COMMS
-	 * Meaning - use dynamic regs only to init qmans.
-	 */
-	u32 irq_handler_offset = hdev->asic_prop.dynamic_fw_load ?
-			greco_get_dyn_sp_reg(hdev, queue_id_base) :
-					mmGIC_DISTRIBUTOR__5_GICD_SETSPI_NSR;
-	u32 glbl_prot = QMAN_MAKE_TRUSTED, qm_err_cfg;
-	int map_tale_entry = greco_qman_async_event_id[queue_id_base];
+	u32 qm_err_cfg, irq_handler_offset;
+	int map_tale_entry;
 
-	WREG32(reg_base + QM_GLBL_PROT_OFFSET, glbl_prot);
+	WREG32(reg_base + QM_GLBL_PROT_OFFSET, QMAN_MAKE_TRUSTED);
 
 	qm_err_cfg = QMAN_GLBL_ERR_CFG_MSG_EN_MASK | QMAN_GLBL_ERR_CFG_STOP_ON_ERR_EN_MASK;
 	WREG32(reg_base + QM_GLBL_ERR_CFG_OFFSET, qm_err_cfg);
 
+	irq_handler_offset = greco_get_dyn_sp_reg(hdev, queue_id_base);
+	map_tale_entry = greco_qman_async_event_id[queue_id_base];
 	WREG32(reg_base + QM_GLBL_ERR_ADDR_LO_OFFSET,
 			lower_32_bits(CFG_BASE + irq_handler_offset));
 	WREG32(reg_base + QM_GLBL_ERR_ADDR_HI_OFFSET,
@@ -3535,59 +3517,6 @@ static int greco_load_boot_fit_to_device(struct hl_device *hdev)
 	return hl_fw_load_fw_to_device(hdev, GRECO_BOOT_FIT_FILE, dst, 0, 0);
 }
 
-static void greco_init_dynamic_firmware_loader(struct hl_device *hdev)
-{
-	struct dynamic_fw_load_mgr *dynamic_loader;
-	struct cpu_dyn_regs *dyn_regs;
-
-	dynamic_loader = &hdev->fw_loader.dynamic_loader;
-
-	/*
-	 * here we update initial values for few specific dynamic regs (as
-	 * before reading the first descriptor from FW those value has to be
-	 * hard-coded) in later stages of the protocol those values will be
-	 * updated automatically by reading the FW descriptor so data there
-	 * will always be up-to-date
-	 */
-	dyn_regs = &dynamic_loader->comm_desc.cpu_dyn_regs;
-	dyn_regs->kmd_msg_to_cpu =
-				cpu_to_le32(mmPSOC_GLOBAL_CONF_KMD_MSG_TO_CPU);
-	dyn_regs->cpu_cmd_status_to_host =
-				cpu_to_le32(mmCPU_CMD_STATUS_TO_HOST);
-
-	dynamic_loader->wait_for_bl_timeout = GRECO_WAIT_FOR_BL_TIMEOUT_USEC;
-}
-
-static void greco_init_static_firmware_loader(struct hl_device *hdev)
-{
-	struct static_fw_load_mgr *static_loader;
-
-	static_loader = &hdev->fw_loader.static_loader;
-
-	/* greco holds the preboot version in the SP SRAM */
-	static_loader->preboot_version_max_off = SCRATCHPAD_SRAM_ADDR -
-			SRAM_BASE_ADDR + SCRATCHPAD_SRAM_SIZE - VERSION_MAX_LEN;
-	/*
-	 * as this code runs in early stage we don't know whether or not we have
-	 * SRAM binning. for this reason we take the worst-case (half the SRAM)
-	 */
-	static_loader->boot_fit_version_max_off =
-					(SRAM_SIZE / 2) - VERSION_MAX_LEN;
-	static_loader->kmd_msg_to_cpu_reg = mmPSOC_GLOBAL_CONF_KMD_MSG_TO_CPU;
-	static_loader->cpu_cmd_status_to_host_reg = mmCPU_CMD_STATUS_TO_HOST;
-	static_loader->cpu_boot_status_reg = mmPSOC_GLOBAL_CONF_CPU_BOOT_STATUS;
-	static_loader->cpu_boot_dev_status0_reg = mmCPU_BOOT_DEV_STS0;
-	static_loader->cpu_boot_dev_status1_reg = mmCPU_BOOT_DEV_STS1;
-	static_loader->boot_err0_reg = mmCPU_BOOT_ERR0;
-	static_loader->boot_err1_reg = mmCPU_BOOT_ERR1;
-	static_loader->preboot_version_offset_reg = mmPREBOOT_VER_OFFSET;
-	static_loader->boot_fit_version_offset_reg = mmUBOOT_VER_OFFSET;
-	static_loader->sram_offset_mask = ~(lower_32_bits(SRAM_BASE_ADDR));
-	static_loader->cpu_reset_wait_msec = hdev->pldm ?
-			GRECO_PLDM_RESET_WAIT_MSEC :
-			GRECO_CPU_RESET_WAIT_MSEC;
-}
-
 static void greco_init_firmware_preload_params(struct hl_device *hdev)
 {
 	struct pre_fw_load_props *pre_fw_load = &hdev->fw_loader.pre_fw_load;
@@ -3602,8 +3531,9 @@ static void greco_init_firmware_preload_params(struct hl_device *hdev)
 
 static void greco_init_firmware_loader(struct hl_device *hdev)
 {
-	struct asic_fixed_properties *prop = &hdev->asic_prop;
 	struct fw_load_mgr *fw_loader = &hdev->fw_loader;
+	struct dynamic_fw_load_mgr *dynamic_loader;
+	struct cpu_dyn_regs *dyn_regs;
 
 	/* fill common fields */
 	fw_loader->fw_comp_loaded = FW_TYPE_NONE;
@@ -3615,10 +3545,17 @@ static void greco_init_firmware_loader(struct hl_device *hdev)
 	fw_loader->dram_bar_id = DRAM_BAR_ID;
 	fw_loader->cpu_timeout = GRECO_CPU_TIMEOUT_USEC;
 
-	if (prop->dynamic_fw_load)
-		greco_init_dynamic_firmware_loader(hdev);
-	else
-		greco_init_static_firmware_loader(hdev);
+	/* here we update initial values for few specific dynamic regs (as
+	 * before reading the first descriptor from FW those value has to be
+	 * hard-coded) in later stages of the protocol those values will be
+	 * updated automatically by reading the FW descriptor so data there
+	 * will always be up-to-date
+	 */
+	dynamic_loader = &hdev->fw_loader.dynamic_loader;
+	dyn_regs = &dynamic_loader->comm_desc.cpu_dyn_regs;
+	dyn_regs->kmd_msg_to_cpu = cpu_to_le32(mmPSOC_GLOBAL_CONF_KMD_MSG_TO_CPU);
+	dyn_regs->cpu_cmd_status_to_host = cpu_to_le32(mmCPU_CMD_STATUS_TO_HOST);
+	dynamic_loader->wait_for_bl_timeout = GRECO_WAIT_FOR_BL_TIMEOUT_USEC;
 }
 
 static int greco_init_cpu(struct hl_device *hdev)
@@ -3877,22 +3814,9 @@ int greco_init_cpu_queues(struct hl_device *hdev, u32 cpu_timeout)
 
 	WREG32(mmCPU_IF_QUEUE_INIT, PQ_INIT_STATUS_READY_FOR_CP);
 
-	/* Let the ARC know we are ready as it is now handling those queues  */
-	/*
-	 * TODO:
-	 * Since ARC1 IRQ usage from LKD is becoming obsolete,
-	 * remove ARC1 IRQ support once CI machines are running latest
-	 * release (1.0.0) that supports COMMS.
-	 * Meaning - use dynamic regs only to trigger pi updates.
-	 */
-	irq_handler_offset = hdev->asic_prop.dynamic_fw_load ?
-			le32_to_cpu(dyn_regs->gic_host_pi_upd_irq) :
-			mmPSOC_ARC1_AUX_SW_INTR_0;
-
-	irq_handler_val = hdev->asic_prop.dynamic_fw_load ?
-			greco_irq_map_table
-			[GRECO_EVENT_CPU_PI_UPDATE].cpu_id : 1;
-
+	/* Let the ARC know we are ready as it is now handling those queues */
+	irq_handler_offset = le32_to_cpu(dyn_regs->gic_host_pi_upd_irq);
+	irq_handler_val = greco_irq_map_table[GRECO_EVENT_CPU_PI_UPDATE].cpu_id;
 	WREG32(irq_handler_offset, irq_handler_val);
 
 	dev_dbg(hdev->dev,
@@ -4099,19 +4023,9 @@ static int greco_hw_fini(struct hl_device *hdev, bool hard_reset, bool fw_reset)
 		 * we need to use MSG_TO_CPU register in case of old F/Ws.
 		 */
 		if (hdev->fw_loader.fw_comp_loaded & FW_TYPE_LINUX) {
-			/*
-			 * TODO:
-			 * Since GIC is becoming obsolete, remove GIC support
-			 * once CI machines are running latest release (1.0.0)
-			 * that supports COMMS, meaning - use dynamic regs only
-			 * to trigger hard reset.
-			 */
-			irq_handler_offset = hdev->asic_prop.dynamic_fw_load ?
-					le32_to_cpu(dyn_regs->gic_host_halt_irq)
-					: mmGIC_DISTRIBUTOR__5_GICD_SETSPI_NSR;
-
-			WREG32(irq_handler_offset, greco_irq_map_table
-					[GRECO_EVENT_CPU_HALT_MACHINE].cpu_id);
+			irq_handler_offset = le32_to_cpu(dyn_regs->gic_host_halt_irq);
+			irq_handler_val = greco_irq_map_table[GRECO_EVENT_CPU_HALT_MACHINE].cpu_id;
+			WREG32(irq_handler_offset, irq_handler_val);
 			msleep(cpu_timeout_ms);
 
 			/* This is a hail-mary attempt to revive the card in the small chance
@@ -4165,21 +4079,8 @@ static int greco_hw_fini(struct hl_device *hdev, bool hard_reset, bool fw_reset)
 				"Driver issued SOFT reset command, waiting up to %dms\n",
 				reset_timeout_ms);
 		} else {
-			/*
-			 * TODO:
-			 * Since ARC1 IRQ usage from LKD is becoming obsolete,
-			 * remove ARC1 IRQ support once CI machines are running
-			 * latest release (1.0.0) that supports COMMS, meaning -
-			 * use dynamic regs only to trigger soft reset.
-			 */
-			irq_handler_offset = hdev->asic_prop.dynamic_fw_load ?
-				le32_to_cpu(dyn_regs->gic_host_soft_rst_irq) :
-				mmPSOC_ARC1_AUX_SW_INTR_2;
-
-			irq_handler_val = hdev->asic_prop.dynamic_fw_load ?
-					greco_irq_map_table
-					[GRECO_EVENT_CPU_SOFT_RESET].cpu_id : 1;
-
+			irq_handler_offset = le32_to_cpu(dyn_regs->gic_host_soft_rst_irq);
+			irq_handler_val = greco_irq_map_table[GRECO_EVENT_CPU_SOFT_RESET].cpu_id;
 			WREG32(irq_handler_offset, irq_handler_val);
 			dev_dbg(hdev->dev,
 				"Firmware performs SOFT reset, going to wait %dms\n",
@@ -4372,20 +4273,8 @@ void greco_ring_doorbell(struct hl_device *hdev, u32 hw_queue_id, u32 pi)
 	WREG32(db_reg_offset, db_value);
 
 	if (hw_queue_id == GRECO_QUEUE_ID_CPU_PQ) {
-		/*
-		 * TODO:
-		 * Since ARC1 IRQ usage from LKD is becoming obsolete,
-		 * remove ARC1 IRQ support once CI machines are running latest
-		 * release (1.0.0) that supports COMMS.
-		 * Meaning - use dynamic regs only to trigger pi updates.
-		 */
-		irq_handler_offset = hdev->asic_prop.dynamic_fw_load ?
-				le32_to_cpu(dyn_regs->gic_host_pi_upd_irq) :
-				mmPSOC_ARC1_AUX_SW_INTR_0;
-
-		irq_handler_val = hdev->asic_prop.dynamic_fw_load ?
-				greco_irq_map_table
-				[GRECO_EVENT_CPU_PI_UPDATE].cpu_id : 1;
+		irq_handler_offset = le32_to_cpu(dyn_regs->gic_host_pi_upd_irq);
+		irq_handler_val = greco_irq_map_table[GRECO_EVENT_CPU_PI_UPDATE].cpu_id;
 
 		/* make sure device CPU will read latest data from host */
 		mb();
@@ -7947,23 +7836,16 @@ static int greco_block_mmap(struct hl_device *hdev, struct vm_area_struct *vma,
 
 static void greco_enable_events_from_fw(struct hl_device *hdev)
 {
+	struct cpu_dyn_regs *dyn_regs = &hdev->fw_loader.dynamic_loader.comm_desc.cpu_dyn_regs;
 	struct greco_device *greco = hdev->asic_specific;
+	u32 irq_handler_offset, irq_handler_val;
 
-	struct cpu_dyn_regs *dyn_regs =
-			&hdev->fw_loader.dynamic_loader.comm_desc.cpu_dyn_regs;
-	/*
-	 * TODO:
-	 * Since GIC is becoming obsolete, remove GIC support once CI
-	 * machines are running latest release (1.0.0) that supports COMMS
-	 * Meaning - use dynamic regs only to enable FW events.
-	 */
-	u32 irq_handler_offset = hdev->asic_prop.dynamic_fw_load ?
-			le32_to_cpu(dyn_regs->gic_host_ints_irq) :
-			mmGIC_DISTRIBUTOR__5_GICD_SETSPI_NSR;
+	if (!(greco->hw_cap_initialized & HW_CAP_CPU_Q))
+		return;
 
-	if (greco->hw_cap_initialized & HW_CAP_CPU_Q)
-		WREG32(irq_handler_offset, greco_irq_map_table
-				[GRECO_EVENT_CPU_INTS_REGISTER].cpu_id);
+	irq_handler_offset = le32_to_cpu(dyn_regs->gic_host_ints_irq);
+	irq_handler_val = greco_irq_map_table[GRECO_EVENT_CPU_INTS_REGISTER].cpu_id;
+	WREG32(irq_handler_offset, irq_handler_val);
 }
 
 int greco_ack_mmu_page_fault_or_access_error(struct hl_device *hdev, u64 mmu_cap_mask)
