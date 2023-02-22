@@ -228,6 +228,7 @@
 #include "arc_af_eng_masks.h"
 #include "arc_af_eng_sec_user_adapt_masks.h"
 #include "autonomous_control_masks.h"
+#include "etr_masks.h"
 
 /* CSLICE */
 #define CS_MAINT_BASE_OFFSET		(mmHD0_CS0_MAINT_BASE - mmHD0_CS0_MAIN_BASE)

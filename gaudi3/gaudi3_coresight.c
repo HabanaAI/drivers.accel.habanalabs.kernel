@@ -5932,6 +5932,16 @@ static int gaudi3_config_etr(struct hl_device *hdev, struct hl_ctx *ctx,
 			WREG32(cs_trace_trace_read_address_reg, msb);
 		}
 
+		if (!(hdev->fw_components & FW_TYPE_BOOT_CPU)) {
+			/* make ETR not privileged */
+			val = FIELD_PREP(ETR_AXICTL_PROTCTRLBIT0_M, 0);
+			/* make ETR non-secured (inverted logic) */
+			val |= FIELD_PREP(ETR_AXICTL_PROTCTRLBIT1_M, 1);
+			/* burst size 16 */
+			val |= FIELD_PREP(ETR_AXICTL_WRBURSTLEN_M, 0xF);
+			WREG32(mmETR_AXICTL, val);
+		}
+
 		WREG32(base_reg + mmETR_BUFWM, 0x3FFC);
 		WREG32(base_reg + mmETR_RSZ, input->buffer_size);
 		WREG32(base_reg + mmETR_MODE, input->sink_mode);
