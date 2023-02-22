@@ -110,7 +110,7 @@
 #define BP_OFFS_MSG_EN_NUM	REG_NUM(mmD0_NIC0_QPC_WQ_BP_MSG_EN_3 - mmD0_NIC0_QPC_WQ_BP_MSG_EN_0)
 
 #define QPC_COLL_LAG_SZ_DEFAULT		0x3
-#define QPC_RX_WQE_CT_MASK_DEFAULT	0x2
+#define QPC_RX_WQE_CT_MASK_DEFAULT	0x3
 #define NIC_TMR_TIMEOUT_US		1000 /* 1 msec */
 
 #define IPv4_PROTOCOL_UDP	17
@@ -3370,6 +3370,15 @@ static void gaudi3_user_get_app_params(struct hl_device *hdev,
 	out->max_num_of_scale_out_coll_qps = ELEMENT_COUNT(NIC_MAX_COLL_QP_NUM) -
 						NIC_MAX_NON_SCALE_OUT_COLL_CONNS;
 	out->coll_qps_offset = ELEMENT_OFFSET(port, NIC_MAX_COLL_QP_NUM);
+
+	/* SW-114271: By configuring QPC_RX_WQE_CT_MASK_DEFAULT to 0x3 we change the expected
+	 * value of the SOB since now ACK for RDV receive message is also increment the SOB (in
+	 * addition to the regular sender data). This will break user app hence we'll temporarily
+	 * pass to the user app that this configuration was done so it will know what to expect.
+	 * TODO: Remove this dirty hack once HCL commit that remove the parsing of the below field
+	 * will pass promotion.
+	 */
+	out->max_num_of_encaps = 1;
 }
 
 static u32 gaudi3_nic_get_default_port_speed(struct hl_device *hdev)
