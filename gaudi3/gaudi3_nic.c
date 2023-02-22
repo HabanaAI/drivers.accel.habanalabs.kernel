@@ -5530,7 +5530,7 @@ void gaudi3_handle_nic_sei_error_event(struct hl_device *hdev, u32 macro_index)
 
 	txs_intr_cause = NIC_RREG32(mmD0_NIC0_TXS_INTERRUPT_CAUSE);
 	txs_intr_mask = NIC_RREG32(mmD0_NIC0_TXS_INTERRUPT_MASK);
-	txs_intr_cause = txs_intr_cause & ~txs_intr_cause;
+	txs_intr_cause = txs_intr_cause & ~txs_intr_mask;
 
 	txe_intr_cause = NIC_RREG32(mmD0_NIC0_TXE_INTERRUPT_CAUSE);
 	txe_intr_mask = NIC_RREG32(mmD0_NIC0_TXE_INTERRUPT_MASK);
