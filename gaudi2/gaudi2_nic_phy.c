@@ -2260,8 +2260,11 @@ int gaudi2_nic_phy_init(struct hl_device *hdev)
 		set_default_polarity_values(hdev);
 	}
 
-	/* set the default Tx taps */
-	set_default_tx_taps_values(hdev);
+	/* Set the tx taps to their default values only once */
+	if (!nic->skip_phy_default_tx_taps_cfg) {
+		set_default_tx_taps_values(hdev);
+		nic->skip_phy_default_tx_taps_cfg = true;
+	}
 
 	return 0;
 }

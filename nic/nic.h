@@ -746,6 +746,7 @@ struct hl_coll_properties {
  * @skip_cq_arm_timeout: Used to skip CQ arm timeout settings when running on simulator.
  * @skip_wq_arrays_pool: Used to skip allocation and destruction of WQ arrays pool.
  * @rx_drop_percent: RX packet drop percentage set via debugfs.
+ * @skip_phy_default_tx_taps_cfg: Used to skip re-configuration of the default tx_taps.
  */
 struct hl_nic {
 	struct hl_nic_port		*nic_ports;
@@ -789,6 +790,7 @@ struct hl_nic {
 	u8				skip_cq_arm_timeout;
 	u8				skip_wq_arrays_pool;
 	u8				rx_drop_percent;
+	u8				skip_phy_default_tx_taps_cfg;
 };
 
 /**
