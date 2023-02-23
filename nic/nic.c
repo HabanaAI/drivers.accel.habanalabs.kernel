@@ -715,7 +715,7 @@ static void hl_nic_ib_query_device(struct hl_aux_dev *aux_dev,
 		major = minor = sub_ver = 0;
 	}
 
-	dev_attr->fw_ver = ((u64)major << 32) | (minor << 16) | sub_ver;
+	dev_attr->fw_ver = ((u64)major << 32) | ((u64)minor << 16) | sub_ver;
 
 	dev_attr->max_mr_size = core_info->dram_size;
 	dev_attr->page_size_cap = PAGE_SIZE;
