@@ -3454,7 +3454,7 @@ int gaudi2_nic_set_info(struct hl_device *hdev, bool get_from_fw)
 			return rc;
 
 		/* Allow debugging of gaudi2B disabled ports by overriding the pci revision id and
-		 * by that identifing as gaudi2.
+		 * by that identifying as gaudi2.
 		 */
 		if ((hdev->asic_type == ASIC_GAUDI2) && hdev->pci_rev_id_override) {
 			dev_dbg(hdev->dev,

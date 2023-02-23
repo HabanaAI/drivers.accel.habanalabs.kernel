@@ -2528,7 +2528,7 @@ static void qp_destroy_work(struct work_struct *work)
 		struct hl_coll_qp *coll_qp = get_coll_qp_from_conn_id(nic_port, qp->qp_id);
 
 		/* If the coll_qp is NULL, meaning it was freed in previous run of this thread,
-		 * no addtional action needs to be done here and we can continue with the common
+		 * no additional action needs to be done here and we can continue with the common
 		 * flow.
 		 */
 		if (coll_qp) {

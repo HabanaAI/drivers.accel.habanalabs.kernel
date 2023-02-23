@@ -1207,7 +1207,7 @@ __poll_t hl_sim_poll(struct hl_simulator_device *edev, struct file *filp,
  * @offset: PCI-E bar offset (in bytes)
  * @size: The size of the data to read
  *
- * Copies the value of DRAM at the given offest to @dst.
+ * Copies the value of DRAM at the given offset to @dst.
  * The memory may be mapped into kernel space, or needs to be mapped.
  * Returns 0 on success or error code on error.
  *
@@ -1251,7 +1251,7 @@ int hl_sim_read_dram(struct hl_simulator_device *edev, void *dst, u64 offset,
  * @src: destination address to write result into
  * @size: the size of the data to read
  *
- * Copies a value to DRAM at a given offest from @src.
+ * Copies a value to DRAM at a given offset from @src.
  * The memory may be mapped into kernel space, or needs to be mapped.
  * Returns 0 on success or error code on error.
  */

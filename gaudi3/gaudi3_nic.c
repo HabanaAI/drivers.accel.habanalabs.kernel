@@ -3137,7 +3137,7 @@ static int gaudi3_user_cq_set(struct hl_nic_user_cq *user_cq,
 	NIC_OFFSET_WREG32(mmD0_NIC0_RXE_CQ_LOG_SIZE_0, ilog2(in->num_of_cqes));
 
 	/* Config user CQ PI host memory address.
-	 * Note: PI memory size is fixed 8 bytes. However, since it's mmaped
+	 * Note: PI memory size is fixed 8 bytes. However, since it's maped
 	 * to userspace we allocate 1 page.
 	 */
 	NIC_OFFSET_WREG32(mmD0_NIC0_RXE_CQ_PI_ADDR_HI_0, upper_32_bits(pi_device_addr));

@@ -645,7 +645,7 @@ static int extest_tx(struct hl_device *hdev, int device)
 				WREG32(addr, extest_wdr_pattern[idx]);
 			}
 
-			/* Perfrom EXTEST_TX command to the selected channel */
+			/* Perform EXTEST_TX command to the selected channel */
 			ieee1500_inst(hdev, device, hbm_ch_mapping[ch],
 					ieee1500_extest_tx, EXTEST_WRITE_INST);
 
@@ -2289,7 +2289,7 @@ static void print_training_result(struct hl_device *hdev, int device)
 	dev_dbg(hdev->dev,
 		"  <2> AWORD write training : Ensure Clock in the middle of Command/Address bus.\n");
 	dev_dbg(hdev->dev,
-		"  <3> DWORD wrtie training : Ensure WDQS in the middle of DQ.\n");
+		"  <3> DWORD write training : Ensure WDQS in the middle of DQ.\n");
 	dev_dbg(hdev->dev,
 		"  <4> DWORD read training : Ensure RDQS to align with DQ edge.\n");
 	dev_dbg(hdev->dev,

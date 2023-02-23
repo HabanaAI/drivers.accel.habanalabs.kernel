@@ -2418,7 +2418,7 @@ static int __gaudi2_init_sram_pll(struct hl_device *hdev,
 
 	/* for nominal freq, divider config are same for all
 	 * supported freq i.e 1800/1600/1200
-	 * For SRAM, only div0 is valid, rest are dont care.
+	 * For SRAM, only div0 is valid, rest are don't care.
 	 */
 	GAUDI2_INIT_PLL_DIVIDER_VAL(pll, 0, 0, 0, 0);
 
@@ -3510,7 +3510,7 @@ static void gaudi2_init_common_static_mstr_ifs(struct hl_device *hdev,
 	int i;
 
 	/*
-	 * init static components COMMMON MASTER_IFs. Static refers to a
+	 * init static components COMMON MASTER_IFs. Static refers to a
 	 * component which is not being reset during soft reset. NOTE:
 	 * 1. all non duplicated instances of MSTR_IF are configured directly
 	 * 2. duplicated instances (INST0, INST1..) are initialize using the
@@ -3597,7 +3597,7 @@ static void gaudi2_init_common_engines_mstr_ifs(struct hl_device *hdev,
 	unsigned long mask;
 
 	/*
-	 * init engines (except NIC) COMMMON MASTER_IFs. NOTE:
+	 * init engines (except NIC) COMMON MASTER_IFs. NOTE:
 	 * 1. all non duplicated instances of MSTR_IF are configured directly
 	 * 2. duplicated instances (INST0, INST1..) are initialize using the
 	 *    gaudi2_init_common* variant
@@ -5177,7 +5177,7 @@ static void get_next_faulty_dec_data(struct hl_device *hdev,
 
 	/* store the faulty sequence */
 	dec_data->dec_seq = dec_seq;
-	/* decoder index is 0 or 1 (whithin the dcore or among the PCIE DECs) */
+	/* decoder index is 0 or 1 (within the dcore or among the PCIE DECs) */
 	dec_data->faulty_dec_idx = dec_seq & 0x1;
 }
 
@@ -5209,7 +5209,7 @@ static void gaudi2_init_binning_dec(struct hl_device *hdev)
 	 * single faulty decoder
 	 * ==faulty==  ==action==
 	 * D1-D8:      replace faulty with D9
-	 * D9          isolate and disable acces to this decoder
+	 * D9          isolate and disable access to this decoder
 	 */
 
 	/* get properties of current faulty TPC */

@@ -1260,7 +1260,7 @@ static void phy_config_dram_timing(struct hl_device *hdev, u32 hbm_dev)
 			      ac_params->hbm_twtr_l);
 	reg_val |= FIELD_PREP(HBM_PHY_MASTER_DRAMTIMING4_TCKSRE_MASK,
 				(ac_params->mc_tcksre + 1) * HDR_TO_SDR);
-	/* tRCD is the only MC timing parmeter given in SDR. No need to convert */
+	/* tRCD is the only MC timing parameter given in SDR. No need to convert */
 	reg_val |= FIELD_PREP(HBM_PHY_MASTER_DRAMTIMING4_TRCD_MASK, ac_params->mc_trcd_rd);
 
 
@@ -1831,7 +1831,7 @@ static void print_training_vref(struct hl_device *hdev, int hbm_dev,
 		vref_res->min, vref_res->max);
 }
 
-/* returns the precentage of the eye relative to 1UI */
+/* returns the percentage of the eye relative to 1UI */
 static inline int calc_eye_ratio_ui(u16 min_reg, u16 max_reg)
 {
 	if ((!min_reg) && (!max_reg))
@@ -4509,7 +4509,7 @@ static int hbm_mbist_legacy_mode_parser(struct hl_device *hdev, u32 dev, u32 *re
 			dev_dbg(hdev->dev, "  ------------- : ------------------------------------------------------------\n");
 		}
 
-		/* convet data for parsing from u32 regs to u32 bits array */
+		/* convert data for parsing from u32 regs to u32 bits array */
 		for (reg_idx = 0; reg_idx < ch_regs_count; reg_idx++) {
 			for (bit_idx = 0; bit_idx < BITS_PER_REG32;
 				bit_idx++) {
@@ -4914,7 +4914,7 @@ static int software_training(struct hl_device *hdev, int dev)
 	dev_dbg(hdev->dev, "Applying partial HW training for read-data and SW training for write-data\n");
 	rc = phy_hw_training(hdev, dev);
 	if (rc) {
-		dev_err(hdev->dev, "Paritial HW training failed (C/A, RL and read-data)\n");
+		dev_err(hdev->dev, "Partial HW training failed (C/A, RL and read-data)\n");
 		goto exit;
 	}
 

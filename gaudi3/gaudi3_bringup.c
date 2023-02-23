@@ -4447,7 +4447,7 @@ static void gaudi3_shared_sei_event_info(struct hl_device *hdev, u32 die)
 	}
 
 	if (sts1 & sts1_glink_mask) {
-		idx = (ffs(sts0 & sts1_glink_mask)) + 3; /* +3 to distiguish name from sts0 */
+		idx = (ffs(sts0 & sts1_glink_mask)) + 3; /* +3 to distinguish name from sts0 */
 		snprintf(str, 512, "GLINK%u_DIE%u_HDSHARED_SEI", idx, die);
 		dev_err(hdev->dev, "Received %s event\n", str);
 

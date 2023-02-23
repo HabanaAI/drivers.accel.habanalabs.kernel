@@ -176,7 +176,7 @@ struct hl_odp_region_ctx *hl_odp_region_ctx_find(struct hl_ctx *ctx, u64 vaddr)
  * @hdev: pointer to device data
  * @userptr: owner userptr object pointer
  *
- * Initializes the odp region, assume running from the user context. Retuns the
+ * Initializes the odp region, assume running from the user context. Returns the
  * pointer to the object on success or NULL on error.
  */
 struct hl_odp_region_ctx *hl_odp_region_ctx_create(struct hl_device *hdev,
@@ -203,7 +203,7 @@ struct hl_odp_region_ctx *hl_odp_region_ctx_create(struct hl_device *hdev,
 
 	if (unlikely(rc)) {
 		dev_err(hdev->dev,
-			"Error trying to setup inteval notifier for region %#llx of size %#llx: %d",
+			"Error trying to setup interval notifier for region %#llx of size %#llx: %d",
 			addr, size, rc);
 		goto free_rg;
 	}

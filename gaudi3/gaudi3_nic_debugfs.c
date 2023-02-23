@@ -421,7 +421,7 @@ static int gaudi3_nic_debugfs_wqe_parse(struct hl_device *hdev, struct hl_nic_wq
 				TX_WQE_GET_REMOTE_CLASS(sq_wqe));
 		__snprintf(buf, bsize, "long SOB: 0x%llx\n",
 				TX_WQE_GET_LONG_SOB(sq_wqe));
-		__snprintf(buf, bsize, "SOB commnad: 0x%llx\n",
+		__snprintf(buf, bsize, "SOB command: 0x%llx\n",
 				TX_WQE_GET_SOB_CMD(sq_wqe));
 		__snprintf(buf, bsize, "completion type: 0x%llx\n",
 				TX_WQE_GET_COMPLETION_TYPE(sq_wqe));

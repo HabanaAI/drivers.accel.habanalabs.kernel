@@ -347,7 +347,7 @@ struct frame_vector *frame_vector_create(unsigned int nr_frames)
 		return NULL;
 	/*
 	 * This is absurdly high. It's here just to avoid strange effects when
-	 * arithmetics overflows.
+	 * arithmetic overflows.
 	 */
 	if (WARN_ON_ONCE(nr_frames > INT_MAX / sizeof(void *) / 2))
 		return NULL;

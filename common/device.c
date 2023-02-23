@@ -2256,7 +2256,7 @@ static int hl_get_fetch_block_range(struct hl_device *hdev, u64 addr, u32 size, 
  * hl_read_memory_block - read memory block from device
  * @hdev: pointer to habanalabs device structure
  * @buf: input buffer to read into
- * @start_addr: 64-bit device address to strat reading
+ * @start_addr: 64-bit device address to start reading
  * @size: how many bytes to read
  * Returns 0 for success or an error on failure.
  */
