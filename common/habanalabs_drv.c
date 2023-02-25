@@ -152,7 +152,7 @@ static int bfe_ptw_bypass_enable = 1;
 static uint bfe_rotator_binning;
 static int bfe_hbm_compression_enable = 1;
 static int bfe_nic_enable_h9_rx_drop_eco = 1;
-static int bfe_enable_h9_cache_eta_eco;
+static int bfe_enable_h9_cache_eta_eco = 1;
 static int bfe_force_h9_single_die;
 static int bfe_nic_enable_h9_qp_doorbells_eco = 1;
 static int bfe_nic_enable_h9_cc_msg_drops_eco = 1;
@@ -518,7 +518,7 @@ MODULE_PARM_DESC(bfe_nic_enable_h9_rx_drop_eco,
 
 module_param(bfe_enable_h9_cache_eta_eco, int, 0444);
 MODULE_PARM_DESC(bfe_enable_h9_cache_eta_eco,
-	"Enable H9 Cache ETA ECO (0 - disabled, 1 - enabled, default 0)");
+	"Enable H9 Cache ETA ECO (0 - disabled, 1 - enabled, default 1)");
 
 module_param(bfe_force_h9_single_die, int, 0444);
 MODULE_PARM_DESC(bfe_force_h9_single_die,
@@ -1501,6 +1501,7 @@ static void set_driver_behavior_per_device(struct hl_device *hdev)
 	hdev->nic_enable_h9_sal_override_eco = 1;
 	hdev->nic_enable_h9_sack_deadlock_eco = 1;
 	hdev->nic_enable_h9_txe_buff_alloc_eco = 1;
+	hdev->enable_h9_cache_eta_eco = 1;
 }
 
 static void copy_kernel_module_params_to_device(struct hl_device *hdev)
