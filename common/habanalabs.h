@@ -111,7 +111,7 @@ struct hl_fpriv;
 
 #define HL_PCI_ELBI_TIMEOUT_MSEC	10 /* 10ms */
 
-#define HL_SIM_MAX_TIMEOUT_US		200000000 /* 200s */
+#define HL_SIM_MAX_TIMEOUT_US		300000000 /* 300s */
 
 #define HL_INVALID_QUEUE		UINT_MAX
 
