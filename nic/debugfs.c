@@ -444,8 +444,7 @@ static ssize_t debugfs_qp_write(struct file *f, const char __user *buf,
 	char kbuf[KBUF_IN_SIZE];
 	char *c1, *c2;
 	ssize_t rc;
-	u32 port, qpn,
-		max_num_of_lanes = hdev->asic_prop.nic_props.max_num_of_lanes;
+	u32 port, qpn, max_num_of_ports = hdev->asic_prop.nic_props.max_num_of_ports;
 	u8 req, full_print, force_read, exts_print = 0;
 
 	if (count > sizeof(kbuf) - 1)
@@ -464,9 +463,8 @@ static ssize_t debugfs_qp_write(struct file *f, const char __user *buf,
 	if (rc)
 		goto err;
 
-	if (port >= max_num_of_lanes) {
-		dev_err(hdev->dev, "port max value is %d\n",
-			max_num_of_lanes - 1);
+	if (port >= max_num_of_ports) {
+		dev_err(hdev->dev, "port max value is %d\n", max_num_of_ports - 1);
 		return -EINVAL;
 	}
 
@@ -1193,6 +1191,71 @@ static const struct file_operations debugfs_inject_rx_err_fops = {
 	.write = debugfs_inject_rx_err_write,
 };
 
+static ssize_t debugfs_override_port_status_write(struct file *f, const char __user *buf,
+						size_t count, loff_t *ppos)
+{
+	struct hl_device *hdev = file_inode(f)->i_private;
+	char kbuf[KBUF_IN_SIZE];
+	struct hl_nic *nic;
+	struct hl_nic_port *nic_port;
+	char *c1, *c2;
+	ssize_t rc;
+	u32 port, max_num_of_ports = hdev->asic_prop.nic_props.max_num_of_ports;
+	u8 up;
+
+	if (count > sizeof(kbuf) - 1)
+		goto err;
+	if (copy_from_user(kbuf, buf, count))
+		goto err;
+	kbuf[count] = '\0';
+
+	c1 = kbuf;
+	c2 = strchr(c1, ' ');
+	if (!c2)
+		goto err;
+	*c2 = '\0';
+
+	rc = kstrtou32(c1, 10, &port);
+	if (rc)
+		goto err;
+
+	if (port >= max_num_of_ports) {
+		dev_err(hdev->dev, "port max value is %d\n", max_num_of_ports - 1);
+		return -EINVAL;
+	}
+
+	c1 = c2 + 1;
+
+	rc = kstrtou8(c1, 10, &up);
+	if (rc)
+		goto err;
+
+	nic = &hdev->nic;
+
+	if (hdev->nic_ports_mask & BIT(port)) {
+#ifdef _HAS_NO_SPEC
+		/* Turn off speculation due to Spectre vulnerability */
+		port = array_index_nospec(port, max_num_of_ports);
+#endif
+		nic_port = &nic->nic_ports[port];
+
+		nic_port->pcs_link = !!up;
+		hl_nic_phy_set_port_status(nic_port, !!up);
+	}
+
+	return count;
+err:
+	dev_err(hdev->dev,
+		"usage: echo <port> <status> > nic_override_port_status\n");
+
+	return -EINVAL;
+}
+
+static const struct file_operations debugfs_override_port_status_fops = {
+	.owner = THIS_MODULE,
+	.write = debugfs_override_port_status_write,
+};
+
 #define NIC_DEBUGFS(X, fmt, do_reset) \
 static ssize_t debugfs_##X##_read(struct file *f, \
 					char __user *buf, \
@@ -1418,6 +1481,12 @@ void hl_nic_debugfs_init(struct hl_device *hdev, struct dentry *root_dir)
 				0644,
 				root_dir,
 				&nic->phy_calc_ber_wait_sec);
+
+	debugfs_create_file("nic_override_port_status",
+				0200,
+				root_dir,
+				hdev,
+				&debugfs_override_port_status_fops);
 }
 
 #else
