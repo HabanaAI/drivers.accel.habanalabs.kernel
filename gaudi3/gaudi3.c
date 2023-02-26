@@ -357,12 +357,12 @@ GAUDI3_PRIV_PROTBITS_DATA;
 static struct hl_automated_pb_cfg gaudi3_priv_pb_cfg[] = GAUDI3_PRIV_PROTBITS_CFG;
 
 /* TODO - remove exclusion of ARC_FARM once SW-123176 is resolved */
-int gaudi3_iterator_skip_block_types[] = {
+static const int gaudi3_iterator_skip_block_types[] = {
 		GAUDI3_BLOCK_TYPE_ARC_FARM,
 		GAUDI3_BLOCK_TYPE_EU_BIST
 };
 
-struct range gaudi3_iterator_skip_special_blocks_ranges[] = {
+static const struct range gaudi3_iterator_skip_special_blocks_ranges[] = {
 		/* DBG regions */
 		{mmHD0_TPC0_CS_DBG_ROM_TABLE_BASE, mmHD7_SCD_FUNNEL_BASE}
 };
@@ -371,7 +371,7 @@ struct range gaudi3_iterator_skip_special_blocks_ranges[] = {
  * Note that we do the PB config of the first PDMA channel manually and
  * we don't want the automation to touch it.
  */
-struct range gaudi3_iterator_skip_pb_blocks_ranges[] = {
+static const struct range gaudi3_iterator_skip_pb_blocks_ranges[] = {
 		/* DBG regions */
 		{mmHD0_TPC0_CS_DBG_ROM_TABLE_BASE, mmHD7_SCD_FUNNEL_BASE},
 		/* KDMA channel */
@@ -4196,14 +4196,7 @@ free_dma_mem_arr:
 	return rc;
 }
 
-static bool gaudi3_special_block_skip(struct hl_device *hdev,
-		struct hl_special_blocks_cfg *special_blocks_cfg,
-		u32 blk_idx, u32 major, u32 minor, u32 sub_minor)
-{
-	return false;
-}
-
-static bool gaudi3_pb_block_skip_with_mask(struct hl_device *hdev,
+static bool gaudi3_block_skip_with_mask(struct hl_device *hdev,
 		struct hl_special_blocks_cfg *special_blocks_cfg,
 		u32 blk_idx, u32 major, u32 minor, u32 sub_minor)
 {
@@ -4427,7 +4420,7 @@ static int gaudi3_special_blocks_config(struct hl_device *hdev)
 				ARRAY_SIZE(gaudi3_iterator_skip_special_blocks_ranges);
 	}
 
-	prop->skip_special_blocks_cfg.skip_block_hook = gaudi3_special_block_skip;
+	prop->skip_special_blocks_cfg.skip_block_hook = gaudi3_block_skip_with_mask;
 
 	return 0;
 
@@ -4485,7 +4478,7 @@ static int gaudi3_pb_blocks_config(struct hl_device *hdev)
 				ARRAY_SIZE(gaudi3_iterator_skip_pb_blocks_ranges);
 	}
 
-	prop->skip_pb_blocks_cfg.skip_block_hook = gaudi3_pb_block_skip_with_mask;
+	prop->skip_pb_blocks_cfg.skip_block_hook = gaudi3_block_skip_with_mask;
 
 	return 0;
 
@@ -11550,8 +11543,6 @@ static void gaudi3_handle_pdma_sei_err(struct hl_device *hdev, u8 die)
 {
 	gaudi3_handle_pdma_module_sei_err(hdev, die, false);
 	gaudi3_handle_pdma_module_sei_err(hdev, die, true);
-
-	hl_check_for_glbl_errors(hdev);
 }
 
 static void gaudi3_handle_arc_farm_sei_err(struct hl_device *hdev, u32 hdcore)
@@ -11560,8 +11551,6 @@ static void gaudi3_handle_arc_farm_sei_err(struct hl_device *hdev, u32 hdcore)
 				mmQMAN_ARC_AUX_ARC_SEI_INTR_STS);
 
 	gaudi3_err_cause_iterator(hdev, err_msk, gaudi3_arc_sei_err_cause, "ARC", "SEI");
-
-	hl_check_for_glbl_errors(hdev);
 }
 
 static void gaudi3_handle_pcie0_sei_err(struct hl_device *hdev, u16 data_size,
@@ -11581,8 +11570,6 @@ static void gaudi3_handle_pcie0_sei_err(struct hl_device *hdev, u16 data_size,
 	err_msk = lower_32_bits(le64_to_cpu(pcie_sei_data->intr_cause.intr_cause_data));
 
 	gaudi3_err_cause_iterator(hdev, err_msk, gaudi3_pcie_sei_err_cause, "PCIE", "SEI");
-
-	hl_check_for_glbl_errors(hdev);
 }
 
 static void gaudi3_handle_pcie0_spi_err(struct hl_device *hdev, u16 data_size,
@@ -11763,6 +11750,8 @@ static void gaudi3_handle_sei_event(struct hl_device *hdev,
 	default:
 		return;
 	}
+
+	hl_check_for_glbl_errors(hdev);
 }
 
 static void gaudi3_handle_spi_event(struct hl_device *hdev,

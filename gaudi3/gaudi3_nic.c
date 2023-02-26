@@ -5625,8 +5625,6 @@ void gaudi3_handle_nic_sei_error_event(struct hl_device *hdev, u32 macro_index)
 
 		NIC_WREG32(mmD0_NIC0_TXE_INTERRUPT_CLR, txe_intr_cause);
 	}
-
-	hl_check_for_glbl_errors(hdev);
 }
 
 void gaudi3_nic_handle_bmon_spmu_event(struct hl_device *hdev, u32 macro_index)
