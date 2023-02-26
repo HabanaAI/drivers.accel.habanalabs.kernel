@@ -3540,7 +3540,6 @@ timeout:
 				cq_params->job_str,
 				RREG32(mmHD0_SYNC_MNGR_OBJS_BASE +
 						mmSOB_OBJS_SOB_OBJ_0_0 + sob_off));
-	hl_device_reset(hdev, HL_DRV_RESET_HARD);
 
 	return rc;
 }
@@ -3770,6 +3769,7 @@ int gaudi3_scrub_device_dram(struct hl_device *hdev, u64 val)
 	if (rc)
 		dev_err(hdev->dev, "Failed to scrub dram, address: 0x%llx size: %llu\n",
 				prop->dram_user_base_address, size);
+
 	return rc;
 }
 
@@ -7293,8 +7293,13 @@ static int gaudi3_hw_init(struct hl_device *hdev)
 	gaudi3_init_sm(hdev);
 
 	/* Invalidate MMU cache, must be run after SM init */
-	hl_mmu_invalidate_cache(hdev, 0, VM_TYPE_USERPTR);
-	hl_mmu_invalidate_cache(hdev, 0, VM_TYPE_PHYS_PACK);
+	rc = hl_mmu_invalidate_cache(hdev, 0, VM_TYPE_USERPTR);
+	if (rc)
+		return rc;
+
+	rc = hl_mmu_invalidate_cache(hdev, 0, VM_TYPE_PHYS_PACK);
+	if (rc)
+		return rc;
 
 	gaudi3_init_edma(hdev);
 	gaudi3_init_tpc(hdev);

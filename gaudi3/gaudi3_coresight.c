@@ -5982,7 +5982,7 @@ static int gaudi3_config_etr(struct hl_device *hdev, struct hl_ctx *ctx,
 		}
 
 		if (gaudi3_is_ac_started(hdev, etr_idx)) {
-			gaudi3_etr_fetch_buffer_to_host(hdev, etr_idx, true);
+			rc = gaudi3_etr_fetch_buffer_to_host(hdev, etr_idx, true);
 			gaudi3_ac_stop(hdev, etr_idx);
 		}
 	}

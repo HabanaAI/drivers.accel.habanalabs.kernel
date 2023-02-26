@@ -3812,10 +3812,14 @@ int hl_map_vmalloc_range(struct hl_ctx *ctx, u64 vmalloc_va, u64 device_va, u64 
 		goto err_free_page_pack;
 	}
 
-	hl_mmu_invalidate_cache_range(hdev, false, userptr->vm_type | MMU_OP_SKIP_LOW_CACHE_INV,
-					ctx->asid, device_va, phys_pg_pack->total_size);
+	rc = hl_mmu_invalidate_cache_range(hdev,
+			false, userptr->vm_type | MMU_OP_SKIP_LOW_CACHE_INV,
+			ctx->asid, device_va, phys_pg_pack->total_size);
 
 	mutex_unlock(&hdev->mmu_lock);
+
+	if (rc)
+		goto err_free_unmap_page_pack;
 
 	/*
 	 * Keep track of mapping. Add mapped chunk to global hash list.

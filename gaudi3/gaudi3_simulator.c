@@ -1157,7 +1157,9 @@ static int gaudi3_sim_hw_init(struct hl_device *hdev)
 	gaudi3_init_sm(hdev);
 
 	/* Invalidate MMU cache, must be run after SM init */
-	hl_mmu_invalidate_cache(hdev, 0, 0);
+	rc = hl_mmu_invalidate_cache(hdev, 0, 0);
+	if (rc)
+		return rc;
 
 	gaudi3_init_edma(hdev);
 	gaudi3_init_tpc(hdev);
