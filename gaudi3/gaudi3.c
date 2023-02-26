@@ -5031,6 +5031,8 @@ static void gaudi3_lbw_dup_arc_init(struct hl_device *hdev, u64 base_offset)
 						gaudi3_arc_blocks_bases[i]);
 }
 
+/*
+ * TODO: use dup when H9-5520 is resolved
 static void gaudi3_lbw_dup_tpc_init(struct hl_device *hdev, enum gaudi3_dup_group_id dup_group,
 						u32 eng_hd_offset, u64 base_offset)
 {
@@ -5049,6 +5051,7 @@ static void gaudi3_lbw_dup_tpc_init(struct hl_device *hdev, enum gaudi3_dup_grou
 
 	gaudi3_lbw_dup_group_set_mask(hdev, dup_group, prop->tpc_enabled_mask);
 }
+*/
 
 static void gaudi3_lbw_dup_dec_init(struct hl_device *hdev, enum gaudi3_dup_group_id group)
 {
@@ -5271,8 +5274,12 @@ void gaudi3_lbw_dup_init(struct hl_device *hdev)
 	gaudi3_lbw_dup_group_set_mask(hdev, GAUDI3_DUP_GRP_ROT_CFG_ID, dup_mask);
 
 	/* TPC MMU prepare */
+
+	/*
+	 * TODO: skip till H9-5520 is resolved
 	gaudi3_lbw_dup_tpc_init(hdev, GAUDI3_DUP_GRP_TPC_CFG_ID,
 					HDCORE_TPC_OFFSET, TPC_CFG_AXUSER_HBW_OFFSET);
+	 */
 
 	/* DEC MMU prepare */
 	gaudi3_lbw_dup_dec_init(hdev, GAUDI3_DUP_GRP_DEC_CFG_ID);
@@ -8106,6 +8113,8 @@ static void gaudi3_edma_mmu_prepare(struct hl_device *hdev, u32 asid)
 				RW_ASID_MASK(asid));
 }
 
+/*
+ * TODO: do tpc mmu prepare W/O Dup till H9-5520 is resolved.
 static void gaudi3_tpc_mmu_prepare(struct hl_device *hdev, u32 asid)
 {
 	gaudi3_lbw_dup_group_push(hdev, GAUDI3_DUP_GRP_TPC_CFG_ID,
@@ -8126,6 +8135,16 @@ static void gaudi3_tpc_mmu_prepare(struct hl_device *hdev, u32 asid)
 	gaudi3_lbw_dup_group_push(hdev, GAUDI3_DUP_GRP_GENERAL_USE_ID,
 				mmPDMA_CH_B_AXUSER_HBW_HB_ASID,
 				RW_ASID_MASK(asid));
+}
+*/
+
+static void gaudi3_tpc_mmu_prepare(struct hl_device *hdev, int hdcore, int inst, u32 offset,
+					struct iterate_module_ctx *ctx)
+{
+	u32 asid = (uintptr_t) ctx->data;
+
+	gaudi3_axuser_hbw_asid_set(hdev, mmHD0_TPC0_CFG_AXUSER_HBW_BASE + offset, asid);
+	gaudi3_axuser_hbw_asid_set(hdev, mmHD0_TPC0_QM_AXUSER_HBW_BASE + offset, asid);
 }
 
 static void gaudi3_mme_mmu_prepare(struct hl_device *hdev, u32 asid)
@@ -8255,6 +8274,9 @@ static void gaudi3_arc_mmu_prepare_all(struct hl_device *hdev, u32 asid)
 static void gaudi3_mmu_prepare(struct hl_device *hdev, u32 asid)
 {
 	struct gaudi3_device *gaudi3 = hdev->asic_specific;
+	struct iterate_module_ctx iter_ctx = {
+			.data = (void *) (uintptr_t) asid
+		};
 
 	if (asid & ~PSTLB_ASID_ASID_M) {
 		dev_crit(hdev->dev, "asid %u is too big\n", asid);
@@ -8272,7 +8294,12 @@ static void gaudi3_mmu_prepare(struct hl_device *hdev, u32 asid)
 
 	gaudi3_edma_mmu_prepare(hdev, asid);
 
-	gaudi3_tpc_mmu_prepare(hdev, asid);
+	/*
+	 * TODO: use dup when H9-5520 is resolved
+	 * gaudi3_tpc_mmu_prepare(hdev, asid);
+	 */
+	iter_ctx.fn = gaudi3_tpc_mmu_prepare;
+	gaudi3_iterate_tpcs(hdev, &iter_ctx);
 
 	gaudi3_mme_mmu_prepare(hdev, asid);
 
