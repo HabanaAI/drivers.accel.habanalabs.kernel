@@ -1034,7 +1034,7 @@ static void gaudi2_sim_get_nic_info(struct hl_device *hdev)
 		nic_info->link_ext_mask[0] = 0;
 	} else {
 		nic_info->link_mask[0] = cpu_to_le64(0xFFFFFF);
-		nic_info->link_ext_mask[0] = GAUDI2_HLS2_EXTERN_PORTS_MASK;
+		nic_info->link_ext_mask[0] = cpu_to_le64(GAUDI2_HLS2_EXTERN_PORTS_MASK);
 	}
 }
 
