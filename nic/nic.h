@@ -87,6 +87,8 @@
 
 #define NIC_MAX_NON_SCALE_OUT_COLL_CONNS	128
 
+#define NIC_GAUDI1_SET_APP_PARAM		0xff
+
 extern struct hl_en_stat hl_nic_mac_fec_stats[];
 extern struct hl_en_stat hl_nic_mac_stats_rx[];
 extern struct hl_en_stat hl_nic_mac_stats_tx[];
@@ -560,7 +562,7 @@ struct hl_nic_reset_tracker {
  * @eth_enable: is Ethernet traffic enabled in addition to RDMA.
  * @ccq_enable: true if the CCQ was initialized successfully for this port, false otherwise.
  * @set_app_params: set_app_params operation was executed by the user. This is mandatory step for
- *                  Gaudi2 and above in order to initialize the NIC uAPI.
+ *                  Gaudi and above in order to initialize the NIC uAPI.
  * @disabled: true if this port is disabled, i.e. need to block its initialization, false otherwise.
  */
 struct hl_nic_port {

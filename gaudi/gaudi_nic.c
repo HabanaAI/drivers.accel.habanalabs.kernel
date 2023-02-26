@@ -1824,10 +1824,12 @@ static int gaudi_nic_ctx_init(struct hl_ctx *ctx)
 	for (port = 0 ; port < hdev->asic_prop.nic_props.max_num_of_ports ; port++) {
 		nic_port = &hdev->nic.nic_ports[port];
 
-		/* set_app_params operation is not supported by Gaudi and hence we consider it like
-		 * the operation was performed implicitly.
+		/* set_app_params operation support was added for Gaudi1, but
+		 * as Gaudi considered legacy, communication library, which relies on
+		 * that set_app_params was called. We should keep it that way but meanwhile
+		 * allow explicit call to set_app_params ioctl. Hence, use a special value for it.
 		 */
-		nic_port->set_app_params = true;
+		nic_port->set_app_params = NIC_GAUDI1_SET_APP_PARAM;
 	}
 
 	return 0;

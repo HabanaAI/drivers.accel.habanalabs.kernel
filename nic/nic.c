@@ -3754,7 +3754,11 @@ static int user_set_app_params(struct hl_device *hdev, struct hl_nic_set_user_ap
 
 	port_funcs->cfg_lock(nic_port);
 
-	if (nic_port->set_app_params) {
+	/* set_app_params can be either true or NIC_GAUDI1_SET_APP_PARAM. We want to allow
+	 * a user on Gaudi1, call explicitly for user_set_app_params. While it is not mandatory
+	 * for Gaudi1. Hence we added a special value for it.
+	 */
+	if (nic_port->set_app_params == true) {
 		dev_dbg(hdev->dev, "App params were already set, port %d\n", port);
 		rc = -EPERM;
 		goto out;
