@@ -1,0 +1,67 @@
+/* SPDX-License-Identifier: GPL-2.0
+ *
+ * Copyright 2016-2021 HabanaLabs, Ltd.
+ * All Rights Reserved.
+ *
+ */
+
+/************************************
+ ** This is an auto-generated file **
+ **       DO NOT EDIT BELOW        **
+ ************************************/
+
+#ifndef ASIC_REG_NIC_TMR_AXUSER_AXUSER_REGS_H_
+#define ASIC_REG_NIC_TMR_AXUSER_AXUSER_REGS_H_
+
+/*
+ *****************************************
+ *   NIC_TMR_AXUSER_AXUSER
+ *   (Prototype: AXUSER_HBW)
+ *****************************************
+ */
+
+#define mmNIC_TMR_AXUSER_AXUSER_HB_MMU_BYPASS 0x0
+
+#define mmNIC_TMR_AXUSER_AXUSER_HB_ASID 0x4
+
+#define mmNIC_TMR_AXUSER_AXUSER_HB_QOS 0x8
+
+#define mmNIC_TMR_AXUSER_AXUSER_HB_MCID 0xC
+
+#define mmNIC_TMR_AXUSER_AXUSER_HB_CLASS_TYPE 0x10
+
+#define mmNIC_TMR_AXUSER_AXUSER_HB_REDUCTION 0x14
+
+#define mmNIC_TMR_AXUSER_AXUSER_HB_ATOMIC 0x18
+
+#define mmNIC_TMR_AXUSER_AXUSER_HB_DOWN_CONV 0x1C
+
+#define mmNIC_TMR_AXUSER_AXUSER_HB_MMU_PF_EN 0x20
+
+#define mmNIC_TMR_AXUSER_AXUSER_HB_STRONG_ORDER 0x24
+
+#define mmNIC_TMR_AXUSER_AXUSER_HB_RESERVED 0x28
+
+#define mmNIC_TMR_AXUSER_AXUSER_HB_MMU_BYPASS_OVRD 0x30
+
+#define mmNIC_TMR_AXUSER_AXUSER_HB_ASID_OVRD 0x34
+
+#define mmNIC_TMR_AXUSER_AXUSER_HB_QOS_OVRD 0x38
+
+#define mmNIC_TMR_AXUSER_AXUSER_HB_MCID_OVRD 0x3C
+
+#define mmNIC_TMR_AXUSER_AXUSER_HB_CLASS_TYPE_OVRD 0x40
+
+#define mmNIC_TMR_AXUSER_AXUSER_HB_REDUCTION_OVRD 0x44
+
+#define mmNIC_TMR_AXUSER_AXUSER_HB_ATOMIC_OVRD 0x48
+
+#define mmNIC_TMR_AXUSER_AXUSER_HB_DOWN_CONV_OVRD 0x4C
+
+#define mmNIC_TMR_AXUSER_AXUSER_HB_MMU_PF_EN_OVRD 0x50
+
+#define mmNIC_TMR_AXUSER_AXUSER_HB_STRONG_ORDER_OVRD 0x54
+
+#define mmNIC_TMR_AXUSER_AXUSER_HB_RESERVED_OVRD 0x58
+
+#endif /* ASIC_REG_NIC_TMR_AXUSER_AXUSER_REGS_H_ */

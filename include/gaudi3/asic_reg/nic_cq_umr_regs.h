@@ -20,10 +20,6 @@
  *****************************************
  */
 
-#define mmD0_NIC0_CQ_UMR_0_CONSUMER_INDEX 0xD028000
-
-#define mmD0_NIC0_CQ_UMR_0_ARM_INDEX 0xD028004
-
 #define mmNIC_CQ_UMR_CONSUMER_INDEX 0x0
 
 #define mmNIC_CQ_UMR_ARM_INDEX 0x4

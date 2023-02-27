@@ -1210,7 +1210,8 @@ struct gaudi3_dup_grp_info {
 static const struct gaudi3_dup_grp_info gadui3_dup_grp_info[GAUDI3_DUP_GRP_MAX] = {
 	{GAUDI3_DUP_GRP_PMMU_BASE, mmMMU_TRACE_CTRL, mmD0_PMMU_HBW_MMU_BASE},
 	{GAUDI3_DUP_GRP_STLB_BASE, mmSTLB_CNTRL_MAIN, mmHD0_STLB_BASE},
-	{GAUDI3_DUP_GRP_STLB_INTR_SPI_CAUSE, mmSTLB_INTR_SPI_CAUSE, mmHD0_STLB_INTR_SPI_CAUSE},
+	{GAUDI3_DUP_GRP_STLB_INTR_SPI_CAUSE, mmSTLB_INTR_SPI_CAUSE,
+						mmHD0_STLB_BASE + mmSTLB_INTR_SPI_CAUSE},
 };
 
 enum razwi_type {
@@ -2589,12 +2590,12 @@ static u32 hmmu_event_get_stlb_desc(struct hl_device *hdev, u32 hdcore, char *st
 	u8 dti_opcode;
 
 	offset = hdcore * HDCORE_OFFSET;
-	cause = RREG32(mmHD0_STLB_INTR_SPI_CAUSE + offset);
-	intr_log_low = RREG32(mmHD0_STLB_FAULT_SYNDROM1 + offset);
-	intr_log_hi = RREG32(mmHD0_STLB_FAULT_SYNDROM2 + offset);
+	cause = RREG32(mmHD0_STLB_BASE + mmSTLB_INTR_SPI_CAUSE + offset);
+	intr_log_low = RREG32(mmHD0_STLB_BASE + mmSTLB_FAULT_SYNDROME1 + offset);
+	intr_log_hi = RREG32(mmHD0_STLB_BASE + mmSTLB_FAULT_SYNDROME2 + offset);
 	intr_log = (intr_log_hi << 32) | intr_log_low;
-	pte_l = RREG32(mmHD0_STLB_FAULT_SYNDROM3 + offset);
-	pte_h = RREG32(mmHD0_STLB_FAULT_SYNDROM4 + offset);
+	pte_l = RREG32(mmHD0_STLB_BASE + mmSTLB_FAULT_SYNDROME3 + offset);
+	pte_h = RREG32(mmHD0_STLB_BASE + mmSTLB_FAULT_SYNDROME4 + offset);
 	pte = (pte_h << 32) | pte_l;
 
 	if (cause & 0x2) {
@@ -2628,8 +2629,8 @@ static u32 hmmu_event_get_stlb_desc(struct hl_device *hdev, u32 hdcore, char *st
 	}
 
 	/* clear to allow another interrupt */
-	WREG32(mmHD0_STLB_INTR_SPI_CAUSE + offset, 0);
-	WREG32(mmHD0_STLB_FAULT_SYNDORM_CNTRL + offset,
+	WREG32(mmHD0_STLB_BASE + mmSTLB_INTR_SPI_CAUSE + offset, 0);
+	WREG32(mmHD0_STLB_BASE + mmSTLB_FAULT_SYNDORM_CNTRL + offset,
 			FIELD_PREP(STLB_FAULT_SYNDORM_CNTRL_REL_M, 0x1));
 
 	return !!cause;
@@ -4937,7 +4938,7 @@ static void gaudi3_hdcore_stlb_init(struct hl_device *hdev)
 	 */
 	regval = RREG32(mmHD0_STLB_BASE + mmSTLB_CNTRL_MAIN);
 	for (hdcore = 0 ; hdcore < hdev->asic_prop.num_of_hdcores; hdcore++) {
-		u64 address = mmHD0_STLB_CNTRL_MAIN + (hdcore * HDCORE_OFFSET);
+		u64 address = mmHD0_STLB_BASE + mmSTLB_CNTRL_MAIN + (hdcore * HDCORE_OFFSET);
 		u32 val = regval;
 
 		val &= ~(STLB_CNTRL_MAIN_ENABLE_M | STLB_CNTRL_MAIN_DTLB_NUM_M);

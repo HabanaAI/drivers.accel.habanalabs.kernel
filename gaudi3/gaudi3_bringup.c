@@ -756,7 +756,7 @@ static void gaudi3_set_cache_mode_rtr_cntrl_clr_sram_mode(struct hl_device *hdev
 								int inst, u32 offset,
 								struct iterate_module_ctx *ctx)
 {
-	WREG32(offset + mmRTR_CTRL_RTR_CTRL_SCRAM_SRAM_MODE, 0);
+	WREG32(offset + mmRTR_CTRL_HBW_SCRAM_SRAM_MODE, 0);
 }
 
 static void gaudi3_set_cache_mode_dtlb(struct hl_device *hdev, int block, int inst,

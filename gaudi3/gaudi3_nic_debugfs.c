@@ -598,10 +598,11 @@ static int gaudi3_nic_debugfs_get_wqe(struct hl_nic_port *nic_port, void *wqe, u
 
 	if (is_tx) {
 		wqe_size = nic_port->swqe_size;
-		wq_size_cline_log = NIC_OFFSET_RREG32(mmD0_NIC0_TXE_LOG_MAX_WQ_SIZE_0);
+		wq_size_cline_log = NIC_OFFSET_RREG32(
+				mmD0_NIC0_TXE_BASE + mmNIC_TXE_LOG_MAX_WQ_SIZE_0);
 	} else {
 		wqe_size = NIC_RECV_WQE_SIZE;
-		wq_size_cline_log = NIC_OFFSET_RREG32(mmD0_NIC0_RXE_WIN_WQ_MISC_0);
+		wq_size_cline_log = NIC_OFFSET_RREG32(mmD0_NIC0_RXE_BASE + mmNIC_RXE_WIN_WQ_MISC_0);
 	}
 
 	/* Calculate the WQE offset. */
@@ -702,7 +703,7 @@ int gaudi3_nic_debugfs_write_coll_lag_size(struct hl_device *hdev, u32 coll_lag_
 
 		port = gaudi3_nic_get_first_port(nic_macro);
 
-		NIC_RMWREG32(mmD0_NIC0_QPC_PATCHER_CFG,
+		NIC_RMWREG32(mmD0_NIC0_QPC_BASE + mmNIC_QPC_PATCHER_CFG,
 			(coll_lag_size << NIC_QPC_PATCHER_CFG_LAG_SIZE_S),
 			NIC_QPC_PATCHER_CFG_LAG_SIZE_M);
 	}

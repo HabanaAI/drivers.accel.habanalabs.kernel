@@ -190,7 +190,7 @@ static_assert((NIC_MAX_CONN_ID + 1) <= NIC_HW_MAX_QP_NUM);
 #define NIC_CQ_USER_MIN_ENTRIES		4
 #define NIC_CQ_USER_MAX_ENTRIES		NIC_CQ_MAX_ENTRIES
 
-#define RXE_CQ_AXI_USER_OFFSET		(mmD0_NIC0_RXE_CQ_AXI_USER_1 - mmD0_NIC0_RXE_CQ_AXI_USER_0)
+#define RXE_CQ_AXI_USER_OFFSET		(mmNIC_RXE_CQ_AXI_USER_1 - mmNIC_RXE_CQ_AXI_USER_0)
 
 #define USER_WQES_MIN_NUM		4
 #define USER_WQES_MAX_NUM		(1 << 15) /* 32K */
@@ -209,7 +209,7 @@ static_assert((NIC_MAX_CONN_ID + 1) <= NIC_HW_MAX_QP_NUM);
 
 /* 2 for ilog2(sizeof(u32)) */
 #define QPC_GW_MASK_REG_NUM \
-		(((mmD0_NIC0_QPC_GW_MASK_95 - mmD0_NIC0_QPC_GW_MASK_0) >> 2) + 1)
+		(((mmNIC_QPC_GW_MASK_95 - mmNIC_QPC_GW_MASK_0) >> 2) + 1)
 
 enum db_fifo_type_hw {
 	DB_FIFO_TYPE_DOORBELL,
@@ -256,8 +256,8 @@ enum db_fifo_type_hw {
 #define ELEMENT_NUM(diff, size)	(((diff) >> ilog2(size)) + 1)
 /* div by 4 (register size) and add one to include the first one */
 #define REG_NUM(diff)	ELEMENT_NUM(diff, 4)
-#define QPC_EQ_NUM	REG_NUM(mmD0_NIC0_QPC_EVENT_QUE_PI_ADDR_63_32_3 - \
-				mmD0_NIC0_QPC_EVENT_QUE_PI_ADDR_63_32_0)
+#define QPC_EQ_NUM	REG_NUM(mmNIC_QPC_EVENT_QUE_PI_ADDR_63_32_3 - \
+				mmNIC_QPC_EVENT_QUE_PI_ADDR_63_32_0)
 
 #define ELEMENT_OFFSET(port, count)	get_resource_offset(hdev, (port), (count))
 #define ELEMENT_COUNT(count)		get_resource_count(hdev, (count))
@@ -271,15 +271,15 @@ enum db_fifo_type_hw {
  */
 #define GAUDI3_NIC_EQ_ERR_INTERRUPT_M(port)	BIT(GAUDI3_NIC_EQ_INTERRUPT_S(port) + 4)
 
-#define QPC_DB_FIFO_NUM	REG_NUM(mmD0_NIC0_QPC_DB_FIFO_UPD_ADDR_MSB_23 - \
-				mmD0_NIC0_QPC_DB_FIFO_UPD_ADDR_MSB_0)
+#define QPC_DB_FIFO_NUM	REG_NUM(mmNIC_QPC_DB_FIFO_UPD_ADDR_MSB_23 - \
+					mmNIC_QPC_DB_FIFO_UPD_ADDR_MSB_0)
 #define GAUDI3_RAW_OFFSET		0
 #define GAUDI3_DB_FIFO_SECURE_HW_ID(port)	\
 				(GAUDI3_RAW_OFFSET + ELEMENT_OFFSET((port), QPC_DB_FIFO_NUM))
 
-#define TXE_SQ_NUM	REG_NUM(mmD0_NIC0_TXE_SQ_BASE_ADDRESS_31_0_15 - \
-				mmD0_NIC0_TXE_SQ_BASE_ADDRESS_31_0_0)
-#define RXE_WQ_NUM	REG_NUM(mmD0_NIC0_RXE_WIN_WQ_BASE_HI_15 - mmD0_NIC0_RXE_WIN_WQ_BASE_HI_0)
+#define TXE_SQ_NUM	REG_NUM(mmNIC_TXE_SQ_BASE_ADDRESS_31_0_15 - \
+				mmNIC_TXE_SQ_BASE_ADDRESS_31_0_0)
+#define RXE_WQ_NUM	REG_NUM(mmNIC_RXE_WIN_WQ_BASE_HI_15 - mmNIC_RXE_WIN_WQ_BASE_HI_0)
 
 #define GAUDI3_TXE_WQ_RDMA_IDX(port)		(RDMA_OFFSET + ELEMENT_OFFSET((port), TXE_SQ_NUM))
 #define GAUDI3_RXE_WQ_RDMA_IDX(port)		(RDMA_OFFSET + ELEMENT_OFFSET((port), RXE_WQ_NUM))

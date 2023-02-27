@@ -305,15 +305,15 @@ void gaudi3_nic_eq_reset_ring(struct gaudi3_nic_port *gaudi3_nic)
 	offset = ELEMENT_OFFSET(port, QPC_EQ_NUM);
 
 	/* Disable EQ first */
-	NIC_OFFSET_WREG32(mmD0_NIC0_QPC_EVENT_QUE_CFG_0, 0);
+	NIC_OFFSET_WREG32(mmD0_NIC0_QPC_BASE + mmNIC_QPC_EVENT_QUE_CFG_0, 0);
 
 	/* Perform a read to make sure the EQ is disabled */
-	NIC_OFFSET_RREG32(mmD0_NIC0_QPC_EVENT_QUE_CFG_0);
+	NIC_OFFSET_RREG32(mmD0_NIC0_QPC_BASE + mmNIC_QPC_EVENT_QUE_CFG_0);
 
-	NIC_OFFSET_WREG32(mmD0_NIC0_QPC_EVENT_QUE_WRITE_INDEX_0, 0);
-	NIC_OFFSET_WREG32(mmD0_NIC0_QPC_EVENT_QUE_PRODUCER_INDEX_0, 0);
-	NIC_OFFSET_WREG32(mmD0_NIC0_QPC_EVENT_QUE_CONSUMER_INDEX_0, 0);
-	NIC_OFFSET_WREG32(mmD0_NIC0_QPC_EVENT_QUE_CONSUMER_INDEX_CB_0, 0);
+	NIC_OFFSET_WREG32(mmD0_NIC0_QPC_BASE + mmNIC_QPC_EVENT_QUE_WRITE_INDEX_0, 0);
+	NIC_OFFSET_WREG32(mmD0_NIC0_QPC_BASE + mmNIC_QPC_EVENT_QUE_PRODUCER_INDEX_0, 0);
+	NIC_OFFSET_WREG32(mmD0_NIC0_QPC_BASE + mmNIC_QPC_EVENT_QUE_CONSUMER_INDEX_0, 0);
+	NIC_OFFSET_WREG32(mmD0_NIC0_QPC_BASE + mmNIC_QPC_EVENT_QUE_CONSUMER_INDEX_CB_0, 0);
 
 	/* Reset SW indices */
 	*((u32 *) RING_PI_ADDRESS(ring)) = 0;
@@ -321,7 +321,7 @@ void gaudi3_nic_eq_reset_ring(struct gaudi3_nic_port *gaudi3_nic)
 	ring->ci_shadow = 0;
 	ring->rep_idx = 0;
 
-	NIC_OFFSET_WREG32(mmD0_NIC0_QPC_EVENT_QUE_CFG_0,
+	NIC_OFFSET_WREG32(mmD0_NIC0_QPC_BASE + mmNIC_QPC_EVENT_QUE_CFG_0,
 			offset << NIC_QPC_EVENT_QUE_CFG_EQ_ID_S |
 			NIC_QPC_EVENT_QUE_CFG_INTERRUPT_PER_EQE_M |
 			NIC_QPC_EVENT_QUE_CFG_OVERRUN_EN_M |
@@ -384,7 +384,7 @@ static void nic_eq_handler(struct gaudi3_nic_port *gaudi3_nic)
 		 */
 		if (eq_ring->rep_idx > (eq_ring->count / 4) - 1) {
 			eq_ring->rep_idx = 0;
-			NIC_OFFSET_WREG32(mmD0_NIC0_QPC_EVENT_QUE_CONSUMER_INDEX_0,
+			NIC_OFFSET_WREG32(mmD0_NIC0_QPC_BASE + mmNIC_QPC_EVENT_QUE_CONSUMER_INDEX_0,
 						eq_ring->ci_shadow);
 		}
 	}
@@ -404,7 +404,7 @@ static inline void gaudi3_nic_eq_clr_interrupts(struct gaudi3_nic_port *gaudi3_n
 	 * No need for interrupt masking. As long as the SW hasn't set the clear reg,
 	 * new interrupts won't be raised
 	 */
-	NIC_WREG32(mmD0_NIC0_QPC_INTERRUPT_CLR, GAUDI3_NIC_EQ_INTERRUPT_M(port));
+	NIC_WREG32(mmD0_NIC0_QPC_BASE + mmNIC_QPC_INTERRUPT_CLR, GAUDI3_NIC_EQ_INTERRUPT_M(port));
 }
 
 static void gaudi3_nic_eq_work(struct work_struct *work)
@@ -443,19 +443,19 @@ static void gaudi3_nic_eq_hw_config(struct gaudi3_nic_port *gaudi3_nic)
 
 	/* set base address for event queue */
 	offset = ELEMENT_OFFSET(port, QPC_EQ_NUM);
-	NIC_OFFSET_WREG32(mmD0_NIC0_QPC_EVENT_QUE_PI_ADDR_63_32_0,
+	NIC_OFFSET_WREG32(mmD0_NIC0_QPC_BASE + mmNIC_QPC_EVENT_QUE_PI_ADDR_63_32_0,
 			upper_32_bits(RING_PI_DMA_ADDRESS(ring)));
 
-	NIC_OFFSET_WREG32(mmD0_NIC0_QPC_EVENT_QUE_PI_ADDR_31_7_0,
+	NIC_OFFSET_WREG32(mmD0_NIC0_QPC_BASE + mmNIC_QPC_EVENT_QUE_PI_ADDR_31_7_0,
 			lower_32_bits(RING_PI_DMA_ADDRESS(ring)) >> 7);
 
-	NIC_OFFSET_WREG32(mmD0_NIC0_QPC_EVENT_QUE_BASE_ADDR_63_32_0,
+	NIC_OFFSET_WREG32(mmD0_NIC0_QPC_BASE + mmNIC_QPC_EVENT_QUE_BASE_ADDR_63_32_0,
 			upper_32_bits(RING_BUF_DMA_ADDRESS(ring)));
 
-	NIC_OFFSET_WREG32(mmD0_NIC0_QPC_EVENT_QUE_BASE_ADDR_31_7_0,
+	NIC_OFFSET_WREG32(mmD0_NIC0_QPC_BASE + mmNIC_QPC_EVENT_QUE_BASE_ADDR_31_7_0,
 			lower_32_bits(RING_BUF_DMA_ADDRESS(ring)) >> 7);
 
-	NIC_OFFSET_WREG32(mmD0_NIC0_QPC_EVENT_QUE_LOG_SIZE_0, ilog2(ring->count));
+	NIC_OFFSET_WREG32(mmD0_NIC0_QPC_BASE + mmNIC_QPC_EVENT_QUE_LOG_SIZE_0, ilog2(ring->count));
 
 	gaudi3_nic_eq_reset_ring(gaudi3_nic);
 }
@@ -466,8 +466,9 @@ static void gaudi3_nic_eq_hw_unconfig(struct gaudi3_nic_port *gaudi3_nic)
 	u32 port = gaudi3_nic->nic_port->port, offset;
 
 	offset = ELEMENT_OFFSET(port, QPC_EQ_NUM);
-	NIC_OFFSET_RMWREG32(mmD0_NIC0_QPC_EVENT_QUE_CFG_0, 0, NIC_QPC_EVENT_QUE_CFG_ENABLE_M);
-	NIC_OFFSET_RREG32(mmD0_NIC0_QPC_EVENT_QUE_CFG_0);
+	NIC_OFFSET_RMWREG32(mmD0_NIC0_QPC_BASE + mmNIC_QPC_EVENT_QUE_CFG_0, 0,
+					NIC_QPC_EVENT_QUE_CFG_ENABLE_M);
+	NIC_OFFSET_RREG32(mmD0_NIC0_QPC_BASE + mmNIC_QPC_EVENT_QUE_CFG_0);
 }
 
 static void gaudi3_nic_eq_interrupts_enable_conditionally(struct gaudi3_nic_port *gaudi3_nic)
@@ -477,8 +478,10 @@ static void gaudi3_nic_eq_interrupts_enable_conditionally(struct gaudi3_nic_port
 	u32 port = nic_port->port, offset;
 
 	/* Disabling wire interrupts for EQ events, enable wire interrupts for EQ_ERR */
-	NIC_RMWREG32(mmD0_NIC0_QPC_INTERRUPT_WIRE, 0, GAUDI3_NIC_EQ_INTERRUPT_M(port));
-	NIC_RMWREG32(mmD0_NIC0_QPC_INTERRUPT_WIRE, 1, GAUDI3_NIC_EQ_ERR_INTERRUPT_M(port));
+	NIC_RMWREG32(mmD0_NIC0_QPC_BASE + mmNIC_QPC_INTERRUPT_WIRE, 0,
+					GAUDI3_NIC_EQ_INTERRUPT_M(port));
+	NIC_RMWREG32(mmD0_NIC0_QPC_BASE + mmNIC_QPC_INTERRUPT_WIRE, 1,
+					GAUDI3_NIC_EQ_ERR_INTERRUPT_M(port));
 
 	/* No need here to synchronize the access to the shared registers as this code is called
 	 * sequentially for each port and not simultaneously.
@@ -486,26 +489,32 @@ static void gaudi3_nic_eq_interrupts_enable_conditionally(struct gaudi3_nic_port
 
 	if (hdev->nic_poll_enable) {
 		/* Masking all QPC Interrupts leaving EQ int indication */
-		NIC_RMWREG32(mmD0_NIC0_QPC_INTERRUPT_MSI, 0, GAUDI3_NIC_EQ_INTERRUPT_M(port));
-		NIC_RMWREG32(mmD0_NIC0_QPC_INTERRUPT_MASK, 1, GAUDI3_NIC_EQ_INTERRUPT_M(port));
-		NIC_RMWREG32(mmD0_NIC0_QPC_INTERRUPT_MASK, 1, GAUDI3_NIC_EQ_ERR_INTERRUPT_M(port));
+		NIC_RMWREG32(mmD0_NIC0_QPC_BASE + mmNIC_QPC_INTERRUPT_MSI, 0,
+					GAUDI3_NIC_EQ_INTERRUPT_M(port));
+		NIC_RMWREG32(mmD0_NIC0_QPC_BASE + mmNIC_QPC_INTERRUPT_MASK, 1,
+					GAUDI3_NIC_EQ_INTERRUPT_M(port));
+		NIC_RMWREG32(mmD0_NIC0_QPC_BASE + mmNIC_QPC_INTERRUPT_MASK, 1,
+					GAUDI3_NIC_EQ_ERR_INTERRUPT_M(port));
 	} else {
 		offset = GAUDI3_NIC_EQ_INTERRUPT_S(port);
 
-		NIC_OFFSET_WREG32(mmD0_NIC0_QPC_INTERRUPT_BASE_0,
+		NIC_OFFSET_WREG32(mmD0_NIC0_QPC_BASE + mmNIC_QPC_INTERRUPT_BASE_0,
 					CFG_BAR_BASE - LBW_BASE + mmD0_PCIE_MSIX_BASE);
 
-		NIC_OFFSET_WREG32(mmD0_NIC0_QPC_INTERRUPT_DATA_0,
+		NIC_OFFSET_WREG32(mmD0_NIC0_QPC_BASE + mmNIC_QPC_INTERRUPT_DATA_0,
 					GAUDI3_IRQ_NUM_NIC_PORT_FIRST + port);
 
 		/* Masking all QPC Interrupts except EQ int */
-		NIC_RMWREG32(mmD0_NIC0_QPC_INTERRUPT_MASK, 0, GAUDI3_NIC_EQ_INTERRUPT_M(port));
-		NIC_RMWREG32(mmD0_NIC0_QPC_INTERRUPT_MASK, 0, GAUDI3_NIC_EQ_ERR_INTERRUPT_M(port));
-		NIC_RMWREG32(mmD0_NIC0_QPC_INTERRUPT_MSI, 1, GAUDI3_NIC_EQ_INTERRUPT_M(port));
+		NIC_RMWREG32(mmD0_NIC0_QPC_BASE + mmNIC_QPC_INTERRUPT_MASK, 0,
+					GAUDI3_NIC_EQ_INTERRUPT_M(port));
+		NIC_RMWREG32(mmD0_NIC0_QPC_BASE + mmNIC_QPC_INTERRUPT_MASK, 0,
+					GAUDI3_NIC_EQ_ERR_INTERRUPT_M(port));
+		NIC_RMWREG32(mmD0_NIC0_QPC_BASE + mmNIC_QPC_INTERRUPT_MSI, 1,
+					GAUDI3_NIC_EQ_INTERRUPT_M(port));
 	}
 
 	/* flush */
-	NIC_RREG32(mmD0_NIC0_QPC_INTERRUPT_MASK);
+	NIC_RREG32(mmD0_NIC0_QPC_BASE + mmNIC_QPC_INTERRUPT_MASK);
 }
 
 static void gaudi3_nic_eq_interrupts_disable(struct gaudi3_nic_port *gaudi3_nic)
@@ -515,17 +524,19 @@ static void gaudi3_nic_eq_interrupts_disable(struct gaudi3_nic_port *gaudi3_nic)
 	u32 port = nic_port->port;
 
 	/* disabling and masking all QPC Interrupts */
-	NIC_WREG32(mmD0_NIC0_QPC_INTERRUPT_WIRE,
-		NIC_RREG32(mmD0_NIC0_QPC_INTERRUPT_WIRE) &
+	NIC_WREG32(mmD0_NIC0_QPC_BASE + mmNIC_QPC_INTERRUPT_WIRE,
+		NIC_RREG32(mmD0_NIC0_QPC_BASE + mmNIC_QPC_INTERRUPT_WIRE) &
 			~(GAUDI3_NIC_EQ_INTERRUPT_M(port) | GAUDI3_NIC_EQ_ERR_INTERRUPT_M(port)));
-	NIC_WREG32(mmD0_NIC0_QPC_INTERRUPT_MSI,
-		NIC_RREG32(mmD0_NIC0_QPC_INTERRUPT_MSI) & ~GAUDI3_NIC_EQ_INTERRUPT_M(port));
+	NIC_WREG32(mmD0_NIC0_QPC_BASE + mmNIC_QPC_INTERRUPT_MSI,
+		NIC_RREG32(mmD0_NIC0_QPC_BASE + mmNIC_QPC_INTERRUPT_MSI) &
+						~GAUDI3_NIC_EQ_INTERRUPT_M(port));
 
-	NIC_WREG32(mmD0_NIC0_QPC_INTERRUPT_MASK,
-		NIC_RREG32(mmD0_NIC0_QPC_INTERRUPT_MASK) | GAUDI3_NIC_EQ_INTERRUPT_M(port));
+	NIC_WREG32(mmD0_NIC0_QPC_BASE + mmNIC_QPC_INTERRUPT_MASK,
+		NIC_RREG32(mmD0_NIC0_QPC_BASE + mmNIC_QPC_INTERRUPT_MASK) |
+						GAUDI3_NIC_EQ_INTERRUPT_M(port));
 
 	/* flush */
-	NIC_RREG32(mmD0_NIC0_QPC_INTERRUPT_MSI);
+	NIC_RREG32(mmD0_NIC0_QPC_BASE + mmNIC_QPC_INTERRUPT_MSI);
 }
 
 static int gaudi3_nic_eq_port_init(struct gaudi3_nic_port *gaudi3_nic)

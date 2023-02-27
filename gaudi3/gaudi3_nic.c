@@ -83,31 +83,31 @@
 #define GAUDI3_CC_MIN_WINDOW_SIZE	1
 #define GAUDI3_CC_MAX_WINDOW_SIZE	1023
 
-#define AFA_REG_NUM	REG_NUM(mmD0_NIC0_RXE_AFA_LBW_ADDR_0_3 - mmD0_NIC0_RXE_AFA_LBW_ADDR_0_0)
-#define AFA_ARUSER_REG_NUM	REG_NUM(mmD0_NIC0_RXE_AFA_ARUSER_ATTR_3 - \
-						mmD0_NIC0_RXE_AFA_ARUSER_ATTR_0)
+#define AFA_REG_NUM	REG_NUM(mmNIC_RXE_AFA_LBW_ADDR_0_3 - mmNIC_RXE_AFA_LBW_ADDR_0_0)
+#define AFA_ARUSER_REG_NUM	REG_NUM(mmNIC_RXE_AFA_ARUSER_ATTR_3 - \
+						mmNIC_RXE_AFA_ARUSER_ATTR_0)
 
-#define AFA_MASK_REG_NUM	REG_NUM(mmD0_NIC0_RXE_AFA_MASK_SIZE_3 - \
-					mmD0_NIC0_RXE_AFA_MASK_SIZE_0)
-#define TXE_DSCP_NUM	REG_NUM(mmD0_NIC0_TXE_PRIO_TO_DSCP_3 - mmD0_NIC0_TXE_PRIO_TO_DSCP_0)
-#define TXE_SRC_IP_NUM	REG_NUM(mmD0_NIC0_TXE_SOURCE_IP_PORT0_7 - mmD0_NIC0_TXE_SOURCE_IP_PORT0_0)
-#define TXE_ENCAP_NUM	REG_NUM(mmD0_NIC0_TXE_ENCAP_DATA_31_0_7 - mmD0_NIC0_TXE_ENCAP_DATA_31_0_0)
+#define AFA_MASK_REG_NUM	REG_NUM(mmNIC_RXE_AFA_MASK_SIZE_3 - \
+					mmNIC_RXE_AFA_MASK_SIZE_0)
+#define TXE_DSCP_NUM	REG_NUM(mmNIC_TXE_PRIO_TO_DSCP_3 - mmNIC_TXE_PRIO_TO_DSCP_0)
+#define TXE_SRC_IP_NUM	REG_NUM(mmNIC_TXE_SOURCE_IP_PORT0_7 - mmNIC_TXE_SOURCE_IP_PORT0_0)
+#define TXE_ENCAP_NUM	REG_NUM(mmNIC_TXE_ENCAP_DATA_31_0_7 - mmNIC_TXE_ENCAP_DATA_31_0_0)
 
-#define RXE_CQ_NUM	REG_NUM(mmD0_NIC0_RXE_CQ_BASE_ADDR_HI_15 - mmD0_NIC0_RXE_CQ_BASE_ADDR_HI_0)
-#define RXB_RAW_NUM	REG_NUM(mmD0_NIC0_RXB_CORE_PRT_TS_RAW0_MAC_31_0_MASK_3 - \
-				mmD0_NIC0_RXB_CORE_PRT_TS_RAW0_MAC_31_0_MASK_0)
-#define RXE_RAW_QPN_NUM	REG_NUM(mmD0_NIC0_RXE_RAW_QPN_P3_1 - mmD0_NIC0_RXE_RAW_QPN_P0_0)
+#define RXE_CQ_NUM	REG_NUM(mmNIC_RXE_CQ_BASE_ADDR_HI_15 - mmNIC_RXE_CQ_BASE_ADDR_HI_0)
+#define RXB_RAW_NUM	REG_NUM(mmNIC_RXB_CORE_PRT_TS_RAW0_MAC_31_0_MASK_3 - \
+				mmNIC_RXB_CORE_PRT_TS_RAW0_MAC_31_0_MASK_0)
+#define RXE_RAW_QPN_NUM	REG_NUM(mmNIC_RXE_RAW_QPN_P3_1 - mmNIC_RXE_RAW_QPN_P0_0)
 /* The RXE registers area contains holes. Hence we can't just calculate the offset between the last
  * and the first registers, but to use this hack in order to get the correct number of registers
  * from the REG_NUM macro.
  */
-#define RXE_RAW_BASE_NUM	REG_NUM((mmD0_NIC0_RXE_RAW_BASE_LO_P2_0 - \
-				mmD0_NIC0_RXE_RAW_BASE_LO_P0_0) * 2 - 4)
+#define RXE_RAW_BASE_NUM	REG_NUM((mmNIC_RXE_RAW_BASE_LO_P2_0 - \
+				mmNIC_RXE_RAW_BASE_LO_P0_0) * 2 - 4)
 #define CQ_UMR_NUM	ELEMENT_NUM((mmD0_NIC0_CQ_UMR_15_BASE - mmD0_NIC0_CQ_UMR_0_BASE), \
 				NIC_CQ_UMR_OFFSET)
-#define PHY_RX_NUM	REG_NUM(mmD0_NIC0_PHY_PHY_RX_CFG_3 - mmD0_NIC0_PHY_PHY_RX_CFG_0)
-#define QPC_CONG_QUE_NUM	REG_NUM(mmD0_NIC0_QPC_CONG_QUE_CFG_3 - mmD0_NIC0_QPC_CONG_QUE_CFG_0)
-#define BP_OFFS_MSG_EN_NUM	REG_NUM(mmD0_NIC0_QPC_WQ_BP_MSG_EN_3 - mmD0_NIC0_QPC_WQ_BP_MSG_EN_0)
+#define PHY_RX_NUM	REG_NUM(mmNIC_PHY_PHY_RX_CFG_3 - mmNIC_PHY_PHY_RX_CFG_0)
+#define QPC_CONG_QUE_NUM	REG_NUM(mmNIC_QPC_CONG_QUE_CFG_3 - mmNIC_QPC_CONG_QUE_CFG_0)
+#define BP_OFFS_MSG_EN_NUM	REG_NUM(mmNIC_QPC_WQ_BP_MSG_EN_3 - mmNIC_QPC_WQ_BP_MSG_EN_0)
 
 #define QPC_COLL_LAG_SZ_DEFAULT		0x3
 #define QPC_RX_WQE_CT_MASK_DEFAULT	0x3
@@ -704,9 +704,9 @@ static void gaudi3_nic_config_hw_txs(struct hl_nic_macro *nic_macro)
 	}
 
 	/* set TX sched queues address */
-	NIC_WREG32(mmD0_NIC0_TXS_BASE_ADDRESS_63_32,
+	NIC_WREG32(mmD0_NIC0_TXS_BASE + mmNIC_TXS_BASE_ADDRESS_63_32,
 			upper_32_bits(txs_addr + TXS_FIFO_OFFS));
-	NIC_WREG32(mmD0_NIC0_TXS_BASE_ADDRESS_31_7,
+	NIC_WREG32(mmD0_NIC0_TXS_BASE + mmNIC_TXS_BASE_ADDRESS_31_7,
 			lower_32_bits(txs_addr + TXS_FIFO_OFFS) >> 7);
 
 	/* Set access to bypass the MMU */
@@ -714,7 +714,7 @@ static void gaudi3_nic_config_hw_txs(struct hl_nic_macro *nic_macro)
 	gaudi3_axuser_hbw_asid_set(hdev, NIC_REG(mmD0_NIC0_TXS_AXUSER_BASE),
 					hdev->kernel_ctx->asid);
 
-	NIC_WREG32(mmD0_NIC0_TXS_FREE_LIST_PUSH_MASK_EN, 1);
+	NIC_WREG32(mmD0_NIC0_TXS_BASE + mmNIC_TXS_FREE_LIST_PUSH_MASK_EN, 1);
 
 	txs_fence_idx = 0;
 	txs_pi = 0;
@@ -726,12 +726,12 @@ static void gaudi3_nic_config_hw_txs(struct hl_nic_macro *nic_macro)
 	/* Gaudi3 TXS implements 256 schedule-Qs.
 	 * These queues are hard-divided to 4x64 priority groups of Qs.
 	 *    (The first and last Q group-relative numbers of each group (0-63) can be configured
-	 *     via mmD0_NIC0_TXS_FIRST_SCHEDQ_ID and mmD0_NIC0_TXS_LAST_SCHEDQ_ID, We will use its
+	 *     via mmNIC_TXS_FIRST_SCHEDQ_ID and mmNIC_TXS_LAST_SCHEDQ_ID, We will use its
 	 *     default values of 0 and 63 respectively).
 	 * From the above pools we need to allocate and configure:
 	 * - 16  Qs as evicted Qs (4ports x 4 prio) and
 	 * - 1 Q for evicted loopback Q.
-	 * configuring the above is done in mmD0_NIC0_TXS_EVICTED_QPS with default value of:
+	 * configuring the above is done in mmNIC_TXS_EVICTED_QPS with default value of:
 	 * - 0xF Queues for evicted-QPs (we divide the 256 Qs to groups of 16 and we use the
 	 *       most significant group (group 0xF) for Evicted-QPs).
 	 * - 1 queue (0xEF) as the evicted LPBK Q, (which is just before the evicted-QPs group).
@@ -765,52 +765,52 @@ static void gaudi3_nic_config_hw_txs(struct hl_nic_macro *nic_macro)
 				((rl_en_log_time & 0x3F) << 20);
 		txs_tail = i;
 		txs_head = i;
-		NIC_WREG32(mmD0_NIC0_TXS_SCHEDQ_UPDATE_DESC_0, txs_fence_idx);
-		NIC_WREG32(mmD0_NIC0_TXS_SCHEDQ_UPDATE_DESC_1, txs_pi);
-		NIC_WREG32(mmD0_NIC0_TXS_SCHEDQ_UPDATE_DESC_2, txs_ci);
-		NIC_WREG32(mmD0_NIC0_TXS_SCHEDQ_UPDATE_DESC_3, txs_tail);
-		NIC_WREG32(mmD0_NIC0_TXS_SCHEDQ_UPDATE_DESC_4, txs_head);
-		NIC_WREG32(mmD0_NIC0_TXS_SCHEDQ_UPDATE_DESC_5, txs_timeout_31_0);
-		NIC_WREG32(mmD0_NIC0_TXS_SCHEDQ_UPDATE_DESC_6, txs_schedq);
-		NIC_WREG32(mmD0_NIC0_TXS_SCHEDQ_UPDATE_FIFO, i);
-		NIC_WREG32(mmD0_NIC0_TXS_SCHEDQ_UPDATE_EN, 1);
+		NIC_WREG32(mmD0_NIC0_TXS_BASE + mmNIC_TXS_SCHEDQ_UPDATE_DESC_0, txs_fence_idx);
+		NIC_WREG32(mmD0_NIC0_TXS_BASE + mmNIC_TXS_SCHEDQ_UPDATE_DESC_1, txs_pi);
+		NIC_WREG32(mmD0_NIC0_TXS_BASE + mmNIC_TXS_SCHEDQ_UPDATE_DESC_2, txs_ci);
+		NIC_WREG32(mmD0_NIC0_TXS_BASE + mmNIC_TXS_SCHEDQ_UPDATE_DESC_3, txs_tail);
+		NIC_WREG32(mmD0_NIC0_TXS_BASE + mmNIC_TXS_SCHEDQ_UPDATE_DESC_4, txs_head);
+		NIC_WREG32(mmD0_NIC0_TXS_BASE + mmNIC_TXS_SCHEDQ_UPDATE_DESC_5, txs_timeout_31_0);
+		NIC_WREG32(mmD0_NIC0_TXS_BASE + mmNIC_TXS_SCHEDQ_UPDATE_DESC_6, txs_schedq);
+		NIC_WREG32(mmD0_NIC0_TXS_BASE + mmNIC_TXS_SCHEDQ_UPDATE_FIFO, i);
+		NIC_WREG32(mmD0_NIC0_TXS_BASE + mmNIC_TXS_SCHEDQ_UPDATE_EN, 1);
 	}
 
-	reg = NIC_RREG32(mmD0_NIC0_TXS_EVICTED_QPS) &
+	reg = NIC_RREG32(mmD0_NIC0_TXS_BASE + mmNIC_TXS_EVICTED_QPS) &
 			~(NIC_TXS_EVICTED_QPS_IMMEDIATE_SQ_BASE_ADDR_M |
 				NIC_TXS_EVICTED_QPS_EVICTED_LB_SCHEDQ_M);
 	reg |= (0xF << NIC_TXS_EVICTED_QPS_IMMEDIATE_SQ_BASE_ADDR_S |
 		0xEF << NIC_TXS_EVICTED_QPS_EVICTED_LB_SCHEDQ_S);
-	NIC_WREG32(mmD0_NIC0_TXS_EVICTED_QPS, reg);
+	NIC_WREG32(mmD0_NIC0_TXS_BASE + mmNIC_TXS_EVICTED_QPS, reg);
 
-	NIC_WREG32(mmD0_NIC0_TXS_TICK_WRAP, 100);
-	NIC_WREG32(mmD0_NIC0_TXS_SCAN_TIME_COMPARE_0, 4);
-	NIC_WREG32(mmD0_NIC0_TXS_SCAN_TIME_COMPARE_1, 0);
-	NIC_WREG32(mmD0_NIC0_TXS_TMR_SCAN_EN, !!txs_timeout_31_0);
+	NIC_WREG32(mmD0_NIC0_TXS_BASE + mmNIC_TXS_TICK_WRAP, 100);
+	NIC_WREG32(mmD0_NIC0_TXS_BASE + mmNIC_TXS_SCAN_TIME_COMPARE_0, 4);
+	NIC_WREG32(mmD0_NIC0_TXS_BASE + mmNIC_TXS_SCAN_TIME_COMPARE_1, 0);
+	NIC_WREG32(mmD0_NIC0_TXS_BASE + mmNIC_TXS_TMR_SCAN_EN, !!txs_timeout_31_0);
 
-	NIC_WREG32(mmD0_NIC0_TXS_BASE_ADDRESS_FREE_LIST_63_32,
+	NIC_WREG32(mmD0_NIC0_TXS_BASE + mmNIC_TXS_BASE_ADDRESS_FREE_LIST_63_32,
 			upper_32_bits(txs_addr + TXS_FREE_OFFS));
 
-	NIC_WREG32(mmD0_NIC0_TXS_BASE_ADDRESS_FREE_LIST_31_0,
+	NIC_WREG32(mmD0_NIC0_TXS_BASE + mmNIC_TXS_BASE_ADDRESS_FREE_LIST_31_0,
 			lower_32_bits(txs_addr + TXS_FREE_OFFS));
 
 	/* mask should never be 0 */
-	NIC_WREG32(mmD0_NIC0_TXS_LIST_MASK,
+	NIC_WREG32(mmD0_NIC0_TXS_BASE + mmNIC_TXS_LIST_MASK,
 			max(~(0xFFFFFFFF << (ilog2(TXS_FREE_NUM_ENTRIES) - 5)), (u32)1));
-	NIC_WREG32(mmD0_NIC0_TXS_PRODUCER_UPDATE, TXS_FREE_NUM_ENTRIES);
-	NIC_WREG32(mmD0_NIC0_TXS_PRODUCER_UPDATE_EN, 1);
-	NIC_WREG32(mmD0_NIC0_TXS_PRODUCER_UPDATE_EN, 0);
-	NIC_WREG32(mmD0_NIC0_TXS_LIST_MEM_READ_MASK, 0);
-	NIC_WREG32(mmD0_NIC0_TXS_PUSH_LOCK_EN, 1);
+	NIC_WREG32(mmD0_NIC0_TXS_BASE + mmNIC_TXS_PRODUCER_UPDATE, TXS_FREE_NUM_ENTRIES);
+	NIC_WREG32(mmD0_NIC0_TXS_BASE + mmNIC_TXS_PRODUCER_UPDATE_EN, 1);
+	NIC_WREG32(mmD0_NIC0_TXS_BASE + mmNIC_TXS_PRODUCER_UPDATE_EN, 0);
+	NIC_WREG32(mmD0_NIC0_TXS_BASE + mmNIC_TXS_LIST_MEM_READ_MASK, 0);
+	NIC_WREG32(mmD0_NIC0_TXS_BASE + mmNIC_TXS_PUSH_LOCK_EN, 1);
 
 	/* disable burst size optimization */
-	NIC_WREG32(mmD0_NIC0_TXS_IGNORE_BURST_EN, 0);
+	NIC_WREG32(mmD0_NIC0_TXS_BASE + mmNIC_TXS_IGNORE_BURST_EN, 0);
 
-	NIC_WREG32(mmD0_NIC0_TXS_FORCE_HIT_EN, 0);
+	NIC_WREG32(mmD0_NIC0_TXS_BASE + mmNIC_TXS_FORCE_HIT_EN, 0);
 
 	/* TXS AXI cache should be set to read mode but not alloc = 0x3 */
-	NIC_WREG32(mmD0_NIC0_TXS_AXI_CACHE, (0x3 << NIC_TXS_AXI_CACHE_AR_CACHE_S));
-	NIC_WREG32(mmD0_NIC0_TXS_AXI_CACHE, (0x3 << NIC_TXS_AXI_CACHE_AW_CACHE_S));
+	NIC_WREG32(mmD0_NIC0_TXS_BASE + mmNIC_TXS_AXI_CACHE, (0x3 << NIC_TXS_AXI_CACHE_AR_CACHE_S));
+	NIC_WREG32(mmD0_NIC0_TXS_BASE + mmNIC_TXS_AXI_CACHE, (0x3 << NIC_TXS_AXI_CACHE_AW_CACHE_S));
 }
 
 static void gaudi3_nic_config_hw_txe(struct hl_nic_macro *nic_macro)
@@ -825,26 +825,30 @@ static void gaudi3_nic_config_hw_txe(struct hl_nic_macro *nic_macro)
 
 	/* Privilege registers configured under nic bringup file */
 
-	NIC_WREG32(mmD0_NIC0_TXE_BTH_MKEY, 0xffff);
+	NIC_WREG32(mmD0_NIC0_TXE_BASE + mmNIC_TXE_BTH_MKEY, 0xffff);
 
 	/* TXE WQE fetch should be set to read mode but not alloc = 0x3 */
-	NIC_WREG32(mmD0_NIC0_TXE_WQE_FETCH_AXI_CACHE,
+	NIC_WREG32(mmD0_NIC0_TXE_BASE + mmNIC_TXE_WQE_FETCH_AXI_CACHE,
 						(0x3 << NIC_TXE_WQE_FETCH_AXI_CACHE_VAL_S));
 
 	/* TXE DATA fetch should not skip cache with writeback, allocate controlled by user bit */
-	NIC_WREG32(mmD0_NIC0_TXE_DATA_FETCH_AXI_CACHE,
+	NIC_WREG32(mmD0_NIC0_TXE_BASE + mmNIC_TXE_DATA_FETCH_AXI_CACHE,
 						(0x1 << NIC_TXE_DATA_FETCH_AXI_CACHE_BIT0_S) |
 						(0x1 << NIC_TXE_DATA_FETCH_AXI_CACHE_BIT1_S));
 
-	NIC_WREG32(mmD0_NIC0_TXE_STATS_CFG0, nic_prop->clk * USEC_PER_MSEC); /* 1ms window size */
-	NIC_RMWREG32(mmD0_NIC0_TXE_STATS_CFG1, 1, NIC_TXE_STATS_CFG1_LATENCY_ENABLE_M);
-	NIC_RMWREG32(mmD0_NIC0_TXE_STATS_CFG1, 0, NIC_TXE_STATS_CFG1_WIN_TYPE_M);
-	NIC_RMWREG32(mmD0_NIC0_TXE_STATS_CFG1, 0, NIC_TXE_STATS_CFG1_WIN_SAMP_LATENCY_M);
-	NIC_RMWREG32(mmD0_NIC0_TXE_STATS_CFG1, 3, NIC_TXE_STATS_CFG1_TOT_TYPE_M);
-	NIC_RMWREG32(mmD0_NIC0_TXE_STATS_CFG1, 1, NIC_TXE_STATS_CFG1_ENABLE_M);
-	NIC_RMWREG32(mmD0_NIC0_TXE_STATS_CFG2, 0, NIC_TXE_STATS_CFG2_LATENCY_WRAP_EN_M);
-	NIC_RMWREG32(mmD0_NIC0_TXE_STATS_CFG2, 2 * nic_prop->clk,
-			NIC_TXE_STATS_CFG2_LATENCY_MAX_VAL_M);
+	NIC_WREG32(mmD0_NIC0_TXE_BASE + mmNIC_TXE_STATS_CFG0,
+					nic_prop->clk * USEC_PER_MSEC); /* 1ms window size */
+	NIC_RMWREG32(mmD0_NIC0_TXE_BASE + mmNIC_TXE_STATS_CFG1, 1,
+					NIC_TXE_STATS_CFG1_LATENCY_ENABLE_M);
+	NIC_RMWREG32(mmD0_NIC0_TXE_BASE + mmNIC_TXE_STATS_CFG1, 0, NIC_TXE_STATS_CFG1_WIN_TYPE_M);
+	NIC_RMWREG32(mmD0_NIC0_TXE_BASE + mmNIC_TXE_STATS_CFG1, 0,
+					NIC_TXE_STATS_CFG1_WIN_SAMP_LATENCY_M);
+	NIC_RMWREG32(mmD0_NIC0_TXE_BASE + mmNIC_TXE_STATS_CFG1, 3, NIC_TXE_STATS_CFG1_TOT_TYPE_M);
+	NIC_RMWREG32(mmD0_NIC0_TXE_BASE + mmNIC_TXE_STATS_CFG1, 1, NIC_TXE_STATS_CFG1_ENABLE_M);
+	NIC_RMWREG32(mmD0_NIC0_TXE_BASE + mmNIC_TXE_STATS_CFG2, 0,
+					NIC_TXE_STATS_CFG2_LATENCY_WRAP_EN_M);
+	NIC_RMWREG32(mmD0_NIC0_TXE_BASE + mmNIC_TXE_STATS_CFG2, 2 * nic_prop->clk,
+					NIC_TXE_STATS_CFG2_LATENCY_MAX_VAL_M);
 }
 
 static void gaudi3_nic_config_port_hw_txe(struct gaudi3_nic_port *gaudi3_nic)
@@ -866,16 +870,18 @@ static void gaudi3_nic_config_port_hw_txe(struct gaudi3_nic_port *gaudi3_nic)
 
 	/* Set the base address of the raw WQ. Ethernet uses the first WQ */
 	offset = GAUDI3_TXE_WQ_RAW_IDX(port);
-	NIC_OFFSET_WREG32(mmD0_NIC0_TXE_SQ_BASE_ADDRESS_63_32_0, upper_32_bits(wq_addr));
-	NIC_OFFSET_WREG32(mmD0_NIC0_TXE_SQ_BASE_ADDRESS_31_0_0, lower_32_bits(wq_addr));
-	NIC_OFFSET_WREG32(mmD0_NIC0_TXE_LOG_MAX_WQ_SIZE_0, wq_size_cline_log);
+	NIC_OFFSET_WREG32(mmD0_NIC0_TXE_BASE + mmNIC_TXE_SQ_BASE_ADDRESS_63_32_0,
+					upper_32_bits(wq_addr));
+	NIC_OFFSET_WREG32(mmD0_NIC0_TXE_BASE + mmNIC_TXE_SQ_BASE_ADDRESS_31_0_0,
+					lower_32_bits(wq_addr));
+	NIC_OFFSET_WREG32(mmD0_NIC0_TXE_BASE + mmNIC_TXE_LOG_MAX_WQ_SIZE_0, wq_size_cline_log);
 	/* set MMU bypass for kernel WQ */
-	NIC_OFFSET_WREG32(mmD0_NIC0_TXE_WQE_FETCH_AXI_USER_0,
+	NIC_OFFSET_WREG32(mmD0_NIC0_TXE_BASE + mmNIC_TXE_WQE_FETCH_AXI_USER_0,
 			(1 << NIC_TXE_WQE_FETCH_AXI_USER_MMU_BYPASS_S) |
 			(hdev->kernel_ctx->asid << NIC_TXE_WQE_FETCH_AXI_USER_0_ASID_S));
 
 	offset = GAUDI3_RAW_OFFSET + ELEMENT_OFFSET(port, TXE_DSCP_NUM);
-	NIC_OFFSET_WREG32(mmD0_NIC0_TXE_PRIO_TO_DSCP_0, 0x18100800);
+	NIC_OFFSET_WREG32(mmD0_NIC0_TXE_BASE + mmNIC_TXE_PRIO_TO_DSCP_0, 0x18100800);
 }
 
 static void gaudi3_nic_config_hw_qpc(struct hl_nic_macro *nic_macro)
@@ -907,29 +913,35 @@ static void gaudi3_nic_config_hw_qpc(struct hl_nic_macro *nic_macro)
 
 	/* Privilege registers configured under nic bringup file */
 
-	NIC_WREG32(mmD0_NIC0_QPC_REQ_BASE_ADDRESS_63_32, upper_32_bits(req_qpc_base_addr));
-	NIC_WREG32(mmD0_NIC0_QPC_REQ_BASE_ADDRESS_31_0, lower_32_bits(req_qpc_base_addr));
+	NIC_WREG32(mmD0_NIC0_QPC_BASE + mmNIC_QPC_REQ_BASE_ADDRESS_63_32,
+						upper_32_bits(req_qpc_base_addr));
+	NIC_WREG32(mmD0_NIC0_QPC_BASE + mmNIC_QPC_REQ_BASE_ADDRESS_31_0,
+						lower_32_bits(req_qpc_base_addr));
 
-	NIC_WREG32(mmD0_NIC0_QPC_RES_BASE_ADDRESS_63_32, upper_32_bits(res_qpc_base_addr));
-	NIC_WREG32(mmD0_NIC0_QPC_RES_BASE_ADDRESS_31_0, lower_32_bits(res_qpc_base_addr));
+	NIC_WREG32(mmD0_NIC0_QPC_BASE + mmNIC_QPC_RES_BASE_ADDRESS_63_32,
+						upper_32_bits(res_qpc_base_addr));
+	NIC_WREG32(mmD0_NIC0_QPC_BASE + mmNIC_QPC_RES_BASE_ADDRESS_31_0,
+						lower_32_bits(res_qpc_base_addr));
 
-	NIC_WREG32(mmD0_NIC0_QPC_SWL_BASE_ADDRESS_63_32, upper_32_bits(req_qpc_swl_base_addr));
-	NIC_WREG32(mmD0_NIC0_QPC_SWL_BASE_ADDRESS_31_0, lower_32_bits(req_qpc_swl_base_addr));
+	NIC_WREG32(mmD0_NIC0_QPC_BASE + mmNIC_QPC_SWL_BASE_ADDRESS_63_32,
+						upper_32_bits(req_qpc_swl_base_addr));
+	NIC_WREG32(mmD0_NIC0_QPC_BASE + mmNIC_QPC_SWL_BASE_ADDRESS_31_0,
+						lower_32_bits(req_qpc_swl_base_addr));
 
-	NIC_WREG32(mmD0_NIC0_QPC_MAX_QPN, NIC_MAX_CONN_ID);
+	NIC_WREG32(mmD0_NIC0_QPC_BASE + mmNIC_QPC_MAX_QPN, NIC_MAX_CONN_ID);
 
-	NIC_WREG32(mmD0_NIC0_QPC_RES_QPC_CACHE_INVALIDATE, 1);
-	NIC_WREG32(mmD0_NIC0_QPC_REQ_QPC_CACHE_INVALIDATE, 1);
-	NIC_WREG32(mmD0_NIC0_QPC_RES_QPC_CACHE_INVALIDATE, 0);
-	NIC_WREG32(mmD0_NIC0_QPC_REQ_QPC_CACHE_INVALIDATE, 0);
+	NIC_WREG32(mmD0_NIC0_QPC_BASE + mmNIC_QPC_RES_QPC_CACHE_INVALIDATE, 1);
+	NIC_WREG32(mmD0_NIC0_QPC_BASE + mmNIC_QPC_REQ_QPC_CACHE_INVALIDATE, 1);
+	NIC_WREG32(mmD0_NIC0_QPC_BASE + mmNIC_QPC_RES_QPC_CACHE_INVALIDATE, 0);
+	NIC_WREG32(mmD0_NIC0_QPC_BASE + mmNIC_QPC_REQ_QPC_CACHE_INVALIDATE, 0);
 
-	NIC_WREG32(mmD0_NIC0_QPC_INTERRUPT_CAUSE, 0);
+	NIC_WREG32(mmD0_NIC0_QPC_BASE + mmNIC_QPC_INTERRUPT_CAUSE, 0);
 
 	/* Configure MMU-BP override for DB-FIFOs */
 	gaudi3_axuser_hbw_mmu_bp_set(hdev, NIC_REG(mmD0_NIC0_QPC_AXUSER_HBW_DB_FIFO_BASE), true);
 
-	NIC_WREG32(mmD0_NIC0_QPC_QPC_CLOCK_GATE_DIS, 0x1);
-	NIC_WREG32(mmD0_NIC0_QPC_RETRY_COUNT_MAX, 0xFEFE);
+	NIC_WREG32(mmD0_NIC0_QPC_BASE + mmNIC_QPC_QPC_CLOCK_GATE_DIS, 0x1);
+	NIC_WREG32(mmD0_NIC0_QPC_BASE + mmNIC_QPC_RETRY_COUNT_MAX, 0xFEFE);
 
 	/* Configure MMU-BP override for QPCs */
 	gaudi3_axuser_hbw_mmu_bp_set(hdev, NIC_REG(mmD0_NIC0_QPC_AXUSER_HBW_QPC_REQ_BASE), true);
@@ -942,80 +954,86 @@ static void gaudi3_nic_config_hw_qpc(struct hl_nic_macro *nic_macro)
 	gaudi3_axuser_hbw_mmu_bp_set(hdev, NIC_REG(mmD0_NIC0_QPC_AXUSER_HBW_EV_QUE_BASE), true);
 
 	/* SW-90895: due to HW limitation, RESEND_WQE_ON_ROLLBACK should be disabled */
-	NIC_RMWREG32(mmD0_NIC0_QPC_REQ_STATIC_CONFIG, 0,
+	NIC_RMWREG32(mmD0_NIC0_QPC_BASE + mmNIC_QPC_REQ_STATIC_CONFIG, 0,
 			NIC_QPC_REQ_STATIC_CONFIG_RESEND_WQE_ON_ROLLBACK_M);
 
 
 	/* TODO SW-82722 - enable WQ Back Pressure */
-	NIC_WREG32(mmD0_NIC0_QPC_WQ_BP_MSG_EN_0, 0);
-	NIC_WREG32(mmD0_NIC0_QPC_WQ_BP_MSG_EN_1, 0);
-	NIC_WREG32(mmD0_NIC0_QPC_WQ_BP_MSG_EN_2, 0);
-	NIC_WREG32(mmD0_NIC0_QPC_WQ_BP_MSG_EN_3, 0);
+	NIC_WREG32(mmD0_NIC0_QPC_BASE + mmNIC_QPC_WQ_BP_MSG_EN_0, 0);
+	NIC_WREG32(mmD0_NIC0_QPC_BASE + mmNIC_QPC_WQ_BP_MSG_EN_1, 0);
+	NIC_WREG32(mmD0_NIC0_QPC_BASE + mmNIC_QPC_WQ_BP_MSG_EN_2, 0);
+	NIC_WREG32(mmD0_NIC0_QPC_BASE + mmNIC_QPC_WQ_BP_MSG_EN_3, 0);
 
 	/* The back-pressure thresholds values describe the vacant space left in the
 	 * QP at which the back-pressure value will be increased/decreased.
 	 * Thresholds are configured by some defined numbers.
 	 * (currently 4/8 for the upper/lower thresholds respectively).
 	 */
-	NIC_WREG32(mmD0_NIC0_QPC_WQ_INC_THRESHOLD, GAUDI3_NIC_WTD_BP_UPPER_TH_DIFF);
-	NIC_WREG32(mmD0_NIC0_QPC_WQ_DEC_THRESHOLD, GAUDI3_NIC_WTD_BP_LOWER_TH_DIFF);
+	NIC_WREG32(mmD0_NIC0_QPC_BASE + mmNIC_QPC_WQ_INC_THRESHOLD,
+						GAUDI3_NIC_WTD_BP_UPPER_TH_DIFF);
+	NIC_WREG32(mmD0_NIC0_QPC_BASE + mmNIC_QPC_WQ_DEC_THRESHOLD,
+						GAUDI3_NIC_WTD_BP_LOWER_TH_DIFF);
 
 	/* HW accelerated congestion control configuration */
 	/* H9-5456 - HW bug when congestion control is used with SACK. Fix was done for RTT
 	 * measure method = 1 only.
 	 */
-	NIC_WREG32(mmD0_NIC0_QPC_SWIFT_CFG,
+	NIC_WREG32(mmD0_NIC0_QPC_BASE + mmNIC_QPC_SWIFT_CFG,
 			1 << NIC_QPC_SWIFT_CFG_SWIFT_EN_S |
 			1 << NIC_QPC_SWIFT_CFG_RTT_MEASURE_METHOD_S |
 			4 << NIC_QPC_SWIFT_CFG_COALESCE_INIT_VAL_S |
 			1 << NIC_QPC_SWIFT_CFG_ENABLE_COALESCE_S);
-	NIC_WREG32(mmD0_NIC0_QPC_CC_ROLLBACK,
+	NIC_WREG32(mmD0_NIC0_QPC_BASE + mmNIC_QPC_CC_ROLLBACK,
 			1 << NIC_QPC_CC_ROLLBACK_HW_EN_S |
 			1 << NIC_QPC_CC_ROLLBACK_SW_EN_S |
 			1 << NIC_QPC_CC_ROLLBACK_TRIGGER_HW_EN_S);
-	NIC_WREG32(mmD0_NIC0_QPC_CC_MIN_WINDOW_SIZE, GAUDI3_CC_MIN_WINDOW_SIZE);
-	NIC_WREG32(mmD0_NIC0_QPC_CC_MAX_WINDOW_SIZE, GAUDI3_CC_MAX_WINDOW_SIZE);
+	NIC_WREG32(mmD0_NIC0_QPC_BASE + mmNIC_QPC_CC_MIN_WINDOW_SIZE, GAUDI3_CC_MIN_WINDOW_SIZE);
+	NIC_WREG32(mmD0_NIC0_QPC_BASE + mmNIC_QPC_CC_MAX_WINDOW_SIZE, GAUDI3_CC_MAX_WINDOW_SIZE);
 
-	NIC_WREG32(mmD0_NIC0_QPC_NIC_ID, nic_macro->idx);
+	NIC_WREG32(mmD0_NIC0_QPC_BASE + mmNIC_QPC_NIC_ID, nic_macro->idx);
 
 	patcher_cfg_mask = NIC_QPC_PATCHER_CFG_LAG_SIZE_M |
 					NIC_QPC_PATCHER_CFG_RX_WQE_CT_MASK_M;
 
-	NIC_RMWREG32_SHIFTED(mmD0_NIC0_QPC_PATCHER_CFG,
+	NIC_RMWREG32_SHIFTED(mmD0_NIC0_QPC_BASE + mmNIC_QPC_PATCHER_CFG,
 		((gaudi3->coll_lag_size << NIC_QPC_PATCHER_CFG_LAG_SIZE_S) |
 		(QPC_RX_WQE_CT_MASK_DEFAULT << NIC_QPC_PATCHER_CFG_RX_WQE_CT_MASK_S)),
 		patcher_cfg_mask);
 
 	direct_qpn_offset = is_200g_mode(hdev) ? (NIC_MAX_COLL_QP_NUM / 2) : 0;
-	NIC_RMWREG32(mmD0_NIC0_QPC_PATCHER_CFG, direct_qpn_offset,
+	NIC_RMWREG32(mmD0_NIC0_QPC_BASE + mmNIC_QPC_PATCHER_CFG, direct_qpn_offset,
 			NIC_QPC_PATCHER_CFG_DIRECT_QPN_OFFSET_M);
 
 	/* AXCACHE register configuration */
 	/* QPC requester cache configuration - should be set to read mode but not alloc = 0x3 */
-	NIC_WREG32(mmD0_NIC0_QPC_QPC_REQUESTER_AR_ATTR,
+	NIC_WREG32(mmD0_NIC0_QPC_BASE + mmNIC_QPC_QPC_REQUESTER_AR_ATTR,
 				(0x3 << NIC_QPC_QPC_REQUESTER_AR_ATTR_CACHE_S));
-	NIC_WREG32(mmD0_NIC0_QPC_QPC_REQUESTER_WORK_AW_ATTR,
+	NIC_WREG32(mmD0_NIC0_QPC_BASE + mmNIC_QPC_QPC_REQUESTER_WORK_AW_ATTR,
 				(0x3 << NIC_QPC_QPC_REQUESTER_WORK_AW_ATTR_CACHE_S));
-	NIC_WREG32(mmD0_NIC0_QPC_QPC_REQUESTER_NO_WORK_AW_ATTR,
+	NIC_WREG32(mmD0_NIC0_QPC_BASE + mmNIC_QPC_QPC_REQUESTER_NO_WORK_AW_ATTR,
 				(0x3 << NIC_QPC_QPC_REQUESTER_NO_WORK_AW_ATTR_CACHE_S));
 	/* QPC responder cache configuration - should be set to read mode but not alloc = 0x3 */
-	NIC_WREG32(mmD0_NIC0_QPC_QPC_RESPONDER_AR_ATTR,
+	NIC_WREG32(mmD0_NIC0_QPC_BASE + mmNIC_QPC_QPC_RESPONDER_AR_ATTR,
 				(0x3 << NIC_QPC_QPC_RESPONDER_AR_ATTR_CACHE_S));
-	NIC_WREG32(mmD0_NIC0_QPC_QPC_RESPONDER_AW_ATTR,
+	NIC_WREG32(mmD0_NIC0_QPC_BASE + mmNIC_QPC_QPC_RESPONDER_AW_ATTR,
 				(0x3 << NIC_QPC_QPC_RESPONDER_AW_ATTR_CACHE_S));
 	/* WTD configuration - should be set to read mode but not alloc = 0x3 */
-	NIC_WREG32(mmD0_NIC0_QPC_WTD_AWCACHE, (0x3 << NIC_QPC_WTD_AWCACHE_CACHE_S));
+	NIC_WREG32(mmD0_NIC0_QPC_BASE + mmNIC_QPC_WTD_AWCACHE,
+					(0x3 << NIC_QPC_WTD_AWCACHE_CACHE_S));
 	/* DB FIFO configuration - should be set to read mode but not alloc = 0x3 */
-	NIC_WREG32(mmD0_NIC0_QPC_DB_FIFO_AWCACHE, (0x3 << NIC_QPC_DB_FIFO_AWCACHE_CACHE_S));
+	NIC_WREG32(mmD0_NIC0_QPC_BASE + mmNIC_QPC_DB_FIFO_AWCACHE,
+					(0x3 << NIC_QPC_DB_FIFO_AWCACHE_CACHE_S));
 	/* EQ configuration - should be set to read mode but not alloc = 0x3 */
-	NIC_WREG32(mmD0_NIC0_QPC_EQ_AWCACHE, (0x3 << NIC_QPC_EQ_AWCACHE_CACHE_S));
+	NIC_WREG32(mmD0_NIC0_QPC_BASE + mmNIC_QPC_EQ_AWCACHE,
+					(0x3 << NIC_QPC_EQ_AWCACHE_CACHE_S));
 	/* CongQ configuration - should be set to read mode but not alloc = 0x3 */
-	NIC_WREG32(mmD0_NIC0_QPC_CONGQ_AWCACHE, (0x3 << NIC_QPC_CONGQ_AWCACHE_CACHE_S));
+	NIC_WREG32(mmD0_NIC0_QPC_BASE + mmNIC_QPC_CONGQ_AWCACHE,
+					(0x3 << NIC_QPC_CONGQ_AWCACHE_CACHE_S));
 
 	/* H9-5457 - causing the TXE to stop sending packets at 1022 OTF rather then 1024, i.e.
 	 * avoid a case where the windows is full and the HW bug may occur.
 	 */
-	NIC_WREG32(mmD0_NIC0_QPC_MAX_OTF_PSN_SACK, 1022);
+	NIC_WREG32(mmD0_NIC0_QPC_BASE + mmNIC_QPC_MAX_OTF_PSN_SACK, 1022);
 
 #ifdef SW_68008
 	/* TODO: [SW-68008] */
@@ -1036,9 +1054,9 @@ static void gaudi3_nic_config_port_hw_qpc(struct gaudi3_nic_port *gaudi3_nic)
 	/* Configure doorbell */
 	/* TODO: SW-67924 */
 	offset = GAUDI3_DB_FIFO_RAW_IDX(port);
-	NIC_OFFSET_WREG32(mmD0_NIC0_QPC_DB_FIFO_UPD_ADDR_MSB_0,
+	NIC_OFFSET_WREG32(mmD0_NIC0_QPC_BASE + mmNIC_QPC_DB_FIFO_UPD_ADDR_MSB_0,
 			upper_32_bits(RING_BUF_DMA_ADDRESS(&gaudi3_nic->fifo_ring)));
-	NIC_OFFSET_WREG32(mmD0_NIC0_QPC_DB_FIFO_UPD_ADDR_LSB_0,
+	NIC_OFFSET_WREG32(mmD0_NIC0_QPC_BASE + mmNIC_QPC_DB_FIFO_UPD_ADDR_LSB_0,
 			lower_32_bits(RING_BUF_DMA_ADDRESS(&gaudi3_nic->fifo_ring)));
 
 	gaudi3_nic_eq_dispatcher_register_db(gaudi3_nic, HL_KERNEL_ASID_ID,
@@ -1054,12 +1072,12 @@ static void gaudi3_nic_config_port_hw_qpc(struct gaudi3_nic_port *gaudi3_nic)
 	 * sequential number that is compared to the QPC trust level.
 	 */
 	/* TODO: SW-67924 */
-	NIC_OFFSET_WREG32(mmD0_NIC0_QPC_DB_FIFO_SECURITY_0,
+	NIC_OFFSET_WREG32(mmD0_NIC0_QPC_BASE + mmNIC_QPC_DB_FIFO_SECURITY_0,
 			1 << NIC_QPC_DB_FIFO_SECURITY_SECURITY_LEVEL_S);
 
 	/* TODO: SW-67924: fix also the EQ ID */
 	/* TODO: SW-68378: verify DB_TYPE cfg */
-	NIC_OFFSET_WREG32(mmD0_NIC0_QPC_DB_FIFO_CFG_0,
+	NIC_OFFSET_WREG32(mmD0_NIC0_QPC_BASE + mmNIC_QPC_DB_FIFO_CFG_0,
 			HL_KERNEL_ASID_ID << NIC_QPC_DB_FIFO_CFG_0_ASID_S |
 			1 << NIC_QPC_DB_FIFO_CFG_MMU_BP_S |
 			0 << NIC_QPC_DB_FIFO_CFG_DB_TYPE_S |
@@ -1071,7 +1089,7 @@ static void gaudi3_nic_config_port_hw_qpc(struct gaudi3_nic_port *gaudi3_nic)
 
 	fifo_offset = gaudi3_nic->raw_fifo_offset / sizeof(u32);
 	size = ilog2(DB_FIFO_ETH_SIZE / sizeof(u32));
-	NIC_OFFSET_WREG32(mmD0_NIC0_QPC_DB_FIFO_CFG2_0,
+	NIC_OFFSET_WREG32(mmD0_NIC0_QPC_BASE + mmNIC_QPC_DB_FIFO_CFG2_0,
 			fifo_offset << NIC_QPC_DB_FIFO_CFG2_FIFO_OFFSET_S |
 			size << NIC_QPC_DB_FIFO_CFG2_FIFO_L2_SIZE_S);
 }
@@ -1091,36 +1109,36 @@ static void gaudi3_nic_config_hw_rxe(struct hl_nic_macro *nic_macro)
 	/* Privilege registers configured under nic bringup file */
 
 	/* TODO: HB_OVRD_LO zero 11 LSBs */
-	NIC_WREG32(mmD0_NIC0_RXE_LBW_BASE_LO, lower_32_bits(CFG_BAR_BASE));
-	NIC_WREG32(mmD0_NIC0_RXE_LBW_BASE_HI, upper_32_bits(CFG_BAR_BASE));
+	NIC_WREG32(mmD0_NIC0_RXE_BASE + mmNIC_RXE_LBW_BASE_LO, lower_32_bits(CFG_BAR_BASE));
+	NIC_WREG32(mmD0_NIC0_RXE_BASE + mmNIC_RXE_LBW_BASE_HI, upper_32_bits(CFG_BAR_BASE));
 
 	/* Make sure LBW write access (for SM) can never be privileged */
-	NIC_WREG32(mmD0_NIC0_RXE_AWPROT_LBW_PRIV, 0);
+	NIC_WREG32(mmD0_NIC0_RXE_BASE + mmNIC_RXE_AWPROT_LBW_PRIV, 0);
 
 	/* Initialize MMU-BP for all CQs */
 	for (i = 0 ; i < nic_prop->max_cqs ; i++)
-		NIC_WREG32(mmD0_NIC0_RXE_CQ_AXI_USER_0 + (i * RXE_CQ_AXI_USER_OFFSET),
-				NIC_RXE_CQ_AXI_USER_MMU_BP_M);
+		NIC_WREG32(mmD0_NIC0_RXE_BASE + mmNIC_RXE_CQ_AXI_USER_0 +
+				(i * RXE_CQ_AXI_USER_OFFSET), NIC_RXE_CQ_AXI_USER_MMU_BP_M);
 
 	for (i = 0 ; i < props->num_of_hdcores; i++) {
-		NIC_WREG32(mmD0_NIC0_RXE_SOB_SM_BASE_ADDR_0 + i * sizeof(u32),
+		NIC_WREG32(mmD0_NIC0_RXE_BASE + mmNIC_RXE_SOB_SM_BASE_ADDR_0 + i * sizeof(u32),
 				(CFG_BAR_BASE - LBW_BASE + mmHD0_SYNC_MNGR_OBJS_BASE +
 						mmSOB_OBJS_SOB_OBJ_0_0) + i * HDCORE_OFFSET);
 	}
 
-	NIC_WREG32(mmD0_NIC0_RXE_SOB_SUB_SM_OFFSET,
+	NIC_WREG32(mmD0_NIC0_RXE_BASE + mmNIC_RXE_SOB_SUB_SM_OFFSET,
 		(mmSOB_OBJS_SOB_OBJ_1_0 - mmSOB_OBJS_SOB_OBJ_0_0));
 
 	/* RXE WQE cache should be set to read mode but not alloc = 0x3 */
-	NIC_WREG32(mmD0_NIC0_RXE_WQE_ARCACHE, (0x3 << NIC_RXE_WQE_ARCACHE_VAL_S));
+	NIC_WREG32(mmD0_NIC0_RXE_BASE + mmNIC_RXE_WQE_ARCACHE, (0x3 << NIC_RXE_WQE_ARCACHE_VAL_S));
 
 	/* RXE AF&A cache should not skip cache with writeback, allocate controlled by user bit */
-	NIC_WREG32(mmD0_NIC0_RXE_AFA_CACHE_ATTR,
+	NIC_WREG32(mmD0_NIC0_RXE_BASE + mmNIC_RXE_AFA_CACHE_ATTR,
 					(0x1 << NIC_RXE_AFA_CACHE_ATTR_ARCACHE_BIT0_S) |
 					(0x1 << NIC_RXE_AFA_CACHE_ATTR_ARCACHE_BIT1_S));
 
 	/* RXE CQ cache should be set to read mode but not alloc = 0x3 */
-	NIC_WREG32(mmD0_NIC0_RXE_CQ_AWCACHE, (0x3 << NIC_RXE_CQ_AWCACHE_VAL_S));
+	NIC_WREG32(mmD0_NIC0_RXE_BASE + mmNIC_RXE_CQ_AWCACHE, (0x3 << NIC_RXE_CQ_AWCACHE_VAL_S));
 
 	/*
 	 * TODO SW-84547: new reg (mmD0_NIC0_RXE_WQE_ARCACHE )for WQ cache attributes
@@ -1140,54 +1158,54 @@ static void gaudi3_nic_config_port_hw_rxe(struct gaudi3_nic_port *gaudi3_nic)
 	rx_mem_addr_hi = upper_32_bits(RING_BUF_DMA_ADDRESS(rx_ring));
 
 	offset = GAUDI3_RAW_OFFSET + ELEMENT_OFFSET(port, RXE_RAW_QPN_NUM);
-	NIC_OFFSET_WREG32(mmD0_NIC0_RXE_RAW_QPN_P0_0, RAW_QPN(port));
-	NIC_OFFSET_WREG32(mmD0_NIC0_RXE_RAW_QPN_P0_1, RAW_QPN(port));
+	NIC_OFFSET_WREG32(mmD0_NIC0_RXE_BASE + mmNIC_RXE_RAW_QPN_P0_0, RAW_QPN(port));
+	NIC_OFFSET_WREG32(mmD0_NIC0_RXE_BASE + mmNIC_RXE_RAW_QPN_P0_1, RAW_QPN(port));
 
 	offset = GAUDI3_RAW_OFFSET + ELEMENT_OFFSET(port, RXE_RAW_BASE_NUM);
-	NIC_OFFSET_WREG32(mmD0_NIC0_RXE_RAW_BASE_LO_P0_0, rx_mem_addr_lo);
-	NIC_OFFSET_WREG32(mmD0_NIC0_RXE_RAW_BASE_LO_P0_1, rx_mem_addr_lo);
-	NIC_OFFSET_WREG32(mmD0_NIC0_RXE_RAW_BASE_HI_P0_0, rx_mem_addr_hi);
-	NIC_OFFSET_WREG32(mmD0_NIC0_RXE_RAW_BASE_HI_P0_1, rx_mem_addr_hi);
+	NIC_OFFSET_WREG32(mmD0_NIC0_RXE_BASE + mmNIC_RXE_RAW_BASE_LO_P0_0, rx_mem_addr_lo);
+	NIC_OFFSET_WREG32(mmD0_NIC0_RXE_BASE + mmNIC_RXE_RAW_BASE_LO_P0_1, rx_mem_addr_lo);
+	NIC_OFFSET_WREG32(mmD0_NIC0_RXE_BASE + mmNIC_RXE_RAW_BASE_HI_P0_0, rx_mem_addr_hi);
+	NIC_OFFSET_WREG32(mmD0_NIC0_RXE_BASE + mmNIC_RXE_RAW_BASE_HI_P0_1, rx_mem_addr_hi);
 
-	NIC_OFFSET_WREG32(mmD0_NIC0_RXE_RAW_MISC_P0_0,
+	NIC_OFFSET_WREG32(mmD0_NIC0_RXE_BASE + mmNIC_RXE_RAW_MISC_P0_0,
 			(ilog2(rx_ring->elem_size) &
 				NIC_RXE_RAW_MISC_P2_LOG_RAW_ENTRY_SIZE_P2_M) |
 			((ilog2(rx_ring->count) & 0x1F) << 15));
 
-	NIC_OFFSET_WREG32(mmD0_NIC0_RXE_RAW_MISC_P0_1,
+	NIC_OFFSET_WREG32(mmD0_NIC0_RXE_BASE + mmNIC_RXE_RAW_MISC_P0_1,
 			(ilog2(rx_ring->elem_size) &
 				NIC_RXE_RAW_MISC_P2_LOG_RAW_ENTRY_SIZE_P2_M) |
 			((ilog2(rx_ring->count) & 0x1F) << 15));
 
 	/* TODO: SW-67924 */
 	offset = GAUDI3_RAW_OFFSET + ELEMENT_OFFSET(port, RXE_CQ_NUM);
-	NIC_OFFSET_WREG32(mmD0_NIC0_RXE_CQ_BASE_ADDR_HI_0,
+	NIC_OFFSET_WREG32(mmD0_NIC0_RXE_BASE + mmNIC_RXE_CQ_BASE_ADDR_HI_0,
 			upper_32_bits(RING_BUF_DMA_ADDRESS(cq_ring)));
-	NIC_OFFSET_WREG32(mmD0_NIC0_RXE_CQ_BASE_ADDR_LO_0,
+	NIC_OFFSET_WREG32(mmD0_NIC0_RXE_BASE + mmNIC_RXE_CQ_BASE_ADDR_LO_0,
 			lower_32_bits(RING_BUF_DMA_ADDRESS(cq_ring)));
 
-	NIC_OFFSET_WREG32(mmD0_NIC0_RXE_CQ_PI_ADDR_HI_0,
+	NIC_OFFSET_WREG32(mmD0_NIC0_RXE_BASE + mmNIC_RXE_CQ_PI_ADDR_HI_0,
 			upper_32_bits(RING_PI_DMA_ADDRESS(cq_ring)));
-	NIC_OFFSET_WREG32(mmD0_NIC0_RXE_CQ_PI_ADDR_LO_0,
+	NIC_OFFSET_WREG32(mmD0_NIC0_RXE_BASE + mmNIC_RXE_CQ_PI_ADDR_LO_0,
 			lower_32_bits(RING_PI_DMA_ADDRESS(cq_ring)));
 
 	/* Set the actual single CQ size log2(number of entries in cq)*/
 	/* TODO: SW-67924 */
-	NIC_OFFSET_WREG32(mmD0_NIC0_RXE_CQ_LOG_SIZE_0, ilog2(cq_ring->count));
+	NIC_OFFSET_WREG32(mmD0_NIC0_RXE_BASE + mmNIC_RXE_CQ_LOG_SIZE_0, ilog2(cq_ring->count));
 
-	NIC_OFFSET_WREG32(mmD0_NIC0_RXE_CQ_WRITE_INDEX_0, 0);
-	NIC_OFFSET_WREG32(mmD0_NIC0_RXE_CQ_PRODUCER_INDEX_0, 0);
-	NIC_OFFSET_WREG32(mmD0_NIC0_RXE_CQ_CONSUMER_INDEX_0, 0);
+	NIC_OFFSET_WREG32(mmD0_NIC0_RXE_BASE + mmNIC_RXE_CQ_WRITE_INDEX_0, 0);
+	NIC_OFFSET_WREG32(mmD0_NIC0_RXE_BASE + mmNIC_RXE_CQ_PRODUCER_INDEX_0, 0);
+	NIC_OFFSET_WREG32(mmD0_NIC0_RXE_BASE + mmNIC_RXE_CQ_CONSUMER_INDEX_0, 0);
 
 	/* enable, pi-update and completion-events */
-	NIC_OFFSET_WREG32(mmD0_NIC0_RXE_CQ_CFG_0,
+	NIC_OFFSET_WREG32(mmD0_NIC0_RXE_BASE + mmNIC_RXE_CQ_CFG_0,
 			1 << NIC_RXE_CQ_CFG_WRITE_PI_EN_S |
 			1 << NIC_RXE_CQ_CFG_ENABLE_S |
 			GAUDI3_EQ_RAW_IDX(port) << NIC_RXE_CQ_CFG_EQ_ID_S);
 
 	/* set MMU bypass for kernel WQ */
 	offset = GAUDI3_RAW_OFFSET + ELEMENT_OFFSET(port, RXE_WQ_NUM);
-	NIC_OFFSET_WREG32(mmD0_NIC0_RXE_WQE_ARUSER_ATTR_0,
+	NIC_OFFSET_WREG32(mmD0_NIC0_RXE_BASE + mmNIC_RXE_WQE_ARUSER_ATTR_0,
 			HL_KERNEL_ASID_ID << NIC_RXE_WQE_ARUSER_ATTR_0_ASID_S |
 			1 << NIC_RXE_WQE_ARUSER_ATTR_MMU_BP_S);
 }
@@ -1209,8 +1227,10 @@ static void gaudi3_nic_config_port_hw_mac_filter(struct gaudi3_nic_port *gaudi3_
 
 	/* TODO: SW-67924 check that we do not use 4x100G mode */
 	/* RAW packet MAC filter */
-	NIC_OFFSET_WREG32(mmD0_NIC0_RXB_CORE_PRT_TS_RAW0_MAC_31_0_MASK_0, 0xFFFFFFFF);
-	NIC_OFFSET_WREG32(mmD0_NIC0_RXB_CORE_PRT_TS_RAW0_MAC_47_32_MASK_0, 0xFFFF);
+	NIC_OFFSET_WREG32(mmD0_NIC0_RXB_CORE_PRT_BASE + mmNIC_RXB_CORE_PRT_TS_RAW0_MAC_31_0_MASK_0,
+						0xFFFFFFFF);
+	NIC_OFFSET_WREG32(mmD0_NIC0_RXB_CORE_PRT_BASE + mmNIC_RXB_CORE_PRT_TS_RAW0_MAC_47_32_MASK_0,
+						0xFFFF);
 
 	/*
 	 * HW MAC filtering PASS logic:
@@ -1218,23 +1238,29 @@ static void gaudi3_nic_config_port_hw_mac_filter(struct gaudi3_nic_port *gaudi3_
 	 */
 	if (nic_port->eth_enable) {
 		/* RoCE packet MAC filter. */
-		NIC_OFFSET_WREG32(mmD0_NIC0_RXB_CORE_PRT_TS_RC_MAC_31_0_0,
+		NIC_OFFSET_WREG32(mmD0_NIC0_RXB_CORE_PRT_BASE + mmNIC_RXB_CORE_PRT_TS_RC_MAC_31_0_0,
 					mac_addr & 0xFFFFFFFF);
-		NIC_OFFSET_WREG32(mmD0_NIC0_RXB_CORE_PRT_TS_RC_MAC_47_32_0,
-					(mac_addr >> 32) & 0xFFFF);
-		NIC_OFFSET_WREG32(mmD0_NIC0_RXB_CORE_PRT_TS_RC_MAC_31_0_MASK_0, 0);
-		NIC_OFFSET_WREG32(mmD0_NIC0_RXB_CORE_PRT_TS_RC_MAC_47_32_MASK_0, 0);
+		NIC_OFFSET_WREG32(mmD0_NIC0_RXB_CORE_PRT_BASE +
+				mmNIC_RXB_CORE_PRT_TS_RC_MAC_47_32_0, (mac_addr >> 32) & 0xFFFF);
+		NIC_OFFSET_WREG32(
+			mmD0_NIC0_RXB_CORE_PRT_BASE + mmNIC_RXB_CORE_PRT_TS_RC_MAC_31_0_MASK_0, 0);
+		NIC_OFFSET_WREG32(
+			mmD0_NIC0_RXB_CORE_PRT_BASE + mmNIC_RXB_CORE_PRT_TS_RC_MAC_47_32_MASK_0, 0);
 	} else {
 		/* Internal port MAC filter.
 		 * - RAW is not supported. Hence, skip RAW MAC filter config.
 		 * - Accept all RoCE packets since internal ports are connected back-to-back.
 		 */
-		NIC_OFFSET_WREG32(mmD0_NIC0_RXB_CORE_PRT_TS_RC_MAC_31_0_MASK_0, 0xFFFFFFFF);
-		NIC_OFFSET_WREG32(mmD0_NIC0_RXB_CORE_PRT_TS_RC_MAC_47_32_MASK_0, 0xFFFF);
+		NIC_OFFSET_WREG32(mmD0_NIC0_RXB_CORE_PRT_BASE +
+				mmNIC_RXB_CORE_PRT_TS_RC_MAC_31_0_MASK_0, 0xFFFFFFFF);
+		NIC_OFFSET_WREG32(mmD0_NIC0_RXB_CORE_PRT_BASE +
+				mmNIC_RXB_CORE_PRT_TS_RC_MAC_47_32_MASK_0, 0xFFFF);
 	}
 
-	NIC_OFFSET_WREG32(mmD0_NIC0_TXE_PORT_MAC_CFG_31_0_0, mac_addr & 0xFFFFFFFF);
-	NIC_OFFSET_WREG32(mmD0_NIC0_TXE_PORT_MAC_CFG_47_32_0, (mac_addr >> 32) & 0xFFFF);
+	NIC_OFFSET_WREG32(mmD0_NIC0_TXE_BASE + mmNIC_TXE_PORT_MAC_CFG_31_0_0,
+						mac_addr & 0xFFFFFFFF);
+	NIC_OFFSET_WREG32(mmD0_NIC0_TXE_BASE + mmNIC_TXE_PORT_MAC_CFG_47_32_0,
+						(mac_addr >> 32) & 0xFFFF);
 }
 
 static void gaudi3_nic_hw_mac_ch_reset(struct gaudi3_nic_port *gaudi3_nic, int lane)
@@ -1477,15 +1503,15 @@ static int gaudi3_nic_qpc_op(struct hl_nic_port *nic_port, u64 ctrl, bool wait_f
 	u32 status, port = nic_port->port;
 	int rc = 0;
 
-	NIC_WREG32(mmD0_NIC0_QPC_GW_CTRL, ctrl);
+	NIC_WREG32(mmD0_NIC0_QPC_BASE + mmNIC_QPC_GW_CTRL, ctrl);
 
-	NIC_WREG32(mmD0_NIC0_QPC_GW_BUSY, 1);
+	NIC_WREG32(mmD0_NIC0_QPC_BASE + mmNIC_QPC_GW_BUSY, 1);
 
 	/* do not poll on registers when reset was initiated by FW */
 	if (wait_for_completion && !hdev->reset_info.fw_reset)
 		rc = hl_poll_timeout(
 			hdev,
-			mmD0_NIC0_QPC_GW_BUSY + NIC_CFG_BASE(port),
+			mmD0_NIC0_QPC_BASE + mmNIC_QPC_GW_BUSY + NIC_CFG_BASE(port),
 			status,
 			!status,
 			1000,
@@ -1513,7 +1539,7 @@ static int gaudi3_nic_qpc_write_masked(struct hl_nic_port *nic_port, const void 
 	data = qpc_data;
 
 	/* Don't write to the Gw if its busy with prev operation */
-	if (NIC_RREG32(mmD0_NIC0_QPC_GW_BUSY)) {
+	if (NIC_RREG32(mmD0_NIC0_QPC_BASE + mmNIC_QPC_GW_BUSY)) {
 		if (hl_device_operational(hdev, NULL))
 			dev_err(hdev->dev, "Cannot write to port %d QP %d %s QPC, GW is busy\n",
 				port, qpn, is_req ? "requester" : "responder");
@@ -1529,10 +1555,10 @@ static int gaudi3_nic_qpc_write_masked(struct hl_nic_port *nic_port, const void 
 	 * to the HW.
 	 */
 	for (i = 0 ; i < (sizeof(struct qpc_mask) / sizeof(u32)) ; i++)
-		NIC_WREG32(mmD0_NIC0_QPC_GW_MASK_0 + i * sizeof(u32), mask[i]);
+		NIC_WREG32(mmD0_NIC0_QPC_BASE + mmNIC_QPC_GW_MASK_0 + i * sizeof(u32), mask[i]);
 
 	for (i = 0 ; i < (data_size / sizeof(u32)) ; i++)
-		NIC_WREG32(mmD0_NIC0_QPC_GW_DATA_0 + i * sizeof(u32), data[i]);
+		NIC_WREG32(mmD0_NIC0_QPC_BASE + mmNIC_QPC_GW_DATA_0 + i * sizeof(u32), data[i]);
 
 	ctrl = (is_req << NIC_QPC_GW_CTRL_REQUESTER_S) | qpn |
 			(!!force_doorbell << NIC_QPC_GW_CTRL_DOORBELL_FORCE_S);
@@ -1593,11 +1619,13 @@ static int gaudi3_nic_qpc_invalidate(struct hl_nic_port *nic_port, struct hl_qp 
 
 	if (is_req) {
 		/* Invalidate RXE WQE cache */
-		NIC_RMWREG32(mmD0_NIC0_RXE_CACHE_CFG, 1, NIC_RXE_CACHE_CFG_INVALIDATION_M);
-		NIC_RREG32(mmD0_NIC0_RXE_CACHE_CFG);
+		NIC_RMWREG32(mmD0_NIC0_RXE_BASE + mmNIC_RXE_CACHE_CFG, 1,
+						NIC_RXE_CACHE_CFG_INVALIDATION_M);
+		NIC_RREG32(mmD0_NIC0_RXE_BASE + mmNIC_RXE_CACHE_CFG);
 
-		NIC_RMWREG32(mmD0_NIC0_RXE_CACHE_CFG, 0, NIC_RXE_CACHE_CFG_INVALIDATION_M);
-		NIC_RREG32(mmD0_NIC0_RXE_CACHE_CFG);
+		NIC_RMWREG32(mmD0_NIC0_RXE_BASE + mmNIC_RXE_CACHE_CFG, 0,
+							NIC_RXE_CACHE_CFG_INVALIDATION_M);
+		NIC_RREG32(mmD0_NIC0_RXE_BASE + mmNIC_RXE_CACHE_CFG);
 	}
 
 	if (!nic_port->pcs_link) {
@@ -1605,14 +1633,14 @@ static int gaudi3_nic_qpc_invalidate(struct hl_nic_port *nic_port, struct hl_qp 
 		u32 lane = get_lane_offset(gaudi3_nic);
 
 		/* flush TXE slices */
-		NIC_WREG32(mmD0_NIC0_TXE_WQE_BUFF_FLUSH_SLICE_REG0, 0xFFFFFFFF);
-		NIC_WREG32(mmD0_NIC0_TXE_WQE_BUFF_FLUSH_SLICE_REG1, 0xFFFF);
+		NIC_WREG32(mmD0_NIC0_TXE_BASE + mmNIC_TXE_WQE_BUFF_FLUSH_SLICE_REG0, 0xFFFFFFFF);
+		NIC_WREG32(mmD0_NIC0_TXE_BASE + mmNIC_TXE_WQE_BUFF_FLUSH_SLICE_REG1, 0xFFFF);
 
 		NIC_RMWREG32(mmD0_NIC0_MAC_CORE_BASE + mmPRT_MAC_CORE_TX_DRAIN, 1, BIT(lane));
 
 		rc = hl_poll_timeout(
 				hdev,
-				NIC_REG(mmD0_NIC0_TXE_OCCUP_SLICE_CNTR),
+				NIC_REG(mmD0_NIC0_TXE_BASE + mmNIC_TXE_OCCUP_SLICE_CNTR),
 				val,
 				!(val & NIC_TXE_OCCUP_SLICE_CNTR_DBG_OCCUP_SLICE_CNTR_M),
 				1000,
@@ -1621,8 +1649,8 @@ static int gaudi3_nic_qpc_invalidate(struct hl_nic_port *nic_port, struct hl_qp 
 		if (rc)
 			dev_err(hdev->dev, "Failed to flush TXE slices, port %d\n", port);
 
-		NIC_WREG32(mmD0_NIC0_TXE_WQE_BUFF_FLUSH_SLICE_REG0, 0);
-		NIC_WREG32(mmD0_NIC0_TXE_WQE_BUFF_FLUSH_SLICE_REG1, 0);
+		NIC_WREG32(mmD0_NIC0_TXE_BASE + mmNIC_TXE_WQE_BUFF_FLUSH_SLICE_REG0, 0);
+		NIC_WREG32(mmD0_NIC0_TXE_BASE + mmNIC_TXE_WQE_BUFF_FLUSH_SLICE_REG1, 0);
 		NIC_RMWREG32(mmD0_NIC0_MAC_CORE_BASE + mmPRT_MAC_CORE_TX_DRAIN, 0, BIT(lane));
 	}
 
@@ -1654,7 +1682,7 @@ int gaudi3_nic_qpc_read(struct hl_nic_port *nic_port, void *qpc, u32 qpn, bool i
 				sizeof(struct gaudi3_qpc_responder);
 
 	/* Don't write to the Gw if its busy with prev operation */
-	if (NIC_RREG32(mmD0_NIC0_QPC_GW_BUSY)) {
+	if (NIC_RREG32(mmD0_NIC0_QPC_BASE + mmNIC_QPC_GW_BUSY)) {
 		if (hl_device_operational(hdev, NULL))
 			dev_err(hdev->dev, "Cannot read from port %d QP %d %s QPC, GW is busy\n",
 				port, qpn, is_req ? "requester" : "responder");
@@ -1667,7 +1695,7 @@ int gaudi3_nic_qpc_read(struct hl_nic_port *nic_port, void *qpc, u32 qpn, bool i
 
 	/* Clear the mask gateway regs which will cause the operation to be a read */
 	for (i = 0 ; i < QPC_GW_MASK_REG_NUM ; i++)
-		NIC_WREG32(mmD0_NIC0_QPC_GW_MASK_0 + i * sizeof(u32), 0);
+		NIC_WREG32(mmD0_NIC0_QPC_BASE + mmNIC_QPC_GW_MASK_0 + i * sizeof(u32), 0);
 
 	ctrl = (is_req << NIC_QPC_GW_CTRL_REQUESTER_S) | qpn |
 			(!!force_doorbell << NIC_QPC_GW_CTRL_DOORBELL_FORCE_S);
@@ -1676,7 +1704,7 @@ int gaudi3_nic_qpc_read(struct hl_nic_port *nic_port, void *qpc, u32 qpn, bool i
 		return rc;
 
 	for (i = 0 ; i < data_size / sizeof(u32) ; i++)
-		data[i] = NIC_RREG32(mmD0_NIC0_QPC_GW_DATA_0 + i * sizeof(u32));
+		data[i] = NIC_RREG32(mmD0_NIC0_QPC_BASE + mmNIC_QPC_GW_DATA_0 + i * sizeof(u32));
 
 	return 0;
 }
@@ -1874,41 +1902,42 @@ static void gaudi3_nic_stop_traffic_macro(struct hl_nic_macro *nic_macro)
 		return;
 
 	/* 1. Set RXB stop bit but allow interrupts to be generated. */
-	NIC_WREG32(mmD0_NIC0_RXB_CORE_NIC_STOP_BIT,
+	NIC_WREG32(mmD0_NIC0_RXB_CORE_BASE + mmNIC_RXB_CORE_NIC_STOP_BIT,
 			NIC_RXB_CORE_NIC_STOP_BIT_STOP_BIT_MESH_ONLY_M);
 
 	/* Flush RX config and wait. */
-	NIC_RREG32(mmD0_NIC0_RXB_CORE_NIC_STOP_BIT);
+	NIC_RREG32(mmD0_NIC0_RXB_CORE_BASE + mmNIC_RXB_CORE_NIC_STOP_BIT);
 	usleep_range(1000, 2000);
 
 	/* 2. Stop Timer HW block. */
-	NIC_RMWREG32(mmD0_NIC0_TMR_TMR_CACHES_CFG, 1,
+	NIC_RMWREG32(mmD0_NIC0_TMR_BASE + mmNIC_TMR_TMR_CACHES_CFG, 1,
 			NIC_TMR_TMR_CACHES_CFG_LIST_CACHE_STOP_M);
-	NIC_RMWREG32(mmD0_NIC0_TMR_TMR_CACHES_CFG, 1,
+	NIC_RMWREG32(mmD0_NIC0_TMR_BASE + mmNIC_TMR_TMR_CACHES_CFG, 1,
 			NIC_TMR_TMR_CACHES_CFG_FREE_LIST_CACHE_STOP_M);
-	NIC_RMWREG32(mmD0_NIC0_TMR_TMR_CACHES_CFG, 1,
+	NIC_RMWREG32(mmD0_NIC0_TMR_BASE + mmNIC_TMR_TMR_CACHES_CFG, 1,
 			NIC_TMR_TMR_CACHES_CFG_STATE_CACHE_STOP_M);
 
 	/* Flush and wait for timers to drain. */
-	NIC_RREG32(mmD0_NIC0_TMR_TMR_CACHES_CFG);
+	NIC_RREG32(mmD0_NIC0_TMR_BASE + mmNIC_TMR_TMR_CACHES_CFG);
 	usleep_range(1000, 2000);
 
 	/* 3. Set RXB general stop bit. */
-	NIC_WREG32(mmD0_NIC0_RXB_CORE_NIC_STOP_BIT, NIC_RXB_CORE_NIC_STOP_BIT_STOP_BIT_M);
+	NIC_WREG32(mmD0_NIC0_RXB_CORE_BASE + mmNIC_RXB_CORE_NIC_STOP_BIT,
+					NIC_RXB_CORE_NIC_STOP_BIT_STOP_BIT_M);
 
 	/* 4. Stop QPC HW block. */
-	NIC_RMWREG32(mmD0_NIC0_QPC_REQ_STATIC_CONFIG, 1,
+	NIC_RMWREG32(mmD0_NIC0_QPC_BASE + mmNIC_QPC_REQ_STATIC_CONFIG, 1,
 			NIC_QPC_REQ_STATIC_CONFIG_CACHE_STOP_M);
-	NIC_RMWREG32(mmD0_NIC0_QPC_RES_STATIC_CONFIG, 1,
+	NIC_RMWREG32(mmD0_NIC0_QPC_BASE + mmNIC_QPC_RES_STATIC_CONFIG, 1,
 			NIC_QPC_RES_STATIC_CONFIG_CACHE_STOP_M);
-	NIC_RREG32(mmD0_NIC0_QPC_REQ_STATIC_CONFIG); /* flush */
+	NIC_RREG32(mmD0_NIC0_QPC_BASE + mmNIC_QPC_REQ_STATIC_CONFIG); /* flush */
 
 	/* 5. Stop TX scheduler HW block. */
-	NIC_RMWREG32(mmD0_NIC0_TXS_CACHE_CFG, 1,
+	NIC_RMWREG32(mmD0_NIC0_TXS_BASE + mmNIC_TXS_CACHE_CFG, 1,
 			NIC_TXS_CACHE_CFG_LIST_CACHE_STOP_M);
-	NIC_RMWREG32(mmD0_NIC0_TXS_CACHE_CFG, 1,
+	NIC_RMWREG32(mmD0_NIC0_TXS_BASE + mmNIC_TXS_CACHE_CFG, 1,
 			NIC_TXS_CACHE_CFG_FREE_LIST_CACHE_STOP_M);
-	NIC_RREG32(mmD0_NIC0_TXS_CACHE_CFG); /* flush */
+	NIC_RREG32(mmD0_NIC0_TXS_BASE + mmNIC_TXS_CACHE_CFG); /* flush */
 }
 
 /* FW must be aligned with any changes done to this function */
@@ -1976,59 +2005,65 @@ static void gaudi3_nic_config_hw_rxb(struct hl_nic_macro *nic_macro)
 		xon = dyn_cred - 2 * RXB_MTU_NUM_CREDS;
 
 	/* Set iCRC calculation & verification with reversed bytes */
-	NIC_WREG32(mmD0_NIC0_RXB_CORE_PRT_ICRC_CFG, 0x2);
-	NIC_WREG32(mmD0_NIC0_RXB_CORE_PRT_BTH_TVER, 1);
+	NIC_WREG32(mmD0_NIC0_RXB_CORE_PRT_BASE + mmNIC_RXB_CORE_PRT_ICRC_CFG, 0x2);
+	NIC_WREG32(mmD0_NIC0_RXB_CORE_PRT_BASE + mmNIC_RXB_CORE_PRT_BTH_TVER, 1);
 
 	/* Support for QP-LB.
 	 * These following lines disable the MAC filter of lane 3 which is the QP-LB lane.
 	 * This cfg can't be used in 100Gbps mode.
 	 */
-	NIC_WREG32(mmD0_NIC0_RXB_CORE_PRT_TS_RC_MAC_31_0_MASK_3, 0xFFFFFFFF);
-	NIC_WREG32(mmD0_NIC0_RXB_CORE_PRT_TS_RC_MAC_47_32_MASK_3, 0xFFFF);
+	NIC_WREG32(mmD0_NIC0_RXB_CORE_PRT_BASE + mmNIC_RXB_CORE_PRT_TS_RC_MAC_31_0_MASK_3,
+									0xFFFFFFFF);
+	NIC_WREG32(mmD0_NIC0_RXB_CORE_PRT_BASE + mmNIC_RXB_CORE_PRT_TS_RC_MAC_47_32_MASK_3, 0xFFFF);
 
-	NIC_WREG32(mmD0_NIC0_RXB_CORE_AXI_AWPROT_HBW_PRIV, 0);
-	NIC_WREG32(mmD0_NIC0_RXB_CORE_AXI_AWPROT_HBW_SEC, 0);
-	NIC_WREG32(mmD0_NIC0_RXB_CORE_AXI_AWPROT_HBW_UNSEC, 2);
-	NIC_WREG32(mmD0_NIC0_RXB_CORE_AXI_AWPROT_HBW_LPBK_PRIV, 0);
-	NIC_WREG32(mmD0_NIC0_RXB_CORE_AXI_AWPROT_HBW_LPBK_SEC, 0);
-	NIC_WREG32(mmD0_NIC0_RXB_CORE_AXI_AWPROT_HBW_LPBK_UNSEC, 2);
+	NIC_WREG32(mmD0_NIC0_RXB_CORE_BASE + mmNIC_RXB_CORE_AXI_AWPROT_HBW_PRIV, 0);
+	NIC_WREG32(mmD0_NIC0_RXB_CORE_BASE + mmNIC_RXB_CORE_AXI_AWPROT_HBW_SEC, 0);
+	NIC_WREG32(mmD0_NIC0_RXB_CORE_BASE + mmNIC_RXB_CORE_AXI_AWPROT_HBW_UNSEC, 2);
+	NIC_WREG32(mmD0_NIC0_RXB_CORE_BASE + mmNIC_RXB_CORE_AXI_AWPROT_HBW_LPBK_PRIV, 0);
+	NIC_WREG32(mmD0_NIC0_RXB_CORE_BASE + mmNIC_RXB_CORE_AXI_AWPROT_HBW_LPBK_SEC, 0);
+	NIC_WREG32(mmD0_NIC0_RXB_CORE_BASE + mmNIC_RXB_CORE_AXI_AWPROT_HBW_LPBK_UNSEC, 2);
 
-	NIC_WREG32(mmD0_NIC0_RXB_CORE_MAX_DYNAMIC, dyn_cred);
+	NIC_WREG32(mmD0_NIC0_RXB_CORE_BASE + mmNIC_RXB_CORE_MAX_DYNAMIC, dyn_cred);
 
 	/* static credits are only allocated to priority 0 of each port, so:
 	 * first clear all the preallocated static credits and then
 	 * assign static credits to priority 0 of the existing NIC ports
 	 */
 	for (i = 0 ; i < RXB_NUM_PORT_PRIO_REGS ; i++)
-		NIC_WREG32(mmD0_NIC0_RXB_CORE_MAX_STATIC_CREDITS_0 + i * sizeof(u32), 0);
+		NIC_WREG32(mmD0_NIC0_RXB_CORE_BASE + mmNIC_RXB_CORE_MAX_STATIC_CREDITS_0 +
+						i * sizeof(u32), 0);
 
 	for (i = 0 ; i < RXB_MAX_NUM_PORTS ; i++) {
 		ofst = get_resource_offset(hdev, i, RXB_NUM_PORT_PRIO_REGS);
-		NIC_WREG32(mmD0_NIC0_RXB_CORE_MAX_STATIC_CREDITS_0 + ofst * sizeof(u32), stat_cred);
+		NIC_WREG32(mmD0_NIC0_RXB_CORE_BASE + mmNIC_RXB_CORE_MAX_STATIC_CREDITS_0 +
+						ofst * sizeof(u32), stat_cred);
 	}
 
 	/* Drop threshold (per port/prio) */
 	val = drop | (drop << NIC_RXB_CORE_DROP_THRESHOLD_DROP_THRESHOLD_FLOW1_S);
 	for (i = 0; i < RXB_NUM_PORT_PRIO_REGS; i++)
-		NIC_WREG32(mmD0_NIC0_RXB_CORE_DROP_THRESHOLD_0 + i * sizeof(u32), val);
+		NIC_WREG32(mmD0_NIC0_RXB_CORE_BASE + mmNIC_RXB_CORE_DROP_THRESHOLD_0 +
+						i * sizeof(u32), val);
 
 	/* XONN threshold (per port/prio) */
 	val = xon | (xon << NIC_RXB_CORE_XON_THRESHOLD_XON_THRESHOLD_FLOW1_S);
 	for (i = 0; i < RXB_NUM_PORT_PRIO_REGS; i++)
-		NIC_WREG32(mmD0_NIC0_RXB_CORE_XON_THRESHOLD_0 + i * sizeof(u32), val);
+		NIC_WREG32(mmD0_NIC0_RXB_CORE_BASE + mmNIC_RXB_CORE_XON_THRESHOLD_0 +
+						i * sizeof(u32), val);
 
 	/* XOFF threshold (per port/prio) */
 	val = xoff | (xoff << NIC_RXB_CORE_XOFF_THRESHOLD_XOFF_THRESHOLD_FLOW1_S);
 	for (i = 0; i < RXB_NUM_PORT_PRIO_REGS; i++)
-		NIC_WREG32(mmD0_NIC0_RXB_CORE_XOFF_THRESHOLD_0 + i * sizeof(u32), val);
+		NIC_WREG32(mmD0_NIC0_RXB_CORE_BASE + mmNIC_RXB_CORE_XOFF_THRESHOLD_0 +
+						i * sizeof(u32), val);
 
 	/* RXB CORE cache not skipping cache with writeback, allocate controlled by user bit */
-	NIC_WREG32(mmD0_NIC0_RXB_CORE_AXI_AWCACHE,
+	NIC_WREG32(mmD0_NIC0_RXB_CORE_BASE + mmNIC_RXB_CORE_AXI_AWCACHE,
 						(0x1 << NIC_RXB_CORE_AXI_AWCACHE_BIT0_S) |
 						(0x1 << NIC_RXB_CORE_AXI_AWCACHE_BIT1_S));
 
 	/* RXB CORE cache lpbk not skipping cache with writeback, allocate controlled by user bit */
-	NIC_WREG32(mmD0_NIC0_RXB_CORE_AXI_AWCACHE_LPBK,
+	NIC_WREG32(mmD0_NIC0_RXB_CORE_BASE + mmNIC_RXB_CORE_AXI_AWCACHE_LPBK,
 						(0x1 << NIC_RXB_CORE_AXI_AWCACHE_LPBK_BIT0_S) |
 						(0x1 << NIC_RXB_CORE_AXI_AWCACHE_LPBK_BIT1_S));
 }
@@ -2100,73 +2135,77 @@ static void gaudi3_nic_config_hw_tmr(struct hl_nic_macro *nic_macro)
 				(void __iomem *)cpu_addr + TMR_FREE_OFFS + i * 4);
 	}
 
-	NIC_WREG32(mmD0_NIC0_TMR_TMR_BASE_ADDRESS_63_32,
+	NIC_WREG32(mmD0_NIC0_TMR_BASE + mmNIC_TMR_TMR_BASE_ADDRESS_63_32,
 			 upper_32_bits(tmr_addr + TMR_FIFO_OFFS));
-	NIC_WREG32(mmD0_NIC0_TMR_TMR_BASE_ADDRESS_31_7,
+	NIC_WREG32(mmD0_NIC0_TMR_BASE + mmNIC_TMR_TMR_BASE_ADDRESS_31_7,
 			 lower_32_bits(tmr_addr + TMR_FIFO_OFFS) >> 7);
 
-	NIC_WREG32(mmD0_NIC0_TMR_TMR_BASE_ADDRESS_FREE_LIST_63_32,
+	NIC_WREG32(mmD0_NIC0_TMR_BASE + mmNIC_TMR_TMR_BASE_ADDRESS_FREE_LIST_63_32,
 			 upper_32_bits(tmr_addr + TMR_FREE_OFFS));
-	NIC_WREG32(mmD0_NIC0_TMR_TMR_BASE_ADDRESS_FREE_LIST_31_0,
+	NIC_WREG32(mmD0_NIC0_TMR_BASE + mmNIC_TMR_TMR_BASE_ADDRESS_FREE_LIST_31_0,
 			 lower_32_bits(tmr_addr + TMR_FREE_OFFS));
 
-	NIC_WREG32(mmD0_NIC0_TMR_TMR_CACHE_BASE_ADDR_63_32,
+	NIC_WREG32(mmD0_NIC0_TMR_BASE + mmNIC_TMR_TMR_CACHE_BASE_ADDR_63_32,
 			 upper_32_bits(tmr_addr + TMR_FSM0_OFFS));
-	NIC_WREG32(mmD0_NIC0_TMR_TMR_CACHE_BASE_ADDR_31_7,
+	NIC_WREG32(mmD0_NIC0_TMR_BASE + mmNIC_TMR_TMR_CACHE_BASE_ADDR_31_7,
 			 lower_32_bits(tmr_addr + TMR_FSM0_OFFS) >> 7);
 
 	/* configure MMU-BP for TIMERS */
 	gaudi3_axuser_hbw_mmu_bp_set(hdev, NIC_REG(mmD0_NIC0_TMR_AXUSER_AXUSER_BASE), true);
 
 	/* Perform read to flush the writes */
-	NIC_RREG32(mmD0_NIC0_TMR_AXUSER_AXUSER_HB_MMU_BYPASS);
+	NIC_RREG32(mmD0_NIC0_TMR_AXUSER_AXUSER_BASE + mmNIC_TMR_AXUSER_AXUSER_HB_MMU_BYPASS);
 
-	NIC_WREG32(mmD0_NIC0_TMR_TMR_SCHEDQ_UPDATE_DESC_0, 0);
-	NIC_WREG32(mmD0_NIC0_TMR_TMR_SCHEDQ_UPDATE_DESC_1, 0);
-	NIC_WREG32(mmD0_NIC0_TMR_TMR_SCHEDQ_UPDATE_DESC_2, 0);
+	NIC_WREG32(mmD0_NIC0_TMR_BASE + mmNIC_TMR_TMR_SCHEDQ_UPDATE_DESC_0, 0);
+	NIC_WREG32(mmD0_NIC0_TMR_BASE + mmNIC_TMR_TMR_SCHEDQ_UPDATE_DESC_1, 0);
+	NIC_WREG32(mmD0_NIC0_TMR_BASE + mmNIC_TMR_TMR_SCHEDQ_UPDATE_DESC_2, 0);
 
 	/* Set the amount of ticks for timeout. */
 	/* SW-108577: TODO revisit timeout value for external ports.*/
-	NIC_WREG32(mmD0_NIC0_TMR_TMR_SCHEDQ_UPDATE_DESC_5, NIC_TMR_TIMEOUT_US);
-	NIC_WREG32(mmD0_NIC0_TMR_TMR_SCHEDQ_UPDATE_DESC_6, 0);
+	NIC_WREG32(mmD0_NIC0_TMR_BASE + mmNIC_TMR_TMR_SCHEDQ_UPDATE_DESC_5, NIC_TMR_TIMEOUT_US);
+	NIC_WREG32(mmD0_NIC0_TMR_BASE + mmNIC_TMR_TMR_SCHEDQ_UPDATE_DESC_6, 0);
 
 	for (i = 0 ; i < TMR_GRANULARITY ; i++) {
-		NIC_WREG32(mmD0_NIC0_TMR_TMR_SCHEDQ_UPDATE_DESC_3, i);
-		NIC_WREG32(mmD0_NIC0_TMR_TMR_SCHEDQ_UPDATE_DESC_4, i);
-		NIC_WREG32(mmD0_NIC0_TMR_TMR_SCHEDQ_UPDATE_FIFO, i);
-		NIC_WREG32(mmD0_NIC0_TMR_TMR_SCHEDQ_UPDATE_EN, 1);
+		NIC_WREG32(mmD0_NIC0_TMR_BASE + mmNIC_TMR_TMR_SCHEDQ_UPDATE_DESC_3, i);
+		NIC_WREG32(mmD0_NIC0_TMR_BASE + mmNIC_TMR_TMR_SCHEDQ_UPDATE_DESC_4, i);
+		NIC_WREG32(mmD0_NIC0_TMR_BASE + mmNIC_TMR_TMR_SCHEDQ_UPDATE_FIFO, i);
+		NIC_WREG32(mmD0_NIC0_TMR_BASE + mmNIC_TMR_TMR_SCHEDQ_UPDATE_EN, 1);
 	}
 
-	NIC_WREG32(mmD0_NIC0_TMR_TMR_SCAN_TIMER_COMP_31_0, 10);
+	NIC_WREG32(mmD0_NIC0_TMR_BASE + mmNIC_TMR_TMR_SCAN_TIMER_COMP_31_0, 10);
 
 	/* Set the number of clock's cycles for a single tick in order to have 1 usec per tick.
 	 * i.e.: 1/frequency_in_MHz * num_of_clk_cycles = 1 usec
 	 */
-	NIC_WREG32(mmD0_NIC0_TMR_TMR_TICK_WRAP, nic_prop->clk);
+	NIC_WREG32(mmD0_NIC0_TMR_BASE + mmNIC_TMR_TMR_TICK_WRAP, nic_prop->clk);
 	/* mask should never be zero */
-	NIC_WREG32(mmD0_NIC0_TMR_TMR_LIST_MASK,
+	NIC_WREG32(mmD0_NIC0_TMR_BASE + mmNIC_TMR_TMR_LIST_MASK,
 			max(~(0xFFFFFFFF << (ilog2(TMR_FREE_NUM_ENTRIES) - 5)), (u32)1));
 
-	NIC_WREG32(mmD0_NIC0_TMR_TMR_PRODUCER_UPDATE, TMR_FREE_NUM_ENTRIES);
+	NIC_WREG32(mmD0_NIC0_TMR_BASE + mmNIC_TMR_TMR_PRODUCER_UPDATE, TMR_FREE_NUM_ENTRIES);
 	/* Latch the TMR value */
-	NIC_WREG32(mmD0_NIC0_TMR_TMR_PRODUCER_UPDATE_EN, 1);
-	NIC_WREG32(mmD0_NIC0_TMR_TMR_PRODUCER_UPDATE_EN, 0);
+	NIC_WREG32(mmD0_NIC0_TMR_BASE + mmNIC_TMR_TMR_PRODUCER_UPDATE_EN, 1);
+	NIC_WREG32(mmD0_NIC0_TMR_BASE + mmNIC_TMR_TMR_PRODUCER_UPDATE_EN, 0);
 
-	NIC_WREG32(mmD0_NIC0_TMR_TMR_LIST_MEM_READ_MASK, 0);
-	NIC_WREG32(mmD0_NIC0_TMR_TMR_PUSH_LOCK_EN, 1);
-	NIC_WREG32(mmD0_NIC0_TMR_TMR_TIMER_EN, 1);
-	NIC_WREG32(mmD0_NIC0_TMR_FREE_LIST_PUSH_MASK_EN, 0);
+	NIC_WREG32(mmD0_NIC0_TMR_BASE + mmNIC_TMR_TMR_LIST_MEM_READ_MASK, 0);
+	NIC_WREG32(mmD0_NIC0_TMR_BASE + mmNIC_TMR_TMR_PUSH_LOCK_EN, 1);
+	NIC_WREG32(mmD0_NIC0_TMR_BASE + mmNIC_TMR_TMR_TIMER_EN, 1);
+	NIC_WREG32(mmD0_NIC0_TMR_BASE + mmNIC_TMR_FREE_LIST_PUSH_MASK_EN, 0);
 
-	NIC_WREG32(mmD0_NIC0_TMR_TMR_FORCE_HIT_EN, 0);
+	NIC_WREG32(mmD0_NIC0_TMR_BASE + mmNIC_TMR_TMR_FORCE_HIT_EN, 0);
 
 	/* TMR cache should be set to read mode but not alloc = 0x3 */
-	NIC_WREG32(mmD0_NIC0_TMR_TMR_AXI_CACHE, (0x3 << NIC_TMR_TMR_AXI_CACHE_AR_S));
-	NIC_WREG32(mmD0_NIC0_TMR_TMR_AXI_CACHE, (0x3 << NIC_TMR_TMR_AXI_CACHE_AW_S));
-	NIC_WREG32(mmD0_NIC0_TMR_TMR_AXI_CACHE, (0x3 << NIC_TMR_TMR_AXI_CACHE_CACHE_AR_S));
-	NIC_WREG32(mmD0_NIC0_TMR_TMR_AXI_CACHE, (0x3 << NIC_TMR_TMR_AXI_CACHE_CACHE_AW_S));
+	NIC_WREG32(mmD0_NIC0_TMR_BASE + mmNIC_TMR_TMR_AXI_CACHE,
+						(0x3 << NIC_TMR_TMR_AXI_CACHE_AR_S));
+	NIC_WREG32(mmD0_NIC0_TMR_BASE + mmNIC_TMR_TMR_AXI_CACHE,
+						(0x3 << NIC_TMR_TMR_AXI_CACHE_AW_S));
+	NIC_WREG32(mmD0_NIC0_TMR_BASE + mmNIC_TMR_TMR_AXI_CACHE,
+						(0x3 << NIC_TMR_TMR_AXI_CACHE_CACHE_AR_S));
+	NIC_WREG32(mmD0_NIC0_TMR_BASE + mmNIC_TMR_TMR_AXI_CACHE,
+						(0x3 << NIC_TMR_TMR_AXI_CACHE_CACHE_AW_S));
 
 	/* Perform read from the device to flush all configurations */
-	NIC_RREG32(mmD0_NIC0_TMR_TMR_TIMER_EN);
+	NIC_RREG32(mmD0_NIC0_TMR_BASE + mmNIC_TMR_TMR_TIMER_EN);
 }
 
 static void gaudi3_nic_hw_macro_config(struct hl_nic_macro *nic_macro)
@@ -2929,58 +2968,61 @@ static int gaudi3_user_wq_arr_set(struct hl_device *hdev,
 	offset = wq_arr_props->idx;
 
 	if (wq_arr_props->is_send) {
-		NIC_OFFSET_WREG32(mmD0_NIC0_TXE_SQ_BASE_ADDRESS_63_32_0,
+		NIC_OFFSET_WREG32(mmD0_NIC0_TXE_BASE + mmNIC_TXE_SQ_BASE_ADDRESS_63_32_0,
 					upper_32_bits(wq_base_addr));
-		NIC_OFFSET_WREG32(mmD0_NIC0_TXE_SQ_BASE_ADDRESS_31_0_0,
+		NIC_OFFSET_WREG32(mmD0_NIC0_TXE_BASE + mmNIC_TXE_SQ_BASE_ADDRESS_31_0_0,
 					lower_32_bits(wq_base_addr));
 
-		NIC_OFFSET_WREG32(mmD0_NIC0_TXE_LOG_MAX_WQ_SIZE_0, wq_size_cline_log);
+		NIC_OFFSET_WREG32(mmD0_NIC0_TXE_BASE + mmNIC_TXE_LOG_MAX_WQ_SIZE_0,
+							wq_size_cline_log);
 
 		/* configure WQ MMU, currently user app has the index of 1 */
-		NIC_OFFSET_WREG32(mmD0_NIC0_TXE_WQE_FETCH_AXI_USER_0,
+		NIC_OFFSET_WREG32(mmD0_NIC0_TXE_BASE + mmNIC_TXE_WQE_FETCH_AXI_USER_0,
 			((is_mmu_bp ? 1 : 0) << NIC_TXE_WQE_FETCH_AXI_USER_MMU_BYPASS_S) |
 			(ctx->asid << NIC_TXE_WQE_FETCH_AXI_USER_0_ASID_S));
 
 		/* configure the QPC with the Tx WQ parameters */
-		NIC_OFFSET_WREG32(mmD0_NIC0_QPC_TX_WQ_BASE_ADDR_63_32_0,
+		NIC_OFFSET_WREG32(mmD0_NIC0_QPC_BASE + mmNIC_QPC_TX_WQ_BASE_ADDR_63_32_0,
 				upper_32_bits(wq_base_addr));
-		NIC_OFFSET_WREG32(mmD0_NIC0_QPC_TX_WQ_BASE_ADDR_31_0_0,
+		NIC_OFFSET_WREG32(mmD0_NIC0_QPC_BASE + mmNIC_QPC_TX_WQ_BASE_ADDR_31_0_0,
 				lower_32_bits(wq_base_addr));
-		NIC_OFFSET_WREG32(mmD0_NIC0_QPC_LOG_MAX_TX_WQ_SIZE_0,
+		NIC_OFFSET_WREG32(mmD0_NIC0_QPC_BASE + mmNIC_QPC_LOG_MAX_TX_WQ_SIZE_0,
 				wq_size_cline_log);
-		NIC_OFFSET_WREG32(mmD0_NIC0_QPC_AWUSER_ATTR_TX_WQE_0,
+		NIC_OFFSET_WREG32(mmD0_NIC0_QPC_BASE + mmNIC_QPC_AWUSER_ATTR_TX_WQE_0,
 				(wqe_asid << NIC_QPC_AWUSER_ATTR_TX_WQE_0_ASID_S) |
 				((is_mmu_bp ? 0x1 : 0)
 				<< NIC_QPC_AWUSER_ATTR_TX_WQE_MMU_BP_S));
 
 		if (gaudi3_nic->advanced) {
 			/* rendezvous configuration for send work queue */
-			NIC_OFFSET_WREG32(mmD0_NIC0_RXE_RDV_TX_WQ_BASE_ADDR_HI_0,
+			NIC_OFFSET_WREG32(mmD0_NIC0_RXE_BASE + mmNIC_RXE_RDV_TX_WQ_BASE_ADDR_HI_0,
 				upper_32_bits(wq_base_addr));
-			NIC_OFFSET_WREG32(mmD0_NIC0_RXE_RDV_TX_WQ_BASE_ADDR_LO_0,
+			NIC_OFFSET_WREG32(mmD0_NIC0_RXE_BASE + mmNIC_RXE_RDV_TX_WQ_BASE_ADDR_LO_0,
 				lower_32_bits(wq_base_addr));
-			NIC_OFFSET_WREG32(mmD0_NIC0_RXE_RDV_TX_WQ_LOG_MAX_SIZE_0,
+			NIC_OFFSET_WREG32(mmD0_NIC0_RXE_BASE + mmNIC_RXE_RDV_TX_WQ_LOG_MAX_SIZE_0,
 					wq_size_cline_log);
 		}
 	} else {
-		NIC_OFFSET_WREG32(mmD0_NIC0_RXE_WIN_WQ_BASE_HI_0, upper_32_bits(wq_base_addr));
-		NIC_OFFSET_WREG32(mmD0_NIC0_RXE_WIN_WQ_BASE_LO_0, lower_32_bits(wq_base_addr));
+		NIC_OFFSET_WREG32(mmD0_NIC0_RXE_BASE + mmNIC_RXE_WIN_WQ_BASE_HI_0,
+							upper_32_bits(wq_base_addr));
+		NIC_OFFSET_WREG32(mmD0_NIC0_RXE_BASE + mmNIC_RXE_WIN_WQ_BASE_LO_0,
+							lower_32_bits(wq_base_addr));
 
-		NIC_OFFSET_WREG32(mmD0_NIC0_RXE_WIN_WQ_MISC_0, wq_size_cline_log);
+		NIC_OFFSET_WREG32(mmD0_NIC0_RXE_BASE + mmNIC_RXE_WIN_WQ_MISC_0, wq_size_cline_log);
 
 		/* configure WQ MMU for RXE */
-		NIC_OFFSET_WREG32(mmD0_NIC0_RXE_WQE_ARUSER_ATTR_0,
+		NIC_OFFSET_WREG32(mmD0_NIC0_RXE_BASE + mmNIC_RXE_WQE_ARUSER_ATTR_0,
 				wqe_asid << NIC_RXE_WQE_ARUSER_ATTR_0_ASID_S |
 				(is_mmu_bp ? 1 : 0) << NIC_RXE_WQE_ARUSER_ATTR_MMU_BP_S);
 
 		/* configure the QPC with the Rx WQ parameters */
-		NIC_OFFSET_WREG32(mmD0_NIC0_QPC_RX_WQ_BASE_ADDR_63_32_0,
+		NIC_OFFSET_WREG32(mmD0_NIC0_QPC_BASE + mmNIC_QPC_RX_WQ_BASE_ADDR_63_32_0,
 				upper_32_bits(wq_base_addr));
-		NIC_OFFSET_WREG32(mmD0_NIC0_QPC_RX_WQ_BASE_ADDR_31_0_0,
+		NIC_OFFSET_WREG32(mmD0_NIC0_QPC_BASE + mmNIC_QPC_RX_WQ_BASE_ADDR_31_0_0,
 				lower_32_bits(wq_base_addr));
-		NIC_OFFSET_WREG32(mmD0_NIC0_QPC_LOG_MAX_RX_WQ_SIZE_0,
+		NIC_OFFSET_WREG32(mmD0_NIC0_QPC_BASE + mmNIC_QPC_LOG_MAX_RX_WQ_SIZE_0,
 				wq_size_cline_log);
-		NIC_OFFSET_WREG32(mmD0_NIC0_QPC_AWUSER_ATTR_RX_WQE_0,
+		NIC_OFFSET_WREG32(mmD0_NIC0_QPC_BASE + mmNIC_QPC_AWUSER_ATTR_RX_WQE_0,
 				wqe_asid << NIC_QPC_AWUSER_ATTR_RX_WQE_0_ASID_S |
 				(is_mmu_bp ? 0x1 : 0)
 				<< NIC_QPC_AWUSER_ATTR_RX_WQE_MMU_BP_S);
@@ -3009,34 +3051,39 @@ static int gaudi3_user_wq_arr_unset(struct hl_nic_port *nic_port, u32 type, stru
 	if (wq_arr_props->is_send) {
 		if (gaudi3_nic->advanced) {
 			/* rendezvous configuration for send work queue */
-			NIC_OFFSET_WREG32(mmD0_NIC0_RXE_RDV_TX_WQ_BASE_ADDR_HI_0, 0);
-			NIC_OFFSET_WREG32(mmD0_NIC0_RXE_RDV_TX_WQ_BASE_ADDR_LO_0, 0);
-			NIC_OFFSET_WREG32(mmD0_NIC0_RXE_RDV_TX_WQ_LOG_MAX_SIZE_0, 0);
+			NIC_OFFSET_WREG32(
+				mmD0_NIC0_RXE_BASE + mmNIC_RXE_RDV_TX_WQ_BASE_ADDR_HI_0, 0);
+			NIC_OFFSET_WREG32(
+				mmD0_NIC0_RXE_BASE + mmNIC_RXE_RDV_TX_WQ_BASE_ADDR_LO_0, 0);
+			NIC_OFFSET_WREG32(
+				mmD0_NIC0_RXE_BASE + mmNIC_RXE_RDV_TX_WQ_LOG_MAX_SIZE_0, 0);
 
-			NIC_OFFSET_WREG32(mmD0_NIC0_QPC_TX_WQ_BASE_ADDR_63_32_0, 0);
-			NIC_OFFSET_WREG32(mmD0_NIC0_QPC_TX_WQ_BASE_ADDR_31_0_0, 0);
-			NIC_OFFSET_WREG32(mmD0_NIC0_QPC_LOG_MAX_TX_WQ_SIZE_0, 0);
-			NIC_OFFSET_WREG32(mmD0_NIC0_QPC_AWUSER_ATTR_TX_WQE_0, 0);
+			NIC_OFFSET_WREG32(
+					mmD0_NIC0_QPC_BASE + mmNIC_QPC_TX_WQ_BASE_ADDR_63_32_0, 0);
+			NIC_OFFSET_WREG32(mmD0_NIC0_QPC_BASE + mmNIC_QPC_TX_WQ_BASE_ADDR_31_0_0, 0);
+			NIC_OFFSET_WREG32(mmD0_NIC0_QPC_BASE + mmNIC_QPC_LOG_MAX_TX_WQ_SIZE_0, 0);
+			NIC_OFFSET_WREG32(mmD0_NIC0_QPC_BASE + mmNIC_QPC_AWUSER_ATTR_TX_WQE_0, 0);
 		}
 
-		// TODO: find replacement NIC_RMWREG32(mmD0_NIC0_TXE_WQE_USER_CFG, 0, BIT(offset));
-		NIC_OFFSET_WREG32(mmD0_NIC0_TXE_WQE_FETCH_AXI_USER_0, 0);
-		NIC_OFFSET_WREG32(mmD0_NIC0_TXE_LOG_MAX_WQ_SIZE_0, 0);
-		NIC_OFFSET_WREG32(mmD0_NIC0_TXE_SQ_BASE_ADDRESS_63_32_0, 0);
-		NIC_OFFSET_WREG32(mmD0_NIC0_TXE_SQ_BASE_ADDRESS_31_0_0, 0);
+		// TODO: find replacement NIC_RMWREG32(mmNIC_TXE_WQE_USER_CFG, 0, BIT(offset));
+		NIC_OFFSET_WREG32(mmD0_NIC0_TXE_BASE + mmNIC_TXE_WQE_FETCH_AXI_USER_0, 0);
+		NIC_OFFSET_WREG32(mmD0_NIC0_TXE_BASE + mmNIC_TXE_LOG_MAX_WQ_SIZE_0, 0);
+		NIC_OFFSET_WREG32(mmD0_NIC0_TXE_BASE + mmNIC_TXE_SQ_BASE_ADDRESS_63_32_0, 0);
+		NIC_OFFSET_WREG32(mmD0_NIC0_TXE_BASE + mmNIC_TXE_SQ_BASE_ADDRESS_31_0_0, 0);
 	} else {
 		if (gaudi3_nic->advanced) {
 			/*  unconfigure rendezvous for the receive work queue */
-			NIC_OFFSET_WREG32(mmD0_NIC0_QPC_RX_WQ_BASE_ADDR_63_32_0, 0);
-			NIC_OFFSET_WREG32(mmD0_NIC0_QPC_RX_WQ_BASE_ADDR_31_0_0, 0);
-			NIC_OFFSET_WREG32(mmD0_NIC0_QPC_LOG_MAX_RX_WQ_SIZE_0, 0);
-			NIC_OFFSET_WREG32(mmD0_NIC0_QPC_AWUSER_ATTR_RX_WQE_0, 0);
+			NIC_OFFSET_WREG32(
+					mmD0_NIC0_QPC_BASE + mmNIC_QPC_RX_WQ_BASE_ADDR_63_32_0, 0);
+			NIC_OFFSET_WREG32(mmD0_NIC0_QPC_BASE + mmNIC_QPC_RX_WQ_BASE_ADDR_31_0_0, 0);
+			NIC_OFFSET_WREG32(mmD0_NIC0_QPC_BASE + mmNIC_QPC_LOG_MAX_RX_WQ_SIZE_0, 0);
+			NIC_OFFSET_WREG32(mmD0_NIC0_QPC_BASE + mmNIC_QPC_AWUSER_ATTR_RX_WQE_0, 0);
 		}
 
-		NIC_OFFSET_WREG32(mmD0_NIC0_RXE_WQE_ARUSER_ATTR_0, 0);
-		NIC_OFFSET_WREG32(mmD0_NIC0_RXE_WIN_WQ_MISC_0, 0);
-		NIC_OFFSET_WREG32(mmD0_NIC0_RXE_WIN_WQ_BASE_HI_0, 0);
-		NIC_OFFSET_WREG32(mmD0_NIC0_RXE_WIN_WQ_BASE_LO_0, 0);
+		NIC_OFFSET_WREG32(mmD0_NIC0_RXE_BASE + mmNIC_RXE_WQE_ARUSER_ATTR_0, 0);
+		NIC_OFFSET_WREG32(mmD0_NIC0_RXE_BASE + mmNIC_RXE_WIN_WQ_MISC_0, 0);
+		NIC_OFFSET_WREG32(mmD0_NIC0_RXE_BASE + mmNIC_RXE_WIN_WQ_BASE_HI_0, 0);
+		NIC_OFFSET_WREG32(mmD0_NIC0_RXE_BASE + mmNIC_RXE_WIN_WQ_BASE_LO_0, 0);
 	}
 
 	if (wq_arr_props->dva_base) {
@@ -3138,19 +3185,23 @@ static int gaudi3_user_cq_set(struct hl_nic_user_cq *user_cq,
 	/* Config HW */
 
 	/* Config user CQ host memory buffer address and size */
-	NIC_OFFSET_WREG32(mmD0_NIC0_RXE_CQ_BASE_ADDR_HI_0, upper_32_bits(mem_device_addr));
-	NIC_OFFSET_WREG32(mmD0_NIC0_RXE_CQ_BASE_ADDR_LO_0, lower_32_bits(mem_device_addr));
-	NIC_OFFSET_WREG32(mmD0_NIC0_RXE_CQ_LOG_SIZE_0, ilog2(in->num_of_cqes));
+	NIC_OFFSET_WREG32(mmD0_NIC0_RXE_BASE + mmNIC_RXE_CQ_BASE_ADDR_HI_0,
+					upper_32_bits(mem_device_addr));
+	NIC_OFFSET_WREG32(mmD0_NIC0_RXE_BASE + mmNIC_RXE_CQ_BASE_ADDR_LO_0,
+					lower_32_bits(mem_device_addr));
+	NIC_OFFSET_WREG32(mmD0_NIC0_RXE_BASE + mmNIC_RXE_CQ_LOG_SIZE_0, ilog2(in->num_of_cqes));
 
 	/* Config user CQ PI host memory address.
 	 * Note: PI memory size is fixed 8 bytes. However, since it's maped
 	 * to userspace we allocate 1 page.
 	 */
-	NIC_OFFSET_WREG32(mmD0_NIC0_RXE_CQ_PI_ADDR_HI_0, upper_32_bits(pi_device_addr));
-	NIC_OFFSET_WREG32(mmD0_NIC0_RXE_CQ_PI_ADDR_LO_0, lower_32_bits(pi_device_addr));
+	NIC_OFFSET_WREG32(mmD0_NIC0_RXE_BASE + mmNIC_RXE_CQ_PI_ADDR_HI_0,
+					upper_32_bits(pi_device_addr));
+	NIC_OFFSET_WREG32(mmD0_NIC0_RXE_BASE + mmNIC_RXE_CQ_PI_ADDR_LO_0,
+					lower_32_bits(pi_device_addr));
 
 	/* Enable user CQ. */
-	NIC_OFFSET_WREG32(mmD0_NIC0_RXE_CQ_CFG_0,
+	NIC_OFFSET_WREG32(mmD0_NIC0_RXE_BASE + mmNIC_RXE_CQ_CFG_0,
 		NIC_RXE_CQ_CFG_WRITE_PI_EN_M | NIC_RXE_CQ_CFG_ENABLE_M |
 		(GAUDI3_EQ_RDMA_IDX(port) << NIC_RXE_CQ_CFG_EQ_ID_S));
 
@@ -3158,9 +3209,9 @@ static int gaudi3_user_cq_set(struct hl_nic_user_cq *user_cq,
 	 * Note: All allocated memory buffers are default zeroed by
 	 * NIC memory APIs via gfp flag __GFP_ZERO.
 	 */
-	NIC_OFFSET_WREG32(mmD0_NIC0_RXE_CQ_PRODUCER_INDEX_0, 0);
-	NIC_OFFSET_WREG32(mmD0_NIC0_RXE_CQ_CONSUMER_INDEX_0, 0);
-	NIC_OFFSET_WREG32(mmD0_NIC0_RXE_CQ_WRITE_INDEX_0, 0);
+	NIC_OFFSET_WREG32(mmD0_NIC0_RXE_BASE + mmNIC_RXE_CQ_PRODUCER_INDEX_0, 0);
+	NIC_OFFSET_WREG32(mmD0_NIC0_RXE_BASE + mmNIC_RXE_CQ_CONSUMER_INDEX_0, 0);
+	NIC_OFFSET_WREG32(mmD0_NIC0_RXE_BASE + mmNIC_RXE_CQ_WRITE_INDEX_0, 0);
 
 	/* Set out params and populate user CQ idr data. */
 	out->mem_handle = mem_handle;
@@ -3199,13 +3250,14 @@ static int gaudi3_user_cq_unset(struct hl_nic_user_cq *user_cq)
 	hl_nic_eq_dispatcher_unregister_cq(nic_port, id);
 
 	/* Invalidate user CQ PI. */
-	NIC_OFFSET_RMWREG32(mmD0_NIC0_RXE_CQ_CFG_0, 0, NIC_RXE_CQ_CFG_WRITE_PI_EN_M);
-	NIC_OFFSET_RREG32(mmD0_NIC0_RXE_CQ_CFG_0); /* flush */
+	NIC_OFFSET_RMWREG32(mmD0_NIC0_RXE_BASE + mmNIC_RXE_CQ_CFG_0, 0,
+						NIC_RXE_CQ_CFG_WRITE_PI_EN_M);
+	NIC_OFFSET_RREG32(mmD0_NIC0_RXE_BASE + mmNIC_RXE_CQ_CFG_0); /* flush */
 
 	hl_nic_mem_destroy(ctx, user_cq->pi_handle);
 
-	NIC_OFFSET_WREG32(mmD0_NIC0_RXE_CQ_PI_ADDR_HI_0, 0);
-	NIC_OFFSET_WREG32(mmD0_NIC0_RXE_CQ_PI_ADDR_LO_0, 0);
+	NIC_OFFSET_WREG32(mmD0_NIC0_RXE_BASE + mmNIC_RXE_CQ_PI_ADDR_HI_0, 0);
+	NIC_OFFSET_WREG32(mmD0_NIC0_RXE_BASE + mmNIC_RXE_CQ_PI_ADDR_LO_0, 0);
 
 	return 0;
 }
@@ -3221,12 +3273,12 @@ static void gaudi3_user_cq_destroy(struct hl_nic_user_cq *user_cq)
 	u32 port = nic_port->port, id = user_cq->id, offset = id;
 
 	/* Disable user CQ HW. */
-	NIC_OFFSET_WREG32(mmD0_NIC0_RXE_CQ_CFG_0, 0);
+	NIC_OFFSET_WREG32(mmD0_NIC0_RXE_BASE + mmNIC_RXE_CQ_CFG_0, 0);
 
 	/* Invalidate user CQ memory buffer address. */
-	NIC_OFFSET_WREG32(mmD0_NIC0_RXE_CQ_BASE_ADDR_HI_0, 0);
-	NIC_OFFSET_WREG32(mmD0_NIC0_RXE_CQ_BASE_ADDR_LO_0, 0);
-	NIC_OFFSET_WREG32(mmD0_NIC0_RXE_CQ_LOG_SIZE_0, 0);
+	NIC_OFFSET_WREG32(mmD0_NIC0_RXE_BASE + mmNIC_RXE_CQ_BASE_ADDR_HI_0, 0);
+	NIC_OFFSET_WREG32(mmD0_NIC0_RXE_BASE + mmNIC_RXE_CQ_BASE_ADDR_LO_0, 0);
+	NIC_OFFSET_WREG32(mmD0_NIC0_RXE_BASE + mmNIC_RXE_CQ_LOG_SIZE_0, 0);
 
 	/* Destroy memory resources. */
 	hl_nic_mem_destroy(ctx, user_cq->mem_handle);
@@ -3291,25 +3343,26 @@ static int gaudi3_user_set_app_params(struct hl_device *hdev,
 	if (in->fna_mask_size) {
 		offset = GAUDI3_AFA_IDX(port);
 		if (in->fna_fifo_offs[0]) {
-			NIC_OFFSET_WREG32(mmD0_NIC0_RXE_AFA_LBW_ADDR_0_0,
+			NIC_OFFSET_WREG32(mmD0_NIC0_RXE_BASE + mmNIC_RXE_AFA_LBW_ADDR_0_0,
 				in->fna_fifo_offs[0] & NIC_RXE_AFA_LBW_ADDR_0_VAL_M);
 		}
 
 		if (in->fna_fifo_offs[1]) {
-			NIC_OFFSET_WREG32(mmD0_NIC0_RXE_AFA_LBW_ADDR_1_0,
+			NIC_OFFSET_WREG32(mmD0_NIC0_RXE_BASE + mmNIC_RXE_AFA_LBW_ADDR_1_0,
 				in->fna_fifo_offs[1] & NIC_RXE_AFA_LBW_ADDR_1_VAL_M);
 		}
 
 		offset = GAUDI3_AFA_MASK_IDX(port);
-		NIC_OFFSET_WREG32(mmD0_NIC0_RXE_AFA_MASK_SIZE_0, in->fna_mask_size);
+		NIC_OFFSET_WREG32(mmD0_NIC0_RXE_BASE + mmNIC_RXE_AFA_MASK_SIZE_0,
+								in->fna_mask_size);
 
 		offset = GAUDI3_AFA_ARUSER_IDX(port);
-		NIC_OFFSET_WREG32(mmD0_NIC0_RXE_AFA_ARUSER_ATTR_0,
+		NIC_OFFSET_WREG32(mmD0_NIC0_RXE_BASE + mmNIC_RXE_AFA_ARUSER_ATTR_0,
 				ctx->asid << NIC_RXE_AFA_ARUSER_ATTR_0_ASID_S);
 	}
 
 	if (*modify_wqe_checkers) {
-		NIC_RMWREG32(mmD0_NIC0_QPC_WTD_CONFIG, 1,
+		NIC_RMWREG32(mmD0_NIC0_QPC_BASE + mmNIC_QPC_WTD_CONFIG, 1,
 				 NIC_QPC_WTD_CONFIG_WQ_BP_DB_ACCOUNTED_M);
 
 		bp_base_index = gaudi3_macro->bp_off_num;
@@ -3328,14 +3381,14 @@ static int gaudi3_user_set_app_params(struct hl_device *hdev,
 				return -EINVAL;
 			}
 
-			NIC_WREG32(mmD0_NIC0_QPC_WQ_BP_ADDR_0 + (i + bp_base_index) * sizeof(u32),
-					in->bp_offs[i]);
+			NIC_WREG32(mmD0_NIC0_QPC_BASE + mmNIC_QPC_WQ_BP_ADDR_0 +
+					(i + bp_base_index) * sizeof(u32), in->bp_offs[i]);
 		}
 
 		gaudi3_macro->bp_off_num += bp_off_num;
 
 		offset = ELEMENT_OFFSET(port, BP_OFFS_MSG_EN_NUM);
-		NIC_OFFSET_WREG32(mmD0_NIC0_QPC_WQ_BP_MSG_EN_0,
+		NIC_OFFSET_WREG32(mmD0_NIC0_QPC_BASE + mmNIC_QPC_WQ_BP_MSG_EN_0,
 					(BIT(bp_off_num) - 1) << bp_base_index);
 	}
 
@@ -3979,13 +4032,13 @@ static void gaudi3_nic_configure_cq(struct hl_aux_dev *aux_dev, u32 port,
 	cqn = GAUDI3_CQ_RAW_IDX(port);
 
 	/* disable the current timer before configuring the new time */
-	NIC_RMWREG32(mmD0_NIC0_RXE_CQ_ARM_TIMEOUT_EN, 0, BIT(cqn));
-	NIC_RREG32(mmD0_NIC0_RXE_CQ_ARM_TIMEOUT_EN);
+	NIC_RMWREG32(mmD0_NIC0_RXE_BASE + mmNIC_RXE_CQ_ARM_TIMEOUT_EN, 0, BIT(cqn));
+	NIC_RREG32(mmD0_NIC0_RXE_BASE + mmNIC_RXE_CQ_ARM_TIMEOUT_EN);
 
 	/* if enable - configure the new timer and enable it */
 	if (enable) {
-		NIC_WREG32(mmD0_NIC0_RXE_CQ_ARM_TIMEOUT, hdev->nic.cq_arm_timeout);
-		NIC_RMWREG32(mmD0_NIC0_RXE_CQ_ARM_TIMEOUT_EN, 1, BIT(cqn));
+		NIC_WREG32(mmD0_NIC0_RXE_BASE + mmNIC_RXE_CQ_ARM_TIMEOUT, hdev->nic.cq_arm_timeout);
+		NIC_RMWREG32(mmD0_NIC0_RXE_BASE + mmNIC_RXE_CQ_ARM_TIMEOUT_EN, 1, BIT(cqn));
 	}
 }
 
@@ -3995,7 +4048,8 @@ static void gaudi3_nic_arm_cq(struct hl_aux_dev *aux_dev, u32 port, u32 index)
 	struct hl_device *hdev = container_of(nic, struct hl_device, nic);
 	u32 offset = GAUDI3_CQ_RAW_IDX(port);
 
-	NIC_OFFSET_WREG32_AUX(mmD0_NIC0_CQ_UMR_0_ARM_INDEX, index, NIC_CQ_UMR_OFFSET);
+	NIC_OFFSET_WREG32_AUX(mmD0_NIC0_CQ_UMR_0_BASE + mmNIC_CQ_UMR_ARM_INDEX, index,
+							NIC_CQ_UMR_OFFSET);
 }
 
 static void gaudi3_nic_write_rx_ci(struct hl_aux_dev *aux_dev, u32 port, u32 ci)
@@ -4005,7 +4059,8 @@ static void gaudi3_nic_write_rx_ci(struct hl_aux_dev *aux_dev, u32 port, u32 ci)
 	u32 offset = GAUDI3_CQ_RAW_IDX(port);
 
 	/* TODO: SW-67924 */
-	NIC_OFFSET_WREG32_AUX(mmD0_NIC0_CQ_UMR_0_CONSUMER_INDEX, ci, NIC_CQ_UMR_OFFSET);
+	NIC_OFFSET_WREG32_AUX(mmD0_NIC0_CQ_UMR_0_BASE + mmNIC_CQ_UMR_CONSUMER_INDEX, ci,
+							NIC_CQ_UMR_OFFSET);
 }
 
 static void gaudi3_nic_get_pfc_cnts(struct hl_aux_dev *aux_dev, u32 port, int pfc_prio,
@@ -4065,8 +4120,9 @@ static int gaudi3_nic_ring_tx_doorbell(struct hl_aux_dev *aux_dev, u32 port, u32
 	}
 
 	/* TODO: SW-67924 */
-	NIC_OFFSET_WREG32_AUX(mmD0_NIC0_UMR_0_REG_DW_0, pi, NIC_UMR_OFFSET);
-	NIC_OFFSET_WREG32_AUX(mmD0_NIC0_UMR_0_REG_DW_1, RAW_QPN(port), NIC_UMR_OFFSET);
+	NIC_OFFSET_WREG32_AUX(mmD0_NIC0_UMR_0_BASE + mmNIC_UMR_REG_DW_0, pi, NIC_UMR_OFFSET);
+	NIC_OFFSET_WREG32_AUX(mmD0_NIC0_UMR_0_BASE + mmNIC_UMR_REG_DW_1, RAW_QPN(port),
+						NIC_UMR_OFFSET);
 
 	/*
 	 * Due to HW change in Gaudi3, in which, the HW works in 4 bytes granularity,
@@ -4103,14 +4159,16 @@ static int db_fifo_reset(struct hl_device *hdev, u32 port, u32 offset)
 	if (hdev->reset_info.hard_reset_pending)
 		return 0;
 
-	cfg2_val = NIC_OFFSET_RREG32(mmD0_NIC0_QPC_DB_FIFO_CFG2_0);
+	cfg2_val = NIC_OFFSET_RREG32(mmD0_NIC0_QPC_BASE + mmNIC_QPC_DB_FIFO_CFG2_0);
 
 	/* Set CI clear/reset bit. */
-	NIC_OFFSET_WREG32(mmD0_NIC0_QPC_DB_FIFO_CFG2_0, cfg2_val | NIC_QPC_DB_FIFO_CFG2_CLR_M);
+	NIC_OFFSET_WREG32(mmD0_NIC0_QPC_BASE + mmNIC_QPC_DB_FIFO_CFG2_0,
+							cfg2_val | NIC_QPC_DB_FIFO_CFG2_CLR_M);
 
 	/* Poll for CI reset to complete. */
-	return hl_poll_timeout(hdev, NIC_REG(mmD0_NIC0_QPC_DB_FIFO_CFG2_0 + db_fifo_offset(offset)),
-				temp, temp == cfg2_val, 1000, HL_DEVICE_TIMEOUT_USEC);
+	return hl_poll_timeout(hdev,
+		NIC_REG(mmD0_NIC0_QPC_BASE + mmNIC_QPC_DB_FIFO_CFG2_0 + db_fifo_offset(offset)),
+		temp, temp == cfg2_val, 1000, HL_DEVICE_TIMEOUT_USEC);
 }
 
 static void gaudi3_nic_en_db_fifo_reset(struct hl_aux_dev *aux_dev, u32 port)
@@ -4604,7 +4662,7 @@ static int gaudi3_db_fifo_set(struct hl_nic_port *nic_port, struct hl_ctx *ctx, 
 	 * interface enablement.
 	 */
 	if (is_coll_op && idr_pdata->num_sobs) {
-		NIC_RMWREG32(mmD0_NIC0_QPC_DB_FIFO_DUP_EN, 1, 1 << id);
+		NIC_RMWREG32(mmD0_NIC0_QPC_BASE + mmNIC_QPC_DB_FIFO_DUP_EN, 1, 1 << id);
 		val |= DB_FIFO_SRC_DUP << NIC_QPC_DB_FIFO_CFG_DB_SOURCE_S;
 	}
 
@@ -4626,14 +4684,16 @@ static int gaudi3_db_fifo_set(struct hl_nic_port *nic_port, struct hl_ctx *ctx, 
 		val |= __val << NIC_QPC_DB_FIFO_CFG_L2_UPDATE_NUM_OF_SOB_S;
 	}
 
-	NIC_OFFSET_WREG32(mmD0_NIC0_QPC_DB_FIFO_CFG_0, val);
+	NIC_OFFSET_WREG32(mmD0_NIC0_QPC_BASE + mmNIC_QPC_DB_FIFO_CFG_0, val);
 
 	/*
 	 * Config CI handle. Note, CI handle might not always be memory buffer.
 	 * e.g. Collective operations track CI via sync objects.
 	 */
-	NIC_OFFSET_WREG32(mmD0_NIC0_QPC_DB_FIFO_UPD_ADDR_LSB_0, lower_32_bits(ci_device_handle));
-	NIC_OFFSET_WREG32(mmD0_NIC0_QPC_DB_FIFO_UPD_ADDR_MSB_0, upper_32_bits(ci_device_handle));
+	NIC_OFFSET_WREG32(mmD0_NIC0_QPC_BASE + mmNIC_QPC_DB_FIFO_UPD_ADDR_LSB_0,
+						lower_32_bits(ci_device_handle));
+	NIC_OFFSET_WREG32(mmD0_NIC0_QPC_BASE + mmNIC_QPC_DB_FIFO_UPD_ADDR_MSB_0,
+						upper_32_bits(ci_device_handle));
 
 	/*
 	 * DB fifo memory is HW internal and is shared across all DB fifos
@@ -4641,14 +4701,14 @@ static int gaudi3_db_fifo_set(struct hl_nic_port *nic_port, struct hl_ctx *ctx, 
 	 * Note: Offset and size is in unit of dword i.e. 4 bytes.
 	 *
 	 */
-	NIC_OFFSET_WREG32(mmD0_NIC0_QPC_DB_FIFO_CFG2_0,
+	NIC_OFFSET_WREG32(mmD0_NIC0_QPC_BASE + mmNIC_QPC_DB_FIFO_CFG2_0,
 			(fifo_offset << NIC_QPC_DB_FIFO_CFG2_FIFO_OFFSET_S) |
 			(size << NIC_QPC_DB_FIFO_CFG2_FIFO_L2_SIZE_S) |
 			(idr_pdata->dir_dup_ports_mask <<
 					 NIC_QPC_DB_FIFO_CFG2_DIRECT_PORT_EN_S));
 
 	/* TODO SW-71143: Set security per DB type. */
-	NIC_OFFSET_WREG32(mmD0_NIC0_QPC_DB_FIFO_SECURITY_0,
+	NIC_OFFSET_WREG32(mmD0_NIC0_QPC_BASE + mmNIC_QPC_DB_FIFO_SECURITY_0,
 			0 << NIC_QPC_DB_FIFO_SECURITY_SECURITY_LEVEL_S);
 
 	return 0;
@@ -4674,18 +4734,18 @@ static void gaudi3_db_fifo_unset(struct hl_nic_port *nic_port, struct hl_ctx *ct
 	}
 
 	/* Zero out HW CI buffer address register for added safety */
-	NIC_OFFSET_WREG32(mmD0_NIC0_QPC_DB_FIFO_UPD_ADDR_LSB_0, 0);
-	NIC_OFFSET_WREG32(mmD0_NIC0_QPC_DB_FIFO_UPD_ADDR_MSB_0, 0);
+	NIC_OFFSET_WREG32(mmD0_NIC0_QPC_BASE + mmNIC_QPC_DB_FIFO_UPD_ADDR_LSB_0, 0);
+	NIC_OFFSET_WREG32(mmD0_NIC0_QPC_BASE + mmNIC_QPC_DB_FIFO_UPD_ADDR_MSB_0, 0);
 
 	/* Clear the Read and write indices status */
-	NIC_OFFSET_RMWREG32(mmD0_NIC0_QPC_DB_FIFO_STATUS_0, 0,
+	NIC_OFFSET_RMWREG32(mmD0_NIC0_QPC_BASE + mmNIC_QPC_DB_FIFO_STATUS_0, 0,
 			NIC_QPC_DB_FIFO_STATUS_READ_INDEX_M);
-	NIC_OFFSET_RMWREG32(mmD0_NIC0_QPC_DB_FIFO_STATUS_0, 0,
+	NIC_OFFSET_RMWREG32(mmD0_NIC0_QPC_BASE + mmNIC_QPC_DB_FIFO_STATUS_0, 0,
 			NIC_QPC_DB_FIFO_STATUS_WRITE_INDEX_M);
 
 	/* Clear configuration registers. */
-	NIC_OFFSET_WREG32(mmD0_NIC0_QPC_DB_FIFO_CFG_0, 0);
-	NIC_OFFSET_WREG32(mmD0_NIC0_QPC_DB_FIFO_CFG2_0, 0);
+	NIC_OFFSET_WREG32(mmD0_NIC0_QPC_BASE + mmNIC_QPC_DB_FIFO_CFG_0, 0);
+	NIC_OFFSET_WREG32(mmD0_NIC0_QPC_BASE + mmNIC_QPC_DB_FIFO_CFG2_0, 0);
 
 	hl_nic_eq_dispatcher_unregister_db(nic_port, id);
 }
@@ -4721,22 +4781,22 @@ static int gaudi3_encap_set(struct hl_nic_port *nic_port, u32 encap_id,
 	u32 port = nic_port->port, *encap_header = idr_pdata->encap_header, offset = encap_id,
 		encap_cfg = 0, decap_cfg = 0, port_offset;
 	struct hl_device *hdev = nic_port->hdev;
-	u32 encap_hdr_offset = mmD0_NIC0_TXE_ENCAP_DATA_63_32_0 -
-				mmD0_NIC0_TXE_ENCAP_DATA_31_0_0;
+	u32 encap_hdr_offset = mmNIC_TXE_ENCAP_DATA_63_32_0 - mmNIC_TXE_ENCAP_DATA_31_0_0;
 	u32 hdr_size;
 	int i;
 
-	port_offset = get_lane_offset(gaudi3_nic) * (mmD0_NIC0_TXE_SOURCE_IP_PORT1_0 -
-							mmD0_NIC0_TXE_SOURCE_IP_PORT0_0);
+	port_offset = get_lane_offset(gaudi3_nic) * (mmNIC_TXE_SOURCE_IP_PORT1_0 -
+							mmNIC_TXE_SOURCE_IP_PORT0_0);
 
-	NIC_OFFSET_WREG32(mmD0_NIC0_TXE_SOURCE_IP_PORT0_0 + port_offset, idr_pdata->src_ip);
+	NIC_OFFSET_WREG32(mmD0_NIC0_TXE_BASE + mmNIC_TXE_SOURCE_IP_PORT0_0 + port_offset,
+						idr_pdata->src_ip);
 
 	encap_cfg |= (idr_pdata->encap_type_data <<
 				NIC_TXE_ENCAP_CFG_IPV4_PROTOCOL_UDP_DEST_S) &
 				NIC_TXE_ENCAP_CFG_IPV4_PROTOCOL_UDP_DEST_M;
 
 	if (idr_pdata->encap_type == HL_NIC_ENCAP_NONE) {
-		NIC_OFFSET_WREG32(mmD0_NIC0_TXE_ENCAP_CFG_0, encap_cfg);
+		NIC_OFFSET_WREG32(mmD0_NIC0_TXE_BASE + mmNIC_TXE_ENCAP_CFG_0, encap_cfg);
 		return 0;
 	}
 
@@ -4775,13 +4835,16 @@ static int gaudi3_encap_set(struct hl_nic_port *nic_port, u32 encap_id,
 	 * safe to access it in chunks of 4 bytes.
 	 */
 	for (i = 0 ; i * sizeof(u32) < idr_pdata->encap_header_size ; i++)
-		NIC_OFFSET_WREG32(mmD0_NIC0_TXE_ENCAP_DATA_31_0_0 + encap_hdr_offset * i,
+		NIC_OFFSET_WREG32(
+			mmD0_NIC0_TXE_BASE + mmNIC_TXE_ENCAP_DATA_31_0_0 + encap_hdr_offset * i,
 					encap_header[i]);
 
-	NIC_OFFSET_WREG32(mmD0_NIC0_TXE_ENCAP_CFG_0, encap_cfg);
+	NIC_OFFSET_WREG32(mmD0_NIC0_TXE_BASE + mmNIC_TXE_ENCAP_CFG_0, encap_cfg);
 
 	if (!hdev->nic.is_decap_disabled) {
-		NIC_OFFSET_WREG32(mmD0_NIC0_RXB_CORE_PRT_TNL_DECAP_ENTRY_0, decap_cfg);
+		NIC_OFFSET_WREG32(mmD0_NIC0_RXB_CORE_PRT_BASE +
+						mmNIC_RXB_CORE_PRT_TNL_DECAP_ENTRY_0,
+								decap_cfg);
 
 		/* As part of the ECO support for H9-5384, lower part of DECAP mask must be 0
 		 * Even though at the time of writing these lines, there are no writes to this
@@ -4790,7 +4853,8 @@ static int gaudi3_encap_set(struct hl_nic_port *nic_port, u32 encap_id,
 		if (hdev->nic_enable_h9_rx_drop_eco) {
 			uint32_t tnl_decap_mask;
 
-			tnl_decap_mask = NIC_OFFSET_RREG32(mmD0_NIC0_RXB_CORE_PRT_TNL_DECAP_MASK_0);
+			tnl_decap_mask = NIC_OFFSET_RREG32(mmD0_NIC0_RXB_CORE_PRT_BASE +
+						mmNIC_RXB_CORE_PRT_TNL_DECAP_MASK_0);
 			if (tnl_decap_mask & RX_DROP_ECO_DCAP_UNSET_MASK) {
 				dev_dbg(hdev->dev, "Decap mask 0x%x is not valid\n",
 					tnl_decap_mask);
@@ -4808,20 +4872,21 @@ static void gaudi3_encap_unset(struct hl_nic_port *nic_port, u32 encap_id,
 	struct gaudi3_nic_port *gaudi3_nic = nic_port->nic_specific;
 	u32 port = nic_port->port, offset = encap_id, port_offset;
 	struct hl_device *hdev = nic_port->hdev;
-	u32 encap_hdr_offset = mmD0_NIC0_TXE_ENCAP_DATA_63_32_0 -
-				mmD0_NIC0_TXE_ENCAP_DATA_31_0_0;
+	u32 encap_hdr_offset = mmNIC_TXE_ENCAP_DATA_63_32_0 -
+				mmNIC_TXE_ENCAP_DATA_31_0_0;
 	int i;
 
-	port_offset = get_lane_offset(gaudi3_nic) * (mmD0_NIC0_TXE_SOURCE_IP_PORT1_0 -
-							mmD0_NIC0_TXE_SOURCE_IP_PORT0_0);
+	port_offset = get_lane_offset(gaudi3_nic) * (mmNIC_TXE_SOURCE_IP_PORT1_0 -
+							mmNIC_TXE_SOURCE_IP_PORT0_0);
 
-	NIC_OFFSET_WREG32(mmD0_NIC0_TXE_SOURCE_IP_PORT0_0 + port_offset, 0);
-	NIC_OFFSET_WREG32(mmD0_NIC0_TXE_ENCAP_CFG_0, 0);
+	NIC_OFFSET_WREG32(mmD0_NIC0_TXE_BASE + mmNIC_TXE_SOURCE_IP_PORT0_0 + port_offset, 0);
+	NIC_OFFSET_WREG32(mmD0_NIC0_TXE_BASE + mmNIC_TXE_ENCAP_CFG_0, 0);
 
-	NIC_OFFSET_WREG32(mmD0_NIC0_RXB_CORE_PRT_TNL_DECAP_ENTRY_0, 0);
+	NIC_OFFSET_WREG32(mmD0_NIC0_RXB_CORE_PRT_BASE + mmNIC_RXB_CORE_PRT_TNL_DECAP_ENTRY_0, 0);
 
 	for (i = 0 ; i * sizeof(u32) < idr_pdata->encap_header_size ; i++)
-		NIC_OFFSET_WREG32(mmD0_NIC0_TXE_ENCAP_DATA_31_0_0 + encap_hdr_offset * i, 0);
+		NIC_OFFSET_WREG32(mmD0_NIC0_TXE_BASE + mmNIC_TXE_ENCAP_DATA_31_0_0 +
+						encap_hdr_offset * i, 0);
 }
 
 static int gaudi3_nic_get_cnts_num(struct hl_nic_port *nic_port)
@@ -5064,8 +5129,9 @@ static int gaudi3_nic_get_perf_stats(struct hl_nic_port *nic_port, u64 *data)
 	nic_prop = &hdev->asic_prop.nic_props;
 
 	/* Bandwidth calculation */
-	bw_dividend = (((u64) NIC_RREG32(mmD0_NIC0_TXE_STATS_MEAS_WIN_BYTES_MSB)) << 32) |
-				NIC_RREG32(mmD0_NIC0_TXE_STATS_MEAS_WIN_BYTES_LSB);
+	bw_dividend = (((u64) NIC_RREG32(mmD0_NIC0_TXE_BASE +
+					mmNIC_TXE_STATS_MEAS_WIN_BYTES_MSB)) << 32) |
+				NIC_RREG32(mmD0_NIC0_TXE_BASE + mmNIC_TXE_STATS_MEAS_WIN_BYTES_LSB);
 
 	/* bytes to bits */
 	bw_dividend *= BITS_PER_BYTE;
@@ -5081,8 +5147,10 @@ static int gaudi3_nic_get_perf_stats(struct hl_nic_port *nic_port, u64 *data)
 		lat_frac = 0;
 	} else {
 		/* Latency calculation */
-		lat_dividend = (((u64) NIC_RREG32(mmD0_NIC0_TXE_STATS_TOT_BYTES_MSB)) << 32) |
-					NIC_RREG32(mmD0_NIC0_TXE_STATS_TOT_BYTES_LSB);
+		lat_dividend = (((u64) NIC_RREG32(mmD0_NIC0_TXE_BASE +
+						mmNIC_TXE_STATS_TOT_BYTES_MSB)) << 32) |
+					NIC_RREG32(mmD0_NIC0_TXE_BASE +
+							mmNIC_TXE_STATS_TOT_BYTES_LSB);
 		lat_divisor = nic_prop->clk;
 
 		lat_int = div_u64(lat_dividend, lat_divisor);
@@ -5135,24 +5203,28 @@ static void gaudi3_nic_user_ccq_set(struct hl_nic_port *nic_port, u64 ccq_device
 
 	offset = ELEMENT_OFFSET(port, QPC_CONG_QUE_NUM);
 
-	NIC_OFFSET_WREG32(mmD0_NIC0_QPC_CONG_QUE_BASE_ADDR_63_32_0, upper_32_bits(ccq_device_addr));
-	NIC_OFFSET_WREG32(mmD0_NIC0_QPC_CONG_QUE_BASE_ADDR_31_7_0,
+	NIC_OFFSET_WREG32(mmD0_NIC0_QPC_BASE + mmNIC_QPC_CONG_QUE_BASE_ADDR_63_32_0,
+					upper_32_bits(ccq_device_addr));
+
+	NIC_OFFSET_WREG32(mmD0_NIC0_QPC_BASE + mmNIC_QPC_CONG_QUE_BASE_ADDR_31_7_0,
 			((ccq_device_addr >> 7) & 0x1FFFFFF));
 
-	NIC_OFFSET_WREG32(mmD0_NIC0_QPC_CONG_QUE_PI_ADDR_63_32_0, upper_32_bits(pi_device_addr));
-	NIC_OFFSET_WREG32(mmD0_NIC0_QPC_CONG_QUE_PI_ADDR_31_7_0,
+	NIC_OFFSET_WREG32(mmD0_NIC0_QPC_BASE + mmNIC_QPC_CONG_QUE_PI_ADDR_63_32_0,
+					upper_32_bits(pi_device_addr));
+	NIC_OFFSET_WREG32(mmD0_NIC0_QPC_BASE + mmNIC_QPC_CONG_QUE_PI_ADDR_31_7_0,
 			((pi_device_addr >> 7) & 0x1FFFFFF));
 
-	NIC_OFFSET_WREG32(mmD0_NIC0_QPC_CONG_QUE_WRITE_INDEX_0, 0);
-	NIC_OFFSET_WREG32(mmD0_NIC0_QPC_CONG_QUE_PRODUCER_INDEX_0, 0);
-	NIC_OFFSET_WREG32(mmD0_NIC0_QPC_CONG_QUE_CONSUMER_INDEX_0, 0);
-	NIC_OFFSET_WREG32(mmD0_NIC0_QPC_CONG_QUE_CONSUMER_INDEX_CB_0, 0);
-	NIC_OFFSET_WREG32(mmD0_NIC0_QPC_CONG_QUE_LOG_SIZE_0, ilog2(num_of_entries));
+	NIC_OFFSET_WREG32(mmD0_NIC0_QPC_BASE + mmNIC_QPC_CONG_QUE_WRITE_INDEX_0, 0);
+	NIC_OFFSET_WREG32(mmD0_NIC0_QPC_BASE + mmNIC_QPC_CONG_QUE_PRODUCER_INDEX_0, 0);
+	NIC_OFFSET_WREG32(mmD0_NIC0_QPC_BASE + mmNIC_QPC_CONG_QUE_CONSUMER_INDEX_0, 0);
+	NIC_OFFSET_WREG32(mmD0_NIC0_QPC_BASE + mmNIC_QPC_CONG_QUE_CONSUMER_INDEX_CB_0, 0);
+	NIC_OFFSET_WREG32(mmD0_NIC0_QPC_BASE + mmNIC_QPC_CONG_QUE_LOG_SIZE_0,
+				ilog2(num_of_entries));
 
 	/* set enable + update-pi
 	 * set overrun-en to allow overrun of ci since a HW bug exist
 	 */
-	NIC_OFFSET_WREG32(mmD0_NIC0_QPC_CONG_QUE_CFG_0,
+	NIC_OFFSET_WREG32(mmD0_NIC0_QPC_BASE + mmNIC_QPC_CONG_QUE_CFG_0,
 		NIC_QPC_CONG_QUE_CFG_ENABLE_M |
 		NIC_QPC_CONG_QUE_CFG_OVERRUN_EN_M |
 		NIC_QPC_CONG_QUE_CFG_WRITE_PI_EN_M);
@@ -5167,11 +5239,11 @@ static void gaudi3_nic_user_ccq_unset(struct hl_nic_port *nic_port, u32 *ccqn)
 
 	offset = ELEMENT_OFFSET(port, QPC_CONG_QUE_NUM);
 
-	NIC_OFFSET_WREG32(mmD0_NIC0_QPC_CONG_QUE_CFG_0, 0);
-	NIC_OFFSET_WREG32(mmD0_NIC0_QPC_CONG_QUE_PI_ADDR_63_32_0, 0);
-	NIC_OFFSET_WREG32(mmD0_NIC0_QPC_CONG_QUE_PI_ADDR_31_7_0, 0);
-	NIC_OFFSET_WREG32(mmD0_NIC0_QPC_CONG_QUE_BASE_ADDR_63_32_0, 0);
-	NIC_OFFSET_WREG32(mmD0_NIC0_QPC_CONG_QUE_BASE_ADDR_31_7_0, 0);
+	NIC_OFFSET_WREG32(mmD0_NIC0_QPC_BASE + mmNIC_QPC_CONG_QUE_CFG_0, 0);
+	NIC_OFFSET_WREG32(mmD0_NIC0_QPC_BASE + mmNIC_QPC_CONG_QUE_PI_ADDR_63_32_0, 0);
+	NIC_OFFSET_WREG32(mmD0_NIC0_QPC_BASE + mmNIC_QPC_CONG_QUE_PI_ADDR_31_7_0, 0);
+	NIC_OFFSET_WREG32(mmD0_NIC0_QPC_BASE + mmNIC_QPC_CONG_QUE_BASE_ADDR_63_32_0, 0);
+	NIC_OFFSET_WREG32(mmD0_NIC0_QPC_BASE + mmNIC_QPC_CONG_QUE_BASE_ADDR_31_7_0, 0);
 
 	*ccqn = ELEMENT_OFFSET(nic_port->port, QPC_CONG_QUE_NUM);
 }
@@ -5206,16 +5278,18 @@ static void gaudi3_nic_disable_nics_interrupts(struct hl_device *hdev)
 
 		port = gaudi3_nic_get_first_port(nic_macro);
 
-		NIC_WREG32(mmD0_NIC0_TXE_INTERRUPT_MASK, NIC_TXE_INTERRUPT_MASK_R_M);
-		NIC_WREG32(mmD0_NIC0_TXS_INTERRUPT_MASK, NIC_TXS_INTERRUPT_MASK_R_M);
+		NIC_WREG32(mmD0_NIC0_TXE_BASE + mmNIC_TXE_INTERRUPT_MASK,
+						NIC_TXE_INTERRUPT_MASK_R_M);
+		NIC_WREG32(mmD0_NIC0_TXS_BASE + mmNIC_TXS_INTERRUPT_MASK,
+						NIC_TXS_INTERRUPT_MASK_R_M);
 
 		/* interrupt MSI and WIRE regs determine if the interrupt
 		 * being generated is directed to the MSI or Wire Path
 		 * (can also be both or neither). By default interrupts are
 		 * directed to both locations.
 		 */
-		NIC_WREG32(mmD0_NIC0_QPC_INTERRUPT_MSI, 0);
-		NIC_WREG32(mmD0_NIC0_QPC_INTERRUPT_WIRE, 0);
+		NIC_WREG32(mmD0_NIC0_QPC_BASE + mmNIC_QPC_INTERRUPT_MSI, 0);
+		NIC_WREG32(mmD0_NIC0_QPC_BASE + mmNIC_QPC_INTERRUPT_WIRE, 0);
 
 		/* Interrupt mask reg disables/enables each interrupt (1 is disabled)
 		 * The meaning of the bits in the interrupt mask register is:
@@ -5223,21 +5297,23 @@ static void gaudi3_nic_disable_nics_interrupts(struct hl_device *hdev)
 		 *    [4..7] - EQ error interrupt (1 bit per EQ)
 		 * interrupts are disabled by default
 		 */
-		NIC_WREG32(mmD0_NIC0_QPC_INTERRUPT_MASK, NIC_QPC_INTERRUPT_MASK_R_M);
+		NIC_WREG32(mmD0_NIC0_QPC_BASE + mmNIC_QPC_INTERRUPT_MASK,
+						NIC_QPC_INTERRUPT_MASK_R_M);
 
-		NIC_WREG32(mmD0_NIC0_QPC_INTERRUPT_RESP_ERR_MASK,
+		NIC_WREG32(mmD0_NIC0_QPC_BASE + mmNIC_QPC_INTERRUPT_RESP_ERR_MASK,
 					NIC_QPC_INTERRUPT_RESP_ERR_MASK_R_M);
 
-		NIC_WREG32(mmD0_NIC0_RXE_SPI_INTR_MASK_0, NIC_RXE_SPI_INTR_MASK_VAL_M);
-		NIC_WREG32(mmD0_NIC0_RXE_SEI_INTR_MASK, 0xFFFFFFFF);
+		NIC_WREG32(mmD0_NIC0_RXE_BASE + mmNIC_RXE_SPI_INTR_MASK_0,
+						NIC_RXE_SPI_INTR_MASK_VAL_M);
+		NIC_WREG32(mmD0_NIC0_RXE_BASE + mmNIC_RXE_SEI_INTR_MASK, 0xFFFFFFFF);
 
-		NIC_WREG32(mmD0_NIC0_QPC_EVENT_QUE_CFG_0, 0);
-		NIC_WREG32(mmD0_NIC0_QPC_EVENT_QUE_CFG_1, 0);
-		NIC_WREG32(mmD0_NIC0_QPC_EVENT_QUE_CFG_2, 0);
-		NIC_WREG32(mmD0_NIC0_QPC_EVENT_QUE_CFG_3, 0);
+		NIC_WREG32(mmD0_NIC0_QPC_BASE + mmNIC_QPC_EVENT_QUE_CFG_0, 0);
+		NIC_WREG32(mmD0_NIC0_QPC_BASE + mmNIC_QPC_EVENT_QUE_CFG_1, 0);
+		NIC_WREG32(mmD0_NIC0_QPC_BASE + mmNIC_QPC_EVENT_QUE_CFG_2, 0);
+		NIC_WREG32(mmD0_NIC0_QPC_BASE + mmNIC_QPC_EVENT_QUE_CFG_3, 0);
 
 		/* flush */
-		NIC_RREG32(mmD0_NIC0_RXE_SEI_INTR_MASK);
+		NIC_RREG32(mmD0_NIC0_RXE_BASE + mmNIC_RXE_SEI_INTR_MASK);
 	}
 }
 
@@ -5469,7 +5545,7 @@ u32 gaudi3_handle_nic_spi_event(struct hl_device *hdev, u32 macro_index)
 		if (!(hdev->nic_ports_mask & BIT(port)))
 			continue;
 
-		qpc_intr_cause = NIC_RREG32(mmD0_NIC0_QPC_INTERRUPT_CAUSE);
+		qpc_intr_cause = NIC_RREG32(mmD0_NIC0_QPC_BASE + mmNIC_QPC_INTERRUPT_CAUSE);
 
 		/* eqe interrupts are mapped to MSI except interrupt on error event queue
 		 * which is handled here, in such case port reset is required.
@@ -5478,7 +5554,8 @@ u32 gaudi3_handle_nic_spi_event(struct hl_device *hdev, u32 macro_index)
 			continue;
 
 		dev_err_ratelimited(hdev->dev, "QPC EQ error on NIC port %d\n", port);
-		NIC_WREG32(mmD0_NIC0_QPC_INTERRUPT_CLR, GAUDI3_NIC_EQ_ERR_INTERRUPT_M(port));
+		NIC_WREG32(mmD0_NIC0_QPC_BASE + mmNIC_QPC_INTERRUPT_CLR,
+					GAUDI3_NIC_EQ_ERR_INTERRUPT_M(port));
 
 		nic_port = &hdev->nic.nic_ports[port];
 		mutex_lock(&nic_port->control_lock);
@@ -5487,16 +5564,17 @@ u32 gaudi3_handle_nic_spi_event(struct hl_device *hdev, u32 macro_index)
 	}
 
 	port = first_port;
-	rxe_spi_intr_cause_0 = NIC_RREG32(mmD0_NIC0_RXE_SPI_INTR_CAUSE_0);
-	rxe_spi_intr_mask_0 = NIC_RREG32(mmD0_NIC0_RXE_SPI_INTR_MASK_0);
+	rxe_spi_intr_cause_0 = NIC_RREG32(mmD0_NIC0_RXE_BASE + mmNIC_RXE_SPI_INTR_CAUSE_0);
+	rxe_spi_intr_mask_0 = NIC_RREG32(mmD0_NIC0_RXE_BASE + mmNIC_RXE_SPI_INTR_MASK_0);
 	rxe_spi_intr_cause_0 = rxe_spi_intr_cause_0 & ~rxe_spi_intr_mask_0;
 
-	rxe_spi_intr_cause_1 = NIC_RREG32(mmD0_NIC0_RXE_SPI_INTR_CAUSE_1);
-	rxe_spi_intr_mask_1 = NIC_RREG32(mmD0_NIC0_RXE_SPI_INTR_MASK_1);
+	rxe_spi_intr_cause_1 = NIC_RREG32(mmD0_NIC0_RXE_BASE + mmNIC_RXE_SPI_INTR_CAUSE_1);
+	rxe_spi_intr_mask_1 = NIC_RREG32(mmD0_NIC0_RXE_BASE + mmNIC_RXE_SPI_INTR_MASK_1);
 	rxe_spi_intr_cause_1 = rxe_spi_intr_cause_1 & ~rxe_spi_intr_mask_1;
 
-	rxb_core_spi_intr_cause = NIC_RREG32(mmD0_NIC0_RXB_CORE_SPI_INTR_CAUSE);
-	rxb_core_spi_intr_mask = NIC_RREG32(mmD0_NIC0_RXB_CORE_SPI_INTR_MASK);
+	rxb_core_spi_intr_cause = NIC_RREG32(mmD0_NIC0_RXB_CORE_BASE +
+						mmNIC_RXB_CORE_SPI_INTR_CAUSE);
+	rxb_core_spi_intr_mask = NIC_RREG32(mmD0_NIC0_RXB_CORE_BASE + mmNIC_RXB_CORE_SPI_INTR_MASK);
 	rxb_core_spi_intr_cause = rxb_core_spi_intr_cause & ~rxb_core_spi_intr_mask;
 
 	/* RXE SPI interrupts are packet caused interrupts and are not severe,
@@ -5520,9 +5598,9 @@ u32 gaudi3_handle_nic_spi_event(struct hl_device *hdev, u32 macro_index)
 		 * it's a sticky register (the read between is done in order to flush the first
 		 * write).
 		 */
-		NIC_WREG32(mmD0_NIC0_RXE_SPI_INTR_CLEAR_0, rxe_spi_intr_cause_0);
-		NIC_RREG32(mmD0_NIC0_RXE_SPI_INTR_CLEAR_0);
-		NIC_WREG32(mmD0_NIC0_RXE_SPI_INTR_CLEAR_0, 0);
+		NIC_WREG32(mmD0_NIC0_RXE_BASE + mmNIC_RXE_SPI_INTR_CLEAR_0, rxe_spi_intr_cause_0);
+		NIC_RREG32(mmD0_NIC0_RXE_BASE + mmNIC_RXE_SPI_INTR_CLEAR_0);
+		NIC_WREG32(mmD0_NIC0_RXE_BASE + mmNIC_RXE_SPI_INTR_CLEAR_0, 0);
 	}
 
 	if (rxe_spi_intr_cause_1) {
@@ -5540,9 +5618,9 @@ u32 gaudi3_handle_nic_spi_event(struct hl_device *hdev, u32 macro_index)
 		 * it's a sticky register (the read between is done in order to flush the first
 		 * write).
 		 */
-		NIC_WREG32(mmD0_NIC0_RXE_SPI_INTR_CLEAR_1, rxe_spi_intr_cause_1);
-		NIC_RREG32(mmD0_NIC0_RXE_SPI_INTR_CLEAR_1);
-		NIC_WREG32(mmD0_NIC0_RXE_SPI_INTR_CLEAR_1, 0);
+		NIC_WREG32(mmD0_NIC0_RXE_BASE + mmNIC_RXE_SPI_INTR_CLEAR_1, rxe_spi_intr_cause_1);
+		NIC_RREG32(mmD0_NIC0_RXE_BASE + mmNIC_RXE_SPI_INTR_CLEAR_1);
+		NIC_WREG32(mmD0_NIC0_RXE_BASE + mmNIC_RXE_SPI_INTR_CLEAR_1, 0);
 	}
 
 	if (rxb_core_spi_intr_cause) {
@@ -5560,9 +5638,10 @@ u32 gaudi3_handle_nic_spi_event(struct hl_device *hdev, u32 macro_index)
 		 * as it's a sticky register (the read between is done in order to flush the first
 		 * write).
 		 */
-		NIC_WREG32(mmD0_NIC0_RXB_CORE_SPI_INTR_CLEAR, rxb_core_spi_intr_cause);
-		NIC_RREG32(mmD0_NIC0_RXB_CORE_SPI_INTR_CLEAR);
-		NIC_WREG32(mmD0_NIC0_RXB_CORE_SPI_INTR_CLEAR, 0);
+		NIC_WREG32(mmD0_NIC0_RXB_CORE_BASE + mmNIC_RXB_CORE_SPI_INTR_CLEAR,
+					rxb_core_spi_intr_cause);
+		NIC_RREG32(mmD0_NIC0_RXB_CORE_BASE + mmNIC_RXB_CORE_SPI_INTR_CLEAR);
+		NIC_WREG32(mmD0_NIC0_RXB_CORE_BASE + mmNIC_RXB_CORE_SPI_INTR_CLEAR, 0);
 	}
 
 	return err_cnt;
@@ -5577,28 +5656,30 @@ u32 gaudi3_handle_nic_sei_error_event(struct hl_device *hdev, u32 macro_index)
 	int i;
 
 	port = macro_index * NIC_PORTS_PER_MACRO;
-	rxe_sei_intr_cause = NIC_RREG32(mmD0_NIC0_RXE_SEI_INTR_CAUSE);
-	rxe_sei_intr_mask = NIC_RREG32(mmD0_NIC0_RXE_SEI_INTR_MASK);
+	rxe_sei_intr_cause = NIC_RREG32(mmD0_NIC0_RXE_BASE + mmNIC_RXE_SEI_INTR_CAUSE);
+	rxe_sei_intr_mask = NIC_RREG32(mmD0_NIC0_RXE_BASE + mmNIC_RXE_SEI_INTR_MASK);
 	rxe_sei_intr_cause = rxe_sei_intr_cause & ~rxe_sei_intr_mask;
 
-	rxb_core_sei_intr_cause = NIC_RREG32(mmD0_NIC0_RXB_CORE_SEI_INTR_CAUSE);
-	rxb_core_sei_intr_mask = NIC_RREG32(mmD0_NIC0_RXB_CORE_SEI_INTR_MASK);
+	rxb_core_sei_intr_cause = NIC_RREG32(mmD0_NIC0_RXB_CORE_BASE +
+						mmNIC_RXB_CORE_SEI_INTR_CAUSE);
+	rxb_core_sei_intr_mask = NIC_RREG32(mmD0_NIC0_RXB_CORE_BASE + mmNIC_RXB_CORE_SEI_INTR_MASK);
 	rxb_core_sei_intr_cause = rxb_core_sei_intr_cause & ~rxb_core_sei_intr_mask;
 
-	tmr_intr_cause = NIC_RREG32(mmD0_NIC0_TMR_INTERRUPT_CAUSE);
-	tmr_intr_mask = NIC_RREG32(mmD0_NIC0_TMR_INTERRUPT_MASK);
+	tmr_intr_cause = NIC_RREG32(mmD0_NIC0_TMR_BASE + mmNIC_TMR_INTERRUPT_CAUSE);
+	tmr_intr_mask = NIC_RREG32(mmD0_NIC0_TMR_BASE + mmNIC_TMR_INTERRUPT_MASK);
 	tmr_intr_cause = tmr_intr_cause & ~tmr_intr_mask;
 
-	qpc_intr_resp_err_cause = NIC_RREG32(mmD0_NIC0_QPC_INTERRUPT_RESP_ERR_CAUSE);
-	qpc_intr_resp_err_mask = NIC_RREG32(mmD0_NIC0_QPC_INTERRUPT_RESP_ERR_MASK);
+	qpc_intr_resp_err_cause = NIC_RREG32(mmD0_NIC0_QPC_BASE +
+						mmNIC_QPC_INTERRUPT_RESP_ERR_CAUSE);
+	qpc_intr_resp_err_mask = NIC_RREG32(mmD0_NIC0_QPC_BASE + mmNIC_QPC_INTERRUPT_RESP_ERR_MASK);
 	qpc_intr_resp_err_cause = qpc_intr_resp_err_cause & ~qpc_intr_resp_err_mask;
 
-	txs_intr_cause = NIC_RREG32(mmD0_NIC0_TXS_INTERRUPT_CAUSE);
-	txs_intr_mask = NIC_RREG32(mmD0_NIC0_TXS_INTERRUPT_MASK);
+	txs_intr_cause = NIC_RREG32(mmD0_NIC0_TXS_BASE + mmNIC_TXS_INTERRUPT_CAUSE);
+	txs_intr_mask = NIC_RREG32(mmD0_NIC0_TXS_BASE + mmNIC_TXS_INTERRUPT_MASK);
 	txs_intr_cause = txs_intr_cause & ~txs_intr_mask;
 
-	txe_intr_cause = NIC_RREG32(mmD0_NIC0_TXE_INTERRUPT_CAUSE);
-	txe_intr_mask = NIC_RREG32(mmD0_NIC0_TXE_INTERRUPT_MASK);
+	txe_intr_cause = NIC_RREG32(mmD0_NIC0_TXE_BASE + mmNIC_TXE_INTERRUPT_CAUSE);
+	txe_intr_mask = NIC_RREG32(mmD0_NIC0_TXE_BASE + mmNIC_TXE_INTERRUPT_MASK);
 	txe_intr_cause = txe_intr_cause & ~txe_intr_mask;
 
 	if (rxe_sei_intr_cause) {
@@ -5616,9 +5697,9 @@ u32 gaudi3_handle_nic_sei_error_event(struct hl_device *hdev, u32 macro_index)
 		 * it's a sticky register (the read between is done in order to flush the first
 		 * write).
 		 */
-		NIC_WREG32(mmD0_NIC0_RXE_SEI_INTR_CLEAR, rxe_sei_intr_cause);
-		NIC_RREG32(mmD0_NIC0_RXE_SEI_INTR_CLEAR);
-		NIC_WREG32(mmD0_NIC0_RXE_SEI_INTR_CLEAR, 0);
+		NIC_WREG32(mmD0_NIC0_RXE_BASE + mmNIC_RXE_SEI_INTR_CLEAR, rxe_sei_intr_cause);
+		NIC_RREG32(mmD0_NIC0_RXE_BASE + mmNIC_RXE_SEI_INTR_CLEAR);
+		NIC_WREG32(mmD0_NIC0_RXE_BASE + mmNIC_RXE_SEI_INTR_CLEAR, 0);
 	}
 
 	if (rxb_core_sei_intr_cause) {
@@ -5636,9 +5717,10 @@ u32 gaudi3_handle_nic_sei_error_event(struct hl_device *hdev, u32 macro_index)
 		 * as it's a sticky register (the read between is done in order to flush the first
 		 * write).
 		 */
-		NIC_WREG32(mmD0_NIC0_RXB_CORE_SEI_INTR_CLEAR, rxb_core_sei_intr_cause);
-		NIC_RREG32(mmD0_NIC0_RXB_CORE_SEI_INTR_CLEAR);
-		NIC_WREG32(mmD0_NIC0_RXB_CORE_SEI_INTR_CLEAR, 0);
+		NIC_WREG32(mmD0_NIC0_RXB_CORE_BASE + mmNIC_RXB_CORE_SEI_INTR_CLEAR,
+							rxb_core_sei_intr_cause);
+		NIC_RREG32(mmD0_NIC0_RXB_CORE_BASE + mmNIC_RXB_CORE_SEI_INTR_CLEAR);
+		NIC_WREG32(mmD0_NIC0_RXB_CORE_BASE + mmNIC_RXB_CORE_SEI_INTR_CLEAR, 0);
 	}
 
 	if (tmr_intr_cause) {
@@ -5652,7 +5734,7 @@ u32 gaudi3_handle_nic_sei_error_event(struct hl_device *hdev, u32 macro_index)
 				macro_index, gaudi3_nic_tmr_interrupts_cause[i], i);
 		}
 
-		NIC_WREG32(mmD0_NIC0_TMR_INTERRUPT_CLR, tmr_intr_cause);
+		NIC_WREG32(mmD0_NIC0_TMR_BASE + mmNIC_TMR_INTERRUPT_CLR, tmr_intr_cause);
 	}
 
 	if (qpc_intr_resp_err_cause) {
@@ -5666,7 +5748,8 @@ u32 gaudi3_handle_nic_sei_error_event(struct hl_device *hdev, u32 macro_index)
 				macro_index, gaudi3_nic_qpc_interrupts_resp_err_cause[i], i);
 		}
 
-		NIC_WREG32(mmD0_NIC0_QPC_INTERRUPR_RESP_ERR_CLR, qpc_intr_resp_err_cause);
+		NIC_WREG32(mmD0_NIC0_QPC_BASE + mmNIC_QPC_INTERRUPR_RESP_ERR_CLR,
+						qpc_intr_resp_err_cause);
 	}
 
 	if (txs_intr_cause) {
@@ -5680,7 +5763,7 @@ u32 gaudi3_handle_nic_sei_error_event(struct hl_device *hdev, u32 macro_index)
 				macro_index, gaudi3_nic_txs_interrupts_cause[i], i);
 		}
 
-		NIC_WREG32(mmD0_NIC0_TXS_INTERRUPT_CLR, txs_intr_cause);
+		NIC_WREG32(mmD0_NIC0_TXS_BASE + mmNIC_TXS_INTERRUPT_CLR, txs_intr_cause);
 	}
 
 	if (txe_intr_cause) {
@@ -5694,7 +5777,7 @@ u32 gaudi3_handle_nic_sei_error_event(struct hl_device *hdev, u32 macro_index)
 				macro_index, gaudi3_nic_txe_interrupts_cause[i], i);
 		}
 
-		NIC_WREG32(mmD0_NIC0_TXE_INTERRUPT_CLR, txe_intr_cause);
+		NIC_WREG32(mmD0_NIC0_TXE_BASE + mmNIC_TXE_INTERRUPT_CLR, txe_intr_cause);
 	}
 
 	return err_cnt++;

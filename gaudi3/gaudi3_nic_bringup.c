@@ -63,7 +63,7 @@
 
 static void gaudi3_nic_config_hw_mac_fw(struct hl_device *hdev, u32 port)
 {
-	NIC_WREG32(mmD0_NIC0_MAC_AUX_MAC_CFG_SEC, 0);
+	NIC_WREG32(mmD0_NIC0_MAC_AUX_BASE + mmPRT_MAC_AUX_MAC_CFG_SEC, 0);
 }
 
 static void gaudi3_nic_config_hw_rxe_fw(struct hl_device *hdev, u32 port)
@@ -71,21 +71,21 @@ static void gaudi3_nic_config_hw_rxe_fw(struct hl_device *hdev, u32 port)
 	uint32_t rxe_qpc_checks_mask;
 	int i;
 
-	NIC_WREG32(mmD0_NIC0_RXE_ARPROT_HBW_UNSEC, 0);
+	NIC_WREG32(mmD0_NIC0_RXE_BASE + mmNIC_RXE_ARPROT_HBW_UNSEC, 0);
 
 	/* Initialize AXI prot bits for all CQs to non-priv, secured, data access */
 	for (i = 0 ; i < hdev->asic_prop.nic_props.max_cqs ; i++) {
-		NIC_WREG32(mmD0_NIC0_RXE_CQ_AXI_PROT0_0 + i * sizeof(u32), 0);
-		NIC_WREG32(mmD0_NIC0_RXE_CQ_AXI_PROT0_1 + i * sizeof(u32), 0);
-		NIC_WREG32(mmD0_NIC0_RXE_CQ_AXI_PROT0_2 + i * sizeof(u32), 0);
+		NIC_WREG32(mmD0_NIC0_RXE_BASE + mmNIC_RXE_CQ_AXI_PROT0_0 + i * sizeof(u32), 0);
+		NIC_WREG32(mmD0_NIC0_RXE_BASE + mmNIC_RXE_CQ_AXI_PROT0_1 + i * sizeof(u32), 0);
+		NIC_WREG32(mmD0_NIC0_RXE_BASE + mmNIC_RXE_CQ_AXI_PROT0_2 + i * sizeof(u32), 0);
 	}
 
 	/* TODO: consider refining the checks or silent-drops once we stabilize */
-	NIC_WREG32(mmD0_NIC0_RXE_PKT_CHECKS_EN, 0);
-	NIC_WREG32(mmD0_NIC0_RXE_QPC_CHECKS_EN, 0);
-	NIC_WREG32(mmD0_NIC0_RXE_WQE_CHECKS_EN, 0);
+	NIC_WREG32(mmD0_NIC0_RXE_BASE + mmNIC_RXE_PKT_CHECKS_EN, 0);
+	NIC_WREG32(mmD0_NIC0_RXE_BASE + mmNIC_RXE_QPC_CHECKS_EN, 0);
+	NIC_WREG32(mmD0_NIC0_RXE_BASE + mmNIC_RXE_WQE_CHECKS_EN, 0);
 
-	NIC_WREG32(mmD0_NIC0_RXE_PKT_CHECKS_EN,
+	NIC_WREG32(mmD0_NIC0_RXE_BASE + mmNIC_RXE_PKT_CHECKS_EN,
 			(1 << NIC_RXE_PKT_CHECKS_EN_PKT_BAD_FORMAT_S) |
 			(1 << NIC_RXE_PKT_CHECKS_EN_PKT_PRS_FSM_INV_S) |
 			(1 << NIC_RXE_PKT_CHECKS_EN_PKT_HDRS_SIZE_INV_S) |
@@ -105,9 +105,9 @@ static void gaudi3_nic_config_hw_rxe_fw(struct hl_device *hdev, u32 port)
 			(1 << NIC_RXE_PKT_CHECKS_EN_PKT_RAW_MIN_SIZE_INV_S) |
 			(1 << NIC_RXE_PKT_CHECKS_EN_PKT_RAW_MAX_SIZE_INV_S));
 
-	NIC_RMWREG32(mmD0_NIC0_RXE_PKT_SIZE_CHECK_RC, NIC_MAX_FRM_LEN,
+	NIC_RMWREG32(mmD0_NIC0_RXE_BASE + mmNIC_RXE_PKT_SIZE_CHECK_RC, NIC_MAX_FRM_LEN,
 					NIC_RXE_PKT_SIZE_CHECK_RC_MAX_M);
-	NIC_RMWREG32(mmD0_NIC0_RXE_PKT_SIZE_CHECK_RAW, ETH_ZLEN,
+	NIC_RMWREG32(mmD0_NIC0_RXE_BASE + mmNIC_RXE_PKT_SIZE_CHECK_RAW, ETH_ZLEN,
 					NIC_RXE_PKT_SIZE_CHECK_RAW_MIN_M);
 
 	rxe_qpc_checks_mask = (1 << NIC_RXE_QPC_CHECKS_EN_QPC_QP_INV_S) |
@@ -123,9 +123,9 @@ static void gaudi3_nic_config_hw_rxe_fw(struct hl_device *hdev, u32 port)
 	if (!hdev->nic_enable_h9_rx_drop_eco)
 		rxe_qpc_checks_mask |= (1 << NIC_RXE_QPC_CHECKS_EN_QPC_RES_RKEY_INV_S);
 
-	NIC_WREG32(mmD0_NIC0_RXE_QPC_CHECKS_EN, rxe_qpc_checks_mask);
+	NIC_WREG32(mmD0_NIC0_RXE_BASE + mmNIC_RXE_QPC_CHECKS_EN, rxe_qpc_checks_mask);
 
-	NIC_WREG32(mmD0_NIC0_RXE_WQE_CHECKS_EN,
+	NIC_WREG32(mmD0_NIC0_RXE_BASE + mmNIC_RXE_WQE_CHECKS_EN,
 			(1 << NIC_RXE_WQE_CHECKS_EN_WQE_IDX_MISMATCH_S) |
 			(1 << NIC_RXE_WQE_CHECKS_EN_WQE_WR_OPCODE_INV_S) |
 			(1 << NIC_RXE_WQE_CHECKS_EN_WQE_RDV_OPCODE_INV_S) |
@@ -135,15 +135,18 @@ static void gaudi3_nic_config_hw_rxe_fw(struct hl_device *hdev, u32 port)
 			(0 << NIC_RXE_WQE_CHECKS_EN_WQE_WR_SEND_BIG_S) |
 			(0 << NIC_RXE_WQE_CHECKS_EN_WQE_MULTI_BIG_S));
 
-	NIC_WREG32(mmD0_NIC0_RXE_WQE_WQ_WR_OP_DISABLE, (u32) ~WQ_WR_VALID_WQE_OPCODES);
-	NIC_WREG32(mmD0_NIC0_RXE_WQE_WQ_RDV_OP_DISABLE, (u32) ~WQ_RDV_VALID_WQE_OPCODES);
-	NIC_WREG32(mmD0_NIC0_RXE_WQE_WQ_RD_OP_DISABLE, (u32) ~WQ_RD_VALID_WQE_OPCODES);
+	NIC_WREG32(mmD0_NIC0_RXE_BASE + mmNIC_RXE_WQE_WQ_WR_OP_DISABLE,
+					(u32) ~WQ_WR_VALID_WQE_OPCODES);
+	NIC_WREG32(mmD0_NIC0_RXE_BASE + mmNIC_RXE_WQE_WQ_RDV_OP_DISABLE,
+					(u32) ~WQ_RDV_VALID_WQE_OPCODES);
+	NIC_WREG32(mmD0_NIC0_RXE_BASE + mmNIC_RXE_WQE_WQ_RD_OP_DISABLE,
+					(u32) ~WQ_RD_VALID_WQE_OPCODES);
 
-	NIC_WREG32(mmD0_NIC0_RXE_PKT_CHECKS_ACTION, 0);
-	NIC_WREG32(mmD0_NIC0_RXE_QPC_CHECKS_ACTION, 0);
-	NIC_WREG32(mmD0_NIC0_RXE_WQE_CHECKS_ACTION, 0);
+	NIC_WREG32(mmD0_NIC0_RXE_BASE + mmNIC_RXE_PKT_CHECKS_ACTION, 0);
+	NIC_WREG32(mmD0_NIC0_RXE_BASE + mmNIC_RXE_QPC_CHECKS_ACTION, 0);
+	NIC_WREG32(mmD0_NIC0_RXE_BASE + mmNIC_RXE_WQE_CHECKS_ACTION, 0);
 
-	NIC_WREG32(mmD0_NIC0_RXE_PKT_CHECKS_ACTION,
+	NIC_WREG32(mmD0_NIC0_RXE_BASE + mmNIC_RXE_PKT_CHECKS_ACTION,
 			(0 << NIC_RXE_PKT_CHECKS_ACTION_PKT_BAD_FORMAT_S) |
 			(1 << NIC_RXE_PKT_CHECKS_ACTION_PKT_PRS_FSM_INV_S) |
 			(0 << NIC_RXE_PKT_CHECKS_ACTION_PKT_HDRS_SIZE_INV_S) |
@@ -160,7 +163,7 @@ static void gaudi3_nic_config_hw_rxe_fw(struct hl_device *hdev, u32 port)
 			(0 << NIC_RXE_PKT_CHECKS_ACTION_PKT_RAW_MIN_SIZE_INV_S) |
 			(0 << NIC_RXE_PKT_CHECKS_ACTION_PKT_RAW_MAX_SIZE_INV_S));
 
-	NIC_WREG32(mmD0_NIC0_RXE_QPC_CHECKS_ACTION,
+	NIC_WREG32(mmD0_NIC0_RXE_BASE + mmNIC_RXE_QPC_CHECKS_ACTION,
 			(1 << NIC_RXE_QPC_CHECKS_ACTION_QPC_QP_INV_S) |
 			(1 << NIC_RXE_QPC_CHECKS_ACTION_QPC_TS_MISMATCH_S) |
 			(1 << NIC_RXE_QPC_CHECKS_ACTION_QPC_REQ_CS_INV_S) |
@@ -172,7 +175,7 @@ static void gaudi3_nic_config_hw_rxe_fw(struct hl_device *hdev, u32 port)
 			(1 << NIC_RXE_QPC_CHECKS_ACTION_QPC_RES_RKEY_INV_S) |
 			(0 << NIC_RXE_QPC_CHECKS_ACTION_QPC_RES_SAL_PSN_INV_S));
 
-	NIC_WREG32(mmD0_NIC0_RXE_WQE_CHECKS_ACTION,
+	NIC_WREG32(mmD0_NIC0_RXE_BASE + mmNIC_RXE_WQE_CHECKS_ACTION,
 			(1 << NIC_RXE_WQE_CHECKS_ACTION_WQE_IDX_MISMATCH_S) |
 			(1 << NIC_RXE_WQE_CHECKS_ACTION_WQE_WR_OPCODE_INV_S) |
 			(1 << NIC_RXE_WQE_CHECKS_ACTION_WQE_RDV_OPCODE_INV_S) |
@@ -190,10 +193,10 @@ static void gaudi3_nic_config_hw_rxe_fw(struct hl_device *hdev, u32 port)
 
 static void gaudi3_nic_config_hw_qpc_fw(struct hl_device *hdev, u32 port)
 {
-	NIC_WREG32(mmD0_NIC0_QPC_AXI_PROT, 0);
+	NIC_WREG32(mmD0_NIC0_QPC_BASE + mmNIC_QPC_AXI_PROT, 0);
 
 	/* QP checkers and cfg bits reside in CFG7 and CFG8 and all should be enabled */
-	NIC_WREG32(mmD0_NIC0_QPC_QP_UPDATE_ERR_CFG7,
+	NIC_WREG32(mmD0_NIC0_QPC_BASE + mmNIC_QPC_QP_UPDATE_ERR_CFG7,
 			(1 << NIC_QPC_QP_UPDATE_ERR_CFG7_DB_SEC_CHECK_EN_S) |
 			(1 << NIC_QPC_QP_UPDATE_ERR_CFG7_DB_ASID_CHECK_EN_S) |
 			(1 << NIC_QPC_QP_UPDATE_ERR_CFG7_DB_PI_EX_WQ_SIZE_CHECK_EN_S) |
@@ -225,7 +228,7 @@ static void gaudi3_nic_config_hw_qpc_fw(struct hl_device *hdev, u32 port)
 			(1 << NIC_QPC_QP_UPDATE_ERR_CFG7_TX_REQ_WQ_TYPE_ERR_SET_S) |
 			(1 << NIC_QPC_QP_UPDATE_ERR_CFG7_TX_REQ_QPC_VLD_ERR_SET_S));
 
-	NIC_WREG32(mmD0_NIC0_QPC_QP_UPDATE_ERR_CFG8,
+	NIC_WREG32(mmD0_NIC0_QPC_BASE + mmNIC_QPC_QP_UPDATE_ERR_CFG8,
 			(1 << NIC_QPC_QP_UPDATE_ERR_CFG8_BBR_SEC_CHECK_EN_S) |
 			(1 << NIC_QPC_QP_UPDATE_ERR_CFG8_BBR_ASID_CHECK_EN_S) |
 			(1 << NIC_QPC_QP_UPDATE_ERR_CFG8_BBR_QPC_VALID_CHECK_EN_S) |
@@ -260,7 +263,7 @@ static void gaudi3_nic_config_hw_qpc_fw(struct hl_device *hdev, u32 port)
 	 * In order to bypass the above check we need to configure the NIC LBW access level to be
 	 * secured unprivileged.
 	 */
-	NIC_RMWREG32(mmD0_NIC0_QPC_LBW_PROT, 0, NIC_QPC_LBW_PROT_INTERRUPT_M);
+	NIC_RMWREG32(mmD0_NIC0_QPC_BASE + mmNIC_QPC_LBW_PROT, 0, NIC_QPC_LBW_PROT_INTERRUPT_M);
 
 	/* ECO H9-5216 - solves performance issue for single QP, the ECO can be disabled through
 	 * a BFE parameter. The burst size is the same as we configure in QPC.
@@ -276,7 +279,7 @@ static void gaudi3_nic_config_hw_txe_fw(struct hl_device *hdev, u32 port)
 	 * by setting NIC0_TXE_WQE_CHECK_EN_RDV_WR_RD_SIZE_ZERO_EN_S bit.
 	 * This will avoid the hang and fail gracefully.
 	 */
-	NIC_WREG32(mmD0_NIC0_TXE_WQE_CHECK_EN,
+	NIC_WREG32(mmD0_NIC0_TXE_BASE + mmNIC_TXE_WQE_CHECK_EN,
 		(1 << NIC_TXE_WQE_CHECK_EN_WRITE_VALID_OPCODE_EN_S) |
 		(1 << NIC_TXE_WQE_CHECK_EN_RDV_VALID_OPCODE_EN_S) |
 		(1 << NIC_TXE_WQE_CHECK_EN_READ_VALID_OPCODE_EN_S) |
@@ -304,7 +307,7 @@ static void gaudi3_nic_config_hw_txe_fw(struct hl_device *hdev, u32 port)
 		(0 << NIC_TXE_WQE_CHECK_EN_CONVERT_BAD_ALIGN_EN_S) |
 		(0 << NIC_TXE_WQE_CHECK_EN_RSVD_S));
 
-	NIC_WREG32(mmD0_NIC0_TXE_WQE_CHECK_EN2,
+	NIC_WREG32(mmD0_NIC0_TXE_BASE + mmNIC_TXE_WQE_CHECK_EN2,
 		(0 << NIC_TXE_WQE_CHECK_EN2_RSVD_S) |
 		(0 << NIC_TXE_WQE_CHECK_EN2_WQE_SENT_OVERFLOW_EN_S) |
 		(1 << NIC_TXE_WQE_CHECK_EN2_MIN_LOCAL_WQ_LOG_SIZE_ERR_S) |
@@ -321,23 +324,28 @@ static void gaudi3_nic_config_hw_txe_fw(struct hl_device *hdev, u32 port)
 		(0 << NIC_TXE_WQE_CHECK_EN2_TUNNEL_MAX_SIZE_ERR_S));
 
 
-	NIC_WREG32(mmD0_NIC0_TXE_WQE_CHECK_QPC_OPC_WR_WQ_TYPE_ERR, (u32) ~WQ_WR_VALID_WQE_OPCODES);
-	NIC_WREG32(mmD0_NIC0_TXE_WQE_CHECK_QPC_OPC_RD_WQ_TYPE_ERR, (u32) ~WQ_RD_VALID_WQE_OPCODES);
+	NIC_WREG32(mmD0_NIC0_TXE_BASE + mmNIC_TXE_WQE_CHECK_QPC_OPC_WR_WQ_TYPE_ERR,
+						(u32) ~WQ_WR_VALID_WQE_OPCODES);
+	NIC_WREG32(mmD0_NIC0_TXE_BASE + mmNIC_TXE_WQE_CHECK_QPC_OPC_RD_WQ_TYPE_ERR,
+					(u32) ~WQ_RD_VALID_WQE_OPCODES);
 
 	/* invalid WQE opcode bit map for WQ type RDV */
-	NIC_WREG32(mmD0_NIC0_TXE_WQE_CHECK_CFG6, (u32) ~WQ_RDV_VALID_WQE_OPCODES);
+	NIC_WREG32(mmD0_NIC0_TXE_BASE + mmNIC_TXE_WQE_CHECK_CFG6, (u32) ~WQ_RDV_VALID_WQE_OPCODES);
 	/* H9-5500 : HW blocks remote log sizes which are equal to MIN_REMOTE_LOG_SIZE, therefore
 	 * the value set below is actually 1 less than the actual minimum.
 	 */
-	NIC_RMWREG32(mmD0_NIC0_TXE_WQE_CHECK_CFG7,
+	NIC_RMWREG32(mmD0_NIC0_TXE_BASE + mmNIC_TXE_WQE_CHECK_CFG7,
 			3, NIC_TXE_WQE_CHECK_CFG7_MIN_REMOTE_LOG_SIZE_M);
 
-	NIC_WREG32(mmD0_NIC0_TXE_WQE_CHECK_WQE_OPCODE_ERR, (u32) ~VALID_WQE_OPCODES);
-	NIC_WREG32(mmD0_NIC0_TXE_WQE_CHECK_UPSCALE_ERR, (u32) ~UPSCALE_VALID_WQE_OPCODES);
-	NIC_WREG32(mmD0_NIC0_TXE_WQE_CHECK_PLAIN_RDMA_ERR, (u32) ~PLAIN_RDMA_VALID_WQE_OPCODES);
+	NIC_WREG32(mmD0_NIC0_TXE_BASE + mmNIC_TXE_WQE_CHECK_WQE_OPCODE_ERR,
+						(u32) ~VALID_WQE_OPCODES);
+	NIC_WREG32(mmD0_NIC0_TXE_BASE + mmNIC_TXE_WQE_CHECK_UPSCALE_ERR,
+					(u32) ~UPSCALE_VALID_WQE_OPCODES);
+	NIC_WREG32(mmD0_NIC0_TXE_BASE + mmNIC_TXE_WQE_CHECK_PLAIN_RDMA_ERR,
+					(u32) ~PLAIN_RDMA_VALID_WQE_OPCODES);
 
-	NIC_WREG32(mmD0_NIC0_TXE_WQE_CHECK_CONST4, 16);
-	NIC_WREG32(mmD0_NIC0_TXE_WQE_CHECK_CONST3, 28);
+	NIC_WREG32(mmD0_NIC0_TXE_BASE + mmNIC_TXE_WQE_CHECK_CONST4, 16);
+	NIC_WREG32(mmD0_NIC0_TXE_BASE + mmNIC_TXE_WQE_CHECK_CONST3, 28);
 
 	/* This cfg is added to reject any ethernet packet which is not within the range
 	 * defined here. The hardware registers were actually put in place for a different
@@ -345,12 +353,12 @@ static void gaudi3_nic_config_hw_txe_fw(struct hl_device *hdev, u32 port)
 	 * minimum value on to the max value register and max value onto the min value
 	 * register.
 	 */
-	NIC_WREG32(mmD0_NIC0_TXE_WQE_CHECK_CFG4, NIC_MAX_FRM_LEN);
-	NIC_WREG32(mmD0_NIC0_TXE_WQE_CHECK_CFG5, ETH_ZLEN);
+	NIC_WREG32(mmD0_NIC0_TXE_BASE + mmNIC_TXE_WQE_CHECK_CFG4, NIC_MAX_FRM_LEN);
+	NIC_WREG32(mmD0_NIC0_TXE_BASE + mmNIC_TXE_WQE_CHECK_CFG5, ETH_ZLEN);
 
 	/* configure read/write wqe transaction on AXI bus to be secured */
-	NIC_WREG32(mmD0_NIC0_TXE_WQE_FETCH_AXI_PROT_UNSEC, SECURED_LVL);
-	NIC_WREG32(mmD0_NIC0_QPC_WQE_MEM_WRITE_AXI_PROT, 0);
+	NIC_WREG32(mmD0_NIC0_TXE_BASE + mmNIC_TXE_WQE_FETCH_AXI_PROT_UNSEC, SECURED_LVL);
+	NIC_WREG32(mmD0_NIC0_QPC_BASE + mmNIC_QPC_WQE_MEM_WRITE_AXI_PROT, 0);
 
 	/* H9-5457: ECO to solve daedlock in SACK, enabled by default, but can be disabled
 	 * through a BFE.
@@ -394,7 +402,7 @@ static void gaudi3_nic_set_rx_drop_eco_fw(struct hl_nic_macro *nic_macro)
 	NIC_RMWREG32(mmD0_NIC0_RXB_CORE_SPECIAL_BASE + mmNIC_RXB_CORE_SPECIAL_GLBL_SPARE_0,
 			rxb_disable_eco, NIC_RXB_CORE_SPECIAL_GLBL_SPARE_0_ECO_5384_DISABLE_M);
 
-	NIC_RMWREG32(mmD0_NIC0_RXE_QPC_CHECKS_EN, qpc_res_rkey_check_en,
+	NIC_RMWREG32(mmD0_NIC0_RXE_BASE + mmNIC_RXE_QPC_CHECKS_EN, qpc_res_rkey_check_en,
 			NIC_RXE_QPC_CHECKS_EN_QPC_RES_RKEY_INV_M);
 }
 
@@ -454,7 +462,7 @@ int gaudi3_nic_disable_wqe_index_checker_fw(struct hl_nic_port *nic_port)
 	if (!(hdev->fw_components & FW_TYPE_BOOT_CPU)) {
 		hdev->asic_funcs->set_priv_assertions(hdev, false);
 
-		NIC_RMWREG32(mmD0_NIC0_RXE_WQE_CHECKS_EN, 0,
+		NIC_RMWREG32(mmD0_NIC0_RXE_BASE + mmNIC_RXE_WQE_CHECKS_EN, 0,
 			NIC_RXE_WQE_CHECKS_EN_WQE_IDX_MISMATCH_M);
 
 		hdev->asic_funcs->set_priv_assertions(hdev, true);
@@ -486,7 +494,7 @@ void gaudi3_nic_restore_dynamic_cfg_soft_reset_fw(struct hl_device *hdev)
 		if (!gaudi3_nic_is_macro_enabled(hdev, nic_macro))
 			continue;
 
-		NIC_RMWREG32(mmD0_NIC0_RXE_WQE_CHECKS_EN, 1,
+		NIC_RMWREG32(mmD0_NIC0_RXE_BASE + mmNIC_RXE_WQE_CHECKS_EN, 1,
 				NIC_RXE_WQE_CHECKS_EN_WQE_IDX_MISMATCH_M);
 	}
 }
@@ -623,7 +631,7 @@ void gaudi3_nic_override_phy_readiness_pldm(struct hl_nic_port *nic_port, bool s
 		if (set_ready)
 			val = PRT_MAC_AUX_PHY_SIG_DETECT_OVRD_SIG_DETECT_ASSERT_M;
 
-		NIC_WREG32(mmD0_NIC0_MAC_AUX_PHY_SIG_DETECT_OVRD, val);
+		NIC_WREG32(mmD0_NIC0_MAC_AUX_BASE + mmPRT_MAC_AUX_PHY_SIG_DETECT_OVRD, val);
 	} else if (hdev->nic_lanes_per_port == PORT_LANES_2) {
 		gaudi3 = hdev->asic_specific;
 
@@ -631,7 +639,8 @@ void gaudi3_nic_override_phy_readiness_pldm(struct hl_nic_port *nic_port, bool s
 			val = 0x3;
 
 		enable_mask = 0x3 << get_lane_offset(&gaudi3->nic_ports[port]);
-		NIC_RMWREG32(mmD0_NIC0_MAC_AUX_PHY_SIG_DETECT_OVRD, val, enable_mask);
+		NIC_RMWREG32(mmD0_NIC0_MAC_AUX_BASE + mmPRT_MAC_AUX_PHY_SIG_DETECT_OVRD,
+						val, enable_mask);
 	}
 
 	hdev->asic_funcs->set_priv_assertions(hdev, true);
