@@ -56,6 +56,12 @@
 #define SPECIAL_MEM_ECC_ERR_STS_DERR_S	VDEC_CTRL_SPECIAL_MEM_ECC_ERR_STS_DERR_S
 #define SPECIAL_MEM_ECC_ERR_STS_DERR_M	VDEC_CTRL_SPECIAL_MEM_ECC_ERR_STS_DERR_M
 
+/* Common MSTR_IF_AXPROT definitions (HBW/LBW/ARPPROT/AWPROT defines are identical) */
+#define MSTR_IF_AXPROT_0_OVRD_OVRD_EN_M	MSTR_IF_AXPROT_LBW_ARPROT_0_OVRD_OVRD_EN_M
+#define MSTR_IF_AXPROT_0_OVRD_VAL_M	MSTR_IF_AXPROT_LBW_ARPROT_0_OVRD_VAL_M
+#define MSTR_IF_AXPROT_1_OVRD_OVRD_EN_M	MSTR_IF_AXPROT_LBW_ARPROT_1_OVRD_OVRD_EN_M
+#define MSTR_IF_AXPROT_1_OVRD_VAL_M	MSTR_IF_AXPROT_LBW_ARPROT_1_OVRD_VAL_M
+
 /* A DUMMY block isn't a regular block, but in fact a block with a manually
  * configured block response, and used by PCIE 'Fabric Serialization' feature.
  * Although listed in SOL, it has no 'specs' record associated to it.
@@ -2166,30 +2172,30 @@ static void gaudi3_enable_ptw_bypass(struct hl_device *hdev)
 static void gaudi3_init_sm_axprot_overrides(struct hl_device *hdev)
 {
 	struct asic_fixed_properties *props = &hdev->asic_prop;
-	u32 reg_base, reg_val;
+	u32 reg_base, axprot_0_ovrd, axprot_1_ovrd;
 	int i;
+
+	/* non-privileged: AXPROT[0] = 0 */
+	axprot_0_ovrd = FIELD_PREP(MSTR_IF_AXPROT_0_OVRD_OVRD_EN_M, 0x1) |
+			FIELD_PREP(MSTR_IF_AXPROT_0_OVRD_VAL_M, 0x0);
+
+	/* non-secure: AXPROT[1] = 1 */
+	axprot_1_ovrd = FIELD_PREP(MSTR_IF_AXPROT_1_OVRD_OVRD_EN_M, 0x1) |
+			FIELD_PREP(MSTR_IF_AXPROT_1_OVRD_VAL_M, 0x1);
 
 	/* Override is for hdcores 1 to last, i.e. excluding 0 */
 	for (i = 1 ; i < props->num_of_hdcores ; ++i) {
+		reg_base = mmHD0_SYNC_MNGR_MSTR_IF_AXPROT_HBW_BASE + i * HDCORE_OFFSET;
+		WREG32(reg_base + mmMSTR_IF_AXPROT_HBW_ARPROT_0_OVRD, axprot_0_ovrd);
+		WREG32(reg_base + mmMSTR_IF_AXPROT_HBW_ARPROT_1_OVRD, axprot_1_ovrd);
+		WREG32(reg_base + mmMSTR_IF_AXPROT_HBW_AWPROT_0_OVRD, axprot_0_ovrd);
+		WREG32(reg_base + mmMSTR_IF_AXPROT_HBW_AWPROT_1_OVRD, axprot_1_ovrd);
+
 		reg_base = mmHD0_SYNC_MNGR_MSTR_IF_AXPROT_LBW_BASE + i * HDCORE_OFFSET;
-
-		/* Val = 0 => non privileged */
-		reg_val = FIELD_PREP(MSTR_IF_AXPROT_LBW_ARPROT_0_OVRD_OVRD_EN_M, 0x1) |
-				FIELD_PREP(MSTR_IF_AXPROT_LBW_ARPROT_0_OVRD_VAL_M, 0x0);
-		WREG32(reg_base + mmMSTR_IF_AXPROT_LBW_ARPROT_0_OVRD, reg_val);
-
-		reg_val = FIELD_PREP(MSTR_IF_AXPROT_LBW_AWPROT_0_OVRD_OVRD_EN_M, 0x1) |
-				FIELD_PREP(MSTR_IF_AXPROT_LBW_AWPROT_0_OVRD_VAL_M, 0x0);
-		WREG32(reg_base + mmMSTR_IF_AXPROT_LBW_AWPROT_0_OVRD, reg_val);
-
-		/* Val = 1 => non secure */
-		reg_val = FIELD_PREP(MSTR_IF_AXPROT_LBW_ARPROT_1_OVRD_OVRD_EN_M, 0x1) |
-				FIELD_PREP(MSTR_IF_AXPROT_LBW_ARPROT_1_OVRD_VAL_M, 0x1);
-		WREG32(reg_base + mmMSTR_IF_AXPROT_LBW_ARPROT_1_OVRD, reg_val);
-
-		reg_val = FIELD_PREP(MSTR_IF_AXPROT_LBW_AWPROT_1_OVRD_OVRD_EN_M, 0x1) |
-				FIELD_PREP(MSTR_IF_AXPROT_LBW_AWPROT_1_OVRD_VAL_M, 0x1);
-		WREG32(reg_base + mmMSTR_IF_AXPROT_LBW_AWPROT_1_OVRD, reg_val);
+		WREG32(reg_base + mmMSTR_IF_AXPROT_LBW_ARPROT_0_OVRD, axprot_0_ovrd);
+		WREG32(reg_base + mmMSTR_IF_AXPROT_LBW_ARPROT_1_OVRD, axprot_1_ovrd);
+		WREG32(reg_base + mmMSTR_IF_AXPROT_LBW_AWPROT_0_OVRD, axprot_0_ovrd);
+		WREG32(reg_base + mmMSTR_IF_AXPROT_LBW_AWPROT_1_OVRD, axprot_1_ovrd);
 	}
 }
 

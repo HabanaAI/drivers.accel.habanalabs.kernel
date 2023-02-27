@@ -41,6 +41,7 @@
 #include "pcie_wrap_dbi_gw_m1_regs.h"
 #include "rotator_regs.h"
 #include "rotator_desc_regs.h"
+#include "mstr_if_axprot_hbw_regs.h"
 #include "mstr_if_axprot_lbw_regs.h"
 #include "mstr_if_axcache_hbw_regs.h"
 #include "mstr_if_xresp_lbw_regs.h"
