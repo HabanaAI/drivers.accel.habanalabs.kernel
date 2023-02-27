@@ -301,6 +301,10 @@ static void gaudi2_nic_eq_dispatcher_default_handler(struct gaudi2_nic_port *gau
 			gaudi2_nic->cong_q_err_cnt++;
 			dev_dbg_ratelimited(hdev->dev, "Port-%d congestion error event\n", port);
 			break;
+		case EQE_QP_ALIGN_COUNTERS:
+			dev_warn_ratelimited(hdev->dev, "Port-%d QP align counters event, for invalid QP:%d\n",
+						port, EQE_SW_EVENT_QPN(&eqe));
+			break;
 		default:
 			dev_warn_ratelimited(hdev->dev, "Port-%d unsupported event type: %d",
 					port, event_type);
@@ -728,6 +732,10 @@ struct hl_nic_ev_dq *gaudi2_nic_eq_dispatcher_select_dq(
 	case EQE_CONG:
 		ccqn = EQE_CQ_EVENT_CCQ_NUM(eqe);
 		dq = hl_nic_ccqn_to_dq(ev_dqs, ccqn, gaudi2_nic->hdev);
+		break;
+	case EQE_QP_ALIGN_COUNTERS:
+		qpn = EQE_SW_EVENT_QPN(eqe);
+		dq = hl_nic_qpn_to_dq(ev_dqs, qpn);
 		break;
 	case EQE_CONG_ERR:
 		fallthrough;

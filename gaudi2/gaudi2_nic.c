@@ -4003,6 +4003,10 @@ static int gaudi2_eq_poll(struct hl_nic_port *nic_port, u32 asid, struct hl_nic_
 	case EQE_LINK_STATUS:
 		event->ev_type = HL_NIC_EQ_EVENT_TYPE_LINK_STATUS;
 		break;
+	case EQE_QP_ALIGN_COUNTERS:
+		event->ev_type = HL_NIC_EQ_EVENT_TYPE_QP_ALIGN_COUNTERS;
+		event->idx = EQE_SW_EVENT_QPN(&eqe);
+		break;
 	default:
 		/* if the event should not be reported to the user then return
 		 * as if no event was found
@@ -4629,6 +4633,7 @@ retry:
 	 * PSN to be sent out.
 	 */
 	if (NIC_IS_PSN_CYCLIC_BIG(ona_psn, nts_psn)) {
+		struct hl_nic_eqe eqe;
 		dev_info(hdev->dev, "Port %d QP %d in limited state. Applying fix.\n", port, qpn);
 
 		dev_dbg(hdev->dev, "ona_psn(%d) nts_psn(%d), bcc_psn(%d) bcs_psn(%d), consumer_idx(%d) execution_idx(%d). Retry_cnt %d\n",
@@ -4657,6 +4662,15 @@ retry:
 								qpn, true, true);
 		if (rc)
 			dev_err(hdev->dev, "Requester port %d QPC %d write failed\n", port, qpn);
+
+		eqe.data[0] = EQE_HEADER(true, EQE_QP_ALIGN_COUNTERS);
+		eqe.data[1] = qpn;
+
+		rc = hl_nic_eq_dispatcher_enqueue(nic_port, &eqe);
+		if (rc)
+			dev_err(hdev->dev, "port %d QPC %d failed dispatching EQ event %d\n",
+						port, qpn, EQE_QP_ALIGN_COUNTERS);
+
 	}
 }
 
