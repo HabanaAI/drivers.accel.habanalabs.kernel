@@ -3248,6 +3248,12 @@ static int gaudi3_user_set_app_params(struct hl_device *hdev,
 
 	port = in->port;
 	nic_port = &hdev->nic.nic_ports[port];
+
+	if (nic_port->set_app_params) {
+		dev_dbg(hdev->dev, "App params were already set, port %d\n", port);
+		return -EPERM;
+	}
+
 	gaudi3_nic = nic_port->nic_specific;
 	gaudi3_nic->advanced = in->advanced;
 	gaudi3_macro = nic_port->nic_macro->asic_priv;

@@ -87,8 +87,6 @@
 
 #define NIC_MAX_NON_SCALE_OUT_COLL_CONNS	128
 
-#define NIC_GAUDI1_SET_APP_PARAM		0xff
-
 extern struct hl_en_stat hl_nic_mac_fec_stats[];
 extern struct hl_en_stat hl_nic_mac_stats_rx[];
 extern struct hl_en_stat hl_nic_mac_stats_tx[];

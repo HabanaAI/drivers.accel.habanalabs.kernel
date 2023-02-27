@@ -110,6 +110,7 @@ static_assert(NIC_MAX_QP_NUM <= NIC_HW_MAX_QP_NUM);
 
 #define USER_CQ_MIN_ENTRIES		(1 << 10)
 #define USER_CQ_MAX_ENTRIES		(1 << 27)
+#define SET_APP_PARAM_MASK		0xff
 
 #define WQE_MAX_SIZE			max(NIC_SEND_WQE_SIZE, NIC_RECV_WQE_SIZE)
 #define USER_WQES_MIN_NUM		(1 << 4)

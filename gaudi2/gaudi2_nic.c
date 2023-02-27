@@ -2925,8 +2925,13 @@ static int gaudi2_user_set_app_params(struct hl_device *hdev,
 	u32 port = in->port, bp_offs_fw, bp_offs_qman, encap_id, wtd_config;
 
 	nic_port = &hdev->nic.nic_ports[port];
-	gaudi2_nic = nic_port->nic_specific;
 
+	if (nic_port->set_app_params) {
+		dev_dbg(hdev->dev, "App params were already set, port %d\n", port);
+		return -EPERM;
+	}
+
+	gaudi2_nic = nic_port->nic_specific;
 	gaudi2_nic->advanced = in->advanced;
 
 	/* Enable\disable advanced operations */

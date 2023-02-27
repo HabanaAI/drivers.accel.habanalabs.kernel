@@ -1555,6 +1555,16 @@ static int gaudi_user_set_app_params(struct hl_device *hdev,
 	u32 port = in->port;
 
 	nic_port = &hdev->nic.nic_ports[port];
+
+	/* set_app_params can be either true or SET_APP_PARAM_MASK. We want to allow
+	 * a user on Gaudi1, call explicitly for user_set_app_params. While it is not mandatory
+	 * for Gaudi1. Hence we added a special value for it.
+	 */
+	if (nic_port->set_app_params && (nic_port->set_app_params != SET_APP_PARAM_MASK)) {
+		dev_dbg(hdev->dev, "App params were already set, port %d\n", port);
+		return -EPERM;
+	}
+
 	gaudi_nic = nic_port->nic_specific;
 
 	gaudi_nic->advanced = in->advanced;
@@ -1829,7 +1839,7 @@ static int gaudi_nic_ctx_init(struct hl_ctx *ctx)
 		 * that set_app_params was called. We should keep it that way but meanwhile
 		 * allow explicit call to set_app_params ioctl. Hence, use a special value for it.
 		 */
-		nic_port->set_app_params = NIC_GAUDI1_SET_APP_PARAM;
+		nic_port->set_app_params = SET_APP_PARAM_MASK;
 	}
 
 	return 0;
