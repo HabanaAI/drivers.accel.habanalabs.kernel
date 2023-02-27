@@ -265,16 +265,20 @@ static int gaudi2_simulator_mmap(struct file *filp, struct vm_area_struct *vma)
 static int gaudi2_simulator_gen_int_ioctl(struct hl_simulator_device *edev, void *data)
 {
 	struct simulator_gen_int_args *args = data;
+	struct gaudi2_sni_aux_ops *gaudi2_aux_ops;
 	struct hl_user_interrupt *user_interrupt;
 	struct hl_device *hdev = edev->hdev;
-	struct gaudi2_nic_port *gaudi2_nic;
 	int nic_eq_interrupt, int_idx;
 	struct gaudi2_device *gaudi2;
+	struct hl_aux_dev *aux_dev;
 	struct hl_dec *dec;
 	struct hl_cq *cq;
 	u32 relative_idx;
 
 	gaudi2 = hdev->asic_specific;
+	aux_dev = &hdev->nic.sni_aux_dev;
+	gaudi2_aux_ops = &gaudi2->sni_aux_ops;
+
 	if (args->id >= GAUDI2_MSIX_ENTRIES) {
 		dev_err(edev->dev, "interrupt id %d invalid", args->id);
 		return -EINVAL;
@@ -317,8 +321,9 @@ static int gaudi2_simulator_gen_int_ioctl(struct hl_simulator_device *edev, void
 			args->id <= GAUDI2_IRQ_NUM_NIC_PORT_LAST) {
 
 		nic_eq_interrupt = args->id - GAUDI2_IRQ_NUM_NIC_PORT_FIRST;
-		gaudi2_nic = &gaudi2->nic_ports[nic_eq_interrupt];
-		gaudi2_nic_eq_irq_handler(nic_eq_interrupt, gaudi2_nic);
+
+		if (gaudi2_aux_ops->eq_irq_handler)
+			gaudi2_aux_ops->eq_irq_handler(aux_dev, nic_eq_interrupt);
 
 	} else if (args->id >= GAUDI2_IRQ_NUM_USER_FIRST && args->id <= GAUDI2_IRQ_NUM_USER_LAST) {
 
@@ -1126,7 +1131,6 @@ static int gaudi2_sim_cpucp_info_get(struct hl_device *hdev)
 static int gaudi2_sim_sw_init(struct hl_device *hdev)
 {
 	struct asic_fixed_properties *prop = &hdev->asic_prop;
-	struct hl_nic *nic = &hdev->nic;
 	struct gaudi2_device *gaudi2;
 	int rc;
 
@@ -1136,7 +1140,6 @@ static int gaudi2_sim_sw_init(struct hl_device *hdev)
 		return -ENOMEM;
 
 	gaudi2->cpucp_info_get = gaudi2_sim_cpucp_info_get;
-	gaudi2->flush_db_fifo = true;
 
 	hdev->asic_specific = gaudi2;
 
@@ -1159,21 +1162,6 @@ static int gaudi2_sim_sw_init(struct hl_device *hdev)
 		goto free_virt_msix_db_mem;
 	}
 
-	rc = hl_nic_sw_init(hdev);
-	if (rc) {
-		dev_err(hdev->dev, "Failed to init NIC S/W\n");
-		rc = -ENOMEM;
-		goto free_scratchpad_mem;
-	}
-
-	nic->phy_load_fw = 0;
-	nic->phy_config_fw = 0;
-	nic->debugfs_reset = false;
-	nic->cq_arm_timeout = CQ_ARM_TIMEOUT_USEC;
-	nic->skip_mac_reset = true;
-	nic->skip_mac_cnts = true;
-	nic->skip_cq_arm_timeout = true;
-
 	gaudi2_user_mapped_blocks_init(hdev);
 
 	/* Initialize user interrupts */
@@ -1189,7 +1177,7 @@ static int gaudi2_sim_sw_init(struct hl_device *hdev)
 
 	rc = gaudi2_special_blocks_iterator_config(hdev);
 	if (rc)
-		goto nic_sw_fini;
+		goto free_scratchpad_mem;
 
 	rc = gaudi2_test_queues_msgs_alloc(hdev);
 	if (rc)
@@ -1199,8 +1187,7 @@ static int gaudi2_sim_sw_init(struct hl_device *hdev)
 
 special_blocks_free:
 	gaudi2_special_blocks_iterator_free(hdev);
-nic_sw_fini:
-	hl_nic_sw_fini(hdev);
+
 free_scratchpad_mem:
 	hl_asic_dma_free_coherent(hdev, PAGE_SIZE, gaudi2->scratchpad_kernel_address,
 					gaudi2->scratchpad_bus_address);
@@ -1221,8 +1208,6 @@ static int gaudi2_sim_sw_fini(struct hl_device *hdev)
 	gaudi2_test_queues_msgs_free(hdev);
 
 	gaudi2_special_blocks_iterator_free(hdev);
-
-	hl_nic_sw_fini(hdev);
 
 	hl_asic_dma_free_coherent(hdev, PAGE_SIZE, gaudi2->scratchpad_kernel_address,
 					gaudi2->scratchpad_bus_address);

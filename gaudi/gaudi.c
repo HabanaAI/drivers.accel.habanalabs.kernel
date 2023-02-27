@@ -722,7 +722,6 @@ int gaudi_set_fixed_properties(struct hl_device *hdev)
 	nic_prop->cqe_size = CQE_SIZE;
 	nic_prop->nic_qpc_cache_inv_timeout = hdev->pldm ?
 				NIC_PLDM_QPC_INV_USEC : NIC_QPC_INV_USEC;
-	prop->nic_props.phy_base_addr = mmNIC0_PHY_BASE - CFG_BASE;
 	prop->nic_props.macro_cfg_size = mmNIC1_QM0_GLBL_CFG0 -
 						mmNIC0_QM0_GLBL_CFG0;
 	prop->nic_props.base_status_event_idx = GAUDI_EVENT_STATUS_NIC0_ENG0;
@@ -2036,12 +2035,6 @@ static int gaudi_sw_init(struct hl_device *hdev)
 		goto free_internal_qmans_pq_mem;
 	}
 
-	rc = hl_nic_sw_init(hdev);
-	if (rc) {
-		dev_err(hdev->dev, "Failed to init NIC S/W\n");
-		goto free_fetch_mem_ranges;
-	}
-
 	spin_lock_init(&gaudi->hw_queues_lock);
 
 	hdev->supports_sync_stream = true;
@@ -2056,8 +2049,6 @@ static int gaudi_sw_init(struct hl_device *hdev)
 
 	return 0;
 
-free_fetch_mem_ranges:
-	gaudi_fetch_memory_ranges_fini(hdev);
 free_internal_qmans_pq_mem:
 	gaudi_free_internal_qmans_pq_mem(hdev);
 free_cpu_accessible_dma_pool:
@@ -2078,8 +2069,6 @@ free_gaudi_device:
 int gaudi_sw_fini(struct hl_device *hdev)
 {
 	struct gaudi_device *gaudi = hdev->asic_specific;
-
-	hl_nic_sw_fini(hdev);
 
 	gaudi_fetch_memory_ranges_fini(hdev);
 
@@ -2105,7 +2094,8 @@ irqreturn_t gaudi_irq_handler_single(int irq, void *arg)
 {
 	struct hl_device *hdev = arg;
 	struct gaudi_device *gaudi = hdev->asic_specific;
-	struct gaudi_en_aux_ops *aux_ops = &gaudi->en_aux_ops;
+	struct gaudi_sni_aux_ops *aux_ops = &gaudi->sni_aux_ops;
+	struct hl_aux_dev *aux_dev = &hdev->nic.sni_aux_dev;
 	int i;
 
 	if (hdev->disabled)
@@ -2114,17 +2104,16 @@ irqreturn_t gaudi_irq_handler_single(int irq, void *arg)
 	for (i = 0 ; i < hdev->asic_prop.completion_queues_count ; i++)
 		hl_irq_handler_cq(irq, &hdev->completion_queue[i]);
 
-	/* This function pointer is initialized only by the Ethernet driver if it is used in
-	 * interrupt mode, but polling mode is its default mode.
+	/* These function pointers are initialized by the core driver if it is used in interrupt
+	 * mode, but polling mode is its default mode.
 	 */
 	if (unlikely(aux_ops->rx_irq_handler))
 		for (i = 0 ; i < NIC_NUMBER_OF_PORTS ; i++)
 			if (hdev->nic_ports_mask & BIT(i))
-				aux_ops->rx_irq_handler(&hdev->nic.en_aux_dev, i);
+				aux_ops->rx_irq_handler(aux_dev, i);
 
-	/* NIC polling is used by default due to single MSI mode */
-	if (unlikely(!hdev->nic_poll_enable))
-		gaudi_nic_cq_irq_handler(irq, hdev);
+	if (unlikely(aux_ops->cq_irq_handler))
+		aux_ops->cq_irq_handler(aux_dev, irq);
 
 	hl_irq_handler_eq(irq, &hdev->event_queue);
 
@@ -8370,8 +8359,7 @@ void gaudi_handle_eqe(struct hl_device *hdev, struct hl_eq_entry *eq_entry)
 
 	case GAUDI_EVENT_STATUS_NIC0_ENG0 ... GAUDI_EVENT_STATUS_NIC4_ENG1:
 		/* the unmask packet will be sent after sending the status */
-		hl_nic_send_status(hdev,
-				event_type - GAUDI_EVENT_STATUS_NIC0_ENG0, 0, 0);
+		hl_nic_send_status(hdev, event_type - GAUDI_EVENT_STATUS_NIC0_ENG0, 0, 0);
 		break;
 
 	case GAUDI_EVENT_FIX_POWER_ENV_S ... GAUDI_EVENT_FIX_THERMAL_ENV_E:
@@ -8973,8 +8961,11 @@ int gaudi_ctx_init(struct hl_ctx *ctx)
 {
 	int rc;
 
+	if (ctx->asid == HL_KERNEL_ASID_ID)
+		return 0;
+
 	rc = hl_nic_ctx_init(ctx);
-	if (rc || ctx->asid == HL_KERNEL_ASID_ID)
+	if (rc)
 		return rc;
 
 	rc = gaudi_internal_cb_pool_init(ctx->hdev, ctx);
@@ -8991,11 +8982,10 @@ int gaudi_ctx_init(struct hl_ctx *ctx)
 void gaudi_ctx_fini(struct hl_ctx *ctx)
 {
 	if (ctx->asid == HL_KERNEL_ASID_ID)
-		goto nic_ctx_fini;
+		return;
 
 	gaudi_internal_cb_pool_fini(ctx->hdev, ctx);
 
-nic_ctx_fini:
 	hl_nic_ctx_fini(ctx);
 }
 

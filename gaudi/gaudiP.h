@@ -8,8 +8,8 @@
 #ifndef GAUDIP_H_
 #define GAUDIP_H_
 
+#include <linux/habanalabs/gaudi/gaudi.h>
 #include <uapi/drm/habanalabs_accel.h>
-#include <linux/habanalabs/gaudi.h>
 #include "../common/habanalabs.h"
 #include "../include/common/hl_boot_if.h"
 #include "../include/gaudi/gaudi_packets.h"
@@ -353,44 +353,6 @@ struct gaudi_collective_properties {
 };
 
 /**
- * struct gaudi_nic_port - manage specific NIC port.
- * @hdev: habanalabs device structure.
- * @nic_port: pointer to the common NIC port structure.
- * @rx_mem: memory resource for RX.
- * @qp_err_mem: memory resource for QP error.
- * @cq_overrun_work: work for checking for CQ overrun.
- * @cfg_lock: serializes the port configuration.
- * @tx_swq_mem_device_va: device virtual address of Tx SWQ memory.
- * @user_cq_va: device virtual address of the user CQ memory.
- * @qp_err_ci: next index of the QP error to fetch.
- * @advanced: true if advanced features are supported.
- */
-struct gaudi_nic_port {
-	struct hl_device *hdev;
-	struct hl_nic_port *nic_port;
-	struct hl_nic_mem_resource rx_mem;
-	struct hl_nic_mem_resource qp_err_mem;
-	struct delayed_work cq_overrun_work;
-	struct mutex cfg_lock;
-	u64 tx_swq_mem_device_va;
-	u64 user_cq_va;
-	u32 qp_err_ci;
-	u8 advanced;
-};
-
-/**
- * struct gaudi_nic_macro - Manage specific NIC macro.
- * @macro_cfg_lock: used to prevent simultaneous NIC MACRO configuration by its two port threads.
- * @active_ports: number of current active ports under this macro.
- *                only the first active port should configure the macro and the mac, so this will
- *                be done only in case this field is equal to zero (i.e. no current active ports).
- */
-struct gaudi_nic_macro {
-	struct mutex		macro_cfg_lock;
-	u8			active_ports;
-};
-
-/**
  * struct gaudi_internal_qman_info - Internal QMAN information.
  * @pq_kernel_addr: Kernel address of the PQ memory area in the host.
  * @pq_dma_addr: DMA address of the PQ memory area in the host.
@@ -405,17 +367,14 @@ struct gaudi_internal_qman_info {
 /**
  * struct gaudi_device - ASIC specific manage structure.
  * @cpucp_info_get: get information on device from CPU-CP.
- * @nic_ports: array that holds all NIC ports manage structures.
- * @nic_macros: array that holds all NIC macro manage structures.
- * @en_core_info: core info to be used by the Ethernet driver.
- * @en_aux_ops: functions for core <-> eth drivers communication.
+ * @sni_aux_ops: functions for sni <-> accel drivers communication.
+ * @sni_aux_data: data to be used by the sni driver.
  * @hw_queues_lock: protects the H/W queues from concurrent access.
  * @hw_queues_lock_mutex: used by simulator instead of hw_queues_lock.
  * @internal_qmans: Internal QMANs information. The array size is larger than
  *                  the actual number of internal queues because they are not in
  *                  consecutive order.
  * @hbm_bar_cur_addr: current address of HBM PCI bar.
- * @nic_auto_neg_mask: currently enabled Autoneg on specific NIC ports.
  * @events: array that holds all event id's
  * @events_stat: array that holds histogram of all received events.
  * @events_stat_aggregate: same as events_stat but doesn't get cleared on reset
@@ -426,14 +385,11 @@ struct gaudi_internal_qman_info {
  *                      engine.
  * @mmu_cache_inv_pi: PI for MMU cache invalidation flow. The H/W expects an
  *                    8-bit value so use u8.
- * @nic_cq_irq_enable: true if an interrupt was allocated for the NIC CQ.
  */
 struct gaudi_device {
 	int (*cpucp_info_get)(struct hl_device *hdev);
-	struct gaudi_nic_port nic_ports[NIC_NUMBER_OF_PORTS];
-	struct gaudi_nic_macro nic_macros[NIC_NUMBER_OF_MACROS];
-	struct gaudi_en_core_info en_core_info;
-	struct gaudi_en_aux_ops en_aux_ops;
+	struct gaudi_sni_aux_ops sni_aux_ops;
+	struct gaudi_sni_aux_data sni_aux_data;
 
 	/* TODO: remove hw_queues_lock after moving to scheduler code */
 	spinlock_t hw_queues_lock;
@@ -444,14 +400,12 @@ struct gaudi_device {
 	struct gaudi_collective_properties collective_props;
 
 	u64 hbm_bar_cur_addr;
-	u64 nic_auto_neg_mask;
 
 	u32 events[GAUDI_EVENT_SIZE];
 	u32 events_stat[GAUDI_EVENT_SIZE];
 	u32 events_stat_aggregate[GAUDI_EVENT_SIZE];
 	u32 hw_cap_initialized;
 	u8 mmu_cache_inv_pi;
-	u8 nic_cq_irq_enable;
 
 	/* parameters for bring-up */
 	u32 hbm_sdii_cnt;
@@ -637,13 +591,12 @@ void gaudi_set_priv_assertions(struct hl_device *hdev, bool enable);
 int gaudi_set_binning_masks(struct hl_device *hdev);
 
 /* NIC functions */
-irqreturn_t gaudi_nic_cq_irq_handler(int irq, void *arg);
 void gaudi_nic_handle_qp_err(struct hl_device *hdev, u16 event_type);
-void gaudi_nic_spmu_get_stats_info(struct hl_nic_port *nic_port, struct hl_en_stat **stats,
+void gaudi_nic_spmu_get_stats_info(struct hl_device *hdev, u32 port, struct hl_en_stat **stats,
 					u32 *n_stats);
-int gaudi_nic_spmu_config(struct hl_nic_port *nic_port, u32 num_event_types, u32 event_types[],
+int gaudi_nic_spmu_config(struct hl_device *hdev, u32 port, u32 num_event_types, u32 event_types[],
 				bool enable);
-int gaudi_nic_spmu_sample(struct hl_nic_port *nic_port, u32 num_out_data, u64 out_data[]);
+int gaudi_nic_spmu_sample(struct hl_device *hdev, u32 port, u32 num_out_data, u64 out_data[]);
 
 /* Bringup functions */
 void gaudi_init_pll(struct hl_device *hdev);

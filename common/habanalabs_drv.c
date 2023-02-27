@@ -60,7 +60,6 @@ static struct hl_pci_link_monitor hl_pci_mon;
 static int timeout_locked = HL_DEFAULT_TIMEOUT_LOCKED;
 static int reset_on_lockup = 1;
 static int memory_scrub;
-static int nic_poll_enable = 1;
 static ulong boot_error_status_mask = ULONG_MAX;
 
 /* Parameters that don't need bringup_flags_enable but are not upstreamed */
@@ -69,7 +68,6 @@ static int card_type = cpucp_card_type_pmc;
 static uint nic_ports_mask = GENMASK(23, 0);
 static uint nic_ports_ext_mask = GENMASK(23, 0);
 static uint nic_auto_neg_mask = GENMASK(23, 0);
-static uint nic_qp_drain_time = NIC_QP_DRAIN_TIME;
 static int ignore_fw_nic_info;
 static int nic_lanes_per_port = PORT_LANES_2;
 static int skip_iatu_for_unsecured_device;
@@ -104,6 +102,7 @@ static int bfe_hbm_ecc_enable = 1;
 static int bfe_compatibility_mode;
 static int bfe_hard_reset_on_fw_events = 1;
 static int bfe_bmc_enable = 1;
+/* TODO: SW-123246: move to SNI driver */
 static int bfe_nic_load_fw;
 static int bfe_rl_enable = 1;
 static int bfe_sram_binning;
@@ -125,6 +124,7 @@ static int bfe_fw_cfg_skip;
 static int bfe_bmu_enable = 1;
 static int bfe_nic_eth_on_internal;
 static int bfe_config_qman_arc_for_stub_mme;
+/* TODO: SW-123246: move to SNI driver */
 static int bfe_skip_nic_phy_init;
 /*
  * The debug_[rw]reg control on tracing LBW RW
@@ -169,24 +169,6 @@ static int bfe_nic_enable_h9_txe_buff_alloc_eco = 1;
 static int bfe_heartbeat_reset_enable = 1;
 static int bfe_glbl_errors_read_enable = 1;
 
-/* special-case of parameter handling - polling */
-static bool nic_poll_enable_param_was_set;
-
-static int nic_poll_param_set(const char *val, const struct kernel_param *kp)
-{
-	int rc = param_set_int(val, kp);
-
-	if (!rc)
-		nic_poll_enable_param_was_set = true;
-
-	return rc;
-}
-
-static const struct kernel_param_ops poll_cb_ops = {
-	.set = nic_poll_param_set,
-	.get = param_get_int,
-};
-
 /* module parameters */
 
 module_param(timeout_locked, int, 0444);
@@ -200,10 +182,6 @@ MODULE_PARM_DESC(reset_on_lockup,
 module_param(memory_scrub, int, 0444);
 MODULE_PARM_DESC(memory_scrub,
 	"Scrub device memory in various states (0 = no, 1 = yes, default no)");
-
-module_param_cb(nic_poll_enable, &poll_cb_ops, &nic_poll_enable, 0444);
-MODULE_PARM_DESC(nic_poll_enable,
-	"Enable NIC polling rather than IRQ (0 = no, 1 = yes, default yes)");
 
 module_param(boot_error_status_mask, ulong, 0444);
 MODULE_PARM_DESC(boot_error_status_mask,
@@ -237,10 +215,6 @@ MODULE_PARM_DESC(ignore_fw_nic_info,
 module_param(nic_lanes_per_port, uint, 0444);
 MODULE_PARM_DESC(nic_lanes_per_port,
 	"Number of lanes per NIC port (default 2)");
-
-module_param(nic_qp_drain_time, uint, 0444);
-MODULE_PARM_DESC(nic_qp_drain_time,
-	"NIC QP drain time in seconds after QP invalidation (default 2 Sec)");
 
 module_param(skip_iatu_for_unsecured_device, uint, 0444);
 MODULE_PARM_DESC(skip_iatu_for_unsecured_device,
@@ -1364,7 +1338,6 @@ static void copy_kernel_module_params_to_device(struct hl_device *hdev)
 	hdev->card_type = card_type;
 	hdev->memory_scrub = memory_scrub;
 	hdev->reset_on_lockup = reset_on_lockup;
-	hdev->nic_poll_enable = nic_poll_enable;
 	hdev->ignore_fw_nic_info = ignore_fw_nic_info;
 	hdev->nic_lanes_per_port = nic_lanes_per_port;
 	hdev->boot_error_status_mask = boot_error_status_mask;
@@ -1519,9 +1492,6 @@ static void fixup_device_params_per_asic(struct hl_device *hdev, int timeout)
 	case ASIC_GAUDI2B_SIM_ARC:
 	case ASIC_GAUDI2:
 	case ASIC_GAUDI2B:
-		if (!nic_poll_enable_param_was_set)
-			hdev->nic_poll_enable = false;
-
 		/* TODO: remove this workaround after f/w fix the boot bug which cause us
 		 * to fail on reading ELBI. I keep an option for the user to force not to skip
 		 * for any strange reason he might have.
@@ -1541,9 +1511,6 @@ static void fixup_device_params_per_asic(struct hl_device *hdev, int timeout)
 	case ASIC_GAUDI3_SIM:
 	case ASIC_GAUDI3_SIM_ARC:
 	case ASIC_GAUDI3:
-		if (!nic_poll_enable_param_was_set)
-			hdev->nic_poll_enable = false;
-
 		/* DRAM cannot be used if SRAM is enabled */
 		if (!hdev->cache_enable)
 			hdev->dram_enable = 0;
@@ -1640,7 +1607,6 @@ static int fixup_device_params(struct hl_device *hdev)
 	hdev->nic_ports_ext_mask = nic_ports_ext_mask & hdev->nic_ports_mask;
 	hdev->nic_auto_neg_mask = nic_auto_neg_mask & hdev->nic_ports_mask;
 
-	hdev->nic_qp_drain_time = nic_qp_drain_time;
 	/*
 	 * if security is enabled we cannot force driver reset.
 	 * in PLDM we'll work only with driver resets due to long latency

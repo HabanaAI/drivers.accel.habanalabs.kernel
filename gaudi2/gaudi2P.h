@@ -8,8 +8,8 @@
 #ifndef GAUDI2P_H_
 #define GAUDI2P_H_
 
+#include <linux/habanalabs/gaudi2/gaudi2.h>
 #include <uapi/drm/habanalabs_accel.h>
-#include <linux/habanalabs/gaudi2.h>
 #include "../common/habanalabs.h"
 #include "../include/common/hl_boot_if.h"
 #include "../include/gaudi2/gaudi2.h"
@@ -123,9 +123,6 @@
 
 #define NIC_NUMBER_OF_PORTS			NIC_NUMBER_OF_ENGINES
 #define NIC_MAX_NUM_OF_LANES			(NIC_NUMBER_OF_MACROS * NIC_MAC_LANES)
-#define NIC_CQS_NUM				2 /* For Raw and RDMA */
-#define NIC_EQ_ERR_SYNDROM			0
-#define NIC_MAX_QP_ERR_SYNDROMS			0x100
 
 #define GAUDI2_NIC_MAX_CQS_NUM			16
 
@@ -472,13 +469,6 @@ enum gaudi2_irq_num {
 
 static_assert(GAUDI2_IRQ_NUM_USER_FIRST > GAUDI2_IRQ_NUM_SHARED_DEC1_ABNRM);
 
-struct gaudi2_nic_port;
-
-/**
- * gaudi2_nic_eq_handler - definition of the event handler routine used for handling eq events.
- */
-typedef void (*gaudi2_nic_eq_handler)(struct gaudi2_nic_port *);
-
 /**
  * struct dup_block_ctx - context to initialize unit instances across multiple
  *                        blocks where block can be either a dcore of duplicated
@@ -502,78 +492,6 @@ struct dup_block_ctx {
 	u64 enabled_mask;
 	unsigned int blocks;
 	unsigned int instances;
-};
-
-/**
- * struct gaudi2_nic_port - manage specific NIC port.
- * @hdev: habanalabs device structure.
- * @nic_port: pointer to a common NIC device structure.
- * @fifo_ring: rings array for doorbell H/W interface.
- * @wq_ring: raw work queue ring.
- * @rx_ring: raw skb ring.
- * @cq_ring: ring array for the completion queue of raw/rdma packets.
- * @eq_ring: ring for the event queue.
- * @eq_work: EQ work for processing NIC events (e.g Tx completion).
- * @eq_handler: pointer to the EQ handler.
- * @qp_sanity_work: QPC sanity check worker.
- * @qp_sanity_wq: QPC sanity worker thread.
- * @txs_mem: TX scheduler host memory.
- * @req_qpc_mem: Requester QPC host memory.
- * @res_qpc_mem: Responder QPC host memory.
- * @cfg_lock: Serializes the port configuration.
- * @qp_destroy_lock: protects the MAC loopback switching for QP destroy flow.
- * @qp_destroy_cnt: number of QPs currently under destruction.
- * @min_qp_size: the size of the smallest QP.
- * @db_fifo_pi: DB fifo ring producer index.
- * @cong_q_err_cnt: error count of congestion queue error.
- * @qp_timeout_cnt: count of timeouts occurred on a port operating a QP.
- * @advanced: true if advanced features are supported.
- * @qp_destroy_mac_lpbk: port in is MAC loopback due to QP destroy flow.
- */
-struct gaudi2_nic_port {
-	struct hl_device	*hdev;
-	struct hl_nic_port	*nic_port;
-	struct hl_nic_ring	fifo_ring;
-	struct hl_nic_ring	wq_ring;
-	struct hl_nic_ring	rx_ring;
-	struct hl_nic_ring	cq_rings[NIC_CQS_NUM];
-	struct hl_nic_ring	eq_ring;
-
-	struct delayed_work	eq_work;
-	gaudi2_nic_eq_handler	eq_handler;
-
-	struct delayed_work	qp_sanity_work;
-	struct workqueue_struct	*qp_sanity_wq;
-
-	struct hl_nic_mem_resource	txs_mem;
-	struct hl_nic_mem_resource	req_qpc_mem;
-	struct hl_nic_mem_resource	res_qpc_mem;
-
-	struct mutex		cfg_lock;
-	struct mutex		qp_destroy_lock;
-
-	u32			qp_destroy_cnt;
-	u32			min_qp_size;
-	u32			db_fifo_pi;
-
-	u32			cong_q_err_cnt;
-	u32			qp_timeout_cnt;
-
-	u8			advanced;
-	u8			qp_destroy_mac_lpbk;
-};
-
-/**
- * struct gaudi2_nic_macro - Manage specific NIC macro.
- * @hdev: Habanalabs device structure.
- * @nic_macro: Generic NIC macro structure.
- * @tmr_mem: Timer host memory.
- */
-struct gaudi2_nic_macro {
-	struct hl_device		*hdev;
-	struct hl_nic_macro		*nic_macro;
-
-	struct hl_nic_mem_resource	tmr_mem;
 };
 
 /**
@@ -638,11 +556,8 @@ struct gaudi2_queues_test_info {
  * @events_stat: array that holds histogram of all received events.
  * @events_stat_aggregate: same as events_stat but doesn't get cleared on reset.
  * @num_of_valid_hw_events: used to hold the number of valid H/W events.
- * @nic_ports: array that holds all NIC ports manage structures.
- * @nic_macros: array that holds all NIC macro manage structures.
- * @en_core_info: core info to be used by the Ethernet driver.
- * @en_aux_ops: functions for core <-> eth drivers communication.
- * @flush_db_fifo: flag to force flush DB FIFO after a write.
+ * @sni_aux_ops: functions for core <-> accel drivers communication.
+ * @sni_aux_data: data to be used by the core driver.
  * @hbm_cfg: HBM subsystem settings
  * @hw_queues_lock_mutex: used by simulator instead of hw_queues_lock.
  * @queues_test_info: information used by the driver when testing the HW queues.
@@ -675,11 +590,8 @@ struct gaudi2_device {
 	u32				num_of_valid_hw_events;
 
 	/* NIC fields */
-	struct gaudi2_nic_port		nic_ports[NIC_NUMBER_OF_PORTS];
-	struct gaudi2_nic_macro		nic_macros[NIC_NUMBER_OF_MACROS];
-	struct gaudi2_en_core_info	en_core_info;
-	struct gaudi2_en_aux_ops	en_aux_ops;
-	u8				flush_db_fifo;
+	struct gaudi2_sni_aux_ops	sni_aux_ops;
+	struct gaudi2_sni_aux_data	sni_aux_data;
 
 	/* HBM fields */
 	enum gaudi2_hbm_freqs		hbm_pll_freq;
@@ -754,33 +666,15 @@ int gaudi2_send_device_activity(struct hl_device *hdev, bool open);
 
 /* Functions exported for NIC */
 void gaudi2_init_nic(struct hl_device *hdev);
-const char *gaudi2_nic_phy_get_fw_name(void);
-int gaudi2_nic_phy_init(struct hl_device *hdev);
-int gaudi2_nic_phy_fw_load_all(struct hl_device *hdev);
-u16 gaudi2_nic_phy_get_crc(struct hl_device *hdev);
-int gaudi2_nic_phy_port_init(struct hl_nic_port *nic_port);
-void gaudi2_nic_phy_port_start_stop(struct hl_nic_port *nic_port, bool is_start);
-int gaudi2_nic_phy_port_power_up(struct hl_nic_port *nic_port);
-void gaudi2_nic_phy_port_reconfig(struct hl_nic_port *nic_port);
-void gaudi2_nic_phy_port_fini(struct hl_nic_port *nic_port);
-int gaudi2_nic_phy_reset_macro(struct hl_nic_macro *nic_macro);
-void gaudi2_nic_phy_link_status_work(struct work_struct *work);
-void gaudi2_nic_phy_dump_serdes_params(struct hl_device *hdev, char *buf, size_t size);
-void gaudi2_nic_get_fw_lane_mapping(struct cpucp_nic_info *nic_info, struct hl_nic *nic);
-void gaudi2_nic_spmu_get_stats_info(struct hl_nic_port *nic_port, struct hl_en_stat **stats,
+void gaudi2_nic_spmu_get_stats_info(struct hl_device *hdev, u32 port, struct hl_en_stat **stats,
 					u32 *n_stats);
-int gaudi2_nic_spmu_config(struct hl_nic_port *nic_port, u32 num_event_types, u32 event_types[],
+int gaudi2_nic_spmu_config(struct hl_device *hdev, u32 port, u32 num_event_types, u32 event_types[],
 				bool enable);
-int gaudi2_nic_spmu_sample(struct hl_nic_port *nic_port, u32 num_out_data, u64 out_data[]);
+int gaudi2_nic_spmu_sample(struct hl_device *hdev, u32 port, u32 num_out_data, u64 out_data[]);
 void gaudi2_nic_disable_nics_interrupts(struct hl_device *hdev);
 void gaudi2_nic_quiescence(struct hl_device *hdev);
-void gaudi2_nic_get_mac_fec_stats(struct hl_nic_port *nic_port, u64 *data);
-irqreturn_t gaudi2_nic_eq_irq_handler(int irq, void *arg);
 void gaudi2_nic_compute_reset_prepare(struct hl_device *hdev);
 void gaudi2_nic_compute_reset_late_init(struct hl_device *hdev);
-void gaudi2_nic_eq_enter_temporal_polling_mode(struct hl_device *hdev);
-void gaudi2_nic_eq_exit_temporal_polling_mode(struct hl_device *hdev);
-void gaudi2_nic_phy_flush_link_status_work(struct hl_device *hdev);
 
 /* Functions exported for bring-up support */
 int gaudi2_init_pll(struct hl_device *hdev);
@@ -944,9 +838,6 @@ int gaudi2_set_engines(struct hl_device *hdev, u32 *engine_ids,
 int gaudi2_is_fw_ver_below_1_8(struct hl_device *hdev);
 
 /* Bringup functions (w/o F/W support) */
-int gaudi2_nic_config_wqe_asid(struct hl_nic_port *nic_port, u32 asid, bool set_asid);
-void gaudi2_nic_override_phy_readiness(struct hl_nic_port *nic_port, bool set_ready);
-int gaudi2_nic_disable_wqe_index_checker_fw(struct hl_nic_port *nic_port);
 void gaudi2_nic_quiescence_phy_no_fw(struct hl_device *hdev);
 void gaudi2_nic_blocks_fw_config(struct hl_device *hdev);
 void gaudi2_nic_restore_dynamic_cfg_soft_reset_fw(struct hl_device *hdev);

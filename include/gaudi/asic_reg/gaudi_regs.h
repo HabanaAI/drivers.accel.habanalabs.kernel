@@ -351,6 +351,4 @@
 
 #define mmPCIE_CORE_MSI_REQ                                          0xC04100
 
-#define mmNIC0_MAC_CORE_MAC_REC_STS0                                 0xCC8008
-
 #endif /* ASIC_REG_GAUDI_REGS_H_ */

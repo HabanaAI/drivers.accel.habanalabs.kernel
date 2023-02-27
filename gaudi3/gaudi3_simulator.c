@@ -1033,7 +1033,6 @@ static int gaudi3_sim_cpucp_info_get(struct hl_device *hdev)
 
 static int gaudi3_sim_sw_init(struct hl_device *hdev)
 {
-	struct hl_nic *nic = &hdev->nic;
 	struct gaudi3_device *gaudi3;
 	int rc;
 
@@ -1070,27 +1069,13 @@ static int gaudi3_sim_sw_init(struct hl_device *hdev)
 	gaudi3_user_interrupt_setup(hdev);
 	hdev->asic_funcs->set_pci_memory_regions(hdev);
 
-	rc = hl_nic_sw_init(hdev);
-	if (rc) {
-		dev_err(hdev->dev, "Failed to init NIC S/W\n");
-		rc = -ENOMEM;
-		goto free_cpu_accessible_dma_pool;
-	}
-
 	rc = gaudi3_etr_buf_store_sw_init(hdev);
 	if (rc) {
 		dev_err(hdev->dev, "Failed to init ETR buffer storing S/W\n");
-		goto nic_sw_fini;
+		goto free_cpu_accessible_dma_pool;
 	}
 
-	nic->phy_load_fw = 0;
-	nic->phy_config_fw = 0;
-	nic->debugfs_reset = true;
-	nic->cq_arm_timeout = CQ_ARM_TIMEOUT_USEC;
-	nic->skip_mac_reset = true;
 	hdev->supports_cb_mapping = true;
-	nic->skip_mac_cnts = true;
-	nic->skip_cq_arm_timeout = true;
 
 	rc = gaudi3_special_blocks_iterator_config(hdev);
 	if (rc)
@@ -1112,8 +1097,6 @@ special_blocks_fini:
 	gaudi3_special_blocks_iterator_free(hdev);
 etr_sw_fini:
 	gaudi3_etr_buf_store_sw_fini(hdev);
-nic_sw_fini:
-	hl_nic_sw_fini(hdev);
 free_cpu_accessible_dma_pool:
 	gen_pool_destroy(hdev->cpu_accessible_dma_pool);
 free_cpu_dma_mem:
@@ -1137,8 +1120,6 @@ static int gaudi3_sim_sw_fini(struct hl_device *hdev)
 	gaudi3_special_blocks_iterator_free(hdev);
 
 	gaudi3_etr_buf_store_sw_fini(hdev);
-
-	hl_nic_sw_fini(hdev);
 
 	gen_pool_destroy(hdev->cpu_accessible_dma_pool);
 
@@ -1202,6 +1183,7 @@ static void gaudi3_sim_halt_engines(struct hl_device *hdev, bool hard_reset, boo
 	}
 
 	gaudi3_sync_irqs(hdev);
+	hl_nic_synchronize_irqs(hdev);
 }
 
 static int gaudi3_sim_fw_config(struct hl_device *hdev)

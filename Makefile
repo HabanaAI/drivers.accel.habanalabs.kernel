@@ -35,7 +35,7 @@ habanalabs-$(CONFIG_DEBUG_FS) += common/debugfs.o
 
 include $(src)/common/Makefile.compat
 
-ccflags-y += $(HL_CFLAGS) -Werror
+ccflags-y += -Werror
 
 habanalabs-y += common/simulator.o common/habanalabs_compat.o \
 		common/importer_drv.o common/habanalabs_compat_accel.o
@@ -47,13 +47,8 @@ endif
 
 LINUXINCLUDE := -I$(src)/../../../include -I$(src) $(LINUXINCLUDE)
 
-# include the Ethernet driver symbols
-KBUILD_EXTRA_SYMBOLS += $(src)/../../net/ethernet/habanalabs/Module.symvers
-
-# include the InfiniBand driver symbols
-ifdef MAKE_IB
-KBUILD_EXTRA_SYMBOLS += $(src)/../../infiniband/hw/hlib/Module.symvers
-endif
+# include the SNI driver symbols
+KBUILD_EXTRA_SYMBOLS += $(src)/../../net/ethernet/habanalabs/sni/Module.symvers
 
 export KBUILD_EXTRA_SYMBOLS
 

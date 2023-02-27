@@ -83,11 +83,6 @@ MODULE_FIRMWARE(GAUDI2_LINUX_FW_FILE);
 #define GAUDI2_NUM_OF_HIF_FATAL_ERR_CAUSE	2
 #define GAUDI2_NUM_OF_AXI_DRAIN_ERR_CAUSE	2
 #define GAUDI2_NUM_OF_HBM_MC_SPI_CAUSE		5
-#define GAUDI2_NUM_OF_NIC_RXB_CORE_SEI_CAUSE	2
-#define GAUDI2_NUM_OF_NIC_RXB_CORE_SPI_CAUSE	6
-#define GAUDI2_NUM_OF_NIC_RXE_SEI_CAUSE		4
-#define GAUDI2_NUM_OF_NIC_RXE_SPI_CAUSE		24
-#define GAUDI2_NUM_OF_NIC_QPC_RESP_ERR_CAUSE	7
 
 
 #define GAUDI2_MMU_CACHE_INV_TIMEOUT_USEC	(MMU_CONFIG_TIMEOUT_USEC * 10)
@@ -963,67 +958,6 @@ static const char * const gaudi2_kdma_core_interrupts_cause[GAUDI2_NUM_OF_DMA_CO
 	"KDMA WBC LBW Write returned with error",
 	"TRANSPOSE ENGINE DESC FIFO OVERFLOW",
 	"WRONG CFG FOR COMMIT IN LIN DMA"
-};
-
-static const char * const
-gaudi2_nic_rxb_core_sei_interrupts_cause[GAUDI2_NUM_OF_NIC_RXB_CORE_SEI_CAUSE] = {
-	"HBW RRESP error",
-	"LBW RRESP error"
-};
-
-static const char * const
-gaudi2_nic_rxb_core_spi_interrupts_cause[GAUDI2_NUM_OF_NIC_RXB_CORE_SPI_CAUSE] = {
-	"Packet dropped due to no available buffers",
-	"Control pointers count illegal port 0",
-	"Control pointers count illegal port 1",
-	"Control pointers count illegal port 2",
-	"Control pointers count illegal port 3",
-	"Scatter pointers count illegal"
-};
-
-static const char * const
-gaudi2_nic_qpc_resp_err_interrupts_cause[GAUDI2_NUM_OF_NIC_QPC_RESP_ERR_CAUSE] = {
-	"ARC SEI error",
-	"QPC LBW AXI write slv decode err",
-	"QPC LBW AXI write slv err",
-	"QPC HBW AXI write slv decode err",
-	"QPC HBW AXI write slv err",
-	"QPC HBW AXI read slv decode err",
-	"QPC HBW AXI read slv err"
-};
-
-static const char * const gaudi2_nic_rxe_sei_interrupts_cause[GAUDI2_NUM_OF_NIC_RXE_SEI_CAUSE] = {
-	"HBW RRESP error WQE",
-	"HBW RRESP error FNA",
-	"LBW BRESP error",
-	"HBW BRESP error"
-};
-
-static const char * const gaudi2_nic_rxe_spi_interrupts_cause[GAUDI2_NUM_OF_NIC_RXE_SPI_CAUSE] = {
-	"QP invalid",
-	"TS mismatch",
-	"Request CS invalid",
-	"Response CS invalid",
-	"Request PSN invalid",
-	"Request PSN unsent",
-	"Response RKEY invalid",
-	"Response RESYNC invalid",
-	"Packet bad format",
-	"Invalid opcode",
-	"Invalid syndrome",
-	"Invalid min packet size RC",
-	"Invalid max packet size RC",
-	"Invalid min packet size raw",
-	"Invalid max packet size raw",
-	"Tunnel invalid",
-	"WQE index mismatch",
-	"WQ WR opcode invalid",
-	"WQ RDV opcode invalid",
-	"WQ RD opcode invalid",
-	"WQE WR zero",
-	"WQE multi zero",
-	"WQE WE send big",
-	"WQE multi big"
 };
 
 struct gaudi2_sm_sei_cause_data {
@@ -2613,7 +2547,6 @@ int gaudi2_set_fixed_properties(struct hl_device *hdev)
 	nic_prop->user_cq_min_entries = NIC_CQ_USER_MIN_ENTRIES;
 	nic_prop->user_cq_max_entries = NIC_CQ_USER_MAX_ENTRIES;
 	nic_prop->cqe_size = CQE_SIZE;
-	nic_prop->phy_base_addr = mmNIC0_PHY_BASE;
 	nic_prop->macro_cfg_size = NIC_OFFSET;
 	nic_prop->txs_base_size = TXS_TOTAL_PORT_SIZE;
 	nic_prop->tmr_base_size = TMR_TOTAL_MACRO_SIZE;
@@ -2630,7 +2563,6 @@ int gaudi2_set_fixed_properties(struct hl_device *hdev)
 	nic_prop->status_packet_size = sizeof(struct cpucp_nic_status);
 	nic_prop->clk = GAUDI2_NIC_CLK_FREQ / USEC_PER_SEC;
 	nic_prop->max_wq_arr_type = NIC_MAX_WQ_ARRAY_TYPE;
-	nic_prop->max_qp_error_syndroms = NIC_MAX_QP_ERR_SYNDROMS;
 
 	return 0;
 
@@ -3941,7 +3873,6 @@ err_exit:
 int gaudi2_sw_init(struct hl_device *hdev)
 {
 	struct asic_fixed_properties *prop = &hdev->asic_prop;
-	struct hl_nic *nic = &hdev->nic;
 	struct gaudi2_device *gaudi2;
 	int i, rc;
 
@@ -4020,14 +3951,6 @@ int gaudi2_sw_init(struct hl_device *hdev)
 		goto free_virt_msix_db_mem;
 	}
 
-	rc = hl_nic_sw_init(hdev);
-	if (rc) {
-		dev_err(hdev->dev, "Failed to init NIC S/W\n");
-		goto free_scratchpad_mem;
-	}
-
-	nic->has_eq = true;
-
 	gaudi2_user_mapped_blocks_init(hdev);
 
 	/* Initialize user interrupts */
@@ -4048,7 +3971,7 @@ int gaudi2_sw_init(struct hl_device *hdev)
 
 	rc = gaudi2_special_blocks_iterator_config(hdev);
 	if (rc)
-		goto nic_sw_fini;
+		goto free_scratchpad_mem;
 
 	rc = gaudi2_test_queues_msgs_alloc(hdev);
 	if (rc)
@@ -4058,8 +3981,6 @@ int gaudi2_sw_init(struct hl_device *hdev)
 
 special_blocks_free:
 	gaudi2_special_blocks_iterator_free(hdev);
-nic_sw_fini:
-	hl_nic_sw_fini(hdev);
 free_scratchpad_mem:
 	hl_asic_dma_free_coherent(hdev, PAGE_SIZE, gaudi2->scratchpad_kernel_address,
 				  gaudi2->scratchpad_bus_address);
@@ -4085,8 +4006,6 @@ int gaudi2_sw_fini(struct hl_device *hdev)
 	gaudi2_test_queues_msgs_free(hdev);
 
 	gaudi2_special_blocks_iterator_free(hdev);
-
-	hl_nic_sw_fini(hdev);
 
 	hl_cpu_accessible_dma_pool_free(hdev, prop->pmmu.page_size, gaudi2->virt_msix_db_cpu_addr);
 
@@ -4584,16 +4503,12 @@ static int gaudi2_enable_msix(struct hl_device *hdev)
 		return rc;
 	}
 
-	rc = hl_nic_request_irqs(hdev);
-	if (rc < 0)
-		goto free_irq_vectors;
-
 	irq = pci_irq_vector(hdev->pdev, GAUDI2_IRQ_NUM_COMPLETION);
 	cq = &hdev->completion_queue[GAUDI2_RESERVED_CQ_CS_COMPLETION];
 	rc = request_irq(irq, hl_irq_handler_cq, 0, gaudi2_irq_name(GAUDI2_IRQ_NUM_COMPLETION), cq);
 	if (rc) {
 		dev_err(hdev->dev, "Failed to request IRQ %d", irq);
-		goto free_nic_irqs;
+		goto free_irq_vectors;
 	}
 
 	irq = pci_irq_vector(hdev->pdev, GAUDI2_IRQ_NUM_EVENT_QUEUE);
@@ -4666,9 +4581,6 @@ free_completion_irq:
 	irq = pci_irq_vector(hdev->pdev, GAUDI2_IRQ_NUM_COMPLETION);
 	free_irq(irq, cq);
 
-free_nic_irqs:
-	hl_nic_free_irqs(hdev);
-
 free_irq_vectors:
 	pci_free_irq_vectors(hdev->pdev);
 
@@ -4702,8 +4614,6 @@ static void gaudi2_sync_irqs(struct hl_device *hdev)
 	}
 
 	synchronize_irq(pci_irq_vector(hdev->pdev, GAUDI2_IRQ_NUM_EVENT_QUEUE));
-
-	hl_nic_synchronize_irqs(hdev);
 }
 
 static void gaudi2_disable_msix(struct hl_device *hdev)
@@ -4739,8 +4649,6 @@ static void gaudi2_disable_msix(struct hl_device *hdev)
 	irq = pci_irq_vector(hdev->pdev, GAUDI2_IRQ_NUM_COMPLETION);
 	cq = &hdev->completion_queue[GAUDI2_RESERVED_CQ_CS_COMPLETION];
 	free_irq(irq, cq);
-
-	hl_nic_free_irqs(hdev);
 
 	pci_free_irq_vectors(hdev->pdev);
 
@@ -5141,11 +5049,11 @@ skip_engines:
 		hl_nic_stop(hdev);
 		gaudi2_disable_msix(hdev);
 		return;
-	} else {
-		gaudi2_nic_compute_reset_prepare(hdev);
 	}
 
+	gaudi2_nic_compute_reset_prepare(hdev);
 	gaudi2_sync_irqs(hdev);
+	hl_nic_synchronize_irqs(hdev);
 }
 
 int gaudi2_load_firmware_to_device(struct hl_device *hdev)
@@ -8383,185 +8291,14 @@ static void gaudi2_handle_bmon_spmu_event(struct hl_device *hdev, u8 macro_index
 			+ mmBMON_INT_CLR_OFFSET, 0x1);
 }
 
-static void gaudi2_nic_internal_port_close_locked(struct hl_nic_port *nic_port)
-{
-	hl_nic_internal_port_fini_locked(nic_port);
-}
-
-static int gaudi2_nic_internal_port_open_locked(struct hl_nic_port *nic_port)
-{
-	return hl_nic_internal_port_init_locked(nic_port);
-}
-
-static void gaudi2_handle_nic_port_reset_locked(struct hl_nic_port *nic_port)
-{
-	struct gaudi2_device *gaudi2 = nic_port->hdev->asic_specific;
-	struct hl_device *hdev = nic_port->hdev;
-
-	if (hdev->nic_ports_ext_mask & BIT(nic_port->port)) {
-		dev_err_ratelimited(hdev->dev, "NIC port %d, going to reset\n", nic_port->port);
-		gaudi2->en_aux_ops.port_reset_locked(&hdev->nic.en_aux_dev, nic_port->port);
-	} else {
-		gaudi2_nic_internal_port_close_locked(nic_port);
-		gaudi2_nic_internal_port_open_locked(nic_port);
-	}
-}
-
-static int gaudi2_handle_nic_error(struct hl_device *hdev, u16 event_type, u8 macro_index,
-					struct hl_eq_nic_intr_cause *nic_intr_cause)
-{
-	u32 intr_cause, port, first_port, last_port, num_of_ports_in_macro, intr_type,
-		error_count = 0;
-	int idx, i;
-
-	num_of_ports_in_macro = NIC_NUMBER_OF_ENGINES / NIC_NUMBER_OF_MACROS;
-	first_port = macro_index * num_of_ports_in_macro;
-	last_port = (macro_index + 1) * num_of_ports_in_macro - 1;
-	intr_type = le32_to_cpu(nic_intr_cause->intr_type);
-
-	if (!intr_type || intr_type > NIC_INTR_TXE) {
-		gaudi2_print_event(hdev, event_type, true,
-				"NIC %u: invalid interrupt type %u",
-				macro_index, intr_type);
-		return 1;
-	}
-
-	intr_cause = (u32) le64_to_cpu(nic_intr_cause->intr_cause[0].intr_cause_data);
-
-	switch (intr_type) {
-	case NIC_INTR_TMR:
-		gaudi2_print_event(hdev, event_type, true,
-				"TMR error on NIC macro %d cause 0x%x",
-				macro_index, intr_cause);
-		return 1;
-	case NIC_INTR_RXB_CORE_SPI:
-		for (i = 0 ; i < GAUDI2_NUM_OF_NIC_RXB_CORE_SPI_CAUSE ; i++) {
-			if (!(intr_cause & BIT(i)))
-				continue;
-
-			gaudi2_print_event(hdev, event_type, true,
-				"RXB CORE SPI error on NIC macro %d cause: %s. cause bit %d",
-				macro_index, gaudi2_nic_rxb_core_spi_interrupts_cause[i], i);
-			error_count++;
-		}
-
-		return error_count;
-	case NIC_INTR_RXB_CORE_SEI:
-		for (i = 0 ; i < GAUDI2_NUM_OF_NIC_RXB_CORE_SEI_CAUSE ; i++) {
-			if (!(intr_cause & BIT(i)))
-				continue;
-
-			gaudi2_print_event(hdev, event_type, true,
-				"RXB CORE SEI error on NIC macro %d cause: %s. cause bit %d",
-				macro_index, gaudi2_nic_rxb_core_sei_interrupts_cause[i], i);
-			error_count++;
-		}
-
-		return error_count;
-	}
-
-	for (port = first_port, idx = 0 ; port <= last_port ; port++, idx++) {
-		/* check that port is indeed enabled in the macro */
-		if (!(hdev->nic_ports_mask & BIT(port)))
-			continue;
-
-		intr_cause = (u32) le64_to_cpu(nic_intr_cause->intr_cause[idx].intr_cause_data);
-		if (!intr_cause)
-			continue;
-
-		switch (intr_type) {
-		case NIC_INTR_QPC_RESP_ERR:
-			for (i = 0 ; i < GAUDI2_NUM_OF_NIC_QPC_RESP_ERR_CAUSE ; i++) {
-				if (!(intr_cause & BIT(i)))
-					continue;
-
-				gaudi2_print_event(hdev, event_type, true,
-					"QPC response error on NIC port %d cause: %s. cause bit %d",
-					port, gaudi2_nic_qpc_resp_err_interrupts_cause[i], i);
-				error_count++;
-			}
-
-			break;
-		case NIC_INTR_RXE_SPI:
-			for (i = 0 ; i < GAUDI2_NUM_OF_NIC_RXE_SPI_CAUSE ; i++) {
-				if (!(intr_cause & BIT(i)))
-					continue;
-
-				dev_dbg_ratelimited(hdev->dev,
-					"RXE SPI error on NIC port %d cause: %s. cause bit %d\n",
-					port, gaudi2_nic_rxe_spi_interrupts_cause[i], i);
-				error_count++;
-			}
-
-			break;
-		case NIC_INTR_RXE_SEI:
-			for (i = 0 ; i < GAUDI2_NUM_OF_NIC_RXE_SEI_CAUSE ; i++) {
-				if (!(intr_cause & BIT(i)))
-					continue;
-
-				gaudi2_print_event(hdev, event_type, true,
-					"RXE SEI error on NIC port %d cause: %s. cause bit %d",
-					port, gaudi2_nic_rxe_sei_interrupts_cause[i], i);
-				error_count++;
-			}
-
-			break;
-		case NIC_INTR_TXS:
-			gaudi2_print_event(hdev, event_type, true,
-					"TXS error on NIC port %d cause 0x%x",
-					port, intr_cause);
-			error_count++;
-			break;
-		case NIC_INTR_TXE:
-			gaudi2_print_event(hdev, event_type, true,
-					"TXE error on NIC port %d cause 0x%x",
-					port, intr_cause);
-			error_count++;
-			break;
-		default:
-			gaudi2_print_event(hdev, event_type, true,
-					"Invalid interrupt type port %d", port);
-		}
-	}
-
-	return error_count;
-}
-
 static int gaudi2_handle_nic_sw_error_event(struct hl_device *hdev, u16 event_type, u8 macro_index,
 						struct hl_eq_nic_intr_cause *nic_intr_cause)
 {
-	u32 qpc_intr_cause, port, first_port, last_port, num_of_ports_in_macro, error_count = 0;
-	struct hl_nic_port *nic_port;
+	u32 error_count;
 
-	num_of_ports_in_macro = NIC_NUMBER_OF_ENGINES / NIC_NUMBER_OF_MACROS;
-	first_port = macro_index * num_of_ports_in_macro;
-	last_port = (macro_index + 1) * num_of_ports_in_macro - 1;
+	error_count = gaudi2_nic_handle_sw_error_event(hdev, event_type, macro_index,
+							nic_intr_cause);
 
-	for (port = first_port ; port <= last_port ; port++) {
-		/* check that port is indeed enabled in the macro */
-		if (!(hdev->nic_ports_mask & BIT(port)))
-			continue;
-
-		qpc_intr_cause = NIC_RREG32(mmNIC0_QPC0_INTERRUPT_CAUSE);
-
-		/* eqe interrupts are mapped to MSI except interrupt on error event queue
-		 * which is handled here, in such case port reset is required.
-		 */
-		if (!(qpc_intr_cause & 0x400))
-			continue;
-
-		gaudi2_print_event(hdev, event_type, true, "QPC EQ error on NIC port %d", port);
-		NIC_WREG32(mmNIC0_QPC0_INTERRUPT_CLR, 0x400);
-		error_count++;
-
-		nic_port = &hdev->nic.nic_ports[port];
-		mutex_lock(&nic_port->control_lock);
-		hl_nic_track_port_reset(nic_port, NIC_EQ_ERR_SYNDROM);
-		gaudi2_handle_nic_port_reset_locked(nic_port);
-		mutex_unlock(&nic_port->control_lock);
-	}
-
-	error_count += gaudi2_handle_nic_error(hdev, event_type, macro_index, nic_intr_cause);
 	hl_check_for_glbl_errors(hdev);
 
 	return error_count;
@@ -9053,7 +8790,8 @@ static int gaudi2_handle_nic_axi_error_response_event(struct hl_device *hdev, u1
 {
 	u32 error_count = 0;
 
-	error_count = gaudi2_handle_nic_error(hdev, event_type, macro_index, nic_intr_cause);
+	error_count = gaudi2_nic_handle_axi_error_response_event(hdev, event_type, macro_index,
+								nic_intr_cause);
 
 	/* check if RAZWI happened */
 	gaudi2_ack_module_razwi_event_handler(hdev, RAZWI_NIC, macro_index, 0, event_mask);
@@ -11522,8 +11260,11 @@ int gaudi2_ctx_init(struct hl_ctx *ctx)
 {
 	int rc;
 
+	if (ctx->asid == HL_KERNEL_ASID_ID)
+		return 0;
+
 	rc = hl_nic_ctx_init(ctx);
-	if (rc || ctx->asid == HL_KERNEL_ASID_ID)
+	if (rc)
 		return rc;
 
 	rc = gaudi2_mmu_prepare(ctx->hdev, ctx->asid);
@@ -11551,10 +11292,10 @@ int gaudi2_ctx_init(struct hl_ctx *ctx)
 
 void gaudi2_ctx_fini(struct hl_ctx *ctx)
 {
-	hl_nic_ctx_fini(ctx);
-
 	if (ctx->asid == HL_KERNEL_ASID_ID)
 		return;
+
+	hl_nic_ctx_fini(ctx);
 
 	gaudi2_internal_cb_pool_fini(ctx->hdev, ctx);
 

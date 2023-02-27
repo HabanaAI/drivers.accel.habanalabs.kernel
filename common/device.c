@@ -668,7 +668,7 @@ int __hl_mmap(struct hl_fpriv *hpriv, struct vm_area_struct *vma)
 		return hl_hw_block_mmap(hpriv, vma);
 
 	case HL_MMAP_TYPE_NIC_MEM:
-		return hl_nic_mem_mmap(hpriv->ctx, vma);
+		return hl_nic_mmap(hdev, hpriv->ctx->asid, vma);
 
 	case HL_MMAP_TYPE_CB:
 	case HL_MMAP_TYPE_TS_BUFF:

@@ -1574,7 +1574,6 @@ static void gaudi3_set_decoder_isolation(struct hl_device *hdev, bool isolate)
 static void gaudi3_set_nic_isolation(struct hl_device *hdev, bool isolate)
 {
 	struct asic_fixed_properties *prop = &hdev->asic_prop;
-	struct hl_nic_macro *nic_macro;
 	u32 nic_iso;
 	int i, die;
 
@@ -1591,8 +1590,7 @@ static void gaudi3_set_nic_isolation(struct hl_device *hdev, bool isolate)
 	 */
 	nic_iso = 0;
 	for (i = 0 ; i < NIC_NUM_MACROS_PER_DIE ; i++) {
-		nic_macro = &hdev->nic.nic_macros[i];
-		if (!(hdev->nic_ports_mask & gaudi3_nic_get_macro_ports_mask(nic_macro)))
+		if (!(hdev->nic_ports_mask & gaudi3_nic_get_macro_ports_mask(hdev, i)))
 			nic_iso |= BIT(i);
 	}
 	WREG32(mmD0_PSOC_BOOT_CONF_BASE + mmPSOC_BOOT_CONF_NIC_ISO, nic_iso);
@@ -1605,8 +1603,8 @@ static void gaudi3_set_nic_isolation(struct hl_device *hdev, bool isolate)
 	 */
 	nic_iso = 0;
 	for (i = 0 ; i < NIC_NUM_MACROS_PER_DIE ; i++) {
-		nic_macro = &hdev->nic.nic_macros[NIC_NUM_MACROS_PER_DIE + i];
-		if (!(hdev->nic_ports_mask & gaudi3_nic_get_macro_ports_mask(nic_macro)))
+		if (!(hdev->nic_ports_mask & gaudi3_nic_get_macro_ports_mask(hdev,
+								NIC_NUM_MACROS_PER_DIE + i)))
 			nic_iso |= BIT(i);
 	}
 	WREG32(mmD1_PSOC_BOOT_CONF_BASE + mmPSOC_BOOT_CONF_NIC_ISO, nic_iso);

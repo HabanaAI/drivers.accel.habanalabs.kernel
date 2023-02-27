@@ -84,7 +84,6 @@ struct hl_fpriv;
 #define HL_PENDING_RESET_PER_SEC		10
 #define HL_PENDING_RESET_MAX_TRIALS		60 /* 10 minutes */
 #define HL_PENDING_RESET_SIM_CRASH_SEC		300
-#define HL_PENDING_RESET_LONG_SEC		60
 /*
  * In device fini, wait 10 minutes for user processes to be terminated after we kill them.
  * This is needed to prevent situation of clearing resources while user processes are still alive.
@@ -730,8 +729,6 @@ struct hl_mem_block_info {
  * @psoc_pci_pll_div_factor: PCI PLL DIV FACTOR 1 value.
  * @psoc_timestamp_frequency: frequency of the psoc timestamp clock.
  * @high_pll: high PLL frequency used by the device.
- * @nic_qp_drain_time: time, in seconds, waiting for the NIC to drain the QP work after
- *                     QP invalidation the QP.
  * @cb_pool_cb_cnt: number of CBs in the CB pool.
  * @cb_pool_cb_size: size of each CB in the CB pool.
  * @decoder_enabled_mask: which decoders are enabled.
@@ -2098,7 +2095,6 @@ struct hl_cs_outcome_store {
  * @cb_va_pool: device VA pool for command buffers which are mapped to the
  *              device's MMU.
  * @sig_mgr: encaps signals handle manager.
- * @nic_ctx: NIC related context data.
  * @cb_va_pool_base: the base address for the device VA pool
  * @cs_sequence: sequence number for CS. Value is assigned to a CS and passed
  *			to user so user could inquire about CS. It is used as
@@ -2135,7 +2131,6 @@ struct hl_ctx {
 	struct hl_cs_counters_atomic	cs_counters;
 	struct gen_pool			*cb_va_pool;
 	struct hl_encaps_signals_mgr	sig_mgr;
-	struct hl_nic_ctx		nic_ctx;
 	u64				cb_va_pool_base;
 	u64				cs_sequence;
 	u64				*dram_default_hops;
@@ -3707,7 +3702,6 @@ struct hl_etr_buf_store {
  * @collective_mon_idx: helper index for collective initialization
  * @supports_coresight: is CoreSight supported.
  * @low_freq: load device in low PLL frequency mode.
- * @nic_poll_enable: Enable NIC in polling mode rather than interrupt mode.
  * @supports_cb_mapping: is mapping a CB to the device's MMU supported.
  * @simulator_crashed: true if simulator crashed
  * @process_kill_trial_cnt: number of trials reset thread tried killing
@@ -3877,7 +3871,6 @@ struct hl_device {
 	u32				high_pll;
 	u32				decoder_binning;
 	u32				edma_binning;
-	u32				nic_qp_drain_time;
 	u32				device_release_watchdog_timeout_sec;
 	u32				rotator_binning;
 	u16				id;
@@ -3903,7 +3896,6 @@ struct hl_device {
 	u8				collective_mon_idx;
 	u8				supports_coresight;
 	u8				low_freq;
-	u8				nic_poll_enable;
 	u8				supports_cb_mapping;
 	u8				simulator_crashed;
 	u8				process_kill_trial_cnt;

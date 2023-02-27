@@ -9,12 +9,6 @@
 
 static void set_txe_checkers(struct hl_device *hdev, u32 port)
 {
-	struct gaudi2_en_core_info *core_info;
-	struct gaudi2_device *gaudi2;
-
-	gaudi2 = hdev->asic_specific;
-	core_info = &gaudi2->en_core_info;
-
 	/* SW-33416: For rendezvous read request if WQE size is 0, TX gets stuck.
 	 * So enable WQE check in HW to check for WQE size == 0 by setting
 	 * NIC0_TXE0_WQE_CHECK_EN_RDV_WR_RD_SIZE_ZERO_EN_SHIFT bit.
@@ -93,7 +87,7 @@ static void set_txe_checkers(struct hl_device *hdev, u32 port)
 	/* As a W/A for H/W bug H6-3399, we increase our Tx packets by padding them with bigger
 	 * value than the default. Reflect the minimum Ethernet packet size in the below checker.
 	 */
-	NIC_RMWREG32(mmNIC0_TXE0_WQE_CHECK_CFG5, core_info->pad_size,
+	NIC_RMWREG32(mmNIC0_TXE0_WQE_CHECK_CFG5, NIC_SKB_PAD_SIZE,
 			NIC0_TXE0_WQE_CHECK_CFG5_MAX_RAW_UNSUPPORTED_SIZE_MASK);
 }
 
@@ -166,10 +160,7 @@ static void set_rxe_checkers(struct hl_device *hdev, u32 port)
 
 static void gaudi2_nic_set_correct_address_for_errors(struct hl_device *hdev)
 {
-	struct gaudi2_device *gaudi2;
-	struct gaudi2_nic_port *gaudi2_nic;
-	u32 port;
-	int i;
+	int port;
 
 	/* SW-67666: a workaround to omit PCIE_ADDR_DEC_ERR interrupt when ports are down.
 	 * Correct address to return error for PRT region only otherwise
@@ -179,14 +170,9 @@ static void gaudi2_nic_set_correct_address_for_errors(struct hl_device *hdev)
 	if (hdev->fw_components & FW_TYPE_BOOT_CPU)
 		return;
 
-	gaudi2 = hdev->asic_specific;
-
-	for (i = 0 ; i < NIC_NUMBER_OF_PORTS ; i++) {
-		gaudi2_nic = &gaudi2->nic_ports[i];
-		port = gaudi2_nic->nic_port->port;
+	for (port = 0 ; port < NIC_NUMBER_OF_PORTS ; port++)
 		if (port & 1)
 			NIC_WREG32(mmNIC0_TXS0_ASYNC_NICD_APB_SPLIT_ADDR3, 0x39000);
-	}
 }
 
 static void gaudi2_nic_config_hw_txs_no_fw(struct hl_device *hdev, u32 port)
@@ -281,121 +267,6 @@ static void gaudi2_nic_config_hw_eq_no_fw(struct hl_device *hdev, u32 port)
 	NIC_RMWREG32(mmNIC0_QPC0_LBW_PROT, 0, NIC0_QPC0_LBW_PROT_INTERRUPT_MASK);
 }
 
-int gaudi2_nic_config_wqe_asid(struct hl_nic_port *nic_port, u32 asid, bool set_asid)
-{
-	struct hl_device *hdev = nic_port->hdev;
-	struct hl_nic_port_funcs *port_funcs;
-	u32 port = nic_port->port;
-	int rc = 0;
-
-	/* This is a privilege register that is modified on the go, hence we should disable
-	 * assertion on simulator to allow us the modification. At the end of this section we
-	 * enable security assertion back.
-	 */
-
-	/* change asid to secured asid */
-	if (!(hdev->fw_components & FW_TYPE_BOOT_CPU)) {
-		hdev->asic_funcs->set_priv_assertions(hdev, false);
-
-		/* set chicken bit before changing asid */
-		NIC_WREG32(mmNIC0_TXE0_CHICKEN_BITS, set_asid ? 0x1 : 0);
-		if (set_asid)
-			NIC_WREG32(mmNIC0_TXE0_WQE_FETCH_AXI_USER_LO, asid);
-
-		hdev->asic_funcs->set_priv_assertions(hdev, true);
-	} else {
-		port_funcs = hdev->asic_funcs->nic_funcs->port_funcs;
-		rc = port_funcs->send_cpucp_packet(nic_port, set_asid ?
-					CPUCP_PACKET_NIC_WQE_ASID_SET :
-					CPUCP_PACKET_NIC_WQE_ASID_UNSET,
-					asid);
-	}
-
-	if (rc)
-		dev_err(hdev->dev, "Failed to %s NIC WQE ASID, port %d, rc %d\n",
-				set_asid ? "set" : "unset", port, rc);
-
-	return rc;
-}
-
-void gaudi2_nic_override_phy_readiness(struct hl_nic_port *nic_port, bool set_ready)
-{
-	struct hl_device *hdev = nic_port->hdev;
-	u32 port, val, ready_val = 0;
-
-	if (hdev->fw_components & FW_TYPE_BOOT_CPU)
-		return;
-
-	hdev->asic_funcs->set_priv_assertions(hdev, false);
-
-	port = nic_port->port;
-
-	/* simulator doesn't get an indication elsewhere, therefore mark phy as ready explicitly */
-	if (!hdev->pdev)
-		ready_val = NIC0_PHY_PHY_RX_CFG_SW_PHY_READY_MASK |
-				NIC0_PHY_PHY_RX_CFG_SW_PHY_READY_OVERRIDE_MASK;
-
-	val = set_ready ? ready_val : NIC0_PHY_PHY_RX_CFG_SW_PHY_READY_OVERRIDE_MASK;
-
-	if (port & 1) {
-		/* odd ports use lanes 2,3 */
-		NIC_MACRO_WREG32(mmNIC0_PHY_PHY_RX_CFG_2, val);
-		NIC_MACRO_WREG32(mmNIC0_PHY_PHY_RX_CFG_3, val);
-	} else {
-		/* even ports use lanes 0,1 */
-		NIC_MACRO_WREG32(mmNIC0_PHY_PHY_RX_CFG_0, val);
-		NIC_MACRO_WREG32(mmNIC0_PHY_PHY_RX_CFG_1, val);
-	}
-
-	hdev->asic_funcs->set_priv_assertions(hdev, true);
-}
-
-int gaudi2_nic_disable_wqe_index_checker_fw(struct hl_nic_port *nic_port)
-{
-	struct hl_device *hdev = nic_port->hdev;
-	struct hl_nic_port_funcs *port_funcs;
-	u32 port = nic_port->port;
-	int rc = 0;
-
-	/* This is a privilege register that is modified on the go, hence we should disable
-	 * assertion on simulator to allow us the modification. At the end of this section we
-	 * enable security assertion back. We enter this section only if FW security
-	 * is not enabled.
-	 */
-	if (!(hdev->fw_components & FW_TYPE_BOOT_CPU)) {
-		hdev->asic_funcs->set_priv_assertions(hdev, false);
-		/* Disable the WQE index checker on the RX side */
-		NIC_RMWREG32(mmNIC0_RXE0_RXE_CHECKS, 0,
-			NIC0_RXE0_RXE_CHECKS_WQE_IDX_MISMATCH_EN_MASK);
-		/* Disable the WQE index checker on the TX side */
-		NIC_RMWREG32(mmNIC0_TXE0_WQE_CHECK_EN, 0,
-			NIC0_TXE0_WQE_CHECK_EN_WQE_INDEX_EN_MASK);
-		hdev->asic_funcs->set_priv_assertions(hdev, true);
-	} else {
-		port_funcs = hdev->asic_funcs->nic_funcs->port_funcs;
-		rc = port_funcs->send_cpucp_packet(nic_port, CPUCP_PACKET_NIC_SET_CHECKERS,
-					RX_WQE_IDX_MISMATCH);
-
-		if (rc) {
-			dev_err(hdev->dev,
-				"Failed to disable Rx WQE idx mismatch checker, port %d, rc %d\n",
-				port, rc);
-			return rc;
-		}
-
-		rc = port_funcs->send_cpucp_packet(nic_port, CPUCP_PACKET_NIC_SET_CHECKERS,
-					TX_WQE_IDX_MISMATCH);
-		if (rc) {
-			dev_err(hdev->dev,
-				"Failed to disable Tx WQE idx mismatch checker, port %d, rc %d\n",
-				port, rc);
-			return rc;
-		}
-	}
-
-	return rc;
-}
-
 void gaudi2_nic_quiescence_phy_no_fw(struct hl_device *hdev)
 {
 	u32 port, force_link_down = 1 << NIC0_PHY_PHY_RX_CFG_SW_PHY_READY_OVERRIDE_SHIFT;
@@ -407,7 +278,7 @@ void gaudi2_nic_quiescence_phy_no_fw(struct hl_device *hdev)
 	/* if any NIC is present and running on PLDM or simulator,
 	 * prevent traffic from entering the device.
 	 */
-	if (!hdev->nic.phy_config_fw && hdev->nic_ports_mask) {
+	if ((hdev->pldm || !hdev->pdev) && hdev->nic_ports_mask) {
 
 		/* This is a privilege register that is modified prior golden register modification,
 		 * hence we should disable assertion on simulator to allow us modifying it.
@@ -434,28 +305,34 @@ void gaudi2_nic_quiescence_phy_no_fw(struct hl_device *hdev)
 	}
 }
 
-static void gaudi2_nic_hw_macro_config_no_fw(struct hl_nic_macro *nic_macro)
+static void gaudi2_nic_hw_macro_config_no_fw(struct hl_device *hdev, u8 macro_idx)
 {
-	struct hl_device *hdev = nic_macro->hdev;
-	int port = nic_macro->idx << 1; /* the index of the first port in the macro */
+	int port = macro_idx << 1; /* the index of the first port in the macro */
 
 	/* TMR Configuration */
 	gaudi2_nic_config_hw_tmr_no_fw(hdev, port);
 }
 
+static bool gaudi2_nic_is_macro_enabled(struct hl_device *hdev, u8 macro_idx)
+{
+	u32 port1, port2;
+
+	port1 = macro_idx << 1; /* the index of the first port in the macro */
+	port2 = port1 + 1;
+
+	return (hdev->nic_ports_mask & BIT(port1)) || (hdev->nic_ports_mask & BIT(port2));
+}
+
 static void gaudi2_nic_macros_hw_config_no_fw(struct hl_device *hdev)
 {
 	struct hl_nic_properties *nic_props = &hdev->asic_prop.nic_props;
-	struct hl_nic_macro *nic_macro;
 	int i;
 
 	for (i = 0 ; i < nic_props->num_of_macros ; i++) {
-		nic_macro = &hdev->nic.nic_macros[i];
-
-		if (!gaudi2_nic_is_macro_enabled(nic_macro))
+		if (!gaudi2_nic_is_macro_enabled(hdev, i))
 			continue;
 
-		gaudi2_nic_hw_macro_config_no_fw(nic_macro);
+		gaudi2_nic_hw_macro_config_no_fw(hdev, i);
 	}
 }
 

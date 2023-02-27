@@ -730,14 +730,17 @@ static int nic_link_state_info(struct hl_fpriv *hpriv, struct hl_info_args *args
 	u32 max_size = args->return_size;
 	struct hl_info_habana_link_state link_state_info = {0};
 	void __user *out = (void __user *) (uintptr_t) args->return_pointer;
+	bool up;
 	int rc;
 
 	if ((!max_size) || (!out))
 		return -EINVAL;
 
-	rc = hl_nic_get_link_state(hdev, args->habana_link_id, &link_state_info);
+	rc = hl_nic_get_port_state(hdev, args->habana_link_id, &up);
 	if (rc)
 		return rc;
+
+	link_state_info.up = up;
 
 	return copy_to_user(out, &link_state_info,
 		min_t(size_t, max_size, sizeof(link_state_info))) ? -EFAULT : 0;
@@ -749,6 +752,7 @@ static int nic_statistics(struct hl_fpriv *hpriv, struct hl_info_args *args)
 	u32 max_size = args->return_size;
 	struct hl_info_habana_link_counters stat = {0};
 	void __user *out = (void __user *) (uintptr_t) args->return_pointer;
+	struct hl_sni_port_statistics core_stats = {0};
 	int rc;
 
 	if ((!max_size) || (!out))
@@ -758,9 +762,14 @@ static int nic_statistics(struct hl_fpriv *hpriv, struct hl_info_args *args)
 	if (rc)
 		return -EFAULT;
 
-	rc = hl_nic_get_statistics(hdev, args->habana_link_id, &stat);
+	core_stats.str_buf_ptr = stat.str_buf_ptr;
+	core_stats.val_buf_ptr = stat.val_buf_ptr;
+
+	rc = hl_nic_get_port_statistics(hdev, args->habana_link_id, &core_stats);
 	if (rc)
 		return rc;
+
+	stat.num_of_stat = core_stats.num_of_stat;
 
 	return copy_to_user(out, &stat, min_t(size_t, max_size, sizeof(stat))) ? -EFAULT : 0;
 }

@@ -6756,29 +6756,29 @@ int gaudi3_coresight_init(struct hl_device *hdev)
 	return 0;
 }
 
-void gaudi3_nic_spmu_get_stats_info(struct hl_nic_port *nic_port, struct hl_en_stat **stats,
+void gaudi3_nic_spmu_get_stats_info(struct hl_device *hdev, u32 port, struct hl_en_stat **stats,
 					u32 *n_stats)
 {
-	if (!nic_port->hdev->supports_coresight) {
+	if (!hdev->supports_coresight) {
 		*n_stats = 0;
 		return;
 	}
 	/* TODO: SW-63320: add SPMU support */
 }
 
-int gaudi3_nic_spmu_config(struct hl_nic_port *nic_port, u32 num_event_types, u32 event_types[],
+int gaudi3_nic_spmu_config(struct hl_device *hdev, u32 port, u32 num_event_types, u32 event_types[],
 				bool enable)
 {
-	if (!nic_port->hdev->supports_coresight)
+	if (!hdev->supports_coresight)
 		return 0;
 
 	/* TODO: SW-63320: add SPMU support */
 	return 0;
 }
 
-int gaudi3_nic_spmu_sample(struct hl_nic_port *nic_port, u32 num_out_data, u64 out_data[])
+int gaudi3_nic_spmu_sample(struct hl_device *hdev, u32 port, u32 num_out_data, u64 out_data[])
 {
-	if (!nic_port->hdev->supports_coresight)
+	if (!hdev->supports_coresight)
 		return 0;
 
 	/* TODO: SW-63320: add SPMU support */

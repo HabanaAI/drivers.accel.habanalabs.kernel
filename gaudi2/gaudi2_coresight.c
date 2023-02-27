@@ -2591,15 +2591,15 @@ static int gaudi2_sample_spmu(struct hl_device *hdev, struct hl_debug_params *pa
 	return 0;
 }
 
-void gaudi2_nic_spmu_get_stats_info(struct hl_nic_port *nic_port, struct hl_en_stat **stats,
+void gaudi2_nic_spmu_get_stats_info(struct hl_device *hdev, u32 port, struct hl_en_stat **stats,
 					u32 *n_stats)
 {
-	if (!nic_port->hdev->supports_coresight) {
+	if (!hdev->supports_coresight) {
 		*n_stats = 0;
 		return;
 	}
 
-	if (nic_port->port & 1) {
+	if (port & 1) {
 		*n_stats = gaudi2_nic1_spmu_stats_len;
 		*stats = gaudi2_nic1_spmu_stats;
 	} else {
@@ -2608,14 +2608,12 @@ void gaudi2_nic_spmu_get_stats_info(struct hl_nic_port *nic_port, struct hl_en_s
 	}
 }
 
-int gaudi2_nic_spmu_config(struct hl_nic_port *nic_port, u32 num_event_types, u32 event_types[],
+int gaudi2_nic_spmu_config(struct hl_device *hdev, u32 port, u32 num_event_types, u32 event_types[],
 				bool enable)
 {
-	struct hl_device *hdev = nic_port->hdev;
 	struct hl_debug_params_spmu spmu;
 	struct hl_debug_params params;
 	u64 event_counters[SPMU_DATA_LEN];
-	u32 port = nic_port->port;
 	int i;
 
 	if (!hdev->supports_coresight)
@@ -2644,11 +2642,9 @@ int gaudi2_nic_spmu_config(struct hl_nic_port *nic_port, u32 num_event_types, u3
 	return gaudi2_config_spmu(hdev, &params);
 }
 
-int gaudi2_nic_spmu_sample(struct hl_nic_port *nic_port, u32 num_out_data, u64 out_data[])
+int gaudi2_nic_spmu_sample(struct hl_device *hdev, u32 port, u32 num_out_data, u64 out_data[])
 {
-	struct hl_device *hdev = nic_port->hdev;
 	struct hl_debug_params params;
-	u32 port = nic_port->port;
 
 	if (!hdev->supports_coresight)
 		return 0;

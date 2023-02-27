@@ -8,8 +8,8 @@
 #ifndef GAUDI3P_H_
 #define GAUDI3P_H_
 
+#include <linux/habanalabs/gaudi3/gaudi3.h>
 #include <uapi/drm/habanalabs_accel.h>
-#include <linux/habanalabs/gaudi3.h>
 #include "../common/habanalabs.h"
 #include "../include/common/hl_boot_if.h"
 #include "../include/gaudi3/gaudi3.h"
@@ -153,7 +153,6 @@
 #define NIC_NUM_PORTS_PER_DIE		(NIC_NUM_MACROS_PER_DIE * NIC_PORTS_PER_MACRO)
 #define NIC_NUMBER_OF_PORTS		(NIC_NUM_PORTS_PER_DIE * NIC_NUM_OF_DIES)
 #define NIC_CQS_NUM			2 /* For Raw and RDMA */
-#define NIC_MAX_QP_ERR_SYNDROMS		0x400
 
 #define NIC_MAX_PORTS_PER_MACRO		(NIC_MAC_LANES / PORT_LANES_2)
 #define NIC_MAX_NUM_PORTS_PER_DIE	(NIC_NUM_MACROS_PER_DIE * NIC_MAX_PORTS_PER_MACRO)
@@ -318,38 +317,6 @@ enum gaudi3_cache_maint_type {
 	GAUDI3_CACHE_MAINT_PF,
 };
 
-enum gaudi3_nic_fec_stats_type {
-	FEC_CW_RECEIVED,
-	FEC_CW_CORRECT,
-	FEC_CW_UNCORRECTABLE,
-	FEC_CW_CORRECTED,
-	FEC_CW_CORRECTED_1_SYMBOL_ERR,
-	FEC_CW_CORRECTED_2_SYMBOL_ERR,
-	FEC_CW_CORRECTED_3_SYMBOL_ERR,
-	FEC_CW_CORRECTED_4_SYMBOL_ERR,
-	FEC_CW_CORRECTED_5_SYMBOL_ERR,
-	FEC_CW_CORRECTED_6_SYMBOL_ERR,
-	FEC_CW_CORRECTED_7_SYMBOL_ERR,
-	FEC_CW_CORRECTED_8_SYMBOL_ERR,
-	FEC_CW_CORRECTED_9_SYMBOL_ERR,
-	FEC_CW_CORRECTED_10_SYMBOL_ERR,
-	FEC_CW_CORRECTED_11_SYMBOL_ERR,
-	FEC_CW_CORRECTED_12_SYMBOL_ERR,
-	FEC_CW_CORRECTED_13_SYMBOL_ERR,
-	FEC_CW_CORRECTED_14_SYMBOL_ERR,
-	FEC_CW_CORRECTED_15_SYMBOL_ERR,
-	FEC_SYMBOL_ERR_CORRECTED_LANE_0,
-	FEC_SYMBOL_ERR_CORRECTED_LANE_1,
-	FEC_SYMBOL_ERR_CORRECTED_LANE_2,
-	FEC_SYMBOL_ERR_CORRECTED_LANE_3,
-	FEC_POST_FEC_SER_INT,
-	FEC_POST_FEC_SER_EXP,
-	FEC_PRE_FEC_SER_INT,
-	FEC_PRE_FEC_SER_EXP,
-
-	FEC_STAT_LAST
-};
-
 struct gaudi3_etr_ac_config {
 	u64 ac_off;
 	u64 etr_off;
@@ -358,93 +325,9 @@ struct gaudi3_etr_ac_config {
 #define GAUDI3_MIN_ETR_BUFS	16
 #define GAUDI3_MAX_ETR_BUFS	32
 
-struct gaudi3_nic_port;
 extern const u32 gaudi3_arc_blocks_bases[CPU_ID_MAX];
 extern const u32 gaudi3_pdma_grp_blocks_bases[NUM_OF_PDMA_GRP];
 extern struct gaudi3_etr_ac_config gaudi3_etr_ac_config[GAUDI3_NUM_ETR];
-
-/**
- * gaudi3_nic_eq_handler - definition of the event handler routine used for handling eq events.
- */
-typedef void (*gaudi3_nic_eq_handler)(struct gaudi3_nic_port *);
-
-/**
- * struct gaudi3_nic_port - manage specific NIC port.
- * @hdev: habanalabs device structure.
- * @nic_port: pointer to a common NIC device structure
- * @fifo_ring: rings array for doorbell H/W interface
- * @wq_ring: raw work queue ring
- * @rx_ring: raw skb ring
- * @cq_ring: ring array for the completed queue of raw/rdma packets
- * @eq_ring: ring for the event queue
- * @eq_work: EQ work for processing NIC events (e.g Tx completion).
- * @eq_handler: pointer to the EQ handler.
- * @qp_sanity_work: QPC sanity check worker.
- * @qp_sanity_wq: QPC sanity worker thread.
- * @qp_sanity_id: QP id next to be sanitized.
- * @txs_mem: TX scheduler host memory.
- * @req_qpc_mem: Requester QPC host memory.
- * @res_qpc_mem: Responder QPC host memory.
- * @req_qpc_swl_mem: Requester QPC SWL host memory.
- * @port: port index.
- * @db_fifo_pi: DB fifo ring producer index.
- * @cong_q_err_cnt: error count of congestion queue error.
- * @raw_db_pool_offset: offset within the gen pool allocator
- * @raw_fifo_offset: actual offset of the fifo allocated
- * @advanced: true if advanced features are supported.
- */
-struct gaudi3_nic_port {
-	struct hl_device	*hdev;
-	struct hl_nic_port	*nic_port;
-	struct hl_nic_ring	fifo_ring;
-	struct hl_nic_ring	wq_ring;
-	struct hl_nic_ring	rx_ring;
-	struct hl_nic_ring	cq_rings[NIC_CQS_NUM];
-	struct hl_nic_ring	eq_ring;
-
-	struct delayed_work	eq_work;
-	gaudi3_nic_eq_handler	eq_handler;
-
-	struct delayed_work	qp_sanity_work;
-	struct workqueue_struct	*qp_sanity_wq;
-	int			qp_sanity_id;
-
-	struct hl_nic_mem_resource	txs_mem;
-	struct hl_nic_mem_resource	req_qpc_mem;
-	struct hl_nic_mem_resource	res_qpc_mem;
-	struct hl_nic_mem_resource	req_qpc_swl_mem;
-
-	u32			port;
-	u32			db_fifo_pi;
-
-	u32			cong_q_err_cnt;
-
-	u32			raw_db_pool_offset;
-	u32			raw_fifo_offset;
-
-	u8			advanced;
-};
-
-/**
- * struct gaudi3_nic_macro - Manage specific NIC macro.
- * @hdev: Habanalabs device structure.
- * @nic_macro: Generic NIC macro structure.
- * @tmr_mem: Timer host memory.
- * @cfg_lock: Serializes the macro configuration.
- * @db_fifo_pool: gen pool for managing db fifo
- * @db_fifo_start_addr: the start address of the gen pool
- * @bp_off_num: number of configured back-pressure offsets.
- */
-struct gaudi3_nic_macro {
-	struct hl_device		*hdev;
-	struct hl_nic_macro		*nic_macro;
-
-	struct hl_nic_mem_resource	tmr_mem;
-	struct mutex			cfg_lock;
-	struct gen_pool			*db_fifo_pool;
-	u64				db_fifo_start_addr;
-	u32				bp_off_num;
-};
 
 /* User interrupt count is aligned with HW CQ count.
  * We have 64 CQ's per hdcore.
@@ -565,10 +448,8 @@ struct gaudi3_qmans_test_info {
  * @cpucp_info_get: get information on device from CPU-CP
  * @mapped_blocks: Array that holds the base address and size of all blocks
  *                 the user can map.
- * @nic_ports: array that holds all NIC ports manage structures.
- * @nic_macros: array that holds all NIC macro manage structures.
- * @en_core_info: core info to be used by the Ethernet driver.
- * @en_aux_ops: ASIC specific functions for core <-> eth drivers communication.
+ * @sni_aux_ops: functions for core <-> accel drivers communication.
+ * @sni_aux_data: data to be used by the core driver.
  * @hbm_cfg: HBM subsystem settings
  * @kdma_lock_mutex: Lock protecting the access to the KDMA engine
  * @qmans_test_info: Information used by the driver when testing the QMANs.
@@ -614,16 +495,13 @@ struct gaudi3_qmans_test_info {
  *                  Once an engine arc is initialized, its respective bit is
  *                  set. Each respective bit is cleared upon reset of its
  *                  corresponding ARC of the NIC engine.
- * @coll_lag_size: This field contains the collective operation's lag size.
  * @iatu_dram_region_id: IATU region ID for DRAM.
  */
 struct gaudi3_device {
 	int (*cpucp_info_get)(struct hl_device *hdev);
 	struct user_mapped_block		mapped_blocks[NUM_USER_MAPPED_BLOCKS];
-	struct gaudi3_nic_port			nic_ports[NIC_MAX_NUM_OF_PORTS];
-	struct gaudi3_nic_macro			nic_macros[NIC_MAX_NUM_OF_MACROS];
-	struct gaudi3_en_core_info		en_core_info;
-	struct gaudi3_en_aux_ops		en_aux_ops;
+	struct gaudi3_sni_aux_ops		sni_aux_ops;
+	struct gaudi3_sni_aux_data		sni_aux_data;
 	struct hl_page_fault_queue		page_fault_queue;
 	struct gaudi3_page_fault_queue_entry	pgf_q_entries[GAUDI3_PAGE_FAULT_QUEUE_SIZE];
 	struct gaudi3_hbm			hbm_cfg;
@@ -639,7 +517,6 @@ struct gaudi3_device {
 	u64					active_sched_arc;
 	u64					active_tpc_arc;
 	u64					active_nic_arc;
-	u32					coll_lag_size;
 	u8					iatu_dram_region_id;
 };
 
@@ -814,26 +691,13 @@ void gaudi3_clear_hw_cap(struct hl_device *hdev, bool hard_reset);
 int gaudi3_hw_fini(struct hl_device *hdev, bool hard_reset, bool fw_reset);
 
 void gaudi3_nic_quiescence(struct hl_device *hdev);
-void gaudi3_nic_read_mac_fec_stats(struct hl_nic_port *nic_port, u64 *data);
-const char *gaudi3_nic_phy_get_fw_name(void);
-int gaudi3_nic_phy_fw_load_all(struct hl_device *hdev);
-u16 gaudi3_nic_phy_get_crc(struct hl_device *hdev);
-int gaudi3_nic_phy_port_init(struct hl_nic_port *nic_port);
-void gaudi3_nic_phy_link_status_work(struct work_struct *work);
-void gaudi3_nic_phy_port_start_stop(struct hl_nic_port *nic_port, bool is_start);
-int gaudi3_nic_phy_port_power_up(struct hl_nic_port *nic_port);
-void gaudi3_nic_phy_port_reconfig(struct hl_nic_port *nic_port);
-void gaudi3_nic_phy_port_fini(struct hl_nic_port *nic_port);
-int gaudi3_nic_phy_reset_macro(struct hl_nic_macro *nic_macro);
-void gaudi3_nic_spmu_get_stats_info(struct hl_nic_port *nic_port, struct hl_en_stat **stats,
+
+void gaudi3_nic_spmu_get_stats_info(struct hl_device *hdev, u32 port, struct hl_en_stat **stats,
 					u32 *n_stats);
-int gaudi3_nic_spmu_config(struct hl_nic_port *nic_port, u32 num_event_types, u32 event_types[],
+int gaudi3_nic_spmu_config(struct hl_device *hdev, u32 port, u32 num_event_types, u32 event_types[],
 				bool enable);
-int gaudi3_nic_spmu_sample(struct hl_nic_port *nic_port, u32 num_out_data, u64 out_data[]);
+int gaudi3_nic_spmu_sample(struct hl_device *hdev, u32 port, u32 num_out_data, u64 out_data[]);
 int gaudi3_nic_ack_spmu_bmon_interrupt(struct hl_device *hdev, int nic_macro_idx);
-int gaudi3_nic_debugfs_qp_read(struct hl_device *hdev, char *buf, size_t bsize);
-int gaudi3_nic_debugfs_wqe_read(struct hl_device *hdev, char *buf, size_t bsize);
-void gaudi3_nic_debugfs_collect_fec_stats(struct hl_nic_port *nic_port, char *buf, size_t size);
 int gaudi3_scheduler_submit_buf(struct hl_device *hdev, u32 cpu_id, u32 queue_id, void *buf,
 					u32 len);
 bool gaudi3_is_valid_dram_page_size(u32 page_size);
@@ -846,11 +710,8 @@ int gaudi3_init_cpu_queues(struct hl_device *hdev, u32 cpu_timeout);
 int gaudi3_test_cpu_queue(struct hl_device *hdev);
 void gaudi3_send_hard_reset_cmd(struct hl_device *hdev);
 u32 gaudi3_handle_eqe(struct hl_device *hdev, struct hl_eq_dynamic_entry *eq_dynamic_entry);
-int gaudi3_nic_debugfs_write_coll_lag_size(struct hl_device *hdev, u32 coll_lag_size);
-int gaudi3_nic_debugfs_read_coll_lag_size(struct hl_device *hdev, u32 *coll_lag_size);
-int gaudi3_nic_debugfs_inject_rx_err(struct hl_device *hdev, u8 drop_percent);
-bool gaudi3_nic_is_macro_enabled(struct hl_device *hdev, struct hl_nic_macro *nic_macro);
-u32 gaudi3_nic_get_first_port(struct hl_nic_macro *nic_macro);
+bool gaudi3_nic_is_macro_enabled(struct hl_device *hdev, int macro_idx);
+u32 gaudi3_nic_get_first_port(struct hl_device *hdev, int macro_idx);
 int gaudi3_alloc_irq_vectors(struct hl_device *hdev, unsigned int min_vecs,
 			unsigned int max_vecs, unsigned int flags);
 void gaudi3_free_irq_vectors(struct hl_device *hdev);
@@ -923,11 +784,8 @@ int gaudi3_set_engines(struct hl_device *hdev, u32 *engine_ids,
 int gaudi3_irq_vector(struct hl_device *hdev, unsigned int nr);
 
 /* Bringup functions (w/o F/W support) */
-void gaudi3_nic_override_phy_readiness_pldm(struct hl_nic_port *nic_port, bool set_ready);
-int gaudi3_nic_disable_wqe_index_checker_fw(struct hl_nic_port *nic_port);
 void gaudi3_nic_macros_fw_config(struct hl_device *hdev);
 u32 gaudi3_handle_axi_drain(struct hl_device *hdev, bool *pci_link_error);
 void gaudi3_nic_restore_dynamic_cfg_soft_reset_fw(struct hl_device *hdev);
-int gaudi3_nic_set_wqe_index_checker_fw(struct hl_nic_port *nic_port, bool enable);
 
 #endif /* GAUDI3P_H_ */

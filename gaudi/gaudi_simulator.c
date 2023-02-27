@@ -1051,7 +1051,6 @@ static int gaudi_sim_cpucp_info_get(struct hl_device *hdev)
 
 static int gaudi_sim_sw_init(struct hl_device *hdev)
 {
-	struct hl_nic *nic = &hdev->nic;
 	struct gaudi_device *gaudi;
 	int rc;
 
@@ -1090,17 +1089,6 @@ static int gaudi_sim_sw_init(struct hl_device *hdev)
 	if (rc)
 		goto free_cpu_accessible_dma_pool;
 
-	rc = hl_nic_sw_init(hdev);
-	if (rc) {
-		dev_err(hdev->dev, "Failed to init NIC S/W\n");
-		rc = -ENOMEM;
-		goto free_internal_qmans_pq_mem;
-	}
-
-	nic->phy_load_fw = 0;
-	nic->phy_config_fw = 0;
-	nic->debugfs_reset = false;
-
 	mutex_init(&gaudi->hw_queues_lock_mutex);
 
 	hdev->supports_sync_stream = true;
@@ -1115,8 +1103,6 @@ static int gaudi_sim_sw_init(struct hl_device *hdev)
 
 	return 0;
 
-free_internal_qmans_pq_mem:
-	gaudi_free_internal_qmans_pq_mem(hdev);
 free_cpu_accessible_dma_pool:
 	gen_pool_destroy(hdev->cpu_accessible_dma_pool);
 free_cpu_dma_mem:
@@ -1134,8 +1120,6 @@ free_gaudi_device:
 static int gaudi_sim_sw_fini(struct hl_device *hdev)
 {
 	struct gaudi_device *gaudi = hdev->asic_specific;
-
-	hl_nic_sw_fini(hdev);
 
 	mutex_destroy(&gaudi->hw_queues_lock_mutex);
 
