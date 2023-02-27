@@ -2275,6 +2275,13 @@ static int gaudi2_set_req_qp_ctx(struct hl_device *hdev,
 	if (nic_port->eth_enable) {
 		u32 congestion_wnd;
 
+		if (in->congestion_wnd > GAUDI2_NIC_MAX_CONG_WND) {
+			dev_dbg(hdev->dev,
+				"Congestion window size(%u) can't be > max allowed size(%u), port %d\n",
+				in->congestion_wnd, GAUDI2_NIC_MAX_CONG_WND, port);
+		return -EINVAL;
+		}
+
 		/*
 		 * congestion_mode:
 		 * 0: no congestion
@@ -4616,8 +4623,8 @@ static void __qpc_sanity_check(struct gaudi2_nic_port *gaudi2_nic, u32 qpn)
 	struct hl_device *hdev;
 	struct gaudi2_qpc_requester req_qpc = {};
 	struct qpc_mask qpc_mask = {};
-	u32 ona_psn, nts_psn, in_work, bcs_psn, bcc_psn, consumer_idx,
-	    execution_idx, is_valid, port;
+	u32 ona_psn, nts_psn, in_work, bcs_psn, bcc_psn, rem_pi, ona_rem_pi,
+	    consumer_idx, execution_idx, is_valid, port;
 	int retry_cnt = 0;
 	int rc;
 
@@ -4648,12 +4655,15 @@ retry:
 	consumer_idx = REQ_QPC_GET_CONSUMER_IDX(req_qpc);
 	execution_idx = REQ_QPC_GET_EXECUTION_IDX(req_qpc);
 
+	rem_pi = REQ_QPC_GET_REMOTE_PRODUCER_IDX(req_qpc);
+	ona_rem_pi = REQ_QPC_GET_OLDEST_UNACKED_REMOTE_PRODUCER_IDX(req_qpc);
+
 	/*
 	 * We hit the HW bug. Unacknowledged PSN can never be greater than next
 	 * PSN to be sent out.
 	 */
-	if (ona_psn > nts_psn) {
-		dev_dbg(hdev->dev, "Port %d QP %d in limited state. Applying fix.\n", port, qpn);
+	if (NIC_IS_PSN_CYCLIC_BIG(ona_psn, nts_psn)) {
+		dev_info(hdev->dev, "Port %d QP %d in limited state. Applying fix.\n", port, qpn);
 
 		dev_dbg(hdev->dev, "ona_psn(%d) nts_psn(%d), bcc_psn(%d) bcs_psn(%d), consumer_idx(%d) execution_idx(%d). Retry_cnt %d\n",
 			ona_psn, nts_psn, bcc_psn, bcs_psn, consumer_idx, execution_idx, retry_cnt);
@@ -4670,10 +4680,12 @@ retry:
 		REQ_QPC_SET_NTS_PSN(qpc_mask, 0xffffff);
 		REQ_QPC_SET_BCS_PSN(qpc_mask, 0xffffff);
 		REQ_QPC_SET_EXECUTION_IDX(qpc_mask, 0x3fffff);
+		REQ_QPC_SET_REMOTE_PRODUCER_IDX(qpc_mask, 0x3fffff);
 
 		REQ_QPC_SET_NTS_PSN(req_qpc, ona_psn);
 		REQ_QPC_SET_BCS_PSN(req_qpc, bcc_psn);
 		REQ_QPC_SET_EXECUTION_IDX(req_qpc, consumer_idx);
+		REQ_QPC_SET_REMOTE_PRODUCER_IDX(req_qpc, ona_rem_pi);
 
 		rc = gaudi2_nic_qpc_write_masked(nic_port, (void *) &req_qpc, &qpc_mask,
 								qpn, true, true);
