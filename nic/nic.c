@@ -1888,6 +1888,7 @@ static int alloc_coll_qp(struct hl_device *hdev, struct hl_ctx *ctx,
 
 	coll_qp->hdev = hdev;
 	atomic_set(&coll_qp->num_of_initialized_qps, 0);
+	atomic_set(&coll_qp->num_of_allocated_qps, 0);
 
 	is_scale_out_conn = in->is_scale_out;
 
@@ -1939,6 +1940,25 @@ static int alloc_coll_qp(struct hl_device *hdev, struct hl_ctx *ctx,
 			atomic_inc(&nic_port->num_of_allocated_scale_out_coll_qps);
 		else
 			atomic_inc(&nic_port->num_of_allocated_coll_qps);
+
+		atomic_inc(&coll_qp->num_of_allocated_qps);
+	}
+
+	/* Register all the QPs to the dispatcher */
+	for (port = 0 ; port < max_num_of_ports ; port++) {
+		if (!(hdev->nic_ports_mask & BIT(port)))
+			continue;
+
+		nic_port = &hdev->nic.nic_ports[port];
+		qp = coll_qp->qps_array[port];
+
+		rc = port_funcs->register_qp(nic_port, qp->qp_id, ctx->asid);
+		if (rc) {
+			dev_dbg(hdev->dev,
+				"Failed to register collective QP %u for port %u\n",
+				qp->qp_id, port);
+			goto qp_register_error;
+		}
 	}
 
 	hl_nic_cfg_unlock_all(hdev);
@@ -1951,6 +1971,18 @@ static int alloc_coll_qp(struct hl_device *hdev, struct hl_ctx *ctx,
 
 	return 0;
 
+qp_register_error:
+	for (_port = 0 ; _port < port ; _port++) {
+		if (!(hdev->nic_ports_mask & BIT(_port)))
+			continue;
+
+		qp = coll_qp->qps_array[port];
+		nic_port = &hdev->nic.nic_ports[_port];
+
+		port_funcs->unregister_qp(nic_port, qp->qp_id);
+	}
+
+	port = max_num_of_ports;
 free_qps:
 	for (_port = 0 ; _port < port ; _port++) {
 		if (!(hdev->nic_ports_mask & BIT(_port)))
@@ -2202,6 +2234,12 @@ static int set_req_qp_ctx(struct hl_device *hdev, struct hl_nic_req_conn_ctx_in 
 		rc = hl_nic_qp_modify(nic_port, qp, NIC_QP_STATE_INIT, NULL);
 		if (rc)
 			goto cfg_unlock;
+
+		if (is_coll_conn) {
+			struct hl_coll_qp *coll_qp = get_coll_qp_from_conn_id(nic_port, qp->qp_id);
+
+			atomic_inc(&coll_qp->num_of_initialized_qps);
+		}
 	}
 
 	if (qp->is_req) {
@@ -2393,20 +2431,6 @@ static int set_res_qp_ctx(struct hl_device *hdev, struct hl_ctx *ctx,
 		goto unlock_cfg;
 	}
 
-	if (is_coll_conn) {
-		struct hl_coll_qp *coll_qp = get_coll_qp_from_conn_id(nic_port, qp->qp_id);
-
-		rc = port_funcs->register_qp(nic_port, qp->qp_id, ctx->asid);
-		if (rc) {
-			dev_dbg(hdev->dev,
-				"Failed to register collective QP %u for port %u\n",
-				qp->qp_id, port);
-			goto unlock_cfg;
-		}
-
-		atomic_inc(&coll_qp->num_of_initialized_qps);
-	}
-
 	/* sanity test the port IDs */
 	if (qp->port != port) {
 		dev_dbg(hdev->dev, "QP port %d does not match requested port %d\n", qp->port, port);
@@ -2421,6 +2445,12 @@ static int set_res_qp_ctx(struct hl_device *hdev, struct hl_ctx *ctx,
 		rc = hl_nic_qp_modify(nic_port, qp, NIC_QP_STATE_INIT, NULL);
 		if (rc)
 			goto unregister_coll_qp;
+
+		if (is_coll_conn) {
+			struct hl_coll_qp *coll_qp = get_coll_qp_from_conn_id(nic_port, qp->qp_id);
+
+			atomic_inc(&coll_qp->num_of_initialized_qps);
+		}
 	}
 
 	/* all is well, we are ready to receive */
@@ -2463,10 +2493,9 @@ u32 hl_nic_get_max_qp_id(struct hl_nic_port *nic_port)
 	return max_qp_id;
 }
 
-static void hl_nic_coll_qp_free(struct hl_coll_qp *coll_qp)
+static void hl_nic_unset_coll_qps_destroy(struct hl_coll_qp *coll_qp)
 {
 	struct hl_device *hdev = coll_qp->hdev;
-	struct hl_nic *nic = &hdev->nic;
 	u32 port;
 
 	/* Go over all the ports and call the QP release function for the collective QP of each
@@ -2478,6 +2507,11 @@ static void hl_nic_coll_qp_free(struct hl_coll_qp *coll_qp)
 
 		hl_nic_qp_do_release(coll_qp->qps_array[port]);
 	}
+}
+
+static void hl_nic_coll_qp_free(struct hl_coll_qp *coll_qp)
+{
+	struct hl_nic *nic = &coll_qp->hdev->nic;
 
 	idr_remove(&nic->coll_props[coll_qp->coll_conn_type].coll_qp_ids, coll_qp->id);
 	kfree(coll_qp->qps_array);
@@ -2525,21 +2559,23 @@ static void qp_destroy_work(struct work_struct *work)
 	if (qp->is_coll) {
 		struct hl_coll_qp *coll_qp = get_coll_qp_from_conn_id(nic_port, qp->qp_id);
 
-		/* If the coll_qp is NULL, meaning it was freed in previous run of this thread,
-		 * no additional action needs to be done here and we can continue with the common
-		 * flow.
+		/* If this QP is not in reset (i.e., was set), we can decrement the number of
+		 * initialized QPs under this collective QP.
 		 */
-		if (coll_qp) {
-			/* If this QP is not in reset (i.e., was set), we can decrement the number
-			 * of initialized QPs under this collective QP.
-			 */
-			if (qp->curr_state != NIC_QP_STATE_RESET)
-				atomic_dec(&coll_qp->num_of_initialized_qps);
+		if (qp->curr_state != NIC_QP_STATE_RESET)
+			atomic_dec(&coll_qp->num_of_initialized_qps);
 
-			/* If there are no initialized QPs left, we can free the collective QP */
-			if (atomic_read(&coll_qp->num_of_initialized_qps) == 0)
-				hl_nic_coll_qp_free(coll_qp);
-		}
+		/* If there are no initialized QPs left, we can destroy all the rest of the QPs
+		 * with the same collective ID.
+		 */
+		if (atomic_read(&coll_qp->num_of_initialized_qps) == 0)
+			hl_nic_unset_coll_qps_destroy(coll_qp);
+
+		/* If this is the last QP with a collective ID, we can destroy the collective QP
+		 * and remove its ID from the collective idr.
+		 */
+		if (atomic_dec_and_test(&coll_qp->num_of_allocated_qps))
+			hl_nic_coll_qp_free(coll_qp);
 	}
 
 	hl_nic_qp_modify(nic_port, qp, NIC_QP_STATE_RESET, &rst_attr);

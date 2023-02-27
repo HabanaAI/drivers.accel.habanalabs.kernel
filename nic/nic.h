@@ -946,6 +946,8 @@ struct hl_qp {
  * struct hl_coll_qp - Describes a NIC collective Queue Pair.
  * @hdev: habanalabs device structure.
  * @qps_array: per port array of QPs which have the same id like this collective QP.
+ * @num_of_allocated_qps: number of allocated QPs which have the same id like this
+ *                        collective QP.
  * @num_of_initialized_qps: number of initialized QPs which have the same id like this
  *                          collective QP.
  * @coll_conn_type: type of collective connection (scale-out or not).
@@ -954,6 +956,7 @@ struct hl_qp {
 struct hl_coll_qp {
 	struct hl_device		*hdev;
 	struct hl_qp			**qps_array;
+	atomic_t			num_of_allocated_qps;
 	atomic_t			num_of_initialized_qps;
 	enum hl_nic_coll_conn_type	coll_conn_type;
 	u32				id;
