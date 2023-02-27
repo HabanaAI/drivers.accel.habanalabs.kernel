@@ -26,8 +26,7 @@
 
 /* DRAM Memory Map */
 #define GAUDI3_SIM_NIC_DRV_SIZE		NIC_DRV_SIZE
-#define GAUDI3_SIM_DRAM_DRV_END_ADDR	(DRAM_PHYS_BASE + GAUDI3_SIM_NIC_DRV_SIZE + \
-							CPU_FW_IMAGE_SIZE)
+#define GAUDI3_SIM_DRAM_DRV_END_ADDR	(DRAM_PHYS_BASE + GAUDI3_SIM_NIC_DRV_SIZE)
 
 static DEFINE_MUTEX(simulator_open);
 
@@ -1129,6 +1128,14 @@ static int gaudi3_sim_hw_init(struct hl_device *hdev)
 		dev_err(hdev->dev, "failed to initialize CPU\n");
 		return rc;
 	}
+
+	/* Most of dram properties are set in gaudi3_set_fixed_properties. Addresses which depends
+	 * on user base address, are set here, because user base address depends on FW HBM region
+	 * size which is set after cpu init.
+	 */
+	rc = gaudi3_set_dynamic_dram_properties(hdev);
+	if (rc)
+		return rc;
 
 	if (hdev->cache_enable) {
 		rc = gaudi3_set_cache_mode(hdev);

@@ -210,7 +210,6 @@ static_assert(GAUDI3_NIC_MAX_CCQS_NUM <= NIC_DRV_MAX_CCQS_NUM);
 
 static_assert(IS_POWER_OF_2(ETR_BUF_SIZE));
 
-#define CPU_FW_IMAGE_SIZE	0x1000000				/* 16MB */
 #define NIC_DRV_SIZE		0x20000000				/* 512MB */
 
 /* 4 entries of 32 bit each i.e. 16 bytes */
@@ -819,6 +818,7 @@ void gaudi3_free_irq_vectors(struct hl_device *hdev);
 int gaudi3_init_pb_security(struct hl_device *hdev);
 int gaudi3_special_blocks_iterator_config(struct hl_device *hdev);
 void gaudi3_special_blocks_iterator_free(struct hl_device *hdev);
+int gaudi3_set_dynamic_dram_properties(struct hl_device *hdev);
 
 /* Functions exported for bring-up support */
 int gaudi3_pre_hw_init(struct hl_device *hdev);
