@@ -5939,7 +5939,7 @@ static int gaudi3_config_etr(struct hl_device *hdev, struct hl_ctx *ctx,
 			val |= FIELD_PREP(ETR_AXICTL_PROTCTRLBIT1_M, 1);
 			/* burst size 16 */
 			val |= FIELD_PREP(ETR_AXICTL_WRBURSTLEN_M, 0xF);
-			WREG32(mmETR_AXICTL, val);
+			WREG32(base_reg + mmETR_AXICTL, val);
 		}
 
 		WREG32(base_reg + mmETR_BUFWM, 0x3FFC);
