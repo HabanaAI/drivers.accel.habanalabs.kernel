@@ -4098,7 +4098,7 @@ static int gaudi3_early_init(struct hl_device *hdev)
 		dev_dbg(hdev->dev, "H/W state is dirty, must reset before initializing\n");
 		rc = hdev->asic_funcs->hw_fini(hdev, true, false);
 		if (rc) {
-			dev_err(hdev->dev, "hw_fini with hard-rest failed (%d)\n", rc);
+			dev_err(hdev->dev, "failed to reset HW in dirty state (%d)\n", rc);
 			goto pci_fini;
 		}
 	}
