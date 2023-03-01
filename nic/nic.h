@@ -1443,6 +1443,7 @@ u32 hl_nic_dram_readl(struct hl_device *hdev, u64 addr);
 u64 hl_nic_dram_readq(struct hl_device *hdev, u64 addr);
 void hl_nic_dram_writeb(struct hl_device *hdev, u8 val, u64 addr);
 void hl_nic_dram_writel(struct hl_device *hdev, u32 val, u64 addr);
+void hl_nic_get_frac_info(u64 numerator, u64 denominator, u64 *integer, u64 *exp);
 
 u64 hl_nic_reserve_wq_dva(struct hl_device *hdev, struct hl_ctx *ctx, struct hl_nic_port *nic_port,
 				u64 wq_arr_size, u32 type);

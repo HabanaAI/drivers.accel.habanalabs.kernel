@@ -133,6 +133,40 @@ static int hl_nic_ib_mmap(struct hl_aux_dev *aux_dev, void *core_ctx,
 				struct vm_area_struct *vma);
 static void wq_arrays_pool_destroy(struct hl_ctx *ctx);
 
+void hl_nic_get_frac_info(u64 numerator, u64 denominator, u64 *integer, u64 *exp)
+{
+	u64 high_digit_n, high_digit_d, integer_tmp, exp_tmp;
+	u8 num_digits_n, num_digits_d;
+	int i;
+
+	num_digits_d = hl_nic_get_num_of_digits(denominator);
+	high_digit_d = denominator;
+	for (i = 0 ; i < num_digits_d - 1 ; i++)
+		high_digit_d /= 10;
+
+	integer_tmp = 0;
+	exp_tmp = 0;
+
+	if (numerator) {
+		num_digits_n = hl_nic_get_num_of_digits(numerator);
+		high_digit_n = numerator;
+		for (i = 0 ; i < num_digits_n - 1 ; i++)
+			high_digit_n /= 10;
+
+		exp_tmp = num_digits_d - num_digits_n;
+
+		if (high_digit_n < high_digit_d) {
+			high_digit_n *= 10;
+			exp_tmp++;
+		}
+
+		integer_tmp = div_u64(high_digit_n, high_digit_d);
+	}
+
+	*integer = integer_tmp;
+	*exp = exp_tmp;
+}
+
 int hl_nic_read_spmu_counters(struct hl_nic_port *nic_port, u64 out_data[], u32 *num_out_data)
 {
 	struct hl_device *hdev = nic_port->hdev;

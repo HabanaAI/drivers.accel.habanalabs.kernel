@@ -4946,9 +4946,9 @@ static int gaudi3_nic_get_mac_rx_stats(struct hl_nic_port *nic_port, u64 *data)
 
 static int gaudi3_nic_get_mac_fec_stats(struct hl_nic_port *nic_port, u64 *data)
 {
+	u64 start_reg, total_symb_err, numerator, denominator, integer, exp;
 	struct hl_device *hdev = nic_port->hdev;
 	u32 port = nic_port->port;
-	u64 start_reg, total_symb_err, divisor;
 	int i, j;
 
 	/* There are 4 sets of FEC Stats registers.
@@ -4967,42 +4967,50 @@ static int gaudi3_nic_get_mac_fec_stats(struct hl_nic_port *nic_port, u64 *data)
 		data[i] = NIC_RREG32(start_reg + gaudi3_nic_mac_fec_stats[i].lo_offset);
 
 	/* Formula to calculate post_FEC_SER:
-	 * post_FEC_SER =  STATS_TOTAL_CW / TOTAL_UNCORRECTED_CW * 16
+	 * post_FEC_SER = (TOTAL_UNCORRECTED_CW * 16) / STATS_TOTAL_CW
 	 */
-	divisor = data[FEC_CW_UNCORRECTABLE] << 4;
+	numerator = data[FEC_CW_UNCORRECTABLE] << 4;
+	denominator = data[FEC_CW_RECEIVED];
 
-	if (divisor)
-		data[i++] = div64_u64(data[FEC_CW_RECEIVED], divisor);
-	else
-		data[i++] = ~0ULL;
+	if (denominator) {
+		hl_nic_get_frac_info(numerator, denominator, &integer, &exp);
+		data[FEC_POST_FEC_SER_INT] = integer;
+		data[FEC_POST_FEC_SER_EXP] = exp;
+	} else {
+		data[FEC_POST_FEC_SER_INT] = ~0ULL;
+	}
 
 	/* Formula to calculate pre_FEC_SER:
-	 * pre_FEC_SER = STATS_TOTAL_CW / (CW_CORRECTED_1_SYMB_ERR +
-	 *                          CW_CORRECTED_2_SYMB_ERR * 2 +
-	 *                          CW_CORRECTED_3_SYMB_ERR * 3 +
-	 *                          CW_CORRECTED_4_SYMB_ERR * 4 +
-	 *                          CW_CORRECTED_5_SYMB_ERR * 5 +
-	 *                          CW_CORRECTED_6_SYMB_ERR * 6 +
-	 *                          CW_CORRECTED_7_SYMB_ERR * 7 +
-	 *                          CW_CORRECTED_8_SYMB_ERR * 8 +
-	 *                          CW_CORRECTED_9_SYMB_ERR * 9 +
-	 *                          CW_CORRECTED_10_SYMB_ERR * 10 +
-	 *                          CW_CORRECTED_11_SYMB_ERR * 11 +
-	 *                          CW_CORRECTED_12_SYMB_ERR * 12 +
-	 *                          CW_CORRECTED_13_SYMB_ERR * 13 +
-	 *                          CW_CORRECTED_14_SYMB_ERR * 14 +
-	 *                          CW_CORRECTED_15_SYMB_ERR * 15 +
-	 *                          TOTAL_UNCORRECTED_CW * 16)
+	 * pre_FEC_SER = (CW_CORRECTED_1_SYMB_ERR +
+	 *                CW_CORRECTED_2_SYMB_ERR * 2 +
+	 *                CW_CORRECTED_3_SYMB_ERR * 3 +
+	 *                CW_CORRECTED_4_SYMB_ERR * 4 +
+	 *                CW_CORRECTED_5_SYMB_ERR * 5 +
+	 *                CW_CORRECTED_6_SYMB_ERR * 6 +
+	 *                CW_CORRECTED_7_SYMB_ERR * 7 +
+	 *                CW_CORRECTED_8_SYMB_ERR * 8 +
+	 *                CW_CORRECTED_9_SYMB_ERR * 9 +
+	 *                CW_CORRECTED_10_SYMB_ERR * 10 +
+	 *                CW_CORRECTED_11_SYMB_ERR * 11 +
+	 *                CW_CORRECTED_12_SYMB_ERR * 12 +
+	 *                CW_CORRECTED_13_SYMB_ERR * 13 +
+	 *                CW_CORRECTED_14_SYMB_ERR * 14 +
+	 *                CW_CORRECTED_15_SYMB_ERR * 15 +
+	 *                TOTAL_UNCORRECTED_CW * 16) / STATS_TOTAL_CW
 	 */
 	for (j = 0, total_symb_err = 0 ; j < FEC_MAX_SYMBOL_ERR ; j++)
 		total_symb_err += (data[FEC_CW_CORRECTED_1_SYMBOL_ERR + j] * (j + 1));
 
-	divisor = total_symb_err + (data[FEC_CW_UNCORRECTABLE] << 4);
+	numerator = total_symb_err + (data[FEC_CW_UNCORRECTABLE] << 4);
+	denominator = data[FEC_CW_RECEIVED];
 
-	if (divisor)
-		data[i++] = div64_u64(data[FEC_CW_RECEIVED], divisor);
-	else
-		data[i++] = ~0ULL;
+	if (denominator) {
+		hl_nic_get_frac_info(numerator, denominator, &integer, &exp);
+		data[FEC_PRE_FEC_SER_INT] = integer;
+		data[FEC_PRE_FEC_SER_EXP] = exp;
+	} else {
+		data[FEC_PRE_FEC_SER_INT] = ~0ULL;
+	}
 
 	nic_port->correctable_errors_cnt = data[FEC_CW_CORRECT];
 	nic_port->uncorrectable_errors_cnt = data[FEC_CW_UNCORRECTABLE];

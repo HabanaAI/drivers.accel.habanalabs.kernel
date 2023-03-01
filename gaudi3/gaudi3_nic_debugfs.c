@@ -670,9 +670,9 @@ void gaudi3_nic_debugfs_collect_fec_stats(struct hl_nic_port *nic_port, char *bu
 
 	if (nic_port->pcs_link) {
 		sprintf(buf + strlen(buf),
-			"Port %u: corrected_accumulated %llu uncorrected_accumulated %llu pre_fec_SER: %llu post_fec_SER: %llu\n",
-			port, data[FEC_CW_CORRECT], data[FEC_CW_UNCORRECTABLE],
-			data[FEC_PRE_FEC_SER], data[FEC_POST_FEC_SER]);
+			"Port %u: pre_fec_SER: %llue-%llu post_fec_SER: %llue-%llu\n", port,
+			data[FEC_PRE_FEC_SER_INT], data[FEC_PRE_FEC_SER_EXP],
+			data[FEC_POST_FEC_SER_INT], data[FEC_POST_FEC_SER_EXP]);
 	} else {
 		sprintf(buf + strlen(buf), "Port %u: Link is down\n", port);
 	}

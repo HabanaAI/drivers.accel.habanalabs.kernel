@@ -4356,40 +4356,6 @@ static int gaudi2_nic_get_mac_rx_stats(struct hl_nic_port *nic_port, u64 *data)
 	return i;
 }
 
-static void get_frac_info(u64 numerator, u64 denominator, u64 *integer, u64 *exp)
-{
-	u64 high_digit_n, high_digit_d, integer_tmp, exp_tmp;
-	u8 num_digits_n, num_digits_d;
-	int i;
-
-	num_digits_d = hl_nic_get_num_of_digits(denominator);
-	high_digit_d = denominator;
-	for (i = 0 ; i < num_digits_d - 1 ; i++)
-		high_digit_d /= 10;
-
-	integer_tmp = 0;
-	exp_tmp = 0;
-
-	if (numerator) {
-		num_digits_n = hl_nic_get_num_of_digits(numerator);
-		high_digit_n = numerator;
-		for (i = 0 ; i < num_digits_n - 1 ; i++)
-			high_digit_n /= 10;
-
-		exp_tmp = num_digits_d - num_digits_n;
-
-		if (high_digit_n < high_digit_d) {
-			high_digit_n *= 10;
-			exp_tmp++;
-		}
-
-		integer_tmp = div_u64(high_digit_n, high_digit_d);
-	}
-
-	*integer = integer_tmp;
-	*exp = exp_tmp;
-}
-
 static int __gaudi2_nic_get_mac_fec_stats(struct hl_nic_port *nic_port, u64 *data)
 {
 	u64 start_jiffies, diff_ms, numerator, denominator, integer, exp;
@@ -4488,7 +4454,7 @@ static int __gaudi2_nic_get_mac_fec_stats(struct hl_nic_port *nic_port, u64 *dat
 	for (i = 0 ; i < 4 ; i++)
 		numerator += data[FEC_SYMBOL_ERR_CORRECTED_LANE_0 + i];
 
-	get_frac_info(numerator, denominator, &integer, &exp);
+	hl_nic_get_frac_info(numerator, denominator, &integer, &exp);
 
 	data[FEC_PRE_FEC_SER_INT] = integer;
 	data[FEC_PRE_FEC_SER_EXP] = exp;
@@ -4496,7 +4462,7 @@ static int __gaudi2_nic_get_mac_fec_stats(struct hl_nic_port *nic_port, u64 *dat
 	/* Post FEC: the numerator is the uncorrected symbols (~= uncorrected_cw * 16) */
 	numerator = data[FEC_CW_UNCORRECTED] << 4;
 
-	get_frac_info(numerator, denominator, &integer, &exp);
+	hl_nic_get_frac_info(numerator, denominator, &integer, &exp);
 
 	data[FEC_POST_FEC_SER_INT] = integer;
 	data[FEC_POST_FEC_SER_EXP] = exp;
