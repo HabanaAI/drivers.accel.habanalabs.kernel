@@ -1109,7 +1109,7 @@ static int gaudi3_sim_hw_init(struct hl_device *hdev)
 		return rc;
 	}
 
-	gaudi3_lbw_stlb_dup_init(hdev);
+	gaudi3_lbw_dup_init(hdev);
 
 	/* Set all privileged registers instead of FW */
 	rc = gaudi3_sim_fw_config(hdev);
@@ -1177,8 +1177,6 @@ static int gaudi3_sim_hw_init(struct hl_device *hdev)
 	rc = gaudi3_coresight_init(hdev);
 	if (rc)
 		goto destroy_page_fault_queue;
-
-	gaudi3_lbw_dup_init(hdev);
 
 	rc = gaudi3_enable_msix(hdev);
 	if (rc)

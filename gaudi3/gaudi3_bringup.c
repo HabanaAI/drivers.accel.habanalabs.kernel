@@ -2377,7 +2377,7 @@ static void gaudi3_hdcore_stlb_init_fw_config(struct hl_device *hdev)
 
 	/* set page size types */
 	val = build_tlb_ctrl_page_size(hdev);
-	gaudi3_lbw_dup_group_push(hdev,	GAUDI3_DUP_GRP_STLB_ID, mmSTLB_CNTRL_PAGE_SIZE, val);
+	gaudi3_lbw_dup_group_push(hdev,	GAUDI3_DUP_GRP_STLB_BASE, mmSTLB_CNTRL_PAGE_SIZE, val);
 
 	/* unmask STLB interrupts */
 	for (i = 0; i < hdev->asic_prop.num_of_hdcores ; ++i) {
@@ -2393,6 +2393,7 @@ static void gaudi3_hdcore_stlb_init_fw_config(struct hl_device *hdev)
 			FIELD_PREP(STLB_INTR_SEI_MASK_TRANS_REQ_ERR_MSK_M, 1) |
 			FIELD_PREP(STLB_INTR_SEI_MASK_MAINT_REQ_ERR_MSK_M, 1));
 	}
+
 }
 
 static void gaudi3_init_hbm_mmu_fw_config(struct hl_device *hdev)

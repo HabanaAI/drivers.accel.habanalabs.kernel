@@ -285,22 +285,11 @@ enum gaudi3_reserved_cq_id {
 	GAUDI3_RESERVED_CQ_NUMBER,
 };
 
-enum gaudi3_dup_group_id {
-	GAUDI3_DUP_GRP_GENERAL_USE_ID,
-	GAUDI3_DUP_GRP_STLB_ID,
-	GAUDI3_DUP_GRP_STLB_INTR_SPI_CAUSE_ID,
-	GAUDI3_DUP_GRP_PDMA_CFG_ID,
-	GAUDI3_DUP_GRP_ARC0_CFG_ID,
-	GAUDI3_DUP_GRP_ARC1_CFG_ID,
-	GAUDI3_DUP_GRP_TPC_CFG_ID,
-	GAUDI3_DUP_GRP_CBC_CFG_ID,
-	GAUDI3_DUP_GRP_EDMA_CFG_ID,
-	GAUDI3_DUP_GRP_MME_CFG_ID,
-	GAUDI3_DUP_GRP_ROT_CFG_ID,
-	GAUDI3_DUP_GRP_DEC_CFG_ID,
-	GAUDI3_DUP_GRP_NIC_CFG_ID,
-	GAUDI3_DUP_GRP_SM_CFG_ID,
-	GAUDI3_DUP_GRP_ID_MAX,
+enum gaudi3_dup_group {
+	GAUDI3_DUP_GRP_PMMU_BASE,
+	GAUDI3_DUP_GRP_STLB_BASE,
+	GAUDI3_DUP_GRP_STLB_INTR_SPI_CAUSE,
+	GAUDI3_DUP_GRP_MAX,
 };
 
 /*
@@ -699,7 +688,6 @@ void gaudi3_set_pci_memory_regions(struct hl_device *hdev);
 u32 *gaudi3_get_stream_master_qid_arr(void);
 void gaudi3_init_arcs(struct hl_device *hdev);
 void gaudi3_lbw_dup_init(struct hl_device *hdev);
-void gaudi3_lbw_stlb_dup_init(struct hl_device *hdev);
 void gaudi3_lbw_dup_group_push(struct hl_device *hdev, u32 dup_group_id, u32 offset, u32 data);
 int gaudi3_mmu_init(struct hl_device *hdev);
 void gaudi3_init_cbc(struct hl_device *hdev);

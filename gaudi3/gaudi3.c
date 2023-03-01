@@ -1138,6 +1138,18 @@ static const char * const gaudi3_pcie_sei_err_cause[] = {
 		"axi_err"
 };
 
+struct gaudi3_dup_grp_info {
+	enum gaudi3_dup_group name;
+	u32 fixup_offset;
+	u32 base;
+};
+
+static const struct gaudi3_dup_grp_info gadui3_dup_grp_info[GAUDI3_DUP_GRP_MAX] = {
+	{GAUDI3_DUP_GRP_PMMU_BASE, mmMMU_TRACE_CTRL, mmD0_PMMU_HBW_MMU_BASE},
+	{GAUDI3_DUP_GRP_STLB_BASE, mmSTLB_CNTRL_MAIN, mmHD0_STLB_BASE},
+	{GAUDI3_DUP_GRP_STLB_INTR_SPI_CAUSE, mmSTLB_INTR_SPI_CAUSE, mmHD0_STLB_INTR_SPI_CAUSE},
+};
+
 enum razwi_initiztor {
 	RAZWI_NCH,
 	RAZWI_PIF,
@@ -2563,11 +2575,12 @@ static void gaudi3_lbw_dup_group_id_breakdown(struct hl_device *hdev, u32 dup_gr
 }
 
 static void gaudi3_lbw_dup_group_set_addr(struct hl_device *hdev,
-				enum gaudi3_dup_group_id dup_group_id, u32 index, u32 offset,
-				u64 eng_index_base)
+				enum gaudi3_dup_group dup_group_id, u32 index, u32 offset)
 {
 	u64 group_addr;
-	u32 reg, die, pdma, group, max_index;
+	const struct gaudi3_dup_grp_info *info = &gadui3_dup_grp_info[dup_group_id];
+	u32 reg, die, pdma, group;
+	u64 base = info->base;
 
 	gaudi3_lbw_dup_group_id_breakdown(hdev, dup_group_id, &die, &pdma, &group);
 
@@ -2576,15 +2589,7 @@ static void gaudi3_lbw_dup_group_set_addr(struct hl_device *hdev,
 			pdma * PDMA_ENGINE_OFFSET +
 			gaudi3_lbw_dup_group_addr_offsets[group];
 
-	max_index = group < LBW_DUP_NUMBER_OF_64_BIT_GROUPS ? 63 : 31;
-
-	if (index > max_index) {
-		dev_err(hdev->dev, "PDUP group addr set: index exceed max-index: %u, index: %u\n",
-							max_index, index);
-		return;
-	}
-
-	reg = eng_index_base + offset + CFG_BAR_BASE - LBW_BASE;
+	reg = base + offset + CFG_BAR_BASE - LBW_BASE;
 
 	WREG32(group_addr + index * sizeof(u32), reg);
 }
@@ -2613,21 +2618,27 @@ static void gaudi3_lbw_dup_group_set_size(struct hl_device *hdev, u32 dup_group_
 	gaudi3_lbw_dup_group_set_mask(hdev, dup_group_id, GENMASK_ULL(size - 1, 0));
 }
 
-void gaudi3_lbw_dup_group_push(struct hl_device *hdev, enum gaudi3_dup_group_id dup_group_id,
+void gaudi3_lbw_dup_group_push(struct hl_device *hdev, enum gaudi3_dup_group dup_group_id,
 					u32 offset, u32 data)
 {
+	const struct gaudi3_dup_grp_info *info = &gadui3_dup_grp_info[dup_group_id];
 	u64 push_base;
 	u32 die, pdma, group;
 
 	gaudi3_lbw_dup_group_id_breakdown(hdev, dup_group_id, &die, &pdma, &group);
 
+	/*
+	 * TODO:
+	 * When specs are fixed, use a valid define instead of group0 - 0x4000
+	 * to find the block start.
+	 */
 	push_base = mmD0_SPDMA0_DUP_ENG_BASE + mmPDUP_ENG_DUP_ADDR_GR_0_0 +
 			die * DIE_OFFSET +
 			pdma * PDMA_ENGINE_OFFSET +
 			group * LBW_DUP_PUSH_BLOCK_SIZE -
-			DUP_P_ENG_OFFSET;
+			0x4000;
 
-	WREG32(push_base + offset, data);
+	WREG32(push_base + (offset - info->fixup_offset), data);
 }
 
 bool gaudi3_host_phys_addr_valid(u64 addr)
@@ -3916,61 +3927,22 @@ static void gaudi3_init_pdma_ch_blk_b(struct hl_device *hdev, u32 reg_base, u8 c
 	gaudi3->hw_cap_pdma_initialized |= BIT(ch_id);
 }
 
-static u32 gaudi3_lbw_dup_pdma_init(struct hl_device *hdev, enum gaudi3_dup_group_id group,
-					u64 base, u32 eng_index_start)
-{
-	struct asic_fixed_properties *prop = &hdev->asic_prop;
-	u32 offset, i, j, eng_index;
-
-	for (i = 0, eng_index = eng_index_start ; i < prop->pdma_grp_max ; i++)
-		for (j = 0 ; j < prop->pdma_grp_ch_max ; j++) {
-			offset = ((i / 2) * DIE_OFFSET) +
-				((i % 2) * PDMA_GRP_OFFSET) + (j * PDMA_CH_OFFSET);
-
-			gaudi3_lbw_dup_group_set_addr(hdev, group, eng_index++, offset, base);
-		}
-
-	return eng_index;
-}
-
-static inline void pdma_mmu_prepare_group_push(struct hl_device *hdev,
-					enum gaudi3_dup_group_id group,	u32 asid)
-{
-	u32 offset, value;
-
-	offset = mmPDMA_CH_B_AXUSER_HBW_HB_MMU_BYPASS_OVRD;
-	value = HBW_RW_MMU_BYPASS_OVRD;
-	gaudi3_lbw_dup_group_push(hdev, group, offset, value);
-
-	offset = mmPDMA_CH_B_AXUSER_HBW_HB_MMU_BYPASS;
-	value = 0;
-	gaudi3_lbw_dup_group_push(hdev, group, offset, value);
-
-	offset = mmPDMA_CH_B_AXUSER_HBW_HB_ASID_OVRD;
-	value = HBW_RW_ASID_OVRD;
-	gaudi3_lbw_dup_group_push(hdev, group, offset, value);
-
-	offset = mmPDMA_CH_B_AXUSER_HBW_HB_ASID;
-	value = RW_ASID_MASK(asid);
-	gaudi3_lbw_dup_group_push(hdev, group, offset, value);
-}
-
 static void gaudi3_pdma_mmu_prepare(struct hl_device *hdev, u32 asid)
 {
 	struct asic_fixed_properties *prop = &hdev->asic_prop;
 	struct gaudi3_device *gaudi3 = hdev->asic_specific;
-	u64 ch_en_masks;
+	u32 ch_reg_base;
+	int ch_id;
 
-	pdma_mmu_prepare_group_push(hdev, GAUDI3_DUP_GRP_PDMA_CFG_ID, asid);
+	for (ch_id = 0 ; ch_id < prop->pdma_ch_max ; ch_id++) {
+		if (!(gaudi3->hw_cap_pdma_initialized & BIT(ch_id)))
+			continue;
 
-	/* Change the bases to mmD0_SPDMA0_CH0_B_PQM_AXUSER_HBW_BASE */
-	gaudi3_lbw_dup_pdma_init(hdev, GAUDI3_DUP_GRP_GENERAL_USE_ID,
-				mmD0_SPDMA0_CH0_B_ECMPLTN_Q_AXUSER_HBW_BASE, 0);
-
-	ch_en_masks = gaudi3->hw_cap_pdma_initialized & prop->pdma_user_owned_ch_mask;
-	gaudi3_lbw_dup_group_set_mask(hdev, GAUDI3_DUP_GRP_GENERAL_USE_ID, ch_en_masks);
-
-	pdma_mmu_prepare_group_push(hdev, GAUDI3_DUP_GRP_GENERAL_USE_ID, asid);
+		if (prop->pdma_user_owned_ch_mask & BIT(ch_id)) {
+			ch_reg_base = gaudi3_pdma_get_ch_reg_base(hdev, ch_id);
+			gaudi3_config_pdma_ch_mmu_mode(hdev, ch_reg_base, false, asid);
+		}
+	}
 }
 
 /* Configure DUP_P, DUP_ENG, DUP_MSTR_IF */
@@ -4823,27 +4795,27 @@ static void gaudi3_hmmu_update_hop0_addr(struct hl_device *hdev)
 
 		/* configure ASID index of which we update HOP0 */
 		gaudi3_lbw_dup_group_push(hdev,
-				GAUDI3_DUP_GRP_STLB_INTR_SPI_CAUSE_ID,
-				mmSTLB_ASID_TBL_ADDR - mmSTLB_INTR_SPI_CAUSE,
+				GAUDI3_DUP_GRP_STLB_INTR_SPI_CAUSE,
+				mmSTLB_ASID_TBL_ADDR,
 				asid);
 
 		/* configure LSB of HOP0 + valid indication */
 		gaudi3_lbw_dup_group_push(hdev,
-				GAUDI3_DUP_GRP_STLB_INTR_SPI_CAUSE_ID,
-				mmSTLB_ASID_TBL_LSB - mmSTLB_INTR_SPI_CAUSE,
+				GAUDI3_DUP_GRP_STLB_INTR_SPI_CAUSE,
+				mmSTLB_ASID_TBL_LSB,
 				FIELD_PREP(STLB_ASID_TBL_LSB_VLD_M, 1) |
 				FIELD_PREP(STLB_ASID_TBL_LSB_PA_31_13_M, hop0_pa_31_13));
 
 		/* configure MSB of HOP0 */
 		gaudi3_lbw_dup_group_push(hdev,
-				GAUDI3_DUP_GRP_STLB_INTR_SPI_CAUSE_ID,
-				mmSTLB_ASID_TBL_MSB - mmSTLB_INTR_SPI_CAUSE,
+				GAUDI3_DUP_GRP_STLB_INTR_SPI_CAUSE,
+				mmSTLB_ASID_TBL_MSB,
 				upper_32_bits(hop0_addr));
 
 		/* trigger write */
 		gaudi3_lbw_dup_group_push(hdev,
-				GAUDI3_DUP_GRP_STLB_INTR_SPI_CAUSE_ID,
-				mmSTLB_ASID_TBL_WR - mmSTLB_INTR_SPI_CAUSE,
+				GAUDI3_DUP_GRP_STLB_INTR_SPI_CAUSE,
+				mmSTLB_ASID_TBL_WR,
 				1);
 
 		/* flush HOP0 config writes */
@@ -4865,7 +4837,7 @@ static void gaudi3_hdcore_stlb_init(struct hl_device *hdev)
 					lower_32_bits(sob_target + CFG_BAR_BASE - LBW_BASE));
 
 	/* configure STLB not to perform LBW write when invalidation/prefetch command is done */
-	gaudi3_lbw_dup_group_push(hdev, GAUDI3_DUP_GRP_STLB_ID,
+	gaudi3_lbw_dup_group_push(hdev, GAUDI3_DUP_GRP_STLB_BASE,
 			mmSTLB_MAINT_BASE_ADDR,
 			FIELD_PREP(STLB_MAINT_BASE_ADDR_COMPLETION_MSG_EN_M, 1) |
 			FIELD_PREP(STLB_MAINT_BASE_ADDR_COMPLETION_LBW_ADDR_M, sob_lbw_off));
@@ -4874,18 +4846,18 @@ static void gaudi3_hdcore_stlb_init(struct hl_device *hdev)
 	inc_sob_value = FIELD_PREP(SOB_OBJS_SOB_OBJ_0_INC_M, 1) |
 			FIELD_PREP(SOB_OBJS_SOB_OBJ_0_VAL_M, 1);
 	gaudi3_lbw_dup_group_push(hdev,
-			GAUDI3_DUP_GRP_STLB_ID,
+			GAUDI3_DUP_GRP_STLB_BASE,
 			mmSTLB_MAINT_DATA,
 			inc_sob_value);
 
 	/* enable PTE caching */
-	gaudi3_lbw_dup_group_push(hdev,	GAUDI3_DUP_GRP_STLB_ID,
+	gaudi3_lbw_dup_group_push(hdev,	GAUDI3_DUP_GRP_STLB_BASE,
 			mmSTLB_CNTRL_CACHE,
 			FIELD_PREP(STLB_CNTRL_CACHE_H1PTE_CACHE_EN_M, 1) |
 			FIELD_PREP(STLB_CNTRL_CACHE_H2PTE_CACHE_EN_M, 1));
 
 	/* configure STLB to trigger interrupt upon failure */
-	gaudi3_lbw_dup_group_push(hdev, GAUDI3_DUP_GRP_STLB_ID,
+	gaudi3_lbw_dup_group_push(hdev, GAUDI3_DUP_GRP_STLB_BASE,
 			mmSTLB_FAULT_CNTRL,
 			FIELD_PREP(STLB_FAULT_CNTRL_FAULT_INT_EN_M, 1));
 
@@ -4929,372 +4901,23 @@ static void gaudi3_hbm_mmu_init(struct hl_device *hdev)
 	gaudi3->hw_cap_initialized |= HW_CAP_HMMU_MASK;
 }
 
-static int gaudi3_lbw_dup_1346_hd_init(struct hl_device *hdev, enum gaudi3_dup_group_id group,
-			u32 hdcore_eng_offset, u32 num_of_eng_per_hd, u64 base, u32 start_eng_idx)
-{
-	u32 hdcore_array[] = {1, 3, 4, 6}, hdcore_index, inst, offset, eng_index;
-	struct asic_fixed_properties *prop = &hdev->asic_prop;
-
-	for (hdcore_index = 0, eng_index = start_eng_idx ; hdcore_index < ARRAY_SIZE(hdcore_array);
-				hdcore_index++) {
-		if (hdcore_array[hdcore_index] >= prop->num_of_hdcores)
-			break;
-
-		for (inst = 0 ; inst < num_of_eng_per_hd ; inst++) {
-			/* The offset is relative to the first Eng in HD1 */
-			offset = (hdcore_array[hdcore_index] - hdcore_array[0]) * HDCORE_OFFSET +
-					inst * hdcore_eng_offset;
-			gaudi3_lbw_dup_group_set_addr(hdev, group, eng_index++, offset, base);
-		}
-	}
-
-	return eng_index;
-}
-
-static void gaudi3_lbw_dup_arc_mask_init(struct hl_device *hdev)
-{
-	u64 ch_en_masks, tpc_dump_bits, shift, hw_arc_mask_bits;
-	struct gaudi3_device *gaudi3 = hdev->asic_specific;
-
-	ch_en_masks = gaudi3->active_sched_arc;
-
-	shift = CPU_ID_TPC_QMAN_ARC63 - CPU_ID_TPC_QMAN_ARC48 + 1;
-	ch_en_masks |=  gaudi3->active_tpc_arc << shift;
-	gaudi3_lbw_dup_group_set_mask(hdev, GAUDI3_DUP_GRP_ARC0_CFG_ID, ch_en_masks);
-
-	tpc_dump_bits = CPU_ID_TPC_QMAN_ARC48 - CPU_ID_TPC_QMAN_ARC0;
-	shift = 64 - tpc_dump_bits;
-	hw_arc_mask_bits = (CPU_ID_ROT_QMAN_ARC7 - CPU_ID_MME_QMAN_ARC0) + 1;
-	ch_en_masks = gaudi3->active_tpc_arc >> tpc_dump_bits |
-			gaudi3->active_hw_arc << shift |
-			gaudi3->active_nic_arc << (shift + hw_arc_mask_bits);
-
-	gaudi3_lbw_dup_group_set_mask(hdev, GAUDI3_DUP_GRP_ARC1_CFG_ID, ch_en_masks);
-}
-
-static void gaudi3_lbw_dup_sched_arc_init(struct hl_device *hdev, u64 base_offset,
-							enum gaudi3_dup_group_id group)
-{
-	struct gaudi3_device *gaudi3 = hdev->asic_specific;
-	u32 i, eng_index = 0, sched_id, hdcore_id;
-	u64 base, ch_en_masks;
-
-	/*
-	 * Schedulers arcs configs will be done using the GAUDI3_DUP_GRP_GENERAL_USE_ID group
-	 * since the group addresses config will be set in context init.
-	 */
-	for (i = CPU_ID_SCHED_ARC0 ; i <= CPU_ID_SCHED_ARC15 ; i++) {
-		hdcore_id = i / NUM_ARC_SCHED_PER_HDCORE;
-		sched_id = i % NUM_ARC_SCHED_PER_HDCORE;
-		base = base_offset + (hdcore_id * HDCORE_OFFSET) +
-				(sched_id * ARC_AF_SEC_USER_ADAPT_OFFSET);
-
-		gaudi3_lbw_dup_group_set_addr(hdev, group,
-				eng_index++, 0, base);
-	}
-
-	ch_en_masks = gaudi3->active_sched_arc;
-	gaudi3_lbw_dup_group_set_mask(hdev, group, ch_en_masks);
-}
-
-static void gaudi3_lbw_dup_arc_init(struct hl_device *hdev, u64 base_offset)
-{
-	u32 i, eng_index = 0;
-
-	/*
-	 * we're going to use two dup groups in order to configure all arcs
-	 * first group will cover arc schedulers and part of the TPC arcs(since each
-	 * one of those groups has only 64 engines to run the duplication).
-	 * the second group will cover what's left which are the rest of the TPC
-	 * arcs, ROT, MME, EDMA and nic arcs.
-	 */
-	for (i = CPU_ID_SCHED_ARC0 ; i <= CPU_ID_SCHED_ARC15 ; i++) {
-		gaudi3_lbw_dup_group_set_addr(hdev, GAUDI3_DUP_GRP_ARC0_CFG_ID,
-				eng_index++, base_offset,
-				gaudi3_arc_blocks_bases[i]);
-	}
-
-	for (i = CPU_ID_TPC_QMAN_ARC0 ; i < CPU_ID_TPC_QMAN_ARC48 ; i++) {
-		gaudi3_lbw_dup_group_set_addr(hdev, GAUDI3_DUP_GRP_ARC0_CFG_ID,
-						eng_index++, base_offset,
-						gaudi3_arc_blocks_bases[i]);
-	}
-
-	for (i = CPU_ID_TPC_QMAN_ARC48, eng_index = 0 ; i <= CPU_ID_TPC_QMAN_ARC63 ; i++)
-		gaudi3_lbw_dup_group_set_addr(hdev, GAUDI3_DUP_GRP_ARC1_CFG_ID,
-						eng_index++, base_offset,
-						gaudi3_arc_blocks_bases[i]);
-
-	for (i = CPU_ID_MME_QMAN_ARC0 ; i < CPU_ID_MAX ; i++)
-		gaudi3_lbw_dup_group_set_addr(hdev, GAUDI3_DUP_GRP_ARC1_CFG_ID,
-						eng_index++, base_offset,
-						gaudi3_arc_blocks_bases[i]);
-}
-
-/*
- * TODO: use dup when H9-5520 is resolved
-static void gaudi3_lbw_dup_tpc_init(struct hl_device *hdev, enum gaudi3_dup_group_id dup_group,
-						u32 eng_hd_offset, u64 base_offset)
-{
-	struct asic_fixed_properties *prop = &hdev->asic_prop;
-	u64 base = mmHD0_TPC0_QM_DCCM_BASE + base_offset;
-	u32 hdcore, eng_index = 0, inst, hdcore_off;
-
-	for (hdcore = 0 ; hdcore < prop->num_of_hdcores ; hdcore++) {
-		for (inst = 0 ; inst < NUM_OF_TPC_PER_HDCORE ; inst++) {
-			hdcore_off = hdcore * HDCORE_OFFSET + inst * eng_hd_offset;
-
-			gaudi3_lbw_dup_group_set_addr(hdev, dup_group, eng_index++,
-							hdcore_off, base);
-		}
-	}
-
-	gaudi3_lbw_dup_group_set_mask(hdev, dup_group, prop->tpc_enabled_mask);
-}
-*/
-
-static void gaudi3_lbw_dup_dec_init(struct hl_device *hdev, enum gaudi3_dup_group_id group)
-{
-	u64 group_bases[4] = {mmHD0_VDEC0_BRDG_CTRL_AXUSER_MSIX_VCD_HBW_BASE,
-				mmHD0_VDEC0_BRDG_CTRL_AXUSER_MSIX_L2C_HBW_BASE,
-				mmHD0_VDEC0_BRDG_CTRL_AXUSER_MSIX_NRM_HBW_BASE,
-				mmHD0_VDEC0_BRDG_CTRL_AXUSER_MSIX_ABNRM_HBW_BASE},
-				dec_mask = 0;
-	u32 hdcore, eng_index = 0, inst, hdcore_off, dec_group, dup_addresses, i;
-	struct asic_fixed_properties *prop = &hdev->asic_prop;
-
-	for (dec_group = 0 ; dec_group < 4 ; dec_group++) {
-		for (hdcore = 0; hdcore < prop->num_of_hdcores ; hdcore++) {
-			for (inst = 0 ; inst < NUM_OF_DECODER_PER_HDCORE ; inst++) {
-				hdcore_off = hdcore * HDCORE_OFFSET + inst * HDCORE_DECODER_OFFSET;
-
-				gaudi3_lbw_dup_group_set_addr(hdev, group, eng_index++, hdcore_off,
-									group_bases[dec_group]);
-			}
-		}
-	}
-
-	dup_addresses = prop->num_of_hdcores * NUM_OF_DECODER_PER_HDCORE;
-
-	if (group == GAUDI3_DUP_GRP_GENERAL_USE_ID) {
-		/* change the mask to trigger only the last 8/16 dup engines group which has
-		 * closest base to mmHD0_VDEC0_BRDG_CTRL_AXUSER_DEC_HBW_BASE
-		 * since each group engine is limited to 512b offset max length that can be reached
-		 * from the base.
-		 */
-		if (prop->num_of_dies == 2)
-			dec_mask = GENMASK_ULL(63, 48);
-		else
-			dec_mask = GENMASK_ULL(31, 24);
-	} else {
-		/* We have 4 groups of configs to be setup on this dup group.
-		 * each group has multiple addresses to configure.
-		 */
-		for (i = 0 ; i < 4 ; i++)
-			dec_mask |= (u64) prop->decoder_enabled_mask << (i * dup_addresses);
-	}
-	gaudi3_lbw_dup_group_set_mask(hdev, group, dec_mask);
-}
-
-static void gaudi3_lbw_dup_nic_init(struct hl_device *hdev)
-{
-	struct asic_fixed_properties *prop = &hdev->asic_prop;
-	u32 die, inst, offset, eng_index = 0;
-
-	for (die = 0 ; die < prop->num_of_dies ; die++)
-		for (inst = 0 ; inst < NIC_NUM_MACROS_PER_DIE ; inst++) {
-			offset = die * NIC_DIE_OFFSET + inst * NIC_OFFSET;
-
-			gaudi3_lbw_dup_group_set_addr(hdev, GAUDI3_DUP_GRP_NIC_CFG_ID,
-					eng_index++, offset, mmD0_NIC0_QM_AXUSER_HBW_BASE);
-		}
-}
-
-static void gaudi3_lbw_dup_mme_init(struct hl_device *hdev, enum gaudi3_dup_group_id group,
-						u64 use_base, u32 hd_start, u32 hd_end)
-{
-	u32 hdcore_off, hdcore, eu_id, eu_offset, sbte_id, sbte_offset, eng_idx, i, j, num_mme_eng;
-	u64 base, dup_mask = 0;
-
-	for (hdcore = hd_start, eng_idx = 0 ; hdcore < hd_end ; hdcore++) {
-		hdcore_off = hdcore * HDCORE_OFFSET;
-
-		gaudi3_lbw_dup_group_set_addr(hdev, group, eng_idx++, hdcore_off, use_base);
-
-		for (eu_id = 0 ; eu_id < NUM_OF_MME_EU_PER_HDCORE ; eu_id++) {
-			eu_offset = eu_id * HDCORE_MME_EU_OFFSET;
-			base = mmHD0_MME0_WB_MSTR_IF_AXUSER_HBW_BASE + eu_offset;
-
-			gaudi3_lbw_dup_group_set_addr(hdev, group, eng_idx++, hdcore_off, base);
-
-			for (sbte_id = 0 ; sbte_id < NUM_OF_MME_SBTE_PER_EU ; sbte_id++) {
-				sbte_offset = sbte_id * HDCORE_MME_SBTE_OFFSET;
-				base = mmHD0_MME0_SBTE0_MSTR_IF_AXUSER_HBW_BASE +
-							sbte_offset + eu_offset;
-
-				gaudi3_lbw_dup_group_set_addr(hdev, group, eng_idx++,
-						hdcore_off, base);
-			}
-		}
-	}
-
-	num_mme_eng = (NUM_OF_MME_EU_PER_HDCORE * NUM_OF_MME_SBTE_PER_EU) + 3;
-
-	for (j = 0, i = hd_start ; i < hd_end ; i++, j++)
-		if (hdev->mme_mask & BIT_ULL(i))
-			dup_mask |= (u64)0x7FF << (j * num_mme_eng);
-
-	gaudi3_lbw_dup_group_set_mask(hdev, group, dup_mask);
-}
-
-void gaudi3_lbw_stlb_dup_init(struct hl_device *hdev)
-{
-	struct asic_fixed_properties *prop = &hdev->asic_prop;
-	u32 hdcore, hdcore_off;
-
-	for (hdcore = 0 ; hdcore < prop->num_of_hdcores ; hdcore++) {
-		hdcore_off = hdcore * HDCORE_OFFSET;
-
-		gaudi3_lbw_dup_group_set_addr(hdev, GAUDI3_DUP_GRP_STLB_ID, hdcore,
-				hdcore_off, mmHD0_STLB_BASE);
-		gaudi3_lbw_dup_group_set_addr(hdev, GAUDI3_DUP_GRP_STLB_INTR_SPI_CAUSE_ID, hdcore,
-				hdcore_off, mmHD0_STLB_INTR_SPI_CAUSE);
-	}
-
-	gaudi3_lbw_dup_group_set_size(hdev, GAUDI3_DUP_GRP_STLB_ID, prop->num_of_hdcores);
-	gaudi3_lbw_dup_group_set_size(hdev, GAUDI3_DUP_GRP_STLB_INTR_SPI_CAUSE_ID,
-			prop->num_of_hdcores);
-}
-
 void gaudi3_lbw_dup_init(struct hl_device *hdev)
 {
-	u32 hdcore, hdcore_off, i, eng_index, channel, channel_offset,  num_of_masks_grps,
-					num_of_edma_in_hds, num_of_rot_in_hds;
 	struct asic_fixed_properties *prop = &hdev->asic_prop;
-	struct gaudi3_device *gaudi3 = hdev->asic_specific;
-	u64 base, ch_en_masks, dup_mask;
+	u32 hdcore;
 
-	/*
-	 * This function will setup the PDUP groups in order to be prepared to do
-	 * the MMU prepare configs upon context init.
-	 * The optimal case is to have the groups sets here and when user open
-	 * context driver will just do the "push" to config the MMU bp and asid
-	 * for all engines.
-	 * however, and since we are limited in number of engines instances in each group
-	 * we may need to reconfigure some groups and set new addresses and push again
-	 * also during the context init, like in arcs case first we have 120 addresses to
-	 * set for first config then we need to configure the scheduler arcs only with
-	 * so we need to set new addresses in the dup group.
-	 * To make it optimal the large configs for all engines will be here
-	 * and only for the 16 scheduler arcs will be set during context init using a
-	 * dedicated group GAUDI3_DUP_GRP_GENERAL_USE_ID which will be used for
-	 * those kind of top ups during context init.
-	 * Only the GAUDI3_DUP_GRP_GENERAL_USE_ID groups masks will be set in context
-	 * init, all others static masks for the other groups will be set once here.
-	 * Note that STLB DUP groups configs moved to separate function since they are needed
-	 * for FW configs in earlier stages.
-	 */
-
-	/* SM MMU prepare */
+	/* STLB base + ASID table config */
 	for (hdcore = 0 ; hdcore < prop->num_of_hdcores ; hdcore++) {
-		hdcore_off = hdcore * HDCORE_OFFSET;
+		u64 hdcore_off = hdcore * HDCORE_OFFSET;
 
-		if (!hdcore)
-			gaudi3_lbw_dup_group_set_addr(hdev, GAUDI3_DUP_GRP_SM_CFG_ID,
-							hdcore,	hdcore_off,
-							mmHD0_SYNC_MNGR_GLBL_USR_HBW_USER_BASE);
-		else
-			gaudi3_lbw_dup_group_set_addr(hdev, GAUDI3_DUP_GRP_SM_CFG_ID,
-							hdcore,	hdcore_off,
-							mmHD0_SYNC_MNGR_MSTR_IF_AXUSER_HBW_BASE);
+		gaudi3_lbw_dup_group_set_addr(hdev, GAUDI3_DUP_GRP_STLB_BASE, hdcore, hdcore_off);
+		gaudi3_lbw_dup_group_set_addr(hdev, GAUDI3_DUP_GRP_STLB_INTR_SPI_CAUSE, hdcore,
+						hdcore_off);
 	}
 
-	gaudi3_lbw_dup_group_set_size(hdev, GAUDI3_DUP_GRP_SM_CFG_ID, prop->num_of_hdcores);
-
-	/* All ARCs mmu prepare */
-	gaudi3_lbw_dup_arc_init(hdev, mmQMAN_ARC_AUX_ARC_REGION_CFG);
-
-	/* MME MMU prepare */
-	gaudi3_lbw_dup_mme_init(hdev, GAUDI3_DUP_GRP_MME_CFG_ID,
-					mmHD0_MME_QM_AXUSER_HBW_BASE, 0 /* HD0 */, 4 /* HD4 */);
-
-	/* PDMA MMU prepare */
-	eng_index = gaudi3_lbw_dup_pdma_init(hdev, GAUDI3_DUP_GRP_PDMA_CFG_ID,
-						mmD0_SPDMA0_CH0_B_AXUSER_HBW_BASE, 0);
-	eng_index = gaudi3_lbw_dup_pdma_init(hdev, GAUDI3_DUP_GRP_PDMA_CFG_ID,
-						mmD0_SPDMA0_CH0_B_PQM_AXUSER_HBW_BASE, eng_index);
-
-	/*
-	 * Note that since we already set addresses for two registers
-	 * in the same group, we need to duplicate the mask in order to enable the second
-	 * register config when we do push.
-	 */
-	ch_en_masks = gaudi3->hw_cap_pdma_initialized & prop->pdma_user_owned_ch_mask;
-	ch_en_masks |= ch_en_masks << prop->pdma_ch_max;
-
-	gaudi3_lbw_dup_group_set_mask(hdev, GAUDI3_DUP_GRP_PDMA_CFG_ID, ch_en_masks);
-
-	/* EDMA MMU prepare */
-	eng_index = gaudi3_lbw_dup_1346_hd_init(hdev, GAUDI3_DUP_GRP_EDMA_CFG_ID,
-					HDCORE_EDMA_OFFSET, NUM_OF_EDMA_PER_HDCORE,
-					mmHD1_SEDMA0_QM_AXUSER_HBW_BASE, 0);
-
-	for (channel = 0 ; channel < NUM_OF_EDMA_CHANNELS ; channel++) {
-		channel_offset = channel * EDMA_CHANNEL_OFFSET;
-		base = mmHD1_SEDMA0_QM_AXUSER_HBW_BASE + EDMA_AXUSER_HBW_CTX_OFFSET +
-				channel_offset;
-
-		eng_index = gaudi3_lbw_dup_1346_hd_init(hdev, GAUDI3_DUP_GRP_EDMA_CFG_ID,
-				HDCORE_EDMA_OFFSET, NUM_OF_EDMA_PER_HDCORE, base, eng_index);
-	}
-
-	num_of_masks_grps = NUM_OF_EDMA_CHANNELS + 1;
-	num_of_edma_in_hds = (prop->num_of_hdcores / 2) * NUM_OF_EDMA_PER_HDCORE;
-
-	for (i = 0, dup_mask = 0 ; i < num_of_masks_grps ; i++)
-		dup_mask |= (u64)prop->edma_enabled_mask << (i * num_of_edma_in_hds);
-
-	gaudi3_lbw_dup_group_set_mask(hdev, GAUDI3_DUP_GRP_EDMA_CFG_ID, dup_mask);
-
-	/* ROT MMU prepare */
-	eng_index = gaudi3_lbw_dup_1346_hd_init(hdev, GAUDI3_DUP_GRP_ROT_CFG_ID,
-				HDCORE_ROT_OFFSET, NUM_OF_ROTATOR_PER_HDCORE,
-				mmHD1_ROT0_QM_AXUSER_HBW_BASE, 0);
-
-	base = mmHD1_ROT0_QM_AXUSER_HBW_BASE + ROT_AXUSER_HBW_OFFSET;
-	gaudi3_lbw_dup_1346_hd_init(hdev, GAUDI3_DUP_GRP_ROT_CFG_ID, HDCORE_ROT_OFFSET,
-			NUM_OF_ROTATOR_PER_HDCORE, base, eng_index);
-
-	num_of_masks_grps = 2;
-	num_of_rot_in_hds = (prop->num_of_hdcores / 2) * NUM_OF_ROTATOR_PER_HDCORE;
-
-	for (i = 0, dup_mask = 0 ; i < num_of_masks_grps ; i++)
-		dup_mask |= (u64)prop->rotator_enabled_mask << (i * num_of_rot_in_hds);
-
-	gaudi3_lbw_dup_group_set_mask(hdev, GAUDI3_DUP_GRP_ROT_CFG_ID, dup_mask);
-
-	/* TPC MMU prepare */
-
-	/*
-	 * TODO: skip till H9-5520 is resolved
-	gaudi3_lbw_dup_tpc_init(hdev, GAUDI3_DUP_GRP_TPC_CFG_ID,
-					HDCORE_TPC_OFFSET, TPC_CFG_AXUSER_HBW_OFFSET);
-	 */
-
-	/* DEC MMU prepare */
-	gaudi3_lbw_dup_dec_init(hdev, GAUDI3_DUP_GRP_DEC_CFG_ID);
-
-	/* CBC MMU prepare */
-	for (i = 0 ; i < NUM_OF_CBC_RANGES ; i++)
-		gaudi3_lbw_dup_group_set_addr(hdev, GAUDI3_DUP_GRP_CBC_CFG_ID, i,
-							i * sizeof(u32), mmD0_PMMU_CBC_BASE);
-
-	gaudi3_lbw_dup_group_set_size(hdev, GAUDI3_DUP_GRP_CBC_CFG_ID, NUM_OF_CBC_RANGES);
-
-	/* NIC MMU prepare */
-	gaudi3_lbw_dup_nic_init(hdev);
-
-	gaudi3_lbw_dup_group_set_mask(hdev, GAUDI3_DUP_GRP_NIC_CFG_ID, hdev->nic_ports_mask);
+	gaudi3_lbw_dup_group_set_size(hdev, GAUDI3_DUP_GRP_STLB_BASE, prop->num_of_hdcores);
+	gaudi3_lbw_dup_group_set_size(hdev, GAUDI3_DUP_GRP_STLB_INTR_SPI_CAUSE,
+			prop->num_of_hdcores);
 }
 
 int gaudi3_mmu_init(struct hl_device *hdev)
@@ -7592,9 +7215,9 @@ static int gaudi3_hw_init(struct hl_device *hdev)
 
 	/*
 	 * this should be done before FW config as it contains HBM MMU init that
-	 * needs the STLB DUP initialized.
+	 * needs the DUP initialized.
 	 */
-	gaudi3_lbw_stlb_dup_init(hdev);
+	gaudi3_lbw_dup_init(hdev);
 
 	/* If iATU is done by FW, the HBM bar ALWAYS points to DRAM_PHYS_BASE.
 	 * So we set it here and if anyone tries to move it later to
@@ -7686,8 +7309,6 @@ static int gaudi3_hw_init(struct hl_device *hdev)
 		goto destroy_page_fault_queue;
 
 	gaudi3_enable_interrupt_aggr_msgs(hdev);
-
-	gaudi3_lbw_dup_init(hdev);
 
 	rc = gaudi3_enable_msix(hdev);
 	if (rc)
@@ -8126,45 +7747,30 @@ static bool gaudi3_is_engine_enabled(struct hl_device *hdev, u32 eng_id)
 
 static void gaudi3_cbc_mmu_prepare(struct hl_device *hdev, u32 asid)
 {
-	gaudi3_lbw_dup_group_push(hdev, GAUDI3_DUP_GRP_CBC_CFG_ID,
-			mmCBC_CBC_RANGE_ASID_BASE_0, asid);
+	int range;
+
+	for (range = 0 ; range < NUM_OF_CBC_RANGES ; range++)
+		WREG32(mmD0_PMMU_CBC_BASE + mmCBC_CBC_RANGE_ASID_BASE_0 + range * sizeof(u32),
+				asid);
 }
 
-static void gaudi3_edma_mmu_prepare(struct hl_device *hdev, u32 asid)
+static void gaudi3_edma_mmu_prepare(struct hl_device *hdev, int hdcore, int inst, u32 offset,
+					struct iterate_module_ctx *ctx)
 {
-	gaudi3_lbw_dup_group_push(hdev, GAUDI3_DUP_GRP_EDMA_CFG_ID,
-				mmPDMA_CH_B_AXUSER_HBW_HB_ASID_OVRD,
-				HBW_RW_ASID_OVRD);
+	u32 asid, channel, channel_offset, axuser_hbw_reg_base;
 
-	gaudi3_lbw_dup_group_push(hdev, GAUDI3_DUP_GRP_EDMA_CFG_ID,
-				mmPDMA_CH_B_AXUSER_HBW_HB_ASID,
-				RW_ASID_MASK(asid));
+	asid = (uintptr_t) ctx->data;
+
+	for (channel = 0 ; channel < NUM_OF_EDMA_CHANNELS ; channel++) {
+		channel_offset = channel * EDMA_CHANNEL_OFFSET;
+		axuser_hbw_reg_base = mmHD1_SEDMA0_CH0_CTX_AXUSER_HBW_BASE + offset +
+					channel_offset;
+		gaudi3_axuser_hbw_asid_set(hdev, axuser_hbw_reg_base, asid);
+	}
+
+	axuser_hbw_reg_base = mmHD1_SEDMA0_QM_AXUSER_HBW_BASE + offset;
+	gaudi3_axuser_hbw_asid_set(hdev, axuser_hbw_reg_base, asid);
 }
-
-/*
- * TODO: do tpc mmu prepare W/O Dup till H9-5520 is resolved.
-static void gaudi3_tpc_mmu_prepare(struct hl_device *hdev, u32 asid)
-{
-	gaudi3_lbw_dup_group_push(hdev, GAUDI3_DUP_GRP_TPC_CFG_ID,
-				mmPDMA_CH_B_AXUSER_HBW_HB_ASID_OVRD,
-				HBW_RW_ASID_OVRD);
-
-	gaudi3_lbw_dup_group_push(hdev, GAUDI3_DUP_GRP_TPC_CFG_ID,
-				mmPDMA_CH_B_AXUSER_HBW_HB_ASID,
-				RW_ASID_MASK(asid));
-
-	gaudi3_lbw_dup_tpc_init(hdev, GAUDI3_DUP_GRP_GENERAL_USE_ID,
-				HDCORE_TPC_OFFSET, TPC_QM_AXUSER_HBW_OFFSET);
-
-	gaudi3_lbw_dup_group_push(hdev, GAUDI3_DUP_GRP_GENERAL_USE_ID,
-				mmPDMA_CH_B_AXUSER_HBW_HB_ASID_OVRD,
-				HBW_RW_ASID_OVRD);
-
-	gaudi3_lbw_dup_group_push(hdev, GAUDI3_DUP_GRP_GENERAL_USE_ID,
-				mmPDMA_CH_B_AXUSER_HBW_HB_ASID,
-				RW_ASID_MASK(asid));
-}
-*/
 
 static void gaudi3_tpc_mmu_prepare(struct hl_device *hdev, int hdcore, int inst, u32 offset,
 					struct iterate_module_ctx *ctx)
@@ -8175,127 +7781,116 @@ static void gaudi3_tpc_mmu_prepare(struct hl_device *hdev, int hdcore, int inst,
 	gaudi3_axuser_hbw_asid_set(hdev, mmHD0_TPC0_QM_AXUSER_HBW_BASE + offset, asid);
 }
 
-static void gaudi3_mme_mmu_prepare(struct hl_device *hdev, u32 asid)
+static void gaudi3_mme_mmu_prepare(struct hl_device *hdev, int hdcore, int inst, u32 offset,
+					struct iterate_module_ctx *ctx)
 {
-	struct asic_fixed_properties *prop = &hdev->asic_prop;
+	u32 asid, eu_id, eu_offset, sbte_id, sbte_offset, axuser_hbw_reg_base;
 
-	/* Since we don't have enough room for all configs in the dup eng group
-	 * we'll split the configs into 2, first we'll do the first 4 hdcores configs
-	 * then the others using GAUDI3_DUP_GRP_GENERAL_USE_ID group.
-	 * The first 4 hdocres addresses already setup in lbw_dup_init we can just push.
-	 * each push will have 44 configs to do.
-	 * Each mme in the hdcore have 11 dup engines to duplicate it's mmu configs
-	 */
-	gaudi3_lbw_dup_group_push(hdev, GAUDI3_DUP_GRP_MME_CFG_ID,
-				mmPDMA_CH_B_AXUSER_HBW_HB_ASID_OVRD,
-				HBW_RW_ASID_OVRD);
+	asid = (uintptr_t) ctx->data;
 
-	gaudi3_lbw_dup_group_push(hdev, GAUDI3_DUP_GRP_MME_CFG_ID,
-				mmPDMA_CH_B_AXUSER_HBW_HB_ASID,
-				RW_ASID_MASK(asid));
+	for (eu_id = 0 ; eu_id < NUM_OF_MME_EU_PER_HDCORE ; eu_id++) {
+		eu_offset = eu_id * HDCORE_MME_EU_OFFSET;
+		axuser_hbw_reg_base = mmHD0_MME0_WB_MSTR_IF_AXUSER_HBW_BASE + offset + eu_offset;
+		gaudi3_axuser_hbw_asid_set(hdev, axuser_hbw_reg_base, asid);
 
-	if (prop->num_of_dies == 2) {
-		gaudi3_lbw_dup_mme_init(hdev, GAUDI3_DUP_GRP_GENERAL_USE_ID,
-					mmHD0_MME_QM_AXUSER_HBW_BASE, 4 /* HD4 */, 8 /* HD8 */);
-
-		gaudi3_lbw_dup_group_push(hdev, GAUDI3_DUP_GRP_GENERAL_USE_ID,
-				mmPDMA_CH_B_AXUSER_HBW_HB_ASID_OVRD,
-				HBW_RW_ASID_OVRD);
-
-		gaudi3_lbw_dup_group_push(hdev, GAUDI3_DUP_GRP_GENERAL_USE_ID,
-				mmPDMA_CH_B_AXUSER_HBW_HB_ASID,
-				RW_ASID_MASK(asid));
+		for (sbte_id = 0 ; sbte_id < NUM_OF_MME_SBTE_PER_EU ; sbte_id++) {
+			sbte_offset = sbte_id * HDCORE_MME_SBTE_OFFSET;
+			axuser_hbw_reg_base = mmHD0_MME0_SBTE0_MSTR_IF_AXUSER_HBW_BASE + offset +
+						eu_offset + sbte_offset;
+			gaudi3_axuser_hbw_asid_set(hdev, axuser_hbw_reg_base, asid);
+		}
 	}
+
+	axuser_hbw_reg_base = mmHD0_MME_QM_AXUSER_HBW_BASE + offset;
+	gaudi3_axuser_hbw_asid_set(hdev, axuser_hbw_reg_base, asid);
 }
 
-static void gaudi3_rotator_mmu_prepare(struct hl_device *hdev, u32 asid)
+static void gaudi3_rotator_mmu_prepare(struct hl_device *hdev, int hdcore, int inst, u32 offset,
+					struct iterate_module_ctx *ctx)
 {
-	gaudi3_lbw_dup_group_push(hdev, GAUDI3_DUP_GRP_ROT_CFG_ID,
-				mmPDMA_CH_B_AXUSER_HBW_HB_ASID_OVRD,
-				HBW_RW_ASID_OVRD);
+	u32 asid = (uintptr_t) ctx->data;
 
-	gaudi3_lbw_dup_group_push(hdev, GAUDI3_DUP_GRP_ROT_CFG_ID,
-				mmPDMA_CH_B_AXUSER_HBW_HB_ASID,
-				RW_ASID_MASK(asid));
+	gaudi3_axuser_hbw_asid_set(hdev, mmHD1_ROT0_ROT_AXUSER_HBW_BASE + offset, asid);
+	gaudi3_axuser_hbw_asid_set(hdev, mmHD1_ROT0_QM_AXUSER_HBW_BASE + offset, asid);
 }
 
-static void gaudi3_decoder_mmu_prepare(struct hl_device *hdev, u32 asid)
+static void gaudi3_decoder_mmu_prepare(struct hl_device *hdev, int hdcore, int inst, u32 offset,
+					struct iterate_module_ctx *ctx)
 {
-	gaudi3_lbw_dup_group_push(hdev, GAUDI3_DUP_GRP_DEC_CFG_ID,
-				mmPDMA_CH_B_AXUSER_HBW_HB_ASID_OVRD,
-				HBW_RW_ASID_OVRD);
+	u32 asid = (uintptr_t) ctx->data;
 
-	gaudi3_lbw_dup_group_push(hdev, GAUDI3_DUP_GRP_DEC_CFG_ID,
-				mmPDMA_CH_B_AXUSER_HBW_HB_ASID,
-				RW_ASID_MASK(asid));
-
-	/*
-	 * Config GAUDI3_DUP_GRP_GENERAL_USE_ID and change the mask to trigger only
-	 * the last 8/16 dup engines closest to base mmHD0_VDEC0_BRDG_CTRL_AXUSER_DEC_HBW_BASE
-	 */
-	gaudi3_lbw_dup_dec_init(hdev, GAUDI3_DUP_GRP_GENERAL_USE_ID);
-
-	gaudi3_lbw_dup_group_push(hdev, GAUDI3_DUP_GRP_GENERAL_USE_ID,
-			DEC_AXUSER_BRDG_CTRL_DEC_HBW_OFFSET + mmPDMA_CH_B_AXUSER_HBW_HB_ASID_OVRD,
-			HBW_RW_ASID_OVRD);
-
-	gaudi3_lbw_dup_group_push(hdev, GAUDI3_DUP_GRP_GENERAL_USE_ID,
-			DEC_AXUSER_BRDG_CTRL_DEC_HBW_OFFSET + mmPDMA_CH_B_AXUSER_HBW_HB_ASID,
-			RW_ASID_MASK(asid));
+	gaudi3_axuser_hbw_asid_set(hdev, mmHD0_VDEC0_BRDG_CTRL_AXUSER_MSIX_VCD_HBW_BASE + offset,
+					asid);
+	gaudi3_axuser_hbw_asid_set(hdev, mmHD0_VDEC0_BRDG_CTRL_AXUSER_MSIX_L2C_HBW_BASE + offset,
+					asid);
+	gaudi3_axuser_hbw_asid_set(hdev, mmHD0_VDEC0_BRDG_CTRL_AXUSER_MSIX_NRM_HBW_BASE + offset,
+					asid);
+	gaudi3_axuser_hbw_asid_set(hdev, mmHD0_VDEC0_BRDG_CTRL_AXUSER_MSIX_ABNRM_HBW_BASE + offset,
+					asid);
+	gaudi3_axuser_hbw_asid_set(hdev, mmHD0_VDEC0_BRDG_CTRL_AXUSER_DEC_HBW_BASE + offset,
+					asid);
 }
 
-static void gaudi3_nic_qmans_mmu_prepare(struct hl_device *hdev, u32 asid)
+static void gaudi3_nic_qmans_mmu_prepare(struct hl_device *hdev, int die, int inst, u32 offset,
+						struct iterate_module_ctx *ctx)
 {
-	gaudi3_lbw_dup_group_push(hdev, GAUDI3_DUP_GRP_NIC_CFG_ID,
-				mmPDMA_CH_B_AXUSER_HBW_HB_ASID_OVRD,
-				HBW_RW_ASID_OVRD);
+	u32 asid = (uintptr_t) ctx->data;
 
-	gaudi3_lbw_dup_group_push(hdev, GAUDI3_DUP_GRP_NIC_CFG_ID,
-				mmPDMA_CH_B_AXUSER_HBW_HB_ASID,
-				RW_ASID_MASK(asid));
+	gaudi3_axuser_hbw_asid_set(hdev, mmD0_NIC0_QM_AXUSER_HBW_BASE + offset, asid);
 }
 
-static void gaudi3_sm_mmu_prepare(struct hl_device *hdev, u32 asid)
+static void gaudi3_mmu_hdcore_prepare(struct hl_device *hdev, int hdcore_id, u32 asid)
 {
-	gaudi3_lbw_dup_group_push(hdev, GAUDI3_DUP_GRP_SM_CFG_ID,
-				mmPDMA_CH_B_AXUSER_HBW_HB_ASID_OVRD,
-				HBW_RW_ASID_OVRD);
+	u64 hdcore_offset = hdcore_id * HDCORE_OFFSET;
 
-	gaudi3_lbw_dup_group_push(hdev, GAUDI3_DUP_GRP_SM_CFG_ID,
-				mmPDMA_CH_B_AXUSER_HBW_HB_ASID,
-				RW_ASID_MASK(asid));
+	/* Sync Mngr */
+	if (hdcore_id == 0)
+		gaudi3_axuser_hbw_asid_set(hdev,
+				mmHD0_SYNC_MNGR_GLBL_USR_HBW_USER_BASE + hdcore_offset, asid);
+	else
+		/* For SMs 1+, which are mapped to the user, force the ASID in MSTR_IF */
+		gaudi3_axuser_hbw_asid_set(hdev,
+				mmHD0_SYNC_MNGR_MSTR_IF_AXUSER_HBW_BASE + hdcore_offset, asid);
+}
+
+static void gaudi3_arc_mmu_prepare(struct hl_device *hdev, u32 cpu_id, u32 asid)
+{
+	u32 reg_base, reg_val, hdcore_id, sched_id;
+	u64 user_adapt_base;
+
+	if (!gaudi3_is_arc_initialized(hdev, cpu_id))
+		return;
+
+	reg_base = gaudi3_arc_blocks_bases[cpu_id];
+
+	/* Enable MMU and configure asid for all relevant ARC regions */
+	reg_val = FIELD_PREP(QMAN_ARC_AUX_ARC_REGION_CFG_MMU_BP_M, 0);
+	reg_val |= FIELD_PREP(QMAN_ARC_AUX_ARC_REGION_CFG_ASID_M, asid);
+	WREG32(reg_base + mmQMAN_ARC_AUX_ARC_REGION_CFG, reg_val);
+
+	/* Enable MMU and configure asid for all relevant AF regions */
+	if (cpu_id < CPU_ID_SCHED_MAX) {
+		hdcore_id = cpu_id / NUM_ARC_SCHED_PER_HDCORE;
+		sched_id = cpu_id % NUM_ARC_SCHED_PER_HDCORE;
+		user_adapt_base = mmHD0_ARC_FARM_ARC0_AF_SEC_USER_ADAPT_BASE +
+			(hdcore_id * HDCORE_OFFSET) + (sched_id * ARC_AF_SEC_USER_ADAPT_OFFSET);
+
+		gaudi3_axuser_hbw_mmu_bp_set(hdev, user_adapt_base, false);
+		gaudi3_axuser_hbw_asid_set(hdev, user_adapt_base, asid);
+	}
 }
 
 static void gaudi3_arc_mmu_prepare_all(struct hl_device *hdev, u32 asid)
 {
-	u32 offset, push_offset, value;
+	int i;
 
-	/* Enable MMU and configure asid for all relevant ARC regions */
-	value = FIELD_PREP(QMAN_ARC_AUX_ARC_REGION_CFG_MMU_BP_M, 0) |
-		FIELD_PREP(QMAN_ARC_AUX_ARC_REGION_CFG_ASID_M, asid);
+	for (i = CPU_ID_SCHED_ARC0 ; i < CPU_ID_MAX ; i++)
+		gaudi3_arc_mmu_prepare(hdev, i, asid);
+}
 
-	gaudi3_lbw_dup_group_push(hdev, GAUDI3_DUP_GRP_ARC0_CFG_ID, 0, value);
-	gaudi3_lbw_dup_group_push(hdev, GAUDI3_DUP_GRP_ARC1_CFG_ID, 0, value);
-
-	/* For Scheduler ARCs only: config MMU BP and ASID */
-	offset = mmHD0_ARC_FARM_ARC0_AF_SEC_USER_ADAPT_BASE;
-	gaudi3_lbw_dup_sched_arc_init(hdev, offset, GAUDI3_DUP_GRP_GENERAL_USE_ID);
-
-	push_offset = mmPDMA_CH_B_AXUSER_HBW_HB_MMU_BYPASS_OVRD;
-	value = HBW_RW_MMU_BYPASS_OVRD;
-	gaudi3_lbw_dup_group_push(hdev, GAUDI3_DUP_GRP_GENERAL_USE_ID, push_offset, value);
-
-	push_offset = mmPDMA_CH_B_AXUSER_HBW_HB_MMU_BYPASS;
-	value = 0;
-	gaudi3_lbw_dup_group_push(hdev, GAUDI3_DUP_GRP_GENERAL_USE_ID, push_offset, value);
-
-	push_offset = mmPDMA_CH_B_AXUSER_HBW_HB_ASID_OVRD;
-	value = HBW_RW_ASID_OVRD;
-	gaudi3_lbw_dup_group_push(hdev, GAUDI3_DUP_GRP_GENERAL_USE_ID, push_offset, value);
-
-	push_offset = mmPDMA_CH_B_AXUSER_HBW_HB_ASID;
-	value = RW_ASID_MASK(asid);
-	gaudi3_lbw_dup_group_push(hdev, GAUDI3_DUP_GRP_GENERAL_USE_ID, push_offset, value);
+static void gaudi3_mmu_shared_prepare(struct hl_device *hdev, u32 asid)
+{
+	gaudi3_arc_mmu_prepare_all(hdev, asid);
 }
 
 /* zero the MMUBP and set the ASID */
@@ -8303,8 +7898,9 @@ static void gaudi3_mmu_prepare(struct hl_device *hdev, u32 asid)
 {
 	struct gaudi3_device *gaudi3 = hdev->asic_specific;
 	struct iterate_module_ctx iter_ctx = {
-			.data = (void *) (uintptr_t) asid
-		};
+		.data = (void *) (uintptr_t) asid
+	};
+	int i;
 
 	if (asid & ~PSTLB_ASID_ASID_M) {
 		dev_crit(hdev->dev, "asid %u is too big\n", asid);
@@ -8316,28 +7912,30 @@ static void gaudi3_mmu_prepare(struct hl_device *hdev, u32 asid)
 
 	gaudi3_pdma_mmu_prepare(hdev, asid);
 
-	gaudi3_arc_mmu_prepare_all(hdev, asid);
+	gaudi3_mmu_shared_prepare(hdev, asid);
 
 	gaudi3_cbc_mmu_prepare(hdev, asid);
 
-	gaudi3_edma_mmu_prepare(hdev, asid);
+	iter_ctx.fn = gaudi3_edma_mmu_prepare;
+	gaudi3_iterate_edmas(hdev, &iter_ctx);
 
-	/*
-	 * TODO: use dup when H9-5520 is resolved
-	 * gaudi3_tpc_mmu_prepare(hdev, asid);
-	 */
 	iter_ctx.fn = gaudi3_tpc_mmu_prepare;
 	gaudi3_iterate_tpcs(hdev, &iter_ctx);
 
-	gaudi3_mme_mmu_prepare(hdev, asid);
+	iter_ctx.fn = gaudi3_mme_mmu_prepare;
+	gaudi3_iterate_mmes(hdev, &iter_ctx);
 
-	gaudi3_rotator_mmu_prepare(hdev, asid);
+	iter_ctx.fn = gaudi3_rotator_mmu_prepare;
+	gaudi3_iterate_rotators(hdev, &iter_ctx);
 
-	gaudi3_decoder_mmu_prepare(hdev, asid);
+	iter_ctx.fn = gaudi3_decoder_mmu_prepare;
+	gaudi3_iterate_decoders(hdev, &iter_ctx);
 
-	gaudi3_nic_qmans_mmu_prepare(hdev, asid);
+	iter_ctx.fn = gaudi3_nic_qmans_mmu_prepare;
+	gaudi3_iterate_nics(hdev, &iter_ctx);
 
-	gaudi3_sm_mmu_prepare(hdev, asid);
+	for (i = 0 ; i < hdev->asic_prop.num_of_hdcores ; i++)
+		gaudi3_mmu_hdcore_prepare(hdev, i, asid);
 }
 
 static void gaudi3_clr_arc_id_cap(struct hl_device *hdev, u64 arc_id)
@@ -8514,9 +8112,6 @@ void gaudi3_init_arcs(struct hl_device *hdev)
 		gaudi3_init_arc(hdev, i);
 		gaudi3_set_arc_id_cap(hdev, i);
 	}
-
-	/* init ARC PDUP engines masks */
-	gaudi3_lbw_dup_arc_mask_init(hdev);
 }
 
 static void gaudi3_stop_qman(struct hl_device *hdev, int block, int inst, u32 offset,
@@ -9924,16 +9519,16 @@ static void gaudi3_hmmus_cache_maint_trig(struct hl_device *hdev, void *data)
 			end_off = mmSTLB_PF_VA_END;
 		}
 
-		gaudi3_lbw_dup_group_push(hdev, GAUDI3_DUP_GRP_STLB_ID, start_off,
+		gaudi3_lbw_dup_group_push(hdev, GAUDI3_DUP_GRP_STLB_BASE, start_off,
 				FIELD_GET(STLB_INV_VA_ADDR_47_20_MASK, maint_data->start_addr));
-		gaudi3_lbw_dup_group_push(hdev, GAUDI3_DUP_GRP_STLB_ID, end_off,
+		gaudi3_lbw_dup_group_push(hdev, GAUDI3_DUP_GRP_STLB_BASE, end_off,
 				FIELD_GET(STLB_INV_VA_ADDR_47_20_MASK, maint_data->end_addr));
 	} else {
 		maint_type = 0x3; /* 0x3- invalidate all */
 	}
 
 	/* trigger maintenance command */
-	gaudi3_lbw_dup_group_push(hdev, GAUDI3_DUP_GRP_STLB_ID, mmSTLB_MAINT_TRIGGER,
+	gaudi3_lbw_dup_group_push(hdev, GAUDI3_DUP_GRP_STLB_BASE, mmSTLB_MAINT_TRIGGER,
 		FIELD_PREP(STLB_MAINT_TRIGGER_ASID_M, maint_data->asid) |
 		FIELD_PREP(STLB_MAINT_TRIGGER_INV_OR_PF_M, maint_data->maint_type) |
 		FIELD_PREP(STLB_MAINT_TRIGGER_TARGET_TYPE_M, maint_type) |
