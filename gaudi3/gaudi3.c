@@ -4196,7 +4196,14 @@ free_dma_mem_arr:
 	return rc;
 }
 
-static bool gaudi3_block_skip_with_mask(struct hl_device *hdev,
+static bool gaudi3_special_block_skip(struct hl_device *hdev,
+		struct hl_special_blocks_cfg *special_blocks_cfg,
+		u32 blk_idx, u32 major, u32 minor, u32 sub_minor)
+{
+	return false;
+}
+
+static bool gaudi3_pb_block_skip_with_mask(struct hl_device *hdev,
 		struct hl_special_blocks_cfg *special_blocks_cfg,
 		u32 blk_idx, u32 major, u32 minor, u32 sub_minor)
 {
@@ -4420,7 +4427,7 @@ static int gaudi3_special_blocks_config(struct hl_device *hdev)
 				ARRAY_SIZE(gaudi3_iterator_skip_special_blocks_ranges);
 	}
 
-	prop->skip_special_blocks_cfg.skip_block_hook = gaudi3_block_skip_with_mask;
+	prop->skip_special_blocks_cfg.skip_block_hook = gaudi3_special_block_skip;
 
 	return 0;
 
@@ -4478,7 +4485,7 @@ static int gaudi3_pb_blocks_config(struct hl_device *hdev)
 				ARRAY_SIZE(gaudi3_iterator_skip_pb_blocks_ranges);
 	}
 
-	prop->skip_pb_blocks_cfg.skip_block_hook = gaudi3_block_skip_with_mask;
+	prop->skip_pb_blocks_cfg.skip_block_hook = gaudi3_pb_block_skip_with_mask;
 
 	return 0;
 
