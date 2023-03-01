@@ -11767,8 +11767,6 @@ static void gaudi3_handle_sei_event(struct hl_device *hdev,
 	default:
 		return;
 	}
-
-	hl_check_for_glbl_errors(hdev);
 }
 
 static void gaudi3_handle_spi_event(struct hl_device *hdev,

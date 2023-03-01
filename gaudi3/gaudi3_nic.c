@@ -5505,8 +5505,6 @@ void gaudi3_handle_nic_spi_event(struct hl_device *hdev, u32 macro_index)
 		NIC_RREG32(mmD0_NIC0_RXB_CORE_SPI_INTR_CLEAR);
 		NIC_WREG32(mmD0_NIC0_RXB_CORE_SPI_INTR_CLEAR, 0);
 	}
-
-	hl_check_for_glbl_errors(hdev);
 }
 
 void gaudi3_handle_nic_sei_error_event(struct hl_device *hdev, u32 macro_index)
