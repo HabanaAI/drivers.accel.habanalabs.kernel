@@ -18,6 +18,9 @@
 #include <linux/mm.h>
 #include <linux/dma-mapping.h>
 #include <linux/poll.h>
+#ifndef _HAS_RES_RDMA_NL_PUT_DRIVER_STRING
+#include <linux/skbuff.h>
+#endif
 #ifdef _HAS_GEN_POOL_CHUNK_WITH_ATOMIC_LONG
 #include <linux/genalloc.h>
 #endif
@@ -899,6 +902,10 @@ enum ib_port_phys_state {
 
 #ifndef _HAS_IB_SPEED_NDR
 #define IB_SPEED_NDR	128
+#endif
+
+#ifndef _HAS_RES_RDMA_NL_PUT_DRIVER_STRING
+int rdma_nl_put_driver_string(struct sk_buff *msg, const char *name, const char *str);
 #endif
 
 #endif /* HABANALABS_COMPAT_H_ */

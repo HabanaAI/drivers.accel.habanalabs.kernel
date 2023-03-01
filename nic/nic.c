@@ -803,6 +803,31 @@ cfg_unlock:
 	return rc;
 }
 
+static int hl_nic_ib_dump_qp(struct hl_aux_dev *aux_dev, struct hl_ib_dump_qp_attr *attr, char *buf,
+				size_t size)
+{
+	struct hl_nic *nic = HL_AUX2NIC(aux_dev);
+	struct hl_device *hdev = container_of(nic, struct hl_device, nic);
+	struct hl_nic_funcs *nic_funcs = hdev->asic_funcs->nic_funcs;
+	struct hl_nic_qp_info *qp_info = &nic->qp_info;
+	int rc;
+
+	qp_info->port = attr->port;
+	qp_info->qpn = attr->qpn;
+	qp_info->req = attr->req;
+	qp_info->full_print = attr->full;
+	qp_info->force_read = attr->force;
+	qp_info->exts_print = attr->exts;
+
+	rc = nic_funcs->qp_read(hdev, buf, size);
+	if (rc) {
+		dev_dbg(hdev->dev, "failed to read QP %d, port %d\n", attr->qpn, attr->port);
+		return rc;
+	}
+
+	return 0;
+}
+
 static int hl_nic_ib_aux_data_init(struct hl_device *hdev)
 {
 	struct asic_fixed_properties *asic_props;
@@ -897,6 +922,7 @@ static int hl_nic_ib_aux_data_init(struct hl_device *hdev)
 	aux_ops->qp_syndrome_to_str = hl_nic_ib_qp_syndrome_to_str;
 	aux_ops->verify_qp_id = hl_nic_ib_verify_qp_id;
 	aux_ops->get_cnts_values = hl_nic_get_cnts_values;
+	aux_ops->dump_qp = hl_nic_ib_dump_qp;
 
 	/* these functions are used only if the IB verbs API is enabled */
 	aux_ops->cmd_ctrl = hl_nic_ib_cmd_ctrl;

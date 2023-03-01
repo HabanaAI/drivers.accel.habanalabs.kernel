@@ -13,6 +13,10 @@
 #include <linux/hwmon.h>
 #include <linux/sched.h>
 #include <linux/vmalloc.h>
+#ifndef _HAS_RES_RDMA_NL_PUT_DRIVER_STRING
+#include <uapi/rdma/rdma_netlink.h>
+#include <net/netlink.h>
+#endif
 #ifdef _HAS_DAX_H
 #include <linux/dax.h>
 #endif
@@ -1639,5 +1643,38 @@ unsigned long *bitmap_zalloc(unsigned int nbits, gfp_t flags)
 void bitmap_free(const unsigned long *bitmap)
 {
 	kfree(bitmap);
+}
+#endif
+
+#ifndef _HAS_RES_RDMA_NL_PUT_DRIVER_STRING
+#ifndef _HAS_ENUM_RDMA_NLDEV_PRINT_TYPE
+enum rdma_nldev_print_type {
+	RDMA_NLDEV_PRINT_TYPE_UNSPEC,
+	RDMA_NLDEV_PRINT_TYPE_HEX,
+};
+
+#define RDMA_NLDEV_ATTR_DRIVER_STRING 54
+#define RDMA_NLDEV_ATTR_DRIVER_PRINT_TYPE 55
+#endif
+static int put_driver_name_print_type(struct sk_buff *msg, const char *name,
+					enum rdma_nldev_print_type print_type)
+{
+	if (nla_put_string(msg, RDMA_NLDEV_ATTR_DRIVER_STRING, name))
+		return -EMSGSIZE;
+	if (print_type != RDMA_NLDEV_PRINT_TYPE_UNSPEC &&
+	    nla_put_u8(msg, RDMA_NLDEV_ATTR_DRIVER_PRINT_TYPE, print_type))
+		return -EMSGSIZE;
+
+	return 0;
+}
+
+int rdma_nl_put_driver_string(struct sk_buff *msg, const char *name, const char *str)
+{
+	if (put_driver_name_print_type(msg, name, RDMA_NLDEV_PRINT_TYPE_UNSPEC))
+		return -EMSGSIZE;
+	if (nla_put_string(msg, RDMA_NLDEV_ATTR_DRIVER_STRING, str))
+		return -EMSGSIZE;
+
+	return 0;
 }
 #endif

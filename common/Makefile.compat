@@ -482,3 +482,15 @@ endif
 ifneq ($(shell grep -w "alloc_hw_device_stats" $(IB_PATH)/include/rdma/ib_verbs.h > /dev/null 2>&1 && echo 1),)
 	ccflags-y += -D_HAS_IB_DEVICE_STATS
 endif
+
+ifneq ($(shell grep -w "fill_res_qp_entry" $(IB_PATH)/include/rdma/ib_verbs.h > /dev/null 2>&1 && echo 1),)
+	ccflags-y += -D_HAS_RES_QP_ENTRY
+endif
+
+ifneq ($(shell grep -w "rdma_nl_put_driver_string" $(IB_PATH)/include/rdma/restrack.h > /dev/null 2>&1 && echo 1),)
+	ccflags-y += -D_HAS_RES_RDMA_NL_PUT_DRIVER_STRING
+endif
+
+ifneq ($(shell grep "enum rdma_nldev_print_type" $(IB_PATH)/include/uapi/rdma/rdma_netlink.h > /dev/null 2>&1 && echo 1),)
+	ccflags-y += -D_HAS_ENUM_RDMA_NLDEV_PRINT_TYPE
+endif
