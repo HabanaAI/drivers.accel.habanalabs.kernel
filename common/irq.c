@@ -215,6 +215,7 @@ static void hl_ts_free_objects(struct work_struct *work)
 
 		hl_mmap_mem_buf_put(free_obj->buf);
 		hl_cb_put(free_obj->cq_cb);
+		kfree(free_obj);
 	}
 
 	kfree(free_list_head);
@@ -234,7 +235,7 @@ static void hl_ts_free_objects(struct work_struct *work)
 static int handle_registration_node(struct hl_device *hdev, struct hl_user_pending_interrupt *pend,
 						struct list_head **free_list, ktime_t now)
 {
-	struct timestamp_reg_free_node *free_node = &pend->ts_reg_info.free_node;
+	struct timestamp_reg_free_node *free_node;
 	u64 timestamp;
 
 	if (!(*free_list)) {
@@ -245,6 +246,10 @@ static int handle_registration_node(struct hl_device *hdev, struct hl_user_pendi
 
 		INIT_LIST_HEAD(*free_list);
 	}
+
+	free_node = kmalloc(sizeof(*free_node), GFP_ATOMIC);
+	if (!free_node)
+		return -ENOMEM;
 
 	timestamp = ktime_to_ns(now);
 
