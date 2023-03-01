@@ -3847,14 +3847,20 @@ static bool gaudi3_is_arc_initialized(struct hl_device *hdev, u64 arc_id)
 	}
 }
 
-static void gaudi3_scrub_arcs_dccm(struct hl_device *hdev)
+static int gaudi3_scrub_arcs_dccm(struct hl_device *hdev)
 {
 	u16 arc_id;
+	int rc;
 
 	for (arc_id = CPU_ID_SCHED_ARC0 ; arc_id < CPU_ID_MAX ; arc_id++) {
-		if (gaudi3_is_arc_initialized(hdev, arc_id))
-			gaudi3_scrub_arc_dccm(hdev, arc_id);
+		if (gaudi3_is_arc_initialized(hdev, arc_id)) {
+			rc = gaudi3_scrub_arc_dccm(hdev, arc_id);
+			if (rc)
+				return rc;
+		}
 	}
+
+	return 0;
 }
 
 void gaudi3_halt_pdma(struct hl_device *hdev)
@@ -4103,7 +4109,10 @@ int gaudi3_late_init(struct hl_device *hdev)
 	}
 
 	gaudi3_init_arcs(hdev);
-	gaudi3_scrub_arcs_dccm(hdev);
+	rc = gaudi3_scrub_arcs_dccm(hdev);
+	if (rc)
+		return rc;
+
 	gaudi3_user_mapped_blocks_init(hdev);
 
 	rc = gaudi3_etr_buf_store_late_init(hdev);
