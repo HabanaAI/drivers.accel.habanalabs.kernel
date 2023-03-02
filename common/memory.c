@@ -2641,6 +2641,7 @@ static void ts_buff_release(struct hl_mmap_mem_buf *buf)
 {
 	struct hl_ts_buff *ts_buff = buf->private;
 
+	vfree(ts_buff->free_nodes_pool);
 	vfree(ts_buff->kernel_buff_address);
 	vfree(ts_buff->user_buff_address);
 	kfree(ts_buff);
@@ -2685,10 +2686,33 @@ static int hl_ts_alloc_buf(struct hl_mmap_mem_buf *buf, gfp_t gfp, void *args)
 	ts_buff->kernel_buff_address = p;
 	ts_buff->kernel_buff_size = size;
 
+	/*
+	 * Allocate pool of nodes to be used in the irq handler for the free jobs.
+	 * we'll have index in the pool that always points to the next free node,
+	 * that will run through the pool in cyclic way.
+	 * regarding the size of this pool we'll allocate twice the number of elements
+	 * of the ts buff. the assumption here taking worst case scenario, having full
+	 * utilization of the ts buff and all records released at the same time,
+	 * is that by the time the user will start setting new events records the workqueue
+	 * thread will start passing through the free job nodes and freeing nodes from pool.
+	 * and even if this does not happen (unlikely), we'll still have free nodes available
+	 * since we allocated twice the number of elements in ts buffer.
+	 */
+	size = (num_elements * 2) * sizeof(struct timestamp_reg_free_node);
+	p = vzalloc(size);
+	if (!p)
+		goto free_kernel_buff;
+
+	ts_buff->free_nodes_pool = p;
+	ts_buff->free_nodes_length = num_elements * 2;
+	ts_buff->next_avail_free_node_idx = 0;
+
 	buf->private = ts_buff;
 
 	return 0;
 
+free_kernel_buff:
+	vfree(ts_buff->kernel_buff_address);
 free_user_buff:
 	vfree(ts_buff->user_buff_address);
 free_mem:
