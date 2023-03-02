@@ -2458,6 +2458,9 @@ static int cs_ioctl_engine_cores(struct hl_fpriv *hpriv, u64 engine_cores,
 	u32 *cores;
 	int rc;
 
+	if (!hdev->asic_prop.supports_engine_modes)
+		return -EPERM;
+
 	if (!num_engine_cores || num_engine_cores > hdev->asic_prop.num_engine_cores) {
 		dev_err(hdev->dev, "Number of engine cores %d is invalid\n", num_engine_cores);
 		return -EINVAL;
@@ -2488,19 +2491,25 @@ static int cs_ioctl_engine_cores(struct hl_fpriv *hpriv, u64 engine_cores,
 static int cs_ioctl_engines(struct hl_fpriv *hpriv, u64 engines_arr_user_addr,
 						u32 num_engines, enum hl_engine_command command)
 {
-	struct asic_fixed_properties *prop = &hpriv->hdev->asic_prop;
 	struct hl_device *hdev = hpriv->hdev;
+	u32 *engines, max_num_of_engines;
 	void __user *engines_arr;
-	u32 *engines;
 	int rc;
 
-	if (!num_engines || num_engines > prop->max_num_of_engines) {
-		dev_err(hdev->dev, "Number of engines %d is invalid\n", num_engines);
-		return -EINVAL;
-	}
+	if (!hdev->asic_prop.supports_engine_modes)
+		return -EPERM;
 
 	if (command >= HL_ENGINE_COMMAND_MAX) {
 		dev_err(hdev->dev, "Engine command is invalid\n");
+		return -EINVAL;
+	}
+
+	max_num_of_engines = hdev->asic_prop.max_num_of_engines;
+	if (command == HL_ENGINE_CORE_RUN || command == HL_ENGINE_CORE_HALT)
+		max_num_of_engines = hdev->asic_prop.num_engine_cores;
+
+	if (!num_engines || num_engines > max_num_of_engines) {
+		dev_err(hdev->dev, "Number of engines %d is invalid\n", num_engines);
 		return -EINVAL;
 	}
 

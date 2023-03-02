@@ -2962,6 +2962,8 @@ int gaudi3_set_fixed_properties(struct hl_device *hdev)
 	prop->cfg_size = CFG_BAR_SIZE;
 	prop->max_asid = MAX_ASID;
 
+	prop->supports_engine_modes = true;
+
 	strncpy(prop->cpucp_info.card_name, GAUDI3_DEFAULT_CARD_NAME,
 			CARD_NAME_MAX_LEN);
 
@@ -8528,6 +8530,14 @@ int gaudi3_set_engine_cores(struct hl_device *hdev, u32 *core_ids,
 	return 0;
 }
 
+static int gaudi3_set_engine_modes(struct hl_device *hdev, u32 *engine_ids,
+					u32 num_engines, u32 engine_command)
+{
+	dev_err(hdev->dev, "setting engine_modes is currently not supported on Gaudi3\n");
+
+	return -EPERM;
+}
+
 int gaudi3_set_engines(struct hl_device *hdev, u32 *engine_ids,
 					u32 num_engines, u32 engine_command)
 {
@@ -8538,6 +8548,8 @@ int gaudi3_set_engines(struct hl_device *hdev, u32 *engine_ids,
 
 	case HL_ENGINE_STALL:
 	case HL_ENGINE_RESUME:
+		return gaudi3_set_engine_modes(hdev, engine_ids, num_engines, engine_command);
+
 	default:
 		dev_err(hdev->dev, "failed to execute command id %u\n", engine_command);
 		return -EINVAL;

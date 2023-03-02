@@ -830,6 +830,7 @@ struct hl_mem_block_info {
  * @dma_mask: the dma mask to be set for this device.
  * @supports_odp: true is ODP is supported, otherwise false.
  * @supports_advanced_cpucp_rc: true if new cpucp opcodes are supported.
+ * @supports_engine_modes: true if changing engines/engine_cores modes is supported.
  */
 struct asic_fixed_properties {
 	struct hw_queue_properties	*hw_queues_props;
@@ -969,6 +970,7 @@ struct asic_fixed_properties {
 	u8				dma_mask;
 	u8				supports_odp;
 	u8				supports_advanced_cpucp_rc;
+	u8				supports_engine_modes;
 };
 
 /**

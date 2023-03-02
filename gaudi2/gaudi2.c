@@ -2550,6 +2550,8 @@ int gaudi2_set_fixed_properties(struct hl_device *hdev)
 	prop->max_asid = MAX_ASID;
 	prop->num_of_events = GAUDI2_EVENT_SIZE;
 
+	prop->supports_engine_modes = true;
+
 	prop->dc_power_default = DC_POWER_DEFAULT;
 
 	prop->cb_pool_cb_cnt = GAUDI2_CB_POOL_CB_CNT;
