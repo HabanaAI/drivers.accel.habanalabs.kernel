@@ -2586,6 +2586,25 @@ int hl_device_init(struct hl_device *hdev)
 			rc = -ENOMEM;
 			goto early_fini;
 		}
+
+		/* Timestamp records supported only if CQ supported in device */
+		if (hdev->asic_prop.first_available_cq[0] != USHRT_MAX) {
+			struct hl_ts_free_jobs *free_jobs_data;
+			void *p;
+
+			for (i = 0 ; i < user_interrupt_cnt ; i++) {
+				p = vzalloc(TIMESTAMP_FREE_NODES_NUM *
+						sizeof(struct timestamp_reg_free_node));
+				if (!p) {
+					rc = -ENOMEM;
+					goto free_usr_intr_mem;
+				}
+				free_jobs_data = &hdev->user_interrupt[i].ts_free_jobs_data;
+				free_jobs_data->free_nodes_pool = p;
+				free_jobs_data->free_nodes_length = TIMESTAMP_FREE_NODES_NUM;
+				free_jobs_data->next_avail_free_node_idx = 0;
+			}
+		}
 	}
 
 	/*
@@ -2843,7 +2862,14 @@ hw_queues_destroy:
 sw_fini:
 	hdev->asic_funcs->sw_fini(hdev);
 free_usr_intr_mem:
-	kfree(hdev->user_interrupt);
+	if (user_interrupt_cnt) {
+		for (i = 0 ; i < user_interrupt_cnt ; i++) {
+			if (!hdev->user_interrupt[i].ts_free_jobs_data.free_nodes_pool)
+				break;
+			vfree(hdev->user_interrupt[i].ts_free_jobs_data.free_nodes_pool);
+		}
+		kfree(hdev->user_interrupt);
+	}
 early_fini:
 	device_early_fini(hdev);
 #if !IS_ENABLED(CONFIG_DRM_ACCEL)
@@ -2875,7 +2901,7 @@ out_disabled:
  */
 void hl_device_fini(struct hl_device *hdev)
 {
-	u32 process_kill_timeout;
+	u32 process_kill_timeout, user_interrupt_cnt;
 	bool device_in_reset;
 	ktime_t timeout;
 	u64 reset_sec;
@@ -3010,7 +3036,18 @@ void hl_device_fini(struct hl_device *hdev)
 	for (i = 0 ; i < hdev->asic_prop.completion_queues_count ; i++)
 		hl_cq_fini(hdev, &hdev->completion_queue[i]);
 	kfree(hdev->completion_queue);
-	kfree(hdev->user_interrupt);
+
+	user_interrupt_cnt = hdev->asic_prop.user_dec_intr_count +
+					hdev->asic_prop.user_interrupt_count;
+
+	if (user_interrupt_cnt) {
+		if (hdev->asic_prop.first_available_cq[0] != USHRT_MAX) {
+			for (i = 0 ; i < user_interrupt_cnt ; i++)
+				vfree(hdev->user_interrupt[i].ts_free_jobs_data.free_nodes_pool);
+		}
+
+		kfree(hdev->user_interrupt);
+	}
 
 	hl_hw_queues_destroy(hdev);
 
