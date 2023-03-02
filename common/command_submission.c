@@ -2490,16 +2490,11 @@ static int cs_ioctl_engines(struct hl_fpriv *hpriv, u64 engines_arr_user_addr,
 {
 	struct asic_fixed_properties *prop = &hpriv->hdev->asic_prop;
 	struct hl_device *hdev = hpriv->hdev;
-	u32 *engines, max_engines_num;
 	void __user *engines_arr;
+	u32 *engines;
 	int rc;
 
-	/* Currently supports only TPC, MME & EDMA engines */
-	max_engines_num = hweight_long(prop->tpc_enabled_mask) +
-			hweight_long(hdev->mme_mask) +
-			hweight_long(prop->edma_enabled_mask);
-
-	if (!num_engines || num_engines > max_engines_num) {
+	if (!num_engines || num_engines > prop->max_num_of_engines) {
 		dev_err(hdev->dev, "Number of engines %d is invalid\n", num_engines);
 		return -EINVAL;
 	}

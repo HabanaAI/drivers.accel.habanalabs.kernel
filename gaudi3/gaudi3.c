@@ -2957,6 +2957,7 @@ int gaudi3_set_fixed_properties(struct hl_device *hdev)
 	prop->host_base_address = HOST_PHYS_BASE_0;
 	prop->host_end_address = prop->host_base_address + HOST_PHYS_SIZE_0;
 
+	prop->max_num_of_engines = GAUDI3_ENGINE_ID_SIZE;
 	prop->num_engine_cores = CPU_ID_MAX;
 	prop->cfg_size = CFG_BAR_SIZE;
 	prop->max_asid = MAX_ASID;
@@ -8531,10 +8532,12 @@ int gaudi3_set_engines(struct hl_device *hdev, u32 *engine_ids,
 					u32 num_engines, u32 engine_command)
 {
 	switch (engine_command) {
-	case HL_ENGINE_CORE_HALT ... HL_ENGINE_CORE_RUN:
+	case HL_ENGINE_CORE_HALT:
+	case HL_ENGINE_CORE_RUN:
 		return gaudi3_set_engine_cores(hdev, engine_ids, num_engines, engine_command);
 
-	case HL_ENGINE_STALL ... HL_ENGINE_RESUME:
+	case HL_ENGINE_STALL:
+	case HL_ENGINE_RESUME:
 	default:
 		dev_err(hdev->dev, "failed to execute command id %u\n", engine_command);
 		return -EINVAL;

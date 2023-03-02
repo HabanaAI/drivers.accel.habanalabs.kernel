@@ -2544,6 +2544,7 @@ int gaudi2_set_fixed_properties(struct hl_device *hdev)
 		prop->pmmu_huge.end_addr = VA_HOST_SPACE_HPAGE_END;
 	}
 
+	prop->max_num_of_engines = GAUDI2_ENGINE_ID_SIZE;
 	prop->num_engine_cores = CPU_ID_MAX;
 	prop->cfg_size = CFG_SIZE;
 	prop->max_asid = MAX_ASID;
@@ -5001,10 +5002,12 @@ int gaudi2_set_engines(struct hl_device *hdev, u32 *engine_ids,
 	int rc;
 
 	switch (engine_command) {
-	case HL_ENGINE_CORE_HALT ... HL_ENGINE_CORE_RUN:
+	case HL_ENGINE_CORE_HALT:
+	case HL_ENGINE_CORE_RUN:
 		return gaudi2_set_engine_cores(hdev, engine_ids, num_engines, engine_command);
 
-	case HL_ENGINE_STALL ... HL_ENGINE_RESUME:
+	case HL_ENGINE_STALL:
+	case HL_ENGINE_RESUME:
 		rc = gaudi2_set_engine_modes(hdev, engine_ids, num_engines, engine_command);
 		if (rc)
 			return rc;

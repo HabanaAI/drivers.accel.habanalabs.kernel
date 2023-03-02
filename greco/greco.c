@@ -1021,6 +1021,7 @@ int greco_set_fixed_properties(struct hl_device *hdev)
 	prop->cfg_size = CFG_SIZE;
 	prop->max_asid = MAX_ASID;
 	prop->num_of_events = GRECO_EVENT_SIZE;
+	prop->max_num_of_engines = GRECO_ENGINE_ID_SIZE;
 
 	prop->max_power_default = MAX_POWER_DEFAULT;
 	prop->dc_power_default = DC_POWER_DEFAULT;

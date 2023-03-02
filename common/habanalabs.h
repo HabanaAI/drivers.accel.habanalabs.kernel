@@ -773,7 +773,8 @@ struct hl_mem_block_info {
  *                                      which the property supports_user_set_page_size is true
  *                                      (i.e. the DRAM supports multiple page sizes), otherwise
  *                                      it will shall  be equal to dram_page_size.
- * @num_engine_cores: number of engine cpu cores
+ * @num_engine_cores: number of engine cpu cores.
+ * @max_num_of_engines: maximum number of all engines in the ASIC.
  * @num_of_special_blocks: special_blocks array size.
  * @glbl_err_cause_num: global err cause number.
  * @hbw_flush_reg: register to read to generate HBW flush. value of 0 means HBW flush is
@@ -926,6 +927,7 @@ struct asic_fixed_properties {
 	u32				xbar_edge_enabled_mask;
 	u32				device_mem_alloc_default_page_size;
 	u32				num_engine_cores;
+	u32				max_num_of_engines;
 	u32				num_of_special_blocks;
 	u32				glbl_err_cause_num;
 	u32				hbw_flush_reg;
