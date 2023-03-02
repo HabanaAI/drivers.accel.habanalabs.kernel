@@ -76,11 +76,16 @@ void hl_nic_phy_set_port_status(struct hl_nic_port *nic_port, bool up)
 
 	port_funcs->set_port_status(nic_port, up);
 
-	if (nic_port->eth_enable)
+	if (nic_port->eth_enable) {
 		aux_ops->set_port_status(aux_dev, port, up);
-	else
-		dev_dbg(hdev->dev, "Card %u Port %u: link %s\n",
-			hdev->nic.card_location, port, up ? "up" : "down");
+	} else {
+		if (hdev->is_compute_ctx_active)
+			dev_info(hdev->dev, "Card %u Port %u: link %s\n",
+				hdev->nic.card_location, port, up ? "up" : "down");
+		else
+			dev_dbg(hdev->dev, "Card %u Port %u: link %s\n",
+				hdev->nic.card_location, port, up ? "up" : "down");
+	}
 
 	/* IB flow. User polls for IB events.
 	 *  - internal ports: Enqueue link event in EQ dispatcher. IB event
