@@ -2870,7 +2870,7 @@ void hl_wreg(struct hl_device *hdev, u32 reg, u32 val);
 		if (sleep_us) \
 			usleep_range((sleep_us >> 2) + 1, sleep_us); \
 	} \
-	__rc ? __rc : ((cond) ? 0 : -ETIMEDOUT); \
+	__rc ? __rc : ((hdev->simulator_crashed || cond) ? 0 : -ETIMEDOUT); \
 })
 
 #define hl_poll_timeout(hdev, addr, val, cond, sleep_us, timeout_us) \
@@ -2988,7 +2988,7 @@ void hl_wreg(struct hl_device *hdev, u32 reg, u32 val);
 		if (sleep_us) \
 			usleep_range((sleep_us >> 2) + 1, sleep_us); \
 	} \
-	(cond) ? 0 : -ETIMEDOUT; \
+	(hdev->simulator_crashed || cond) ? 0 : -ETIMEDOUT; \
 })
 
 #define HL_USR_MAPPED_BLK_INIT(blk, base, sz) \
