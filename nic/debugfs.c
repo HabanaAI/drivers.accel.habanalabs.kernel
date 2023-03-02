@@ -76,8 +76,7 @@ static ssize_t debugfs_pam4_tx_taps_write(struct file *f,
 		goto err;
 
 	if (lane >= max_num_of_lanes) {
-		dev_err(hdev->dev, "lane max value is %d\n",
-			max_num_of_lanes - 1);
+		dev_err(hdev->dev, "lane max value is %d\n", max_num_of_lanes - 1);
 		return -EINVAL;
 	}
 
@@ -218,8 +217,7 @@ static ssize_t debugfs_nrz_tx_taps_write(struct file *f,
 		goto err;
 
 	if (lane >= max_num_of_lanes) {
-		dev_err(hdev->dev, "lane max value is %d\n",
-			max_num_of_lanes - 1);
+		dev_err(hdev->dev, "lane max value is %d\n", max_num_of_lanes - 1);
 		return -EINVAL;
 	}
 
@@ -359,8 +357,7 @@ static ssize_t debugfs_polarity_write(struct file *f, const char __user *buf,
 		goto err;
 
 	if (lane >= max_num_of_lanes) {
-		dev_err(hdev->dev, "lane max value is %d\n",
-			max_num_of_lanes - 1);
+		dev_err(hdev->dev, "lane max value is %d\n", max_num_of_lanes - 1);
 		return -EINVAL;
 	}
 
@@ -398,8 +395,7 @@ static ssize_t debugfs_polarity_write(struct file *f, const char __user *buf,
 
 	return count;
 err:
-	dev_err(hdev->dev,
-		"usage: echo <lane> <pol_tx> <pol_rx> > nic_polarity\n");
+	dev_err(hdev->dev, "usage: echo <lane> <pol_tx> <pol_rx> > nic_polarity\n");
 
 	return -EINVAL;
 }
@@ -620,8 +616,7 @@ static ssize_t debugfs_wqe_write(struct file *f, const char __user *buf,
 		goto err;
 
 	if (port >= max_num_of_lanes) {
-		dev_err(hdev->dev, "port max value is %d\n",
-			max_num_of_lanes - 1);
+		dev_err(hdev->dev, "port max value is %d\n", max_num_of_lanes - 1);
 		return -EINVAL;
 	}
 
@@ -665,8 +660,7 @@ static ssize_t debugfs_wqe_write(struct file *f, const char __user *buf,
 
 	return count;
 err:
-	dev_err(hdev->dev,
-		"usage: echo <port> <qpn> <wqe_idx> <is_tx> > nic_wqe\n");
+	dev_err(hdev->dev, "usage: echo <port> <qpn> <wqe_idx> <is_tx> > nic_wqe\n");
 
 	return -EINVAL;
 }
@@ -752,8 +746,7 @@ static ssize_t debugfs_mac_lane_remap_write(struct file *f,
 	/* Add trailing space to simplify parsing user data. */
 	kbuf[count] = ' ';
 
-	rc = parse_user_mac_lane_remap_data(mac_lane_remap_buf, &n_parsed,
-					kbuf, count + 1);
+	rc = parse_user_mac_lane_remap_data(mac_lane_remap_buf, &n_parsed, kbuf, count + 1);
 	if (rc || n_parsed != nic_props->num_of_macros) {
 		rc = -EINVAL;
 		goto err_parse;
@@ -803,6 +796,7 @@ static ssize_t debugfs_mac_lane_remap_read(struct file *f,
 			dev_err(hdev->dev, "error in copying lane info to user\n");
 			return -EFAULT;
 		}
+
 		*ppos += MAC_LANE_REMAP_READ_SIZE;
 	}
 
@@ -1224,6 +1218,11 @@ static ssize_t debugfs_override_port_status_write(struct file *f, const char __u
 		return -EINVAL;
 	}
 
+#ifdef _HAS_NO_SPEC
+	/* Turn off speculation due to Spectre vulnerability */
+	port = array_index_nospec(port, max_num_of_ports);
+#endif
+
 	c1 = c2 + 1;
 
 	rc = kstrtou8(c1, 10, &up);
@@ -1233,10 +1232,6 @@ static ssize_t debugfs_override_port_status_write(struct file *f, const char __u
 	nic = &hdev->nic;
 
 	if (hdev->nic_ports_mask & BIT(port)) {
-#ifdef _HAS_NO_SPEC
-		/* Turn off speculation due to Spectre vulnerability */
-		port = array_index_nospec(port, max_num_of_ports);
-#endif
 		nic_port = &nic->nic_ports[port];
 
 		nic_port->pcs_link = !!up;
@@ -1245,8 +1240,7 @@ static ssize_t debugfs_override_port_status_write(struct file *f, const char __u
 
 	return count;
 err:
-	dev_err(hdev->dev,
-		"usage: echo <port> <status> > nic_override_port_status\n");
+	dev_err(hdev->dev, "usage: echo <port> <status> > nic_override_port_status\n");
 
 	return -EINVAL;
 }
