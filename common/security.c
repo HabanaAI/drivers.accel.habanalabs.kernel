@@ -765,6 +765,9 @@ void hl_check_for_glbl_errors(struct hl_device *hdev)
 	struct iterate_special_ctx glbl_err_iter;
 	int rc;
 
+	if (!hdev->glbl_errors_read_enable)
+		return;
+
 	memset(&special_blocks_cfg, 0, sizeof(special_blocks_cfg));
 	special_blocks_cfg.skip_blocks_cfg = &prop->skip_special_blocks_cfg;
 

@@ -166,6 +166,7 @@ static int bfe_nic_enable_h9_sal_override_eco = 1;
 static int bfe_nic_enable_h9_sack_deadlock_eco = 1;
 static int bfe_nic_enable_h9_txe_buff_alloc_eco = 1;
 static int bfe_heartbeat_reset_enable = 1;
+static int bfe_glbl_errors_read_enable = 1;
 
 /* special-case of parameter handling - polling */
 static bool nic_poll_enable_param_was_set;
@@ -563,6 +564,10 @@ MODULE_PARM_DESC(bfe_nic_enable_h9_txe_buff_alloc_eco,
 module_param(bfe_heartbeat_reset_enable, int, 0444);
 MODULE_PARM_DESC(bfe_heartbeat_reset_enable,
 	"Enable hard-reset after heartbeat failure (0 - disabled, 1 - enabled, default 1)");
+
+module_param(bfe_glbl_errors_read_enable, int, 0444);
+MODULE_PARM_DESC(bfe_glbl_errors_read_enable,
+	"Enable global errors read iterator (0 - disabled, 1 - enabled, default 1)");
 
 #define PCI_VENDOR_ID_HABANALABS	0x1da3
 
@@ -1522,6 +1527,8 @@ static void set_driver_behavior_per_device(struct hl_device *hdev)
 	hdev->nic_enable_h9_sack_deadlock_eco = 1;
 	hdev->nic_enable_h9_txe_buff_alloc_eco = 1;
 	hdev->enable_h9_cache_eta_eco = 1;
+
+	hdev->glbl_errors_read_enable = 1;
 }
 
 static void copy_kernel_module_params_to_device(struct hl_device *hdev)
@@ -1631,6 +1638,7 @@ static void copy_bfe_params_to_device(struct hl_device *hdev)
 	hdev->nic_enable_h9_sack_deadlock_eco = bfe_nic_enable_h9_sack_deadlock_eco;
 	hdev->nic_enable_h9_txe_buff_alloc_eco = bfe_nic_enable_h9_txe_buff_alloc_eco;
 	hdev->heartbeat_reset_enable = bfe_heartbeat_reset_enable;
+	hdev->glbl_errors_read_enable = bfe_glbl_errors_read_enable;
 
 	/* Debug feature:
 	 * Store a copy of binning information to override f/w binning configuration later
@@ -1720,13 +1728,18 @@ static void fixup_device_params_per_asic(struct hl_device *hdev, int timeout)
 		if (!hdev->cache_enable)
 			hdev->dram_enable = 0;
 
-		if ((single_die_asic || hdev->force_h9_single_die) &&
-				(hdev->security_enable || hdev->priv_security_enable)) {
-			pr_err("Security is disabled (sec/priv) as it isn't supported on single-die mode\n");
-			hdev->security_enable = false;
-			hdev->priv_security_enable = false;
-		}
+		if (single_die_asic || hdev->force_h9_single_die) {
+			if (hdev->glbl_errors_read_enable) {
+				pr_err("Read global err is disabled, as it isn't supported on single-die mode\n");
+				hdev->glbl_errors_read_enable = false;
+			}
 
+			if (hdev->security_enable || hdev->priv_security_enable) {
+				pr_err("Security is disabled (sec/priv) as it isn't supported on single-die mode\n");
+				hdev->security_enable = false;
+				hdev->priv_security_enable = false;
+			}
+		}
 		break;
 
 	default:

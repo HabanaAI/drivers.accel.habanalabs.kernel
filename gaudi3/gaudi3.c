@@ -4201,25 +4201,31 @@ free_dma_mem_arr:
 	return rc;
 }
 
-static bool gaudi3_special_block_skip(struct hl_device *hdev,
+static bool gaudi3_special_blocks_skip_with_mask(struct hl_device *hdev,
 		struct hl_special_blocks_cfg *special_blocks_cfg,
 		u32 blk_idx, u32 major, u32 minor, u32 sub_minor)
 {
-	return false;
-}
-
-static bool gaudi3_pb_block_skip_with_mask(struct hl_device *hdev,
-		struct hl_special_blocks_cfg *special_blocks_cfg,
-		u32 blk_idx, u32 major, u32 minor, u32 sub_minor)
-{
-	struct hl_automated_pb_cfg *auto_pb_cfg_arr = special_blocks_cfg->prot_lvl_priv ?
-			special_blocks_cfg->priv_automated_pb_cfg :
-			special_blocks_cfg->sec_automated_pb_cfg;
-	struct hl_automated_pb_cfg *auto_pb_cfg = &auto_pb_cfg_arr[blk_idx];
-	struct hl_special_block_info *block_info = &auto_pb_cfg->addr;
+	struct hl_automated_pb_cfg *auto_pb_cfg_arr, *auto_pb_cfg;
 	struct asic_fixed_properties *prop = &hdev->asic_prop;
 	u32 num_of_instances, instance_idx, max_instances;
+	struct hl_special_block_info *block_info;
 	struct hl_nic_macro *nic_macro;
+
+	/*
+	 * This skip hook will be used for both special blocks iterators(PB and global errors).
+	 * Since we need to set the block info, we need to be able to identify which iterator called
+	 * the hook. if we came from the pb iterator then the automated_pb_cfg will be used.
+	 * otherwise we came from hl_check_for_glbl_errors iterator.
+	 */
+	if (special_blocks_cfg->priv_automated_pb_cfg || special_blocks_cfg->sec_automated_pb_cfg) {
+		auto_pb_cfg_arr = special_blocks_cfg->prot_lvl_priv ?
+				special_blocks_cfg->priv_automated_pb_cfg :
+				special_blocks_cfg->sec_automated_pb_cfg;
+		auto_pb_cfg = &auto_pb_cfg_arr[blk_idx];
+		block_info = &auto_pb_cfg->addr;
+	} else {
+		block_info = prop->special_blocks;
+	}
 
 	/* 'major' is either the die index or the half-dcores index.
 	 * It's unlikely having 'major' < '1', other than if the Python parser went bad,
@@ -4433,7 +4439,7 @@ static int gaudi3_special_blocks_config(struct hl_device *hdev)
 				ARRAY_SIZE(gaudi3_iterator_skip_special_blocks_ranges);
 	}
 
-	prop->skip_special_blocks_cfg.skip_block_hook = gaudi3_special_block_skip;
+	prop->skip_special_blocks_cfg.skip_block_hook = gaudi3_special_blocks_skip_with_mask;
 
 	return 0;
 
@@ -4491,7 +4497,7 @@ static int gaudi3_pb_blocks_config(struct hl_device *hdev)
 				ARRAY_SIZE(gaudi3_iterator_skip_pb_blocks_ranges);
 	}
 
-	prop->skip_pb_blocks_cfg.skip_block_hook = gaudi3_pb_block_skip_with_mask;
+	prop->skip_pb_blocks_cfg.skip_block_hook = gaudi3_special_blocks_skip_with_mask;
 
 	return 0;
 
@@ -11700,6 +11706,8 @@ static u32 gaudi3_handle_sei_event(struct hl_device *hdev,
 
 	gaudi3_sei_razwi_handler(hdev, agg_component_type, die, hdcore, event_mask);
 
+	hl_check_for_glbl_errors(hdev);
+
 	return err_cnt;
 }
 
@@ -11723,18 +11731,25 @@ static u32 gaudi3_handle_spi_event(struct hl_device *hdev,
 
 	switch (agg_component_type) {
 	case INT_COMP_TYPE_NIC:
-		return gaudi3_handle_nic_spi(hdev, die * NIC_NUM_MACROS_PER_DIE + instance,
+		rc = gaudi3_handle_nic_spi(hdev, die * NIC_NUM_MACROS_PER_DIE + instance,
 						data_size, &eq_dynamic_entry->nic_spi_data);
+		break;
 	case INT_COMP_TYPE_PCIE:
-		return gaudi3_handle_pcie0_spi_err(hdev, data_size,
-							&eq_dynamic_entry->pcie_spi_data);
+		rc = gaudi3_handle_pcie0_spi_err(hdev, data_size, &eq_dynamic_entry->pcie_spi_data);
+		break;
 	case INT_COMP_TYPE_PMMU:
-		return handle_pmmu_events(hdev, die, event_mask);
+		rc = handle_pmmu_events(hdev, die, event_mask);
+		break;
 	case INT_COMP_TYPE_STLB:
-		return handle_hmmu_events(hdev, die, hdcore, event_mask);
+		rc = handle_hmmu_events(hdev, die, hdcore, event_mask);
+		break;
 	default:
 		return 0;
 	}
+
+	hl_check_for_glbl_errors(hdev);
+
+	return rc;
 }
 
 static u32 gaudi3_handle_hw_event(struct hl_device *hdev,

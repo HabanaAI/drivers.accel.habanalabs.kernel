@@ -3999,6 +3999,7 @@ struct hl_device {
 	u8				nic_enable_h9_sack_deadlock_eco;
 	u8				nic_enable_h9_txe_buff_alloc_eco;
 	u8				heartbeat_reset_enable;
+	u8				glbl_errors_read_enable;
 };
 
 /* Retrieve PCI device name in case of a PCI device or dev name in simulator */
