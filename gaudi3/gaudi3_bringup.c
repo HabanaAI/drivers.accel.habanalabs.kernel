@@ -4031,7 +4031,7 @@ static void gaudi3_hdcore_spi_event_info(struct hl_device *hdev, u32 offset, u32
 
 		if (hdcore_handle_and_clear[HDCORE_DEC_EVENT])
 			hdcore_handle_and_clear[HDCORE_DEC_EVENT](hdev, die, hdcore,
-				ERR_GRP_SPI_ECO, sts1, 1, idx,
+				ERR_GRP_SPI_ECO, sts2, 2, idx,
 				mmD0_CPU_INT_AGG_HDCORE0_SPI_ECO_INT_MSG_BASE +
 				mmINT_AGG_HDCORE_SPI_ECO_INT_MSG_MASK_2 + offset,
 				~(sts2 & sts2_dec_mask));
