@@ -85,10 +85,6 @@ static void gaudi3_fpga_init_firmware_loader(struct hl_device *hdev)
 
 	/* fill common fields */
 	fw_loader->fw_comp_loaded = FW_TYPE_NONE;
-
-	/* TODO
-	 * fw_loader->linux_img.image_name = ?;
-	 */
 	fw_loader->boot_fit_img.image_name = GAUDI3_BOOT_FIT_FILE;
 	fw_loader->boot_fit_timeout = GAUDI3_BOOT_FIT_REQ_TIMEOUT_USEC;
 	fw_loader->skip_bmc = false;
