@@ -76,8 +76,6 @@
 #include "../include/gaudi3/gaudi3_sec_protbits_configs.h"
 #include "../include/gaudi3/gaudi3_priv_protbits_configs.h"
 #include "../include/gaudi3/asic_reg/gaudi3_regs.h"
-#include "../include/gaudi3/gaudi3_async_events.h"
-#include "../include/gaudi3/gaudi3_async_ids_map_extended.h"
 #include "../include/gaudi3/gaudi3_reg_map.h"
 #include "../include/hw_ip/mmu/mmu_v2_0.h"
 #include "../include/hw_ip/mmu/mmu_v3_0.h"
@@ -11272,18 +11270,6 @@ static void gaudi3_handle_ecc_event(struct hl_device *hdev, struct hl_eq_ecc_dat
 		ecc_address, ecc_syndrom, memory_wrapper_idx, ecc_data->is_critical);
 }
 
-static void gaudi3_print_msg_event_info(struct hl_device *hdev, u16 event_type)
-{
-	char desc[64] = "";
-
-	if (gaudi3_irq_map_table[event_type].valid)
-		snprintf(desc, sizeof(desc), gaudi3_irq_map_table[event_type].name);
-	else
-		snprintf(desc, sizeof(desc), "N/A");
-
-	dev_err_ratelimited(hdev->dev, "Received MSG interrupt %d [\"%s\"]\n", event_type, desc);
-}
-
 static void gaudi3_handle_msg_event(struct hl_device *hdev,
 				struct hl_eq_dynamic_entry *eq_dynamic_entry, u64 *event_mask)
 {
@@ -11293,7 +11279,8 @@ static void gaudi3_handle_msg_event(struct hl_device *hdev,
 	ctl = le32_to_cpu(eq_dynamic_entry->hdr.ctl);
 	event_type = FIELD_GET(EQ_CTL_EVENT_TYPE_MASK, ctl);
 
-	gaudi3_print_msg_event_info(hdev, event_type);
+	/* TODO: remove once we have some events implemented, we should have a single print */
+	dev_err_ratelimited(hdev->dev, "Received MSG interrupt %d\n", event_type);
 
 	/* TODO: add handling of MSG events */
 	switch (event_type) {

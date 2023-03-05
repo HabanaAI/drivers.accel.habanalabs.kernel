@@ -8,7 +8,6 @@
 #include "gaudi3P.h"
 #include "gaudi3_nic.h"
 #include "gaudi3_masks.h"
-#include "../include/gaudi3/gaudi3_async_events.h"
 
 #include <linux/bitrev.h>
 
@@ -3120,29 +3119,6 @@ static void handle_and_clear_hbm_events(struct hl_device *hdev, u32 die, u32 hdc
 	if (unmask_event_in_aggr)
 		WREG32_AND(aggr_mask_reg, events_mask);
 }
-
-static const enum gaudi3_async_event_id pcie_spi_events_id_map[9] = {
-	GAUDI3_EVENT_PCIE1_DIE0_HDSHARED_SPI,
-	GAUDI3_EVENT_PCIE4_DIE0_HDSHARED_SPI,
-	GAUDI3_EVENT_PCIE5_DIE0_HDSHARED_SPI,
-	GAUDI3_EVENT_PCIE6_DIE0_HDSHARED_SPI,
-	GAUDI3_EVENT_PCIE7_DIE0_HDSHARED_SPI,
-	GAUDI3_EVENT_PCIE8_DIE0_HDSHARED_SPI,
-	GAUDI3_EVENT_PCIE9_DIE0_HDSHARED_SPI,
-	GAUDI3_EVENT_PCIE13_DIE0_HDSHARED_SPI,
-	GAUDI3_EVENT_PCIE14_DIE0_HDSHARED_SPI
-};
-
-static const enum gaudi3_async_event_id pcie_derr_events_id_map[3] = {
-	GAUDI3_EVENT_PCIE0_DIE0_HDSHARED_DERR,
-	GAUDI3_EVENT_PCIE1_DIE0_HDSHARED_DERR,
-	GAUDI3_EVENT_PCIE2_DIE0_HDSHARED_DERR
-};
-
-static const enum gaudi3_async_event_id pcie_sei_events_id_map[2] = {
-	GAUDI3_EVENT_PCIE0_DIE0_HDSHARED_SEI,
-	GAUDI3_EVENT_PCIE1_DIE0_HDSHARED_SEI
-};
 
 static void gaudi3_print_pcie_err_resp_data(struct hl_device *hdev, bool hbw, bool read)
 {
