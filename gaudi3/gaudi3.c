@@ -9338,6 +9338,17 @@ free_pkt:
 	return rc;
 }
 
+int gaudi3_test_cpu_queue(struct hl_device *hdev)
+{
+	struct gaudi3_device *gaudi3 = hdev->asic_specific;
+
+	/* send_cpu_message() won't update the result value if no capability */
+	if (!(gaudi3->hw_cap_initialized & HW_CAP_CPU_Q))
+		return 0;
+
+	return hl_fw_test_cpu_queue(hdev);
+}
+
 int gaudi3_test_queues(struct hl_device *hdev)
 {
 	int rc = 0, i;
@@ -9355,10 +9366,16 @@ int gaudi3_test_queues(struct hl_device *hdev)
 		return rc;
 
 	rc = gaudi3_test_qmans(hdev);
+	if (rc)
+		return rc;
 
-	dev_dbg(hdev->dev, "Test queues done\n");
+	rc = gaudi3_test_cpu_queue(hdev);
+	if (rc)
+		return rc;
 
-	return rc;
+	dev_dbg(hdev->dev, "Test queues done successfully\n");
+
+	return 0;
 }
 
 void *gaudi3_dma_pool_zalloc(struct hl_device *hdev, size_t size,

@@ -791,6 +791,7 @@ int gaudi3_get_monitor_dump(struct hl_device *hdev, void *data);
 u32 gaudi3_get_dec_base_addr(struct hl_device *hdev, u32 core_id);
 int gaudi3_init_cpu(struct hl_device *hdev);
 int gaudi3_init_cpu_queues(struct hl_device *hdev, u32 cpu_timeout);
+int gaudi3_test_cpu_queue(struct hl_device *hdev);
 void gaudi3_send_hard_reset_cmd(struct hl_device *hdev);
 void gaudi3_handle_eqe(struct hl_device *hdev, struct hl_eq_dynamic_entry *eq_dynamic_entry);
 int gaudi3_nic_debugfs_write_coll_lag_size(struct hl_device *hdev, u32 coll_lag_size);

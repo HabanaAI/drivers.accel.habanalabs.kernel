@@ -314,12 +314,6 @@ static int gaudi3_fpga_late_init(struct hl_device *hdev)
 	return 0;
 }
 
-static int gaudi3_fpga_test_queues(struct hl_device *hdev)
-{
-	/* TODO: enable CPU queues */
-	return 0;
-}
-
 static void gaudi3_fpga_halt_engines(struct hl_device *hdev, bool hard_reset, bool fw_reset)
 {
 }
@@ -448,7 +442,7 @@ static const struct hl_asic_funcs gaudi3_fpga_funcs = {
 	.scrub_device_mem = gaudi3_fpga_scrub_device_mem,
 	.scrub_device_dram = gaudi3_fpga_scrub_device_dram,
 	.get_int_queue_base = NULL,
-	.test_queues = gaudi3_fpga_test_queues,
+	.test_queues = gaudi3_test_cpu_queue,
 	.asic_dma_pool_zalloc = gaudi3_dma_pool_zalloc,
 	.asic_dma_pool_free = gaudi3_dma_pool_free,
 	.cpu_accessible_dma_pool_alloc = gaudi3_cpu_accessible_dma_pool_alloc,
