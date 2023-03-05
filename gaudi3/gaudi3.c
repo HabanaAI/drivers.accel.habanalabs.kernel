@@ -142,6 +142,8 @@ MODULE_FIRMWARE(GAUDI3_BOOT_FIT_FILE);
 #define MAX_BINNED_DECODERS_PER_DIE	1
 #define MAX_BINNED_ROTATORS_PER_DIE	1
 
+#define RAZWI_LBW_OFFSET	0x0300007FE0000000ull
+
 #define HL_STR(e) #e
 
 const char *gaudi3_engine_id_str[] = {
@@ -1146,6 +1148,13 @@ static const struct gaudi3_dup_grp_info gadui3_dup_grp_info[GAUDI3_DUP_GRP_MAX] 
 	{GAUDI3_DUP_GRP_PMMU_BASE, mmMMU_TRACE_CTRL, mmD0_PMMU_HBW_MMU_BASE},
 	{GAUDI3_DUP_GRP_STLB_BASE, mmSTLB_CNTRL_MAIN, mmHD0_STLB_BASE},
 	{GAUDI3_DUP_GRP_STLB_INTR_SPI_CAUSE, mmSTLB_INTR_SPI_CAUSE, mmHD0_STLB_INTR_SPI_CAUSE},
+};
+
+enum razwi_type {
+	RR_AW,
+	RR_AR,
+	ADEC_AW,
+	ADEC_AR
 };
 
 enum razwi_initiztor {
@@ -10732,9 +10741,51 @@ u32 *gaudi3_get_stream_master_qid_arr(void)
 	return NULL;
 }
 
-static bool gaudi3_razwi_status(struct hl_device *hdev, u64 base, u64 *razwi_addr, u32 *id)
+static bool gaudi3_razwi_status(struct hl_device *hdev, struct razwi_initiator_info *initiator,
+				enum razwi_type type, bool is_hbw, u64 *event_mask)
 {
-	u32 is_razwi_happened, addr_lo, addr_hi;
+	u32 is_razwi_happened, addr_lo, addr_hi, flags;
+	u64 base, razwi_offset, razwi_addr;
+	char *bw_type, *razwi_type;
+	u16 eng_id;
+
+	if (is_hbw) {
+		base = initiator->hbw_razwi_info_base;
+		bw_type = "HBW";
+		flags = HL_RAZWI_HBW;
+		razwi_offset = 0;
+	} else {
+		base = initiator->lbw_razwi_info_base;
+		bw_type = "LBW";
+		flags = HL_RAZWI_LBW;
+		razwi_offset = RAZWI_LBW_OFFSET;
+	}
+
+	switch (type) {
+	case RR_AW:
+		base += RR_AW_OFFSET;
+		flags |= (HL_RAZWI_WRITE | HL_RAZWI_RR);
+		razwi_type = "RR_WRITE";
+		break;
+	case RR_AR:
+		base += RR_AR_OFFSET;
+		flags |= (HL_RAZWI_READ | HL_RAZWI_RR);
+		razwi_type = "RR_READ";
+		break;
+	case ADEC_AW:
+		base += ADDR_DECODER_AW_OFFSET;
+		flags |= (HL_RAZWI_WRITE | HL_RAZWI_ADDR_DEC);
+		razwi_type = "ADDR_DEC_WRITE";
+		break;
+	case ADEC_AR:
+		base += ADDR_DECODER_AR_OFFSET;
+		flags |= (HL_RAZWI_READ | HL_RAZWI_ADDR_DEC);
+		razwi_type = "ADDR_DEC_READ";
+		break;
+	default:
+		dev_err(hdev->dev, "Wrong razwi type (%u)\n", type);
+		return false;
+	}
 
 	/* Check if RAZWI happened. If so, retrieve address and initiator id which caused it and
 	 * return true.
@@ -10745,74 +10796,35 @@ static bool gaudi3_razwi_status(struct hl_device *hdev, u64 base, u64 *razwi_add
 
 	addr_hi = RREG32(base + mmRTR_CTRL_CH_RAZWI_HBW_RR_RAZWI_AW_ADDR_HI);
 	addr_lo = RREG32(base + mmRTR_CTRL_CH_RAZWI_HBW_RR_RAZWI_AW_ADDR_LO);
-	*id = RREG32(base + mmRTR_CTRL_CH_RAZWI_HBW_RR_RAZWI_AW_ID);
-	*razwi_addr = ((u64)addr_hi << 32) + addr_lo;
+	eng_id = RREG32(base + mmRTR_CTRL_CH_RAZWI_HBW_RR_RAZWI_AW_ID);
+	razwi_addr = ((u64)addr_hi << 32) + addr_lo + razwi_offset;
+
+	dev_err(hdev->dev, "%s %s : %s, address 0x%llX, captured id %u\n",
+				bw_type, razwi_type, initiator->initiator_name, razwi_addr, eng_id);
+
+	hl_handle_razwi(hdev, razwi_addr, &eng_id, 1, flags, event_mask);
 
 	return true;
 }
 
-static bool gaudi3_check_for_razwi_per_bw_type(struct hl_device *hdev,
+static void gaudi3_check_for_razwi_per_type(struct hl_device *hdev,
 						struct razwi_initiator_info *initiator, bool is_hbw,
 						u16 eng_id, u64 *event_mask)
 {
-	bool razwi_happened = false;
-	u64 razwi_addr, base;
-	u32 id, bw_flag;
-	char *bw_name;
-
-	if (is_hbw) {
-		base = initiator->hbw_razwi_info_base;
-		bw_name = "HBW";
-		bw_flag = HL_RAZWI_HBW;
-	} else {
-		base = initiator->lbw_razwi_info_base;
-		bw_name = "LBW";
-		bw_flag = HL_RAZWI_LBW;
-	}
-
-	if (gaudi3_razwi_status(hdev, base + RR_AW_OFFSET, &razwi_addr, &id)) {
-		hl_handle_razwi(hdev, razwi_addr, &eng_id, 1, bw_flag | HL_RAZWI_WRITE |
-				HL_RAZWI_RR, event_mask);
-		dev_err(hdev->dev, "%s RR_WRITE : %s, address 0x%llX, captured id %u\n",
-				bw_name, initiator->initiator_name, razwi_addr, id);
-		razwi_happened = true;
-	}
-
-	if (gaudi3_razwi_status(hdev, base + RR_AR_OFFSET, &razwi_addr, &id)) {
-		hl_handle_razwi(hdev, razwi_addr, &eng_id, 1, bw_flag | HL_RAZWI_READ |
-				HL_RAZWI_RR, event_mask);
-		dev_err(hdev->dev, "%s RR_READ : %s, address 0x%llX, captured id %u\n",
-				bw_name, initiator->initiator_name, razwi_addr, id);
-		razwi_happened = true;
-	}
-
-	if (gaudi3_razwi_status(hdev, base + ADDR_DECODER_AW_OFFSET, &razwi_addr, &id)) {
-		hl_handle_razwi(hdev, razwi_addr, &eng_id, 1, bw_flag | HL_RAZWI_WRITE |
-				HL_RAZWI_ADDR_DEC, event_mask);
-		dev_err(hdev->dev, "%s ADDR_DEC_WRITE : %s, address 0x%llX, captured id %u\n",
-				bw_name, initiator->initiator_name, razwi_addr, id);
-		razwi_happened = true;
-	}
-
-	if (gaudi3_razwi_status(hdev, base + ADDR_DECODER_AR_OFFSET, &razwi_addr, &id)) {
-		hl_handle_razwi(hdev, razwi_addr, &eng_id, 1, bw_flag | HL_RAZWI_READ |
-				HL_RAZWI_ADDR_DEC, event_mask);
-		dev_err(hdev->dev, "%s ADDR_DEC_READ : %s, address 0x%llX, captured id %u\n",
-				bw_name, initiator->initiator_name, razwi_addr, id);
-		razwi_happened = true;
-	}
-
-	return razwi_happened;
+	gaudi3_razwi_status(hdev, initiator, RR_AW, is_hbw, event_mask);
+	gaudi3_razwi_status(hdev, initiator, RR_AR, is_hbw, event_mask);
+	gaudi3_razwi_status(hdev, initiator, ADEC_AW, is_hbw, event_mask);
+	gaudi3_razwi_status(hdev, initiator, ADEC_AR, is_hbw, event_mask);
 }
 
 static void gaudi3_check_for_razwi(struct hl_device *hdev, struct razwi_initiator_info *initiator,
 					u16 eng_id, u64 *event_mask)
 {
 	if (initiator->hbw_razwi_info_base)
-		gaudi3_check_for_razwi_per_bw_type(hdev, initiator, true, eng_id, event_mask);
+		gaudi3_check_for_razwi_per_type(hdev, initiator, true, eng_id, event_mask);
 
 	if (initiator->lbw_razwi_info_base)
-		gaudi3_check_for_razwi_per_bw_type(hdev, initiator, false, eng_id, event_mask);
+		gaudi3_check_for_razwi_per_type(hdev, initiator, false, eng_id, event_mask);
 }
 
 static void gaudi3_check_for_shared_razwi(struct hl_device *hdev, struct razwi_initiator_info *info,
