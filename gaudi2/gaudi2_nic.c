@@ -4594,7 +4594,7 @@ static void __qpc_sanity_check(struct gaudi2_nic_port *gaudi2_nic, u32 qpn)
 	struct gaudi2_qpc_requester req_qpc = {};
 	struct qpc_mask qpc_mask = {};
 	u32 ona_psn, nts_psn, in_work, bcs_psn, bcc_psn, rem_pi, ona_rem_pi,
-	    consumer_idx, execution_idx, is_valid, port;
+	    consumer_idx, execution_idx, is_valid, port, wq_type;
 	int retry_cnt = 0;
 	int rc;
 
@@ -4611,7 +4611,9 @@ retry:
 	}
 
 	is_valid = REQ_QPC_GET_VALID(req_qpc);
-	if (!is_valid)
+	/* Sanity check should be applied only for: WRITE/READ(RDV)/recv-RDV QPs. */
+	wq_type = REQ_QPC_GET_WQ_TYPE(req_qpc);
+	if (!is_valid || wq_type != QPC_REQ_WQ_TYPE_WRITE)
 		return;
 
 	in_work = REQ_QPC_GET_IN_WORK(req_qpc);
