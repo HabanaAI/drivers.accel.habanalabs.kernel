@@ -10,8 +10,6 @@
 
 #include "gaudi3_blocks_linux_driver.h"
 
-/****************************** h9 specs [START] ******************************/
-
 #include "nch_regs.h"
 #include "cache_maint_regs.h"
 #include "pdma_cmn_b_regs.h"
@@ -161,6 +159,10 @@
 #include "prt_phy_regs.h"
 #include "prt_mac_aux_regs.h"
 #include "nic_mac_glob_stat_control_reg_regs.h"
+#include "rtr_ctrl_ch_razwi_hbw_regs.h"
+#include "prt_phy_special_regs.h"
+#include "prt_mac_aux_special_regs.h"
+#include "mac_pcs_rsfec400_regs.h"
 
 #include "pdma_cmn_b_masks.h"
 #include "pdma_cmn_b_pqm_cmn_b_masks.h"
@@ -230,6 +232,11 @@
 #include "arc_af_eng_sec_user_adapt_masks.h"
 #include "autonomous_control_masks.h"
 #include "etr_masks.h"
+#include "mc_cmn_masks.h"
+#include "rtr_ctrl_rr_lbw_masks.h"
+#include "rtr_ctrl_rr_hbw_masks.h"
+#include "cs_dbg_w_spmu_0_bmon_spmu_masks.h"
+#include "cs_dbg_tpc_eml_bmon0_masks.h"
 
 /* CSLICE */
 #define CS_MAINT_BASE_OFFSET		(mmHD0_CS0_MAINT_BASE - mmHD0_CS0_MAIN_BASE)
@@ -260,23 +267,6 @@
 
 /* Decoder */
 #define HDCORE_DECODER_OFFSET		(mmHD0_VDEC1_CMD_BASE - mmHD0_VDEC0_CMD_BASE)
-
-/****************************** h9 specs [END]   ******************************/
-
-#include "d0_nic0_mac_aux_special_regs.h"
-#include "d0_nic0_mac_pcs_rsfec400_regs.h"
-#include "d0_nic0_phy_special_regs.h"
-#include "hd0_rrtr0_rtr_ctrl_ch0_razwi_hbw_regs.h"
-#include "d0_nic0_phy_special_regs.h"
-#include "hd0_rrtr0_rtr_ctrl_ch0_razwi_hbw_regs.h"
-
-#include "d0_hbm0_bcast_cmn_masks.h"
-#include "d0_hbm0_bcast_cmn_masks.h"
-#include "hd0_rrtr0_rtr_ctrl_rr_lbw_masks.h"
-#include "hd0_rrtr0_rtr_ctrl_rr_hbw_masks.h"
-#include "hd0_sync_mngr_mstr_if_axuser_hbw_masks.h"
-#include "d0_nic0_cs_dbg_bmon0_masks.h"
-#include "d0_nic0_cs_dbg_spmu_masks.h"
 
 #define mmD0_PCIE_DBI_SNPS_BASE	0xC403000ull
 
@@ -497,28 +487,9 @@
 					mmD0_PARC_INT_AGGR_UART_COMB_BASE)
 
 /* RAZWI */
-#define RAZWI_HAPPENED (mmHD0_RRTR0_RTR_CTRL_CH0_RAZWI_HBW_RR_RAZWI_AW_HAPPENED_ST - \
-				mmHD0_RRTR0_RTR_CTRL_CH0_RAZWI_HBW_RR_RAZWI_AW_HAPPENED_CLR)
-
-#define RAZWI_ADDR_HI (mmHD0_RRTR0_RTR_CTRL_CH0_RAZWI_HBW_RR_RAZWI_AW_ADDR_HI - \
-				mmHD0_RRTR0_RTR_CTRL_CH0_RAZWI_HBW_RR_RAZWI_AW_HAPPENED_CLR)
-
-#define RAZWI_ADDR_LO (mmHD0_RRTR0_RTR_CTRL_CH0_RAZWI_HBW_RR_RAZWI_AW_ADDR_LO - \
-				mmHD0_RRTR0_RTR_CTRL_CH0_RAZWI_HBW_RR_RAZWI_AW_HAPPENED_CLR)
-
-#define RAZWI_ID (mmHD0_RRTR0_RTR_CTRL_CH0_RAZWI_HBW_RR_RAZWI_AW_ID - \
-				mmHD0_RRTR0_RTR_CTRL_CH0_RAZWI_HBW_RR_RAZWI_AW_HAPPENED_CLR)
-
-#define RR_AW_OFFSET (mmHD0_RRTR0_RTR_CTRL_CH0_RAZWI_HBW_RR_RAZWI_AW_HAPPENED_CLR - \
-			mmHD0_RRTR0_RTR_CTRL_CH0_RAZWI_HBW_BASE)
-
-#define RR_AR_OFFSET (mmHD0_RRTR0_RTR_CTRL_CH0_RAZWI_HBW_RR_RAZWI_AR_HAPPENED_CLR - \
-			mmHD0_RRTR0_RTR_CTRL_CH0_RAZWI_HBW_BASE)
-
-#define ADDR_DECODER_AW_OFFSET (mmHD0_RRTR0_RTR_CTRL_CH0_RAZWI_HBW_ADEC_RAZWI_AW_CLR - \
-			mmHD0_RRTR0_RTR_CTRL_CH0_RAZWI_HBW_BASE)
-
-#define ADDR_DECODER_AR_OFFSET (mmHD0_RRTR0_RTR_CTRL_CH0_RAZWI_HBW_ADEC_RAZWI_AR_CLR - \
-			mmHD0_RRTR0_RTR_CTRL_CH0_RAZWI_HBW_BASE)
+#define RR_AW_OFFSET (mmRTR_CTRL_CH_RAZWI_HBW_RR_RAZWI_AW_HAPPENED_CLR)
+#define RR_AR_OFFSET (mmRTR_CTRL_CH_RAZWI_HBW_RR_RAZWI_AR_HAPPENED_CLR)
+#define ADDR_DECODER_AW_OFFSET (mmRTR_CTRL_CH_RAZWI_HBW_ADEC_RAZWI_AW_CLR)
+#define ADDR_DECODER_AR_OFFSET (mmRTR_CTRL_CH_RAZWI_HBW_ADEC_RAZWI_AR_CLR)
 
 #endif /* ASIC_REG_GAUDI3_REGS_H_ */

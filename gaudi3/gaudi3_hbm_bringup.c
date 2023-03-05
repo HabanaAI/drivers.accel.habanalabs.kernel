@@ -244,8 +244,8 @@ static void enable_hbm_compression(struct hl_device *hdev, int hbm_dev)
 	hif_offset = (u64)hbm_dev * HDCORE_OFFSET;
 
 
-	val = FIELD_PREP(D0_HBM0_BCAST_CMN_COMPRS_MOD_M, 0xFFFF);
-	val |= FIELD_PREP(D0_HBM0_BCAST_CMN_COMPRS_EN_M, 0x1);
+	val = FIELD_PREP(MC_CMN_COMPRS_MOD_M, 0xFFFF);
+	val |= FIELD_PREP(MC_CMN_COMPRS_EN_M, 0x1);
 	WREG32(hbm_offset + mmD0_HBM0_BCAST_CMN_BASE + mmMC_CMN_COMPRS, val);
 
 	WREG32(hif_offset + mmHD0_HIF_BASE + mmH9_HIF_MC_MAX_RD_INFLIGHT_0, 0x28);

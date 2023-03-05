@@ -1936,8 +1936,10 @@ static void gaudi3_nic_config_hw_mac(struct hl_nic_macro *nic_macro)
 		NIC_WREG32(mmD0_NIC0_MAC_PCS_PCS400_BASE + mmMAC_PCS_PCS400_CONTROL1,
 							MAC_PCS_PCS400_CONTROL1_F_RESET_M);
 	} else {
-		NIC_WREG32(mmD0_NIC0_MAC_PCS_RSFEC400_VENDOR_VL0_0, 0xc0b3);
-		NIC_WREG32(mmD0_NIC0_MAC_PCS_RSFEC400_VENDOR_VL0_1, 0x8c);
+		NIC_WREG32(mmD0_NIC0_MAC_PCS_RSFEC400_BASE +
+				mmMAC_PCS_RSFEC400_VENDOR_VL0_0, 0xc0b3);
+		NIC_WREG32(mmD0_NIC0_MAC_PCS_RSFEC400_BASE +
+				mmMAC_PCS_RSFEC400_VENDOR_VL0_1, 0x8c);
 
 		NIC_WREG32(mmD0_NIC0_MAC_PCS_PCS400_BASE +
 				mmMAC_PCS_PCS400_VENDOR_VL_INTVL, 0x1000);
@@ -2225,8 +2227,10 @@ static void gaudi3_nic_macros_hw_config(struct hl_device *hdev)
 		port = gaudi3_nic_get_first_port(nic_macro);
 
 		/* H9-5194: Setting timeout for PRT configurations. */
-		NIC_WREG32(mmD0_NIC0_PHY_SPECIAL_GLBL_SPARE_0, 0x1001000);
-		NIC_WREG32(mmD0_NIC0_MAC_AUX_SPECIAL_GLBL_SPARE_0, 0x1001000);
+		NIC_WREG32(mmD0_NIC0_PHY_SPECIAL_BASE +
+				mmPRT_PHY_SPECIAL_GLBL_SPARE_0, 0x1001000);
+		NIC_WREG32(mmD0_NIC0_MAC_AUX_SPECIAL_BASE +
+				mmPRT_MAC_AUX_SPECIAL_GLBL_SPARE_0, 0x1001000);
 
 		gaudi3_nic_hw_macro_config(nic_macro);
 	}

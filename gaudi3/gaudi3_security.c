@@ -317,8 +317,8 @@ static void gaudi3_rtr_ctrl_config_rr(struct hl_device *hdev, int block, int ins
 			 * the code use the mask of LBW_SEC_RANGE_EN_[WR/RD] yet the same mask
 			 * applied to all other LBW regions as well.
 			 */
-			val = FIELD_PREP(HD0_RRTR0_RTR_CTRL_RR_LBW_SEC_RANGE_EN_WR_M, wr_access) |
-				FIELD_PREP(HD0_RRTR0_RTR_CTRL_RR_LBW_SEC_RANGE_EN_RD_M, rd_access);
+			val = FIELD_PREP(RTR_CTRL_RR_LBW_SEC_RANGE_EN_WR_M, wr_access) |
+				FIELD_PREP(RTR_CTRL_RR_LBW_SEC_RANGE_EN_RD_M, rd_access);
 			WREG32(offset + rr_cfg->lbw_prop.en_off + instance_off, val);
 
 			val = REG_OFF_TO_LBW_OFF(range->min) & rr_cfg->lbw_prop.addr_mask;
@@ -343,8 +343,8 @@ static void gaudi3_rtr_ctrl_config_rr(struct hl_device *hdev, int block, int ins
 			 * the code use the mask of HBW_SEC_RANGE_EN_[WR/RD] yet the same mask
 			 * applied to all other LBW regions as well.
 			 */
-			val = FIELD_PREP(HD0_RRTR0_RTR_CTRL_RR_HBW_SEC_RANGE_EN_WR_M, wr_access) |
-				FIELD_PREP(HD0_RRTR0_RTR_CTRL_RR_HBW_SEC_RANGE_EN_RD_M, rd_access);
+			val = FIELD_PREP(RTR_CTRL_RR_HBW_SEC_RANGE_EN_WR_M, wr_access) |
+				FIELD_PREP(RTR_CTRL_RR_HBW_SEC_RANGE_EN_RD_M, rd_access);
 			WREG32(offset + rr_cfg->hbw_prop.en_off + instance_off, val);
 
 			WREG32(offset + rr_cfg->hbw_prop.min_hi_off + instance_off,

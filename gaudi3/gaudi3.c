@@ -10726,13 +10726,13 @@ static bool gaudi3_razwi_status(struct hl_device *hdev, u64 base, u64 *razwi_add
 	/* Check if RAZWI happened. If so, retrieve address and initiator id which caused it and
 	 * return true.
 	 */
-	is_razwi_happened = RREG32(base + RAZWI_HAPPENED);
+	is_razwi_happened = RREG32(base + mmRTR_CTRL_CH_RAZWI_HBW_RR_RAZWI_AW_HAPPENED_ST);
 	if (!is_razwi_happened)
 		return false;
 
-	addr_hi = RREG32(base + RAZWI_ADDR_HI);
-	addr_lo = RREG32(base + RAZWI_ADDR_LO);
-	*id = RREG32(base + RAZWI_ID);
+	addr_hi = RREG32(base + mmRTR_CTRL_CH_RAZWI_HBW_RR_RAZWI_AW_ADDR_HI);
+	addr_lo = RREG32(base + mmRTR_CTRL_CH_RAZWI_HBW_RR_RAZWI_AW_ADDR_LO);
+	*id = RREG32(base + mmRTR_CTRL_CH_RAZWI_HBW_RR_RAZWI_AW_ID);
 	*razwi_addr = ((u64)addr_hi << 32) + addr_lo;
 
 	return true;
