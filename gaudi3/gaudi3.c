@@ -3453,10 +3453,6 @@ done:
 static int gaudi3_trigger_job_and_wait_for_cq_completion(struct hl_device *hdev,
 						struct gaudi3_cq_mode_params *cq_params)
 {
-	/*
-	 * TODO: in MMU invalidation need to ensure no CS is in the air.
-	 * How, if all the submissions are via SCAL?! Need to find out.
-	 */
 	u32 mon_arm, status, *polling_addr, sob_off, mon_off;
 	u8 sync_group_id, mask, mode;
 	struct hl_cq_entry *cq_base;
@@ -3474,14 +3470,14 @@ static int gaudi3_trigger_job_and_wait_for_cq_completion(struct hl_device *hdev,
 
 	/*
 	 * Scenario:
-	 * 1. Driver sends cache invalidation request to the hardware
-	 * 2. Hardware does its part and finishes cache invalidation
-	 * 3. Relevant initiators updates the sync object
+	 * 1. Driver sends a job execution (e.g., cache invalidation) request to the hardware
+	 * 2. Hardware does its part and finishes job execution.
+	 * 3. Relevant initiators update the sync object
 	 * 4. This triggers the monitor
 	 * 5. Monitor writes to CQ
 	 * 6. Meanwhile driver is polling the host address (or, in PLDM, until H9-3138 is resolved
 	 *    poll the SOB directly)
-	 * Could be done using interrupts, polling is more efficient.
+	 * Could be done using interrupts, however polling is more efficient.
 	 */
 
 	/* Start by setting up the monitor */
