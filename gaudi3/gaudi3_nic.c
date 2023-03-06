@@ -259,8 +259,10 @@ static struct hl_en_stat gaudi3_nic_mac_fec_stats[] = {
 	{"symbol_err_corrected_lane_1", 0x50},
 	{"symbol_err_corrected_lane_2", 0x54},
 	{"symbol_err_corrected_lane_3", 0x58},
-	{"post_FEC_SER"},
-	{"pre_FEC_SER"},
+	{"post_FEC_SER_int"},
+	{"post_FEC_SER_exp (negative)"},
+	{"pre_FEC_SER_int"},
+	{"pre_FEC_SER_exp (negative)"},
 };
 
 /* Gaudi3 performance Stats */
@@ -4972,7 +4974,7 @@ static int gaudi3_nic_get_mac_fec_stats(struct hl_nic_port *nic_port, u64 *data)
 					(mmD0_NIC0_MAC_GLOB_STAT_RSFEC_STATS_BASE +
 					mmNIC_MAC_GLOB_STAT_RSFEC_STATS_TOTAL_CW_1)));
 
-	for (i = 0 ; i < (gaudi3_nic_mac_fec_stats_len - 2) ; i++)
+	for (i = 0 ; i < (gaudi3_nic_mac_fec_stats_len - 4) ; i++)
 		data[i] = NIC_RREG32(start_reg + gaudi3_nic_mac_fec_stats[i].lo_offset);
 
 	/* Formula to calculate post_FEC_SER:
@@ -5024,7 +5026,7 @@ static int gaudi3_nic_get_mac_fec_stats(struct hl_nic_port *nic_port, u64 *data)
 	nic_port->correctable_errors_cnt = data[FEC_CW_CORRECT];
 	nic_port->uncorrectable_errors_cnt = data[FEC_CW_UNCORRECTABLE];
 
-	return i;
+	return gaudi3_nic_mac_fec_stats_len;
 }
 
 static int gaudi3_nic_get_mac_stats(struct hl_nic_port *nic_port, u64 *data)
