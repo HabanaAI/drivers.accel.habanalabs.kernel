@@ -6800,13 +6800,6 @@ int gaudi2_init_golden_registers(struct hl_device *hdev)
 	};
 	int rc;
 
-	/* TODO: This shall move to the bottom when FW implements this */
-	if (!hdev->asic_prop.fw_security_enabled) {
-		gaudi2_init_sm_fw_config(hdev);
-		gaudi2_init_sm_axuser_overrides(hdev);
-		gaudi2_hmmu_stlb_thr_init(hdev);
-	}
-
 	/* Initialization of ALL golden registers is done by u-boot */
 	if ((hdev->fw_components & FW_TYPE_BOOT_CPU) && !hdev->fw_cfg_skip)
 		return 0;
@@ -6835,6 +6828,9 @@ int gaudi2_init_golden_registers(struct hl_device *hdev)
 	gaudi2_init_dec_fw_config(hdev);
 	gaudi2_init_nic_fw_config(hdev);
 	gaudi2_configure_msix_axi_slave(hdev);
+	gaudi2_init_sm_fw_config(hdev);
+	gaudi2_init_sm_axuser_overrides(hdev);
+	gaudi2_hmmu_stlb_thr_init(hdev);
 	gaudi2_init_range_registers_fw_config(hdev);
 	gaudi2_nic_restore_dynamic_cfg_soft_reset_fw(hdev);
 
