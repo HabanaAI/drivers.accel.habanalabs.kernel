@@ -33,6 +33,10 @@
 #define PLL_MAP_MAX_BITS	128
 #define PLL_MAP_LEN		(PLL_MAP_MAX_BITS / 8)
 
+enum eq_event_id {
+	EQ_EVENT_NIC_STS_REQUEST = 0,
+};
+
 /*
  * info of the pkt queue pointers in the first async occurrence
  */
@@ -446,6 +450,15 @@ struct hl_eq_nic_intr_cause {
 	struct hl_eq_intr_cause intr_cause[MAX_PORTS_PER_NIC];
 };
 
+/* struct hl_eq_nic_sts_req_data is the data in hl_eq_dynamic_entry */
+struct hl_eq_nic_sts_req_data {
+	__le64 port_en_mask;	/* enabled ports 0-23 */
+	__u8 cmd;		/* 0 - one shot, 1 - periodic start, 2 - periodic stop */
+	__u8 period;		/* seconds */
+	__le16 reserved;
+	__le32 reserved2;
+};
+
 enum hl_pcie_sei_type {
 	PCIE_SEI_AXI_RESP_ERR,
 	PCIE_SEI_BUS_MSTR_EN_CLR
@@ -481,9 +494,48 @@ struct hl_eq_nic_spi_data {
 	__u8 pad[7];
 };
 
+enum hl_mme_acc_err_type {
+	MME_ACC_WBC_ERR_RESP_LEGACY,
+	MME_ACC_WBC_ERR_RESP_SET0_CH0,
+	MME_ACC_WBC_ERR_RESP_SET0_CH1,
+	MME_ACC_WBC_ERR_RESP_SET1_CH0,
+	MME_ACC_WBC_ERR_RESP_SET1_CH1,
+	MME_ACC_WBC_BUSER_NUMERICAL_INF_ERR_SET0_CH0,
+	MME_ACC_WBC_BUSER_NUMERICAL_INF_ERR_SET0_CH1,
+	MME_ACC_WBC_BUSER_NUMERICAL_NINF_ERR_SET0_CH0,
+	MME_ACC_WBC_BUSER_NUMERICAL_NINF_ERR_SET0_CH1,
+	MME_ACC_WBC_BUSER_NUMERICAL_NAN_ERR_SET0_CH0,
+	MME_ACC_WBC_BUSER_NUMERICAL_NAN_ERR_SET0_CH1,
+	MME_ACC_WBC_BUSER_RR_DBG_ERR_SET0_CH0,
+	MME_ACC_WBC_BUSER_RR_DBG_ERR_SET0_CH1,
+	MME_ACC_WBC_BUSER_NUMERICAL_INF_ERR_SET1_CH0,
+	MME_ACC_WBC_BUSER_NUMERICAL_INF_ERR_SET1_CH1,
+	MME_ACC_WBC_BUSER_NUMERICAL_NINF_ERR_SET1_CH0,
+	MME_ACC_WBC_BUSER_NUMERICAL_NINF_ERR_SET1_CH1,
+	MME_ACC_WBC_BUSER_NUMERICAL_NAN_ERR_SET1_CH0,
+	MME_ACC_WBC_BUSER_NUMERICAL_NAN_ERR_SET1_CH1,
+	MME_ACC_WBC_BUSER_RR_DBG_ERR_SET1_CH0,
+	MME_ACC_WBC_BUSER_RR_DBG_ERR_SET1_CH1,
+	MME_ACC_AP_STS_SRC_DNRM,
+	MME_ACC_AP_STS_SRC_INF,
+	MME_ACC_AP_STS_SRC_NINF,
+	MME_ACC_AP_STS_SRC_NAN,
+	MME_ACC_AP_STS_RES_INF,
+	MME_ACC_AP_STS_RES_NINF,
+	MME_ACC_AP_STS_RES_NAN
+};
+
+struct hl_eq_mme_acc_data {
+	__u8 mme_id;
+	__u8 err_type; /* enum hl_mme_acc_err_type */
+	__le16 ctx_id;
+	__u8 pad[4];
+};
+
 struct hl_eq_entry {
 	struct hl_eq_header hdr;
 	union {
+		__le64 data_placeholder;
 		struct hl_eq_ecc_data ecc_data;
 		struct hl_eq_hbm_ecc_data hbm_ecc_data;	/* Gaudi1 HBM */
 		struct hl_eq_sm_sei_data sm_sei_data;
@@ -506,10 +558,13 @@ struct hl_eq_dynamic_entry {
 	struct hl_eq_header hdr;
 	struct hl_agg_eq_header agg_hdr; /* valid only for aggregator events */
 	union {
+		__le64 data_placeholder;
 		struct hl_eq_ecc_data ecc_data;
 		struct hl_eq_pcie_sei_data pcie_sei_data;
 		struct hl_eq_pcie_spi_data pcie_spi_data;
 		struct hl_eq_nic_spi_data nic_spi_data;
+		struct hl_eq_nic_sts_req_data nic_sts_req_data;
+		struct hl_eq_mme_acc_data mme_acc_data;
 	};
 };
 
@@ -864,6 +919,9 @@ enum pq_init_status {
  * CPUCP_PACKET_EXPECTED_EQE_SIZE_SET -
  *       LKD sends FW expected size (in bytes) of EQ entry.
  *
+ * CPUCP_PACKET_REGISTER_INTERRUPTS -
+ *       Packet to register interrupts indicating LKD is ready to receive events from FW.
+ *
  * CPUCP_PACKET_SOFT_RESET -
  *	 Packet to perform soft-reset.
  */
@@ -931,6 +989,7 @@ enum cpucp_packet_id {
 	CPUCP_PACKET_WD_DISABLE,		/* debugfs */
 	CPUCP_PACKET_NIC_WQE_ASID_UNSET,	/* internal */
 	CPUCP_PACKET_EXPECTED_EQE_SIZE_SET,	/* internal */
+	CPUCP_PACKET_REGISTER_INTERRUPTS,	/* internal */
 	CPUCP_PACKET_SOFT_RESET,		/* internal */
 	CPUCP_PACKET_ID_MAX			/* must be last */
 };
@@ -1352,6 +1411,7 @@ struct cpucp_security_info {
  *                     (0 = functional 1 = binned)
  * @interposer_version: Interposer version programmed in eFuse
  * @substrate_version: Substrate version programmed in eFuse
+ * @fw_hbm_region_size: Size in bytes of FW reserved region in HBM.
  * @fw_os_version: Firmware OS Version
  */
 struct cpucp_info {
@@ -1379,7 +1439,7 @@ struct cpucp_info {
 	__u8 substrate_version;
 	__u8 reserved2;
 	struct cpucp_security_info sec_info;
-	__le32 reserved3;
+	__le32 fw_hbm_region_size;
 	__u8 pll_map[PLL_MAP_LEN];
 	__le64 mme_binning_mask;
 	__u8 fw_os_version[VERSION_MAX_LEN];
