@@ -13,7 +13,6 @@
 
 #define GAUDI3_PLL_TIMEOUT_USEC		10000 /* 10ms */
 
-/* TODO: the below time work but not tuned. should be fixed with SW-91407 */
 #define GAUDI3_D2D_DPHY_CTRL_POLL_INTERVAL_USEC	2000000		/* 2sec */
 #define GAUDI3_D2D_DPHY_CTRL_POLL_TIMEOUT_USEC	600000000ULL	/* 600sec */
 
