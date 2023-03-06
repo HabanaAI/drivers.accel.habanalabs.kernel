@@ -2693,10 +2693,8 @@ static int gaudi3_wait_outbound_outsatnding_complete(struct hl_device *hdev)
 
 static void gaudi3_execute_hard_reset_no_fw(struct hl_device *hdev)
 {
-	/* Set device to handle FLR by H/W as we will put the device
-	 * CPU to halt mode
-	 */
-	/* TODO: handle DIE1 code */
+	/* Set the device to handle FLR by H/W as we put the device CPU to halt mode */
+
 	WREG32(mmD0_PCIE_AUX_BASE + mmPCIE_AUX_FLR_CTRL,
 			(PCIE_AUX_FLR_CTRL_HW_CTRL_M | PCIE_AUX_FLR_CTRL_INT_MASK_M));
 
