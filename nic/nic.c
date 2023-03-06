@@ -742,14 +742,16 @@ static void hl_nic_ib_query_device(struct hl_aux_dev *aux_dev,
 	core_info = aux_dev->core_info;
 	nic_props = &asic_props->nic_props;
 
-	ret = parse_fw_ver(core_info->fw_ver, &major, &minor, &sub_ver);
+	if (hdev->fw_components & FW_TYPE_BOOT_CPU) {
+		ret = parse_fw_ver(core_info->fw_ver, &major, &minor, &sub_ver);
 
-	if (ret < 3) {
-		dev_dbg(hdev->dev, "Failed to read version string\n");
-		major = minor = sub_ver = 0;
+		if (ret < 3) {
+			dev_dbg(hdev->dev, "Failed to read version string\n");
+			major = minor = sub_ver = 0;
+		}
+
+		dev_attr->fw_ver = ((u64)major << 32) | ((u64)minor << 16) | sub_ver;
 	}
-
-	dev_attr->fw_ver = ((u64)major << 32) | ((u64)minor << 16) | sub_ver;
 
 	dev_attr->max_mr_size = core_info->dram_size;
 	dev_attr->page_size_cap = PAGE_SIZE;
