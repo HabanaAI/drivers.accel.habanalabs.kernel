@@ -1675,7 +1675,7 @@ void gaudi3_init_arc(struct hl_device *hdev, u32 cpu_id)
 	u32 reg_base, reg_val;
 
 	/* skip arc init if already done by FW */
-	if (hdev->fw_components & FW_TYPE_PREBOOT_CPU)
+	if (hdev->fw_components & FW_TYPE_BOOT_CPU)
 		return;
 
 	reg_base = gaudi3_arc_blocks_bases[cpu_id];
