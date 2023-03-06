@@ -3033,7 +3033,8 @@ static void handle_and_clear_cs_events(struct hl_device *hdev, u32 die, u32 hdco
 {
 	struct hl_eq_dynamic_entry eq_dynamic_entry = {};
 	struct eq_agg_header_params params = {};
-	bool unmask_event_in_aggr = false;
+	bool unmask_event_in_aggr = false, need_clear = false;
+	u32 intr_cause_data, intr_cause_reg;
 	u32 instance, offset;
 
 	switch (type) {
@@ -3048,9 +3049,21 @@ static void handle_and_clear_cs_events(struct hl_device *hdev, u32 die, u32 hdco
 		break;
 	case ERR_GRP_SEI:
 		instance = idx;
+		offset = hdcore * HDCORE_OFFSET + instance * CSLICE_OFFSET;
+		eq_dynamic_entry.hdr.size = cpu_to_le16(sizeof(struct hl_eq_intr_cause));
+		intr_cause_reg = mmHD0_CS0_MAIN_BASE + offset + mmCACHE_MAIN_SEI_CAUSE_REG;
+		intr_cause_data = RREG32(intr_cause_reg);
+		eq_dynamic_entry.intr_cause.intr_cause_data = cpu_to_le32(intr_cause_data);
+		need_clear = unmask_event_in_aggr = true;
 		break;
 	case ERR_GRP_SPI_ECO:
 		instance = idx / 2;
+		offset = hdcore * HDCORE_OFFSET + instance * CSLICE_OFFSET;
+		eq_dynamic_entry.hdr.size = cpu_to_le16(sizeof(struct hl_eq_intr_cause));
+		intr_cause_reg = mmHD0_CS0_MAIN_BASE + offset + mmCACHE_MAIN_SPI_CAUSE_REG;
+		intr_cause_data = RREG32(intr_cause_reg);
+		eq_dynamic_entry.intr_cause.intr_cause_data = cpu_to_le32(intr_cause_data);
+		need_clear = unmask_event_in_aggr = true;
 		break;
 	default:
 		return;
@@ -3064,6 +3077,9 @@ static void handle_and_clear_cs_events(struct hl_device *hdev, u32 die, u32 hdco
 	prepare_eq_dynamic_entry_agg_header(&eq_dynamic_entry, &params);
 
 	gaudi3_handle_eqe(hdev, &eq_dynamic_entry);
+
+	if (need_clear)
+		WREG32(intr_cause_reg, intr_cause_data);
 
 	if (unmask_event_in_aggr)
 		WREG32_AND(aggr_mask_reg, events_mask);

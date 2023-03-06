@@ -560,6 +560,7 @@ struct hl_eq_dynamic_entry {
 	union {
 		__le64 data_placeholder;
 		struct hl_eq_ecc_data ecc_data;
+		struct hl_eq_intr_cause intr_cause;
 		struct hl_eq_pcie_sei_data pcie_sei_data;
 		struct hl_eq_pcie_spi_data pcie_spi_data;
 		struct hl_eq_nic_spi_data nic_spi_data;

@@ -1138,6 +1138,41 @@ static const char * const gaudi3_pcie_sei_err_cause[] = {
 		"axi_err"
 };
 
+static const char * const gaudi3_cs_sei_err_cause[] = {
+		"exclusive write ,rta hit in device",
+		"maint_cmd_lost because no place in buffer",
+		"HBM rtrn slverr 2Host, was given AWW/MEM",
+		"reduciton with op=sub",
+		"due to un-supported flow",
+		"lrd tag stg. r2c_ar rtrn with ecc error",
+		"lrd tag stg. r2c_aww rtrn with ecc err",
+		"lrd tag stg. D2H_req mem_wr rtrn ecc err",
+		"lrd tag stg. rtrning H2D of AR ECC err",
+		"lrd tag stg. rtrning H2D of AWW ECC err",
+		"capture err/info/addr",
+		"capture err/info/addr",
+		"capture num error from alu reduc calc",
+		"Both FNC and FNA bits in ARUSER are 1",
+		"Cache lrd mid stage 428",
+		"Cache lrd mid stage 428",
+		"num_err != NE_NORMAL",
+		"every couple of bytes has same strb",
+		"sram_mode_addr_bits_23_21_and_16_no_skip",
+		"N/A",
+		"N/A",
+		"N/A",
+		"N/A",
+		"N/A",
+		"N/A",
+		"N/A",
+		"N/A",
+		"N/A",
+		"obuf TO when exceed cfg_obuf_timeout_va",
+		"obuf TO when exceed cfg_obuf_timeout_va",
+		"obuf TO when exceed cfg_obuf_timeout_va",
+		"this is RTL bug",
+};
+
 struct gaudi3_dup_grp_info {
 	enum gaudi3_dup_group name;
 	u32 fixup_offset;
@@ -11366,6 +11401,22 @@ static void gaudi3_handle_derr_event(struct hl_device *hdev,
 	gaudi3_handle_ecc_event(hdev, &eq_dynamic_entry->ecc_data);
 }
 
+static void gaudi3_handle_cs_sei_err(struct hl_device *hdev, u16 data_size,
+					struct hl_eq_intr_cause *intr_cause)
+{
+	u32 err_msk;
+
+	if (data_size != sizeof(*intr_cause)) {
+		dev_err_ratelimited(hdev->dev, "EQ entry data size is %u while expecting %zu\n",
+					data_size, sizeof(*intr_cause));
+		return;
+	}
+
+	err_msk = lower_32_bits(le64_to_cpu(intr_cause->intr_cause_data));
+
+	gaudi3_err_cause_iterator(hdev, err_msk, gaudi3_cs_sei_err_cause, "CS", "SEI");
+}
+
 static void gaudi3_handle_sei_event(struct hl_device *hdev,
 				struct hl_eq_dynamic_entry *eq_dynamic_entry, u64 *event_mask)
 {
@@ -11397,6 +11448,9 @@ static void gaudi3_handle_sei_event(struct hl_device *hdev,
 		gaudi3_razwi_handler(hdev, RAZWI_PDMA, die, hdcore, 1,
 				GAUDI3_DIE0_ENGINE_ID_PDMA_1_CH_0 + die * NUM_OF_PDMA_CH_PER_DIE,
 				event_mask);
+		break;
+	case INT_COMP_TYPE_CS:
+		gaudi3_handle_cs_sei_err(hdev, data_size, &eq_dynamic_entry->intr_cause);
 		break;
 	default:
 		return;
