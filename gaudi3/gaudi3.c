@@ -9951,7 +9951,6 @@ static void gaudi3_is_tpc_engine_idle(struct hl_device *hdev, int hdcore, int in
 
 	status = RREG32(reg_base + mmTPC_STATUS);
 	if ((FIELD_GET(TPC_STATUS_SCALAR_PIPE_EMPTY_M, status) != 0x1) ||
-			(FIELD_GET(TPC_STATUS_VECTOR_PIPE_EMPTY_M, status) != 0x1) ||
 			(FIELD_GET(TPC_STATUS_IQ_EMPTY_M, status) != 0x1) ||
 			(FIELD_GET(TPC_STATUS_SB_EMPTY_M, status) != 0x1) ||
 			(FIELD_GET(TPC_STATUS_QM_IDLE_M, status) != 0x1) ||
