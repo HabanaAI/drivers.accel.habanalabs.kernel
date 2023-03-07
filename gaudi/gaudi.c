@@ -4197,7 +4197,7 @@ static int gaudi_mmu_init(struct hl_device *hdev)
 		if (rc) {
 			dev_err(hdev->dev,
 				"failed to set hop0 addr for asid %d\n", i);
-			goto err;
+			return rc;
 		}
 	}
 
@@ -4208,7 +4208,9 @@ static int gaudi_mmu_init(struct hl_device *hdev)
 	/* mem cache invalidation */
 	WREG32(mmSTLB_MEM_CACHE_INVALIDATION, 1);
 
-	hl_mmu_invalidate_cache(hdev, true, 0);
+	rc = hl_mmu_invalidate_cache(hdev, true, 0);
+	if (rc)
+		return rc;
 
 	WREG32(mmMMU_UP_MMU_ENABLE, 1);
 	WREG32(mmMMU_UP_SPI_MASK, 0xF);
@@ -4225,9 +4227,6 @@ static int gaudi_mmu_init(struct hl_device *hdev)
 	gaudi->hw_cap_initialized |= HW_CAP_MMU;
 
 	return 0;
-
-err:
-	return rc;
 }
 
 int gaudi_load_firmware_to_device(struct hl_device *hdev)
@@ -8994,19 +8993,26 @@ static int gaudi_internal_cb_pool_init(struct hl_device *hdev,
 	}
 
 	mutex_lock(&hdev->mmu_lock);
+
 	rc = hl_mmu_map_contiguous(ctx, hdev->internal_cb_va_base,
 			hdev->internal_cb_pool_dma_addr,
 			HOST_SPACE_INTERNAL_CB_SZ);
-
-	hl_mmu_invalidate_cache(hdev, false, MMU_OP_USERPTR);
-	mutex_unlock(&hdev->mmu_lock);
-
 	if (rc)
 		goto unreserve_internal_cb_pool;
 
+	rc = hl_mmu_invalidate_cache(hdev, false, MMU_OP_USERPTR);
+	if (rc)
+		goto unmap_internal_cb_pool;
+
+	mutex_unlock(&hdev->mmu_lock);
+
 	return 0;
 
+unmap_internal_cb_pool:
+	hl_mmu_unmap_contiguous(ctx, hdev->internal_cb_va_base,
+			HOST_SPACE_INTERNAL_CB_SZ);
 unreserve_internal_cb_pool:
+	mutex_unlock(&hdev->mmu_lock);
 	hl_unreserve_va_block(hdev, ctx, hdev->internal_cb_va_base,
 			HOST_SPACE_INTERNAL_CB_SZ);
 destroy_internal_cb_pool:

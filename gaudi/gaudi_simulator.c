@@ -1271,7 +1271,7 @@ static int gaudi_sim_mmu_init(struct hl_device *hdev)
 		if (rc) {
 			dev_err(hdev->dev,
 				"failed to set hop0 addr for asid %d\n", i);
-			goto err;
+			return rc;
 		}
 	}
 
@@ -1279,7 +1279,9 @@ static int gaudi_sim_mmu_init(struct hl_device *hdev)
 	WREG32(mmSTLB_CACHE_INV_BASE_39_8, prop->mmu_cache_mng_addr >> 8);
 	WREG32(mmSTLB_CACHE_INV_BASE_49_40, prop->mmu_cache_mng_addr >> 40);
 
-	hl_mmu_invalidate_cache(hdev, true, 0);
+	rc = hl_mmu_invalidate_cache(hdev, true, 0);
+	if (rc)
+		return rc;
 
 	WREG32(mmMMU_UP_MMU_ENABLE, 1);
 	WREG32(mmMMU_UP_SPI_MASK, 0xF);
@@ -1296,9 +1298,6 @@ static int gaudi_sim_mmu_init(struct hl_device *hdev)
 	gaudi->hw_cap_initialized |= HW_CAP_MMU;
 
 	return 0;
-
-err:
-	return rc;
 }
 
 static int gaudi_sim_hw_init(struct hl_device *hdev)
