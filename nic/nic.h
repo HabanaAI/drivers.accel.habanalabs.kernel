@@ -551,6 +551,7 @@ struct hl_nic_reset_tracker {
  * @coll_qp_idx_offset: offset to the base QP index of this port for collective QPs.
  * @scale_out_coll_qp_idx_offset: offset to the base QP index of this port for scale-out
  *                                collective QPs.
+ * @port_toggle_cnt: counts number of times port link status was toggled since PHY init.
  * @port_open: true if the port H/W is initialized, false otherwise.
  * @mac_loopback: true if port in MAC loopback mode, false otherwise.
  * @pfc_enable: true if this port supports Priority Flow Control, false
@@ -631,6 +632,7 @@ struct hl_nic_port {
 	u32				coll_qp_idx_offset;
 	u32				scale_out_coll_qp_idx_offset;
 	u32				swqe_size;
+	u32				port_toggle_cnt;
 	u8				port_open;
 	u8				mac_loopback;
 	u8				pfc_enable;

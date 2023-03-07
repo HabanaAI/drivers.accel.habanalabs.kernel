@@ -105,6 +105,8 @@ void hl_nic_phy_set_port_status(struct hl_nic_port *nic_port, bool up)
 					port, up ? "up" : "down", rc);
 		}
 	}
+
+	nic_port->port_toggle_cnt++;
 }
 
 int hl_nic_phy_init(struct hl_nic_port *nic_port)
@@ -115,6 +117,7 @@ int hl_nic_phy_init(struct hl_nic_port *nic_port)
 	int rc;
 
 	port_funcs = hdev->asic_funcs->nic_funcs->port_funcs;
+	nic_port->port_toggle_cnt = 0;
 
 	/* If mac_loopback is enabled on this port, move the port status to UP state */
 	if (nic_port->mac_loopback) {
