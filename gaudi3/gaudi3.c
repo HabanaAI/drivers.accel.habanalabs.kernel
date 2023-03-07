@@ -11076,7 +11076,7 @@ void gaudi3_free_irq_vectors(struct hl_device *hdev)
 	pci_free_irq_vectors(hdev->pdev);
 }
 
-static int gaudi3_irq_vector(struct hl_device *hdev, unsigned int nr)
+int gaudi3_irq_vector(struct hl_device *hdev, unsigned int nr)
 {
 	return pci_irq_vector(hdev->pdev, nr);
 }
