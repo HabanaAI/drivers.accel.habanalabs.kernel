@@ -2436,7 +2436,8 @@ static int gaudi_nic_sw_init(struct hl_device *hdev)
 			BIT(HL_NIC_OP_GET_USER_APP_PARAMS) |
 			BIT(HL_NIC_OP_USER_CQ_SET) |
 			BIT(HL_NIC_OP_USER_CQ_UNSET) |
-			BIT(HL_NIC_OP_USER_CQ_UPDATE_CI);
+			BIT(HL_NIC_OP_USER_CQ_UPDATE_CI) |
+			BIT(HL_NIC_OP_DUMP_QP);
 
 	return 0;
 }

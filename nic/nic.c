@@ -27,6 +27,8 @@
 #define NIC_SOB_INC_MASK		0x80000000
 #define NIC_SOB_VAL_MASK		0x7fff
 
+#define NIC_DUMP_QP_SZ			SZ_4K
+
 #define RAND_STAT_CNT(cnt) \
 	do { \
 		u32 __tmp = get_random_u32(); \
@@ -4927,6 +4929,61 @@ out:
 	return rc;
 }
 
+static int dump_qp(struct hl_device *hdev, struct hl_nic_dump_qp_in *in)
+{
+	struct hl_nic_qp_info *qp_info;
+	char *buf;
+	u32 buf_size;
+	int i, rc;
+
+	if (!in) {
+		dev_dbg(hdev->dev, "Missing parameters for dumping a NIC QP\n");
+		return -EINVAL;
+	}
+
+	for (i = 0 ; i < sizeof(in->pad) ; i++)
+		if (in->pad[i]) {
+			dev_dbg(hdev->dev, "Padding bytes must be 0\n");
+			return -EINVAL;
+	}
+
+	buf_size = in->user_buf_size;
+
+	if (!buf_size || buf_size > NIC_DUMP_QP_SZ) {
+		dev_err(hdev->dev, "Invalid buffer size %u\n", buf_size);
+		return -EINVAL;
+	}
+
+	buf = kzalloc(buf_size, GFP_KERNEL);
+	if (!buf)
+		return -ENOMEM;
+
+	qp_info = &hdev->nic.qp_info;
+
+	qp_info->port = in->port;
+	qp_info->qpn = in->qpn;
+	qp_info->req = in->req;
+	qp_info->full_print = true;
+	qp_info->force_read = true;
+	qp_info->exts_print = true;
+
+	rc = hdev->asic_funcs->nic_funcs->qp_read(hdev, buf, buf_size);
+	if (rc) {
+		dev_err(hdev->dev, "Failed to read QP %u, port %u\n", in->qpn, in->port);
+		goto out;
+	}
+
+	if (copy_to_user((void __user *) (uintptr_t) in->user_buf, buf, buf_size)) {
+		dev_err(hdev->dev, "copy to user failed in debug ioctl\n");
+		rc = -EFAULT;
+		goto out;
+	}
+
+out:
+	kfree(buf);
+	return rc;
+}
+
 static int __hl_nic_control(struct hl_device *hdev, u32 op, void *input, void *output,
 				struct hl_ctx *ctx)
 {
@@ -5015,6 +5072,9 @@ static int __hl_nic_control(struct hl_device *hdev, u32 op, void *input, void *o
 		break;
 	case HL_NIC_OP_ALLOC_COLL_CONN:
 		rc = alloc_coll_qp(hdev, ctx, input, output);
+		break;
+	case HL_NIC_OP_DUMP_QP:
+		rc = dump_qp(hdev, input);
 		break;
 	default:
 		/* we shouldn't get here as we check the opcode mask before */

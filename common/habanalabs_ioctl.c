@@ -32,7 +32,7 @@ static u32 hl_debug_struct_size[HL_DEBUG_OP_FETCH_TRACE + 1] = {
 	[HL_DEBUG_OP_FETCH_TRACE] = sizeof(struct hl_debug_params_fetch_trace)
 };
 
-static u32 hl_nic_input_size[HL_NIC_OP_ALLOC_COLL_CONN + 1] = {
+static u32 hl_nic_input_size[HL_NIC_OP_DUMP_QP + 1] = {
 	[HL_NIC_OP_ALLOC_CONN] = sizeof(struct hl_nic_alloc_conn_in),
 	[HL_NIC_OP_SET_REQ_CONN_CTX] = sizeof(struct hl_nic_req_conn_ctx_in),
 	[HL_NIC_OP_SET_RES_CONN_CTX] = sizeof(struct hl_nic_res_conn_ctx_in),
@@ -72,9 +72,10 @@ static u32 hl_nic_input_size[HL_NIC_OP_ALLOC_COLL_CONN + 1] = {
 	[HL_NIC_OP_USER_CQ_ID_SET] = sizeof(struct hl_nic_user_cq_id_set_in),
 	[HL_NIC_OP_USER_CQ_ID_UNSET] = sizeof(struct hl_nic_user_cq_id_unset_in),
 	[HL_NIC_OP_ALLOC_COLL_CONN] = sizeof(struct hl_nic_alloc_coll_conn_in),
+	[HL_NIC_OP_DUMP_QP] = sizeof(struct hl_nic_dump_qp_in),
 };
 
-static u32 hl_nic_output_size[HL_NIC_OP_ALLOC_COLL_CONN + 1] = {
+static u32 hl_nic_output_size[HL_NIC_OP_DUMP_QP + 1] = {
 	[HL_NIC_OP_ALLOC_CONN] = sizeof(struct hl_nic_alloc_conn_out),
 	[HL_NIC_OP_SET_REQ_CONN_CTX] = sizeof(struct hl_nic_req_conn_ctx_out),
 	[HL_NIC_OP_SET_RES_CONN_CTX] = 0,
@@ -108,6 +109,7 @@ static u32 hl_nic_output_size[HL_NIC_OP_ALLOC_COLL_CONN + 1] = {
 	[HL_NIC_OP_USER_CQ_ID_SET] = sizeof(struct hl_nic_user_cq_id_set_out),
 	[HL_NIC_OP_USER_CQ_ID_UNSET] = 0,
 	[HL_NIC_OP_ALLOC_COLL_CONN] = sizeof(struct hl_nic_alloc_coll_conn_out),
+	[HL_NIC_OP_DUMP_QP] = 0,
 };
 
 static int device_status_info(struct hl_device *hdev, struct hl_info_args *args)
@@ -1534,6 +1536,7 @@ static int hl_nic_ioctl(struct hl_fpriv *hpriv, void *data)
 	case HL_NIC_OP_USER_CQ_ID_SET:
 	case HL_NIC_OP_USER_CQ_ID_UNSET:
 	case HL_NIC_OP_ALLOC_COLL_CONN:
+	case HL_NIC_OP_DUMP_QP:
 		args->input_size =
 			min(args->input_size, hl_nic_input_size[args->op]);
 		args->output_size =

@@ -4243,7 +4243,8 @@ static int gaudi3_nic_sw_init(struct hl_device *hdev)
 			BIT(HL_NIC_OP_ALLOC_USER_CQ_ID) |
 			BIT(HL_NIC_OP_USER_CQ_ID_SET) |
 			BIT(HL_NIC_OP_USER_CQ_ID_UNSET) |
-			BIT(HL_NIC_OP_ALLOC_COLL_CONN);
+			BIT(HL_NIC_OP_ALLOC_COLL_CONN) |
+			BIT(HL_NIC_OP_DUMP_QP);
 
 	/* Since in Gaudi3 the port level lock is actually a macro level lock, we must not lock
 	 * both ports of a macro when acquiring the cfg lock for all the ports, otherwise we'll
