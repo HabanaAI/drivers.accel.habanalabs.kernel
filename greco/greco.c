@@ -3992,7 +3992,7 @@ static int greco_hw_fini(struct hl_device *hdev, bool hard_reset, bool fw_reset)
 {
 	struct cpu_dyn_regs *dyn_regs = &hdev->fw_loader.dynamic_loader.comm_desc.cpu_dyn_regs;
 	struct greco_device *greco = hdev->asic_specific;
-	u32 status, reset_timeout_ms, cpu_timeout_ms;
+	u32 reset_timeout_ms, cpu_timeout_ms;
 	u32 irq_handler_offset, irq_handler_val;
 	bool driver_performs_reset = false;
 	int rc;
