@@ -790,6 +790,7 @@ struct hl_mem_block_info {
  * @user_interrupt_count: number of user interrupts.
  * @user_dec_intr_count: number of decoder interrupts exposed to user.
  * @tpc_interrupt_id: interrupt id for TPC to use in order to raise events towards the host.
+ * @unexpected_user_error_interrupt_id: interrupt id used to indicate an unexpected user error.
  * @cache_line_size: device cache line size.
  * @server_type: Server type that the ASIC is currently installed in.
  *               The value is according to enum hl_server_type in uapi file.
@@ -943,6 +944,7 @@ struct asic_fixed_properties {
 	u16				user_interrupt_count;
 	u16				user_dec_intr_count;
 	u16				tpc_interrupt_id;
+	u16				unexpected_user_error_interrupt_id;
 	u16				cache_line_size;
 	u16				server_type;
 	u8				completion_queues_count;
@@ -1256,7 +1258,8 @@ struct hl_cq {
 enum hl_user_interrupt_type {
 	HL_USR_INTERRUPT_CQ = 0,
 	HL_USR_INTERRUPT_DECODER,
-	HL_USR_INTERRUPT_TPC
+	HL_USR_INTERRUPT_TPC,
+	HL_USR_INTERRUPT_UNEXPECTED
 };
 
 /**
@@ -3542,6 +3545,7 @@ struct hl_etr_buf_store {
  *                  interrupt, driver will monitor the list of fences
  *                  registered to this interrupt.
  * @tpc_interrupt: single TPC interrupt for all TPCs.
+ * @unexpected_error_interrupt: single interrupt for unexpected user error indication.
  * @common_user_cq_interrupt: common user CQ interrupt for all user CQ interrupts.
  *                         upon any user CQ interrupt, driver will monitor the
  *                         list of fences registered to this common structure.
@@ -3755,6 +3759,7 @@ struct hl_device {
 	struct hl_cq			*completion_queue;
 	struct hl_user_interrupt	*user_interrupt;
 	struct hl_user_interrupt	tpc_interrupt;
+	struct hl_user_interrupt	unexpected_error_interrupt;
 	struct hl_user_interrupt	common_user_cq_interrupt;
 	struct hl_user_interrupt	common_decoder_interrupt;
 	struct hl_cs			**shadow_cs_queue;
