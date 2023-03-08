@@ -1127,12 +1127,6 @@ static const uint32_t gaudi3_sec_protbits_data190[] = GAUDI3_SEC_PROTBITS_DATA19
 	  .data = gaudi3_sec_protbits_data40, \
 	  .data_size = ARRAY_SIZE(gaudi3_sec_protbits_data40) \
 	}, \
-	{{ GAUDI3_BLOCK_TYPE_NIC, 0xfc0d3000, 2, 0, 0, 0x800000, 0x0, 0x0 }, \
-	  .prot_map = 0x80000000, \
-	  .data_map = 0x40000001, \
-	  .data = gaudi3_sec_protbits_data41, \
-	  .data_size = ARRAY_SIZE(gaudi3_sec_protbits_data41) \
-	}, \
 	{{ GAUDI3_BLOCK_TYPE_DPHY, 0xfc180000, 2, 6, 0, 0x800000, 0x10000, 0x0 }, \
 	  .prot_map = 0x80043000, \
 	  .data_map = 0x40094541, \

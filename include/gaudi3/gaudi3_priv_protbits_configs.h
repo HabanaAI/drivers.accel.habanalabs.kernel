@@ -825,12 +825,6 @@ static const uint32_t gaudi3_priv_protbits_data190[] = GAUDI3_PRIV_PROTBITS_DATA
 	  .data = NULL, \
 	  .data_size = 0 \
 	}, \
-	{{ GAUDI3_BLOCK_TYPE_NIC, 0xfc0d3000, 2, 0, 0, 0x800000, 0x0, 0x0 }, \
-	  .prot_map = 0x80000000, \
-	  .data_map = 0x1, \
-	  .data = gaudi3_priv_protbits_data41, \
-	  .data_size = ARRAY_SIZE(gaudi3_priv_protbits_data41) \
-	}, \
 	{{ GAUDI3_BLOCK_TYPE_DPHY, 0xfc180000, 2, 6, 0, 0x800000, 0x10000, 0x0 }, \
 	  .prot_map = 0x80000000, \
 	  .data_map = 0x0, \
