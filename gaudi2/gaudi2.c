@@ -6528,11 +6528,10 @@ static void gaudi2_send_hard_reset_cmd(struct hl_device *hdev)
  * gaudi2_execute_hard_reset - execute hard reset by driver/FW
  *
  * @hdev: pointer to the habanalabs device structure
- * @reset_sleep_ms: sleep time in msec after reset
  *
  * This function executes hard reset based on if driver/FW should do the reset
  */
-static void gaudi2_execute_hard_reset(struct hl_device *hdev, u32 reset_sleep_ms)
+static void gaudi2_execute_hard_reset(struct hl_device *hdev)
 {
 	if (hdev->asic_prop.hard_reset_done_by_fw) {
 		gaudi2_send_hard_reset_cmd(hdev);
@@ -6574,14 +6573,13 @@ static int gaudi2_get_soft_rst_done_indication(struct hl_device *hdev, u32 poll_
  * gaudi2_execute_soft_reset - execute soft reset by driver/FW
  *
  * @hdev: pointer to the habanalabs device structure
- * @reset_sleep_ms: sleep time in msec after reset
  * @driver_performs_reset: true if driver should perform reset instead of f/w.
  * @poll_timeout_us: time to wait for response from f/w.
  *
  * This function executes soft reset based on if driver/FW should do the reset
  */
-static int gaudi2_execute_soft_reset(struct hl_device *hdev, u32 reset_sleep_ms,
-						bool driver_performs_reset, u32 poll_timeout_us)
+static int gaudi2_execute_soft_reset(struct hl_device *hdev, bool driver_performs_reset,
+						u32 poll_timeout_us)
 {
 	struct cpu_dyn_regs *dyn_regs = &hdev->fw_loader.dynamic_loader.comm_desc.cpu_dyn_regs;
 	int rc;
@@ -6621,14 +6619,10 @@ static int gaudi2_execute_soft_reset(struct hl_device *hdev, u32 reset_sleep_ms,
 	return 0;
 }
 
-static void gaudi2_poll_btm_indication(struct hl_device *hdev, u32 reset_sleep_ms,
-								u32 poll_timeout_us)
+static void gaudi2_poll_btm_indication(struct hl_device *hdev, u32 poll_timeout_us)
 {
 	int i, rc = 0;
 	u32 reg_val;
-
-	/* without this sleep reset will not work */
-	msleep(reset_sleep_ms);
 
 	/* We poll the BTM done indication multiple times after reset due to
 	 * a HW errata 'GAUDI2_0300'
@@ -6668,7 +6662,7 @@ static int gaudi2_hw_fini(struct hl_device *hdev, bool hard_reset, bool fw_reset
 
 	if (hard_reset) {
 		driver_performs_reset = !hdev->asic_prop.hard_reset_done_by_fw;
-		gaudi2_execute_hard_reset(hdev, reset_sleep_ms);
+		gaudi2_execute_hard_reset(hdev);
 	} else {
 		/*
 		 * As we have to support also work with preboot only (which does not supports
@@ -6679,8 +6673,7 @@ static int gaudi2_hw_fini(struct hl_device *hdev, bool hard_reset, bool fw_reset
 		driver_performs_reset = (hdev->force_driver_reset & FORCE_DRIVER_RESET_SOFT) ||
 					((hdev->fw_components == FW_TYPE_PREBOOT_CPU) &&
 							!hdev->asic_prop.fw_security_enabled);
-		rc = gaudi2_execute_soft_reset(hdev, reset_sleep_ms, driver_performs_reset,
-						poll_timeout_us);
+		rc = gaudi2_execute_soft_reset(hdev, driver_performs_reset, poll_timeout_us);
 		if (rc)
 			return rc;
 	}
@@ -6706,12 +6699,14 @@ skip_reset:
 		 * communicate with FW that is during reset.
 		 * to overcome this we will always wait to preboot ready indication
 		 */
-		if ((hdev->fw_components & FW_TYPE_PREBOOT_CPU)) {
-			msleep(reset_sleep_ms);
+
+		/* without this sleep reset will not work */
+		msleep(reset_sleep_ms);
+
+		if (hdev->fw_components & FW_TYPE_PREBOOT_CPU)
 			hl_fw_wait_preboot_ready(hdev);
-		} else {
-			gaudi2_poll_btm_indication(hdev, reset_sleep_ms, poll_timeout_us);
-		}
+		else
+			gaudi2_poll_btm_indication(hdev, poll_timeout_us);
 	}
 
 	/* On PLDM the NIC PHY link is always up, and because the NIC interrupts are enabled by
