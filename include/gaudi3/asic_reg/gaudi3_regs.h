@@ -241,6 +241,7 @@
 #include "rtr_ctrl_rr_hbw_masks.h"
 #include "cs_dbg_w_spmu_0_bmon_spmu_masks.h"
 #include "cs_dbg_tpc_eml_bmon0_masks.h"
+#include "farm_regs.h"
 
 /* CSLICE */
 #define CS_MAINT_BASE_OFFSET		(mmHD0_CS0_MAINT_BASE - mmHD0_CS0_MAIN_BASE)

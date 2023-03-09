@@ -3658,9 +3658,19 @@ static void handle_and_clear_arc_farm_events(struct hl_device *hdev, u32 die, u3
 	/* Clear event */
 	if (type == ERR_GRP_SEI) {
 		err_msk = RREG32(hdcore * HDCORE_OFFSET + mmHD0_ARC_FARM_ARC0_AUX_BASE +
-					mmQMAN_ARC_AUX_ARC_SEI_INTR_STS);
+				mmQMAN_ARC_AUX_ARC_SEI_INTR_STS);
 		WREG32(hdcore * HDCORE_OFFSET + mmHD0_ARC_FARM_ARC0_AUX_BASE +
 				mmQMAN_ARC_AUX_ARC_SEI_INTR_CLR, err_msk);
+
+		err_msk = RREG32(hdcore * HDCORE_OFFSET + mmHD0_ARC_FARM_ARC1_AUX_BASE +
+				mmQMAN_ARC_AUX_ARC_SEI_INTR_STS);
+		WREG32(hdcore * HDCORE_OFFSET + mmHD0_ARC_FARM_ARC1_AUX_BASE +
+				mmQMAN_ARC_AUX_ARC_SEI_INTR_CLR, err_msk);
+
+		err_msk = RREG32(hdcore * HDCORE_OFFSET + mmHD0_ARC_FARM_FARM_BASE +
+				mmFARM_FARM_SEI_INTR_STS);
+		WREG32(hdcore * HDCORE_OFFSET + mmHD0_ARC_FARM_FARM_BASE +
+				mmFARM_FARM_SEI_INTR_CLR, err_msk);
 	}
 
 	if (unmask_event_in_aggr)

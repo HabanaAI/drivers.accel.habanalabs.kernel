@@ -1059,11 +1059,40 @@ static const char * const gaudi3_arc_sei_err_cause[] = {
 		"cfg_lbw_rd_terminated_intr_cause",
 		"cfg_dccm_wr_terminated_intr_cause",
 		"cfg_dccm_rd_terminated_intr_cause",
-		"cfg_hbw_rd_terminated_intr_cause",
-		"cbu_rd_fork_ar_double_window_hit_intr_cause",
-		"cbu_rd_fork_aw_double_window_hit_intr_cause",
-		"cbu_rd_fork_ar_all_window_miss_intr_cause",
-		"cbu_rd_fork_aw_all_window_miss_intr_cause"
+		"cfg_hbw_terminated_intr_cause",
+		"arc_cbu_term_fork_ar_double_window_hit_sei_intr_cause",
+		"arc_cbu_term_fork_aw_double_window_hit_sei_intr_cause",
+		"arc_cbu_term_fork_ar_all_window_miss_sei_intr_cause",
+		"arc_cbu_term_fork_aw_all_window_miss_sei_intr_cause",
+		"arc_lbw_slv_fork_ar_double_window_hit_sei_intr_cause",
+		"arc_lbw_slv_fork_aw_double_window_hit_sei_intr_cause",
+		"arc_lbw_slv_fork_ar_all_window_miss_sei_intr_cause",
+		"arc_lbw_slv_fork_aw_all_window_miss_sei_intr_cause",
+		"arc2mesh_lbw_fork_ar_double_window_hit_sei_intr_cause",
+		"arc2mesh_lbw_fork_aw_double_window_hit_sei_intr_cause",
+		"arc2mesh_lbw_fork_ar_all_window_miss_sei_intr_cause",
+		"arc2mesh_lbw_fork_aw_all_window_miss_sei_intr_cause",
+		"arc2eng_lbw_fork_ar_double_window_hit_sei_intr_cause",
+		"arc2eng_lbw_fork_aw_double_window_hit_sei_intr_cause",
+		"arc2eng_lbw_fork_ar_all_window_miss_sei_intr_cause",
+		"arc2eng_lbw_fork_aw_all_window_miss_sei_intr_cause",
+		"cfg_dccm_q_drop_sei_intr_cause",
+		"async_dup2cpu_sei_intr_cause"
+};
+
+static const char * const gaudi3_arc_farm_sei_err_cause[] = {
+		"arc_axi_fork_lbw_slv_ar_double_window_hit_sei_intr_cause",
+		"arc_axi_fork_lbw_slv_aw_double_window_hit_sei_intr_cause",
+		"arc_axi_fork_lbw_slv_ar_all_window_miss_sei_intr_cause",
+		"arc_axi_fork_lbw_slv_aw_all_window_miss_sei_intr_cause",
+		"arc_lbw_lpbk_fork_ar_double_window_hit_sei_intr_cause",
+		"arc_lbw_lpbk_fork_aw_double_window_hit_sei_intr_cause",
+		"arc_lbw_lpbk_fork_ar_all_window_miss_sei_intr_cause",
+		"arc_lbw_lpbk_fork_aw_all_window_miss_sei_intr_cause",
+		"arc_frm_mstrif_hbw_wr_resp_err_intr_cause",
+		"arc_frm_mstrif_hbw_rd_resp_err_intr_cause",
+		"arc_frm_mstrif_lbw_wr_resp_err_intr_cause",
+		"arc_frm_mstrif_lbw_rd_resp_err_intr_cause"
 };
 
 static const char * const gaudi3_pdma_sei_err_cause[] = {
@@ -11337,10 +11366,24 @@ static u32 gaudi3_handle_pdma_sei_err(struct hl_device *hdev, u8 die)
 
 static u32 gaudi3_handle_arc_farm_sei_err(struct hl_device *hdev, u32 hdcore)
 {
-	u32 err_msk = RREG32(hdcore * HDCORE_OFFSET + mmHD0_ARC_FARM_ARC0_AUX_BASE +
+	u32 err_cnt = 0, err_msk = RREG32(hdcore * HDCORE_OFFSET + mmHD0_ARC_FARM_ARC0_AUX_BASE +
+						mmQMAN_ARC_AUX_ARC_SEI_INTR_STS);
+
+	err_cnt = gaudi3_err_cause_iterator(hdev, err_msk, gaudi3_arc_sei_err_cause, "ARC0", "SEI");
+
+	err_msk = RREG32(hdcore * HDCORE_OFFSET + mmHD0_ARC_FARM_ARC1_AUX_BASE +
 				mmQMAN_ARC_AUX_ARC_SEI_INTR_STS);
 
-	return gaudi3_err_cause_iterator(hdev, err_msk, gaudi3_arc_sei_err_cause, "ARC", "SEI");
+	err_cnt += gaudi3_err_cause_iterator(hdev, err_msk, gaudi3_arc_sei_err_cause, "ARC1",
+						"SEI");
+
+	err_msk = RREG32(hdcore * HDCORE_OFFSET + mmHD0_ARC_FARM_FARM_BASE +
+				mmFARM_FARM_SEI_INTR_STS);
+
+	err_cnt += gaudi3_err_cause_iterator(hdev, err_msk, gaudi3_arc_farm_sei_err_cause,
+						"ARC_FARM", "SEI");
+
+	return err_cnt;
 }
 
 static u32 gaudi3_handle_pcie0_sei_err(struct hl_device *hdev, u16 data_size,
