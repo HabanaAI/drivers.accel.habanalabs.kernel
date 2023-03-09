@@ -564,6 +564,7 @@ static int hl_nic_en_aux_data_init(struct hl_device *hdev)
 	core_info->raw_elem_size = nic_props->raw_elem_size;
 	core_info->max_raw_mtu = nic_props->max_raw_mtu;
 	core_info->min_raw_mtu = nic_props->min_raw_mtu;
+	core_info->has_eq = hdev->nic.has_eq;
 
 	rc = hl_nic_get_asic_type(hdev, &core_info->asic_type);
 	if (rc) {
