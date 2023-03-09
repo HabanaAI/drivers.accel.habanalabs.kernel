@@ -2827,7 +2827,15 @@ void hl_wreg(struct hl_device *hdev, u32 reg, u32 val);
 				(val) << REG_FIELD_SHIFT(reg, field))
 
 /* Timeout should be longer when working with simulator but cap the
- * increased timeout to some maximum
+ * increased timeout to some maximum.
+ * Note: we should break from polling when one of the below occurs:
+ * 1. condition is satisfied
+ * 2. condition is not satisfied AND we are in SIM MODE and one
+ *    of the below also true
+ *    - simulator crushed (no point polling if we crushed)
+ *    - device disabled AND init is done AND not in soft reset
+ *      (i.e. continue to poll during simulator init even though the device
+ *      is disabled)
  */
 #define hl_poll_timeout_common(hdev, addr, val, cond, sleep_us, timeout_us, elbi) \
 ({ \
@@ -2852,9 +2860,9 @@ void hl_wreg(struct hl_device *hdev, u32 reg, u32 val);
 		} \
 		if ((cond) || \
 			unlikely(!hdev->pdev && \
-				(((hdev->disabled && !hdev->init_done) && \
-					!hdev->reset_info.in_compute_reset) || \
-							hdev->simulator_crashed))) \
+					(hdev->simulator_crashed || \
+					(hdev->disabled && hdev->init_done && \
+						!hdev->reset_info.in_compute_reset)))) \
 			break; \
 		if (timeout_us && ktime_compare(ktime_get(), __timeout) > 0) { \
 			if (elbi) { \
