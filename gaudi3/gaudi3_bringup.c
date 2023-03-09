@@ -3394,10 +3394,7 @@ static void handle_and_clear_pmmu_events(struct hl_device *hdev, u32 die,
 }
 
 static u32 tpc_special_regs_base[] = {
-	mmHD0_TPC0_QM_SPECIAL_BASE,
-	mmHD0_TPC0_CFG_SPECIAL_BASE,
-	mmHD0_TPC0_SMT_SPECIAL_BASE,
-	mmHD0_TPC0_SMT_PRIV_SPECIAL_BASE
+	mmHD0_TPC0_CFG_SPECIAL_BASE
 };
 
 /* HDCORE_TPC_EVENT */
