@@ -1526,6 +1526,7 @@ struct ser_val {
  * @post_fec_ser: post FEC SER value.
  * @throughput: measured throughput.
  * @latency: measured latency.
+ * @port_toggle_cnt: counts how many times the link toggled since last port PHY init.
  */
 struct cpucp_nic_status {
 	__le32 port;
@@ -1545,6 +1546,8 @@ struct cpucp_nic_status {
 	struct ser_val post_fec_ser;
 	struct frac_val bandwidth;
 	struct frac_val lat;
+	__le32 port_toggle_cnt;
+	__u8 reserved[4];
 };
 
 enum cpucp_hbm_row_replace_cause {

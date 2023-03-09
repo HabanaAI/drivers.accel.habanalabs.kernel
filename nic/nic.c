@@ -5088,6 +5088,12 @@ static void hl_nic_get_status(struct hl_nic_port *nic_port, struct cpucp_nic_sta
 
 	/* Each ASIC will fill the rest of the statistics */
 	hdev->asic_funcs->nic_funcs->port_funcs->fill_nic_status(nic_port, nic_status);
+
+	/* We should not count the first toggle, as it marks that port was brought up for
+	 * the first time. In case port wasn't brought up the counter should be 0.
+	 */
+	nic_status->port_toggle_cnt = cpu_to_le32(nic_port->port_toggle_cnt ?
+						nic_port->port_toggle_cnt - 1 : 0);
 }
 
 static void nic_status_work(struct work_struct *work)
