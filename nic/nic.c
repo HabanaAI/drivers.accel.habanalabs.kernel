@@ -1385,6 +1385,9 @@ int hl_nic_core_init(struct hl_device *hdev)
 		nic->nic_macros[i].rec_link_sts = 0;
 	}
 
+	memset(hdev->nic.phy_ber_info, 0,
+		nic_props->max_num_of_lanes * sizeof(struct hl_nic_ber_info));
+
 	rc = nic_funcs->core_init(hdev);
 	if (rc) {
 		dev_err(hdev->dev, "NIC core init failed\n");
