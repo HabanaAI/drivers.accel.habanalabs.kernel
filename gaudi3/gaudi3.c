@@ -5373,39 +5373,28 @@ static void gaudi3_init_qman(struct hl_device *hdev, u32 reg_base, u32 engine_id
 static void gaudi3_init_sedma_channels(struct hl_device *hdev, u32 reg_base)
 {
 	u32 channel, channel_offset, err_enable, axcache;
-#if 0
-	u32 irq_handler_offset, edma_id;
-	struct cpu_dyn_regs *dyn_regs;
-	int map_table_entry;
 
-	dyn_regs = &hdev->fw_loader.dynamic_loader.comm_desc.cpu_dyn_regs;
-	irq_handler_offset = le32_to_cpu(dyn_regs->gic_dma_core_irq_ctrl);
-
-	/* TODO: SW-126594 event per EDMA engine or per EDMA channel? */
-	edma_id = ...;
-	map_table_entry = gaudi3_sedma_async_event_id[edma_id];
-#endif
-	err_enable = FIELD_PREP(EDMA_CHN_ERR_ENABLE_EN_MSG_ENG_HBW_RD_RSP_ERR_M, 1) |
+	err_enable = FIELD_PREP(EDMA_CHN_ERR_ENABLE_EN_MSG_ENG_HBW_RD_RSP_ERR_M, 0) |
 			FIELD_PREP(EDMA_CHN_ERR_ENABLE_EN_STL_ENG_HBW_RD_RSP_ERR_M, 1) |
-			FIELD_PREP(EDMA_CHN_ERR_ENABLE_EN_MSG_ENGINE_TIMEOUT_M, 1) |
+			FIELD_PREP(EDMA_CHN_ERR_ENABLE_EN_MSG_ENGINE_TIMEOUT_M, 0) |
 			FIELD_PREP(EDMA_CHN_ERR_ENABLE_EN_STALL_ENGINE_TIMEOUT_M, 1) |
-			FIELD_PREP(EDMA_CHN_ERR_ENABLE_EN_MSG_ENG_LBW_RD_RSP_ERR_M, 1) |
+			FIELD_PREP(EDMA_CHN_ERR_ENABLE_EN_MSG_ENG_LBW_RD_RSP_ERR_M, 0) |
 			FIELD_PREP(EDMA_CHN_ERR_ENABLE_EN_STL_ENG_LBW_RD_RSP_ERR_M, 1) |
-			FIELD_PREP(EDMA_CHN_ERR_ENABLE_EN_MSG_ENG_HBW_WR_RSP_ERR_M, 1) |
+			FIELD_PREP(EDMA_CHN_ERR_ENABLE_EN_MSG_ENG_HBW_WR_RSP_ERR_M, 0) |
 			FIELD_PREP(EDMA_CHN_ERR_ENABLE_EN_STL_ENG_HBW_WR_RSP_ERR_M, 1) |
-			FIELD_PREP(EDMA_CHN_ERR_ENABLE_EN_MSG_ENG_LBW_WR_RSP_ERR_M, 1) |
+			FIELD_PREP(EDMA_CHN_ERR_ENABLE_EN_MSG_ENG_LBW_WR_RSP_ERR_M, 0) |
 			FIELD_PREP(EDMA_CHN_ERR_ENABLE_EN_STL_ENG_LBW_WR_RSP_ERR_M, 1) |
-			FIELD_PREP(EDMA_CHN_ERR_ENABLE_EN_MSG_ENG_MSG_WR_ERR_M, 1) |
+			FIELD_PREP(EDMA_CHN_ERR_ENABLE_EN_MSG_ENG_MSG_WR_ERR_M, 0) |
 			FIELD_PREP(EDMA_CHN_ERR_ENABLE_EN_STL_ENG_MSG_WR_ERR_M, 1) |
 			FIELD_PREP(EDMA_CHN_ERR_ENABLE_EN_MSG_ENG_NAN_DETECT_M, 0) |
 			FIELD_PREP(EDMA_CHN_ERR_ENABLE_EN_STL_ENG_NAN_DETECT_M, 0) |
 			FIELD_PREP(EDMA_CHN_ERR_ENABLE_EN_MSG_ENG_INF_DETECT_M, 0) |
 			FIELD_PREP(EDMA_CHN_ERR_ENABLE_EN_STL_ENG_INF_DETECT_M, 0) |
-			FIELD_PREP(EDMA_CHN_ERR_ENABLE_EN_MSG_LBW_CH_NUM_EXCEED_M, 1) |
+			FIELD_PREP(EDMA_CHN_ERR_ENABLE_EN_MSG_LBW_CH_NUM_EXCEED_M, 0) |
 			FIELD_PREP(EDMA_CHN_ERR_ENABLE_EN_STL_LBW_CH_NUM_EXCEED_M, 1) |
-			FIELD_PREP(EDMA_CHN_ERR_ENABLE_EN_MSG_ENG_SRC_RANGE_ERR_M, 1) |
+			FIELD_PREP(EDMA_CHN_ERR_ENABLE_EN_MSG_ENG_SRC_RANGE_ERR_M, 0) |
 			FIELD_PREP(EDMA_CHN_ERR_ENABLE_EN_STL_ENG_SRC_RANGE_ERR_M, 1) |
-			FIELD_PREP(EDMA_CHN_ERR_ENABLE_EN_MSG_ENG_DST_RANGE_ERR_M, 1) |
+			FIELD_PREP(EDMA_CHN_ERR_ENABLE_EN_MSG_ENG_DST_RANGE_ERR_M, 0) |
 			FIELD_PREP(EDMA_CHN_ERR_ENABLE_EN_STL_ENG_DST_RANGE_ERR_M, 1) |
 			FIELD_PREP(EDMA_CHN_ERR_ENABLE_EN_STL_ENG_BAD_CONFIG_ERR_M, 1);
 
@@ -5422,16 +5411,6 @@ static void gaudi3_init_sedma_channels(struct hl_device *hdev, u32 reg_base)
 		WREG32(reg_base + channel_offset + mmEDMA_CHN_ERR_ENABLE, err_enable);
 
 		WREG32(reg_base + channel_offset + mmEDMA_CHN_HBW_AXCACHE, axcache);
-
-		/* TODO: SW-126594 enable when F/W events are defined */
-#if 0
-		WREG32(reg_base + channel_offset + mmEDMA_CHN_ERR_MSG_ADDR_LO,
-				lower_32_bits(CFG_BAR_BASE + irq_handler_offset));
-		WREG32(reg_base + channel_offset + mmEDMA_CHN_ERR_MSG_ADDR_HI,
-				upper_32_bits(CFG_BAR_BASE + irq_handler_offset));
-		WREG32(reg_base + channel_offset + mmEDMA_CHN_ERR_MSG_WDATA,
-				gaudi3_irq_map_table[map_table_entry].cpu_id);
-#endif
 	}
 }
 
