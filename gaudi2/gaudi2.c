@@ -8238,7 +8238,7 @@ static bool gaudi2_handle_ecc_event(struct hl_device *hdev, u16 event_type,
 	memory_wrapper_idx = ecc_data->memory_wrapper_idx;
 
 	gaudi2_print_event(hdev, event_type, !ecc_data->is_critical,
-		"ECC error detected. address: %#llx. Syndrom: %#llx. block id %u. critical %u.\n",
+		"ECC error detected. address: %#llx. Syndrom: %#llx. block id %u. critical %u.",
 		ecc_address, ecc_syndrom, memory_wrapper_idx, ecc_data->is_critical);
 
 	return !!ecc_data->is_critical;
@@ -8310,7 +8310,7 @@ static int gaudi2_handle_nic_error(struct hl_device *hdev, u16 event_type, u8 ma
 
 	if (!intr_type || intr_type > NIC_INTR_TXE) {
 		gaudi2_print_event(hdev, event_type, true,
-				"NIC %u: invalid interrupt type %u\n",
+				"NIC %u: invalid interrupt type %u",
 				macro_index, intr_type);
 		return 1;
 	}
@@ -8320,7 +8320,7 @@ static int gaudi2_handle_nic_error(struct hl_device *hdev, u16 event_type, u8 ma
 	switch (intr_type) {
 	case NIC_INTR_TMR:
 		gaudi2_print_event(hdev, event_type, true,
-				"TMR error on NIC macro %d cause 0x%x\n",
+				"TMR error on NIC macro %d cause 0x%x",
 				macro_index, intr_cause);
 		return 1;
 	case NIC_INTR_RXB_CORE_SPI:
@@ -8329,7 +8329,7 @@ static int gaudi2_handle_nic_error(struct hl_device *hdev, u16 event_type, u8 ma
 				continue;
 
 			gaudi2_print_event(hdev, event_type, true,
-				"RXB CORE SPI error on NIC macro %d cause: %s. cause bit %d\n",
+				"RXB CORE SPI error on NIC macro %d cause: %s. cause bit %d",
 				macro_index, gaudi2_nic_rxb_core_spi_interrupts_cause[i], i);
 			error_count++;
 		}
@@ -8341,7 +8341,7 @@ static int gaudi2_handle_nic_error(struct hl_device *hdev, u16 event_type, u8 ma
 				continue;
 
 			gaudi2_print_event(hdev, event_type, true,
-				"RXB CORE SEI error on NIC macro %d cause: %s. cause bit %d\n",
+				"RXB CORE SEI error on NIC macro %d cause: %s. cause bit %d",
 				macro_index, gaudi2_nic_rxb_core_sei_interrupts_cause[i], i);
 			error_count++;
 		}
@@ -8365,7 +8365,7 @@ static int gaudi2_handle_nic_error(struct hl_device *hdev, u16 event_type, u8 ma
 					continue;
 
 				gaudi2_print_event(hdev, event_type, true,
-					"QPC response error on NIC port %d cause: %s. cause bit %d\n",
+					"QPC response error on NIC port %d cause: %s. cause bit %d",
 					port, gaudi2_nic_qpc_resp_err_interrupts_cause[i], i);
 				error_count++;
 			}
@@ -8389,7 +8389,7 @@ static int gaudi2_handle_nic_error(struct hl_device *hdev, u16 event_type, u8 ma
 					continue;
 
 				gaudi2_print_event(hdev, event_type, true,
-					"RXE SEI error on NIC port %d cause: %s. cause bit %d\n",
+					"RXE SEI error on NIC port %d cause: %s. cause bit %d",
 					port, gaudi2_nic_rxe_sei_interrupts_cause[i], i);
 				error_count++;
 			}
@@ -8397,19 +8397,19 @@ static int gaudi2_handle_nic_error(struct hl_device *hdev, u16 event_type, u8 ma
 			break;
 		case NIC_INTR_TXS:
 			gaudi2_print_event(hdev, event_type, true,
-					"TXS error on NIC port %d cause 0x%x\n",
+					"TXS error on NIC port %d cause 0x%x",
 					port, intr_cause);
 			error_count++;
 			break;
 		case NIC_INTR_TXE:
 			gaudi2_print_event(hdev, event_type, true,
-					"TXE error on NIC port %d cause 0x%x\n",
+					"TXE error on NIC port %d cause 0x%x",
 					port, intr_cause);
 			error_count++;
 			break;
 		default:
 			gaudi2_print_event(hdev, event_type, true,
-					"Invalid interrupt type port %d\n", port);
+					"Invalid interrupt type port %d", port);
 		}
 	}
 
@@ -8439,7 +8439,7 @@ static int gaudi2_handle_nic_sw_error_event(struct hl_device *hdev, u16 event_ty
 		if (!(qpc_intr_cause & 0x400))
 			continue;
 
-		gaudi2_print_event(hdev, event_type, true, "QPC EQ error on NIC port %d\n", port);
+		gaudi2_print_event(hdev, event_type, true, "QPC EQ error on NIC port %d", port);
 		NIC_WREG32(mmNIC0_QPC0_INTERRUPT_CLR, 0x400);
 		error_count++;
 
@@ -9771,7 +9771,7 @@ static int gaudi2_handle_sm_err(struct hl_device *hdev, u16 event_type, u8 sm_in
 				continue;
 
 			gaudi2_print_event(hdev, event_type, true,
-				"err cause: %s. %s: 0x%X\n",
+				"err cause: %s. %s: 0x%X",
 				gaudi2_sm_sei_cause[i].cause_name,
 				gaudi2_sm_sei_cause[i].log_name,
 				sei_cause_log);
@@ -9977,12 +9977,12 @@ static bool gaudi2_handle_hbm_mc_sei_err(struct hl_device *hdev, u16 event_type,
 	if (cause_idx > GAUDI2_NUM_OF_HBM_SEI_CAUSE - 1) {
 		gaudi2_print_event(hdev, event_type, true,
 			"err cause: %s",
-			"Invalid HBM SEI event cause (%d) provided by FW\n", cause_idx);
+			"Invalid HBM SEI event cause (%d) provided by FW", cause_idx);
 		return true;
 	}
 
 	gaudi2_print_event(hdev, event_type, !sei_data->hdr.is_critical,
-		"System %s Error Interrupt - HBM(%u) MC(%u) MC_CH(%u) MC_PC(%u). Error cause: %s\n",
+		"System %s Error Interrupt - HBM(%u) MC(%u) MC_CH(%u) MC_PC(%u). Error cause: %s",
 		sei_data->hdr.is_critical ? "Critical" : "Non-critical",
 		hbm_id, mc_id, sei_data->hdr.mc_channel, sei_data->hdr.mc_pseudo_channel,
 		hbm_mc_sei_cause[cause_idx]);
@@ -10106,7 +10106,7 @@ static void gaudi2_print_out_of_sync_info(struct hl_device *hdev, u16 event_type
 	struct hl_hw_queue *q = &hdev->kernel_queues[GAUDI2_QUEUE_ID_CPU_PQ];
 
 	gaudi2_print_event(hdev, event_type, false,
-		"FW: pi=%u, ci=%u, LKD: pi=%u, ci=%d\n",
+		"FW: pi=%u, ci=%u, LKD: pi=%u, ci=%d",
 		le32_to_cpu(sync_err->pi), le32_to_cpu(sync_err->ci),
 		q->pi, atomic_read(&q->ci));
 }
@@ -10120,7 +10120,7 @@ static int gaudi2_handle_pcie_p2p_msix(struct hl_device *hdev, u16 event_type)
 
 	if (p2p_intr) {
 		gaudi2_print_event(hdev, event_type, true,
-			"pcie p2p transaction terminated due to security, req_id(0x%x)\n",
+			"pcie p2p transaction terminated due to security, req_id(0x%x)",
 			RREG32(mmPCIE_WRAP_P2P_REQ_ID));
 
 		WREG32(mmPCIE_WRAP_P2P_INTR, 0x1);
@@ -10129,7 +10129,7 @@ static int gaudi2_handle_pcie_p2p_msix(struct hl_device *hdev, u16 event_type)
 
 	if (msix_gw_intr) {
 		gaudi2_print_event(hdev, event_type, true,
-			"pcie msi-x gen denied due to vector num check failure, vec(0x%X)\n",
+			"pcie msi-x gen denied due to vector num check failure, vec(0x%X)",
 			RREG32(mmPCIE_WRAP_MSIX_GW_VEC));
 
 		WREG32(mmPCIE_WRAP_MSIX_GW_INTR, 0x1);
@@ -10191,7 +10191,7 @@ static void gaudi2_print_cpu_pkt_failure_info(struct hl_device *hdev, u16 event_
 	struct hl_hw_queue *q = &hdev->kernel_queues[GAUDI2_QUEUE_ID_CPU_PQ];
 
 	gaudi2_print_event(hdev, event_type, false,
-		"FW reported sanity check failure, FW: pi=%u, ci=%u, LKD: pi=%u, ci=%d\n",
+		"FW reported sanity check failure, FW: pi=%u, ci=%u, LKD: pi=%u, ci=%d",
 		le32_to_cpu(sync_err->pi), le32_to_cpu(sync_err->ci), q->pi, atomic_read(&q->ci));
 }
 
@@ -10211,11 +10211,11 @@ static int hl_arc_event_handle(struct hl_device *hdev, u16 event_type,
 		q = (struct hl_engine_arc_dccm_queue_full_irq *) &payload;
 
 		gaudi2_print_event(hdev, event_type, true,
-				"ARC DCCM Full event: EngId: %u, Intr_type: %u, Qidx: %u\n",
+				"ARC DCCM Full event: EngId: %u, Intr_type: %u, Qidx: %u",
 				engine_id, intr_type, q->queue_index);
 		return 1;
 	default:
-		gaudi2_print_event(hdev, event_type, true, "Unknown ARC event type\n");
+		gaudi2_print_event(hdev, event_type, true, "Unknown ARC event type");
 		return 0;
 	}
 }
@@ -10697,7 +10697,7 @@ void gaudi2_handle_eqe(struct hl_device *hdev, struct hl_eq_entry *eq_entry)
 		gaudi2_print_event(hdev, event_type, true, "%d", event_type);
 	else if (error_count == 0)
 		gaudi2_print_event(hdev, event_type, true,
-				"No error cause for H/W event %u\n", event_type);
+				"No error cause for H/W event %u", event_type);
 
 	if ((gaudi2_irq_map_table[event_type].reset != EVENT_RESET_TYPE_NONE) ||
 				reset_required) {
