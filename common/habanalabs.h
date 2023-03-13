@@ -1292,6 +1292,7 @@ struct timestamp_reg_work_obj {
  * @buf: pointer to the timestamp buffer which include both user/kernel buffers.
  *       relevant only when doing timestamps records registration.
  * @cq_cb: pointer to CQ counter CB.
+ * @interrupt: interrupt that the node hanged on it's wait list.
  * @timestamp_kernel_addr: timestamp handle address, where to set timestamp
  *                         relevant only when doing timestamps records
  *                         registration.
@@ -1301,10 +1302,11 @@ struct timestamp_reg_work_obj {
  *          allocating records dynamically.
  */
 struct timestamp_reg_info {
-	struct hl_mmap_mem_buf	*buf;
-	struct hl_cb		*cq_cb;
-	u64			*timestamp_kernel_addr;
-	u8			in_use;
+	struct hl_mmap_mem_buf		*buf;
+	struct hl_cb			*cq_cb;
+	struct hl_user_interrupt	*interrupt;
+	u64				*timestamp_kernel_addr;
+	bool				in_use;
 };
 
 /**
