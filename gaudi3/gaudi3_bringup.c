@@ -1062,21 +1062,21 @@ static void gaudi3_print_axi_drain_address(struct hl_device *hdev, u64 drain_add
 						type, rd_addr, wr_addr);
 }
 
-void gaudi3_handle_axi_drain(struct hl_device *hdev, bool *pci_link_error)
+u32 gaudi3_handle_axi_drain(struct hl_device *hdev, bool *pci_link_error)
 {
-	u32 drain_indication;
+	u32 err_cnt = 0, drain_indication;
 
 	drain_indication = RREG32(mmD0_PCIE_WRAP_BASE + mmPCIE_WRAP_AXI_DRAIN_IND);
 	if (drain_indication == 0xFFFFFFFF) {
 		dev_err(hdev->dev, "PCI link error\n");
 		*pci_link_error = true;
-		return;
+		return 1;
 	}
 
 	drain_indication &= (PCIE_WRAP_AXI_DRAIN_IND_LBW_AXI_DRAIN_IND_M |
 				PCIE_WRAP_AXI_DRAIN_IND_HBW_AXI_DRAIN_IND_M);
 	if (!drain_indication)
-		return;
+		return 0;
 
 	if (drain_indication & PCIE_WRAP_AXI_DRAIN_IND_LBW_AXI_DRAIN_IND_M) {
 		gaudi3_print_axi_drain_address(hdev,
@@ -1085,6 +1085,7 @@ void gaudi3_handle_axi_drain(struct hl_device *hdev, bool *pci_link_error)
 		gaudi3_print_axi_drain_address(hdev,
 					mmD0_PCIE_WRAP_BASE + mmPCIE_WRAP_LBW_WR_ERR_ADDR_0,
 					"LBW ERR");
+		err_cnt++;
 	}
 	if (drain_indication & PCIE_WRAP_AXI_DRAIN_IND_HBW_AXI_DRAIN_IND_M) {
 		gaudi3_print_axi_drain_address(hdev,
@@ -1093,6 +1094,7 @@ void gaudi3_handle_axi_drain(struct hl_device *hdev, bool *pci_link_error)
 		gaudi3_print_axi_drain_address(hdev,
 					mmD0_PCIE_WRAP_BASE + mmPCIE_WRAP_HBW_WR_ERR_ADDR_0,
 					"HBW ERR");
+		err_cnt++;
 	}
 
 	WREG32(mmD0_PCIE_WRAP_BASE + mmPCIE_WRAP_LBW_RSP_ERR_DRAIN_STAMP, 0x1);
@@ -1100,6 +1102,8 @@ void gaudi3_handle_axi_drain(struct hl_device *hdev, bool *pci_link_error)
 
 	/* Ack the event */
 	WREG32(mmD0_PCIE_WRAP_BASE + mmPCIE_WRAP_AXI_DRAIN_IND, 0);
+
+	return err_cnt;
 }
 
 static void gaudi3_init_dbi_gateway(struct hl_device *hdev)
@@ -3078,7 +3082,8 @@ static void handle_and_clear_cs_events(struct hl_device *hdev, u32 die, u32 hdco
 	params.instance = instance;
 	prepare_eq_dynamic_entry_agg_header(&eq_dynamic_entry, &params);
 
-	gaudi3_handle_eqe(hdev, &eq_dynamic_entry);
+	if (!gaudi3_handle_eqe(hdev, &eq_dynamic_entry))
+		return;
 
 	if (need_clear)
 		WREG32(intr_cause_reg, intr_cause_data);
@@ -3127,7 +3132,8 @@ static void handle_and_clear_hbm_events(struct hl_device *hdev, u32 die, u32 hdc
 	params.instance = 0;
 	prepare_eq_dynamic_entry_agg_header(&eq_dynamic_entry, &params);
 
-	gaudi3_handle_eqe(hdev, &eq_dynamic_entry);
+	if (!gaudi3_handle_eqe(hdev, &eq_dynamic_entry))
+		return;
 
 	if (unmask_event_in_aggr)
 		WREG32_AND(aggr_mask_reg, events_mask);
@@ -3300,7 +3306,8 @@ static void handle_and_clear_pcie_events(struct hl_device *hdev, u32 die,
 	params.instance = 0;
 	prepare_eq_dynamic_entry_agg_header(&eq_dynamic_entry, &params);
 
-	gaudi3_handle_eqe(hdev, &eq_dynamic_entry);
+	if (!gaudi3_handle_eqe(hdev, &eq_dynamic_entry))
+		return;
 
 	if (type == ERR_GRP_SEI &&
 			eq_dynamic_entry.pcie_sei_data.sei_type == PCIE_SEI_AXI_RESP_ERR) {
@@ -3357,7 +3364,8 @@ static void handle_and_clear_psoc_events(struct hl_device *hdev, u32 die,
 	params.instance = 0;
 	prepare_eq_dynamic_entry_agg_header(&eq_dynamic_entry, &params);
 
-	gaudi3_handle_eqe(hdev, &eq_dynamic_entry);
+	if (!gaudi3_handle_eqe(hdev, &eq_dynamic_entry))
+		return;
 
 	if (unmask_event_in_aggr)
 		WREG32_AND(aggr_mask_reg, events_mask);
@@ -3403,7 +3411,8 @@ static void handle_and_clear_pmmu_events(struct hl_device *hdev, u32 die,
 	params.instance = 0;
 	prepare_eq_dynamic_entry_agg_header(&eq_dynamic_entry, &params);
 
-	gaudi3_handle_eqe(hdev, &eq_dynamic_entry);
+	if (!gaudi3_handle_eqe(hdev, &eq_dynamic_entry))
+		return;
 
 	if (unmask_event_in_aggr)
 		WREG32_AND(aggr_mask_reg, events_mask);
@@ -3451,7 +3460,8 @@ static void handle_and_clear_tpc_events(struct hl_device *hdev, u32 die, u32 hdc
 	params.instance = instance;
 	prepare_eq_dynamic_entry_agg_header(&eq_dynamic_entry, &params);
 
-	gaudi3_handle_eqe(hdev, &eq_dynamic_entry);
+	if (!gaudi3_handle_eqe(hdev, &eq_dynamic_entry))
+		return;
 
 	if (unmask_event_in_aggr)
 		WREG32_AND(aggr_mask_reg, events_mask);
@@ -3504,7 +3514,8 @@ static void handle_and_clear_mme_events(struct hl_device *hdev, u32 die, u32 hdc
 	params.instance = 0;
 	prepare_eq_dynamic_entry_agg_header(&eq_dynamic_entry, &params);
 
-	gaudi3_handle_eqe(hdev, &eq_dynamic_entry);
+	if (!gaudi3_handle_eqe(hdev, &eq_dynamic_entry))
+		return;
 
 	if (unmask_event_in_aggr)
 		WREG32_AND(aggr_mask_reg, events_mask);
@@ -3549,7 +3560,8 @@ static void handle_and_clear_stlb_events(struct hl_device *hdev, u32 die, u32 hd
 	params.instance = 0;
 	prepare_eq_dynamic_entry_agg_header(&eq_dynamic_entry, &params);
 
-	gaudi3_handle_eqe(hdev, &eq_dynamic_entry);
+	if (!gaudi3_handle_eqe(hdev, &eq_dynamic_entry))
+		return;
 
 	if (unmask_event_in_aggr)
 		WREG32_AND(aggr_mask_reg, events_mask);
@@ -3595,7 +3607,8 @@ static void handle_and_clear_pdma_events(struct hl_device *hdev, u32 die,
 	params.instance = 0;
 	prepare_eq_dynamic_entry_agg_header(&eq_dynamic_entry, &params);
 
-	gaudi3_handle_eqe(hdev, &eq_dynamic_entry);
+	if (!gaudi3_handle_eqe(hdev, &eq_dynamic_entry))
+		return;
 
 	if (unmask_event_in_aggr)
 		WREG32_AND(aggr_mask_reg, events_mask);
@@ -3639,7 +3652,8 @@ static void handle_and_clear_arc_farm_events(struct hl_device *hdev, u32 die, u3
 	params.instance = 0;
 	prepare_eq_dynamic_entry_agg_header(&eq_dynamic_entry, &params);
 
-	gaudi3_handle_eqe(hdev, &eq_dynamic_entry);
+	if (!gaudi3_handle_eqe(hdev, &eq_dynamic_entry))
+		return;
 
 	/* Clear event */
 	if (type == ERR_GRP_SEI) {
@@ -3706,7 +3720,8 @@ static void handle_and_clear_nic_events(struct hl_device *hdev, u32 die,
 	params.instance = instance;
 	prepare_eq_dynamic_entry_agg_header(&eq_dynamic_entry, &params);
 
-	gaudi3_handle_eqe(hdev, &eq_dynamic_entry);
+	if (!gaudi3_handle_eqe(hdev, &eq_dynamic_entry))
+		return;
 
 	if (unmask_event_in_aggr)
 		WREG32_AND(aggr_mask_reg, events_mask);

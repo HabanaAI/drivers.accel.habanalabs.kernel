@@ -350,9 +350,9 @@ int gaudi3_nic_qpc_read(struct hl_nic_port *nic_port, void *qpc, u32 qpn, bool i
 void gaudi3_nic_eq_reset_ring(struct gaudi3_nic_port *gaudi3_nic);
 bool is_coll_qp_in_reset(struct hl_nic_port *nic_port, u32 qpn);
 void gaudi3_handle_nic_port_reset_locked(struct hl_nic_port *nic_port);
-void gaudi3_handle_nic_spi_event(struct hl_device *hdev, u32 macro_index);
-void gaudi3_handle_nic_sei_error_event(struct hl_device *hdev, u32 macro_index);
-void gaudi3_nic_handle_bmon_spmu_event(struct hl_device *hdev, u32 macro_index);
+u32 gaudi3_handle_nic_spi_event(struct hl_device *hdev, u32 macro_index);
+u32 gaudi3_handle_nic_sei_error_event(struct hl_device *hdev, u32 macro_index);
+u32 gaudi3_nic_handle_bmon_spmu_event(struct hl_device *hdev, u32 macro_index);
 char *gaudi3_nic_qp_err_src_to_str(u32 syndrome);
 char *gaudi3_nic_qp_err_syndrom_to_str(u32 syndrome);
 int gaudi3_nic_set_info(struct hl_device *hdev, bool get_from_fw);

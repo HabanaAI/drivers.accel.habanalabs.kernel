@@ -807,7 +807,7 @@ int gaudi3_init_cpu(struct hl_device *hdev);
 int gaudi3_init_cpu_queues(struct hl_device *hdev, u32 cpu_timeout);
 int gaudi3_test_cpu_queue(struct hl_device *hdev);
 void gaudi3_send_hard_reset_cmd(struct hl_device *hdev);
-void gaudi3_handle_eqe(struct hl_device *hdev, struct hl_eq_dynamic_entry *eq_dynamic_entry);
+u32 gaudi3_handle_eqe(struct hl_device *hdev, struct hl_eq_dynamic_entry *eq_dynamic_entry);
 int gaudi3_nic_debugfs_write_coll_lag_size(struct hl_device *hdev, u32 coll_lag_size);
 int gaudi3_nic_debugfs_read_coll_lag_size(struct hl_device *hdev, u32 *coll_lag_size);
 int gaudi3_nic_debugfs_inject_rx_err(struct hl_device *hdev, u8 drop_percent);
@@ -842,7 +842,6 @@ void gaudi3_hw_init_fw_config(struct hl_device *hdev);
 void gaudi3_fabric_serialization_init_fw_config(struct hl_device *hdev);
 void gaudi3_fabric_serialization_fini_fw_config(struct hl_device *hdev);
 void gaudi3_execute_reset_no_fw(struct hl_device *hdev, bool hard_reset);
-void gaudi3_handle_axi_drain(struct hl_device *hdev, bool *pci_link_error);
 void gaudi3_enable_interrupt_aggr_msgs(struct hl_device *hdev);
 irqreturn_t hl_pldm_irq_handler(int irq, void *arg);
 void gaudi3_pdma_print_debug_info(struct hl_device *hdev, u32 ch_idx);
@@ -885,7 +884,7 @@ int gaudi3_irq_vector(struct hl_device *hdev, unsigned int nr);
 void gaudi3_nic_override_phy_readiness_pldm(struct hl_nic_port *nic_port, bool set_ready);
 int gaudi3_nic_disable_wqe_index_checker_fw(struct hl_nic_port *nic_port);
 void gaudi3_nic_macros_fw_config(struct hl_device *hdev);
-void gaudi3_handle_axi_drain(struct hl_device *hdev, bool *pci_link_error);
+u32 gaudi3_handle_axi_drain(struct hl_device *hdev, bool *pci_link_error);
 void gaudi3_nic_restore_dynamic_cfg_soft_reset_fw(struct hl_device *hdev);
 
 #endif /* GAUDI3P_H_ */

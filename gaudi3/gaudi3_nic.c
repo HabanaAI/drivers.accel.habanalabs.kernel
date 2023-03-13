@@ -5453,9 +5453,9 @@ void gaudi3_handle_nic_port_reset_locked(struct hl_nic_port *nic_port)
 	}
 }
 
-void gaudi3_handle_nic_spi_event(struct hl_device *hdev, u32 macro_index)
+u32 gaudi3_handle_nic_spi_event(struct hl_device *hdev, u32 macro_index)
 {
-	u32 rxe_spi_intr_cause_0, rxe_spi_intr_cause_1, rxb_core_spi_intr_cause,
+	u32 err_cnt = 0, rxe_spi_intr_cause_0, rxe_spi_intr_cause_1, rxb_core_spi_intr_cause,
 		rxe_spi_intr_mask_0, rxe_spi_intr_mask_1, rxb_core_spi_intr_mask,
 		qpc_intr_cause, port, first_port, last_port;
 	struct hl_nic_port *nic_port;
@@ -5510,6 +5510,7 @@ void gaudi3_handle_nic_spi_event(struct hl_device *hdev, u32 macro_index)
 			if (!(rxe_spi_intr_cause_0 & BIT(i)))
 				continue;
 
+			err_cnt++;
 			dev_dbg_ratelimited(hdev->dev,
 				"RXE SPI error on NIC macro %d cause: %s. cause bit %d\n",
 				macro_index, qp_err_rxe_strs[i], i);
@@ -5529,6 +5530,7 @@ void gaudi3_handle_nic_spi_event(struct hl_device *hdev, u32 macro_index)
 			if (!(rxe_spi_intr_cause_1 & BIT(i)))
 				continue;
 
+			err_cnt++;
 			dev_dbg_ratelimited(hdev->dev,
 				"RXE SPI error on NIC macro %d cause: %s. cause bit %d\n",
 				macro_index, gaudi3_nic_rxe_spi_interrupts_cause_1[i], i);
@@ -5548,6 +5550,7 @@ void gaudi3_handle_nic_spi_event(struct hl_device *hdev, u32 macro_index)
 			if (!(rxb_core_spi_intr_cause & BIT(i)))
 				continue;
 
+			err_cnt++;
 			dev_dbg_ratelimited(hdev->dev,
 				"RXB CORE SPI error on NIC macro %d cause: %s. cause bit %d\n",
 				macro_index, gaudi3_nic_rxb_core_spi_interrupts_cause[i], i);
@@ -5561,14 +5564,16 @@ void gaudi3_handle_nic_spi_event(struct hl_device *hdev, u32 macro_index)
 		NIC_RREG32(mmD0_NIC0_RXB_CORE_SPI_INTR_CLEAR);
 		NIC_WREG32(mmD0_NIC0_RXB_CORE_SPI_INTR_CLEAR, 0);
 	}
+
+	return err_cnt;
 }
 
-void gaudi3_handle_nic_sei_error_event(struct hl_device *hdev, u32 macro_index)
+u32 gaudi3_handle_nic_sei_error_event(struct hl_device *hdev, u32 macro_index)
 {
 	u32 rxe_sei_intr_cause, rxb_core_sei_intr_cause, tmr_intr_cause,
 		rxe_sei_intr_mask, rxb_core_sei_intr_mask, tmr_intr_mask, port,
 		qpc_intr_resp_err_cause, txs_intr_cause, txe_intr_cause,
-		qpc_intr_resp_err_mask, txs_intr_mask, txe_intr_mask;
+		qpc_intr_resp_err_mask, txs_intr_mask, txe_intr_mask, err_cnt = 0;
 	int i;
 
 	port = macro_index * NIC_PORTS_PER_MACRO;
@@ -5601,6 +5606,7 @@ void gaudi3_handle_nic_sei_error_event(struct hl_device *hdev, u32 macro_index)
 			if (!(rxe_sei_intr_cause & BIT(i)))
 				continue;
 
+			err_cnt++;
 			dev_warn_ratelimited(hdev->dev,
 				"RXE SEI error on NIC macro %d cause: %s. cause bit %d\n",
 				macro_index, gaudi3_nic_rxe_sei_interrupts_cause[i], i);
@@ -5620,6 +5626,7 @@ void gaudi3_handle_nic_sei_error_event(struct hl_device *hdev, u32 macro_index)
 			if (!(rxb_core_sei_intr_cause & BIT(i)))
 				continue;
 
+			err_cnt++;
 			dev_warn_ratelimited(hdev->dev,
 				"RXB CORE SEI error on NIC macro %d cause: %s. cause bit %d\n",
 				macro_index, gaudi3_nic_rxb_core_sei_interrupts_cause[i], i);
@@ -5639,6 +5646,7 @@ void gaudi3_handle_nic_sei_error_event(struct hl_device *hdev, u32 macro_index)
 			if (!(tmr_intr_cause & BIT(i)))
 				continue;
 
+			err_cnt++;
 			dev_warn_ratelimited(hdev->dev,
 				"TMR error on NIC macro %d cause %s. cause bit %d\n",
 				macro_index, gaudi3_nic_tmr_interrupts_cause[i], i);
@@ -5652,6 +5660,7 @@ void gaudi3_handle_nic_sei_error_event(struct hl_device *hdev, u32 macro_index)
 			if (!(qpc_intr_resp_err_cause & BIT(i)))
 				continue;
 
+			err_cnt++;
 			dev_warn_ratelimited(hdev->dev,
 				"QPC response error on NIC macro %d cause %s. cause bit %d\n",
 				macro_index, gaudi3_nic_qpc_interrupts_resp_err_cause[i], i);
@@ -5665,6 +5674,7 @@ void gaudi3_handle_nic_sei_error_event(struct hl_device *hdev, u32 macro_index)
 			if (!(txs_intr_cause & BIT(i)))
 				continue;
 
+			err_cnt++;
 			dev_warn_ratelimited(hdev->dev,
 				"TXS error on NIC macro %d cause %s. cause bit %d\n",
 				macro_index, gaudi3_nic_txs_interrupts_cause[i], i);
@@ -5678,6 +5688,7 @@ void gaudi3_handle_nic_sei_error_event(struct hl_device *hdev, u32 macro_index)
 			if (!(txe_intr_cause & BIT(i)))
 				continue;
 
+			err_cnt++;
 			dev_warn_ratelimited(hdev->dev,
 				"TXE error on NIC macro %d cause %s. cause bit %d\n",
 				macro_index, gaudi3_nic_txe_interrupts_cause[i], i);
@@ -5685,9 +5696,11 @@ void gaudi3_handle_nic_sei_error_event(struct hl_device *hdev, u32 macro_index)
 
 		NIC_WREG32(mmD0_NIC0_TXE_INTERRUPT_CLR, txe_intr_cause);
 	}
+
+	return err_cnt++;
 }
 
-void gaudi3_nic_handle_bmon_spmu_event(struct hl_device *hdev, u32 macro_index)
+u32 gaudi3_nic_handle_bmon_spmu_event(struct hl_device *hdev, u32 macro_index)
 {
 	int rc;
 
@@ -5696,10 +5709,14 @@ void gaudi3_nic_handle_bmon_spmu_event(struct hl_device *hdev, u32 macro_index)
 	 * So for now we only clear all interrupt registers to prevent interrupt flood
 	 */
 	rc = gaudi3_nic_ack_spmu_bmon_interrupt(hdev, macro_index);
-	if (rc)
+	if (rc) {
 		dev_err_ratelimited(hdev->dev,
 				"failed to ack nic-macro %d SPMU/BMON interrupt(rc %d)\n",
 				macro_index, rc);
+		return 0;
+	}
+
+	return 1;
 }
 
 static void gaudi3_nic_app_params_clear(struct hl_device *hdev)

@@ -2385,7 +2385,7 @@ static inline const char *pmmu_page_fault_initiator_str(enum gaudi3_engine_id in
 	return GAUDI3_ENG_ID_TO_STR(initiator);
 }
 
-static void handle_pmmu_events(struct hl_device *hdev, u32 die, u64 *event_mask)
+static u32 handle_pmmu_events(struct hl_device *hdev, u32 die, u64 *event_mask)
 {
 	u32 valid, err_type, offset = die * DIE_OFFSET,
 		acc_err_mask = MMU_ACCESS_PAGE_ERROR_VALID_ACCESS_ERR_VALID_ENTRY_M,
@@ -2394,14 +2394,16 @@ static void handle_pmmu_events(struct hl_device *hdev, u32 die, u64 *event_mask)
 			MMU_ACCESS_PAGE_ERROR_VALID_PAGE_ERR_VALID_ENTRY_M,
 		page_fault_spi_sts_mask =
 			MMU_SPI_STATUS_I0_M | MMU_SPI_STATUS_I1_M,
-		mmu_spi_status = RREG32(mmD0_PMMU_HBW_MMU_BASE + mmMMU_SPI_STATUS + offset);
+		mmu_spi_status = RREG32(mmD0_PMMU_HBW_MMU_BASE + mmMMU_SPI_STATUS + offset),
+		err_cnt = 0;
 	u64 va, axi_id, axi_id1, axi_id2, lsb_va, msb_va;
 	enum gaudi3_engine_id initiator = GAUDI3_ENGINE_ID_SIZE;
 	const char *initiator_str;
 	const bool is_read = true;
 
 	if (!mmu_spi_status)
-		return;
+		return 0;
+
 	err_type = RREG32(mmD0_PMMU_HBW_MMU_BASE + mmMMU_ACCESS_PAGE_ERROR_VALID + offset);
 
 	while ((mmu_spi_status & (acc_err_spi_sts_mask | page_fault_spi_sts_mask)) ||
@@ -2446,6 +2448,7 @@ static void handle_pmmu_events(struct hl_device *hdev, u32 die, u64 *event_mask)
 				va, axi_id, initiator_str);
 
 			hl_handle_page_fault(hdev, va, initiator, true, event_mask);
+			err_cnt++;
 		}
 		if ((mmu_spi_status & acc_err_spi_sts_mask) || (err_type & acc_err_mask)) {
 			lsb_va = RREG32(mmD0_PMMU_HBW_MMU_BASE + mmMMU_ACCESS_ERROR_CAPTURE_VA +
@@ -2473,10 +2476,13 @@ static void handle_pmmu_events(struct hl_device *hdev, u32 die, u64 *event_mask)
 			initiator_str = pmmu_page_fault_initiator_str(initiator);
 			dev_err(hdev->dev, "access error: va=0x%llx axi id=0x%16llx initiator=%s",
 				va, axi_id, initiator_str);
+			err_cnt++;
 		}
 		err_type = RREG32(mmD0_PMMU_HBW_MMU_BASE + mmMMU_ACCESS_PAGE_ERROR_VALID + offset);
 		mmu_spi_status = RREG32(mmD0_PMMU_HBW_MMU_BASE + mmMMU_SPI_STATUS + offset);
 	}
+
+	return err_cnt;
 }
 
 struct dtlb_fault_desc {
@@ -2528,7 +2534,7 @@ static void gaudi3_dtlb_fault_desc(struct hl_device *hdev, int hdcore, int inst,
 	}
 }
 
-static void hmmu_event_get_dtlb_desc(struct hl_device *hdev, u32 hdcore, u32 die,
+static u32 hmmu_event_get_dtlb_desc(struct hl_device *hdev, u32 hdcore, u32 die,
 						char *str, u64 size, u64 *event_mask)
 {
 	struct dtlb_fault_desc desc = { .str = str, .str_size = size, .die = die, .str_len = 0,
@@ -2539,15 +2545,19 @@ static void hmmu_event_get_dtlb_desc(struct hl_device *hdev, u32 hdcore, u32 die
 	};
 
 	gaudi3_iterate_dtlbs_of_stlb(hdev, &ctx, hdcore);
-	if (!desc.str_len)
+	if (!desc.str_len) {
 		snprintf(str, size, "DTLB causing the fault not found");
+		return 0;
+	}
+
+	return 1;
 }
 
-static void hmmu_event_get_stlb_desc(struct hl_device *hdev, u32 hdcore, char *str, u64 size)
+static u32 hmmu_event_get_stlb_desc(struct hl_device *hdev, u32 hdcore, char *str, u64 size)
 {
 	u64 intr_log_hi, intr_log_low, intr_log, pte_l, pte_h, pte;
-	u8 dti_opcode;
 	u32 offset, cause;
+	u8 dti_opcode;
 
 	offset = hdcore * HDCORE_OFFSET;
 	cause = RREG32(mmHD0_STLB_INTR_SPI_CAUSE + offset);
@@ -2592,17 +2602,23 @@ static void hmmu_event_get_stlb_desc(struct hl_device *hdev, u32 hdcore, char *s
 	WREG32(mmHD0_STLB_INTR_SPI_CAUSE + offset, 0);
 	WREG32(mmHD0_STLB_FAULT_SYNDORM_CNTRL + offset,
 			FIELD_PREP(STLB_FAULT_SYNDORM_CNTRL_REL_M, 0x1));
+
+	return !!cause;
 }
 
-static void handle_hmmu_events(struct hl_device *hdev, u32 die, u32 hdcore, u64 *event_mask)
+static u32 handle_hmmu_events(struct hl_device *hdev, u32 die, u32 hdcore, u64 *event_mask)
 {
 	char stlb_str[256] = {0}, dtlb_str[256] = {0};
+	u32 err_cnt = 0;
 
-	hmmu_event_get_stlb_desc(hdev, hdcore, stlb_str, sizeof(stlb_str));
-	hmmu_event_get_dtlb_desc(hdev, hdcore, die, dtlb_str, sizeof(dtlb_str), event_mask);
+	err_cnt = hmmu_event_get_stlb_desc(hdev, hdcore, stlb_str, sizeof(stlb_str));
+	err_cnt += hmmu_event_get_dtlb_desc(hdev, hdcore, die, dtlb_str, sizeof(dtlb_str),
+						event_mask);
 
 	dev_err(hdev->dev,
 		"STLB info: %s, DTLB info: %s\n", stlb_str, dtlb_str);
+
+	return err_cnt;
 }
 
 static void gaudi3_lbw_dup_group_id_breakdown(struct hl_device *hdev, u32 dup_group_id, u32 *die,
@@ -8880,37 +8896,41 @@ err_unreserve_va:
 	return rc;
 }
 
-static void gaudi3_err_cause_iterator(struct hl_device *hdev, u32 err_msk,
+static u32 gaudi3_err_cause_iterator(struct hl_device *hdev, u32 err_msk,
 					const char * const *err_tbl, char *initiator, char *type)
 {
-	u32 err_idx = 0;
+	u32 err_idx = 0, err_cnt = 0;
 
 	dev_dbg(hdev->dev, "Error mask is 0x%X\n", err_msk);
 
 	while (err_msk) {
-		if (err_msk & 1)
+		if (err_msk & 1) {
 			dev_err_ratelimited(hdev->dev, "%s %s error: %s\n",
 					initiator, type, err_tbl[err_idx]);
+			err_cnt++;
+		}
 		err_idx++;
 		err_msk >>= 1;
 	}
+
+	return err_cnt;
 }
 
-static bool gaudi3_handle_err_cause_reg(struct hl_device *hdev, u64 err_cause_reg, bool clear_err,
+static u32 gaudi3_handle_err_cause_reg(struct hl_device *hdev, u64 err_cause_reg, bool clear_err,
 					const char * const *err_tbl, char *initiator, char *type,
 					u32 err_ignore_msk)
 {
-	u32 err_cause_val = RREG32(err_cause_reg) & (~err_ignore_msk);
+	u32 err_cause_val = RREG32(err_cause_reg) & (~err_ignore_msk), err_cnt = 0;
 
 	if (!err_cause_val)
-		return false;
+		return 0;
 
-	gaudi3_err_cause_iterator(hdev, err_cause_val, err_tbl, initiator, type);
+	err_cnt = gaudi3_err_cause_iterator(hdev, err_cause_val, err_tbl, initiator, type);
 
 	if (clear_err)
 		WREG32(err_cause_reg, err_cause_val);
 
-	return true;
+	return err_cnt;
 }
 
 static void gaudi3_pdma_print_ch_sei_err(struct hl_device *hdev, u32 ch_idx)
@@ -11201,12 +11221,15 @@ int gaudi3_get_monitor_dump(struct hl_device *hdev, void *data)
 	return -EOPNOTSUPP;
 }
 
-static void gaudi3_handle_pcie_drain(struct hl_device *hdev)
+static u32 gaudi3_handle_pcie_drain(struct hl_device *hdev)
 {
 	bool dummy;
 
 	if (hdev->pldm)
-		gaudi3_handle_axi_drain(hdev, &dummy);
+		return gaudi3_handle_axi_drain(hdev, &dummy);
+
+	/* Handled by fw*/
+	return 0;
 }
 
 static void gaudi3_pdma_mask_err_int(struct hl_device *hdev,
@@ -11220,14 +11243,14 @@ static void gaudi3_pdma_mask_err_int(struct hl_device *hdev,
 	}
 }
 
-static void gaudi3_handle_pdma_module_sei_err(struct hl_device *hdev, u8 die, bool is_pqm)
+static u32 gaudi3_handle_pdma_module_sei_err(struct hl_device *hdev, u8 die, bool is_pqm)
 {
 	u64 err_cause_reg_offset, ch_err_cause_addr, ch_err_int_mask_addr, grp_addr, ch_addr;
 	struct asic_fixed_properties *prop = &hdev->asic_prop;
+	u32 err_cnt = 0, curr_err_cnt, ch_err_ignore_mask;
 	const char * const *err_tbl;
 	char pdma_channel_name[20];
 	const char *module_name;
-	u32 ch_err_ignore_mask;
 	int i, j;
 
 	if (is_pqm) {
@@ -11267,8 +11290,11 @@ static void gaudi3_handle_pdma_module_sei_err(struct hl_device *hdev, u8 die, bo
 						ch_err_ignore_mask, ch_err_int_mask_addr);
 			}
 
-			if (gaudi3_handle_err_cause_reg(hdev, ch_err_cause_addr, false, err_tbl,
-					pdma_channel_name, "SEI", ch_err_ignore_mask)) {
+			curr_err_cnt = gaudi3_handle_err_cause_reg(hdev, ch_err_cause_addr,
+					false, err_tbl, pdma_channel_name, "SEI",
+					ch_err_ignore_mask);
+			if (curr_err_cnt) {
+				err_cnt += curr_err_cnt;
 				if (is_pqm)
 					WREG32(grp_addr + PDMA_CMN_B_OFFSET +
 							mmPDMA_CMN_B_PQM_CMN_B_SEI_STATUS,
@@ -11276,23 +11302,29 @@ static void gaudi3_handle_pdma_module_sei_err(struct hl_device *hdev, u8 die, bo
 			}
 		}
 	}
+
+	return err_cnt;
 }
 
-static void gaudi3_handle_pdma_sei_err(struct hl_device *hdev, u8 die)
+static u32 gaudi3_handle_pdma_sei_err(struct hl_device *hdev, u8 die)
 {
-	gaudi3_handle_pdma_module_sei_err(hdev, die, false);
-	gaudi3_handle_pdma_module_sei_err(hdev, die, true);
+	bool err_cnt = 0;
+
+	err_cnt = gaudi3_handle_pdma_module_sei_err(hdev, die, false);
+	err_cnt += gaudi3_handle_pdma_module_sei_err(hdev, die, true);
+
+	return err_cnt;
 }
 
-static void gaudi3_handle_arc_farm_sei_err(struct hl_device *hdev, u32 hdcore)
+static u32 gaudi3_handle_arc_farm_sei_err(struct hl_device *hdev, u32 hdcore)
 {
 	u32 err_msk = RREG32(hdcore * HDCORE_OFFSET + mmHD0_ARC_FARM_ARC0_AUX_BASE +
 				mmQMAN_ARC_AUX_ARC_SEI_INTR_STS);
 
-	gaudi3_err_cause_iterator(hdev, err_msk, gaudi3_arc_sei_err_cause, "ARC", "SEI");
+	return gaudi3_err_cause_iterator(hdev, err_msk, gaudi3_arc_sei_err_cause, "ARC", "SEI");
 }
 
-static void gaudi3_handle_pcie0_sei_err(struct hl_device *hdev, u16 data_size,
+static u32 gaudi3_handle_pcie0_sei_err(struct hl_device *hdev, u16 data_size,
 					struct hl_eq_pcie_sei_data *pcie_sei_data)
 {
 	u32 err_msk;
@@ -11300,45 +11332,45 @@ static void gaudi3_handle_pcie0_sei_err(struct hl_device *hdev, u16 data_size,
 	if (data_size != sizeof(*pcie_sei_data)) {
 		dev_err_ratelimited(hdev->dev, "EQ entry data size is %u while expecting %zu\n",
 					data_size, sizeof(*pcie_sei_data));
-		return;
+		return 0;
 	}
 
 	if (pcie_sei_data->sei_type != PCIE_SEI_AXI_RESP_ERR)
-		return;
+		return 0;
 
 	err_msk = lower_32_bits(le64_to_cpu(pcie_sei_data->intr_cause.intr_cause_data));
 
-	gaudi3_err_cause_iterator(hdev, err_msk, gaudi3_pcie_sei_err_cause, "PCIE", "SEI");
+	return gaudi3_err_cause_iterator(hdev, err_msk, gaudi3_pcie_sei_err_cause, "PCIE", "SEI");
 }
 
-static void gaudi3_handle_pcie0_spi_err(struct hl_device *hdev, u16 data_size,
+static u32 gaudi3_handle_pcie0_spi_err(struct hl_device *hdev, u16 data_size,
 					struct hl_eq_pcie_spi_data *pcie_spi_data)
 {
 	if (data_size != sizeof(*pcie_spi_data)) {
 		dev_err_ratelimited(hdev->dev, "EQ entry data size is %u while expecting %zu\n",
 					data_size, sizeof(*pcie_spi_data));
-		return;
+		return 0;
 	}
 
 	if (pcie_spi_data->spi_type != PCIE_SPI_DRAIN)
-		return;
+		return 0;
 
-	gaudi3_handle_pcie_drain(hdev);
+	return gaudi3_handle_pcie_drain(hdev);
 }
 
-static void gaudi3_handle_nic_spi(struct hl_device *hdev, u32 macro_index, u16 data_size,
+static u32 gaudi3_handle_nic_spi(struct hl_device *hdev, u32 macro_index, u16 data_size,
 					struct hl_eq_nic_spi_data *nic_spi_data)
 {
 	if (data_size != sizeof(*nic_spi_data)) {
 		dev_err_ratelimited(hdev->dev, "EQ entry data size is %u while expecting %zu\n",
 					data_size, sizeof(*nic_spi_data));
-		return;
+		return 0;
 	}
 
 	if (nic_spi_data->spi_type == NIC_SPI_BMON_SPMU)
-		gaudi3_nic_handle_bmon_spmu_event(hdev, macro_index);
+		return gaudi3_nic_handle_bmon_spmu_event(hdev, macro_index);
 	else /* NIC_SPI_SW_ERROR */
-		gaudi3_handle_nic_spi_event(hdev, macro_index);
+		return gaudi3_handle_nic_spi_event(hdev, macro_index);
 }
 
 static void gaudi3_handle_ecc_event(struct hl_device *hdev, struct hl_eq_ecc_data *ecc_data)
@@ -11355,7 +11387,7 @@ static void gaudi3_handle_ecc_event(struct hl_device *hdev, struct hl_eq_ecc_dat
 		ecc_address, ecc_syndrom, memory_wrapper_idx, ecc_data->is_critical);
 }
 
-static void gaudi3_handle_msg_event(struct hl_device *hdev,
+static u32 gaudi3_handle_msg_event(struct hl_device *hdev,
 				struct hl_eq_dynamic_entry *eq_dynamic_entry, u64 *event_mask)
 {
 	u16 event_type;
@@ -11372,7 +11404,7 @@ static void gaudi3_handle_msg_event(struct hl_device *hdev,
 	/* TODO: SW-137048 add handling of MSG events */
 	switch (event_type) {
 	default:
-		return;
+		return 0;
 	}
 }
 
@@ -11411,7 +11443,7 @@ static void gaudi3_print_hw_event_info(struct hl_device *hdev, struct hl_agg_eq_
 			gaudi3_get_interrupt_grp_name(agg_hdr->int_grp_type));
 }
 
-static void gaudi3_handle_derr_event(struct hl_device *hdev,
+static u32 gaudi3_handle_derr_event(struct hl_device *hdev,
 				struct hl_eq_dynamic_entry *eq_dynamic_entry, u64 *event_mask)
 {
 	u16 data_size = le16_to_cpu(eq_dynamic_entry->hdr.size);
@@ -11419,13 +11451,15 @@ static void gaudi3_handle_derr_event(struct hl_device *hdev,
 	if (data_size != sizeof(eq_dynamic_entry->ecc_data)) {
 		dev_err_ratelimited(hdev->dev, "EQ entry data size is %u while expecting %zu\n",
 					data_size, sizeof(eq_dynamic_entry->ecc_data));
-		return;
+		return 0;
 	}
 
 	gaudi3_handle_ecc_event(hdev, &eq_dynamic_entry->ecc_data);
+
+	return 1;
 }
 
-static void gaudi3_handle_cs_sei_err(struct hl_device *hdev, u16 data_size,
+static u32 gaudi3_handle_cs_sei_err(struct hl_device *hdev, u16 data_size,
 					struct hl_eq_intr_cause *intr_cause)
 {
 	u32 err_msk;
@@ -11433,12 +11467,12 @@ static void gaudi3_handle_cs_sei_err(struct hl_device *hdev, u16 data_size,
 	if (data_size != sizeof(*intr_cause)) {
 		dev_err_ratelimited(hdev->dev, "EQ entry data size is %u while expecting %zu\n",
 					data_size, sizeof(*intr_cause));
-		return;
+		return 0;
 	}
 
 	err_msk = lower_32_bits(le64_to_cpu(intr_cause->intr_cause_data));
 
-	gaudi3_err_cause_iterator(hdev, err_msk, gaudi3_cs_sei_err_cause, "CS", "SEI");
+	return gaudi3_err_cause_iterator(hdev, err_msk, gaudi3_cs_sei_err_cause, "CS", "SEI");
 }
 
 static int gaudi3_validate_eq_agg_header(struct hl_device *hdev,
@@ -11482,17 +11516,17 @@ static int gaudi3_validate_eq_agg_header(struct hl_device *hdev,
 	return 0;
 }
 
-static void gaudi3_handle_sei_event(struct hl_device *hdev,
+static u32 gaudi3_handle_sei_event(struct hl_device *hdev,
 				struct hl_eq_dynamic_entry *eq_dynamic_entry, u64 *event_mask)
 {
 	u16 data_size = le16_to_cpu(eq_dynamic_entry->hdr.size);
 	enum hl_agg_component_type agg_component_type;
-	u32 die, hdcore = 0, instance;
+	u32 die, hdcore = 0, instance, err_cnt = 0;
 	int rc;
 
 	rc = gaudi3_validate_eq_agg_header(hdev, &eq_dynamic_entry->agg_hdr);
 	if (rc)
-		return;
+		return 0;
 
 	agg_component_type = eq_dynamic_entry->agg_hdr.int_comp_type;
 	die = eq_dynamic_entry->agg_hdr.die_id;
@@ -11502,16 +11536,18 @@ static void gaudi3_handle_sei_event(struct hl_device *hdev,
 
 	switch (agg_component_type) {
 	case INT_COMP_TYPE_ARC_FARM:
-		gaudi3_handle_arc_farm_sei_err(hdev, hdcore);
+		err_cnt = gaudi3_handle_arc_farm_sei_err(hdev, hdcore);
 		break;
 	case INT_COMP_TYPE_NIC:
-		gaudi3_handle_nic_sei_error_event(hdev, die * NIC_NUM_MACROS_PER_DIE + instance);
+		err_cnt = gaudi3_handle_nic_sei_error_event(hdev,
+					die * NIC_NUM_MACROS_PER_DIE + instance);
 		break;
 	case INT_COMP_TYPE_PCIE:
-		gaudi3_handle_pcie0_sei_err(hdev, data_size, &eq_dynamic_entry->pcie_sei_data);
+		err_cnt = gaudi3_handle_pcie0_sei_err(hdev, data_size,
+					&eq_dynamic_entry->pcie_sei_data);
 		break;
 	case INT_COMP_TYPE_PDMA:
-		gaudi3_handle_pdma_sei_err(hdev, die);
+		err_cnt = gaudi3_handle_pdma_sei_err(hdev, die);
 		gaudi3_razwi_handler(hdev, RAZWI_PDMA, die, hdcore, 0,
 				GAUDI3_DIE0_ENGINE_ID_PDMA_0_CH_0 + die * NUM_OF_PDMA_CH_PER_DIE,
 				event_mask);
@@ -11520,14 +11556,16 @@ static void gaudi3_handle_sei_event(struct hl_device *hdev,
 				event_mask);
 		break;
 	case INT_COMP_TYPE_CS:
-		gaudi3_handle_cs_sei_err(hdev, data_size, &eq_dynamic_entry->intr_cause);
+		err_cnt = gaudi3_handle_cs_sei_err(hdev, data_size, &eq_dynamic_entry->intr_cause);
 		break;
 	default:
-		return;
+		break;
 	}
+
+	return err_cnt;
 }
 
-static void gaudi3_handle_spi_event(struct hl_device *hdev,
+static u32 gaudi3_handle_spi_event(struct hl_device *hdev,
 				struct hl_eq_dynamic_entry *eq_dynamic_entry, u64 *event_mask)
 {
 	u16 data_size = le16_to_cpu(eq_dynamic_entry->hdr.size);
@@ -11537,7 +11575,7 @@ static void gaudi3_handle_spi_event(struct hl_device *hdev,
 
 	rc = gaudi3_validate_eq_agg_header(hdev, &eq_dynamic_entry->agg_hdr);
 	if (rc)
-		return;
+		return 0;
 
 	agg_component_type = eq_dynamic_entry->agg_hdr.int_comp_type;
 	die = eq_dynamic_entry->agg_hdr.die_id;
@@ -11547,24 +11585,21 @@ static void gaudi3_handle_spi_event(struct hl_device *hdev,
 
 	switch (agg_component_type) {
 	case INT_COMP_TYPE_NIC:
-		gaudi3_handle_nic_spi(hdev, die * NIC_NUM_MACROS_PER_DIE + instance, data_size,
-					&eq_dynamic_entry->nic_spi_data);
-		break;
+		return gaudi3_handle_nic_spi(hdev, die * NIC_NUM_MACROS_PER_DIE + instance,
+						data_size, &eq_dynamic_entry->nic_spi_data);
 	case INT_COMP_TYPE_PCIE:
-		gaudi3_handle_pcie0_spi_err(hdev, data_size, &eq_dynamic_entry->pcie_spi_data);
-		break;
+		return gaudi3_handle_pcie0_spi_err(hdev, data_size,
+							&eq_dynamic_entry->pcie_spi_data);
 	case INT_COMP_TYPE_PMMU:
-		handle_pmmu_events(hdev, die, event_mask);
-		break;
+		return handle_pmmu_events(hdev, die, event_mask);
 	case INT_COMP_TYPE_STLB:
-		handle_hmmu_events(hdev, die, hdcore, event_mask);
-		break;
+		return handle_hmmu_events(hdev, die, hdcore, event_mask);
 	default:
-		return;
+		return 0;
 	}
 }
 
-static void gaudi3_handle_hw_event(struct hl_device *hdev,
+static u32 gaudi3_handle_hw_event(struct hl_device *hdev,
 				struct hl_eq_dynamic_entry *eq_dynamic_entry, u64 *event_mask)
 {
 	enum hl_agg_grp_type agg_grp_type = eq_dynamic_entry->agg_hdr.int_grp_type;
@@ -11573,35 +11608,37 @@ static void gaudi3_handle_hw_event(struct hl_device *hdev,
 
 	switch (agg_grp_type) {
 	case INT_GRP_TYPE_DERR:
-		gaudi3_handle_derr_event(hdev, eq_dynamic_entry, event_mask);
-		break;
+		return gaudi3_handle_derr_event(hdev, eq_dynamic_entry, event_mask);
 	case INT_GRP_TYPE_SEI:
-		gaudi3_handle_sei_event(hdev, eq_dynamic_entry, event_mask);
-		break;
+		return gaudi3_handle_sei_event(hdev, eq_dynamic_entry, event_mask);
 	case INT_GRP_TYPE_SPI:
-		gaudi3_handle_spi_event(hdev, eq_dynamic_entry, event_mask);
-		break;
+		return gaudi3_handle_spi_event(hdev, eq_dynamic_entry, event_mask);
 	default:
-		return;
+		return 0;
 	}
 }
 
-void gaudi3_handle_eqe(struct hl_device *hdev, struct hl_eq_dynamic_entry *eq_dynamic_entry)
+u32 gaudi3_handle_eqe(struct hl_device *hdev, struct hl_eq_dynamic_entry *eq_dynamic_entry)
 {
+	u32 ctl, error_count;
 	u64 event_mask = 0;
 	bool is_hw_event;
-	u32 ctl;
 
 	ctl = le32_to_cpu(eq_dynamic_entry->hdr.ctl);
 	is_hw_event = !!FIELD_GET(EQ_CTL_EVENT_MODE_MASK, ctl);
 
 	if (is_hw_event)
-		gaudi3_handle_hw_event(hdev, eq_dynamic_entry, &event_mask);
+		error_count = gaudi3_handle_hw_event(hdev, eq_dynamic_entry, &event_mask);
 	else
-		gaudi3_handle_msg_event(hdev, eq_dynamic_entry, &event_mask);
+		error_count = gaudi3_handle_msg_event(hdev, eq_dynamic_entry, &event_mask);
 
 	if (event_mask)
 		hl_notifier_event_send_all(hdev, event_mask);
+
+	if (!error_count)
+		dev_err(hdev->dev, "No error cause\n");
+
+	return error_count;
 }
 
 int gaudi3_send_device_activity(struct hl_device *hdev, bool open)
