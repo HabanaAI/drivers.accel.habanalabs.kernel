@@ -214,6 +214,7 @@ static int hw_ip_info(struct hl_device *hdev, struct hl_info_args *args)
 	hw_ip.rotator_enabled_mask = prop->rotator_enabled_mask;
 	hw_ip.sched_arc_enabled_mask = hdev->sched_arc_mask;
 	hw_ip.engine_core_interrupt_reg_addr = prop->engine_core_interrupt_reg_addr;
+	hw_ip.reserved_dram_size = dram_kmd_size;
 
 	return copy_to_user(out, &hw_ip,
 		min((size_t) size, sizeof(hw_ip))) ? -EFAULT : 0;
