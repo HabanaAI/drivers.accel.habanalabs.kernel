@@ -180,6 +180,19 @@ static_assert(GAUDI3_NIC_MAX_CCQS_NUM <= NIC_DRV_MAX_CCQS_NUM);
 #define VA_HOST_SPACE_HPAGE_END		(VA_HOST_SPACE_PAGE_END | VA_PMMU_HUGE_HINT_BIT)
 
 /*
+ * it is a HW limitation that CNTRL_PAGE_SIZE_TYPE1 and CNTRL_PAGE_SIZE_TYPE2
+ * are for small pages (64MB and below), hence we can support 2 small pages
+ * while CNTRL_PAGE_SIZE_TYPE3 is only for large page (greater than 64MB) hence
+ * support at most single large page
+ */
+#define GAUDI3_HMMU_MAX_SMALL_PAGES_NUM	2U
+#define GAUDI3_HMMU_MAX_LARGE_PAGES_NUM	1U
+
+#define GAUDI3_HMMU_VALID_SMALL_PAGES_MASK	(PAGE_SIZE_32MB | PAGE_SIZE_64MB)
+#define GAUDI3_HMMU_VALID_LARGE_PAGES_MASK	(PAGE_SIZE_256MB | PAGE_SIZE_512MB | \
+							PAGE_SIZE_1GB | PAGE_SIZE_2GB)
+
+/*
  * HBM virtual address space
  * Gaudi3 has 4 HBM devices per die each of size 16GB so at most we'll have 128GB (for 2 dies).
  * No core separation is supported so we can have one chunk of virtual address

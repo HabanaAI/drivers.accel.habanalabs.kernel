@@ -2304,31 +2304,37 @@ static_assert(DTLB_CNTRL_PAGE_SIZE_TYPE3_PAGE_SIZE_M == STLB_CNTRL_PAGE_SIZE_TYP
  */
 static u32 build_tlb_ctrl_page_size(struct hl_device *hdev)
 {
-	u64 supported_pages_mask = hdev->asic_prop.dmmu.supported_pages_mask;
+	u64 hmmu_small_pages_mask, hmmu_large_pages_mask;
 	u32 reg_val = 0, val;
 	u8 page_type;
 
-	for (page_type = 0; page_type < HMMU_TLB_MAX_SUPPORTED_PAGE_TYPES; page_type++) {
-		if (!supported_pages_mask)
-			return reg_val;
+	hmmu_small_pages_mask =
+		hdev->asic_prop.dmmu.supported_pages_mask & GAUDI3_HMMU_VALID_SMALL_PAGES_MASK;
+	hmmu_large_pages_mask =
+		hdev->asic_prop.dmmu.supported_pages_mask & GAUDI3_HMMU_VALID_LARGE_PAGES_MASK;
 
-		val = tlb_get_next_page_ctrl_cfg(&supported_pages_mask);
+	/* search for all supported small pages */
+	for (page_type = 0; page_type < GAUDI3_HMMU_MAX_SMALL_PAGES_NUM; page_type++) {
+		if (!hmmu_small_pages_mask)
+			break;
+
+		val = tlb_get_next_page_ctrl_cfg(&hmmu_small_pages_mask);
 
 		switch (page_type) {
 		case 0:
-			reg_val |=
-				FIELD_PREP(DTLB_CNTRL_PAGE_SIZE_TYPE1_PAGE_SIZE_M, val);
+			reg_val |= FIELD_PREP(DTLB_CNTRL_PAGE_SIZE_TYPE1_PAGE_SIZE_M, val);
 			break;
 		case 1:
-			reg_val |=
-				FIELD_PREP(DTLB_CNTRL_PAGE_SIZE_TYPE2_PAGE_SIZE_M, val);
-			break;
-		case 2:
-			reg_val |=
-				FIELD_PREP(DTLB_CNTRL_PAGE_SIZE_TYPE3_PAGE_SIZE_M, val);
+			reg_val |= FIELD_PREP(DTLB_CNTRL_PAGE_SIZE_TYPE2_PAGE_SIZE_M, val);
 			break;
 		}
 	}
+
+	if (!hmmu_large_pages_mask)
+		return reg_val;
+
+	val = tlb_get_next_page_ctrl_cfg(&hmmu_large_pages_mask);
+	reg_val |= FIELD_PREP(DTLB_CNTRL_PAGE_SIZE_TYPE3_PAGE_SIZE_M, val);
 
 	return reg_val;
 }

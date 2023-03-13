@@ -129,8 +129,8 @@ MODULE_FIRMWARE(GAUDI3_BOOT_FIT_FILE);
 #define GAUDI3_QUEUE_ID_SIZE				1
 #define	GAUDI3_QUEUE_ID_CPU_PQ				0
 
-#define GAUDI3_HMMU_VALID_PAGES_MASK	(PAGE_SIZE_32MB | PAGE_SIZE_64MB | \
-		PAGE_SIZE_256MB | PAGE_SIZE_512MB | PAGE_SIZE_1GB | PAGE_SIZE_2GB)
+#define GAUDI3_HMMU_VALID_PAGES_MASK	(GAUDI3_HMMU_VALID_SMALL_PAGES_MASK | \
+							GAUDI3_HMMU_VALID_LARGE_PAGES_MASK)
 
 #define INTR_AGG_NUM_OF_PARC_INTR_BLOCKS		34
 #define INTR_AGG_NUM_OF_GLBL_ERR_CAUSE			10
@@ -2693,29 +2693,45 @@ bool gaudi3_host_phys_addr_valid(u64 addr)
 
 static bool gaudi3_validate_hmmu_props(struct hl_device *hdev)
 {
+	u64 hmmu_pages_mask, hmmu_small_pages_mask, hmmu_large_pages_mask, default_page_size;
 	struct asic_fixed_properties *prop = &hdev->asic_prop;
-	u64 hmmu_pages_mask, default_page_size;
 
 	hmmu_pages_mask = prop->dmmu.supported_pages_mask;
+	hmmu_small_pages_mask = hmmu_pages_mask & GAUDI3_HMMU_VALID_SMALL_PAGES_MASK;
+	hmmu_large_pages_mask = hmmu_pages_mask & GAUDI3_HMMU_VALID_LARGE_PAGES_MASK;
 	default_page_size = prop->device_mem_alloc_default_page_size;
 
-	/* make sure valid number of pages */
-	if (hweight64(hmmu_pages_mask) > HMMU_TLB_MAX_SUPPORTED_PAGE_TYPES) {
-		dev_err(hdev->dev, "HMMU supports at most - %d pages (mask %llx)\n",
-				(int)HMMU_TLB_MAX_SUPPORTED_PAGE_TYPES, hmmu_pages_mask);
+	/* make sure only valid pages are set */
+	if (hmmu_pages_mask & (~GAUDI3_HMMU_VALID_PAGES_MASK)) {
+		dev_err(hdev->dev, "HMMU unsupported pages (mask %#llx)\n", hmmu_pages_mask);
 		return false;
 	}
 
-	/* make sure valid pages are set */
-	if (hmmu_pages_mask & (~GAUDI3_HMMU_VALID_PAGES_MASK)) {
-		dev_err(hdev->dev, "HMMU unsupported pages (mask %llx)\n", hmmu_pages_mask);
+	/* make sure at least one valid page is set */
+	if (!(hmmu_pages_mask & GAUDI3_HMMU_VALID_PAGES_MASK)) {
+		dev_err(hdev->dev, "No valid HMMU pages size specified (mask %#llx)\n",
+				hmmu_pages_mask);
+		return false;
+	}
+
+	/* make sure valid number of small pages */
+	if (hweight64(hmmu_small_pages_mask) > GAUDI3_HMMU_MAX_SMALL_PAGES_NUM) {
+		dev_err(hdev->dev, "HMMU supports at most - %u small pages (mask %#llx)\n",
+				GAUDI3_HMMU_MAX_SMALL_PAGES_NUM, hmmu_small_pages_mask);
+		return false;
+	}
+
+	/* make sure valid number of large pages */
+	if (hweight64(hmmu_large_pages_mask) > GAUDI3_HMMU_MAX_LARGE_PAGES_NUM) {
+		dev_err(hdev->dev, "HMMU supports at most - %u large pages (mask %#llx)\n",
+				GAUDI3_HMMU_MAX_LARGE_PAGES_NUM, hmmu_large_pages_mask);
 		return false;
 	}
 
 	/* verify the default page size is part of supported pages */
 	if (!(default_page_size | hmmu_pages_mask)) {
 		dev_err(hdev->dev,
-		"default page size not part of HMMU supported pages (size: %llx, mask %llx)\n",
+		"default page size not part of HMMU supported pages (size: %#llx, mask %#llx)\n",
 			default_page_size, hmmu_pages_mask);
 		return false;
 	}
