@@ -74,8 +74,4 @@
 
 #define NIC_HW_MAX_QP_NUM	(1 << 15) /* 32K (per nic) */
 
-#define NIC_MIN_CONN_ID		1
-
-#define NIC_MAX_CONN_ID		((1 << 10) - 1) /* 1K QPs */
-
 #endif /* GAUDI_H */

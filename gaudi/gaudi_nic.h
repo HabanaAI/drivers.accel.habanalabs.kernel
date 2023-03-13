@@ -27,6 +27,9 @@ static_assert(IS_POWER_OF_2(NIC_RX_SIZE));
 /* verify power of 2 */
 static_assert(IS_POWER_OF_2(NIC_RAW_ELEM_SIZE));
 
+#define NIC_MIN_CONN_ID		1
+#define NIC_MAX_CONN_ID		((1 << 10) - 1) /* 1K QPs */
+
 #define NIC_MAX_QP_NUM		(NIC_MAX_CONN_ID + 1)
 
 /* Number of available QPs must not exceed NIC_HW_MAX_QP_NUM */

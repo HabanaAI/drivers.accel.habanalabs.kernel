@@ -63,6 +63,9 @@ static_assert(IS_POWER_OF_2(NIC_RAW_ELEM_SIZE));
 
 #define NIC_RX_RING_PKT_NUM	(1 << 8)
 
+#define NIC_MIN_CONN_ID		1
+#define NIC_MAX_CONN_ID		((1 << 15) - 1) /* 32K QPs */
+
 #define NIC_MAX_QP_NUM		(NIC_MAX_CONN_ID + 1)
 #define NIC_MAX_GEN_QP_NUM	(NIC_MAX_QP_NUM / 2)
 #define NIC_MAX_COLL_QP_NUM	(NIC_MAX_QP_NUM - NIC_MAX_GEN_QP_NUM)
