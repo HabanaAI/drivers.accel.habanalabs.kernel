@@ -11352,7 +11352,7 @@ static void gaudi3_handle_msg_event(struct hl_device *hdev,
 	}
 }
 
-static const char * const gaudi3_get_interrupt_grp_name(u8 int_grp_type)
+static const char *gaudi3_get_interrupt_grp_name(u8 int_grp_type)
 {
 	if (int_grp_type >= INT_GRP_TYPE_MAX)
 		return "N/A";
@@ -11360,7 +11360,7 @@ static const char * const gaudi3_get_interrupt_grp_name(u8 int_grp_type)
 	return gaudi3_interrupt_grp_name[int_grp_type];
 }
 
-static const char * const gaudi3_get_interrupt_comp_name(u8 int_comp_type)
+static const char *gaudi3_get_interrupt_comp_name(u8 int_comp_type)
 {
 	if (int_comp_type >= INT_COMP_TYPE_MAX)
 		return "N/A";
@@ -11368,7 +11368,7 @@ static const char * const gaudi3_get_interrupt_comp_name(u8 int_comp_type)
 	return gaudi3_interrupt_comp_name[int_comp_type];
 }
 
-static const char * const gaudi3_get_interrupt_hdcore_name(u8 hdcore_type)
+static const char *gaudi3_get_interrupt_hdcore_name(u8 hdcore_type)
 {
 	if (hdcore_type >= INT_HDCORE_MAX)
 		return "N/A";
