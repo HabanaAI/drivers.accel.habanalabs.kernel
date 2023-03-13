@@ -7476,10 +7476,28 @@ void gaudi3_clear_hw_cap(struct hl_device *hdev, bool hard_reset)
 						HW_CAP_SET_CACHE_MODE_MASK | HW_CAP_SRAM);
 }
 
+static int gaudi3_wait_reset(struct hl_device *hdev, u32 poll_timeout_us, u32 reset_sleep_ms)
+{
+	u32 status;
+	int rc;
+
+	msleep(reset_sleep_ms);
+
+	rc = hl_poll_timeout_elbi(hdev,
+		CFG_BAR_BASE + mmD0_PCIE_WRAP_BASE + mmPCIE_WRAP_PSOC_BOOT_MNG_DONE,
+		status,
+		(status & PCIE_WRAP_PSOC_BOOT_MNG_DONE_PSOC_BOOT_MNG_DONE_M),
+		1000,
+		poll_timeout_us);
+	if (rc)
+		dev_err(hdev->dev, "Error %d while waiting for device to reset\n", rc);
+	return rc;
+}
+
 static int gaudi3_hw_fini(struct hl_device *hdev, bool hard_reset, bool fw_reset)
 {
 	struct gaudi3_device *gaudi3 = hdev->asic_specific;
-	u32 poll_timeout_us, reset_sleep_ms, status;
+	u32 poll_timeout_us, reset_sleep_ms;
 	int rc;
 
 	if (hdev->pldm) {
@@ -7529,20 +7547,9 @@ static int gaudi3_hw_fini(struct hl_device *hdev, bool hard_reset, bool fw_reset
 
 skip_reset:
 
-	msleep(reset_sleep_ms);
-
-	rc = hl_poll_timeout_elbi(
-			hdev,
-			CFG_BAR_BASE + mmD0_PCIE_WRAP_BASE + mmPCIE_WRAP_PSOC_BOOT_MNG_DONE,
-			status,
-			(status & PCIE_WRAP_PSOC_BOOT_MNG_DONE_PSOC_BOOT_MNG_DONE_M),
-			1000,
-			poll_timeout_us);
-
-	if (rc) {
-		dev_err(hdev->dev, "Error %d while waiting for device to reset\n", rc);
+	rc = gaudi3_wait_reset(hdev, poll_timeout_us, reset_sleep_ms);
+	if (rc)
 		return rc;
-	}
 
 	gaudi3_clear_hw_cap(hdev, hard_reset);
 	return 0;
