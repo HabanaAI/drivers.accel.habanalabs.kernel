@@ -256,7 +256,7 @@ void hl_odp_region_ctx_destroy(struct hl_odp_region_ctx *rg)
 }
 
 /**
- * odp_mmu_update_page_in - update PMMU with new pages available
+ * odp_mmu_update_page_in_locked - update PMMU with new pages available
  *
  * @rg: region pointer
  * @pfns: array of @npages PFNs describing the new pages
@@ -266,7 +266,7 @@ void hl_odp_region_ctx_destroy(struct hl_odp_region_ctx *rg)
  * Assuming new pages are already swapped in on the host, update the device
  * PMMU with the new page addresses.
  */
-static int odp_mmu_update_page_in(struct hl_odp_region_ctx *rg,
+static int odp_mmu_update_page_in_locked(struct hl_odp_region_ctx *rg,
 				  unsigned long *pfns, u32 start_page,
 				  u64 npages)
 {
@@ -377,7 +377,7 @@ static void odp_resolve_pfns(struct hmm_range *range)
 }
 
 /**
- * odp_mmu_update_page_out - update PMMU with removed pages
+ * odp_mmu_update_page_out_locked - update PMMU with removed pages
  *
  * @rg: region pointer
  * @start: range start
@@ -387,7 +387,7 @@ static void odp_resolve_pfns(struct hmm_range *range)
  * Returns true on successfully updating the PMMU, false on a failure for any
  * reason.
  */
-static bool odp_mmu_update_page_out(struct hl_odp_region_ctx *rg, u64 start,
+static bool odp_mmu_update_page_out_locked(struct hl_odp_region_ctx *rg, u64 start,
 				    u64 npages)
 {
 	struct hl_device *hdev = rg->ctx->hdev;
@@ -535,7 +535,7 @@ again:
 
 	odp_resolve_pfns(&range);
 
-	rc = odp_mmu_update_page_in(rg, pfns, start_page, npages);
+	rc = odp_mmu_update_page_in_locked(rg, pfns, start_page, npages);
 
 	kfree(pfns);
 
@@ -580,7 +580,7 @@ static bool odp_invalidate_handler(struct mmu_interval_notifier *notifier,
 
 	mmu_interval_set_seq(notifier, cur_seq);
 
-	res = odp_mmu_update_page_out(rg, start, npages);
+	res = odp_mmu_update_page_out_locked(rg, start, npages);
 
 	mutex_unlock(&hdev->mmu_lock);
 	return res;
