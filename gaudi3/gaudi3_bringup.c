@@ -2707,7 +2707,7 @@ static void gaudi3_execute_hard_reset_no_fw(struct hl_device *hdev)
 	WREG32(mmD0_PSOC_GLOBAL_CONF_BASE + mmGLOBAL_CONF_BOOT_SEQ_RE_START, 0x770);
 }
 
-void gaudi3_execute_reset_no_fw(struct hl_device *hdev, u32 reset_sleep_ms, bool hard_reset)
+void gaudi3_execute_reset_no_fw(struct hl_device *hdev, bool hard_reset)
 {
 	u32 d0_reset_reg;
 
@@ -2730,8 +2730,7 @@ void gaudi3_execute_reset_no_fw(struct hl_device *hdev, u32 reset_sleep_ms, bool
 
 	WREG32(d0_reset_reg, 0x1);
 
-	dev_dbg(hdev->dev, "Driver issued %s reset command, sleeping %ums\n",
-					hard_reset ? "HARD" : "SOFT", reset_sleep_ms);
+	dev_dbg(hdev->dev, "Driver issued %s reset command\n", hard_reset ? "HARD" : "SOFT");
 }
 
 void gaudi3_enable_interrupt_aggr_msgs(struct hl_device *hdev)

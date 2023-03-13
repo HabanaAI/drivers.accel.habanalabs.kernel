@@ -7437,37 +7437,35 @@ void gaudi3_send_hard_reset_cmd(struct hl_device *hdev)
  * gaudi3_execute_hard_reset - execute hard reset by driver/FW
  *
  * @hdev: pointer to the habanalabs device structure
- * @reset_sleep_ms: sleep time in msec after reset
  *
  * This function executes hard reset based on if driver/FW should do the reset
  */
-static void gaudi3_execute_hard_reset(struct hl_device *hdev, u32 reset_sleep_ms)
+static void gaudi3_execute_hard_reset(struct hl_device *hdev)
 {
 	if (!hdev->asic_prop.hard_reset_done_by_fw) {
-		gaudi3_execute_reset_no_fw(hdev, reset_sleep_ms, true);
+		gaudi3_execute_reset_no_fw(hdev, true);
 		return;
 	}
 
 	gaudi3_send_hard_reset_cmd(hdev);
-	dev_dbg(hdev->dev, "Firmware performs HARD reset, sleeping %ums\n", reset_sleep_ms);
+	dev_dbg(hdev->dev, "Firmware performs HARD reset\n");
 }
 
 /**
  * gaudi3_execute_soft_reset - execute soft reset by driver/FW
  *
  * @hdev: pointer to the habanalabs device structure
- * @reset_sleep_ms: sleep time in msec after reset
  *
  * This function executes soft reset based on if driver/FW should do the reset
  */
-static void gaudi3_execute_soft_reset(struct hl_device *hdev, u32 reset_sleep_ms)
+static void gaudi3_execute_soft_reset(struct hl_device *hdev)
 {
 	/*
 	 * TODO: Enable firmware soft reset when gaudi3_irq_map_table is added.
 	 * for now, only soft reset by driver is supported
 	 */
 
-	gaudi3_execute_reset_no_fw(hdev, reset_sleep_ms, false);
+	gaudi3_execute_reset_no_fw(hdev, false);
 }
 
 void gaudi3_clear_hw_cap(struct hl_device *hdev, bool hard_reset)
@@ -7497,6 +7495,7 @@ static int gaudi3_wait_reset(struct hl_device *hdev, u32 poll_timeout_us, u32 re
 	u32 status;
 	int rc;
 
+	dev_dbg(hdev->dev, "Wait %u ms after reset\n", reset_sleep_ms);
 	msleep(reset_sleep_ms);
 
 	rc = hl_poll_timeout_elbi(hdev,
@@ -7557,9 +7556,9 @@ static int gaudi3_hw_fini(struct hl_device *hdev, bool hard_reset, bool fw_reset
 	gaudi3_page_fault_queue_fini(hdev);
 
 	if (hard_reset)
-		gaudi3_execute_hard_reset(hdev, reset_sleep_ms);
+		gaudi3_execute_hard_reset(hdev);
 	else
-		gaudi3_execute_soft_reset(hdev, reset_sleep_ms);
+		gaudi3_execute_soft_reset(hdev);
 
 skip_reset:
 

@@ -839,7 +839,7 @@ void gaudi3_reset_arc(struct hl_device *hdev, u32 cpu_id);
 void gaudi3_hw_init_fw_config(struct hl_device *hdev);
 void gaudi3_fabric_serialization_init_fw_config(struct hl_device *hdev);
 void gaudi3_fabric_serialization_fini_fw_config(struct hl_device *hdev);
-void gaudi3_execute_reset_no_fw(struct hl_device *hdev, u32 reset_sleep_ms, bool hard_reset);
+void gaudi3_execute_reset_no_fw(struct hl_device *hdev, bool hard_reset);
 void gaudi3_handle_axi_drain(struct hl_device *hdev, bool *pci_link_error);
 void gaudi3_enable_interrupt_aggr_msgs(struct hl_device *hdev);
 irqreturn_t hl_pldm_irq_handler(int irq, void *arg);
