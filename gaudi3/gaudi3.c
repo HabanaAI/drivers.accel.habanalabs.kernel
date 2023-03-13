@@ -11418,12 +11418,58 @@ static void gaudi3_handle_cs_sei_err(struct hl_device *hdev, u16 data_size,
 	gaudi3_err_cause_iterator(hdev, err_msk, gaudi3_cs_sei_err_cause, "CS", "SEI");
 }
 
+static int gaudi3_validate_eq_agg_header(struct hl_device *hdev,
+						struct hl_agg_eq_header *agg_hdr)
+{
+	struct asic_fixed_properties *prop = &hdev->asic_prop;
+
+	if (agg_hdr->int_grp_type >= INT_GRP_TYPE_MAX) {
+		dev_err_ratelimited(hdev->dev,
+					"eq_agg_header: interrupt group type %u is invalid\n",
+					agg_hdr->int_grp_type);
+		return -EINVAL;
+	}
+
+	if (agg_hdr->int_comp_type >= INT_COMP_TYPE_MAX) {
+		dev_err_ratelimited(hdev->dev,
+					"eq_agg_header: interrupt component type %u is invalid\n",
+					agg_hdr->int_comp_type);
+		return -EINVAL;
+	}
+
+	if (agg_hdr->die_id >= prop->num_of_dies) {
+		dev_err_ratelimited(hdev->dev, "eq_agg_header: die id %u is invalid\n",
+					agg_hdr->die_id);
+		return -EINVAL;
+	}
+
+	if (agg_hdr->hdcore_type >= INT_HDCORE_MAX) {
+		dev_err_ratelimited(hdev->dev, "eq_agg_header: hdcore type %u is invalid\n",
+					agg_hdr->hdcore_type);
+		return -EINVAL;
+	}
+
+	/* Max possible instance value is 8 and it is for TPC */
+	if (agg_hdr->comp_instance >= NUM_HDCORE0_TPC) {
+		dev_err_ratelimited(hdev->dev, "eq_agg_header: component instance %u is invalid\n",
+					agg_hdr->comp_instance);
+		return -EINVAL;
+	}
+
+	return 0;
+}
+
 static void gaudi3_handle_sei_event(struct hl_device *hdev,
 				struct hl_eq_dynamic_entry *eq_dynamic_entry, u64 *event_mask)
 {
 	u16 data_size = le16_to_cpu(eq_dynamic_entry->hdr.size);
 	enum hl_agg_component_type agg_component_type;
 	u32 die, hdcore = 0, instance;
+	int rc;
+
+	rc = gaudi3_validate_eq_agg_header(hdev, &eq_dynamic_entry->agg_hdr);
+	if (rc)
+		return;
 
 	agg_component_type = eq_dynamic_entry->agg_hdr.int_comp_type;
 	die = eq_dynamic_entry->agg_hdr.die_id;
@@ -11464,6 +11510,11 @@ static void gaudi3_handle_spi_event(struct hl_device *hdev,
 	u16 data_size = le16_to_cpu(eq_dynamic_entry->hdr.size);
 	enum hl_agg_component_type agg_component_type;
 	u32 die, hdcore = 0, instance;
+	int rc;
+
+	rc = gaudi3_validate_eq_agg_header(hdev, &eq_dynamic_entry->agg_hdr);
+	if (rc)
+		return;
 
 	agg_component_type = eq_dynamic_entry->agg_hdr.int_comp_type;
 	die = eq_dynamic_entry->agg_hdr.die_id;
