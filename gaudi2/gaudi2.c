@@ -8761,15 +8761,7 @@ static void gaudi2_ack_module_razwi_event_handler(struct hl_device *hdev,
 	switch (module) {
 	case RAZWI_TPC:
 		hbw_rtr_id = gaudi2_tpc_initiator_hbw_rtr_id[module_idx];
-
-		/* TODO : remove this check and depend only on tpc routers table
-		 * when SW-118828 is resolved
-		 */
-		if (!hdev->asic_prop.fw_security_enabled &&
-				((module_idx == 0) || (module_idx == 1)))
-			lbw_rtr_id = DCORE0_RTR0;
-		else
-			lbw_rtr_id = gaudi2_tpc_initiator_lbw_rtr_id[module_idx];
+		lbw_rtr_id = gaudi2_tpc_initiator_lbw_rtr_id[module_idx];
 		sprintf(initiator_name, "TPC_%u", module_idx);
 		break;
 	case RAZWI_MME:
