@@ -301,7 +301,7 @@ static int nic_qp_op_2qpd(struct hl_nic_port *nic_port, struct hl_qp *qp, void *
 		nic_qp_invalidate(nic_port, qp, false, drain->wait_for_idle);
 		break;
 	case NIC_QP_STATE_RTS:
-		/* In RTD both the Resp and Req are working */
+		/* In RTS both the Resp and Req are working */
 		nic_qp_op_rts_2sqd(nic_port, qp, attr);
 		nic_qp_invalidate(nic_port, qp, false, drain->wait_for_idle);
 		break;
