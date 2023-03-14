@@ -265,9 +265,6 @@ static_assert(NIC_MAX_CCQS_NUM <= NIC_DRV_MAX_CCQS_NUM);
 #define GAUDI2_SOB_INCREMENT_BY_ONE	(FIELD_PREP(DCORE0_SYNC_MNGR_OBJS_SOB_OBJ_VAL_MASK, 1) | \
 					FIELD_PREP(DCORE0_SYNC_MNGR_OBJS_SOB_OBJ_INC_MASK, 1))
 
-/* TODO: remove when a unified size value is added to H/W events and virtual events */
-#define GAUDI2_EVENT_SIZE_OLD		(GAUDI2_EVENT_ARC_DCCM_FULL_OLD + 1)
-
 /* make sure generic event buffer is always larger than h/w specific buffer */
 static_assert(sizeof(struct hl_nic_eqe) >= NIC_RAW_EQE_SIZE);
 
