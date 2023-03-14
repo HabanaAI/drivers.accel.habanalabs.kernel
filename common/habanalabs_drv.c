@@ -17,6 +17,9 @@
 #include <linux/aer.h>
 #include <linux/module.h>
 #include <linux/kthread.h>
+#ifdef _HAS_SCHED_CLOCK_H
+#include <linux/sched/clock.h>
+#endif
 
 #define CREATE_TRACE_POINTS
 #include <trace/events/habanalabs.h>

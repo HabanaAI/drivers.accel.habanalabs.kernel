@@ -498,3 +498,7 @@ endif
 ifneq ($(shell grep "enum rdma_nldev_print_type" $(IB_PATH)/include/uapi/rdma/rdma_netlink.h > /dev/null 2>&1 && echo 1),)
 	ccflags-y += -D_HAS_ENUM_RDMA_NLDEV_PRINT_TYPE
 endif
+
+ifneq ($(shell ls linux/sched/clock.h > /dev/null 2>&1 && echo 1),)
+	ccflags-y += -D_HAS_SCHED_CLOCK_H
+endif
