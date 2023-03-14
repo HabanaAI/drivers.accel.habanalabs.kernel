@@ -2819,7 +2819,7 @@ static int gaudi3_validate_set_tpc_binning(struct hl_device *hdev)
 		if (!dcore_tpc_binning_mask)
 			continue;
 
-		num_binned = __ffs((unsigned long)dcore_tpc_binning_mask);
+		num_binned = hweight64(dcore_tpc_binning_mask);
 		if (num_binned > MAX_BINNED_TPCS_PER_DCORE) {
 			dev_err(hdev->dev, "too many binned TPCs (%#llx)\n", hdev->tpc_binning);
 			return -EINVAL;
@@ -2867,7 +2867,7 @@ static int gaudi3_validate_set_decoder_binning(struct hl_device *hdev)
 			continue;
 		}
 
-		num_binned = __ffs((unsigned long)die_decoder_binning_mask);
+		num_binned = hweight64(die_decoder_binning_mask);
 		if (num_binned > MAX_BINNED_DECODERS_PER_DIE) {
 			dev_err(hdev->dev, "too many binned decoders (%#x)\n",
 							hdev->decoder_binning);
@@ -2916,7 +2916,7 @@ static int gaudi3_validate_set_rotator_binning(struct hl_device *hdev)
 			continue;
 		}
 
-		num_binned = __ffs((unsigned long)die_rotator_binning_mask);
+		num_binned = hweight64(die_rotator_binning_mask);
 		if (num_binned > MAX_BINNED_ROTATORS_PER_DIE) {
 			dev_err(hdev->dev, "too many binned rotators (%#x)\n",
 							hdev->rotator_binning);
