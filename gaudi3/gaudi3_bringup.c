@@ -2348,8 +2348,7 @@ static void gaudi3_dtlb_init(struct hl_device *hdev, int block, int inst, u32 of
 
 	/*
 	 * set HBM params: single HBM memory size and number of HBMs
-	 * TODO: this should be modified if we have HBM binning. In addition,
-	 * this is RMW to avoid overriding the value in DCORE0_HAS_*HBM field
+	 * This RMW is to avoid overriding the value in DCORE0_HAS_*HBM field
 	 * written by FW in the binning phase.
 	 */
 	RMWREG32_SHIFTED(offset + mmDTLB_HBM_CONF,
