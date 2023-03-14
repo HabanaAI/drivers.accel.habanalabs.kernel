@@ -1611,6 +1611,9 @@ void hl_nic_stop(struct hl_device *hdev)
 
 	hl_nic_internal_ports_fini(hdev);
 	hl_nic_core_fini(hdev);
+
+	/* Set NIC as not initialized. */
+	nic_funcs->set_hw_cap(hdev, false);
 }
 
 void hl_nic_hard_reset_prepare(struct hl_device *hdev)
@@ -5707,7 +5710,7 @@ void hl_nic_ctx_fini(struct hl_ctx *ctx)
 
 	if (ctx->asid == HL_KERNEL_ASID_ID) {
 		nic_funcs->kernel_ctx_fini(ctx);
-	} else if (nic_funcs->get_hw_cap(hdev)) {
+	} else {
 		qps_destroy(hdev);
 		user_cqs_destroy(hdev, ctx);
 		wq_arrs_destroy(hdev, ctx);
