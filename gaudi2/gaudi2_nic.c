@@ -30,6 +30,8 @@
 #define GAUDI2_NIC_MAX_CONG_WND			(1 << 23)
 #define GAUDI2_NIC_MAX_SPEED			SPEED_100000
 
+#define RETRY_COUNT_QPC_SANITY			10
+
 /* This static assert guarantees that we can't overflow the PSN window within a timer period,
  * meaning that it needs to ensure that the time it takes to transmit the total amount of bits of
  * all packets is greater than the timeout value. note that we take the "worst case" values, i.e.
@@ -4596,7 +4598,7 @@ static void __qpc_sanity_check(struct gaudi2_nic_port *gaudi2_nic, u32 qpn)
 	struct qpc_mask qpc_mask = {};
 	u32 ona_psn, nts_psn, in_work, bcs_psn, bcc_psn, rem_pi, ona_rem_pi,
 	    consumer_idx, execution_idx, is_valid, port, wq_type;
-	int retry_cnt = 0;
+	int retry_cnt_in_work = 0, retry_cnt_qpc_timeout = 0;
 	int rc;
 
 	nic_port = gaudi2_nic->nic_port;
@@ -4612,10 +4614,25 @@ retry:
 	}
 
 	is_valid = REQ_QPC_GET_VALID(req_qpc);
-	/* Sanity check should be applied only for: WRITE/READ(RDV)/recv-RDV QPs. */
-	wq_type = REQ_QPC_GET_WQ_TYPE(req_qpc);
-	if (!is_valid || wq_type != QPC_REQ_WQ_TYPE_WRITE)
+	if (!is_valid)
 		return;
+
+	/* When the timeout retry counter is non zero, an ack could potentially arrive and increase
+	 * ONA, after QPC was read.
+	 */
+	if (REQ_QPC_GET_TIMEOUT_RETRY_COUNT(req_qpc)) {
+		if (retry_cnt_qpc_timeout < RETRY_COUNT_QPC_SANITY) {
+			dev_dbg(hdev->dev, "QPC timeout retry count > 0, trying again #%d\n",
+				retry_cnt_qpc_timeout);
+			usleep_range(1000, 1500);
+			retry_cnt_qpc_timeout++;
+			goto retry;
+		} else {
+			dev_dbg(hdev->dev, "Can't apply fix. QPC timeout retry count > 0, after %d QPC reads",
+						retry_cnt_qpc_timeout);
+			return;
+		}
+	}
 
 	in_work = REQ_QPC_GET_IN_WORK(req_qpc);
 
@@ -4631,35 +4648,41 @@ retry:
 	rem_pi = REQ_QPC_GET_REMOTE_PRODUCER_IDX(req_qpc);
 	ona_rem_pi = REQ_QPC_GET_OLDEST_UNACKED_REMOTE_PRODUCER_IDX(req_qpc);
 
+	wq_type = REQ_QPC_GET_WQ_TYPE(req_qpc);
+
 	/*
 	 * We hit the HW bug. Unacknowledged PSN can never be greater than next
 	 * PSN to be sent out.
 	 */
 	if (NIC_IS_PSN_CYCLIC_BIG(ona_psn, nts_psn)) {
 		struct hl_nic_eqe eqe;
-		dev_info(hdev->dev, "Port %d QP %d in limited state. Applying fix.\n", port, qpn);
 
 		dev_dbg(hdev->dev, "ona_psn(%d) nts_psn(%d), bcc_psn(%d) bcs_psn(%d), consumer_idx(%d) execution_idx(%d). Retry_cnt %d\n",
-			ona_psn, nts_psn, bcc_psn, bcs_psn, consumer_idx, execution_idx, retry_cnt);
+			ona_psn, nts_psn, bcc_psn, bcs_psn, consumer_idx, execution_idx,
+			retry_cnt_in_work);
 
 		/* Wait till HW stops working on QPC. */
-		if (in_work && retry_cnt < 5) {
-			msleep(100);
-			retry_cnt++;
+		if (in_work && retry_cnt_in_work < RETRY_COUNT_QPC_SANITY) {
+			usleep_range(1000, 1500);
+			retry_cnt_in_work++;
 			goto retry;
 		}
+
+		dev_info(hdev->dev, "Port %d QP %d in limited state. Applying fix.\n", port, qpn);
 
 		/* Force update QPC fields. */
 
 		REQ_QPC_SET_NTS_PSN(qpc_mask, 0xffffff);
 		REQ_QPC_SET_BCS_PSN(qpc_mask, 0xffffff);
 		REQ_QPC_SET_EXECUTION_IDX(qpc_mask, 0x3fffff);
-		REQ_QPC_SET_REMOTE_PRODUCER_IDX(qpc_mask, 0x3fffff);
+		if (wq_type == QPC_REQ_WQ_TYPE_WRITE)
+			REQ_QPC_SET_REMOTE_PRODUCER_IDX(qpc_mask, 0x3fffff);
 
 		REQ_QPC_SET_NTS_PSN(req_qpc, ona_psn);
 		REQ_QPC_SET_BCS_PSN(req_qpc, bcc_psn);
 		REQ_QPC_SET_EXECUTION_IDX(req_qpc, consumer_idx);
-		REQ_QPC_SET_REMOTE_PRODUCER_IDX(req_qpc, ona_rem_pi);
+		if (wq_type == QPC_REQ_WQ_TYPE_WRITE)
+			REQ_QPC_SET_REMOTE_PRODUCER_IDX(req_qpc, ona_rem_pi);
 
 		rc = gaudi2_nic_qpc_write_masked(nic_port, (void *) &req_qpc, &qpc_mask,
 								qpn, true, true);
