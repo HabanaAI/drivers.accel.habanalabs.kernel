@@ -200,7 +200,7 @@ static int nic_mem_buf_mmap(struct hl_mmap_mem_buf *buf,
 		rc = hdev->asic_funcs->mmap(hdev, vma, mem->kernel_address,
 						mem->bus_address, buf->mappable_size);
 	} else if (mem->mem_id == HL_NIC_DRV_MEM_HOST_VIRTUAL) {
-		vma->vm_flags |= VM_DONTEXPAND | VM_DONTDUMP | VM_DONTCOPY | VM_NORESERVE;
+		vm_flags_set(vma, VM_DONTEXPAND | VM_DONTDUMP | VM_DONTCOPY | VM_NORESERVE);
 
 		rc = remap_vmalloc_range(vma, mem->kernel_address, 0);
 	}

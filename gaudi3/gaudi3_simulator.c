@@ -1265,8 +1265,7 @@ static int gaudi3_sim_mmap(struct hl_device *hdev,
 {
 	int rc;
 
-	vma->vm_flags |= VM_DONTEXPAND | VM_DONTDUMP | VM_DONTCOPY |
-			VM_NORESERVE;
+	vm_flags_set(vma, VM_DONTEXPAND | VM_DONTDUMP | VM_DONTCOPY | VM_NORESERVE);
 
 	rc = remap_vmalloc_range(vma, cpu_addr, 0);
 	if (rc)

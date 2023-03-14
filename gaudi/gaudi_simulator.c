@@ -241,8 +241,7 @@ static int gaudi_simulator_mmap(struct file *filp, struct vm_area_struct *vma)
 
 	*address_to_update = vma->vm_start;
 
-	vma->vm_flags |= VM_DONTEXPAND | VM_DONTDUMP | VM_DONTCOPY |
-			VM_NORESERVE;
+	vm_flags_set(vma, VM_DONTEXPAND | VM_DONTDUMP | VM_DONTCOPY | VM_NORESERVE);
 
 	dev_dbg(edev->dev, "  user address   == 0x%08lx\n",
 		vma->vm_start);
@@ -1417,8 +1416,7 @@ static int gaudi_sim_mmap(struct hl_device *hdev, struct vm_area_struct *vma,
 {
 	int rc;
 
-	vma->vm_flags |= VM_DONTEXPAND | VM_DONTDUMP | VM_DONTCOPY |
-			VM_NORESERVE;
+	vm_flags_set(vma, VM_DONTEXPAND | VM_DONTDUMP | VM_DONTCOPY | VM_NORESERVE);
 
 	rc = remap_vmalloc_range(vma, cpu_addr, 0);
 	if (rc)

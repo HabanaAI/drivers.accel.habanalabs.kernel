@@ -502,3 +502,7 @@ endif
 ifneq ($(shell ls linux/sched/clock.h > /dev/null 2>&1 && echo 1),)
 	ccflags-y += -D_HAS_SCHED_CLOCK_H
 endif
+
+ifneq ($(shell grep "vm_flags_set" include/linux/mm.h > /dev/null 2>&1 && echo 1),)
+	ccflags-y += -D_HAS_VM_FLAGS_SET
+endif
