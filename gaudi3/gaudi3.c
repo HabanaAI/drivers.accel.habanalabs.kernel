@@ -4385,7 +4385,8 @@ static bool gaudi3_pb_block_skip_with_mask(struct hl_device *hdev,
 			return false;
 		break;
 	default:
-		/* TODO - uncomment once all block types are fully handled here:
+		/* TODO - uncomment once SW-104756 is resolved, and all block-types
+		 * are fully handled here:
 		 * dev_err(hdev->dev, "Block type %d isn't currently supported!\n",
 		 *		block_info->block_type);
 		 */
