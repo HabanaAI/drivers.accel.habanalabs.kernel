@@ -9391,6 +9391,12 @@ int gaudi3_test_queues(struct hl_device *hdev)
 {
 	int rc = 0, i;
 
+	/* TODO: used for debug, so can be removed once H9-5315 is resolved.
+	 * The reset value is 0x3, and we force 0x2 (turn off bit 0)
+	 * as there's a PLDM trigger expecting this change to take place.
+	 */
+	WREG32(mmD0_NRTR0_CRDT_RRTR_OB_CRDT_BASE + mmNRTR_CRDT_RRTR_OB_CRDT_CRDT_EN, 0x2);
+
 	dev_dbg(hdev->dev, "Testing PDMA access on %u channels\n", hdev->asic_prop.pdma_ch_max);
 
 	for (i = 0 ; i < hdev->asic_prop.pdma_ch_max ; i++)
@@ -9402,6 +9408,9 @@ int gaudi3_test_queues(struct hl_device *hdev)
 	rc = gaudi3_test_kdma_access(hdev);
 	if (rc)
 		return rc;
+
+	/* TODO: used for debug, so can be removed once H9-5315 is resolved */
+	WREG32(mmD0_NRTR0_CRDT_RRTR_OB_CRDT_BASE + mmNRTR_CRDT_RRTR_OB_CRDT_CRDT_EN, 0x3);
 
 	rc = gaudi3_test_qmans(hdev);
 	if (rc)
