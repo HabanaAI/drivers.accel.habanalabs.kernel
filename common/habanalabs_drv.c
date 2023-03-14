@@ -461,7 +461,7 @@ MODULE_PARM_DESC(bfe_debug_wreg, "Debug all writes to registers (0 = no, 1 = yes
 
 module_param(bfe_sched_arc_mask, ulong, 0444);
 MODULE_PARM_DESC(bfe_sched_arc_mask,
-	"Scheduler arcs mask relevant for Gaudi3, 1 bit per scheduler arc (0 = none, default: All Enabled)");
+	"Scheduler arcs mask relevant for Gaudi2 or later, 1 bit per scheduler arc (0 = none, default: All Enabled)");
 
 module_param(bfe_enable_odp, int, 0444);
 MODULE_PARM_DESC(bfe_enable_odp,
@@ -1184,7 +1184,7 @@ static void set_driver_behavior_per_device(struct hl_device *hdev)
 		hdev->scrub_arc_dccm = 0;
 		hdev->axi_drain = AXI_DRAIN_SKIP;
 		hdev->fw_communication_enable = 1;
-		hdev->sched_arc_mask = 0;
+		hdev->sched_arc_mask = 0x3F;
 		hdev->rotator_mask = 0x3;
 		hdev->use_8_bit_hops = 0;
 		hdev->priv_security_enable = 1;
@@ -1213,7 +1213,7 @@ static void set_driver_behavior_per_device(struct hl_device *hdev)
 		hdev->scrub_arc_dccm = 1;
 		hdev->axi_drain = AXI_DRAIN_SKIP;
 		hdev->fw_communication_enable = 1;
-		hdev->sched_arc_mask = 0;
+		hdev->sched_arc_mask = 0x3F;
 		hdev->rotator_mask = 0x3;
 		hdev->use_8_bit_hops = 0;
 		hdev->priv_security_enable = 1;
@@ -1242,7 +1242,7 @@ static void set_driver_behavior_per_device(struct hl_device *hdev)
 		hdev->scrub_arc_dccm = 1;
 		hdev->axi_drain = AXI_DRAIN_SKIP;
 		hdev->fw_communication_enable = 1;
-		hdev->sched_arc_mask = 0;
+		hdev->sched_arc_mask = 0x3F;
 		hdev->rotator_mask = 0x3;
 		hdev->use_8_bit_hops = 0;
 		hdev->priv_security_enable = 0;
@@ -1270,7 +1270,7 @@ static void set_driver_behavior_per_device(struct hl_device *hdev)
 		hdev->scrub_arc_dccm = 0;
 		hdev->axi_drain = AXI_DRAIN_SKIP;
 		hdev->fw_communication_enable = 1;
-		hdev->sched_arc_mask = 0;
+		hdev->sched_arc_mask = 0x3F;
 		hdev->rotator_mask = 0x0;
 		hdev->use_8_bit_hops = 0;
 		hdev->priv_security_enable = 0;
