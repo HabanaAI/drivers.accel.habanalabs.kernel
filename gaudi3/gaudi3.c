@@ -2835,7 +2835,7 @@ static int gaudi3_validate_set_tpc_binning(struct hl_device *hdev)
 
 static int gaudi3_validate_set_decoder_binning(struct hl_device *hdev)
 {
-	u64 decoder_full_mask, die_decoder_full_mask, die_decoder_binning_mask;
+	u32 decoder_full_mask, die_decoder_full_mask, die_decoder_binning_mask;
 	struct asic_fixed_properties *prop = &hdev->asic_prop;
 	u8 i, num_die_decoders, num_binned;
 
@@ -2846,7 +2846,7 @@ static int gaudi3_validate_set_decoder_binning(struct hl_device *hdev)
 		return 0;
 	}
 
-	decoder_full_mask = GENMASK_ULL((prop->num_of_hdcores * NUM_OF_DECODER_PER_HDCORE) - 1, 0);
+	decoder_full_mask = GENMASK((prop->num_of_hdcores * NUM_OF_DECODER_PER_HDCORE) - 1, 0);
 
 	if (hdev->decoder_mask != decoder_full_mask) {
 		dev_err(hdev->dev,
@@ -2867,7 +2867,7 @@ static int gaudi3_validate_set_decoder_binning(struct hl_device *hdev)
 			continue;
 		}
 
-		num_binned = hweight64(die_decoder_binning_mask);
+		num_binned = hweight32(die_decoder_binning_mask);
 		if (num_binned > MAX_BINNED_DECODERS_PER_DIE) {
 			dev_err(hdev->dev, "too many binned decoders (%#x)\n",
 							hdev->decoder_binning);
@@ -2916,7 +2916,7 @@ static int gaudi3_validate_set_rotator_binning(struct hl_device *hdev)
 			continue;
 		}
 
-		num_binned = hweight64(die_rotator_binning_mask);
+		num_binned = hweight32(die_rotator_binning_mask);
 		if (num_binned > MAX_BINNED_ROTATORS_PER_DIE) {
 			dev_err(hdev->dev, "too many binned rotators (%#x)\n",
 							hdev->rotator_binning);
