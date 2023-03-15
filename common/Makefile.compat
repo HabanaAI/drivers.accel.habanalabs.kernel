@@ -267,11 +267,11 @@ ifneq ($(shell grep "__poll_t" include/uapi/linux/types.h > /dev/null 2>&1 && ec
 	ccflags-y += -D_HAS_POLL_T
 endif
 
-ifneq ($(shell grep "hmm_range_fault" include/linux/hmm.h | grep "flags" > /dev/null 2>&1 && echo 1),)
+ifneq ($(shell (grep "hmm_range_fault" include/linux/hmm.h | grep "flags") > /dev/null 2>&1 && echo 1),)
 	ccflags-y += -D_HAS_HMM_RANGE_FAULT_FLAGS
 endif
 
-ifneq ($(shell grep -A 5 "struct hmm_range" include/linux/hmm.h | grep "hmm_pfns" > /dev/null 2>&1 && echo 1),)
+ifneq ($(shell (grep -A 5 "struct hmm_range" include/linux/hmm.h | grep "hmm_pfns") > /dev/null 2>&1 && echo 1),)
 	ccflags-y += -D_HAS_HMM_RANGE_HMM_PFNS
 endif
 
@@ -279,11 +279,11 @@ ifneq ($(shell grep "mmu_interval_read_begin" include/linux/mmu_notifier.h > /de
 	ccflags-y += -D_HAS_MMU_INTERVAL_READ_BEGIN
 endif
 
-ifneq ($(shell grep -A10 "struct hmm_range {" include/linux/hmm.h | grep notifier > /dev/null 2>&1 && echo 1),)
+ifneq ($(shell (grep -A10 "struct hmm_range {" include/linux/hmm.h | grep notifier) > /dev/null 2>&1 && echo 1),)
 	ccflags-y += -D_HAS_HMM_RANGE_INTERVAL_NOTIFIER
 endif
 
-ifneq ($(shell grep -A10 "struct hmm_range {" include/linux/hmm.h | grep '\*flags' > /dev/null 2>&1 && echo 1),)
+ifneq ($(shell (grep -A10 "struct hmm_range {" include/linux/hmm.h | grep '\*flags') > /dev/null 2>&1 && echo 1),)
 	ccflags-y += -D_HAS_MMU_RANGE_FLAGS
 endif
 
