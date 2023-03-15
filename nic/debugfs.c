@@ -1278,8 +1278,6 @@ static ssize_t debugfs_##X##_write(struct file *f, \
 { \
 	struct hl_device *hdev = file_inode(f)->i_private; \
 	struct hl_nic *nic = &hdev->nic; \
-	struct hl_aux_dev *aux_dev = &nic->en_aux_dev; \
-	struct hl_en_aux_ops *aux_ops = aux_dev->aux_ops; \
 	u64 val, base; \
 	ssize_t ret; \
 	int rc; \
@@ -1313,16 +1311,9 @@ static ssize_t debugfs_##X##_write(struct file *f, \
 \
 	nic->X = val; \
 \
-	rc = hl_nic_core_init(hdev); \
+	rc = hl_nic_reopen(hdev); \
 	if (rc) \
-		dev_err(hdev->dev, "Failed to init NIC core, %d\n", rc); \
-\
-	rc = hl_nic_internal_ports_init(hdev); \
-	if (rc) \
-		dev_err(hdev->dev, "Failed to init NIC internal ports, %d\n", rc);\
-\
-	if (aux_ops->ports_reopen) \
-		aux_ops->ports_reopen(aux_dev); \
+		dev_err(hdev->dev, "Failed to init NIC, %d\n", rc); \
 \
 	dev_info(hdev->dev, "NIC reset for %s finished\n", __stringify(X)); \
 \
