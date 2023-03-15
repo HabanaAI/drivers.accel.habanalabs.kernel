@@ -4609,6 +4609,31 @@ static int gaudi3_cpucp_info_get(struct hl_device *hdev)
 	return rc;
 }
 
+int gaudi3_page_fault_queue_sw_init(struct hl_device *hdev)
+{
+	struct gaudi3_device *gaudi3 = hdev->asic_specific;
+	struct hl_page_fault_queue *page_fault_queue = &gaudi3->page_fault_queue;
+
+	page_fault_queue->back_ptr = hdev;
+	page_fault_queue->size = GAUDI3_PAGE_FAULT_QUEUE_SIZE;
+	page_fault_queue->host_virt = hl_asic_dma_alloc_coherent(hdev, page_fault_queue->size,
+									&page_fault_queue->host_dma,
+									GFP_KERNEL | __GFP_ZERO);
+	if (!page_fault_queue->host_virt)
+		return -ENOMEM;
+
+	return 0;
+}
+
+void gaudi3_page_fault_queue_sw_fini(struct hl_device *hdev)
+{
+	struct gaudi3_device *gaudi3 = hdev->asic_specific;
+	struct hl_page_fault_queue *page_fault_queue = &gaudi3->page_fault_queue;
+
+	hl_asic_dma_free_coherent(hdev, page_fault_queue->size,
+		page_fault_queue->host_virt, page_fault_queue->host_dma);
+}
+
 int gaudi3_sw_init(struct hl_device *hdev)
 {
 	struct gaudi3_device *gaudi3;
@@ -4682,8 +4707,14 @@ int gaudi3_sw_init(struct hl_device *hdev)
 	if (rc)
 		goto etr_sw_fini;
 
+	rc = gaudi3_page_fault_queue_sw_init(hdev);
+	if (rc)
+		goto special_blocks_fini;
+
 	return 0;
 
+special_blocks_fini:
+	gaudi3_special_blocks_iterator_free(hdev);
 etr_sw_fini:
 	gaudi3_etr_buf_store_sw_fini(hdev);
 nic_sw_fini:
@@ -4704,6 +4735,8 @@ free_gaudi3_device:
 int gaudi3_sw_fini(struct hl_device *hdev)
 {
 	struct gaudi3_device *gaudi3 = hdev->asic_specific;
+
+	gaudi3_page_fault_queue_sw_fini(hdev);
 
 	gaudi3_special_blocks_iterator_free(hdev);
 
@@ -5962,7 +5995,7 @@ static bool gaudi3_deserialize_page_fault_queue_entry(struct hl_device *hdev,
 	return out->is_valid;
 }
 
-int gaudi3_page_fault_queue_init(struct hl_device *hdev)
+int gaudi3_page_fault_queue_hw_init(struct hl_device *hdev)
 {
 	enum gaudi3_irq_num irq_nr = GAUDI3_IRQ_NUM_PAGE_FAULT_0;
 	struct gaudi3_device *gaudi3 = hdev->asic_specific;
@@ -5973,18 +6006,6 @@ int gaudi3_page_fault_queue_init(struct hl_device *hdev)
 
 	if (gaudi3->hw_cap_initialized & HW_CAP_PFQ)
 		return 0;
-
-	page_fault_queue->back_ptr = hdev;
-
-	/* First, allocate the memory for the queue */
-
-	page_fault_queue->size = GAUDI3_PAGE_FAULT_QUEUE_SIZE;
-
-	page_fault_queue->host_virt = hl_asic_dma_alloc_coherent(hdev, page_fault_queue->size,
-									&page_fault_queue->host_dma,
-									GFP_KERNEL | __GFP_ZERO);
-	if (!page_fault_queue->host_virt)
-		return -ENOMEM;
 
 	/* Now, just start initializing the queue */
 
@@ -6008,21 +6029,6 @@ int gaudi3_page_fault_queue_init(struct hl_device *hdev)
 	/* TODO: some MSIX configuration to aggregate multiple page faults into one */
 
 	return 0;
-}
-
-void gaudi3_page_fault_queue_fini(struct hl_device *hdev)
-{
-	struct gaudi3_device *gaudi3 = hdev->asic_specific;
-	struct hl_page_fault_queue *page_fault_queue;
-
-	if (!gaudi3 || !(gaudi3->hw_cap_initialized & HW_CAP_PFQ))
-		return;
-
-	page_fault_queue = &gaudi3->page_fault_queue;
-
-	hl_asic_dma_free_coherent(hdev, page_fault_queue->size, page_fault_queue->host_virt,
-					page_fault_queue->host_dma);
-	gaudi3->hw_cap_initialized &= ~HW_CAP_PFQ;
 }
 
 static bool gaudi3_process_page_fault(struct hl_device *hdev,
@@ -7369,26 +7375,21 @@ static int gaudi3_hw_init(struct hl_device *hdev)
 	if (rc)
 		return rc;
 
-	rc = gaudi3_page_fault_queue_init(hdev);
+	rc = gaudi3_page_fault_queue_hw_init(hdev);
 	if (rc)
 		return rc;
 
 	rc = gaudi3_coresight_init(hdev);
 	if (rc)
-		goto destroy_page_fault_queue;
+		return rc;
 
 	gaudi3_enable_interrupt_aggr_msgs(hdev);
 
 	rc = gaudi3_enable_msix(hdev);
 	if (rc)
-		goto destroy_page_fault_queue;
+		return rc;
 
 	return 0;
-
-destroy_page_fault_queue:
-	gaudi3_page_fault_queue_fini(hdev);
-
-	return rc;
 }
 
 /**
@@ -7543,17 +7544,9 @@ static int gaudi3_hw_fini(struct hl_device *hdev, bool hard_reset, bool fw_reset
 		goto skip_reset;
 	}
 
-	/* TODO - if FW does the reset, 'reset_arcs' & 'page_fault_queue_fini' are skipped.
-	 * Yet 'SW cleanup', being done inside them, might be necessary even when FW does
-	 * the reset, so once fw_reset option becomes operational, we need to verify whether
-	 * current setting is accurate.
-	 */
-
 	gaudi3_reset_arcs(hdev);
 
 	gaudi3_set_isolation(hdev, true, hard_reset);
-
-	gaudi3_page_fault_queue_fini(hdev);
 
 	if (hard_reset)
 		gaudi3_execute_hard_reset(hdev);
@@ -7567,6 +7560,7 @@ skip_reset:
 		return rc;
 
 	gaudi3_clear_hw_cap(hdev, hard_reset);
+
 	return 0;
 }
 

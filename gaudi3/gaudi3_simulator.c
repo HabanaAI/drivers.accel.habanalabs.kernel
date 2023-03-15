@@ -974,8 +974,14 @@ static int gaudi3_sim_sw_init(struct hl_device *hdev)
 	if (rc)
 		goto etr_sw_fini;
 
+	rc = gaudi3_page_fault_queue_sw_init(hdev);
+	if (rc)
+		goto special_blocks_fini;
+
 	return 0;
 
+special_blocks_fini:
+	gaudi3_special_blocks_iterator_free(hdev);
 etr_sw_fini:
 	gaudi3_etr_buf_store_sw_fini(hdev);
 nic_sw_fini:
@@ -995,6 +1001,8 @@ free_gaudi3_device:
 static int gaudi3_sim_sw_fini(struct hl_device *hdev)
 {
 	struct gaudi3_device *gaudi3 = hdev->asic_specific;
+
+	gaudi3_page_fault_queue_sw_fini(hdev);
 
 	gaudi3_special_blocks_iterator_free(hdev);
 
@@ -1172,26 +1180,21 @@ static int gaudi3_sim_hw_init(struct hl_device *hdev)
 	if (rc)
 		return rc;
 
-	rc = gaudi3_page_fault_queue_init(hdev);
+	rc = gaudi3_page_fault_queue_hw_init(hdev);
 	if (rc)
 		return rc;
 
 	rc = gaudi3_coresight_init(hdev);
 	if (rc)
-		goto destroy_page_fault_queue;
+		return rc;
 
 	rc = gaudi3_enable_msix(hdev);
 	if (rc)
-		goto destroy_page_fault_queue;
+		return rc;
 
 	edev->reset = false;
 
 	return 0;
-
-destroy_page_fault_queue:
-	gaudi3_page_fault_queue_fini(hdev);
-
-	return rc;
 }
 
 static void gaudi3_sim_trigger_reset(struct hl_device *hdev, bool hard_reset, u32 die)
@@ -1237,8 +1240,6 @@ static int gaudi3_sim_hw_fini(struct hl_device *hdev, bool hard_reset, bool fw_r
 
 	gaudi3_sim_set_isolation(hdev, true, hard_reset);
 
-	gaudi3_page_fault_queue_fini(hdev);
-
 	if (hdev->simulator_crashed)
 		goto clear_hw_cap;
 
@@ -1256,6 +1257,7 @@ static int gaudi3_sim_hw_fini(struct hl_device *hdev, bool hard_reset, bool fw_r
 
 clear_hw_cap:
 	gaudi3_clear_hw_cap(hdev, hard_reset);
+
 	return 0;
 }
 
