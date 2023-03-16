@@ -1816,8 +1816,6 @@ static void gaudi3_init_pdma_fw_config(struct hl_device *hdev)
 			WREG32(ch_reg_base + PDMA_CH_B_OFFSET + mmPDMA_CH_B_CFG1,
 				FIELD_PREP(PDMA_CH_B_CFG1_STOP_ON_ERR_M, 0x1));
 
-			/* TODO - all registers below are SECURE. Consider moving them elsewhere */
-
 			/* Halt PDMA channel upon any PDMA err. 'LBW message upon err' is off */
 			WREG32(ch_reg_base + PDMA_CH_B_OFFSET + mmPDMA_CH_B_ERR_ENABLE,
 					PDMA_CH_B_ERR_ENABLE_MASK);
