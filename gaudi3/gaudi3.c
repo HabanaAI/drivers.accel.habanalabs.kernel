@@ -2301,7 +2301,7 @@ static enum gaudi3_engine_id gaudi3_axid_mapping(struct hl_device *hdev, u64 axi
 		if (die == 1 && axid17_19 == 0x7)
 			return GAUDI3_DIE1_ENGINE_ID_ETR_PSOC;
 		break;
-	/* TODO: cases 0x100 and 0xEF0 collide with NIC table */
+	/* TODO: SW-137040 cases 0x100 and 0xEF0 collide with NIC table */
 	case 0x100:
 		if (die == 0)
 			return GAUDI3_DIE0_ENGINE_ID_ETR_NIC;
@@ -2314,7 +2314,7 @@ static enum gaudi3_engine_id gaudi3_axid_mapping(struct hl_device *hdev, u64 axi
 		break;
 	}
 
-	/* TODO: the NIC table is not so clear */
+	/* TODO: SW-137040 the NIC table is not so clear */
 	switch (main_id) {
 	case 0x0F0:
 		if (axid17_19 == 0x0 || axid17_19 == 0x1)
@@ -3128,7 +3128,6 @@ int gaudi3_set_fixed_properties(struct hl_device *hdev)
 		prop->mmu_pgt_size = MMU_PAGE_TABLES_SIZE;
 
 	prop->mmu_pte_size = HL_PTE_SIZE;
-	/* TODO: need to split PMMU/HMMU */
 	prop->mmu_hop_table_size = HOP_TABLE_SIZE_512_PTE;
 	prop->mmu_hop0_tables_total_size = HOP0_512_PTE_TABLES_TOTAL_SIZE;
 
@@ -3136,7 +3135,6 @@ int gaudi3_set_fixed_properties(struct hl_device *hdev)
 	prop->pmmu.host_resident = 1; /* Support only host resident */
 	prop->pmmu.num_hops = MMU_ARCH_6_HOPS;
 	prop->pmmu.last_mask = LAST_MASK;
-	/* TODO: will be duplicated until implementing per-MMU props */
 	prop->pmmu.hop_table_size = prop->mmu_hop_table_size;
 	prop->pmmu.hop0_tables_total_size = prop->mmu_hop0_tables_total_size;
 
@@ -5133,7 +5131,7 @@ static void gaudi3_init_qman_common(struct hl_device *hdev, u32 reg_base, u32 en
 
 	WREG32(reg_base + mmQMAN_GLBL_PROT, FIELD_PREP(QMAN_GLBL_PROT_ERR_M, 0x1));
 
-	/* TODO: enable when F/W events are defined */
+	/* TODO: SW-126594 enable when F/W events are defined */
 #if 0
 	irq_handler_offset = gaudi3_get_dyn_sp_reg(hdev, engine_id);
 	WREG32(reg_base + mmQMAN_GLBL_ERR_ADDR_LO,
@@ -5187,7 +5185,7 @@ static void gaudi3_init_sedma_channels(struct hl_device *hdev, u32 reg_base)
 	dyn_regs = &hdev->fw_loader.dynamic_loader.comm_desc.cpu_dyn_regs;
 	irq_handler_offset = le32_to_cpu(dyn_regs->gic_dma_core_irq_ctrl);
 
-	/* TODO: event per EDMA engine or per EDMA channel? */
+	/* TODO: SW-126594 event per EDMA engine or per EDMA channel? */
 	edma_id = ...;
 	map_table_entry = gaudi3_sedma_async_event_id[edma_id];
 #endif
@@ -5229,7 +5227,7 @@ static void gaudi3_init_sedma_channels(struct hl_device *hdev, u32 reg_base)
 
 		WREG32(reg_base + channel_offset + mmEDMA_CHN_HBW_AXCACHE, axcache);
 
-		/* TODO: enable when F/W events are defined */
+		/* TODO: SW-126594 enable when F/W events are defined */
 #if 0
 		WREG32(reg_base + channel_offset + mmEDMA_CHN_ERR_MSG_ADDR_LO,
 				lower_32_bits(CFG_BAR_BASE + irq_handler_offset));
@@ -6026,7 +6024,6 @@ int gaudi3_page_fault_queue_hw_init(struct hl_device *hdev)
 	WREG32(mmD0_PMMU_HBW_MMU_BASE + mmMMU_FAULTQ_MSIX_DATA, irq_nr);
 
 	gaudi3->hw_cap_initialized |= HW_CAP_PFQ;
-	/* TODO: some MSIX configuration to aggregate multiple page faults into one */
 
 	return 0;
 }
@@ -7407,7 +7404,7 @@ void gaudi3_send_hard_reset_cmd(struct hl_device *hdev)
 	preboot_only = (hdev->fw_loader.fw_comp_loaded == FW_TYPE_PREBOOT_CPU);
 	heartbeat_reset = (hdev->reset_info.curr_reset_cause == HL_RESET_CAUSE_HEARTBEAT);
 
-	/* TODO: Enable firmware reset code when gaudi3_irq_map_table is added */
+	/* TODO: SW-108036 Enable firmware reset code when gaudi3_irq_map_table is added */
 
 	/*
 	 * When working with preboot (without Linux/Boot fit) we can
@@ -7462,7 +7459,7 @@ static void gaudi3_execute_hard_reset(struct hl_device *hdev)
 static void gaudi3_execute_soft_reset(struct hl_device *hdev)
 {
 	/*
-	 * TODO: Enable firmware soft reset when gaudi3_irq_map_table is added.
+	 * TODO: SW-122718 Enable firmware soft reset when gaudi3_irq_map_table is added.
 	 * for now, only soft reset by driver is supported
 	 */
 
@@ -10556,11 +10553,6 @@ int gaudi3_send_cpu_message(struct hl_device *hdev, u32 *msg, u16 len,
 	return hl_fw_send_cpu_message(hdev, GAUDI3_QUEUE_ID_CPU_PQ, msg, len, timeout, result);
 }
 
-static void gaudi3_update_nic_qmans_state(struct hl_device *hdev)
-{
-	/* TODO: SW-65627 */
-}
-
 static int gaudi3_nic_init(struct hl_device *hdev)
 {
 	int rc;
@@ -10568,12 +10560,6 @@ static int gaudi3_nic_init(struct hl_device *hdev)
 	rc = hl_nic_init(hdev);
 	if (rc)
 		return rc;
-
-	/* After ports initialization (for the first time), we need to check
-	 * whether the f/w reported on ports that are disabled. For those
-	 * ports, we need to disable their QMANs and update the HW_CAP bits
-	 */
-	gaudi3_update_nic_qmans_state(hdev);
 
 	return 0;
 }
@@ -10689,7 +10675,7 @@ int gaudi3_block_mmap(struct hl_device *hdev, struct vm_area_struct *vma,
 
 void gaudi3_enable_events_from_fw(struct hl_device *hdev)
 {
-	/* TODO: enable events once we have interrupt support */
+	/* TODO: SW-84955 enable events once we have interrupt support */
 }
 
 int gaudi3_ack_mmu_page_fault_or_access_error(struct hl_device *hdev, u64 mmu_cap_mask)
@@ -10699,7 +10685,7 @@ int gaudi3_ack_mmu_page_fault_or_access_error(struct hl_device *hdev, u64 mmu_ca
 
 static void gaudi3_get_msi_info(__le32 *table)
 {
-	/* TODO: implement once we have msi-x table */
+	/* TODO: SW-84955 implement once we have msi-x table */
 }
 
 int gaudi3_map_pll_idx_to_fw_idx(u32 pll_idx)
@@ -11378,10 +11364,12 @@ static void gaudi3_handle_msg_event(struct hl_device *hdev,
 	ctl = le32_to_cpu(eq_dynamic_entry->hdr.ctl);
 	event_type = FIELD_GET(EQ_CTL_EVENT_TYPE_MASK, ctl);
 
-	/* TODO: remove once we have some events implemented, we should have a single print */
+	/* TODO: SW-137048 remove once we have some events implemented,
+	 * we should have a single print
+	 */
 	dev_err_ratelimited(hdev->dev, "Received MSG interrupt %d\n", event_type);
 
-	/* TODO: add handling of MSG events */
+	/* TODO: SW-137048 add handling of MSG events */
 	switch (event_type) {
 	default:
 		return;
