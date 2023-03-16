@@ -6671,7 +6671,8 @@ static int gaudi2_hw_fini(struct hl_device *hdev, bool hard_reset, bool fw_reset
 {
 	struct gaudi2_device *gaudi2 = hdev->asic_specific;
 	u32 poll_timeout_us, reset_sleep_ms;
-	bool driver_performs_reset = false, rc;
+	bool driver_performs_reset = false;
+	int rc;
 
 	if (hdev->pldm) {
 		reset_sleep_ms = hard_reset ? GAUDI2_PLDM_HRESET_TIMEOUT_MSEC :
