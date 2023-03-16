@@ -4067,6 +4067,11 @@ struct hl_ioctl_desc {
 	hl_ioctl_t *func;
 };
 
+static inline bool hl_is_fw_ver_below_1_9(struct hl_device *hdev)
+{
+	return (hdev->fw_major_version < 42);
+}
+
 static inline bool hl_is_fw_ver_below_1_10(struct hl_device *hdev)
 {
 	/* TODO: set to the correct FW version once available */
