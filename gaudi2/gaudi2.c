@@ -9582,7 +9582,7 @@ static int gaudi2_handle_pdma_core_event(struct hl_device *hdev, u16 event_type,
 
 static int gaudi2_handle_edma_core_event(struct hl_device *hdev, u16 event_type, int edma_idx)
 {
-	static int const edma_event_index_map[] = {2, 3, 0, 1, 6, 7, 4, 5};
+	static const int edma_event_index_map[] = {2, 3, 0, 1, 6, 7, 4, 5};
 	u32 sts_addr, index;
 
 	index = edma_event_index_map[edma_idx];
