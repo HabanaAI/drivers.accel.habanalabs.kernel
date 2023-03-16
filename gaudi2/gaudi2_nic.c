@@ -836,7 +836,8 @@ static void gaudi2_nic_config_port_hw_txs(struct gaudi2_nic_port *gaudi2_nic)
 	/* TX sched-Qs list */
 	for (i = 0 ; i < TXS_FREE_NUM_ENTRIES ; i++)
 		writel(TXS_GRANULARITY + i, hdev->pcie_bar[DRAM_BAR_ID] +
-			((txs_addr + TXS_FREE_OFFS + i * 4) - gaudi2->dram_bar_cur_addr));
+			((txs_addr + TXS_FREE_OFFS + i * TXS_ENT_SIZE) -
+				gaudi2->dram_bar_cur_addr));
 
 	/* Perform read to flush the writes */
 	readq(hdev->pcie_bar[DRAM_BAR_ID] + txs_addr - gaudi2->dram_bar_cur_addr);
@@ -3292,11 +3293,11 @@ static void gaudi2_nic_config_hw_tmr(struct hl_nic_macro *nic_macro)
 	/* Timer free list */
 	for (i = 0 ; i < TMR_FREE_NUM_ENTRIES ; i++) {
 		writel(TMR_GRANULARITY + i, hdev->pcie_bar[DRAM_BAR_ID] +
-			((tmr_addr + TMR_FREE_OFFS + i * 4) -
+			((tmr_addr + TMR_FREE_OFFS + i * TMR_ENT_SIZE) -
 				gaudi2->dram_bar_cur_addr));
 		if ((i % NIC_MAX_COMBINED_WRITES) == 0)
 			readl(hdev->pcie_bar[DRAM_BAR_ID] +
-				((tmr_addr + TMR_FREE_OFFS + i * 4) -
+				((tmr_addr + TMR_FREE_OFFS + i * TMR_ENT_SIZE) -
 						gaudi2->dram_bar_cur_addr));
 	}
 

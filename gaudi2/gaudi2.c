@@ -2614,10 +2614,10 @@ int gaudi2_set_fixed_properties(struct hl_device *hdev)
 	nic_prop->cqe_size = CQE_SIZE;
 	nic_prop->phy_base_addr = mmNIC0_PHY_BASE;
 	nic_prop->macro_cfg_size = NIC_OFFSET;
-	nic_prop->txs_base_size = TXS_BASE_SIZE;
-	nic_prop->tmr_base_size = TMR_BASE_SIZE;
-	nic_prop->req_qpc_base_size = REQ_QPC_BASE_SIZE;
-	nic_prop->res_qpc_base_size = RES_QPC_BASE_SIZE;
+	nic_prop->txs_base_size = TXS_TOTAL_PORT_SIZE;
+	nic_prop->tmr_base_size = TMR_TOTAL_MACRO_SIZE;
+	nic_prop->req_qpc_base_size = REQ_QPC_TOTAL_PORT_SIZE;
+	nic_prop->res_qpc_base_size = RES_QPC_TOTAL_PORT_SIZE;
 	nic_prop->nic_qpc_cache_inv_timeout = hdev->pldm ? NIC_PLDM_QPC_INV_USEC : NIC_QPC_INV_USEC;
 	nic_prop->max_tnl_hdr_size = NIC_MAX_TNL_HDR_SIZE;
 	nic_prop->advanced_hw_support = true;
