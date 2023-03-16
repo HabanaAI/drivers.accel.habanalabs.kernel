@@ -733,6 +733,7 @@ void gaudi3_disable_tpc_qmans(struct hl_device *hdev);
 void gaudi3_disable_mme_qmans(struct hl_device *hdev);
 void gaudi3_disable_rotator_qmans(struct hl_device *hdev);
 void gaudi3_disable_nic_qmans(struct hl_device *hdev);
+void gaudi3_clear_arcs_hw_cap(struct hl_device *hdev);
 void gaudi3_reset_arcs(struct hl_device *hdev);
 int gaudi3_enable_msix(struct hl_device *hdev);
 void gaudi3_disable_msix(struct hl_device *hdev);

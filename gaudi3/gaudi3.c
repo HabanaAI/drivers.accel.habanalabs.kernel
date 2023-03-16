@@ -7476,6 +7476,8 @@ void gaudi3_clear_hw_cap(struct hl_device *hdev, bool hard_reset)
 	if (!gaudi3)
 		return;
 
+	gaudi3_clear_arcs_hw_cap(hdev);
+
 	gaudi3->hw_cap_pdma_initialized &= ~(HW_CAP_PDMA_MASK);
 	gaudi3->hw_cap_tpc_initialized &= ~(HW_CAP_TPC_MASK);
 	gaudi3->hw_cap_dec_initialized &= ~(HW_CAP_DEC_MASK);
@@ -8144,6 +8146,16 @@ void gaudi3_halt_arcs(struct hl_device *hdev)
 	gaudi3_halt_arc_farm_acp_engines(hdev);
 }
 
+void gaudi3_clear_arcs_hw_cap(struct hl_device *hdev)
+{
+	u16 arc_id;
+
+	for (arc_id = CPU_ID_SCHED_ARC0 ; arc_id < CPU_ID_MAX ; arc_id++) {
+		if (gaudi3_is_arc_initialized(hdev, arc_id))
+			gaudi3_clr_arc_id_cap(hdev, arc_id);
+	}
+}
+
 void gaudi3_reset_arcs(struct hl_device *hdev)
 {
 	struct gaudi3_device *gaudi3 = hdev->asic_specific;
@@ -8152,11 +8164,9 @@ void gaudi3_reset_arcs(struct hl_device *hdev)
 	if (!gaudi3)
 		return;
 
-	for (arc_id = CPU_ID_SCHED_ARC0; arc_id < CPU_ID_MAX; arc_id++) {
-		if (gaudi3_is_arc_initialized(hdev, arc_id)) {
+	for (arc_id = CPU_ID_SCHED_ARC0 ; arc_id < CPU_ID_MAX ; arc_id++) {
+		if (gaudi3_is_arc_initialized(hdev, arc_id))
 			gaudi3_reset_arc(hdev, arc_id);
-			gaudi3_clr_arc_id_cap(hdev, arc_id);
-		}
 	}
 }
 
