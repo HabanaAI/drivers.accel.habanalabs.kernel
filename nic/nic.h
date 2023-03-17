@@ -1196,6 +1196,7 @@ struct hl_nic_user_cq_unset_in_params {
  * @get_coll_qps_offset: get collective QPs offset.
  * @send_cpucp_packet: Send cpucp nic packets to FW.
  * @set_port_status: config port status before notifying user.
+ * @fw_nic_status: ASIC-specific handler for NIC status packet to FW.
  */
 struct hl_nic_port_funcs {
 	int (*port_hw_init)(struct hl_nic_port *nic_port);
@@ -1272,6 +1273,7 @@ struct hl_nic_port_funcs {
 	int (*send_cpucp_packet)(struct hl_nic_port *nic_port, enum cpucp_packet_id packet_id,
 				int val);
 	void (*set_port_status)(struct hl_nic_port *nic_port, bool up);
+	void (*fw_nic_status)(struct hl_nic_port *nic_port);
 };
 
 /**

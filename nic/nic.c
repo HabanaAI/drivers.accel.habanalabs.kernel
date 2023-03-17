@@ -5170,12 +5170,12 @@ static void nic_status_work(struct work_struct *work)
 {
 	struct hl_nic_port *nic_port = container_of(work, struct hl_nic_port, nic_status_work);
 	struct hl_device *hdev = nic_port->hdev;
+	struct hl_nic_funcs *nic_funcs = hdev->asic_funcs->nic_funcs;
 	struct hl_nic_properties *nic_props = &hdev->asic_prop.nic_props;
 	struct cpucp_nic_status_packet *pkt;
 	struct cpucp_nic_status nic_status = {0};
 	size_t total_pkt_size, data_size;
 	u64 result;
-	u32 port = nic_port->port;
 	int rc;
 
 	hl_nic_get_status(nic_port, &nic_status);
@@ -5210,7 +5210,7 @@ static void nic_status_work(struct work_struct *work)
 
 	kfree(pkt);
 out:
-	hl_fw_unmask_irq(hdev, nic_props->base_status_event_idx + port);
+	nic_funcs->port_funcs->fw_nic_status(nic_port);
 }
 
 void hl_nic_send_status(struct hl_device *hdev, int port)

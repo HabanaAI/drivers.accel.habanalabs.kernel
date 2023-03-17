@@ -2607,6 +2607,14 @@ static int gaudi_nic_inject_rx_err(struct hl_device *hdev, u8 drop_percent)
 	return 0;
 }
 
+void gaudi_fw_nic_status(struct hl_nic_port *nic_port)
+{
+	struct hl_device *hdev = nic_port->hdev;
+	struct hl_nic_properties *nic_props = &hdev->asic_prop.nic_props;
+
+	hl_fw_unmask_irq(hdev, nic_props->base_status_event_idx + nic_port->port);
+}
+
 static struct hl_nic_port_funcs gaudi_nic_port_funcs = {
 	.port_hw_init = gaudi_nic_port_hw_init,
 	.port_hw_fini = gaudi_nic_port_hw_fini,
@@ -2649,6 +2657,7 @@ static struct hl_nic_port_funcs gaudi_nic_port_funcs = {
 	.qp_pre_destroy = gaudi_nic_qp_pre_destroy,
 	.qp_post_destroy = gaudi_nic_qp_post_destroy,
 	.set_port_status = gaudi_nic_set_port_status,
+	.fw_nic_status = gaudi_fw_nic_status,
 };
 
 struct hl_nic_funcs gaudi_nic_funcs = {

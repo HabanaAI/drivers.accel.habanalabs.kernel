@@ -5769,6 +5769,11 @@ static bool gaudi3_nic_is_encap_supported(struct hl_device *hdev,
 	return true;
 }
 
+void gaudi3_fw_nic_status(struct hl_nic_port *nic_port)
+{
+	/* FW does not mask MSG interrupts, so unmask_irq is not needed */
+}
+
 static struct hl_nic_port_funcs gaudi3_nic_port_funcs = {
 	.port_hw_init = gaudi3_nic_port_hw_init,
 	.port_hw_fini = gaudi3_nic_port_hw_fini,
@@ -5828,6 +5833,7 @@ static struct hl_nic_port_funcs gaudi3_nic_port_funcs = {
 	.get_coll_qps_offset = gaudi3_nic_get_coll_qps_offset,
 	.send_cpucp_packet = gaudi3_nic_send_cpucp_packet,
 	.set_port_status = gaudi3_nic_set_port_status,
+	.fw_nic_status = gaudi3_fw_nic_status,
 };
 
 struct hl_nic_funcs gaudi3_nic_funcs = {
