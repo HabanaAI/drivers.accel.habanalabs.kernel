@@ -4138,29 +4138,26 @@ static void gaudi3_nic_en_db_fifo_reset(struct hl_aux_dev *aux_dev, u32 port)
 	*((u32 *) RING_CI_ADDRESS(&gaudi3_nic->fifo_ring)) = 0;
 }
 
-static void gaudi3_nic_db_fifo_reset(struct hl_nic_port *nic_port, struct hl_ctx *ctx,
-				u32 id, u64 ci_mmap_handle)
+static void gaudi3_nic_db_fifo_reset(struct hl_nic_port *nic_port, struct hl_ctx *ctx, u32 id,
+					u64 ci_mmap_handle)
 {
 	struct hl_device *hdev = nic_port->hdev;
-	struct hl_mmap_mem_buf *buf;
-	struct hl_nic_mem *mem;
+	struct hl_nic_mem_buf *buf;
 	u32 port = nic_port->port, offset = id;
 	int rc;
 
-	buf = hl_mmap_mem_buf_get(&ctx->hpriv->mem_mgr, ci_mmap_handle);
+	buf = hl_nic_mem_buf_get(ctx, ci_mmap_handle);
 	if (!buf) {
 		dev_err(hdev->dev, "Failed to retrieve port %d db fifo CI memory\n", port);
 		return;
 	}
 
-	mem = buf->private;
-
 	rc = db_fifo_reset(hdev, port, offset);
 	if (rc)
 		dev_err(hdev->dev, "Port %d user doorbell %d fifo CI %d reset timed out, %d\n",
-			port, id, *((u32 *) mem->kernel_address), rc);
+			port, id, *((u32 *) buf->kernel_address), rc);
 
-	hl_mmap_mem_buf_put(buf);
+	hl_nic_mem_buf_put(buf);
 }
 
 static int gaudi3_nic_sw_init(struct hl_device *hdev)

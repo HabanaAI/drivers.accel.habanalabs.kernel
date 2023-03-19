@@ -463,8 +463,7 @@ static int gaudi3_nic_debugfs_get_wqe_from_dram(struct hl_nic_port *nic_port, u3
 {
 	struct hl_wq_array_properties *wq_arr_props;
 	struct hl_device *hdev = nic_port->hdev;
-	struct hl_mmap_mem_buf *buf;
-	struct hl_nic_mem *mem;
+	struct hl_nic_mem_buf *buf;
 	struct hl_ctx *ctx;
 	u64 wq_base_addr, wqe_addr;
 	u32 *wqe_p;
@@ -480,7 +479,7 @@ static int gaudi3_nic_debugfs_get_wqe_from_dram(struct hl_nic_port *nic_port, u3
 	wq_arr_props = &nic_port->wq_arr_props[type];
 	type_str = wq_arr_props->type_str;
 
-	buf = hl_mmap_mem_buf_get(&ctx->hpriv->mem_mgr, wq_arr_props->handle);
+	buf = hl_nic_mem_buf_get(ctx, wq_arr_props->handle);
 	if (!buf) {
 		dev_err(hdev->dev, "Failed to retrieve port %d %s WQ memory\n",
 			nic_port->port, type_str);
@@ -488,15 +487,14 @@ static int gaudi3_nic_debugfs_get_wqe_from_dram(struct hl_nic_port *nic_port, u3
 		goto out;
 	}
 
-	mem = buf->private;
-	wq_base_addr = mem->device_addr;
+	wq_base_addr = buf->device_addr;
 	wqe_addr = wq_base_addr + wqe_offset;
 	wqe_p = (u32 *) wqe;
 
 	for (i = 0 ; i < wqe_size / sizeof(u32) ; i++)
 		wqe_p[i] = hl_nic_dram_readl(hdev, wqe_addr + (i * 4));
 
-	hl_mmap_mem_buf_put(buf);
+	hl_nic_mem_buf_put(buf);
 
 out:
 	hl_ctx_put(ctx);
@@ -508,9 +506,8 @@ static int gaudi3_nic_debugfs_get_wqe_from_host(struct hl_nic_port *nic_port, u3
 {
 	struct hl_wq_array_properties *wq_arr_props;
 	struct hl_device *hdev = nic_port->hdev;
-	struct hl_mmap_mem_buf *buf;
+	struct hl_nic_mem_buf *buf;
 	void *wq_base_addr, *wqe_addr;
-	struct hl_nic_mem *mem;
 	struct hl_ctx *ctx;
 	char *type_str;
 	int rc = 0;
@@ -524,7 +521,7 @@ static int gaudi3_nic_debugfs_get_wqe_from_host(struct hl_nic_port *nic_port, u3
 	wq_arr_props = &nic_port->wq_arr_props[type];
 	type_str = wq_arr_props->type_str;
 
-	buf = hl_mmap_mem_buf_get(&ctx->hpriv->mem_mgr, wq_arr_props->handle);
+	buf = hl_nic_mem_buf_get(ctx, wq_arr_props->handle);
 	if (!buf) {
 		dev_err(hdev->dev, "Failed to retrieve port %d %s WQ memory\n",
 			nic_port->port, type_str);
@@ -532,12 +529,11 @@ static int gaudi3_nic_debugfs_get_wqe_from_host(struct hl_nic_port *nic_port, u3
 		goto out;
 	}
 
-	mem = buf->private;
-	wq_base_addr = mem->kernel_address;
+	wq_base_addr = buf->kernel_address;
 	wqe_addr = (u8 *) wq_base_addr + wqe_offset;
 	memcpy(wqe, wqe_addr, wqe_size);
 
-	hl_mmap_mem_buf_put(buf);
+	hl_nic_mem_buf_put(buf);
 
 out:
 	hl_ctx_put(ctx);

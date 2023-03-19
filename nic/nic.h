@@ -659,18 +659,29 @@ struct hl_nic_port {
  * @ctx: pointer to the memory owner's context.
  * @bus_address: Holds the memory's DMA address.
  * @kernel_address: Holds the memory's kernel virtual address.
+ * @refcount: reference counter for buffer users.
+ * @mmap: atomic boolean indicating whether or not the buffer is mapped right now.
+ * @real_mapped_size: the actual size of buffer mapped, after part of it may be released, may
+ *                    change at runtime.
+ * @mappable_size: the original mappable size of the buffer, does not change after the allocation.
  * @device_addr: Holds the HBM address.
  * @device_va: Device virtual address. Valid only for MMU mapped allocations.
+ * @handle: The buffer id that is stored in the mem idr.
  * @mem_id: specify host/device memory allocation.
  * @is_destroyed: Indicates whether or not the memory was destroyed.
  */
-struct hl_nic_mem {
+struct hl_nic_mem_buf {
 	struct hl_device	*hdev;
 	struct hl_ctx		*ctx;
 	dma_addr_t		bus_address;
 	void			*kernel_address;
+	struct kref		refcount;
+	atomic_t		mmap;
+	u64			real_mapped_size;
+	u64			mappable_size;
 	u64			device_addr;
 	u64			device_va;
+	u64			handle;
 	u32			mem_id;
 	atomic_t		is_destroyed;
 };
@@ -678,9 +689,13 @@ struct hl_nic_mem {
 /**
  * struct hl_nic_ctx - habanalabs NIC context common structure.
  * @wq_arrays_pool: memory pool for WQ arrays on HBM.
+ * @mem_ids: an idr holding all active memory handles.
+ * @mem_idr_lock: lock to protect parallel accesses to the mem idr.
  */
 struct hl_nic_ctx {
 	struct gen_pool		*wq_arrays_pool;
+	struct idr		mem_ids;
+	struct mutex		mem_idr_lock;
 };
 
 /**
@@ -1395,8 +1410,6 @@ void hl_nic_ctx_fini(struct hl_ctx *ctx);
 void hl_nic_debugfs_init(struct hl_device *hdev, struct dentry *root_dir);
 u32 hl_nic_get_max_qp_id(struct hl_nic_port *nic_port);
 void hl_nic_qps_stop(struct hl_nic_port *nic_port);
-int hl_nic_mem_alloc(struct hl_ctx *ctx, struct hl_nic_mem_data *mem_data);
-int hl_nic_mem_destroy(struct hl_ctx *ctx, u64 handle);
 void hl_nic_user_db_fifo_ctx_destroy(struct hl_ctx *ctx);
 int hl_nic_request_irqs(struct hl_device *hdev);
 void hl_nic_free_irqs(struct hl_device *hdev);
@@ -1454,6 +1467,16 @@ int hl_nic_unreserve_wq_dva(struct hl_device *hdev, struct hl_ctx *ctx,
 u32 hl_nic_get_wq_array_type(bool is_send, bool is_coll, bool is_scale_out);
 bool hl_nic_is_ibdev(struct hl_nic *nic);
 void hl_nic_track_port_reset(struct hl_nic_port *nic_port, u32 syndrom);
+
+/* Memory related functions */
+int hl_nic_mem_alloc(struct hl_ctx *ctx, struct hl_nic_mem_data *mem_data);
+int hl_nic_mem_destroy(struct hl_ctx *ctx, u64 handle);
+int hl_nic_mem_mmap(struct hl_ctx *ctx, struct vm_area_struct *vma);
+struct hl_nic_mem_buf *hl_nic_mem_buf_get(struct hl_ctx *ctx, u64 handle);
+int hl_nic_mem_buf_put(struct hl_nic_mem_buf *buf);
+int hl_nic_mem_buf_put_handle(struct hl_ctx *ctx, u64 handle);
+void hl_nic_mem_init(struct hl_ctx *ctx);
+void hl_nic_mem_fini(struct hl_ctx *ctx);
 
 #ifndef _HAS_AUX_BUS_H
 extern int hl_en_probe(struct hl_aux_dev *aux_dev);

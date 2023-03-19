@@ -2116,11 +2116,9 @@ static int alloc_and_map_wq(struct hl_nic_port *nic_port, struct hl_qp *qp, u32 
 	struct hl_wq_array_properties *wq_arr_props;
 	struct hl_nic_properties *nic_props;
 	struct hl_device *hdev;
-	struct hl_nic_mem *mem;
 	struct hl_nic_mem_data mem_data = {};
 	struct hl_ctx *ctx = qp->ctx;
-	struct hl_mem_mgr *mmg = &ctx->hpriv->mem_mgr;
-	struct hl_mmap_mem_buf *buf;
+	struct hl_nic_mem_buf *buf;
 	u64 wq_arr_size, wq_size;
 	u32 wq_arr_type, wqe_size, qp_idx_offset, wq_idx;
 	bool is_coll, is_scale_out_conn;
@@ -2174,14 +2172,12 @@ static int alloc_and_map_wq(struct hl_nic_port *nic_port, struct hl_qp *qp, u32 
 		 */
 		mem_data.mem_id = HL_NIC_DRV_MEM_HOST_MAP_ONLY;
 
-		buf = hl_mmap_mem_buf_get(mmg, wq_arr_props->handle);
+		buf = hl_nic_mem_buf_get(ctx, wq_arr_props->handle);
 		if (!buf) {
 			dev_err(hdev->dev,
 				"Failed to retrieve WQ arr handle for port %d\n", nic_port->port);
 			return -EINVAL;
 		}
-
-		mem = buf->private;
 
 		/* Actual size to allocate. Page aligned since we mmap to user. */
 		mem_data.size = PAGE_ALIGN(n_wq * wqe_size);
@@ -2190,13 +2186,13 @@ static int alloc_and_map_wq(struct hl_nic_port *nic_port, struct hl_qp *qp, u32 
 
 		 /* Get offset into kernel buffer block pre-allocated for SWQ. */
 		mem_data.in.host_map_data.kernel_address =
-				(void *) (mem->kernel_address + wq_size * wq_idx);
+				(void *) (buf->kernel_address + wq_size * wq_idx);
 
-		mem_data.in.host_map_data.bus_address = (mem->bus_address + wq_size * wq_idx);
+		mem_data.in.host_map_data.bus_address = (buf->bus_address + wq_size * wq_idx);
 
 		/* Check for out of range. */
 		if ((u64) mem_data.in.host_map_data.kernel_address + mem_data.size >
-			(u64) mem->kernel_address + wq_arr_size) {
+			(u64) buf->kernel_address + wq_arr_size) {
 			dev_dbg(hdev->dev, "Out of range kernel addr. kernel addr 0x%p, size 0x%llx\n",
 				mem_data.in.host_map_data.kernel_address, mem_data.size);
 			return -EINVAL;
@@ -2204,7 +2200,7 @@ static int alloc_and_map_wq(struct hl_nic_port *nic_port, struct hl_qp *qp, u32 
 	}
 
 	/* Allocate host vmalloc memory and map its physical pages to PMMU. */
-	rc = hl_nic_mem_alloc(qp->ctx, &mem_data);
+	rc = hl_nic_mem_alloc(ctx, &mem_data);
 	if (rc) {
 		dev_dbg(hdev->dev, "Failed to allocate %s. Port %d, QP %d\n",
 			is_swq ? "SWQ" : "RWQ", nic_port->port, qp->qp_id);
@@ -2228,7 +2224,6 @@ static int set_req_qp_ctx(struct hl_device *hdev, struct hl_nic_req_conn_ctx_in 
 	struct hl_nic_port_funcs *port_funcs;
 	struct hl_nic_funcs *nic_funcs;
 	struct hl_nic_port *nic_port;
-	struct hl_mem_mgr *mmg;
 	struct hl_nic *nic;
 	struct hl_qp *qp;
 	u32 wq_size, port, max_wq_size;
@@ -2401,8 +2396,7 @@ err_free_rwq:
 		if (!rwq_arr_props->dva_base) {
 			int ret;
 
-			mmg = &qp->ctx->hpriv->mem_mgr;
-			ret = hl_mmap_mem_buf_put_handle(mmg, rwq_arr_props->handle);
+			ret = hl_nic_mem_buf_put_handle(qp->ctx, rwq_arr_props->handle);
 			if (ret == 1)
 				rwq_arr_props->handle = 0;
 		}
@@ -2414,8 +2408,7 @@ err_free_swq:
 		if (!swq_arr_props->dva_base) {
 			int ret;
 
-			mmg = &qp->ctx->hpriv->mem_mgr;
-			ret = hl_mmap_mem_buf_put_handle(mmg, swq_arr_props->handle);
+			ret = hl_nic_mem_buf_put_handle(qp->ctx, swq_arr_props->handle);
 			if (ret == 1)
 				swq_arr_props->handle = 0;
 		}
@@ -2611,7 +2604,6 @@ static void qp_destroy_work(struct work_struct *work)
 	struct hl_nic_qpc_reset_attr rst_attr;
 	struct hl_coll_properties *coll_props = NULL;
 	struct hl_ctx *ctx = qp->ctx;
-	struct hl_mem_mgr *mmg = &ctx->hpriv->mem_mgr;
 	int rc;
 
 	/* always perform orderly reset in simulator */
@@ -2675,20 +2667,20 @@ static void qp_destroy_work(struct work_struct *work)
 	}
 
 	if (qp->swq_handle) {
-		hl_nic_mem_destroy(qp->ctx, qp->swq_handle);
+		hl_nic_mem_destroy(ctx, qp->swq_handle);
 		qp->swq_handle = 0;
 		if (!swq_arr_props->dva_base) {
-			rc = hl_mmap_mem_buf_put_handle(mmg, swq_arr_props->handle);
+			rc = hl_nic_mem_buf_put_handle(ctx, swq_arr_props->handle);
 			if (rc == 1)
 				swq_arr_props->handle = 0;
 		}
 	}
 
 	if (qp->rwq_handle) {
-		hl_nic_mem_destroy(qp->ctx, qp->rwq_handle);
+		hl_nic_mem_destroy(ctx, qp->rwq_handle);
 		qp->rwq_handle = 0;
 		if (!rwq_arr_props->dva_base) {
-			rc = hl_mmap_mem_buf_put_handle(mmg, rwq_arr_props->handle);
+			rc = hl_nic_mem_buf_put_handle(ctx, rwq_arr_props->handle);
 			if (rc == 1)
 				rwq_arr_props->handle = 0;
 		}
@@ -2702,20 +2694,20 @@ static void qp_destroy_work(struct work_struct *work)
 
 		if (atomic_dec_and_test(num_of_allocated_coll_qps)) {
 			if (swq_arr_props->under_unset)
-				__user_wq_arr_unset(nic_port, coll_props->swq_type, qp->ctx);
+				__user_wq_arr_unset(nic_port, coll_props->swq_type, ctx);
 
 			if (rwq_arr_props->under_unset)
-				__user_wq_arr_unset(nic_port, coll_props->rwq_type, qp->ctx);
+				__user_wq_arr_unset(nic_port, coll_props->rwq_type, ctx);
 		}
 	} else {
 		idr_remove(&nic_port->qp_ids, qp->qp_id);
 
 		if (atomic_dec_and_test(&nic_port->num_of_allocated_qps)) {
 			if (swq_arr_props->under_unset)
-				__user_wq_arr_unset(nic_port, HL_NIC_USER_WQ_SEND, qp->ctx);
+				__user_wq_arr_unset(nic_port, HL_NIC_USER_WQ_SEND, ctx);
 
 			if (rwq_arr_props->under_unset)
-				__user_wq_arr_unset(nic_port, HL_NIC_USER_WQ_RECV, qp->ctx);
+				__user_wq_arr_unset(nic_port, HL_NIC_USER_WQ_RECV, ctx);
 		}
 	}
 
@@ -5665,6 +5657,8 @@ int hl_nic_ctx_init(struct hl_ctx *ctx)
 	if (rc)
 		goto wq_arrays_pool_alloc_fail;
 
+	hl_nic_mem_init(ctx);
+
 	rc = hdev->asic_funcs->nic_funcs->ctx_init(ctx);
 	if (rc)
 		goto ctx_init_fail;
@@ -5672,6 +5666,7 @@ int hl_nic_ctx_init(struct hl_ctx *ctx)
 	return 0;
 
 ctx_init_fail:
+	hl_nic_mem_fini(ctx);
 	wq_arrays_pool_destroy(ctx);
 wq_arrays_pool_alloc_fail:
 	return rc;
@@ -5729,6 +5724,7 @@ void hl_nic_ctx_fini(struct hl_ctx *ctx)
 		nic_funcs->ctx_fini(ctx);
 		encap_ids_destroy(hdev, ctx);
 		set_app_params_clear(hdev);
+		hl_nic_mem_fini(ctx);
 	}
 }
 

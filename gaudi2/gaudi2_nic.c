@@ -4106,25 +4106,22 @@ static int gaudi2_db_fifo_set(struct hl_nic_port *nic_port, struct hl_ctx *ctx, 
 static void db_fifo_reset(struct hl_nic_port *nic_port, struct hl_ctx *ctx, u32 id, u64 mmap_handle)
 {
 	struct hl_device *hdev = nic_port->hdev;
-	struct hl_mmap_mem_buf *buf;
-	struct hl_nic_mem *mem;
+	struct hl_nic_mem_buf *buf;
 	u32 *ci_cpu_addr;
 
-	buf = hl_mmap_mem_buf_get(&ctx->hpriv->mem_mgr, mmap_handle);
+	buf = hl_nic_mem_buf_get(ctx, mmap_handle);
 	if (!buf) {
 		dev_err(hdev->dev,
 			"Failed to retrieve port %d db fifo CI memory\n", nic_port->port);
 		return;
 	}
 
-	mem = buf->private;
-
 	/* Read latest HW updated CI */
-	ci_cpu_addr = (u32 *) mem->kernel_address;
+	ci_cpu_addr = (u32 *) buf->kernel_address;
 
 	__db_fifo_reset(nic_port, ci_cpu_addr, id, false);
 
-	hl_mmap_mem_buf_put(buf);
+	hl_nic_mem_buf_put(buf);
 }
 
 static void gaudi2_db_fifo_unset(struct hl_nic_port *nic_port, struct hl_ctx *ctx, u32 id,
