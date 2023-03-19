@@ -1857,16 +1857,15 @@ static void add_files_to_device(struct hl_device *hdev, struct hl_dbg_device_ent
 	}
 }
 
-void hl_debugfs_add_device(struct hl_device *hdev)
+int hl_debugfs_device_init(struct hl_device *hdev)
 {
 	struct hl_dbg_device_entry *dev_entry = &hdev->hl_debugfs;
 	int count = ARRAY_SIZE(hl_debugfs_list);
-	char name[64];
 
 	dev_entry->hdev = hdev;
 	dev_entry->entry_arr = kmalloc_array(count, sizeof(struct hl_debugfs_entry), GFP_KERNEL);
 	if (!dev_entry->entry_arr)
-		return;
+		return -ENOMEM;
 
 	dev_entry->data_dma_blob_desc.size = 0;
 	dev_entry->data_dma_blob_desc.data = NULL;
@@ -1887,6 +1886,31 @@ void hl_debugfs_add_device(struct hl_device *hdev)
 	spin_lock_init(&dev_entry->userptr_spinlock);
 	mutex_init(&dev_entry->ctx_mem_hash_mutex);
 
+	return 0;
+}
+
+void hl_debugfs_device_fini(struct hl_device *hdev)
+{
+	struct hl_dbg_device_entry *entry = &hdev->hl_debugfs;
+	int i;
+
+	mutex_destroy(&entry->ctx_mem_hash_mutex);
+	mutex_destroy(&entry->file_mutex);
+
+	vfree(entry->data_dma_blob_desc.data);
+	vfree(entry->mon_dump_blob_desc.data);
+
+	for (i = 0; i < ARRAY_SIZE(entry->state_dump); ++i)
+		vfree(entry->state_dump[i]);
+
+	kfree(entry->entry_arr);
+}
+
+void hl_debugfs_add_device(struct hl_device *hdev)
+{
+	struct hl_dbg_device_entry *dev_entry = &hdev->hl_debugfs;
+	char name[64];
+
 	dev_entry->root = debugfs_create_dir(dev_name(hdev->dev), hl_debug_root);
 
 	sprintf(name, "%d", hdev->cdev_idx);
@@ -1904,21 +1928,9 @@ void hl_debugfs_add_device(struct hl_device *hdev)
 void hl_debugfs_remove_device(struct hl_device *hdev)
 {
 	struct hl_dbg_device_entry *entry = &hdev->hl_debugfs;
-	int i;
 
 	debugfs_remove_recursive(entry->root);
 	debugfs_remove_recursive(entry->accel_root);
-
-	mutex_destroy(&entry->ctx_mem_hash_mutex);
-	mutex_destroy(&entry->file_mutex);
-
-	vfree(entry->data_dma_blob_desc.data);
-	vfree(entry->mon_dump_blob_desc.data);
-
-	for (i = 0; i < ARRAY_SIZE(entry->state_dump); ++i)
-		vfree(entry->state_dump[i]);
-
-	kfree(entry->entry_arr);
 }
 
 void hl_debugfs_add_file(struct hl_fpriv *hpriv)

@@ -3694,7 +3694,7 @@ struct hl_etr_buf_store {
  * @in_debug: whether the device is in a state where the profiling/tracing infrastructure
  *            can be used. This indication is needed because in some ASICs we need to do
  *            specific operations to enable that infrastructure.
- * @cdev_sysfs_created: were char devices and sysfs nodes created.
+ * @cdev_sysfs_debugfs_created: were char devices and sysfs/debugfs files created.
  * @pci_remove: true if the device should be removed from PCI.
  * @stop_on_err: true if engines should stop on error.
  * @supports_sync_stream: is sync stream supported.
@@ -3890,7 +3890,7 @@ struct hl_device {
 	u8				init_done;
 	u8				device_cpu_disabled;
 	u8				in_debug;
-	u8				cdev_sysfs_created;
+	u8				cdev_sysfs_debugfs_created;
 	u8				pci_remove;
 	u8				stop_on_err;
 	u8				supports_sync_stream;
@@ -4546,6 +4546,8 @@ int __hl_mmap(struct hl_fpriv *hpriv, struct vm_area_struct *vma);
 
 void hl_debugfs_init(void);
 void hl_debugfs_fini(void);
+int hl_debugfs_device_init(struct hl_device *hdev);
+void hl_debugfs_device_fini(struct hl_device *hdev);
 void hl_debugfs_add_device(struct hl_device *hdev);
 void hl_debugfs_remove_device(struct hl_device *hdev);
 void hl_debugfs_add_file(struct hl_fpriv *hpriv);
