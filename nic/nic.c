@@ -490,6 +490,14 @@ static void hl_nic_track_ext_port_reset(struct hl_aux_dev *aux_dev, u32 port, u3
 	hl_nic_track_port_reset(nic_port, syndrom);
 }
 
+static void hl_nic_port_toggle_count(struct hl_aux_dev *aux_dev, u32 port)
+{
+	struct hl_nic *nic = HL_AUX2NIC(aux_dev);
+	struct hl_nic_port *nic_port = &nic->nic_ports[port];
+
+	nic_port->port_toggle_cnt += 1;
+}
+
 static int hl_nic_get_asic_type(struct hl_device *hdev, enum hl_nic_asic_type *asic_type)
 {
 	switch (hdev->asic_type) {
@@ -611,6 +619,7 @@ static int hl_nic_en_aux_data_init(struct hl_device *hdev)
 	aux_ops->get_speed = hl_nic_get_speed;
 	aux_ops->reset_core_mac_stats = hl_nic_reset_core_mac_stats;
 	aux_ops->track_ext_port_reset = hl_nic_track_ext_port_reset;
+	aux_ops->port_toggle_count = hl_nic_port_toggle_count;
 
 	nic_funcs->set_en_core_data(hdev);
 
@@ -1404,6 +1413,8 @@ int hl_nic_core_init(struct hl_device *hdev)
 
 		/* In case this port got disabled, enable it back here */
 		nic_port->disabled = false;
+		/* Port toggle count should be reinitialized for each port upond hard reset only */
+		nic_port->port_toggle_cnt = 0;
 
 		/* Reset the NIC macro PHY once on boot.
 		 * This function resets all the 4 lanes in the PHY macro, therefore only one of the
