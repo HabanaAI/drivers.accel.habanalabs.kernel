@@ -4119,6 +4119,12 @@ static int gaudi3_early_init(struct hl_device *hdev)
 			dev_err(hdev->dev, "failed to reset HW in dirty state (%d)\n", rc);
 			goto pci_fini;
 		}
+
+		if (hdev->fw_components & FW_TYPE_PREBOOT_CPU) {
+			rc = hl_fw_wait_preboot_ready(hdev);
+			if (rc)
+				return rc;
+		}
 	}
 
 	return 0;
