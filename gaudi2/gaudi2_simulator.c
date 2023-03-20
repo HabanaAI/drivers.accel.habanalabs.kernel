@@ -1176,8 +1176,14 @@ static int gaudi2_sim_sw_init(struct hl_device *hdev)
 	if (rc)
 		goto nic_sw_fini;
 
+	rc = gaudi2_test_queues_msgs_alloc(hdev);
+	if (rc)
+		goto special_blocks_free;
+
 	return 0;
 
+special_blocks_free:
+	gaudi2_special_blocks_iterator_free(hdev);
 nic_sw_fini:
 	hl_nic_sw_fini(hdev);
 free_scratchpad_mem:
@@ -1196,6 +1202,8 @@ static int gaudi2_sim_sw_fini(struct hl_device *hdev)
 {
 	struct asic_fixed_properties *prop = &hdev->asic_prop;
 	struct gaudi2_device *gaudi2 = hdev->asic_specific;
+
+	gaudi2_test_queues_msgs_free(hdev);
 
 	gaudi2_special_blocks_iterator_free(hdev);
 

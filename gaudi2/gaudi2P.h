@@ -265,6 +265,8 @@ static_assert(NIC_MAX_CCQS_NUM <= NIC_DRV_MAX_CCQS_NUM);
 #define GAUDI2_SOB_INCREMENT_BY_ONE	(FIELD_PREP(DCORE0_SYNC_MNGR_OBJS_SOB_OBJ_VAL_MASK, 1) | \
 					FIELD_PREP(DCORE0_SYNC_MNGR_OBJS_SOB_OBJ_INC_MASK, 1))
 
+#define GAUDI2_NUM_TESTED_QS (GAUDI2_QUEUE_ID_CPU_PQ - GAUDI2_QUEUE_ID_PDMA_0_0)
+
 /* make sure generic event buffer is always larger than h/w specific buffer */
 static_assert(sizeof(struct hl_nic_eqe) >= NIC_RAW_EQE_SIZE);
 
@@ -575,6 +577,17 @@ struct gaudi2_nic_macro {
 };
 
 /**
+ * struct gaudi2_queues_test_info - Holds the address of a the messages used for testing the
+ *                                  device queues.
+ * @dma_addr: the address used by the HW for accessing the message.
+ * @kern_addr: The address used by the driver for accessing the message.
+ */
+struct gaudi2_queues_test_info {
+	dma_addr_t dma_addr;
+	void *kern_addr;
+};
+
+/**
  * struct gaudi2_device - ASIC specific manage structure.
  * @cpucp_info_get: get information on device from CPU-CP
  * @mapped_blocks: array that holds the base address and size of all blocks
@@ -632,6 +645,7 @@ struct gaudi2_nic_macro {
  * @flush_db_fifo: flag to force flush DB FIFO after a write.
  * @hbm_cfg: HBM subsystem settings
  * @hw_queues_lock_mutex: used by simulator instead of hw_queues_lock.
+ * @queues_test_info: information used by the driver when testing the HW queues.
  */
 struct gaudi2_device {
 	int (*cpucp_info_get)(struct hl_device *hdev);
@@ -673,6 +687,9 @@ struct gaudi2_device {
 
 	/* Simulator */
 	struct mutex			hw_queues_lock_mutex;
+
+	/* Queue testing */
+	struct gaudi2_queues_test_info	queues_test_info[GAUDI2_NUM_TESTED_QS];
 };
 
 /*
@@ -872,6 +889,8 @@ void gaudi2_fw_security_emulation_init(struct hl_device *hdev);
 void gaudi2_fw_security_emulation_fini(struct hl_device *hdev, bool asic_dirty);
 int gaudi2_set_binning_masks(struct hl_device *hdev);
 int gaudi2_set_cluster_binning_masks_fw_config(struct hl_device *hdev);
+int gaudi2_test_queues_msgs_alloc(struct hl_device *hdev);
+void gaudi2_test_queues_msgs_free(struct hl_device *hdev);
 
 /* Functions exported for FPGA support */
 int gaudi2_early_fini(struct hl_device *hdev);
