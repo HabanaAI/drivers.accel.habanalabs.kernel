@@ -165,6 +165,7 @@ static int bfe_nic_enable_h9_single_qp_perf_fix_eco = 1;
 static int bfe_nic_enable_h9_sal_override_eco = 1;
 static int bfe_nic_enable_h9_sack_deadlock_eco = 1;
 static int bfe_nic_enable_h9_txe_buff_alloc_eco = 1;
+static int bfe_heartbeat_reset_enable = 1;
 
 /* special-case of parameter handling - polling */
 static bool nic_poll_enable_param_was_set;
@@ -558,6 +559,10 @@ MODULE_PARM_DESC(bfe_nic_enable_h9_sack_deadlock_eco,
 module_param(bfe_nic_enable_h9_txe_buff_alloc_eco, int, 0444);
 MODULE_PARM_DESC(bfe_nic_enable_h9_txe_buff_alloc_eco,
 	"Enable H9-5471 ECO, fixes TXE buff allocation issue (0 - disabled, 1 - enabled, default 1)");
+
+module_param(bfe_heartbeat_reset_enable, int, 0444);
+MODULE_PARM_DESC(bfe_heartbeat_reset_enable,
+	"Enable hard-reset after heartbeat failure (0 - disabled, 1 - enabled, default 1)");
 
 #define PCI_VENDOR_ID_HABANALABS	0x1da3
 
@@ -1157,6 +1162,7 @@ static void set_driver_behavior_per_device(struct hl_device *hdev)
 		hdev->cache_enable = 0;
 		hdev->rotator_binning = 0;
 		hdev->hbm_compression_enable = 0;
+		hdev->heartbeat_reset_enable = 1;
 		break;
 
 	case ASIC_GAUDI2_SIM:
@@ -1185,6 +1191,7 @@ static void set_driver_behavior_per_device(struct hl_device *hdev)
 		hdev->cache_enable = 0;
 		hdev->rotator_binning = 0;
 		hdev->hbm_compression_enable = 0;
+		hdev->heartbeat_reset_enable = 1;
 		break;
 
 	case ASIC_GAUDI2_SIM_ARC:
@@ -1213,6 +1220,7 @@ static void set_driver_behavior_per_device(struct hl_device *hdev)
 		hdev->cache_enable = 0;
 		hdev->rotator_binning = 0;
 		hdev->hbm_compression_enable = 0;
+		hdev->heartbeat_reset_enable = 1;
 		break;
 
 	case ASIC_GAUDI2:
@@ -1241,6 +1249,7 @@ static void set_driver_behavior_per_device(struct hl_device *hdev)
 		hdev->cache_enable = 0;
 		hdev->rotator_binning = 0;
 		hdev->hbm_compression_enable = 0;
+		hdev->heartbeat_reset_enable = 0;
 		break;
 
 	case ASIC_GAUDI2_FPGA:
@@ -1268,6 +1277,7 @@ static void set_driver_behavior_per_device(struct hl_device *hdev)
 		hdev->cache_enable = 0;
 		hdev->rotator_binning = 0;
 		hdev->hbm_compression_enable = 0;
+		hdev->heartbeat_reset_enable = 1;
 		break;
 
 	case ASIC_GAUDI3:
@@ -1296,6 +1306,7 @@ static void set_driver_behavior_per_device(struct hl_device *hdev)
 		hdev->ptw_bypass_enable = 1;
 		hdev->rotator_binning = 0;
 		hdev->hbm_compression_enable = 1;
+		hdev->heartbeat_reset_enable = 1;
 		break;
 
 	case ASIC_GAUDI3_SIM:
@@ -1323,6 +1334,7 @@ static void set_driver_behavior_per_device(struct hl_device *hdev)
 		hdev->cache_enable = 1;
 		hdev->rotator_binning = 0;
 		hdev->hbm_compression_enable = 1;
+		hdev->heartbeat_reset_enable = 1;
 		break;
 
 	case ASIC_GAUDI3_SIM_ARC:
@@ -1350,6 +1362,7 @@ static void set_driver_behavior_per_device(struct hl_device *hdev)
 		hdev->cache_enable = 1;
 		hdev->rotator_binning = 0;
 		hdev->hbm_compression_enable = 1;
+		hdev->heartbeat_reset_enable = 1;
 		break;
 
 	case ASIC_GAUDI3_SIM_SINGLE_DIE:
@@ -1377,6 +1390,7 @@ static void set_driver_behavior_per_device(struct hl_device *hdev)
 		hdev->cache_enable = 1;
 		hdev->rotator_binning = 0;
 		hdev->hbm_compression_enable = 1;
+		hdev->heartbeat_reset_enable = 1;
 		break;
 
 	case ASIC_GAUDI3_SIM_SINGLE_DIE_ARC:
@@ -1404,6 +1418,7 @@ static void set_driver_behavior_per_device(struct hl_device *hdev)
 		hdev->cache_enable = 1;
 		hdev->rotator_binning = 0;
 		hdev->hbm_compression_enable = 1;
+		hdev->heartbeat_reset_enable = 1;
 		break;
 
 	case ASIC_GAUDI3_FPGA:
@@ -1431,6 +1446,7 @@ static void set_driver_behavior_per_device(struct hl_device *hdev)
 		hdev->cache_enable = 0;
 		hdev->rotator_binning = 0;
 		hdev->hbm_compression_enable = 1;
+		hdev->heartbeat_reset_enable = 1;
 		break;
 
 	default:
@@ -1614,6 +1630,7 @@ static void copy_bfe_params_to_device(struct hl_device *hdev)
 	hdev->nic_enable_h9_sal_override_eco = bfe_nic_enable_h9_sal_override_eco;
 	hdev->nic_enable_h9_sack_deadlock_eco = bfe_nic_enable_h9_sack_deadlock_eco;
 	hdev->nic_enable_h9_txe_buff_alloc_eco = bfe_nic_enable_h9_txe_buff_alloc_eco;
+	hdev->heartbeat_reset_enable = bfe_heartbeat_reset_enable;
 
 	/* Debug feature:
 	 * Store a copy of binning information to override f/w binning configuration later

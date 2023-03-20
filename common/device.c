@@ -1165,7 +1165,13 @@ static void hl_device_heartbeat(struct work_struct *work)
 	info.err_type = HL_INFO_FW_HEARTBEAT_ERR;
 	info.event_mask = &event_mask;
 	hl_handle_fw_err(hdev, &info);
-	hl_device_cond_reset(hdev, HL_DRV_RESET_HARD | HL_DRV_RESET_HEARTBEAT, event_mask);
+
+	if (hdev->heartbeat_reset_enable) {
+		hl_device_cond_reset(hdev, HL_DRV_RESET_HARD | HL_DRV_RESET_HEARTBEAT, event_mask);
+	} else {
+		hdev->disabled = true;
+		dev_err(hdev->dev, "Heartbeat reset is disabled\n");
+	}
 
 	return;
 
