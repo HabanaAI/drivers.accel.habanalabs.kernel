@@ -5333,6 +5333,7 @@ static int nic_port_sw_init(struct hl_nic_port *nic_port)
 	nic_funcs = hdev->asic_funcs->nic_funcs;
 	port_funcs = nic_funcs->port_funcs;
 	wq_arr_props = nic_port->wq_arr_props;
+	reset_tracker = NULL;
 
 	snprintf(wq_name, sizeof(wq_name) - 1, "hl%u-nic%d-wq", hdev->cdev_idx, port);
 	nic_port->wq = alloc_workqueue(wq_name, 0, 0);
