@@ -916,24 +916,11 @@ static void gaudi3_sram_init(struct hl_device *hdev)
 
 static void gaudi3_reset_config(struct hl_device *hdev)
 {
-	struct gaudi3_device *gaudi3 = hdev->asic_specific;
 	u64 offset;
 	u32 die;
 
-	gaudi3->psoc_reset = (hdev->fw_loader.fw_comp_loaded & FW_TYPE_PREBOOT_CPU) ?
-							true : false;
 	for (die = 0; die < hdev->asic_prop.num_of_dies; die++) {
 		offset = die * DIE_OFFSET;
-
-		if (gaudi3->psoc_reset) {
-			/* Reset PSOC and PSOC ARCs during hard-reset */
-			WREG32(mmD0_PSOC_RESET_CONF_BASE + offset +
-					mmPSOC_RESET_CONF_PSOC_SW_RST_CFG,
-					PSOC_RESET_CONF_PSOC_SW_RST_CFG_EN_M);
-			WREG32(mmD0_PSOC_RESET_CONF_BASE + offset +
-					mmPSOC_RESET_CONF_ARC_SW_RST_CFG,
-					PSOC_RESET_CONF_ARC_SW_RST_CFG_EN_M);
-		}
 
 		/* Reset PMMU during hard-reset */
 		WREG32(mmD0_PSOC_RESET_CONF_BASE + offset +

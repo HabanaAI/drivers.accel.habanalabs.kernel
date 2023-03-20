@@ -91,8 +91,7 @@ MODULE_FIRMWARE(GAUDI3_BOOT_FIT_FILE);
 
 #define GAUDI3_DMA_POOL_BLK_SIZE			SZ_256		/* 256 bytes */
 
-#define GAUDI3_PLDM_NO_BOOT_FIT_RESET_POLL_TIMEOUT_USEC	20000000	/* 20s */
-#define GAUDI3_PLDM_BOOT_FIT_RESET_POLL_TIMEOUT_USEC	3000000		/* 3s */
+#define GAUDI3_PLDM_PREBOOT_RESET_POLL_TIMEOUT_USEC	20000000	/* 20s */
 
 #define GAUDI3_MMU_CACHE_MAINT_TIMEOUT_USEC		(MMU_CONFIG_TIMEOUT_USEC * 1000)
 #define GAUDI3_PLDM_MMU_TIMEOUT_USEC			(MMU_CONFIG_TIMEOUT_USEC * 2000)
@@ -7598,23 +7597,13 @@ static int gaudi3_hw_fini(struct hl_device *hdev, bool hard_reset, bool fw_reset
 	int rc;
 
 	if (hdev->pldm) {
-		/* Using different poll timeouts when psoc is configured to reset
-		 * or not. Using a large poll timeout when psoc is not reset as sleep
-		 * after reset is skipped. Poll timeout should account for complete
-		 * reset completion.
-		 */
 		reset_sleep_ms = GAUDI3_PLDM_RESET_WAIT_MSEC;
+		poll_timeout_us = GAUDI3_PLDM_PREBOOT_RESET_POLL_TIMEOUT_USEC;
 
-		if (gaudi3 && gaudi3->psoc_reset) {
-			poll_timeout_us = GAUDI3_PLDM_BOOT_FIT_RESET_POLL_TIMEOUT_USEC;
-			if (hard_reset)
-				reset_sleep_ms = GAUDI3_PLDM_PSOC_HARD_RESET_TIMEOUT_MSEC;
-		} else {
-			if (hard_reset && hdev->asic_prop.num_of_dies == 2)
-				reset_sleep_ms = GAUDI3_PLDM_DUAL_DIE_HARD_RESET_WAIT_MSEC;
-
-			poll_timeout_us = GAUDI3_PLDM_NO_BOOT_FIT_RESET_POLL_TIMEOUT_USEC;
-		}
+		if (gaudi3 && hard_reset)
+			reset_sleep_ms = GAUDI3_PLDM_PSOC_HARD_RESET_TIMEOUT_MSEC;
+		else if (!gaudi3 && hard_reset && hdev->asic_prop.num_of_dies == 2)
+			reset_sleep_ms = GAUDI3_PLDM_DUAL_DIE_HARD_RESET_WAIT_MSEC;
 	} else {
 		reset_sleep_ms = GAUDI3_RESET_TIMEOUT_MSEC;
 		poll_timeout_us = GAUDI3_RESET_POLL_TIMEOUT_USEC;
@@ -10819,7 +10808,6 @@ void gaudi3_init_firmware_loader(struct hl_device *hdev)
 	struct cpu_dyn_regs *dyn_regs;
 
 	/* fill common fields */
-	fw_loader->fw_comp_loaded = FW_TYPE_NONE;
 	fw_loader->boot_fit_img.image_name = GAUDI3_BOOT_FIT_FILE;
 	fw_loader->boot_fit_timeout = GAUDI3_BOOT_FIT_REQ_TIMEOUT_USEC;
 	//fw_loader->linux_img.image_name = ?;

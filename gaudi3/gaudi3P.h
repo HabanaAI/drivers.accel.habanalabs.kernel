@@ -584,7 +584,6 @@ struct gaudi3_page_fault_queue_entry {
  *                  set. Each respective bit is cleared upon reset of its
  *                  corresponding ARC of the NIC engine.
  * @coll_lag_size: This field contains the collective operation's lag size.
- * @psoc_reset: Set this flag when PSOC reset is enabled in hard reset.
  * @iatu_dram_region_id: IATU region ID for DRAM.
  */
 struct gaudi3_device {
@@ -609,7 +608,6 @@ struct gaudi3_device {
 	u64					active_tpc_arc;
 	u64					active_nic_arc;
 	u32					coll_lag_size;
-	u8					psoc_reset;
 	u8					iatu_dram_region_id;
 };
 
