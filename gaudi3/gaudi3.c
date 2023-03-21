@@ -3201,6 +3201,7 @@ int gaudi3_set_fixed_properties(struct hl_device *hdev)
 	prop->user_interrupt_count = GAUDI3_IRQ_NUM_USER_LAST - GAUDI3_IRQ_NUM_USER_FIRST + 1;
 	prop->first_available_user_interrupt = GAUDI3_IRQ_NUM_USER_FIRST;
 	prop->tpc_interrupt_id = USHRT_MAX;
+	prop->eq_interrupt_id = GAUDI3_IRQ_NUM_EVENT_QUEUE;
 
 	prop->user_dec_intr_count = NUMBER_OF_DEC;
 

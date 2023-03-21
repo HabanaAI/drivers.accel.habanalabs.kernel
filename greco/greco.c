@@ -1056,6 +1056,7 @@ int greco_set_fixed_properties(struct hl_device *hdev)
 	prop->fw_cpu_boot_dev_sts1_valid = false;
 	prop->hard_reset_done_by_fw = false;
 	prop->gic_interrupts_enable = true;
+	prop->eq_interrupt_id = GRECO_IRQ_NUM_EVENT_QUEUE;
 
 	prop->server_type = HL_SERVER_TYPE_UNKNOWN;
 
