@@ -146,8 +146,12 @@ static int gaudi3_simulator_release(struct inode *inode, struct file *filp)
 		edev->hdev->disabled = true;
 		edev->hdev->simulator_crashed = true;
 		dev_warn(edev->dev,
-			"Simulator was closed, shouldn't use the hl%d device!\n",
+			"Simulator was closed, shouldn't use the accel%d device!\n",
+#if IS_ENABLED(CONFIG_DRM_ACCEL)
+			edev->hdev->id);
+#else
 			edev->hdev->id / 2);
+#endif
 		hl_sim_notify_simulator_close(edev->hdev);
 	}
 
@@ -406,15 +410,13 @@ static DEVICE_ATTR_RW(rw_regs_timeout_us);
 
 static int gaudi3_sim_start_device(struct hl_simulator_device *edev)
 {
-	int rc, minor = edev->id - HLV_SIM_ID_OFFSET;
+	int rc;
 
-	rc = create_hdev(&edev->hdev, NULL, edev->virt_dev_type, minor);
+	rc = hl_sim_create_hdev(edev);
 	if (rc) {
 		dev_err(edev->dev, "Failed to create real device for GAUDI3 simulator\n");
 		return rc;
 	}
-
-	edev->hdev->sdev = &edev->sdev;
 
 	hl_sim_set_priv_assertions(edev, true);
 
@@ -422,21 +424,20 @@ static int gaudi3_sim_start_device(struct hl_simulator_device *edev)
 	if (rc) {
 		dev_err(edev->dev, "fatal error during GAUDI3 simulator init\n");
 		rc = -ENODEV;
-		goto free_hdev;
+		goto out_err;
 	}
 
 	return 0;
 
-free_hdev:
-	kfree(edev->hdev);
-
+out_err:
+	hl_sim_destroy_hdev(edev->hdev);
 	return rc;
 }
 
 static void gaudi3_sim_stop_device(struct hl_device *hdev)
 {
 	hl_device_fini(hdev);
-	kfree(hdev);
+	hl_sim_destroy_hdev(hdev);
 }
 
 int gaudi3_simulator_start(struct simulator_start_args *args)
@@ -478,7 +479,11 @@ int gaudi3_simulator_start(struct simulator_start_args *args)
 	edev->dram_size = (u64)args->dram_size_in_mb * SZ_1M;
 	edev->sram_size = (u64)args->sram_size_in_mb * SZ_1M;
 
+#if IS_ENABLED(CONFIG_DRM_ACCEL)
+	sprintf(edev->name, "hlv%d", args->minor + HLV_SIM_ID_OFFSET);
+#else
 	sprintf(edev->name, "hlv%d", args->minor / 2 + HLV_SIM_ID_OFFSET);
+#endif
 
 	sim_devices_init(edev, edev->hclass, edev->id, &gaudi3_simulator_ops,
 					edev->name);

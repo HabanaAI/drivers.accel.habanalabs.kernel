@@ -224,13 +224,63 @@ static int hl_sim_mode_release(struct inode *inode, struct file *filp)
 	return 0;
 }
 
+#if IS_ENABLED(CONFIG_DRM_ACCEL)
+static int hl_sim_allocate_device_id(struct hl_sim_mode_device *sdev, int *minor)
+{
+	mutex_lock(sdev->hl_devs_idr_lock);
+	*minor = idr_alloc(sdev->hl_devs_idr, NULL, 0, HL_SIM_MAX_MINORS, GFP_KERNEL);
+	mutex_unlock(sdev->hl_devs_idr_lock);
+
+	if (*minor < 0) {
+		pr_err("too many devices in the system\n");
+		return -EBUSY;
+	}
+
+	return 0;
+}
+#else
+static int hl_sim_allocate_device_id(struct hl_sim_mode_device *sdev, int *minor)
+{
+	int minor_control = 0;
+
+	mutex_lock(sdev->hl_devs_idr_lock);
+
+	*minor = idr_alloc(sdev->hl_devs_idr, NULL, 0, HL_SIM_MAX_MINORS, GFP_KERNEL);
+	if (*minor < 0)
+		goto mutex_unlock;
+
+	minor_control = idr_alloc(sdev->hl_devs_idr, NULL, *minor + 1, *minor + 2, GFP_KERNEL);
+	if (minor_control < 0)
+		idr_remove(sdev->hl_devs_idr, *minor);
+
+mutex_unlock:
+	mutex_unlock(sdev->hl_devs_idr_lock);
+
+	if (*minor < 0 || minor_control < 0) {
+		pr_err("too many devices in the system\n");
+		return -EBUSY;
+	}
+
+	return 0;
+}
+#endif /* IS_ENABLED(CONFIG_DRM_ACCEL) */
+
+/* Should be called while the hl_devs_idr lock is taken */
+static void hl_sim_release_minor_locked(struct hl_sim_mode_device *sdev, u32 minor)
+{
+#if !IS_ENABLED(CONFIG_DRM_ACCEL)
+	idr_remove(sdev->hl_devs_idr, minor + 1);
+#endif
+	idr_remove(sdev->hl_devs_idr, minor);
+}
+
 static int hl_sim_set_devtype_get_minor_ioctl(struct hl_sim_mode_device *sdev,
 						void *data)
 {
 	int (*simulator_start)(struct simulator_start_args *sim_start_args);
 	struct hlv_sim_devtype_minor_args *args = data;
 	struct simulator_start_args sim_start_args;
-	int minor, minor_control = 0, rc;
+	int minor, rc;
 	u8 args_size;
 
 	memset(&sim_start_args, 0, sizeof(sim_start_args));
@@ -315,49 +365,33 @@ static int hl_sim_set_devtype_get_minor_ioctl(struct hl_sim_mode_device *sdev,
 		return -EINVAL;
 	}
 
-	mutex_lock(sdev->hl_devs_idr_lock);
-	minor = idr_alloc(sdev->hl_devs_idr, NULL, 0, HL_SIM_MAX_MINORS,
-				GFP_KERNEL);
-	if (minor >= 0)
-		minor_control = idr_alloc(sdev->hl_devs_idr, NULL, minor + 1,
-					minor + 2, GFP_KERNEL);
-	mutex_unlock(sdev->hl_devs_idr_lock);
-
-	if ((minor < 0) || (minor_control < 0)) {
-		pr_err("too many devices in the system\n");
-		rc = -EBUSY;
-
-		if (minor >= 0)
-			goto idr_remove;
-
-		goto err;
-	}
+	rc = hl_sim_allocate_device_id(sdev, &minor);
+	if (rc)
+		return rc;
 
 	sim_start_args.minor = minor;
 	sim_start_args.major = sdev->major;
 	sim_start_args.hclass = sdev->hclass;
-
-	sim_start_args.dram_size_in_mb =
-			FIELD_GET(DRAM_SIZE_IN_GB_MASK, args->dram_mask) * 1024
-			+ FIELD_GET(DRAM_SIZE_IN_MB_MASK, args->dram_mask);
-
+	sim_start_args.dram_size_in_mb = FIELD_GET(DRAM_SIZE_IN_GB_MASK, args->dram_mask) * 1024 +
+						FIELD_GET(DRAM_SIZE_IN_MB_MASK, args->dram_mask);
 	rc = simulator_start(&sim_start_args);
 	if (rc)
-		goto idr_remove;
+		goto release_device_id;
 
 	sdev->virt_dev_type[minor] = sim_start_args.virt_dev_type;
 
+#if IS_ENABLED(CONFIG_DRM_ACCEL)
+	args->devtype_or_minor = minor + HLV_SIM_ID_OFFSET;
+#else
 	args->devtype_or_minor = minor / 2 + HLV_SIM_ID_OFFSET;
+#endif
 
 	return 0;
 
-idr_remove:
+release_device_id:
 	mutex_lock(sdev->hl_devs_idr_lock);
-	if (minor_control >= 0)
-		idr_remove(sdev->hl_devs_idr, minor_control);
-	idr_remove(sdev->hl_devs_idr, minor);
+	hl_sim_release_minor_locked(sdev, minor);
 	mutex_unlock(sdev->hl_devs_idr_lock);
-err:
 	return rc;
 }
 
@@ -951,6 +985,12 @@ int hl_sim_fini(void)
 	return (sim_mode == 1 ? 1 : 0);
 }
 
+/* Should be called while the hl_devs_idr lock is taken */
+static void hl_sim_invalidate_minor_locked(struct hl_sim_mode_device *sdev, u32 minor)
+{
+	sdev->virt_dev_type[minor] = ASIC_INVALID;
+}
+
 /**
  * hl_sim_remove() - Mark simulator as inactive and release its minor number.
  * @minor: Minor number of the simulator.
@@ -960,10 +1000,70 @@ void hl_sim_remove(u32 minor)
 	struct hl_sim_mode_device *sdev = &sim_mode_dev;
 
 	mutex_lock(sdev->hl_devs_idr_lock);
-	sdev->virt_dev_type[minor] = ASIC_INVALID;
-	idr_remove(sdev->hl_devs_idr, minor + 1);
-	idr_remove(sdev->hl_devs_idr, minor);
+	hl_sim_invalidate_minor_locked(sdev, minor);
+	hl_sim_release_minor_locked(sdev, minor);
 	mutex_unlock(sdev->hl_devs_idr_lock);
+}
+
+/**
+ * hl_sim_create_hdev - wrapper for an habanalabs device instance creation.
+ * @edev: pointer to simulator device structure.
+ *
+ * Wrapper around create_hdev() for simulator.
+ * Internally adds a platform device which is used a parent device for the DRM device
+ * initialization.
+ *
+ * Return: 0 for success, negative value for failure.
+ */
+int hl_sim_create_hdev(struct hl_simulator_device *edev)
+{
+	int rc, minor = edev->id - HLV_SIM_ID_OFFSET;
+
+	edev->plat_dev = platform_device_register_simple(edev->name, PLATFORM_DEVID_NONE, NULL, 0);
+	if (IS_ERR(edev->plat_dev))
+		return PTR_ERR(edev->plat_dev);
+
+	if (!devres_open_group(&edev->plat_dev->dev, NULL, GFP_KERNEL)) {
+		rc = -ENOMEM;
+		goto unregister_plat_device;
+	}
+
+	rc = create_hdev(&edev->hdev, NULL, &edev->plat_dev->dev, edev->virt_dev_type, minor);
+	if (rc)
+		goto release_devres_group;
+
+	edev->hdev->sdev = edev->dev;
+	platform_set_drvdata(edev->plat_dev, edev->hdev);
+
+	return 0;
+
+release_devres_group:
+	devres_release_group(&edev->plat_dev->dev, NULL);
+unregister_plat_device:
+	platform_device_unregister(edev->plat_dev);
+	return rc;
+}
+
+/**
+ * hl_sim_destroy_hdev - wrapper for an habanalabs device instance teardown.
+ * @hdev: pointer to habanalabs device structure
+ *
+ * Wrapper around the habanalabs device instance teardown.
+ * Unregister the platform device which was used as a parent device of the DRM device.
+ * If the accel subsystem is enabled, this unregisteration will lead to releasing devres entries,
+ * including freeing the habanalabs device instance. If it is not enabled, call kfree explicitly.
+ */
+void hl_sim_destroy_hdev(struct hl_device *hdev)
+{
+	struct hl_simulator_device *edev =
+			container_of(hdev->sdev, struct hl_simulator_device, sdev);
+
+	devres_release_group(&edev->plat_dev->dev, NULL);
+	platform_device_unregister(edev->plat_dev);
+
+#if !IS_ENABLED(CONFIG_DRM_ACCEL)
+	kfree(hdev);
+#endif
 }
 
 /**

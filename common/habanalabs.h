@@ -30,6 +30,7 @@
 #include <linux/rwsem.h>
 #include <linux/if_vlan.h>
 #include <linux/eventfd.h>
+#include <linux/platform_device.h>
 
 #ifdef _HAS_BITFIELD_H
 #include <linux/bitfield.h>
@@ -4177,7 +4178,7 @@ bool hl_ctrl_device_operational(struct hl_device *hdev,
 		enum hl_device_status *status);
 enum hl_device_status hl_device_status(struct hl_device *hdev);
 int hl_device_set_debug_mode(struct hl_device *hdev, struct hl_ctx *ctx, bool enable);
-int create_hdev(struct hl_device **dev, struct pci_dev *pdev,
+int create_hdev(struct hl_device **dev, struct pci_dev *pdev, struct device *parent,
 		enum hl_asic_type asic_type, int minor);
 void hl_pci_force_remove_device(struct hl_device *hdev);
 int hl_hw_queues_create(struct hl_device *hdev);
@@ -4735,6 +4736,7 @@ struct hl_simulator_device {
 	struct device		*dev;
 	struct device		sdev;
 	struct hl_device	*hdev;
+	struct platform_device	*plat_dev;
 	struct hl_vm_user_pages	user_sram_dram;
 	struct hl_vm_user_pages	user_sram;
 	struct hl_sim_irq	sirq;
@@ -4808,6 +4810,9 @@ int hl_sim_init(struct class *hclass, u32 major, struct idr *hl_devs_idr,
 		struct mutex *hl_devs_idr_lock);
 int hl_sim_fini(void);
 void hl_sim_remove(u32 minor);
+
+int hl_sim_create_hdev(struct hl_simulator_device *edev);
+void hl_sim_destroy_hdev(struct hl_device *hdev);
 
 int sim_mem_access_debug_handler(struct hl_device *hdev, void *info);
 u32 hl_sim_rreg(struct hl_device *hdev, u64 reg_addr,

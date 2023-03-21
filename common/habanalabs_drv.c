@@ -1683,6 +1683,7 @@ static int allocate_device_id(struct hl_device *hdev, int minor)
  *
  * @dev: will hold the pointer to the new habanalabs device structure
  * @pdev: pointer to the pci device
+ * @parent: pointer to the parent device object
  * @asic_type: in case of simulator device, which device is it
  * @minor: in case of simulator device, the minor of the device
  *
@@ -1690,7 +1691,7 @@ static int allocate_device_id(struct hl_device *hdev, int minor)
  * Identify the ASIC type
  * Allocate ID (minor) for the device (only for real devices)
  */
-int create_hdev(struct hl_device **dev, struct pci_dev *pdev,
+int create_hdev(struct hl_device **dev, struct pci_dev *pdev, struct device *parent,
 		enum hl_asic_type asic_type, int minor)
 {
 	struct hl_device *hdev;
@@ -1699,7 +1700,7 @@ int create_hdev(struct hl_device **dev, struct pci_dev *pdev,
 	*dev = NULL;
 
 #if IS_ENABLED(CONFIG_DRM_ACCEL)
-	hdev = devm_drm_dev_alloc(&pdev->dev, &hl_driver, struct hl_device, drm);
+	hdev = devm_drm_dev_alloc(parent, &hl_driver, struct hl_device, drm);
 	if (IS_ERR(hdev))
 		return PTR_ERR(hdev);
 
@@ -1839,7 +1840,7 @@ static int hl_pci_probe(struct pci_dev *pdev, const struct pci_device_id *id)
 		 " device found [%04x:%04x] (rev %x)\n",
 		 (int)pdev->vendor, (int)pdev->device, (int)pdev->revision);
 
-	rc = create_hdev(&hdev, pdev, ASIC_INVALID, -1);
+	rc = create_hdev(&hdev, pdev, &pdev->dev, ASIC_INVALID, -1);
 	if (rc)
 		return rc;
 
