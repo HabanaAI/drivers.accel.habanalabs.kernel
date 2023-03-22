@@ -134,6 +134,7 @@ static int hl_nic_ib_cmd_ctrl(struct hl_aux_dev *aux_dev, void *core_ctx, u32 op
 static int hl_nic_ib_mmap(struct hl_aux_dev *aux_dev, void *core_ctx,
 				struct vm_area_struct *vma);
 static void wq_arrays_pool_destroy(struct hl_ctx *ctx);
+static void hl_nic_reset_ethtool_counters_port(struct hl_device *hdev, u32 port);
 
 void hl_nic_get_frac_info(u64 numerator, u64 denominator, u64 *integer, u64 *exp)
 {
@@ -231,6 +232,8 @@ static int __hl_nic_port_hw_init(struct hl_nic_port *nic_port)
 		dev_err(hdev->dev, "Port %u is disabled\n", nic_port->port);
 		return -EPERM;
 	}
+
+	hl_nic_reset_ethtool_counters_port(hdev, nic_port->port);
 
 	return hdev->asic_funcs->nic_funcs->port_funcs->port_hw_init(nic_port);
 }
@@ -470,18 +473,6 @@ static u32 hl_nic_get_speed(struct hl_aux_dev *aux_dev, u32 port)
 	return nic->nic_ports[port].speed;
 }
 
-static void hl_nic_reset_core_mac_stats(struct hl_aux_dev *aux_dev, u32 port)
-{
-	struct hl_nic *nic = HL_AUX2NIC(aux_dev);
-	struct hl_nic_port *nic_port = &nic->nic_ports[port];
-	struct hl_device *hdev = container_of(nic, struct hl_device, nic);
-	struct hl_nic_port_funcs *port_funcs;
-
-	port_funcs = hdev->asic_funcs->nic_funcs->port_funcs;
-
-	port_funcs->reset_mac_stats(nic_port);
-}
-
 static void hl_nic_track_ext_port_reset(struct hl_aux_dev *aux_dev, u32 port, u32 syndrom)
 {
 	struct hl_nic *nic = HL_AUX2NIC(aux_dev);
@@ -617,7 +608,6 @@ static int hl_nic_en_aux_data_init(struct hl_device *hdev)
 	aux_ops->eq_dispatcher_register_qp = hl_nic_dispatcher_register_qp;
 	aux_ops->eq_dispatcher_unregister_qp = hl_nic_dispatcher_unregister_qp;
 	aux_ops->get_speed = hl_nic_get_speed;
-	aux_ops->reset_core_mac_stats = hl_nic_reset_core_mac_stats;
 	aux_ops->track_ext_port_reset = hl_nic_track_ext_port_reset;
 	aux_ops->port_toggle_count = hl_nic_port_toggle_count;
 
@@ -5863,20 +5853,47 @@ void hl_nic_spmu_init(struct hl_device *hdev, int port, bool full)
 		dev_err(hdev->dev, "Failed to enable spmu for NIC port %d\n", port);
 }
 
-void hl_nic_reset_ethtool_cnt(struct hl_device *hdev)
+static void hl_nic_reset_ethtool_counters_port(struct hl_device *hdev, u32 port)
 {
-	struct hl_nic_properties *nic_props = &hdev->asic_prop.nic_props;
 	struct hl_nic_port_funcs *port_funcs;
 	struct hl_nic *nic = &hdev->nic;
 	struct hl_en_aux_ops *aux_ops;
 	struct hl_nic_port *nic_port;
 	struct hl_aux_dev *aux_dev;
-	u32 port;
-	int i;
 
+	nic_port = &nic->nic_ports[port];
 	aux_dev = &nic->en_aux_dev;
 	aux_ops = aux_dev->aux_ops;
 	port_funcs = hdev->asic_funcs->nic_funcs->port_funcs;
+
+	/* Ethernet */
+	if (nic_port->eth_enable)
+		aux_ops->reset_stats(aux_dev, port);
+
+	/* MAC */
+	port_funcs->reset_mac_stats(nic_port);
+
+	/* SPMU */
+	hl_nic_spmu_init(hdev, port, true);
+
+	/* XPCS91 */
+	nic_port->correctable_errors_cnt = 0;
+	nic_port->uncorrectable_errors_cnt = 0;
+
+	/* PCS */
+	nic_port->pcs_local_fault_cnt = 0;
+	nic_port->pcs_remote_fault_cnt = 0;
+	nic_port->pcs_remote_fault_reconfig_cnt = 0;
+	nic_port->pcs_link_restore_cnt = 0;
+}
+
+void hl_nic_reset_ethtool_counters(struct hl_device *hdev)
+{
+	struct hl_nic_properties *nic_props = &hdev->asic_prop.nic_props;
+	struct hl_nic *nic = &hdev->nic;
+	struct hl_nic_port *nic_port;
+	u32 port;
+	int i;
 
 	for (i = 0 ; i < nic_props->max_num_of_ports ; i++) {
 		if (!(hdev->nic_ports_mask & BIT(i)))
@@ -5889,25 +5906,7 @@ void hl_nic_reset_ethtool_cnt(struct hl_device *hdev)
 
 		port = nic_port->port;
 
-		/* Ethernet */
-		if (nic_port->eth_enable)
-			aux_ops->reset_stats(aux_dev, port);
-
-		/* MAC */
-		port_funcs->reset_mac_stats(nic_port);
-
-		/* SPMU */
-		hl_nic_spmu_init(hdev, i, true);
-
-		/* XPCS91 */
-		nic_port->correctable_errors_cnt = 0;
-		nic_port->uncorrectable_errors_cnt = 0;
-
-		/* PCS */
-		nic_port->pcs_local_fault_cnt = 0;
-		nic_port->pcs_remote_fault_cnt = 0;
-		nic_port->pcs_remote_fault_reconfig_cnt = 0;
-		nic_port->pcs_link_restore_cnt = 0;
+		hl_nic_reset_ethtool_counters_port(hdev, port);
 	}
 }
 

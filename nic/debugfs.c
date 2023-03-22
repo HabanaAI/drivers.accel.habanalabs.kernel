@@ -683,7 +683,7 @@ static ssize_t debugfs_reset_ethtool_cnt_write(struct file *f,
 	if (rc)
 		return rc;
 
-	hl_nic_reset_ethtool_cnt(hdev);
+	hl_nic_reset_ethtool_counters(hdev);
 
 	return count;
 }

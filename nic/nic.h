@@ -1436,7 +1436,7 @@ bool hl_nic_is_port_open(struct hl_nic_port *nic_port);
 u32 hl_nic_get_pflags(struct hl_nic_port *nic_port);
 u8 hl_nic_get_num_of_digits(u64 num);
 void hl_nic_spmu_init(struct hl_device *hdev, int port, bool full);
-void hl_nic_reset_ethtool_cnt(struct hl_device *hdev);
+void hl_nic_reset_ethtool_counters(struct hl_device *hdev);
 
 void hl_nic_dq_reset(struct hl_nic_ev_dq *dq);
 struct hl_nic_ev_dq *hl_nic_asid_to_dq(struct hl_nic_ev_dqs *ev_dqs, u32 asid);
