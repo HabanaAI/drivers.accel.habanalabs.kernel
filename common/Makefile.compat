@@ -506,3 +506,7 @@ endif
 ifneq ($(shell grep "vm_flags_set" include/linux/mm.h > /dev/null 2>&1 && echo 1),)
 	ccflags-y += -D_HAS_VM_FLAGS_SET
 endif
+
+ifneq ($(shell grep "eth_hw_addr_set" include/linux/etherdevice.h > /dev/null 2>&1 && echo 1),)
+	ccflags-y += -D_HAS_ETH_HW_ADDR_SET
+endif

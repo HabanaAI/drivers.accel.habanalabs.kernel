@@ -18,6 +18,7 @@
 #include <linux/mm.h>
 #include <linux/dma-mapping.h>
 #include <linux/poll.h>
+#include <linux/etherdevice.h>
 #ifndef _HAS_RES_RDMA_NL_PUT_DRIVER_STRING
 #include <linux/skbuff.h>
 #endif
@@ -40,6 +41,7 @@
 #ifdef _HAS_DMA_MAP_RESOURCE_WITH_DMA_ATTRS
 #include <linux/dma-attrs.h>
 #endif
+
 #ifndef SZ_16G
 #define SZ_16G				_AC(0x400000000, ULL)
 #endif
@@ -912,6 +914,13 @@ int rdma_nl_put_driver_string(struct sk_buff *msg, const char *name, const char 
 static inline void vm_flags_set(struct vm_area_struct *vma, vm_flags_t flags)
 {
 	vma->vm_flags |= flags;
+}
+#endif
+
+#ifndef _HAS_ETH_HW_ADDR_SET
+static inline void eth_hw_addr_set(struct net_device *dev, const u8 *addr)
+{
+	ether_addr_copy(dev->dev_addr, addr);
 }
 #endif
 
