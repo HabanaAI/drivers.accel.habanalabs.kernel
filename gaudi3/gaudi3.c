@@ -10827,12 +10827,11 @@ u32 *gaudi3_get_stream_master_qid_arr(void)
 }
 
 static bool gaudi3_razwi_status(struct hl_device *hdev, struct razwi_initiator_info *initiator,
-				enum razwi_type type, bool is_hbw, u64 *event_mask)
+				enum razwi_type type, bool is_hbw, u16 eng_id, u64 *event_mask)
 {
 	u32 is_razwi_happened, addr_lo, addr_hi, flags;
 	u64 base, razwi_offset, razwi_addr;
 	char *bw_type, *razwi_type;
-	u16 eng_id;
 
 	if (is_hbw) {
 		base = initiator->hbw_razwi_info_base;
@@ -10881,7 +10880,6 @@ static bool gaudi3_razwi_status(struct hl_device *hdev, struct razwi_initiator_i
 
 	addr_hi = RREG32(base + mmRTR_CTRL_CH_RAZWI_HBW_RR_RAZWI_AW_ADDR_HI);
 	addr_lo = RREG32(base + mmRTR_CTRL_CH_RAZWI_HBW_RR_RAZWI_AW_ADDR_LO);
-	eng_id = RREG32(base + mmRTR_CTRL_CH_RAZWI_HBW_RR_RAZWI_AW_ID);
 	razwi_addr = ((u64)addr_hi << 32) + addr_lo + razwi_offset;
 
 	dev_err(hdev->dev, "%s %s : %s, address 0x%llX, captured id %u\n",
@@ -10896,10 +10894,10 @@ static void gaudi3_check_for_razwi_per_type(struct hl_device *hdev,
 						struct razwi_initiator_info *initiator, bool is_hbw,
 						u16 eng_id, u64 *event_mask)
 {
-	gaudi3_razwi_status(hdev, initiator, RR_AW, is_hbw, event_mask);
-	gaudi3_razwi_status(hdev, initiator, RR_AR, is_hbw, event_mask);
-	gaudi3_razwi_status(hdev, initiator, ADEC_AW, is_hbw, event_mask);
-	gaudi3_razwi_status(hdev, initiator, ADEC_AR, is_hbw, event_mask);
+	gaudi3_razwi_status(hdev, initiator, RR_AW, is_hbw, eng_id, event_mask);
+	gaudi3_razwi_status(hdev, initiator, RR_AR, is_hbw, eng_id, event_mask);
+	gaudi3_razwi_status(hdev, initiator, ADEC_AW, is_hbw, eng_id, event_mask);
+	gaudi3_razwi_status(hdev, initiator, ADEC_AR, is_hbw, eng_id, event_mask);
 }
 
 static void gaudi3_check_for_razwi(struct hl_device *hdev, struct razwi_initiator_info *initiator,
