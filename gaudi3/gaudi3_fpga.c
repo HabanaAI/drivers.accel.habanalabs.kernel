@@ -270,8 +270,6 @@ static int gaudi3_fpga_hw_init(struct hl_device *hdev)
 	struct gaudi3_device *gaudi3 = hdev->asic_specific;
 	int rc;
 
-	/* TODO: handle hw init reset config */
-
 	rc = gaudi3_init_cpu(hdev);
 	if (rc) {
 		dev_err(hdev->dev, "failed to initialize CPU\n");
