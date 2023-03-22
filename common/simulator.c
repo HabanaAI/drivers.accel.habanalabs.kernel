@@ -591,6 +591,16 @@ void hl_sim_set_priv_assertions(struct hl_simulator_device *edev, bool enable)
 	}
 }
 
+void hl_sim_notify_simulator_close(struct hl_device *hdev)
+{
+	u64 event_mask;
+
+	event_mask = HL_NOTIFIER_EVENT_DEVICE_RESET
+			| HL_NOTIFIER_EVENT_DEVICE_UNAVAILABLE
+			| HL_NOTIFIER_EVENT_CRITICL_HW_ERR;
+	hl_notifier_event_send_all(hdev, event_mask);
+}
+
 /*
  * Ioctl function type.
  *

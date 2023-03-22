@@ -151,6 +151,7 @@ static int gaudi2_simulator_release(struct inode *inode, struct file *filp)
 			edev->hdev->id / 2);
 		edev->hdev->disabled = true;
 		edev->hdev->simulator_crashed = true;
+		hl_sim_notify_simulator_close(edev->hdev);
 	}
 
 	gaudi2_simulator_stop(minor);

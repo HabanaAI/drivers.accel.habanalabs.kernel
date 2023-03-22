@@ -4814,6 +4814,7 @@ void hl_sim_wreg(struct hl_device *hdev, u64 reg_addr,
 void hl_sim_notify_reset(struct hl_device *hdev,
 			struct hl_simulator_device *edev);
 void hl_sim_set_priv_assertions(struct hl_simulator_device *edev, bool enable);
+void hl_sim_notify_simulator_close(struct hl_device *hdev);
 
 void hl_sim_vunmap_user_pages(struct hl_vm_user_pages *user_pages);
 int hl_sim_vmap_user_pages(u64 user_pointer, u64 size_in_bytes,
