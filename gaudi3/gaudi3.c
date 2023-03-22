@@ -2896,49 +2896,35 @@ static int gaudi3_validate_set_tpc_binning(struct hl_device *hdev)
 
 static int gaudi3_validate_set_decoder_binning(struct hl_device *hdev)
 {
-	u32 decoder_full_mask, die_decoder_full_mask, die_decoder_binning_mask;
+	u32 full_dec_mask_per_die, full_dec_mask_per_die_last_binned, dec_binning_mask_per_die;
 	struct asic_fixed_properties *prop = &hdev->asic_prop;
-	u8 i, num_die_decoders, num_binned;
+	u8 i, num_of_decoders_per_die, num_binned, shift;
 
-	/* no binning but maybe not all engines are enabled */
-	if (!hdev->decoder_binning) {
-		prop->decoder_enabled_mask = hdev->decoder_mask;
-		prop->decoder_binning_mask = hdev->decoder_binning;
-		return 0;
-	}
+	num_of_decoders_per_die = NUM_OF_HDCORES_PER_DIE * NUM_OF_DECODER_PER_HDCORE;
+	full_dec_mask_per_die = GENMASK(num_of_decoders_per_die - 1, 0);
+	full_dec_mask_per_die_last_binned = GENMASK(num_of_decoders_per_die - 2, 0);
+	prop->decoder_enabled_mask = 0x0;
 
-	decoder_full_mask = GENMASK((prop->num_of_hdcores * NUM_OF_DECODER_PER_HDCORE) - 1, 0);
+	/* In decoder binning we can have, at most, a single binned decoder per DIE */
+	for (i = 0 ; i < prop->num_of_dies ; i++) {
+		shift = i * num_of_decoders_per_die;
 
-	if (hdev->decoder_mask != decoder_full_mask) {
-		dev_err(hdev->dev,
-			"Decoder binning is valid only with full decoder enabled mask\n");
-		return -EINVAL;
-	}
-
-	/* in decoder binning we can have, at most, single binned decoder per DIE */
-	num_die_decoders = NUM_OF_HDCORES_PER_DIE * NUM_OF_DECODER_PER_HDCORE;
-	die_decoder_full_mask = GENMASK(num_die_decoders - 1, 0);
-	prop->decoder_enabled_mask = 0;
-	for (i = 0; i < prop->num_of_dies; i++) {
-		u8 shift = i * num_die_decoders;
-
-		die_decoder_binning_mask = (hdev->decoder_binning >> shift) & die_decoder_full_mask;
-		if (!die_decoder_binning_mask) {
-			prop->decoder_enabled_mask |= (die_decoder_full_mask << shift);
-			continue;
-		}
-
-		num_binned = hweight32(die_decoder_binning_mask);
+		dec_binning_mask_per_die = (hdev->decoder_binning >> shift) & full_dec_mask_per_die;
+		num_binned = hweight32(dec_binning_mask_per_die);
 		if (num_binned > MAX_BINNED_DECODERS_PER_DIE) {
 			dev_err(hdev->dev, "too many binned decoders (%#x)\n",
-							hdev->decoder_binning);
+					hdev->decoder_binning);
 			return -EINVAL;
 		}
 
-		/* set last decoder in each die as not enabled */
-		prop->decoder_enabled_mask |= (GENMASK(num_die_decoders - 2, 0) << shift);
+		/* Besides the defaultly disabled decoders, we disable the last decoder in each
+		 * die as it's binned by default, even if FW reports no binning.
+		 */
+		prop->decoder_enabled_mask |= (full_dec_mask_per_die_last_binned << shift) &
+				hdev->decoder_mask;
 	}
 
+	/* Note that binning masks saved in eFuse aren't necessarily aligned with LKD bfe masks */
 	prop->decoder_binning_mask = hdev->decoder_binning;
 
 	return 0;
@@ -2946,48 +2932,34 @@ static int gaudi3_validate_set_decoder_binning(struct hl_device *hdev)
 
 static int gaudi3_validate_set_rotator_binning(struct hl_device *hdev)
 {
-	u32 rotator_full_mask, die_rotator_full_mask, die_rotator_binning_mask;
+	u32 full_rot_mask_per_die, full_rot_mask_per_die_last_binned, rot_binning_mask_per_die;
 	struct asic_fixed_properties *prop = &hdev->asic_prop;
-	u8 i, num_binned;
+	u8 i, num_binned, shift;
 
-	/* no binning but maybe not all engines are enabled */
-	if (!hdev->rotator_binning) {
-		prop->rotator_enabled_mask = hdev->rotator_mask;
-		prop->rotator_binning_mask = hdev->rotator_binning;
-		return 0;
-	}
+	full_rot_mask_per_die = GENMASK(NUM_OF_ROTATOR_PER_DIE - 1, 0);
+	full_rot_mask_per_die_last_binned = GENMASK(NUM_OF_ROTATOR_PER_DIE - 2, 0);
+	prop->rotator_enabled_mask = 0x0;
 
-	rotator_full_mask = GENMASK((prop->num_of_dies * NUM_OF_ROTATOR_PER_DIE) - 1, 0);
+	/* In rotator binning we can have, at most, a single binned rotator per DIE */
+	for (i = 0 ; i < prop->num_of_dies ; i++) {
+		shift = i * NUM_OF_ROTATOR_PER_DIE;
 
-	if (hdev->rotator_mask != rotator_full_mask) {
-		dev_err(hdev->dev,
-			"Rotator binning is valid only with full rotator enabled mask\n");
-		return -EINVAL;
-	}
-
-	/* in rotator binning we can have, at most, single binned rotator per DIE */
-	die_rotator_full_mask = GENMASK(NUM_OF_ROTATOR_PER_DIE - 1, 0);
-	prop->rotator_enabled_mask = 0;
-	for (i = 0; i < prop->num_of_dies; i++) {
-		u8 shift = i * NUM_OF_ROTATOR_PER_DIE;
-
-		die_rotator_binning_mask = (hdev->rotator_binning >> shift) & die_rotator_full_mask;
-		if (!die_rotator_binning_mask) {
-			prop->rotator_enabled_mask |= (die_rotator_full_mask << shift);
-			continue;
-		}
-
-		num_binned = hweight32(die_rotator_binning_mask);
+		rot_binning_mask_per_die = (hdev->rotator_binning >> shift) & full_rot_mask_per_die;
+		num_binned = hweight32(rot_binning_mask_per_die);
 		if (num_binned > MAX_BINNED_ROTATORS_PER_DIE) {
 			dev_err(hdev->dev, "too many binned rotators (%#x)\n",
-							hdev->rotator_binning);
+					hdev->rotator_binning);
 			return -EINVAL;
 		}
 
-		/* set last rotator in each die as not enabled */
-		prop->rotator_enabled_mask |= (GENMASK(NUM_OF_ROTATOR_PER_DIE - 2, 0) << shift);
+		/* Besides the defaultly disabled rotators, we disable the last rotator in each
+		 * die as it's binned by default, even if FW reports no binning.
+		 */
+		prop->rotator_enabled_mask |= (full_rot_mask_per_die_last_binned << shift) &
+				hdev->rotator_mask;
 	}
 
+	/* Note that binning masks saved in eFuse aren't necessarily aligned with LKD bfe masks */
 	prop->rotator_binning_mask = hdev->rotator_binning;
 
 	return 0;
@@ -4594,7 +4566,9 @@ static int gaudi3_cpucp_info_get(struct hl_device *hdev)
 	if (!strlen(prop->cpucp_info.card_name))
 		strncpy(prop->cpucp_info.card_name, GAUDI3_DEFAULT_CARD_NAME, CARD_NAME_MAX_LEN);
 
-	hdev->asic_funcs->set_binning_masks(hdev);
+	rc = hdev->asic_funcs->set_binning_masks(hdev);
+	if (rc)
+		return rc;
 
 	if (!hdev->ignore_fw_nic_info)
 		rc = gaudi3_nic_set_info(hdev, true);
