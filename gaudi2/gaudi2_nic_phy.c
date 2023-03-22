@@ -127,6 +127,8 @@
 #define NIC_PHY_RX_POL_MASK_HLS2		0x0
 #define NIC_PHY_TX_POL_MASK_HL225_S		0xB0350203A3E2
 #define NIC_PHY_RX_POL_MASK_HL225_S		0x404800002000
+#define NIC_PHY_TX_POL_MASK_HL325_S		0xFFFFFFFFFFFF
+#define NIC_PHY_RX_POL_MASK_HL325_S		0x00000008CC04
 
 #define NIC_PHY_PCS_LINK_CNT			10
 #define NIC_PHY_MAC_REMOTE_FAULT_CNT		15
@@ -543,6 +545,10 @@ static void set_default_polarity_values(struct hl_device *hdev)
 		pol_tx = NIC_PHY_TX_POL_MASK_HL225 ^ NIC_PHY_TX_POL_MASK_HL225_S;
 		pol_rx = NIC_PHY_RX_POL_MASK_HL225 ^ NIC_PHY_RX_POL_MASK_HL225_S;
 		break;
+	case GAUDI2_SETUP_TYPE_HL325_S_EXT_LB:
+		pol_tx = NIC_PHY_TX_POL_MASK_HL225 ^ NIC_PHY_TX_POL_MASK_HL325_S;
+		pol_rx = NIC_PHY_RX_POL_MASK_HL225 ^ NIC_PHY_RX_POL_MASK_HL325_S;
+		break;
 	default:
 		dev_err(hdev->dev, "Wrong setup type %d\n", setup_type);
 		return;
@@ -566,6 +572,7 @@ static s32 get_pam4_tap_pre2(struct hl_device *hdev, u32 card_location, u32 abs_
 	case GAUDI2_SETUP_TYPE_HLS2:
 		return 2;
 	case GAUDI2_SETUP_TYPE_HL225_S_EXT_LB:
+	case GAUDI2_SETUP_TYPE_HL325_S_EXT_LB:
 		return 2;
 	default:
 		dev_err(hdev->dev, "Wrong setup type %d\n", setup_type);
@@ -582,6 +589,7 @@ static s32 get_pam4_tap_pre1(struct hl_device *hdev, u32 card_location, u32 abs_
 	case GAUDI2_SETUP_TYPE_HLS2:
 		return -10;
 	case GAUDI2_SETUP_TYPE_HL225_S_EXT_LB:
+	case GAUDI2_SETUP_TYPE_HL325_S_EXT_LB:
 		return -12;
 	default:
 		dev_err(hdev->dev, "Wrong setup type %d\n", setup_type);
@@ -598,6 +606,7 @@ static s32 get_pam4_tap_main(struct hl_device *hdev, u32 card_location, u32 abs_
 	case GAUDI2_SETUP_TYPE_HLS2:
 		return 23;
 	case GAUDI2_SETUP_TYPE_HL225_S_EXT_LB:
+	case GAUDI2_SETUP_TYPE_HL325_S_EXT_LB:
 		return 22;
 	default:
 		dev_err(hdev->dev, "Wrong setup type %d\n", setup_type);

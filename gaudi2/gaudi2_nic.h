@@ -240,7 +240,8 @@ enum qpc_req_wq_type {
 
 enum gaudi2_setup_type {
 	GAUDI2_SETUP_TYPE_HLS2,
-	GAUDI2_SETUP_TYPE_HL225_S_EXT_LB
+	GAUDI2_SETUP_TYPE_HL225_S_EXT_LB,
+	GAUDI2_SETUP_TYPE_HL325_S_EXT_LB
 };
 
 enum gaudi2_nic_mac_fec_stats_type {
