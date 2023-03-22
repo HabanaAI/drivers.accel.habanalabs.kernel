@@ -4248,7 +4248,10 @@ static int gaudi3_nic_sw_init(struct hl_device *hdev)
 	 * get a deadlock.
 	 */
 	nic->skip_odd_ports_cfg_lock = is_200g_mode(hdev);
+
+#ifdef HL_LOAD_IB
 	nic->ib_support = true;
+#endif
 
 	return 0;
 

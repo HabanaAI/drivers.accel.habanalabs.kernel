@@ -1174,21 +1174,9 @@ static void hl_nic_en_aux_drv_fini(struct hl_device *hdev)
 	hl_nic_en_aux_data_fini(hdev);
 }
 
-/* in case that the IB driver is not loaded */
-#ifndef HL_LOAD_IB
-static int hl_ib_probe(struct hl_aux_dev *aux_dev)
-{
-	return 0;
-}
-
-static void hl_ib_remove(struct hl_aux_dev *aux_dev)
-{
-
-}
-#endif
-
 static int hl_nic_ib_aux_drv_init(struct hl_device *hdev)
 {
+	int (*probe)(struct hl_aux_dev *aux_dev);
 	struct hl_nic *nic = &hdev->nic;
 	int rc;
 
@@ -1201,7 +1189,16 @@ static int hl_nic_ib_aux_drv_init(struct hl_device *hdev)
 		return rc;
 	}
 
-	rc = hl_ib_probe(&hdev->nic.ib_aux_dev);
+	probe = symbol_get(hl_ib_probe);
+	if (!probe) {
+		dev_err(hdev->dev, "hl_ib_probe symbol isn't found\n");
+		rc = -ENODEV;
+		goto probe_fail;
+	}
+
+	rc = probe(&hdev->nic.ib_aux_dev);
+	symbol_put(hl_ib_probe);
+
 	if (rc) {
 		dev_err(hdev->dev, "IB probe failed\n");
 		goto probe_fail;
@@ -1217,12 +1214,21 @@ probe_fail:
 
 static void hl_nic_ib_aux_drv_fini(struct hl_device *hdev)
 {
+	void (*remove)(struct hl_aux_dev *aux_dev);
 	struct hl_nic *nic = &hdev->nic;
 
 	if (!nic->ib_support)
 		return;
 
-	hl_ib_remove(&hdev->nic.ib_aux_dev);
+	remove = symbol_get(hl_ib_remove);
+	if (!remove) {
+		dev_err(hdev->dev, "hl_ib_remove symbol isn't found\n");
+		return;
+	}
+
+	remove(&hdev->nic.ib_aux_dev);
+	symbol_put(hl_ib_remove);
+
 	hl_nic_ib_aux_data_fini(hdev);
 }
 #endif

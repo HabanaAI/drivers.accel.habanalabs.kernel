@@ -3874,7 +3874,9 @@ static int gaudi2_nic_sw_init(struct hl_device *hdev)
 			BIT(HL_NIC_OP_USER_CQ_ID_UNSET) |
 			BIT(HL_NIC_OP_DUMP_QP);
 
+#ifdef HL_LOAD_IB
 	nic->ib_support = true;
+#endif
 
 	return 0;
 

@@ -94,6 +94,9 @@ extern size_t hl_nic_mac_fec_stats_len;
 extern size_t hl_nic_mac_stats_rx_len;
 extern size_t hl_nic_mac_stats_tx_len;
 
+extern int hl_ib_probe(struct hl_aux_dev *aux_dev);
+extern void hl_ib_remove(struct hl_aux_dev *aux_dev);
+
 /**
  * struct hl_nic_dq_qp_info - structure to hold qp info for dispatch queue.
  * @node: reference to a QP within the list
