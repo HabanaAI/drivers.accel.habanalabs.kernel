@@ -1242,7 +1242,8 @@ enum razwi_initiztor {
 	RAZWI_ROT,
 	RAZWI_ARC_FARM,
 	RAZWI_SM,
-	RAZWI_SDUP
+	RAZWI_SDUP,
+	RAZWI_NA
 };
 
 struct razwi_initiator_info {
@@ -11179,6 +11180,29 @@ static void gaudi3_razwi_handler(struct hl_device *hdev,  enum razwi_initiztor r
 	}
 }
 
+static void gaudi3_sei_razwi_handler(struct hl_device *hdev,  enum hl_agg_component_type component,
+		u8 die, u8 hdcore, u64 *event_mask)
+{
+	switch (component) {
+	case INT_COMP_TYPE_PCIE:
+		/* No need to handle razwi */
+		break;
+
+	case INT_COMP_TYPE_PDMA:
+		gaudi3_razwi_handler(hdev, RAZWI_PDMA, die, hdcore, 0,
+				GAUDI3_DIE0_ENGINE_ID_PDMA_0_CH_0 + die * NUM_OF_PDMA_CH_PER_DIE,
+				event_mask);
+		gaudi3_razwi_handler(hdev, RAZWI_PDMA, die, hdcore, 1,
+				GAUDI3_DIE0_ENGINE_ID_PDMA_1_CH_0 + die * NUM_OF_PDMA_CH_PER_DIE,
+				event_mask);
+		break;
+
+	default:
+		dev_err(hdev->dev, "Component type %u doesn't have razwi handler\n", component);
+		break;
+	}
+}
+
 static void gaudi3_check_if_razwi_happened(struct hl_device *hdev)
 {
 }
@@ -11627,12 +11651,6 @@ static u32 gaudi3_handle_sei_event(struct hl_device *hdev,
 		break;
 	case INT_COMP_TYPE_PDMA:
 		err_cnt = gaudi3_handle_pdma_sei_err(hdev, die);
-		gaudi3_razwi_handler(hdev, RAZWI_PDMA, die, hdcore, 0,
-				GAUDI3_DIE0_ENGINE_ID_PDMA_0_CH_0 + die * NUM_OF_PDMA_CH_PER_DIE,
-				event_mask);
-		gaudi3_razwi_handler(hdev, RAZWI_PDMA, die, hdcore, 1,
-				GAUDI3_DIE0_ENGINE_ID_PDMA_1_CH_0 + die * NUM_OF_PDMA_CH_PER_DIE,
-				event_mask);
 		break;
 	case INT_COMP_TYPE_CS:
 		err_cnt = gaudi3_handle_cs_sei_err(hdev, data_size, &eq_dynamic_entry->intr_cause);
@@ -11640,6 +11658,8 @@ static u32 gaudi3_handle_sei_event(struct hl_device *hdev,
 	default:
 		break;
 	}
+
+	gaudi3_sei_razwi_handler(hdev, agg_component_type, die, hdcore, event_mask);
 
 	return err_cnt;
 }
