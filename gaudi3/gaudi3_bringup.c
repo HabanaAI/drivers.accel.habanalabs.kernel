@@ -3438,10 +3438,15 @@ static void handle_and_clear_tpc_events(struct hl_device *hdev, u32 die, u32 hdc
 					enum err_grp type, u32 sts, u32 sts_idx, u32 idx,
 					u32 aggr_mask_reg, u32 events_mask)
 {
+	u32 instance, offset, th_offset, cfg_base, smt_base, arc_qm_base,
+	    mask, smt_mask, qm_cause, arc_qm_cause, qm_base, qm_val;
 	struct hl_eq_dynamic_entry eq_dynamic_entry = {};
 	struct eq_agg_header_params params = {};
+	struct hl_eq_tpc_sei_data *sei_data;
 	bool unmask_event_in_aggr = false;
-	u32 instance, offset;
+	struct hl_eq_tpc_data *tpc_data;
+	u64 intr_cause;
+	int th;
 
 	switch (type) {
 	case ERR_GRP_DERR:
@@ -3454,11 +3459,69 @@ static void handle_and_clear_tpc_events(struct hl_device *hdev, u32 die, u32 hdc
 		eq_dynamic_entry.hdr.size = cpu_to_le16(sizeof(struct hl_eq_ecc_data));
 		unmask_event_in_aggr = true;
 		break;
+	/* TODO:  SW-102663: the order of the TPCs are not as specified in the excel
+	 * e.g. writing to intr reg on TPC0 on HD2 generates event on HD2 TPC7 (and not TPC0)
+	 */
 	case ERR_GRP_SEI:
-		instance = idx;
-		break;
 	case ERR_GRP_SPI_ECO:
-		instance = idx / 2;
+		if (type == ERR_GRP_SEI) {
+			instance = idx;
+			mask = TPC_SEI_INTR_MASK;
+			smt_mask = TPC_SMT_TH_SEI_INTR_MASK;
+			tpc_data = &eq_dynamic_entry.tpc_sei_data.data;
+			sei_data = &eq_dynamic_entry.tpc_sei_data;
+			eq_dynamic_entry.hdr.size = cpu_to_le16(sizeof(struct hl_eq_tpc_sei_data));
+		} else {
+			instance = idx / 2;
+			mask = TPC_SPI_INTR_MASK;
+			smt_mask = TPC_SMT_TH_SPI_INTR_MASK;
+			tpc_data = &eq_dynamic_entry.tpc_spi_data.data;
+			eq_dynamic_entry.hdr.size = cpu_to_le16(sizeof(struct hl_eq_tpc_spi_data));
+		}
+
+		offset = (die * NUM_OF_HDCORES_PER_DIE + hdcore) * HDCORE_OFFSET +
+				instance * HDCORE_TPC_OFFSET;
+
+		cfg_base = mmHD0_TPC0_CFG_BASE + offset;
+		intr_cause = RREG32(cfg_base + mmTPC_TPC_INTR_CAUSE_0);
+		tpc_data->intr_cause.intr_cause_data = cpu_to_le64(mask & intr_cause);
+		tpc_data->kernel_id = cpu_to_le16(RREG32(cfg_base + mmTPC_KERNEL_KERNEL_ID));
+
+		if (type == ERR_GRP_SEI) {
+			qm_base = mmHD0_TPC0_QM_BASE + offset;
+			qm_val = RREG32(qm_base + mmQMAN_SEI_STATUS);
+			if (qm_val & QMAN_SEI_STATUS_QM_INT_M) {
+				qm_cause = RREG32(qm_base + mmQMAN_GLBL_ERR_STS);
+				sei_data->qm_data.qm_cause.intr_cause_data = cpu_to_le64(qm_cause);
+			}
+
+			if (qm_val & QMAN_SEI_STATUS_ARC_INT_M) {
+				arc_qm_base = mmHD0_TPC0_QM_ARC_AUX_BASE + offset;
+				arc_qm_cause = RREG32(arc_qm_base +
+							mmQMAN_ARC_AUX_ARC_SEI_INTR_STS);
+				sei_data->qm_data.arc_qm_cause.intr_cause_data =
+					cpu_to_le64(arc_qm_cause);
+			}
+
+			WREG32(qm_base + mmQMAN_SEI_STATUS, qm_val);
+		}
+
+		smt_base = mmHD0_TPC0_SMT_TPC_TH0_BASE + offset;
+		for (th = 0 ; th < NUM_OF_TPC_THREADS ; th++) {
+			th_offset = th * TPC_THREAD_OFFSET;
+			*(&tpc_data->smt_th0_cause + th) =
+				cpu_to_le32(smt_mask & RREG32(smt_base +
+					th_offset + mmTPC_SMT_TPC_TH0_INTR_CAUSE_0));
+
+			/* in order to clear the interrupt we write 0
+			 * (as opposed to most cases where we write 1 to clear)
+			 */
+			WREG32(smt_base + th_offset + mmTPC_SMT_TPC_TH0_INTR_CAUSE_0, 0x0);
+		}
+
+		/* clear the interrupt by writing 0 */
+		WREG32(cfg_base + mmTPC_TPC_INTR_CAUSE_0, 0x0);
+		unmask_event_in_aggr = true;
 		break;
 	default:
 		return;

@@ -509,6 +509,30 @@ enum hl_cs_dbg_err_type {
 };
 
 /**
+ * struct hl_eq_tpc_data - TPC SEI and SPI event cause information
+ * @intr_cause: TPC configuration cause0
+ * @smt_th0_cause: TPC SMT TH0 cause
+ * @smt_th1_cause: TPC SMT TH1 cause
+ * @smt_th2_cause: TPC SMT TH2 cause
+ * @smt_th3_cause: TPC SMT TH3 cause
+ * @kernel_id: TPC kernel id
+ * @pad: padding
+ *
+ * Note: For more than 1 bit set in intr_cause or/and th*_cause for
+ * SPI/SEI event, only one kernel id information is passed. kernel id
+ * should be read if either of cause is non zero.
+ */
+struct hl_eq_tpc_data {
+	struct hl_eq_intr_cause intr_cause;
+	__le32 smt_th0_cause;
+	__le32 smt_th1_cause;
+	__le32 smt_th2_cause;
+	__le32 smt_th3_cause;
+	__le16 kernel_id;
+	__u8 pad[6];
+};
+
+/**
  * struct hl_eq_spmu_bmon - SPMU/BMON event information
  * @cause: SPMU and BMON cause for enum hl_cs_dbg_err_type
  * @pad: padding
@@ -532,6 +556,48 @@ struct hl_eq_spmu_bmon {
 struct hl_eq_generic_spi_data {
 	struct hl_eq_intr_cause cause;
 	struct hl_eq_spmu_bmon spmu_bmon_data;
+};
+
+/*
+ * struct hl_eq_tpc_spi_data - TPC SPI event information
+ * @hl_eq_tpc_data: TPC configuration event information
+ * @hl_eq_spmu_bmon: TPC SPMU/BMON event information
+ *
+ * For any SPI event related to TPC, FW will forward
+ * hl_eq_tpc_spi_data data structure to LKD. LKD should
+ * check all the data structure values to identify the event type
+ * and process accordingly.
+ * Note: SPMU/BMON event bit is not available as part
+ * hl_eq_tpc_data for TPC SPI events.
+ */
+struct hl_eq_tpc_spi_data {
+	struct hl_eq_tpc_data data;
+	struct hl_eq_spmu_bmon spmu_bmon_data;
+};
+
+/**
+ * struct hl_eq_qm_sei_data - QM SEI event information
+ * @qm_cause: QM error cause
+ * @arc_qm_cause: ARC error cause
+ */
+struct hl_eq_qm_sei_data {
+	struct hl_eq_intr_cause qm_cause;
+	struct hl_eq_intr_cause arc_qm_cause;
+};
+
+/**
+ * struct hl_eq_tpc_sei_data - TPC SEI event information
+ * @data: TPC configuration event information
+ * @qm_data: TPC QM event information
+ *
+ * For any SEI event related to TPC, FW will forward
+ * hl_eq_tpc_sei_data data structure to LKD. LKD should
+ * check all the data structure values to identify the event type
+ * and process accordingly.
+ */
+struct hl_eq_tpc_sei_data {
+	struct hl_eq_tpc_data data;
+	struct hl_eq_qm_sei_data qm_data;
 };
 
 struct hl_eq_entry {
@@ -568,6 +634,8 @@ struct hl_eq_dynamic_entry {
 		struct hl_eq_nic_spi_data nic_spi_data;
 		struct hl_eq_nic_sts_req_data nic_sts_req_data;
 		struct hl_eq_generic_spi_data spi_data;
+		struct hl_eq_tpc_spi_data tpc_spi_data;
+		struct hl_eq_tpc_sei_data tpc_sei_data;
 	};
 };
 

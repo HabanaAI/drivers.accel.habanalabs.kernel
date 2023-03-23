@@ -1075,7 +1075,86 @@ static const char gaudi3_vdec_irq_name[GAUDI3_VDEC_MSIX_ENTRIES][GAUDI3_MAX_STRI
 	"gaudi3 vdec 7_0", "gaudi3 vdec 7_1"
 };
 
-static const char * const gaudi3_arc_sei_err_cause[] = {
+/* mmQMAN_GLBL_ERR_STS */
+static const char * const gaudi3_qm_err_cause[] = {
+	"rsvd0",
+	"cqf_rd_err",
+	"cp_rd_err",
+	"cp_undef_cmd_err",
+	"cp_stop_op",
+	"cp_msg_wr_err",
+	"cp_wreg_err",
+	"cp_fence0_ovf_err",
+	"cp_fence1_ovf_err",
+	"cp_fence2_ovf_err",
+	"cp_fence3_ovf_err",
+	"cp_fence0_udf_err",
+	"cp_fence1_udf_err",
+	"cp_fence2_udf_err",
+	"cp_fence3_udf_err",
+	"rsvd16",
+	"rsvd17",
+	"cq_wr_ififo_ci_err",
+	"cq_wr_ctl_ci_err",
+	"arc_cqf_rd_err",
+	"arc_cq_wr_ififo_ci_err",
+	"arc_cq_wr_ctl_ci_err",
+	"arc_axi_err",
+};
+
+/* mmTPC_TPC_INTR_CAUSE_0 */
+static const char * const gaudi3_tpc_tpc_err_cause[] = {
+		/* spi events */
+		"hbw_tpc_qm_sw_err_r",
+		"hbw_wq_mem_num_err_r",
+		"hbw_wq_mem_rr_dbg_err_r",
+		"hbw_tpc_dcache_rr_dbg_err_r",
+		"hbw_tsb_slv_err_ind_r",
+		"hbw_tsb_err_ind_rr_dbg_r",
+		"hbw_tsb_err_ind_num_r",
+		"hbw_tpc_spu_agu_irf44_sat_ind_r",
+		/* sei events */
+		"hbw_tpc_mstr_rresp_err_r",
+		"hbw_tpc_mstr_bresp_err_r",
+		"hbw_lbw_tpc_mstr_rresp_err_r",
+		"hbw_lbw_tpc_mstr_bresp_err_r",
+		"hbw_st_unlock_already_unlocked_r",
+		"hbw_invalid_lock_access_r",
+		"hbw_dcache_l0cd_mismatch",
+};
+
+/* mmTPC_SMT_TPC_TH0_INTR_CAUSE_0 */
+static const char * const gaudi3_tpc_smt_tpc_th_err_cause[] = {
+		"hbw_tpc_illegal_instruction_r",
+		"hbw_tpc_address_exceed_slm_r",
+		"hbw_tpc_div_by_0_r",
+		"hbw_tpc_spu_mac_overflow_r",
+		"hbw_tpc_spu_addsub_overflow_r",
+		"hbw_tpc_spu_abs_overflow_r",
+		"hbw_tpc_spu_fma_fp_dst_nan_r",
+		"hbw_tpc_spu_fma_fp_dst_inf_r",
+		"hbw_tpc_spu_convert_fp_dst_nan_r",
+		"hbw_tpc_spu_convert_fp_dst_inf_r",
+		"hbw_tpc_spu_fp_dst_denorm_r",
+		"hbw_tpc_vpu_mac_overflow_r",
+		"hbw_tpc_vpu_addsub_overflow_r",
+		"hbw_tpc_vpu_abs_overflow_r",
+		"hbw_tpc_vpu_convert_fp_dst_nan_r",
+		"hbw_tpc_vpu_convert_fp_dst_inf_r",
+		"hbw_tpc_vpu_fma_fp_dst_nan_r",
+		"hbw_tpc_vpu_fma_fp_dst_inf_r",
+		"hbw_tpc_vpu_fp_dst_denorm_r",
+		"hbw_tpc_sqz_cnt_ovrflow_ind_pulse_r",
+		"hbw_tpc_sqz_oob_pulse_r",
+		"hbw_tpc_pc_wrap_around_r",
+		"hbw_tpc_dcache_l2_decrement_rst_event_r",
+		"hbw_tpc_dcache_l1_decrement_rst_event_r",
+		"hbw_tpc_address_exceed_vlm_r",
+		"hbw_ld_l_prot_vio_r",
+		"hbw_st_l_prot_vio_r",
+};
+
+static const char * const gaudi3_qm_arc_aux_sei_intr_cause[] = {
 		"cbu_bresp_sei_intr_cause",
 		"cbu_rresp_sei_intr_cause",
 		"lbu_bresp_sei_intr_cause",
@@ -11619,6 +11698,8 @@ static void gaudi3_razwi_handler(struct hl_device *hdev,  enum razwi_initiztor r
 static void gaudi3_sei_razwi_handler(struct hl_device *hdev,  enum hl_agg_component_type component,
 					u8 die, u8 hdcore, u8 initiator_idx, u64 *event_mask)
 {
+	u16 eng_id;
+
 	switch (component) {
 	case INT_COMP_TYPE_PCIE:
 		/* No need to handle razwi */
@@ -11653,6 +11734,22 @@ static void gaudi3_sei_razwi_handler(struct hl_device *hdev,  enum hl_agg_compon
 				event_mask);
 		break;
 
+	case INT_COMP_TYPE_TPC:
+		/* non redundant tpc */
+		if (initiator_idx < NUM_OF_TPC_PER_HDCORE) {
+			eng_id = GAUDI3_HDCORE0_ENGINE_ID_TPC_0 +
+						(hdcore * NUM_OF_TPC_PER_HDCORE) + initiator_idx;
+			gaudi3_razwi_handler(hdev, RAZWI_TPC, die, hdcore, initiator_idx, eng_id,
+							event_mask);
+		} else {
+			/* maps hdcore 0, 2, 5, 7 to 0, 1, 2, 3 */
+			static u8 const hdcore_idx_map[] = {0, 255, 1, 255, 255, 2, 255, 3};
+
+			eng_id = GAUDI3_HDCORE0_ENGINE_ID_TPC_8 + hdcore_idx_map[hdcore];
+			gaudi3_razwi_handler(hdev,  RAZWI_TPC, die, hdcore, NUM_OF_TPC_PER_HDCORE,
+						eng_id, event_mask);
+		}
+		break;
 	default:
 		dev_err(hdev->dev, "Component type %u doesn't have razwi handler\n", component);
 		break;
@@ -11845,13 +11942,14 @@ static u32 gaudi3_handle_arc_farm_sei_err(struct hl_device *hdev, u32 hdcore)
 	u32 err_cnt = 0, err_msk = RREG32(hdcore * HDCORE_OFFSET + mmHD0_ARC_FARM_ARC0_AUX_BASE +
 						mmQMAN_ARC_AUX_ARC_SEI_INTR_STS);
 
-	err_cnt = gaudi3_err_cause_iterator(hdev, err_msk, gaudi3_arc_sei_err_cause, "ARC0", "SEI");
+	err_cnt = gaudi3_err_cause_iterator(hdev, err_msk, gaudi3_qm_arc_aux_sei_intr_cause,
+							"ARC0", "SEI");
 
 	err_msk = RREG32(hdcore * HDCORE_OFFSET + mmHD0_ARC_FARM_ARC1_AUX_BASE +
 				mmQMAN_ARC_AUX_ARC_SEI_INTR_STS);
 
-	err_cnt += gaudi3_err_cause_iterator(hdev, err_msk, gaudi3_arc_sei_err_cause, "ARC1",
-						"SEI");
+	err_cnt += gaudi3_err_cause_iterator(hdev, err_msk, gaudi3_qm_arc_aux_sei_intr_cause,
+							"ARC1", "SEI");
 
 	err_msk = RREG32(hdcore * HDCORE_OFFSET + mmHD0_ARC_FARM_FARM_BASE +
 				mmFARM_FARM_SEI_INTR_STS);
@@ -11905,6 +12003,101 @@ static u32 gaudi3_handle_pcie0_sei_err(struct hl_device *hdev, u16 data_size,
 	err_msk = lower_32_bits(le64_to_cpu(pcie_sei_data->intr_cause.intr_cause_data));
 
 	return gaudi3_err_cause_iterator(hdev, err_msk, gaudi3_pcie_sei_err_cause, "PCIE", "SEI");
+}
+
+static u32 handle_tpc_events(struct hl_device *hdev, struct hl_eq_tpc_data *tpc_data,
+					enum hl_agg_grp_type type)
+{
+	u32 err_num, err_msk, cause, mask, smt_mask;
+	char initiator_str[16] = {};
+	char *type_str;
+	int th;
+
+	if (type == INT_GRP_TYPE_SEI) {
+		mask = TPC_SEI_INTR_MASK;
+		smt_mask = TPC_SMT_TH_SEI_INTR_MASK;
+		type_str = "SEI";
+	} else {
+		mask = TPC_SPI_INTR_MASK;
+		smt_mask = TPC_SMT_TH_SPI_INTR_MASK;
+		type_str = "SPI";
+	}
+
+	err_msk = lower_32_bits(le64_to_cpu(tpc_data->intr_cause.intr_cause_data));
+	err_msk &= mask;
+	err_num = gaudi3_err_cause_iterator(hdev, err_msk, gaudi3_tpc_tpc_err_cause,
+									"TPC", type_str);
+
+	for (th = 0 ; th < NUM_OF_TPC_THREADS ; th++) {
+		snprintf(initiator_str, sizeof(initiator_str), "TPC_TH%u", th);
+
+		switch (th) {
+		case 0:
+			cause = le32_to_cpu(tpc_data->smt_th0_cause);
+			break;
+		case 1:
+			cause = le32_to_cpu(tpc_data->smt_th1_cause);
+			break;
+		case 2:
+			cause = le32_to_cpu(tpc_data->smt_th2_cause);
+			break;
+		case 3:
+			cause = le32_to_cpu(tpc_data->smt_th3_cause);
+			break;
+		}
+		cause &= smt_mask;
+		err_num += gaudi3_err_cause_iterator(hdev, cause, gaudi3_tpc_smt_tpc_th_err_cause,
+								initiator_str, type_str);
+	}
+
+	/*
+	 * if err_num == 0 at this point - then this is spmu/bmon event that the driver don't care
+	 * about so we just return 0 and don't print any error.
+	 */
+	return err_num;
+}
+
+static u32 handle_tpc_spi_events(struct hl_device *hdev, u16 data_size,
+					struct hl_eq_tpc_spi_data *spi_data)
+{
+	u32 err_num;
+	int rc;
+
+	rc = gaudi3_validate_eqe_data_size(hdev, data_size, sizeof(struct hl_eq_tpc_spi_data));
+	if (rc)
+		return 0;
+
+	err_num = handle_tpc_events(hdev, &spi_data->data, INT_GRP_TYPE_SPI);
+	if (err_num)
+		dev_err_ratelimited(hdev->dev, "TPC KERNEL ID: 0x%x\n",
+				le16_to_cpu(spi_data->data.kernel_id));
+
+	return err_num;
+}
+
+static u32 handle_tpc_sei_events(struct hl_device *hdev, u16 data_size,
+					struct hl_eq_tpc_sei_data *sei_data)
+{
+	u32 err_num, err_msk;
+	int rc;
+
+	rc = gaudi3_validate_eqe_data_size(hdev, data_size, sizeof(struct hl_eq_tpc_sei_data));
+	if (rc)
+		return 0;
+
+	err_msk = lower_32_bits(le64_to_cpu(sei_data->qm_data.qm_cause.intr_cause_data));
+	err_num = gaudi3_err_cause_iterator(hdev, err_msk, gaudi3_qm_err_cause, "TPC_QM", "SEI");
+
+	err_msk = lower_32_bits(le64_to_cpu(sei_data->qm_data.arc_qm_cause.intr_cause_data));
+	err_num += gaudi3_err_cause_iterator(hdev, err_msk, gaudi3_qm_arc_aux_sei_intr_cause,
+			"TPC_QM_ARC", "SEI");
+
+	err_num += handle_tpc_events(hdev, &sei_data->data, INT_GRP_TYPE_SEI);
+	if (err_num)
+		dev_err_ratelimited(hdev->dev, "TPC KERNEL ID: 0x%x\n",
+				le16_to_cpu(sei_data->data.kernel_id));
+
+	return err_num;
 }
 
 static u32 gaudi3_handle_pcie0_spi_err(struct hl_device *hdev, u16 data_size,
@@ -12163,6 +12356,9 @@ static u32 gaudi3_handle_sei_event(struct hl_device *hdev,
 	case INT_COMP_TYPE_CS:
 		err_cnt = gaudi3_handle_cs_sei_err(hdev, data_size, &eq_dynamic_entry->intr_cause);
 		break;
+	case INT_COMP_TYPE_TPC:
+		err_cnt = handle_tpc_sei_events(hdev, data_size, &eq_dynamic_entry->tpc_sei_data);
+		break;
 	default:
 		break;
 	}
@@ -12213,6 +12409,9 @@ static u32 gaudi3_handle_spi_event(struct hl_device *hdev,
 		break;
 	case INT_COMP_TYPE_STLB:
 		err_cnt = handle_hmmu_events(hdev, die, hdcore, event_mask);
+		break;
+	case INT_COMP_TYPE_TPC:
+		err_cnt = handle_tpc_spi_events(hdev, data_size, &eq_dynamic_entry->tpc_spi_data);
 		break;
 	default:
 		break;
