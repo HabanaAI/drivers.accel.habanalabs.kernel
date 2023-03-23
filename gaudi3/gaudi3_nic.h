@@ -65,16 +65,17 @@ static_assert(IS_POWER_OF_2(NIC_RAW_ELEM_SIZE));
 
 #define NIC_MIN_CONN_ID		1
 #define NIC_MAX_CONN_ID		((1 << 15) - 1) /* 32K QPs */
+#define NIC_MAX_CONN_ID_NO_DRAM	((1 << 14) - 1) /* 16K QPs */
 
-#define NIC_MAX_QP_NUM		(NIC_MAX_CONN_ID + 1)
+#define NIC_MAX_QP_NUM		((hdev->dram_enable ? NIC_MAX_CONN_ID : NIC_MAX_CONN_ID_NO_DRAM) + \
+							1)
 #define NIC_MAX_GEN_QP_NUM	(NIC_MAX_QP_NUM / 2)
 #define NIC_MAX_COLL_QP_NUM	(NIC_MAX_QP_NUM - NIC_MAX_GEN_QP_NUM)
-
 
 #define NIC_DEFAULT_COLL_LAG_SIZE	0x3
 
 /* Number of available QPs must not exceed NIC_HW_MAX_QP_NUM */
-static_assert(NIC_MAX_QP_NUM <= NIC_HW_MAX_QP_NUM);
+static_assert((NIC_MAX_CONN_ID + 1) <= NIC_HW_MAX_QP_NUM);
 
 #define NIC_MAX_WQ_ARRAY_TYPE	HL_NIC_USER_COLL_SCALE_OUT_WQ_RECV
 
