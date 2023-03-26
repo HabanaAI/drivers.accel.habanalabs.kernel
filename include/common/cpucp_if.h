@@ -495,6 +495,45 @@ struct hl_eq_nic_spi_data {
 	__u8 pad[7];
 };
 
+enum hl_cs_dbg_err_type {
+	CS_DBG_SPMU,
+	CS_DBG_BMON0,
+	CS_DBG_BMON1,
+	CS_DBG_BMON2,
+	CS_DBG_BMON3,
+	CS_DBG_BMON4,
+	CS_DBG_BMON5,
+	CS_DBG_BMON6,
+	CS_DBG_BMON7,
+	CS_DBG_BMON_MAX
+};
+
+/**
+ * struct hl_eq_spmu_bmon - SPMU/BMON event information
+ * @cause: SPMU and BMON cause for enum hl_cs_dbg_err_type
+ * @pad: padding
+ */
+struct hl_eq_spmu_bmon {
+	__le32 cause[CS_DBG_BMON_MAX];
+	__u8 pad[4];
+};
+
+/**
+ * struct hl_eq_generic_spi_data - SPI generic event information
+ * @data: event cause information
+ * @spmu_bmon_data:  SPMU/BMON event information
+ *
+ * For any SPI event which falls in generic category where
+ * only single cause and BMON/SPMU event info needs to be provided,
+ * FW will forward hl_eq_generic_spi_data data structure to LKD. LKD should
+ * check all the data structure values to identify the event type
+ * and process accordingly.
+ */
+struct hl_eq_generic_spi_data {
+	struct hl_eq_intr_cause cause;
+	struct hl_eq_spmu_bmon spmu_bmon_data;
+};
+
 struct hl_eq_entry {
 	struct hl_eq_header hdr;
 	union {
@@ -528,6 +567,7 @@ struct hl_eq_dynamic_entry {
 		struct hl_eq_pcie_spi_data pcie_spi_data;
 		struct hl_eq_nic_spi_data nic_spi_data;
 		struct hl_eq_nic_sts_req_data nic_sts_req_data;
+		struct hl_eq_generic_spi_data spi_data;
 	};
 };
 

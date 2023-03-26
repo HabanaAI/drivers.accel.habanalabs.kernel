@@ -60,6 +60,11 @@
 #define MSTR_IF_AXPROT_1_OVRD_OVRD_EN_M	MSTR_IF_AXPROT_LBW_ARPROT_1_OVRD_OVRD_EN_M
 #define MSTR_IF_AXPROT_1_OVRD_VAL_M	MSTR_IF_AXPROT_LBW_ARPROT_1_OVRD_VAL_M
 
+#define VDEC_BRDG_CTRL_CAUSE_INTR_SPI_M	(VDEC_BRDG_CTRL_CAUSE_INTR_VCD_SPI_M | \
+					VDEC_BRDG_CTRL_CAUSE_INTR_L2C_SPI_M | \
+					VDEC_BRDG_CTRL_CAUSE_INTR_NRM_SPI_M | \
+					VDEC_BRDG_CTRL_CAUSE_INTR_ABNRM_SPI_M)
+
 /* A DUMMY block isn't a regular block, but in fact a block with a manually
  * configured block response, and used by PCIE 'Fabric Serialization' feature.
  * Although listed in SOL, it has no 'specs' record associated to it.
@@ -157,6 +162,9 @@ static void handle_and_clear_stlb_events(struct hl_device *hdev, u32 die, u32 hd
 static void handle_and_clear_arc_farm_events(struct hl_device *hdev, u32 die, u32 hdcore,
 					enum err_grp type, u32 sts, u32 sts_idx, u32 idx,
 					u32 aggr_mask_reg, u32 events_mask);
+static void handle_and_clear_decoder_events(struct hl_device *hdev, u32 die, u32 hdcore,
+					enum err_grp type, u32 sts, u32 sts_idx, u32 idx,
+					u32 aggr_mask_reg, u32 events_mask);
 static void handle_and_clear_nic_events(struct hl_device *hdev, u32 die,
 					enum err_grp type, u32 sts, u32 sts_idx, u32 idx,
 					u32 aggr_mask_reg, u32 events_mask);
@@ -193,7 +201,7 @@ static const hdcore_aggr_handle_and_clear hdcore_handle_and_clear[] = {
 	handle_and_clear_hbm_events, /* HDCORE_HBM_EVENT */
 	NULL, /* HDCORE_SOB_EVENT */
 	handle_and_clear_arc_farm_events, /* HDCORE_ARCFARM_EVENT */
-	NULL, /* HDCORE_DEC_EVENT */
+	handle_and_clear_decoder_events, /* HDCORE_DEC_EVENT */
 	NULL, /* HDCORE_DUP_EVENT */
 	NULL, /* HDCORE_EDMA_EVENT */
 	NULL, /* HDCORE_RTR_EVENT */
@@ -3669,6 +3677,68 @@ static void handle_and_clear_arc_farm_events(struct hl_device *hdev, u32 die, u3
 		WREG32(hdcore * HDCORE_OFFSET + mmHD0_ARC_FARM_FARM_BASE +
 				mmFARM_FARM_SEI_INTR_CLR, err_msk);
 	}
+
+	if (unmask_event_in_aggr)
+		WREG32_AND(aggr_mask_reg, events_mask);
+}
+
+static u32 decoder_special_regs_base[] = {
+	mmHD0_VDEC0_CTRL_SPECIAL_BASE,
+	mmHD0_VDEC0_BRDG_CTRL_SPECIAL_BASE
+};
+
+/* HDCORE_DEC_EVENT */
+static void handle_and_clear_decoder_events(struct hl_device *hdev, u32 die, u32 hdcore,
+					enum err_grp type, u32 sts, u32 sts_idx, u32 idx,
+					u32 aggr_mask_reg, u32 events_mask)
+{
+	u32 instance, offset, irq_status_addr, irq_status, cause_intr_addr;
+	struct hl_eq_dynamic_entry eq_dynamic_entry = {};
+	struct eq_agg_header_params params = {};
+	bool unmask_event_in_aggr = false;
+
+	switch (type) {
+	case ERR_GRP_DERR:
+		instance = idx % 2;
+		offset = hdcore * HDCORE_OFFSET + instance * HDCORE_DECODER_OFFSET;
+		handle_and_clear_derr_events(hdev, &decoder_special_regs_base[idx], 1, offset,
+						&eq_dynamic_entry.ecc_data);
+		eq_dynamic_entry.hdr.size = cpu_to_le16(sizeof(struct hl_eq_ecc_data));
+		unmask_event_in_aggr = true;
+		break;
+
+	case ERR_GRP_SEI:
+		instance = idx;
+		break;
+
+	case ERR_GRP_SPI_ECO:
+		instance = idx / 2;
+		offset = hdcore * HDCORE_OFFSET + instance * HDCORE_DECODER_OFFSET;
+		irq_status_addr = mmHD0_VDEC0_CMD_BASE + offset + mmVSI_CMD_SWREG17;
+		irq_status = RREG32(irq_status_addr);
+		eq_dynamic_entry.spi_data.cause.intr_cause_data = cpu_to_le64(irq_status);
+		eq_dynamic_entry.hdr.size = cpu_to_le16(sizeof(struct hl_eq_generic_spi_data));
+
+		/* Clear interrupt */
+		WREG32(irq_status_addr, irq_status);
+		cause_intr_addr = mmHD0_VDEC0_BRDG_CTRL_BASE + offset + mmVDEC_BRDG_CTRL_CAUSE_INTR;
+		WREG32_AND(cause_intr_addr, VDEC_BRDG_CTRL_CAUSE_INTR_SPI_M);
+		unmask_event_in_aggr = true;
+		break;
+
+	default:
+		return;
+	}
+
+	params.component_type = INT_COMP_TYPE_DEC;
+	params.grp_type = type;
+	params.die = die;
+	params.hdcore = hdcore;
+	params.instance = instance;
+	prepare_eq_dynamic_entry_agg_header(&eq_dynamic_entry, &params);
+
+	if (!gaudi3_handle_eqe(hdev, &eq_dynamic_entry))
+		return;
 
 	if (unmask_event_in_aggr)
 		WREG32_AND(aggr_mask_reg, events_mask);

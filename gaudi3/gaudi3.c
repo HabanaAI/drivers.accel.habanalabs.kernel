@@ -142,6 +142,15 @@ MODULE_FIRMWARE(GAUDI3_BOOT_FIT_FILE);
 
 #define RAZWI_LBW_OFFSET	0x0300007FE0000000ull
 
+#define VCMD_SW_IRQ_HW_ERR_MASK		VSI_CMD_SWREG17_SW_IRQ_TIMEOUT_M
+#define VCMD_SW_IRQ_CMD_ERR_MASK	VSI_CMD_SWREG17_SW_IRQ_CMDERR_M
+#define VCMD_SW_IRQ_USER_ENG_ERR_MASK	(VSI_CMD_SWREG17_SW_IRQ_ENDCMD_M | \
+						VSI_CMD_SWREG17_SW_IRQ_BUSERR_M | \
+						VSI_CMD_SWREG17_SW_IRQ_ABORT_M)
+#define VCMD_SW_IRQ_MASK		(VCMD_SW_IRQ_HW_ERR_MASK | \
+						VCMD_SW_IRQ_CMD_ERR_MASK | \
+						VCMD_SW_IRQ_USER_ENG_ERR_MASK)
+
 #define HL_STR(e) #e
 
 const char *gaudi3_engine_id_str[] = {
@@ -1198,6 +1207,16 @@ static const char * const gaudi3_cs_sei_err_cause[] = {
 		"obuf TO when exceed cfg_obuf_timeout_va",
 		"obuf TO when exceed cfg_obuf_timeout_va",
 		"this is RTL bug",
+};
+
+static const char * const gaudi3_decoder_spi_intr_cause[] = {
+	"sw_irq_endcmd",
+	"sw_irq_buserr",
+	"sw_irq_timeout",
+	"sw_irq_cmderr",
+	"sw_irq_abort",
+	"N/A",
+	"sw_irq_jmp"
 };
 
 struct gaudi3_dup_grp_info {
@@ -11489,6 +11508,31 @@ static u32 gaudi3_handle_pcie0_spi_err(struct hl_device *hdev, u16 data_size,
 	return gaudi3_handle_pcie_drain(hdev);
 }
 
+static u32 gaudi3_handle_decoder_spi(struct hl_device *hdev, u16 data_size,
+					struct hl_eq_generic_spi_data *spi_data, u64 *event_mask)
+{
+	u32 irq_status, err_cnt;
+	int rc;
+
+	rc = gaudi3_validate_eqe_data_size(hdev, data_size, sizeof(*spi_data));
+	if (rc)
+		return 0;
+
+	irq_status = lower_32_bits(le64_to_cpu(spi_data->cause.intr_cause_data)) & VCMD_SW_IRQ_MASK;
+
+	err_cnt = gaudi3_err_cause_iterator(hdev, irq_status, gaudi3_decoder_spi_intr_cause, "DEC",
+						"SPI");
+
+	if (irq_status & VCMD_SW_IRQ_HW_ERR_MASK)
+		*event_mask |= HL_NOTIFIER_EVENT_GENERAL_HW_ERR;
+	if (irq_status & VCMD_SW_IRQ_CMD_ERR_MASK)
+		*event_mask |= HL_NOTIFIER_EVENT_UNDEFINED_OPCODE;
+	if (irq_status & VCMD_SW_IRQ_USER_ENG_ERR_MASK)
+		*event_mask |= HL_NOTIFIER_EVENT_USER_ENGINE_ERR;
+
+	return err_cnt;
+}
+
 static u32 gaudi3_handle_nic_spi(struct hl_device *hdev, u32 macro_index, u16 data_size,
 					struct hl_eq_nic_spi_data *nic_spi_data)
 {
@@ -11731,6 +11775,9 @@ static u32 gaudi3_handle_spi_event(struct hl_device *hdev,
 	instance = eq_dynamic_entry->agg_hdr.comp_instance;
 
 	switch (agg_component_type) {
+	case INT_COMP_TYPE_DEC:
+		return gaudi3_handle_decoder_spi(hdev, data_size, &eq_dynamic_entry->spi_data,
+							event_mask);
 	case INT_COMP_TYPE_NIC:
 		rc = gaudi3_handle_nic_spi(hdev, die * NIC_NUM_MACROS_PER_DIE + instance,
 						data_size, &eq_dynamic_entry->nic_spi_data);
