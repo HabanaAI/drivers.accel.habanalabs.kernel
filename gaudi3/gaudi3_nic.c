@@ -1561,7 +1561,7 @@ static int gaudi3_nic_qpc_write(struct hl_nic_port *nic_port, void *qpc, struct 
 	return gaudi3_nic_qpc_write_masked(nic_port, qpc, qpc_mask, qpn, is_req, false);
 }
 
-static int gaudi3_nic_qpc_invalidate(struct hl_nic_port *nic_port, u32 qpn, bool is_req)
+static int gaudi3_nic_qpc_invalidate(struct hl_nic_port *nic_port, struct hl_qp *qp, bool is_req)
 {
 	struct hl_device *hdev = nic_port->hdev;
 	u32 port = nic_port->port, val;
@@ -1589,7 +1589,7 @@ static int gaudi3_nic_qpc_invalidate(struct hl_nic_port *nic_port, u32 qpn, bool
 		qpc = &_qpc.res;
 	}
 
-	rc = gaudi3_nic_qpc_write_masked(nic_port, qpc, &mask, qpn, is_req, false);
+	rc = gaudi3_nic_qpc_write_masked(nic_port, qpc, &mask, qp->qp_id, is_req, false);
 
 	if (is_req) {
 		/* Invalidate RXE WQE cache */
@@ -1629,7 +1629,7 @@ static int gaudi3_nic_qpc_invalidate(struct hl_nic_port *nic_port, u32 qpn, bool
 	return rc;
 }
 
-static int gaudi3_nic_qpc_clear(struct hl_nic_port *nic_port, u32 qpn, bool is_req)
+static int gaudi3_nic_qpc_clear(struct hl_nic_port *nic_port, struct hl_qp *qp, bool is_req)
 {
 	struct qpc_mask mask = {};
 	union rr_qpc _qpc = {};
@@ -1637,7 +1637,7 @@ static int gaudi3_nic_qpc_clear(struct hl_nic_port *nic_port, u32 qpn, bool is_r
 	u32 data_size = is_req ? sizeof(_qpc.req) : sizeof(_qpc.res);
 
 	memset(&mask, 0xFF, data_size);
-	return gaudi3_nic_qpc_write_masked(nic_port, qpc, &mask, qpn, is_req, false);
+	return gaudi3_nic_qpc_write_masked(nic_port, qpc, &mask, qp->qp_id, is_req, false);
 }
 
 int gaudi3_nic_qpc_read(struct hl_nic_port *nic_port, void *qpc, u32 qpn, bool is_req)

@@ -429,18 +429,22 @@ enum hl_nic_user_cq_state {
  * @refcount: number of QPs that use this CQ.
  * @ctx: Associated user context.
  * @state: User CQ state.
+ * @overrun_lock: protects the setting\unsetting of CQ overrun.
  * @mem_handle: mmap handle of buffer memory.
  * @pi_handle: mmap handle of PI memory.
  * @id: CQ ID.
+ * @qp_set_overrun_cnt: number of QPs which expect CQ overrun to be enabled.
  */
 struct hl_nic_user_cq {
 	struct hl_nic_port		*nic_port;
 	struct kref			refcount;
 	struct hl_ctx			*ctx;
 	enum hl_nic_user_cq_state	state;
+	struct mutex			overrun_lock;
 	u64				mem_handle;
 	u64				pi_handle;
 	u32				id;
+	u32				qp_set_overrun_cnt;
 };
 
 /**
@@ -955,6 +959,7 @@ enum hl_nic_qp_state_op {
  * @is_req: is requester context was set for the QP.
  * @is_res: is responder context was set for the QP.
  * @is_coll: is collective QP.
+ * @force_cq_overrun: force CQ overrun, if needed, during destruction phase.
  */
 struct hl_qp {
 	struct hl_nic_port		*nic_port;
@@ -976,6 +981,7 @@ struct hl_qp {
 	u8				is_req;
 	u8				is_res;
 	u8				is_coll;
+	u8				force_cq_overrun;
 };
 
 /**
@@ -1271,10 +1277,10 @@ struct hl_nic_port_funcs {
 	void (*set_ip_addr_encap)(struct hl_nic_port *nic_port, u32 *encap_id, u32 src_ip);
 	int (*qpc_write)(struct hl_nic_port *nic_port, void *qpc, struct qpc_mask *qpc_mask,
 				u32 qpn, bool is_req);
-	int (*qpc_invalidate)(struct hl_nic_port *nic_port, u32 qpn, bool is_req);
+	int (*qpc_invalidate)(struct hl_nic_port *nic_port, struct hl_qp *qp, bool is_req);
 	int (*qpc_query)(struct hl_nic_port *nic_port, u32 qpn, bool is_req,
 				struct hl_nic_qpc_attr *attr);
-	int (*qpc_clear)(struct hl_nic_port *nic_port, u32 qpn, bool is_req);
+	int (*qpc_clear)(struct hl_nic_port *nic_port, struct hl_qp *qp, bool is_req);
 	void (*user_ccq_set)(struct hl_nic_port *nic_port, u64 ccq_device_addr, u64 pi_device_addr,
 				u32 num_of_entries, u32 *ccqn);
 	void (*user_ccq_unset)(struct hl_nic_port *nic_port, u32 *ccqn);

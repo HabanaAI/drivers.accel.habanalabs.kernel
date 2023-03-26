@@ -349,7 +349,9 @@ static void nic_eq_handler(struct gaudi2_nic_port *gaudi2_nic)
 		 */
 		if (event_type == EQE_LINK_STATUS) {
 			gaudi2_nic_link_event_handler(gaudi2_nic);
-		} else {
+		/* ignore CQ errors when CQ is in overrun, as CQ overflow errors are expected */
+		} else if ((event_type != EQE_COMP_ERR) || !gaudi2_nic_is_cq_in_overrun(nic_port,
+								EQE_CQ_EVENT_CQ_NUM(eqe_p))) {
 			rc = hl_nic_eq_dispatcher_enqueue(nic_port, eqe_p);
 			if (rc)
 				dev_warn_ratelimited(hdev->dev,

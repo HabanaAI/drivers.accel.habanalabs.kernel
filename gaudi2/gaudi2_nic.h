@@ -288,5 +288,6 @@ int gaudi2_nic_wqe_read(struct hl_nic_port *nic_port, void *wqe, u32 qpn, u32 wq
 void gaudi2_nic_hw_mac_loopback_cfg(struct gaudi2_nic_port *gaudi2_nic);
 int gaudi2_nic_set_info(struct hl_device *hdev, bool get_from_fw);
 bool gaudi2_nic_is_macro_enabled(struct hl_nic_macro *nic_macro);
+bool gaudi2_nic_is_cq_in_overrun(struct hl_nic_port *nic_port, u8 cq_id);
 
 #endif /* GAUDI2_NIC_H_ */

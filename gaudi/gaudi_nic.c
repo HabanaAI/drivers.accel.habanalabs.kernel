@@ -165,7 +165,7 @@ static int gaudi_nic_qpc_write(struct hl_nic_port *nic_port, void *qpc, struct q
 	return gaudi_nic_qpc_write_masked(nic_port, qpc, qpc_mask, qpn, is_req);
 }
 
-static int gaudi_nic_qpc_invalidate(struct hl_nic_port *nic_port, u32 qpn, bool is_req)
+static int gaudi_nic_qpc_invalidate(struct hl_nic_port *nic_port, struct hl_qp *qp, bool is_req)
 {
 	struct qpc_mask mask = {};
 	struct gaudi_qpc_requester req_qpc = {};
@@ -184,10 +184,10 @@ static int gaudi_nic_qpc_invalidate(struct hl_nic_port *nic_port, u32 qpn, bool 
 		qpc = &res_qpc;
 	}
 
-	return gaudi_nic_qpc_write_masked(nic_port, qpc, &mask, qpn, is_req);
+	return gaudi_nic_qpc_write_masked(nic_port, qpc, &mask, qp->qp_id, is_req);
 }
 
-static int gaudi_nic_qpc_clear(struct hl_nic_port *nic_port, u32 qpn, bool is_req)
+static int gaudi_nic_qpc_clear(struct hl_nic_port *nic_port, struct hl_qp *qp, bool is_req)
 {
 	struct qpc_mask mask;
 	struct gaudi_qpc_requester req_qpc = {};
@@ -196,7 +196,7 @@ static int gaudi_nic_qpc_clear(struct hl_nic_port *nic_port, u32 qpn, bool is_re
 
 	memset(&mask, 0xFF, sizeof(mask));
 
-	return gaudi_nic_qpc_write_masked(nic_port, qpc, &mask, qpn, is_req);
+	return gaudi_nic_qpc_write_masked(nic_port, qpc, &mask, qp->qp_id, is_req);
 }
 
 static int gaudi_nic_qpc_read(struct hl_nic_port *nic_port, void *qpc, u32 qpn, bool is_req)

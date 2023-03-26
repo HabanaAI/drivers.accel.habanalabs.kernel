@@ -80,6 +80,7 @@ static int gaudi2_qp_sanity_init(struct gaudi2_nic_port *gaudi2_nic);
 static void gaudi2_get_default_encap_id(struct hl_nic_port *nic_port, u32 *id);
 static int gaudi2_encap_set(struct hl_nic_port *nic_port, u32 encap_id,
 				struct hl_nic_encap_idr_pdata *idr_pdata);
+static void gaudi2_user_cq_set_overrun(struct hl_nic_user_cq *user_cq, bool set_overrun);
 
 enum gaudi2_nic_user_bp_offs {
 	HL_NIC_USER_BP_OFFS_FW,
@@ -1643,6 +1644,20 @@ void gaudi2_nic_hw_mac_loopback_cfg(struct gaudi2_nic_port *gaudi2_nic)
 	NIC_MACRO_RREG32(mmNIC0_MAC_CH0_MAC_PCS_CONTROL1);
 }
 
+bool gaudi2_nic_is_cq_in_overrun(struct hl_nic_port *nic_port, u8 cq_id)
+{
+	struct hl_nic_user_cq *user_cq;
+	bool is_cq_in_overrun = false;
+
+	user_cq = hl_nic_user_cq_get(nic_port, cq_id);
+	if (user_cq) {
+		is_cq_in_overrun = user_cq->qp_set_overrun_cnt > 0;
+		hl_nic_user_cq_put(user_cq);
+	}
+
+	return is_cq_in_overrun;
+}
+
 static void gaudi2_nic_qp_pre_destroy(struct hl_qp *qp)
 {
 	struct hl_nic_port *nic_port = qp->nic_port;
@@ -1864,7 +1879,7 @@ static int gaudi2_nic_qpc_write(struct hl_nic_port *nic_port, void *qpc, struct 
 	return gaudi2_nic_qpc_write_masked(nic_port, qpc, qpc_mask, qpn, is_req, false);
 }
 
-static int gaudi2_nic_qpc_invalidate(struct hl_nic_port *nic_port, u32 qpn, bool is_req)
+static int gaudi2_nic_qpc_invalidate(struct hl_nic_port *nic_port, struct hl_qp *qp, bool is_req)
 {
 	struct hl_device *hdev = nic_port->hdev;
 	struct qpc_mask mask = {};
@@ -1893,9 +1908,26 @@ static int gaudi2_nic_qpc_invalidate(struct hl_nic_port *nic_port, u32 qpn, bool
 		qpc = &res_qpc;
 	}
 
-	rc = gaudi2_nic_qpc_write_masked(nic_port, qpc, &mask, qpn, is_req, false);
+	rc = gaudi2_nic_qpc_write_masked(nic_port, qpc, &mask, qp->qp_id, is_req, false);
 
 	if (is_req) {
+		/* Allow CQ overrun to make sure QP drain is successful. In case PFC is sent due to
+		 * CQ overflow, no Tx can be sent until CQ releases the back-pressure. If in the
+		 * meanwhile a QP needs to be invalidated, no tx will be sent in the QP drain stage.
+		 * This will cause Tx slices to be stuck after the QP drain stage has finished.
+		 * Next when the CQ will be destroyed, it will release the back-pressure, causing
+		 * the stuck Tx slices to be sent (as there's no more back-pressure). Since no QP
+		 * is allocated anymore, AXI errors and QP invalid errors will be received.
+		 * As a workaround to the issue above, allow overrun to the assoicated CQ of the
+		 * invalidated QP. This will release the back-pressure before the drain stage, and
+		 * will allow all needed tx packets to be drained successfully. Once the drain stage
+		 * is done, and the QP is cleared, disable CQ overrun.
+		 */
+		if (!qp->force_cq_overrun && qp->req_user_cq) {
+			qp->force_cq_overrun = true;
+			gaudi2_user_cq_set_overrun(qp->req_user_cq, true);
+		}
+
 		/* Invalidate RXE WQE cache */
 		NIC_RMWREG32(mmNIC0_RXE0_CACHE_CFG, 1, NIC0_RXE0_CACHE_CFG_INVALIDATION_MASK);
 		NIC_RREG32(mmNIC0_RXE0_CACHE_CFG);
@@ -1909,15 +1941,21 @@ static int gaudi2_nic_qpc_invalidate(struct hl_nic_port *nic_port, u32 qpn, bool
 	return rc;
 }
 
-static int gaudi2_nic_qpc_clear(struct hl_nic_port *nic_port, u32 qpn, bool is_req)
+static int gaudi2_nic_qpc_clear(struct hl_nic_port *nic_port, struct hl_qp *qp, bool is_req)
 {
 	struct qpc_mask mask;
 	struct gaudi2_qpc_requester req_qpc = {};
 	struct gaudi2_qpc_responder res_qpc = {};
 	void *qpc = is_req ? (void *) &req_qpc : (void *) &res_qpc;
 
+	if (qp->force_cq_overrun && is_req) {
+		qp->force_cq_overrun = false;
+		if (qp->req_user_cq)
+			gaudi2_user_cq_set_overrun(qp->req_user_cq, false);
+	}
+
 	memset(&mask, 0xFF, sizeof(mask));
-	return gaudi2_nic_qpc_write_masked(nic_port, qpc, &mask, qpn, is_req, false);
+	return gaudi2_nic_qpc_write_masked(nic_port, qpc, &mask, qp->qp_id, is_req, false);
 }
 
 int gaudi2_nic_qpc_read(struct hl_nic_port *nic_port, void *qpc, u32 qpn, bool is_req)
@@ -2904,6 +2942,31 @@ static int gaudi2_user_cq_unset(struct hl_nic_user_cq *user_cq)
 	hl_nic_mem_destroy(user_cq->ctx, user_cq->pi_handle);
 
 	return 0;
+}
+
+static void gaudi2_user_cq_set_overrun(struct hl_nic_user_cq *user_cq, bool set_overrun)
+{
+	struct hl_nic_port *nic_port = user_cq->nic_port;
+	struct hl_device *hdev = nic_port->hdev;
+	u32 port = nic_port->port, offset = user_cq->id * 4;
+	bool update_cq_cfg = false;
+
+	mutex_lock(&user_cq->overrun_lock);
+
+	/* only the first QP should enable CQ overrun, and the last QP should disable overrun */
+	if (set_overrun && user_cq->qp_set_overrun_cnt == 0) {
+		user_cq->qp_set_overrun_cnt++;
+		update_cq_cfg = true;
+	} else if (!set_overrun && user_cq->qp_set_overrun_cnt == 1) {
+		user_cq->qp_set_overrun_cnt--;
+		update_cq_cfg = true;
+	}
+
+	if (update_cq_cfg)
+		NIC_RMWREG32(mmNIC0_RXE0_CQ_CFG_0 + offset, set_overrun,
+				NIC0_RXE0_CQ_CFG_OVERRUN_EN_MASK);
+
+	mutex_unlock(&user_cq->overrun_lock);
 }
 
 static void gaudi2_user_cq_destroy(struct hl_nic_user_cq *user_cq)

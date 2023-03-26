@@ -99,7 +99,7 @@ static int nic_qp_op_reset(struct hl_nic_port *nic_port, struct hl_qp *qp)
 	int rc, rc1;
 
 	/* clear the QPCs */
-	rc = nic_funcs->port_funcs->qpc_clear(nic_port, qp->qp_id, true);
+	rc = nic_funcs->port_funcs->qpc_clear(nic_port, qp, true);
 	if (rc && hl_device_operational(hdev, NULL))
 		/* Device might not respond during reset if the reset was due to error */
 		dev_err(hdev->dev, "Port %d QP %d: Failed to clear requester QPC\n",
@@ -107,7 +107,7 @@ static int nic_qp_op_reset(struct hl_nic_port *nic_port, struct hl_qp *qp)
 	else
 		qp->is_req = false;
 
-	rc1 = nic_funcs->port_funcs->qpc_clear(nic_port, qp->qp_id, false);
+	rc1 = nic_funcs->port_funcs->qpc_clear(nic_port, qp, false);
 	if (rc1) {
 		rc = rc1;
 		if (hl_device_operational(hdev, NULL))
@@ -181,7 +181,7 @@ static inline int nic_qp_invalidate_qpc(struct hl_nic_port *nic_port,
 	int i, rc;
 
 	for (i = 0 ; i < OP_RETRY_COUNT ; i++) {
-		rc = nic_funcs->port_funcs->qpc_invalidate(nic_port, qp->qp_id, is_req);
+		rc = nic_funcs->port_funcs->qpc_invalidate(nic_port, qp, is_req);
 		if (!rc)
 			break;
 
@@ -333,8 +333,8 @@ static int nic_qp_op_2reset(struct hl_nic_port *nic_port,
 	if ((attr->reset_mode == NIC_QP_RESET_MODE_HARD) &&
 			(qp->curr_state != NIC_QP_STATE_RESET)) {
 		/* invalidate */
-		nic_funcs->port_funcs->qpc_invalidate(nic_port, qp->qp_id, true);
-		nic_funcs->port_funcs->qpc_invalidate(nic_port, qp->qp_id, false);
+		nic_funcs->port_funcs->qpc_invalidate(nic_port, qp, true);
+		nic_funcs->port_funcs->qpc_invalidate(nic_port, qp, false);
 
 		/* wait for HW digest the invalidation */
 		usleep_range(100, 150);

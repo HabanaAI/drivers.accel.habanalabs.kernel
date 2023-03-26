@@ -3419,15 +3419,17 @@ static int alloc_user_cq_id(struct hl_device *hdev, struct hl_nic_alloc_user_cq_
 	}
 
 	id = idr_alloc(&nic_port->cq_ids, user_cq, min_id, max_id + 1, GFP_KERNEL);
-	user_cq->id = id;
-
-	port_funcs->cfg_unlock(nic_port);
-
 	if (id < 0) {
 		dev_err(hdev->dev, "No available user CQ, port %d\n", port);
 		rc = id;
-		goto idr_alloc_fail;
+		goto cfg_unlock;
 	}
+
+	user_cq->id = id;
+
+	mutex_init(&user_cq->overrun_lock);
+
+	port_funcs->cfg_unlock(nic_port);
 
 	dev_dbg(hdev->dev, "Allocating CQ id %d in port %d", id, port);
 
@@ -3437,7 +3439,6 @@ static int alloc_user_cq_id(struct hl_device *hdev, struct hl_nic_alloc_user_cq_
 
 cfg_unlock:
 	port_funcs->cfg_unlock(nic_port);
-idr_alloc_fail:
 	kfree(user_cq);
 
 	return rc;
@@ -3631,6 +3632,7 @@ static void user_cq_destroy(struct kref *kref)
 	if (user_cq->state == USER_CQ_STATE_SET_TO_UNSET)
 		port_funcs->user_cq_destroy(user_cq);
 
+	mutex_destroy(&user_cq->overrun_lock);
 	idr_remove(&nic_port->cq_ids, user_cq->id);
 	kfree(user_cq);
 }
