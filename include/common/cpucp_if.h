@@ -136,7 +136,8 @@ struct hl_agg_eq_header {
 	__u8 die_id;
 	__u8 hdcore_type; /* hl_agg_hdcore_type */
 	__u8 comp_instance;
-	__u8 pad[3];
+	__u8 pad;
+	__le16 event_id; /* Unique event identifier */
 };
 
 struct hl_eq_ecc_data {

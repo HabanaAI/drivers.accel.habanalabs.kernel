@@ -11706,19 +11706,28 @@ static u32 gaudi3_handle_hw_event(struct hl_device *hdev,
 				struct hl_eq_dynamic_entry *eq_dynamic_entry, u64 *event_mask)
 {
 	enum hl_agg_grp_type agg_grp_type = eq_dynamic_entry->agg_hdr.int_grp_type;
+	u16 event_id = le16_to_cpu(eq_dynamic_entry->agg_hdr.event_id);
+	u32 err_cnt = 0;
 
 	gaudi3_print_hw_event_info(hdev, &eq_dynamic_entry->agg_hdr);
 
 	switch (agg_grp_type) {
 	case INT_GRP_TYPE_DERR:
-		return gaudi3_handle_derr_event(hdev, eq_dynamic_entry, event_mask);
+		err_cnt = gaudi3_handle_derr_event(hdev, eq_dynamic_entry, event_mask);
+		break;
 	case INT_GRP_TYPE_SEI:
-		return gaudi3_handle_sei_event(hdev, eq_dynamic_entry, event_mask);
+		err_cnt = gaudi3_handle_sei_event(hdev, eq_dynamic_entry, event_mask);
+		break;
 	case INT_GRP_TYPE_SPI:
-		return gaudi3_handle_spi_event(hdev, eq_dynamic_entry, event_mask);
+		err_cnt = gaudi3_handle_spi_event(hdev, eq_dynamic_entry, event_mask);
+		break;
 	default:
-		return 0;
+		break;
 	}
+
+	hl_fw_unmask_irq(hdev, event_id);
+
+	return err_cnt;
 }
 
 u32 gaudi3_handle_eqe(struct hl_device *hdev, struct hl_eq_dynamic_entry *eq_dynamic_entry)
