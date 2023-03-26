@@ -11402,16 +11402,26 @@ static u32 gaudi3_handle_arc_farm_sei_err(struct hl_device *hdev, u32 hdcore)
 	return err_cnt;
 }
 
+static int gaudi3_validate_eqe_data_size(struct hl_device *hdev, u16 actual_size, u16 expected_size)
+{
+	if (actual_size != expected_size) {
+		dev_err_ratelimited(hdev->dev, "EQ entry data size is %u while expecting %u\n",
+					actual_size, expected_size);
+		return -EINVAL;
+	}
+
+	return 0;
+}
+
 static u32 gaudi3_handle_pcie0_sei_err(struct hl_device *hdev, u16 data_size,
 					struct hl_eq_pcie_sei_data *pcie_sei_data)
 {
 	u32 err_msk;
+	int rc;
 
-	if (data_size != sizeof(*pcie_sei_data)) {
-		dev_err_ratelimited(hdev->dev, "EQ entry data size is %u while expecting %zu\n",
-					data_size, sizeof(*pcie_sei_data));
+	rc = gaudi3_validate_eqe_data_size(hdev, data_size, sizeof(*pcie_sei_data));
+	if (rc)
 		return 0;
-	}
 
 	if (pcie_sei_data->sei_type != PCIE_SEI_AXI_RESP_ERR)
 		return 0;
@@ -11424,11 +11434,11 @@ static u32 gaudi3_handle_pcie0_sei_err(struct hl_device *hdev, u16 data_size,
 static u32 gaudi3_handle_pcie0_spi_err(struct hl_device *hdev, u16 data_size,
 					struct hl_eq_pcie_spi_data *pcie_spi_data)
 {
-	if (data_size != sizeof(*pcie_spi_data)) {
-		dev_err_ratelimited(hdev->dev, "EQ entry data size is %u while expecting %zu\n",
-					data_size, sizeof(*pcie_spi_data));
+	int rc;
+
+	rc = gaudi3_validate_eqe_data_size(hdev, data_size, sizeof(*pcie_spi_data));
+	if (rc)
 		return 0;
-	}
 
 	if (pcie_spi_data->spi_type != PCIE_SPI_DRAIN)
 		return 0;
@@ -11439,11 +11449,11 @@ static u32 gaudi3_handle_pcie0_spi_err(struct hl_device *hdev, u16 data_size,
 static u32 gaudi3_handle_nic_spi(struct hl_device *hdev, u32 macro_index, u16 data_size,
 					struct hl_eq_nic_spi_data *nic_spi_data)
 {
-	if (data_size != sizeof(*nic_spi_data)) {
-		dev_err_ratelimited(hdev->dev, "EQ entry data size is %u while expecting %zu\n",
-					data_size, sizeof(*nic_spi_data));
+	int rc;
+
+	rc = gaudi3_validate_eqe_data_size(hdev, data_size, sizeof(*nic_spi_data));
+	if (rc)
 		return 0;
-	}
 
 	if (nic_spi_data->spi_type == NIC_SPI_BMON_SPMU)
 		return gaudi3_nic_handle_bmon_spmu_event(hdev, macro_index);
@@ -11546,12 +11556,11 @@ static u32 gaudi3_handle_derr_event(struct hl_device *hdev,
 				struct hl_eq_dynamic_entry *eq_dynamic_entry, u64 *event_mask)
 {
 	u16 data_size = le16_to_cpu(eq_dynamic_entry->hdr.size);
+	int rc;
 
-	if (data_size != sizeof(eq_dynamic_entry->ecc_data)) {
-		dev_err_ratelimited(hdev->dev, "EQ entry data size is %u while expecting %zu\n",
-					data_size, sizeof(eq_dynamic_entry->ecc_data));
+	rc = gaudi3_validate_eqe_data_size(hdev, data_size, sizeof(eq_dynamic_entry->ecc_data));
+	if (rc)
 		return 0;
-	}
 
 	gaudi3_handle_ecc_event(hdev, &eq_dynamic_entry->ecc_data);
 
@@ -11562,12 +11571,11 @@ static u32 gaudi3_handle_cs_sei_err(struct hl_device *hdev, u16 data_size,
 					struct hl_eq_intr_cause *intr_cause)
 {
 	u32 err_msk;
+	int rc;
 
-	if (data_size != sizeof(*intr_cause)) {
-		dev_err_ratelimited(hdev->dev, "EQ entry data size is %u while expecting %zu\n",
-					data_size, sizeof(*intr_cause));
+	rc = gaudi3_validate_eqe_data_size(hdev, data_size, sizeof(*intr_cause));
+	if (rc)
 		return 0;
-	}
 
 	err_msk = lower_32_bits(le64_to_cpu(intr_cause->intr_cause_data));
 
