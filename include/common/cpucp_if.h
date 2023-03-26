@@ -494,44 +494,6 @@ struct hl_eq_nic_spi_data {
 	__u8 pad[7];
 };
 
-enum hl_mme_acc_err_type {
-	MME_ACC_WBC_ERR_RESP_LEGACY,
-	MME_ACC_WBC_ERR_RESP_SET0_CH0,
-	MME_ACC_WBC_ERR_RESP_SET0_CH1,
-	MME_ACC_WBC_ERR_RESP_SET1_CH0,
-	MME_ACC_WBC_ERR_RESP_SET1_CH1,
-	MME_ACC_WBC_BUSER_NUMERICAL_INF_ERR_SET0_CH0,
-	MME_ACC_WBC_BUSER_NUMERICAL_INF_ERR_SET0_CH1,
-	MME_ACC_WBC_BUSER_NUMERICAL_NINF_ERR_SET0_CH0,
-	MME_ACC_WBC_BUSER_NUMERICAL_NINF_ERR_SET0_CH1,
-	MME_ACC_WBC_BUSER_NUMERICAL_NAN_ERR_SET0_CH0,
-	MME_ACC_WBC_BUSER_NUMERICAL_NAN_ERR_SET0_CH1,
-	MME_ACC_WBC_BUSER_RR_DBG_ERR_SET0_CH0,
-	MME_ACC_WBC_BUSER_RR_DBG_ERR_SET0_CH1,
-	MME_ACC_WBC_BUSER_NUMERICAL_INF_ERR_SET1_CH0,
-	MME_ACC_WBC_BUSER_NUMERICAL_INF_ERR_SET1_CH1,
-	MME_ACC_WBC_BUSER_NUMERICAL_NINF_ERR_SET1_CH0,
-	MME_ACC_WBC_BUSER_NUMERICAL_NINF_ERR_SET1_CH1,
-	MME_ACC_WBC_BUSER_NUMERICAL_NAN_ERR_SET1_CH0,
-	MME_ACC_WBC_BUSER_NUMERICAL_NAN_ERR_SET1_CH1,
-	MME_ACC_WBC_BUSER_RR_DBG_ERR_SET1_CH0,
-	MME_ACC_WBC_BUSER_RR_DBG_ERR_SET1_CH1,
-	MME_ACC_AP_STS_SRC_DNRM,
-	MME_ACC_AP_STS_SRC_INF,
-	MME_ACC_AP_STS_SRC_NINF,
-	MME_ACC_AP_STS_SRC_NAN,
-	MME_ACC_AP_STS_RES_INF,
-	MME_ACC_AP_STS_RES_NINF,
-	MME_ACC_AP_STS_RES_NAN
-};
-
-struct hl_eq_mme_acc_data {
-	__u8 mme_id;
-	__u8 err_type; /* enum hl_mme_acc_err_type */
-	__le16 ctx_id;
-	__u8 pad[4];
-};
-
 struct hl_eq_entry {
 	struct hl_eq_header hdr;
 	union {
@@ -565,7 +527,6 @@ struct hl_eq_dynamic_entry {
 		struct hl_eq_pcie_spi_data pcie_spi_data;
 		struct hl_eq_nic_spi_data nic_spi_data;
 		struct hl_eq_nic_sts_req_data nic_sts_req_data;
-		struct hl_eq_mme_acc_data mme_acc_data;
 	};
 };
 
