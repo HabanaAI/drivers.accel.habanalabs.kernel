@@ -486,7 +486,7 @@ static void hl_nic_port_toggle_count(struct hl_aux_dev *aux_dev, u32 port)
 	struct hl_nic *nic = HL_AUX2NIC(aux_dev);
 	struct hl_nic_port *nic_port = &nic->nic_ports[port];
 
-	nic_port->port_toggle_cnt += 1;
+	nic_port->port_toggle_cnt++;
 }
 
 static int hl_nic_get_asic_type(struct hl_device *hdev, enum hl_nic_asic_type *asic_type)
