@@ -277,50 +277,16 @@ static int gaudi_simulator_gen_int_ioctl(struct hl_simulator_device *edev,
 {
 	struct simulator_gen_int_args *args = data;
 	struct hl_device *hdev = edev->hdev;
-	struct gaudi_device *gaudi = hdev->asic_specific;
-	struct gaudi_en_aux_ops *aux_ops = &gaudi->en_aux_ops;
 
-	if (gaudi->multi_msi_mode) {
-		if (args->id >= NUMBER_OF_INTERRUPTS) {
-			dev_err(edev->dev, "interrupt id %d invalid", args->id);
-			return -EINVAL;
-		}
-	} else {
-		if (args->id > 0) {
-			dev_err(edev->dev, "Got id %d in single MSI mode",
-				args->id);
-			return -EINVAL;
-		}
-	}
-
-	mutex_lock(&edev->irq_mutex[args->id]);
+	mutex_lock(edev->irq_mutex);
 
 	if (unlikely(edev->reset))
 		goto out;
 
-	if (!gaudi->multi_msi_mode) {
-		gaudi_irq_handler_single(args->id, hdev);
-		goto out;
-	}
+	gaudi_irq_handler_single(args->id, hdev);
 
-	if (args->id == GAUDI_EVENT_QUEUE_MSI_IDX) {
-		hl_irq_handler_eq(args->id, &hdev->event_queue);
-	} else if ((args->id >= RX_MSI_IDX) &&
-			(args->id < (RX_MSI_IDX + NIC_NUMBER_OF_ENGINES))) {
-		if (aux_ops->rx_irq_handler)
-			aux_ops->rx_irq_handler(&hdev->nic.en_aux_dev, args->id - RX_MSI_IDX);
-	} else if (args->id == CQ_MSI_IDX) {
-		gaudi_nic_cq_irq_handler(args->id, hdev);
-	} else if (args->id < NUMBER_OF_INTERRUPTS) {
-		/* see gaudi_cq_assignment for the calculation explanation */
-		int cq_id = (args->id < GAUDI_EVENT_QUEUE_MSI_IDX) ? args->id :
-				(args->id - NIC_NUMBER_OF_ENGINES - 1);
-		hl_irq_handler_cq(args->id, &hdev->completion_queue[cq_id]);
-	} else {
-		dev_err(edev->dev, "unexpected interrupt id %d", args->id);
-	}
 out:
-	mutex_unlock(&edev->irq_mutex[args->id]);
+	mutex_unlock(edev->irq_mutex);
 
 	return 0;
 }
@@ -600,14 +566,13 @@ int gaudi_simulator_start(struct simulator_start_args *args)
 {
 	struct hl_simulator_device *edev;
 	bool can_put_dev = false;
-	int i, rc;
+	int rc;
 
 	edev = kzalloc(sizeof(*edev), GFP_KERNEL);
 	if (!edev)
 		return -ENOMEM;
 
-	edev->irq_mutex = kcalloc(NUMBER_OF_INTERRUPTS,
-			sizeof(*edev->irq_mutex), GFP_KERNEL);
+	edev->irq_mutex = kzalloc(sizeof(*edev->irq_mutex), GFP_KERNEL);
 	if (!edev->irq_mutex) {
 		kfree(edev);
 		return -ENOMEM;
@@ -618,7 +583,7 @@ int gaudi_simulator_start(struct simulator_start_args *args)
 	edev->id = args->minor + HLV_SIM_ID_OFFSET;
 	edev->rw_reg_timeout = GAUDI_SIM_RW_REG_TIMEOUT_US;
 	edev->reset = true;
-	edev->single_msi_mode = args->single_msi_mode;
+	edev->single_msi_mode = true; /* force single msi mode */
 	edev->virt_dev_type = args->virt_dev_type;
 	edev->dram_user_provided_ptr = args->dram_user_pointer;
 	edev->sram_user_provided_ptr = args->sram_user_pointer;
@@ -736,8 +701,7 @@ int gaudi_simulator_start(struct simulator_start_args *args)
 		goto free_h2c_fifo;
 	}
 
-	for (i = 0 ; i < NUMBER_OF_INTERRUPTS ; i++)
-		mutex_init(&edev->irq_mutex[i]);
+	mutex_init(edev->irq_mutex);
 
 	dev_info(edev->dev,
 		"added %s: Gaudi simulator device [0000:00:%02d.0]\n",
@@ -764,8 +728,7 @@ int gaudi_simulator_start(struct simulator_start_args *args)
 remove_name:
 	device_remove_file(edev->dev, &dev_attr_device_name);
 destroy_mutex:
-	for (i = 0 ; i < NUMBER_OF_INTERRUPTS ; i++)
-		mutex_destroy(&edev->irq_mutex[i]);
+	mutex_destroy(edev->irq_mutex);
 	kfifo_free(&edev->c2h_fifo);
 free_h2c_fifo:
 	kfifo_free(&edev->h2c_fifo);
@@ -803,7 +766,7 @@ void gaudi_simulator_stop(u32 minor)
 {
 	struct hl_simulator_device *edev;
 	struct simulator_msg *msg;
-	int count, i;
+	int count;
 
 	if (minor >= HL_MAX_MINORS) {
 		pr_crit("habanalabs: minor is out of bounds %u, can't stop sim\n", minor);
@@ -847,8 +810,7 @@ void gaudi_simulator_stop(u32 minor)
 	kfifo_free(&edev->h2c_fifo);
 	kfifo_free(&edev->c2h_fifo);
 
-	for (i = 0 ; i < NUMBER_OF_INTERRUPTS ; i++)
-		mutex_destroy(&edev->irq_mutex[i]);
+	mutex_destroy(edev->irq_mutex);
 
 	if (!edev->dram_user_provided_ptr)
 		vfree(edev->dram_vmalloc_address);
@@ -1088,7 +1050,6 @@ static int gaudi_sim_cpucp_info_get(struct hl_device *hdev)
 
 static int gaudi_sim_sw_init(struct hl_device *hdev)
 {
-	struct hl_simulator_device *edev = gaudi_simulator_dev_table[hdev->id];
 	struct hl_nic *nic = &hdev->nic;
 	struct gaudi_device *gaudi;
 	int rc;
@@ -1099,9 +1060,6 @@ static int gaudi_sim_sw_init(struct hl_device *hdev)
 		return -ENOMEM;
 
 	gaudi->cpucp_info_get = gaudi_sim_cpucp_info_get;
-
-	gaudi->multi_msi_mode = !edev->single_msi_mode;
-
 	hdev->asic_specific = gaudi;
 
 	rc = gaudi_alloc_cpu_accessible_dma_mem(hdev);
@@ -1197,7 +1155,6 @@ static int gaudi_sim_sw_fini(struct hl_device *hdev)
 static void gaudi_sim_halt_engines(struct hl_device *hdev, bool hard_reset, bool fw_reset)
 {
 	struct hl_simulator_device *edev = gaudi_simulator_dev_table[hdev->id];
-	int i;
 
 	/*
 	 * Mark the NIC as in reset to avoid any new NIC accesses to the
@@ -1233,10 +1190,8 @@ static void gaudi_sim_halt_engines(struct hl_device *hdev, bool hard_reset, bool
 	edev->reset = true;
 
 	/* Flush any in progress handling of the gen_int ioctl */
-	for (i = 0 ; i < NUMBER_OF_INTERRUPTS ; i++) {
-		mutex_lock(&edev->irq_mutex[i]);
-		mutex_unlock(&edev->irq_mutex[i]);
-	}
+	mutex_lock(edev->irq_mutex);
+	mutex_unlock(edev->irq_mutex);
 }
 
 static int gaudi_sim_init_cpu(struct hl_device *hdev)

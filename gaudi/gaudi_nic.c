@@ -569,19 +569,7 @@ static void gaudi_nic_cq_fini(struct hl_device *hdev)
 static int gaudi_nic_cq_init(struct hl_device *hdev)
 {
 	struct gaudi_device *gaudi = hdev->asic_specific;
-	int rc, i, cq_irq = 0;
-
-	if ((hdev->pdev) && (gaudi->multi_msi_mode)) {
-		/* One IRQ for all ports to indicate a CQ overrun */
-		cq_irq = pci_irq_vector(hdev->pdev, CQ_MSI_IDX);
-		rc = request_irq(cq_irq, gaudi_nic_cq_irq_handler, 0, "gaudi nic cq overrun", hdev);
-		if (rc) {
-			dev_err(hdev->dev, "Failed to request CQ IRQ %d, %d\n", cq_irq, rc);
-			return rc;
-		}
-
-		gaudi->nic_cq_irq_enable = true;
-	}
+	int rc, i;
 
 	/* SW-37077: in Gaudi, even ports push their responder CQEs to the odd port CQ. Hence we
 	 * need to initialize all CQs of all ports regardless of their enablement, or else we'll get
@@ -952,7 +940,8 @@ static int gaudi_nic_hw_port_config(struct gaudi_nic_port *gaudi_nic)
 		mac_addr |= hdev->asic_prop.cpucp_nic_info.mac_addrs[port].mac_addr[i];
 	}
 
-	rx_msi_addr = gaudi->multi_msi_mode ? (RX_MSI_ADDRESS + port * 4) : mmPCIE_CORE_MSI_REQ;
+	/* ASIC supports only single msi, simulator supports only multi msi */
+	rx_msi_addr = hdev->pdev ? mmPCIE_CORE_MSI_REQ : (RX_MSI_ADDRESS + port * 4);
 
 	/* TXS Configuration */
 	txs_addr = nic_prop->txs_base_addr + port * nic_prop->txs_base_size;
@@ -2414,7 +2403,6 @@ static int gaudi_nic_sw_init(struct hl_device *hdev)
 	core_info->tx_wq_base_addr = NIC_HW_MAX_QP_NUM;
 	core_info->rx_ring_len = NIC_RX_SIZE;
 	core_info->base_rx_irq = RX_MSI_IDX;
-	core_info->multi_msi_mode = gaudi->multi_msi_mode;
 	core_info->rx_mem_addr = rx_mem_addr;
 
 	aux_ops->read_mac_stat = gaudi_nic_read_mac_stat_cnt;
