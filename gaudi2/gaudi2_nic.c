@@ -5001,7 +5001,10 @@ static bool gaudi2_nic_is_encap_supported(struct hl_device *hdev,
 
 void gaudi2_fw_nic_status(struct hl_nic_port *nic_port)
 {
-	/* FW does not mask MSG interrupts, so unmask_irq is not needed */
+	struct hl_device *hdev = nic_port->hdev;
+	struct hl_nic_properties *nic_props = &hdev->asic_prop.nic_props;
+
+	hl_fw_unmask_irq(hdev, nic_props->base_status_event_idx + nic_port->port);
 }
 
 static struct hl_nic_port_funcs gaudi2_nic_port_funcs = {
