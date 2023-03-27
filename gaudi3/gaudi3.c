@@ -5924,6 +5924,8 @@ static const char *gaudi3_irq_name(u16 irq_number)
 		return "gaudi3 pldm interrupts";
 	case GAUDI3_IRQ_NUM_ETR_FIRST ... GAUDI3_IRQ_NUM_ETR_LAST:
 		return "gaudi3 etr";
+	case GAUDI3_IRQ_NUM_UNEXPECTED_ERROR:
+		return "gaudi3 unexpected error";
 	default:
 		return "invalid";
 	}
@@ -6217,6 +6219,9 @@ void gaudi3_init_msix_gw_table(struct hl_device *hdev)
 {
 	gaudi3_msix_gw_table_enable_range(hdev,
 				GAUDI3_IRQ_NUM_USER_FIRST, GAUDI3_IRQ_NUM_USER_LAST);
+
+	gaudi3_msix_gw_table_enable_range(hdev,
+				GAUDI3_IRQ_NUM_UNEXPECTED_ERROR, GAUDI3_IRQ_NUM_UNEXPECTED_ERROR);
 }
 
 static int gaudi3_enable_user_msix(struct hl_device *hdev)
@@ -6246,6 +6251,15 @@ static int gaudi3_enable_user_msix(struct hl_device *hdev)
 			dev_err(hdev->dev, "Failed to request user IRQ %d", irq);
 			goto free_user_irqs;
 		}
+	}
+
+	irq = hl_irq_vector(hdev, GAUDI3_IRQ_NUM_UNEXPECTED_ERROR);
+	rc = request_irq(irq, hl_irq_handler_user_interrupt, 0,
+			gaudi3_irq_name(GAUDI3_IRQ_NUM_UNEXPECTED_ERROR),
+					&hdev->unexpected_error_interrupt);
+	if (rc) {
+		dev_err(hdev->dev, "Failed to request IRQ %d", irq);
+		goto free_user_irqs;
 	}
 
 	return 0;
@@ -6287,6 +6301,9 @@ static void gaudi3_disable_user_msix(struct hl_device *hdev)
 		irq = hl_irq_vector(hdev, intr_id);
 		free_irq(irq, &hdev->user_interrupt[j]);
 	}
+
+	irq = hl_irq_vector(hdev, GAUDI3_IRQ_NUM_UNEXPECTED_ERROR);
+	free_irq(irq, &hdev->unexpected_error_interrupt);
 }
 
 static struct hl_etr_buf *gaudi3_etr_buf_store_create_host_buf(struct hl_device *hdev)
@@ -6974,7 +6991,7 @@ int gaudi3_enable_msix(struct hl_device *hdev)
 					irq = hl_irq_vector(hdev, i);
 					free_irq(irq, hdev);
 				}
-				goto free_etr_irqs;
+				goto free_eq_irqs;
 			}
 		}
 	}
@@ -6982,6 +6999,9 @@ int gaudi3_enable_msix(struct hl_device *hdev)
 	gaudi3->hw_cap_initialized |= HW_CAP_MSIX;
 
 	return 0;
+
+free_eq_irqs:
+	gaudi3_eq_disable_msix(hdev);
 
 free_etr_irqs:
 	gaudi3_etrs_disable_msix(hdev);
@@ -7005,6 +7025,10 @@ void gaudi3_user_interrupt_setup(struct hl_device *hdev)
 {
 	struct asic_fixed_properties *prop = &hdev->asic_prop;
 	int i, j, intr_id;
+
+	/* Initialize unexpected error interrupt */
+	HL_USR_INTR_STRUCT_INIT(hdev->unexpected_error_interrupt, hdev, 0,
+						HL_USR_INTERRUPT_UNEXPECTED);
 
 	/* Initialize common user CQ interrupt */
 	HL_USR_INTR_STRUCT_INIT(hdev->common_user_cq_interrupt, hdev,
@@ -7062,6 +7086,9 @@ void gaudi3_sync_irqs(struct hl_device *hdev)
 		irq = hl_irq_vector(hdev, intr_id);
 		synchronize_irq(irq);
 	}
+
+	irq = hl_irq_vector(hdev, GAUDI3_IRQ_NUM_UNEXPECTED_ERROR);
+	synchronize_irq(irq);
 
 	irq = hl_irq_vector(hdev, GAUDI3_IRQ_NUM_EVENT_QUEUE);
 	synchronize_irq(irq);
