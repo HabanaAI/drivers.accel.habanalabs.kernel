@@ -2483,6 +2483,10 @@ static void __exit hl_exit(void)
 
 	pci_unregister_driver(&hl_pci_driver);
 
+	/* IMPORTER CODE */
+	hl_importer_exit();
+	/* END OF IMPORTER CODE */
+
 /* SIMULATOR CODE */
 skip_pci:
 /* END OF SIMULATOR CODE */
@@ -2499,10 +2503,6 @@ skip_pci:
 	 * debugfs module for referencing NULL objects
 	 */
 	hl_debugfs_fini();
-
-	/* IMPORTER CODE */
-	hl_importer_exit();
-	/* END OF IMPORTER CODE */
 
 	class_destroy(hl_class);
 	unregister_chrdev_region(MKDEV(hl_major, 0), HL_MAX_MINORS);
