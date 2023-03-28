@@ -7564,9 +7564,20 @@ static int gaudi3_hw_init(struct hl_device *hdev)
 void gaudi3_send_hard_reset_cmd(struct hl_device *hdev)
 {
 	bool heartbeat_reset, preboot_only;
+	u32 cpu_boot_status;
+	struct gaudi3_device *gaudi3 = hdev->asic_specific;
 
 	preboot_only = (hdev->fw_loader.fw_comp_loaded == FW_TYPE_PREBOOT_CPU);
 	heartbeat_reset = (hdev->reset_info.curr_reset_cause == HL_RESET_CAUSE_HEARTBEAT);
+
+	cpu_boot_status = RREG32(mmD0_PSOC_GLOBAL_CONF_BASE + mmGLOBAL_CONF_CPU_BOOT_STATUS);
+
+	/* boot-fit stage case */
+	if (!preboot_only && gaudi3 && (gaudi3->hw_cap_initialized & HW_CAP_CPU) &&
+			(cpu_boot_status == CPU_BOOT_STATUS_SRAM_AVAIL)) {
+		WREG32(mmD0_PARC_INT_GEN_BASE + mmINTR_GEN_MSG2WIRE_SW, 0x1);
+		msleep(100);
+	}
 
 	/* TODO: SW-108036 Enable firmware reset code when gaudi3_irq_map_table is added */
 
@@ -7645,6 +7656,11 @@ static int gaudi3_wait_reset(struct hl_device *hdev, u32 poll_timeout_us, u32 re
 	dev_dbg(hdev->dev, "Wait %u ms after reset\n", reset_sleep_ms);
 	msleep(reset_sleep_ms);
 
+	if (hdev->fw_components & FW_TYPE_PREBOOT_CPU) {
+		hl_fw_wait_preboot_ready(hdev);
+		return 0;
+	}
+
 	rc = hl_poll_timeout_elbi(hdev,
 		CFG_BAR_BASE + mmD0_PCIE_WRAP_BASE + mmPCIE_WRAP_PSOC_BOOT_MNG_DONE,
 		status,
@@ -7656,7 +7672,7 @@ static int gaudi3_wait_reset(struct hl_device *hdev, u32 poll_timeout_us, u32 re
 	return rc;
 }
 
-static int gaudi3_hw_fini(struct hl_device *hdev, bool hard_reset, bool fw_reset)
+int gaudi3_hw_fini(struct hl_device *hdev, bool hard_reset, bool fw_reset)
 {
 	u32 poll_timeout_us, reset_sleep_ms;
 	int rc;

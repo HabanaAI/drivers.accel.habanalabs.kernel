@@ -779,6 +779,7 @@ bool gaudi3_is_device_idle(struct hl_device *hdev, u64 *mask_arr,
 void gaudi3_fw_security_emulation_init(struct hl_device *hdev);
 void gaudi3_fw_security_emulation_fini(struct hl_device *hdev, bool asic_dirty);
 void gaudi3_clear_hw_cap(struct hl_device *hdev, bool hard_reset);
+int gaudi3_hw_fini(struct hl_device *hdev, bool hard_reset, bool fw_reset);
 
 void gaudi3_nic_quiescence(struct hl_device *hdev);
 void gaudi3_nic_read_mac_fec_stats(struct hl_nic_port *nic_port, u64 *data);
