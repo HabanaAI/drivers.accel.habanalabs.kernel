@@ -165,6 +165,9 @@ static void handle_and_clear_arc_farm_events(struct hl_device *hdev, u32 die, u3
 static void handle_and_clear_decoder_events(struct hl_device *hdev, u32 die, u32 hdcore,
 					enum err_grp type, u32 sts, u32 sts_idx, u32 idx,
 					u32 aggr_mask_reg, u32 events_mask);
+static void handle_and_clear_edma_events(struct hl_device *hdev, u32 die, u32 hdcore,
+					enum err_grp type, u32 sts, u32 sts_idx, u32 idx,
+					u32 aggr_mask_reg, u32 events_mask);
 static void handle_and_clear_nic_events(struct hl_device *hdev, u32 die,
 					enum err_grp type, u32 sts, u32 sts_idx, u32 idx,
 					u32 aggr_mask_reg, u32 events_mask);
@@ -203,7 +206,7 @@ static const hdcore_aggr_handle_and_clear hdcore_handle_and_clear[] = {
 	handle_and_clear_arc_farm_events, /* HDCORE_ARCFARM_EVENT */
 	handle_and_clear_decoder_events, /* HDCORE_DEC_EVENT */
 	NULL, /* HDCORE_DUP_EVENT */
-	NULL, /* HDCORE_EDMA_EVENT */
+	handle_and_clear_edma_events, /* HDCORE_EDMA_EVENT */
 	NULL, /* HDCORE_RTR_EVENT */
 	NULL, /* HDCORE_HIF_EVENT */
 };
@@ -3735,6 +3738,61 @@ static void handle_and_clear_decoder_events(struct hl_device *hdev, u32 die, u32
 	params.die = die;
 	params.hdcore = hdcore;
 	params.instance = instance;
+	prepare_eq_dynamic_entry_agg_header(&eq_dynamic_entry, &params);
+
+	if (!gaudi3_handle_eqe(hdev, &eq_dynamic_entry))
+		return;
+
+	if (unmask_event_in_aggr)
+		WREG32_AND(aggr_mask_reg, events_mask);
+}
+
+static u32 edma_special_regs_base[] = {
+	mmHD1_SEDMA0_QM_ARC_AUX_SPECIAL_BASE,
+	mmHD1_SEDMA0_CMN_SPECIAL_BASE,
+	mmHD1_SEDMA1_QM_ARC_AUX_SPECIAL_BASE,
+	mmHD1_SEDMA1_CMN_SPECIAL_BASE
+};
+
+/* HDCORE_EDMA_EVENT */
+static void handle_and_clear_edma_events(struct hl_device *hdev, u32 die, u32 hdcore,
+					enum err_grp type, u32 sts, u32 sts_idx, u32 idx,
+					u32 aggr_mask_reg, u32 events_mask)
+{
+	u32 hdcore_array[] = {1, 3, 4, 6}, hdcore_index, offset = 0x0;
+	struct hl_eq_dynamic_entry eq_dynamic_entry = {};
+	struct eq_agg_header_params params = {};
+	bool unmask_event_in_aggr = false;
+
+	if (hdcore == 0 || hdcore == 2 || hdcore == 5 || hdcore == 7) {
+		dev_err(hdev->dev, "No EDMA interrupts are expected for HD%u!\n", hdcore);
+		return;
+	}
+
+	switch (type) {
+	case ERR_GRP_DERR:
+		hdcore_index = hdcore / 2; /* [0] = HD1, [1] = HD3, [2] = HD4, [3] = HD6 */
+		offset = (hdcore_array[hdcore_index] - hdcore_array[0]) * HDCORE_OFFSET;
+		handle_and_clear_derr_events(hdev, edma_special_regs_base,
+						ARRAY_SIZE(edma_special_regs_base), offset,
+						&eq_dynamic_entry.ecc_data);
+		eq_dynamic_entry.hdr.size = cpu_to_le16(sizeof(struct hl_eq_ecc_data));
+		unmask_event_in_aggr = true;
+		break;
+	case ERR_GRP_SEI:
+		break;
+	case ERR_GRP_SPI_ECO:
+		/* SPI interrupt is only for trace/debug so there's nothing to pass to EQ handler */
+		break;
+	default:
+		return;
+	}
+
+	params.component_type = INT_COMP_TYPE_EDMA;
+	params.grp_type = type;
+	params.die = die;
+	params.hdcore = hdcore;
+	params.instance = 0;
 	prepare_eq_dynamic_entry_agg_header(&eq_dynamic_entry, &params);
 
 	if (!gaudi3_handle_eqe(hdev, &eq_dynamic_entry))
