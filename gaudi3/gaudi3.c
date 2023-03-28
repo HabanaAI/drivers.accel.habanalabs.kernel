@@ -141,10 +141,6 @@ MODULE_FIRMWARE(GAUDI3_BOOT_FIT_FILE);
 /* we can invalidate at most 256MB at once */
 #define RANGE_INV_MAX_MEM_SIZE	(256 * 1024 * 1024)
 
-#define MAX_BINNED_TPCS_PER_DCORE	1
-#define MAX_BINNED_DECODERS_PER_DIE	1
-#define MAX_BINNED_ROTATORS_PER_DIE	1
-
 #define RAZWI_LBW_OFFSET	0x0300007FE0000000ull
 
 #define HL_STR(e) #e
@@ -2852,7 +2848,7 @@ int gaudi3_set_dram_properties(struct hl_device *hdev)
 	return 0;
 }
 
-static int gaudi3_validate_set_tpc_binning(struct hl_device *hdev)
+int gaudi3_validate_set_tpc_binning(struct hl_device *hdev)
 {
 	u64 dcore_tpc_binning_mask, dcore_tpc_full_mask, tpc_full_mask;
 	struct asic_fixed_properties *prop = &hdev->asic_prop;

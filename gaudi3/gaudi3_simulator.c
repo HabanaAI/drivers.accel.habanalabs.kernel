@@ -711,6 +711,124 @@ static void gaudi3_sim_wreg(struct hl_device *hdev, u32 reg, u32 val)
 	hl_sim_wreg(hdev, reg_addr, edev, val);
 }
 
+static int gaudi3_sim_validate_set_decoder_binning(struct hl_device *hdev)
+{
+	u32 decoder_full_mask, die_decoder_full_mask, die_decoder_binning_mask;
+	struct asic_fixed_properties *prop = &hdev->asic_prop;
+	u8 i, num_die_decoders, num_binned;
+
+	/* no binning but maybe not all engines are enabled */
+	if (!hdev->decoder_binning) {
+		prop->decoder_enabled_mask = hdev->decoder_mask;
+		prop->decoder_binning_mask = hdev->decoder_binning;
+		return 0;
+	}
+
+	decoder_full_mask = GENMASK((prop->num_of_hdcores * NUM_OF_DECODER_PER_HDCORE) - 1, 0);
+
+	if (hdev->decoder_mask != decoder_full_mask) {
+		dev_err(hdev->dev,
+			"Decoder binning is valid only with full decoder enabled mask\n");
+		return -EINVAL;
+	}
+
+	/* in decoder binning we can have, at most, single binned decoder per DIE */
+	num_die_decoders = NUM_OF_HDCORES_PER_DIE * NUM_OF_DECODER_PER_HDCORE;
+	die_decoder_full_mask = GENMASK(num_die_decoders - 1, 0);
+	prop->decoder_enabled_mask = 0;
+	for (i = 0; i < prop->num_of_dies; i++) {
+		u8 shift = i * num_die_decoders;
+
+		die_decoder_binning_mask = (hdev->decoder_binning >> shift) & die_decoder_full_mask;
+		if (!die_decoder_binning_mask) {
+			prop->decoder_enabled_mask |= (die_decoder_full_mask << shift);
+			continue;
+		}
+
+		num_binned = hweight32(die_decoder_binning_mask);
+		if (num_binned > MAX_BINNED_DECODERS_PER_DIE) {
+			dev_err(hdev->dev, "too many binned decoders (%#x)\n",
+							hdev->decoder_binning);
+			return -EINVAL;
+		}
+
+		/* set last decoder in each die as not enabled */
+		prop->decoder_enabled_mask |= (GENMASK(num_die_decoders - 2, 0) << shift);
+	}
+
+	prop->decoder_binning_mask = hdev->decoder_binning;
+
+	return 0;
+}
+
+static int gaudi3_sim_validate_set_rotator_binning(struct hl_device *hdev)
+{
+	u32 rotator_full_mask, die_rotator_full_mask, die_rotator_binning_mask;
+	struct asic_fixed_properties *prop = &hdev->asic_prop;
+	u8 i, num_binned;
+
+	/* no binning but maybe not all engines are enabled */
+	if (!hdev->rotator_binning) {
+		prop->rotator_enabled_mask = hdev->rotator_mask;
+		prop->rotator_binning_mask = hdev->rotator_binning;
+		return 0;
+	}
+
+	rotator_full_mask = GENMASK((prop->num_of_dies * NUM_OF_ROTATOR_PER_DIE) - 1, 0);
+
+	if (hdev->rotator_mask != rotator_full_mask) {
+		dev_err(hdev->dev,
+			"Rotator binning is valid only with full rotator enabled mask\n");
+		return -EINVAL;
+	}
+
+	/* in rotator binning we can have, at most, single binned rotator per DIE */
+	die_rotator_full_mask = GENMASK(NUM_OF_ROTATOR_PER_DIE - 1, 0);
+	prop->rotator_enabled_mask = 0;
+	for (i = 0; i < prop->num_of_dies; i++) {
+		u8 shift = i * NUM_OF_ROTATOR_PER_DIE;
+
+		die_rotator_binning_mask = (hdev->rotator_binning >> shift) & die_rotator_full_mask;
+		if (!die_rotator_binning_mask) {
+			prop->rotator_enabled_mask |= (die_rotator_full_mask << shift);
+			continue;
+		}
+
+		num_binned = hweight32(die_rotator_binning_mask);
+		if (num_binned > MAX_BINNED_ROTATORS_PER_DIE) {
+			dev_err(hdev->dev, "too many binned rotators (%#x)\n",
+							hdev->rotator_binning);
+			return -EINVAL;
+		}
+
+		/* set last rotator in each die as not enabled */
+		prop->rotator_enabled_mask |= (GENMASK(NUM_OF_ROTATOR_PER_DIE - 2, 0) << shift);
+	}
+
+	prop->rotator_binning_mask = hdev->rotator_binning;
+
+	return 0;
+}
+
+int gaudi3_sim_set_binning_masks(struct hl_device *hdev)
+{
+	int rc;
+
+	rc = gaudi3_validate_set_tpc_binning(hdev);
+	if (rc)
+		return rc;
+
+	rc = gaudi3_sim_validate_set_decoder_binning(hdev);
+	if (rc)
+		return rc;
+
+	rc = gaudi3_sim_validate_set_rotator_binning(hdev);
+	if (rc)
+		return rc;
+
+	return 0;
+}
+
 /* All the code below this point is the gaudi3 simulator device implementation */
 
 static int gaudi3_sim_set_fixed_properties(struct hl_device *hdev)
@@ -1616,7 +1734,7 @@ static const struct hl_asic_funcs gaudi3_sim_funcs = {
 	.pll_info_get = gaudi3_sim_pll_info_get,
 	.set_dram_properties = gaudi3_set_dram_properties,
 	.set_priv_assertions = gaudi3_sim_set_priv_assertions,
-	.set_binning_masks = gaudi3_set_binning_masks,
+	.set_binning_masks = gaudi3_sim_set_binning_masks,
 };
 
 /**

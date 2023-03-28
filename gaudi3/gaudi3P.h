@@ -106,6 +106,10 @@
 
 #define GAUDI3_ARC_PCI_MSB_ADDR(addr)	(((addr) & GENMASK_ULL(49, 28)) >> 28)
 
+#define MAX_BINNED_TPCS_PER_DCORE	1
+#define MAX_BINNED_DECODERS_PER_DIE	1
+#define MAX_BINNED_ROTATORS_PER_DIE	1
+
 /* H/W blocks that user can mmap:
  * - all ARCs DCCMs
  * - ARC schedulers ACP/AF blocks
@@ -820,6 +824,7 @@ int gaudi3_init_pb_security(struct hl_device *hdev);
 int gaudi3_special_blocks_iterator_config(struct hl_device *hdev);
 void gaudi3_special_blocks_iterator_free(struct hl_device *hdev);
 int gaudi3_set_dynamic_dram_properties(struct hl_device *hdev);
+int gaudi3_validate_set_tpc_binning(struct hl_device *hdev);
 
 /* Functions exported for bring-up support */
 int gaudi3_pre_hw_init(struct hl_device *hdev);
