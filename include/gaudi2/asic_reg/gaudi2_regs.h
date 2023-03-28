@@ -547,6 +547,8 @@
 #define HBM_MC_SPI_IEEE1500_COMP_MASK		BIT(3)
 #define HBM_MC_SPI_IEEE1500_PAUSED_MASK		BIT(4)
 
+#define ARC_FARM_OFFSET (mmARC_FARM_ARC1_AUX_BASE - mmARC_FARM_ARC0_AUX_BASE)
+
 /* Not upstreamed */
 
 #include "nic0_qpc0_dbfifo0_ci_upd_addr_regs.h"
