@@ -772,6 +772,7 @@ void goya_simulator_stop(u32 minor)
 	goya_simulator_dev_table[minor] = NULL;
 
 	device_remove_file(edev->dev, &dev_attr_device_name);
+	device_remove_file(edev->dev, &dev_attr_rw_regs_timeout_us);
 
 	/* Hide device from user */
 	cdev_device_del(&edev->cdev, edev->dev);
