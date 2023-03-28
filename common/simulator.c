@@ -269,10 +269,6 @@ static int hl_sim_set_devtype_get_minor_ioctl(struct hl_sim_mode_device *sdev,
 		sim_start_args.virt_dev_type = ASIC_GOYA_SIM;
 		simulator_start = goya_simulator_start;
 		break;
-	case HLV_SIM_GRECO:
-		sim_start_args.virt_dev_type = ASIC_GRECO_SIM;
-		simulator_start = greco_simulator_start;
-		break;
 	case HLV_SIM_GAUDI:
 		sim_start_args.virt_dev_type = ASIC_GAUDI_SIM;
 		simulator_start = gaudi_simulator_start;
