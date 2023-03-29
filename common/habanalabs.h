@@ -832,7 +832,6 @@ struct hl_mem_block_info {
  * @supports_odp: true is ODP is supported, otherwise false.
  * @supports_advanced_cpucp_rc: true if new cpucp opcodes are supported.
  * @supports_engine_modes: true if changing engines/engine_cores modes is supported.
- * @wait_sram_avail_no_linux: wait for sram avail event during loading FIT with no linux.
  */
 struct asic_fixed_properties {
 	struct hw_queue_properties	*hw_queues_props;
@@ -974,7 +973,6 @@ struct asic_fixed_properties {
 	u8				supports_odp;
 	u8				supports_advanced_cpucp_rc;
 	u8				supports_engine_modes;
-	u8				wait_sram_avail_no_linux;
 };
 
 /**
