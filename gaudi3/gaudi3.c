@@ -149,6 +149,8 @@ MODULE_FIRMWARE(GAUDI3_BOOT_FIT_FILE);
 						VCMD_SW_IRQ_CMD_ERR_MASK | \
 						VCMD_SW_IRQ_USER_ENG_ERR_MASK)
 
+#define GAUDI3_PDMA_TEST_VAL 0x12345600UL
+
 #define HL_STR(e) #e
 
 const char *gaudi3_engine_id_str[] = {
@@ -870,6 +872,29 @@ struct gaudi3_pdma_job_params {
 	bool is_memset;
 };
 
+/*
+ * struct gaudi3_test_pdma_params - PDMA parameters needed for PDMA-testing
+ * @host_ptr: host virt address used by the driver.
+ * @host_va: The mapped host address in device VA space.
+ * @host_mem_dma_addr: host memory bus address, used in DMA transfers.
+ * @device_va: device address (dram or sram) mapped in device VA space..
+ * @device_pys_address: the device physical address (dram or sram) to be used.
+ * @transfer_size: total data to be transferred when all channels are active.
+ * @channel_transfer_size: Transfer size of each individual channel (must be multiple of 4).
+ * @num_active_channels: number of active dma channels.
+ * @region_type: the device region (dram or sram) to test with.
+ */
+struct gaudi3_test_pdma_params {
+	u32 *host_ptr;
+	u64 host_va;
+	dma_addr_t host_mem_dma_addr;
+	u64 device_va;
+	u64 device_phys_addr;
+	int transfer_size;
+	int channel_transfer_size;
+	int num_active_channels;
+	enum pci_region region_type;
+};
 /*
  * struct gaudi3_cq_mode_params - handles CQ mode completion
  * @job: the operation that should trigger the CQ completion.
@@ -3528,19 +3553,11 @@ done:
 	return rc;
 }
 
-static int gaudi3_trigger_job_and_wait_for_cq_completion(struct hl_device *hdev,
-						struct gaudi3_cq_mode_params *cq_params)
+static void gaudi3_trigger_job(struct hl_device *hdev, struct gaudi3_cq_mode_params *cq_params)
 {
-	u32 mon_arm, status, *polling_addr, sob_off, mon_off;
+	u32 mon_arm, sob_off, mon_off;
 	u8 sync_group_id, mask, mode;
-	struct hl_cq_entry *cq_base;
-	int rc, sob_idx;
-	struct hl_cq *cq;
-
-	cq = &hdev->completion_queue[cq_params->cq_id];
-	cq_base = cq->kernel_address;
-	polling_addr = (u32 *)&cq_base[cq->ci];
-	BUILD_BUG_ON(sizeof(*polling_addr) != sizeof(*cq_base));
+	int sob_idx;
 
 	sob_idx = cq_params->sob_id;
 	sob_off = sob_idx * sizeof(u32);
@@ -3584,6 +3601,22 @@ static int gaudi3_trigger_job_and_wait_for_cq_completion(struct hl_device *hdev,
 
 	/* Monitor armed, now issue the trigger */
 	cq_params->job(hdev, cq_params->job_data);
+}
+
+static int gaudi3_wait_for_cq_completion(struct hl_device *hdev,
+					 struct gaudi3_cq_mode_params *cq_params)
+{
+	struct hl_cq_entry *cq_base;
+	struct hl_cq *cq;
+	u32 status, sob_off, *polling_addr;
+	int rc;
+
+	sob_off = cq_params->sob_id * sizeof(u32);
+
+	cq = &hdev->completion_queue[cq_params->cq_id];
+	cq_base = cq->kernel_address;
+	polling_addr = (u32 *)&cq_base[cq->ci];
+	BUILD_BUG_ON(sizeof(*polling_addr) != sizeof(*cq_base));
 
 	/* Polling */
 	rc = hl_poll_timeout_memory(
@@ -3610,15 +3643,21 @@ timeout:
 		return 0;
 
 	dev_err_ratelimited(hdev->dev,
-				"CQ completion: timeout waiting for job (%s), SOB val: %#x\n",
-				cq_params->job_str,
-				RREG32(mmHD0_SYNC_MNGR_OBJS_BASE +
-						mmSOB_OBJS_SOB_OBJ_0_0 + sob_off));
+			    "CQ completion: timeout waiting for job (%s), SOB val: %#x\n",
+			    cq_params->job_str,
+			    RREG32(mmHD0_SYNC_MNGR_OBJS_BASE + mmSOB_OBJS_SOB_OBJ_0_0 + sob_off));
 
 	return rc;
 }
 
-static int gaudi3_pdma_get_ch_reg_base(struct hl_device *hdev, u32 ch_idx)
+static int gaudi3_trigger_job_and_wait_for_cq_completion(struct hl_device *hdev,
+						struct gaudi3_cq_mode_params *cq_params)
+{
+	gaudi3_trigger_job(hdev, cq_params);
+	return gaudi3_wait_for_cq_completion(hdev, cq_params);
+}
+
+static u32 gaudi3_pdma_get_ch_reg_base(struct hl_device *hdev, u32 ch_idx)
 {
 	struct asic_fixed_properties *prop = &hdev->asic_prop;
 	u8 grp_id, grp_ch_id;
@@ -9202,160 +9241,351 @@ void gaudi3_pdma_print_debug_info(struct hl_device *hdev, u32 ch_idx)
 	gaudi3_pdma_print_grp_status(hdev, ch_idx);
 }
 
-static int gaudi3_test_pdma_access(struct hl_device *hdev, u32 ch_idx)
+static void gaudi3_split_job_between_all_pdma_channels(struct hl_device *hdev, void *data)
+{
+	struct gaudi3_pdma_job_params curr_job;
+	struct gaudi3_pdma_job_params *job_params = data;
+	struct gaudi3_device *gaudi3 = hdev->asic_specific;
+	u8 num_of_pdma = hdev->asic_prop.pdma_ch_max;
+	int i;
+
+	memset(&curr_job, 0, sizeof(struct gaudi3_pdma_job_params));
+	/* ignore remainder */
+	curr_job.size = job_params->size / num_of_pdma;
+	curr_job.is_memset = job_params->is_memset;
+
+	for (i = 0 ; i < num_of_pdma ; i++) {
+		if (!(gaudi3->hw_cap_pdma_initialized & BIT(i)))
+			continue;
+
+		curr_job.src = job_params->is_memset ? job_params->src :
+					(job_params->src + (curr_job.size * i));
+		curr_job.dst = job_params->dst + (curr_job.size * i);
+		curr_job.ch_idx = i;
+		curr_job.ch_reg_base = gaudi3_pdma_get_ch_reg_base(hdev, i);
+		gaudi3_send_job_to_pdma(hdev, &curr_job);
+	}
+}
+
+static void gaudi3_trigger_all_pdma_channels(struct hl_device *hdev,
+					     struct gaudi3_pdma_job_params *job_params,
+					     struct gaudi3_cq_mode_params *cq_params)
+{
+	struct gaudi3_device *gaudi3 = hdev->asic_specific;
+	u8 num_of_pdma = hweight_long(gaudi3->hw_cap_pdma_initialized);
+
+	cq_params->job_data = job_params;
+	cq_params->job_str = job_params->job_str;
+	cq_params->job = gaudi3_split_job_between_all_pdma_channels;
+	cq_params->sob_id = GAUDI3_RESERVED_SOB_PDMA;
+	cq_params->mon_id = GAUDI3_RESERVED_MON_PDMA;
+	cq_params->cq_id = GAUDI3_RESERVED_CQ_PDMA;
+	cq_params->target_sob_value = num_of_pdma;
+	cq_params->timeout_usec = (hdev->pldm) ?
+				(((job_params->size / SZ_1M) + 1) * GAUDI3_PDMA_TIMEOUT_USEC) :
+				GAUDI3_PDMA_TIMEOUT_USEC;
+
+	gaudi3_trigger_job(hdev, cq_params);
+}
+
+static int gaudi3_scrub_device_memory(struct hl_device *hdev,
+				      const struct gaudi3_test_pdma_params *test_params,
+				      int ch_idx)
+{
+	u64 device_addr, device_data;
+	int i, rc;
+
+	device_addr = test_params->device_phys_addr + ch_idx * test_params->channel_transfer_size;
+
+	/* Scrub device memory before DMAing to it */
+	for (i = 0 ; i < test_params->channel_transfer_size ; i += sizeof(u32)) {
+		device_data = i * 0x11111111;
+
+		rc = hdev->asic_funcs->access_dev_mem(hdev, test_params->region_type,
+						      device_addr + i, &device_data,
+						      DEBUGFS_WRITE32);
+		if (rc) {
+			dev_crit(hdev->dev, "Failed to writel to dev_mem type %d, addr 0x%llx\n",
+				 test_params->region_type, device_addr + i);
+			return rc;
+		}
+	}
+
+	return 0;
+}
+
+static int gaudi3_test_pdma_job_init(struct hl_device *hdev,
+				     struct gaudi3_test_pdma_params *test_params)
 {
 	struct asic_fixed_properties *prop = &hdev->asic_prop;
-	u64 device_data, device_addr, host_va, device_va, device_phys_addr;
 	struct gaudi3_device *gaudi3 = hdev->asic_specific;
-	struct gaudi3_pdma_job_params job_params = {};
-	int rc = 0, transfer_size = SZ_128;
-	u32 val, *host_ptr, ch_reg_base;
-	dma_addr_t host_mem_dma_addr;
-	enum pci_region region_type;
+	u32 val, ch_reg_base;
+	int rc, ch_idx, offset;
 	bool is_dram_test;
-	uint i;
 
-	if (!(gaudi3->hw_cap_pdma_initialized & BIT(ch_idx)))
+	test_params->num_active_channels = hweight_long(gaudi3->hw_cap_pdma_initialized);
+	test_params->channel_transfer_size = SZ_128;
+	test_params->transfer_size = SZ_128 * hdev->asic_prop.pdma_ch_max;
+
+	/* Either DRAM or SRAM is enabled */
+	is_dram_test = !!hdev->cache_enable;
+
+
+	if (is_dram_test) {
+		test_params->region_type = PCI_REGION_DRAM;
+		test_params->device_phys_addr = prop->dram_user_base_address;
+		rc = gaudi3_kernel_ctx_map_addr(hdev, prop->dram_user_base_address,
+						&test_params->device_va,
+						test_params->transfer_size, true);
+		if (rc)
+			return rc;
+	} else {
+		test_params->region_type = PCI_REGION_SRAM;
+		test_params->device_phys_addr = prop->sram_user_base_address;
+		test_params->device_va = prop->sram_user_base_address;
+	}
+
+	test_params->host_ptr = hl_asic_dma_alloc_coherent(hdev,
+							   test_params->transfer_size,
+							   &test_params->host_mem_dma_addr,
+							   GFP_KERNEL);
+	if (!test_params->host_ptr) {
+		rc = -ENOMEM;
+		goto kernel_unmap_dev;
+	}
+
+	rc = gaudi3_kernel_ctx_map_addr(hdev, test_params->host_mem_dma_addr,
+					&test_params->host_va, test_params->transfer_size, false);
+	if (rc)
+		goto free_host;
+
+	for (ch_idx = 0 ; ch_idx < hdev->asic_prop.pdma_ch_max ; ch_idx++) {
+		if (!(gaudi3->hw_cap_pdma_initialized & BIT(ch_idx)))
+			continue;
+
+		/* Prepare src data */
+		offset = ch_idx * SZ_128 / sizeof(u32);
+		val = GAUDI3_PDMA_TEST_VAL | ch_idx;
+		memset32(&test_params->host_ptr[offset], val, SZ_128 / sizeof(u32));
+
+		if (hdev->pldm) {
+			rc = gaudi3_scrub_device_memory(hdev, test_params, ch_idx);
+			/* Don't bother reverting HW cfg, the device is not usable if we fail */
+			if (rc)
+				goto mmu_unmap_host;
+		}
+
+		ch_reg_base = gaudi3_pdma_get_ch_reg_base(hdev, ch_idx);
+
+		/* While testing we change to PDMA non bypass mode so we test the pmmu on the way */
+		gaudi3_config_pdma_ch_mmu_mode(hdev, ch_reg_base, false, HL_KERNEL_ASID_ID);
+
+		/* Set channel to be secured, as completion will be using a secured CQ */
+		if (hdev->asic_prop.pdma_user_owned_ch_mask & BIT(ch_idx))
+			gaudi3_config_pdma_ch_protection(hdev, ch_reg_base, true);
+	}
+
+	return 0;
+
+mmu_unmap_host:
+	gaudi3_kernel_ctx_unmap_addr(hdev, test_params->host_va,
+				     test_params->transfer_size, false);
+free_host:
+	hl_asic_dma_free_coherent(hdev, test_params->transfer_size,
+				  test_params->host_ptr, test_params->host_mem_dma_addr);
+kernel_unmap_dev:
+	if (is_dram_test)
+		gaudi3_kernel_ctx_unmap_addr(hdev, test_params->device_va,
+					     test_params->transfer_size, true);
+
+	return rc;
+}
+
+static void gaudi3_test_pdma_job_fini(struct hl_device *hdev,
+				      struct gaudi3_test_pdma_params *test_params)
+{
+	struct asic_fixed_properties *prop = &hdev->asic_prop;
+	struct gaudi3_device *gaudi3 = hdev->asic_specific;
+	u32 ch_reg_base;
+	int ch_idx, ret, rc = 0;
+
+	for (ch_idx = 0 ; ch_idx < hdev->asic_prop.pdma_ch_max ; ch_idx++) {
+		if (!(gaudi3->hw_cap_pdma_initialized & BIT(ch_idx)))
+			continue;
+
+		ch_reg_base = gaudi3_pdma_get_ch_reg_base(hdev, ch_idx);
+
+		/* Restore channel's prior security level and bypass mode */
+		if (prop->pdma_user_owned_ch_mask & BIT(ch_idx)) {
+			gaudi3_config_pdma_ch_protection(hdev, ch_reg_base, false);
+			gaudi3_config_pdma_ch_mmu_mode(hdev, ch_reg_base, false, HL_KERNEL_ASID_ID);
+		} else {
+			gaudi3_config_pdma_ch_protection(hdev, ch_reg_base, true);
+			gaudi3_config_pdma_ch_mmu_mode(hdev, ch_reg_base, true, HL_KERNEL_ASID_ID);
+		}
+	}
+
+	ret = gaudi3_kernel_ctx_unmap_addr(hdev, test_params->host_va,
+					   test_params->transfer_size, false);
+	if (ret)
+		rc = ret;
+
+	hl_asic_dma_free_coherent(hdev, test_params->transfer_size,
+				  test_params->host_ptr, test_params->host_mem_dma_addr);
+	if (test_params->region_type == PCI_REGION_DRAM) {
+		ret = gaudi3_kernel_ctx_unmap_addr(hdev, test_params->device_va,
+						   test_params->transfer_size, true);
+		if (ret)
+			rc = ret;
+	}
+}
+
+static int gaudi3_test_pdma_verify_result(struct hl_device *hdev,
+					  struct gaudi3_test_pdma_params *test_params)
+{
+	struct gaudi3_device *gaudi3 = hdev->asic_specific;
+	u64 device_addr, device_data;
+	u32 val;
+	uint i, ch_idx, offset;
+	int rc = 0;
+
+	for (ch_idx = 0 ; ch_idx < hdev->asic_prop.pdma_ch_max ; ch_idx++) {
+		if (!(gaudi3->hw_cap_pdma_initialized & BIT(ch_idx)))
+			continue;
+
+		offset = ch_idx * test_params->channel_transfer_size / sizeof(u32);
+		val = GAUDI3_PDMA_TEST_VAL | ch_idx;
+
+		for (i = 0 ; i < test_params->channel_transfer_size / sizeof(u32) ; i++) {
+			if (test_params->host_ptr[offset + i] == val)
+				continue;
+
+			dev_err(hdev->dev,
+				"PDMA ch %u test Device <--> Host, data validation failed",
+				ch_idx);
+
+			if (hdev->pldm) {
+				device_addr = test_params->device_phys_addr +
+							(offset + i) * sizeof(u32);
+
+				rc = hdev->asic_funcs->access_dev_mem(hdev,
+								test_params->region_type,
+								device_addr, &device_data,
+								DEBUGFS_READ32);
+				if (rc)
+					dev_crit(hdev->dev,
+						 "Failed to readl from dev_mem type %d, addr 0x%llx\n",
+						 test_params->region_type, device_addr);
+
+				dev_err(hdev->dev, "src: %8x, data: %8x, dst: %8x region: %s",
+					val, (u32)device_data, test_params->host_ptr[offset + i],
+					(test_params->region_type == PCI_REGION_DRAM) ?
+										"DRAM":"SRAM");
+			} else {
+				dev_err(hdev->dev, "src: %8x, dst: %8x region: %s",
+					val, test_params->host_ptr[offset + i],
+					(test_params->region_type == PCI_REGION_DRAM) ?
+										"DRAM":"SRAM");
+			}
+
+			/* if host_mem_va is not as expected, it means dma failed, set rc = -EIO */
+			rc = -EIO;
+		}
+	}
+
+	return rc;
+}
+
+static void gaudi3_test_pdma_clear_ctrl_regs(struct hl_device *hdev)
+{
+	struct gaudi3_device *gaudi3 = hdev->asic_specific;
+	u32 ch_reg_base;
+	int ch_idx;
+
+	for (ch_idx = 0 ; ch_idx < hdev->asic_prop.pdma_ch_max ; ch_idx++) {
+		if (!(gaudi3->hw_cap_pdma_initialized & BIT(ch_idx)))
+			continue;
+
+		/* Make sure to clear the ctrl register for the future use */
+		ch_reg_base = gaudi3_pdma_get_ch_reg_base(hdev, ch_idx);
+		WREG32(ch_reg_base + PDMA_CH_A_CTX_OFFSET + mmPDMA_CH_A_CTX_CTRL_MAIN, 0);
+	}
+}
+
+static int gaudi3_test_pdma_access(struct hl_device *hdev)
+{
+	struct gaudi3_test_pdma_params test_params = {};
+	struct gaudi3_pdma_job_params job_params = {};
+	struct gaudi3_cq_mode_params cq_params = {};
+	struct gaudi3_device *gaudi3 = hdev->asic_specific;
+	int rc;
+	bool is_dram_test = !!hdev->cache_enable;
+
+	/* No PDMA channel is initialized */
+	if (!gaudi3->hw_cap_pdma_initialized)
 		return 0;
 
 	/* Neither DRAM nor SRAM is available for PDMA testing */
 	if (hdev->cache_enable && !hdev->dram_enable)
 		return 0;
 
-	/* Either DRAM or SRAM is enabled */
-	is_dram_test = !!hdev->cache_enable;
-
-	if (is_dram_test) {
-		region_type = PCI_REGION_DRAM;
-		device_phys_addr = prop->dram_user_base_address;
-		rc = gaudi3_kernel_ctx_map_addr(hdev, prop->dram_user_base_address, &device_va,
-							transfer_size, true);
-		if (rc)
-			return rc;
-	} else {
-		region_type = PCI_REGION_SRAM;
-		device_phys_addr = prop->sram_user_base_address;
-		device_va = prop->sram_user_base_address;
-	}
-
-	host_ptr = hl_asic_dma_alloc_coherent(hdev, transfer_size,
-			&host_mem_dma_addr, GFP_KERNEL);
-
-	if (!host_ptr) {
-		rc = -ENOMEM;
-		goto kernel_unmap_dev;
-	}
-
-	rc = gaudi3_kernel_ctx_map_addr(hdev, host_mem_dma_addr, &host_va, transfer_size, false);
+	rc = gaudi3_test_pdma_job_init(hdev, &test_params);
 	if (rc)
-		goto free_host;
-
-	/* Prepare src data */
-	val = 0x12345600 | ch_idx;
-	for (i = 0 ; i < transfer_size / sizeof(u32) ; i++)
-		host_ptr[i] = val;
-
-	if (hdev->pldm) {
-		/* Scrub device memory before DMAing to it */
-		for (i = 0 ; i < transfer_size / sizeof(u32) ; i++) {
-			device_addr = device_phys_addr + i * sizeof(u32);
-			device_data = i * 0x11111111;
-
-			rc = hdev->asic_funcs->access_dev_mem(hdev, region_type,
-					device_addr, &device_data, DEBUGFS_WRITE32);
-			if (rc) {
-				dev_crit(hdev->dev, "Failed to writel to dev_mem type %d, addr 0x%llx\n",
-						region_type, device_addr);
-				goto mmu_unmap_host;
-			}
-		}
-	}
-
-	ch_reg_base = gaudi3_pdma_get_ch_reg_base(hdev, ch_idx);
-
-	/* While testing we change to PDMA non bypass mode so we test the pmmu on the way */
-	gaudi3_config_pdma_ch_mmu_mode(hdev, ch_reg_base, false, HL_KERNEL_ASID_ID);
-
-	/* Set channel to be secured, as completion will be using a secured CQ */
-	if (prop->pdma_user_owned_ch_mask & BIT(ch_idx))
-		gaudi3_config_pdma_ch_protection(hdev, ch_reg_base, true);
+		return rc;
 
 	/* prepare JOB params */
-	job_params.ch_idx = ch_idx;
-	job_params.ch_reg_base = ch_reg_base;
-	job_params.src = host_va;
-	job_params.dst = device_va;
-	job_params.size = transfer_size;
+	job_params.src = test_params.host_va;
+	job_params.dst = test_params.device_va;
+	job_params.size = test_params.transfer_size;
 	job_params.is_memset = false;
 	snprintf(job_params.job_str, HL_STR_MAX,
-			"PDMA CH%u Host --> %s",
-			ch_idx, is_dram_test ? "DRAM" : "SRAM");
+		 "PDMA %u Channels Host --> %s",
+		 test_params.num_active_channels,
+		 (test_params.region_type == PCI_REGION_DRAM) ? "DRAM" : "SRAM");
 
-	rc = gaudi3_trigger_pdma_job_and_wait_for_cq_completion(hdev, &job_params);
-	if (rc)
-		goto revert_prot_lvl;
-
-	for (i = 0 ; i < transfer_size / sizeof(u32) ; i++)
-		host_ptr[i] = 0;
-
-	/* update JOB params */
-	job_params.src = device_va;
-	job_params.dst = host_va;
-	snprintf(job_params.job_str, HL_STR_MAX,
-			"PDMA CH%u %s --> Host",
-			ch_idx, is_dram_test ? "DRAM" : "SRAM");
-
-	rc = gaudi3_trigger_pdma_job_and_wait_for_cq_completion(hdev, &job_params);
-	if (rc)
-		goto revert_prot_lvl;
-
-	for (i = 0 ; i < transfer_size / sizeof(u32) ; i++) {
-		int ret;
-
-		if (host_ptr[i] == val)
-			continue;
-
-		if (hdev->pldm) {
-			device_addr = device_phys_addr + i * sizeof(u32);
-
-			ret = hdev->asic_funcs->access_dev_mem(hdev, region_type,
-				device_addr, &device_data, DEBUGFS_READ32);
-			if (ret)
-				dev_crit(hdev->dev, "Failed to readl from dev_mem type %d, addr 0x%llx\n",
-						region_type, device_addr);
-
-			dev_err(hdev->dev, "src: %8x, data: %8x, dst: %8x region: %s",
-				val, (u32)device_data, host_ptr[i],
-				(region_type == PCI_REGION_DRAM) ? "DRAM":"SRAM");
-		} else {
-			dev_err(hdev->dev, "src: %8x, dst: %8x region: %s",
-					val, host_ptr[i],
-					(region_type == PCI_REGION_DRAM) ? "DRAM":"SRAM");
-		}
-
-		/* if host_mem_va is not as expected, it means dma failed, so we set rc = -EIO */
-		rc = -EIO;
+	gaudi3_trigger_all_pdma_channels(hdev, &job_params, &cq_params);
+	rc =  gaudi3_wait_for_cq_completion(hdev, &cq_params);
+	gaudi3_test_pdma_clear_ctrl_regs(hdev);
+	if (rc) {
+		dev_err(hdev->dev,
+			"PDMA test Device <--> Host, did not complete in time (rc = %d)\n", rc);
+		goto exit;
 	}
 
-	if (rc)
-		dev_err(hdev->dev, "PDMA ch %u test Device <--> Host, data validation failed",
-				ch_idx);
-revert_prot_lvl:
-	if (rc)
-		gaudi3_pdma_print_debug_info(hdev, ch_idx);
+	/* Clean the host buf before receiving the data back */
+	memset32(test_params.host_ptr, 0, test_params.transfer_size / sizeof(u32));
 
-	/* Revert channel's prior security level and bypass mode */
-	if (prop->pdma_user_owned_ch_mask & BIT(ch_idx))
-		gaudi3_config_pdma_ch_protection(hdev, ch_reg_base, false);
-	gaudi3_config_pdma_ch_mmu_mode(hdev, ch_reg_base, true, HL_KERNEL_ASID_ID);
-mmu_unmap_host:
-	rc |= gaudi3_kernel_ctx_unmap_addr(hdev, host_va, transfer_size, false);
-free_host:
-	hl_asic_dma_free_coherent(hdev, transfer_size, host_ptr, host_mem_dma_addr);
-kernel_unmap_dev:
-	if (is_dram_test)
-		rc |= gaudi3_kernel_ctx_unmap_addr(hdev, device_va, transfer_size, true);
+	/* update JOB params and get the data back */
+	job_params.src = test_params.device_va;
+	job_params.dst = test_params.host_va;
+	snprintf(job_params.job_str, HL_STR_MAX,
+		 "PDMA %u Channels %s --> Host",
+		 test_params.num_active_channels, is_dram_test ? "DRAM" : "SRAM");
 
+	gaudi3_trigger_all_pdma_channels(hdev, &job_params, &cq_params);
+	rc =  gaudi3_wait_for_cq_completion(hdev, &cq_params);
+	gaudi3_test_pdma_clear_ctrl_regs(hdev);
+	if (rc)
+		goto exit;
+
+	rc = gaudi3_test_pdma_verify_result(hdev, &test_params);
+	if (rc)
+		goto exit;
+
+	/* clear device memory */
+	job_params.src = 0;
+	job_params.dst = test_params.device_va;
+	job_params.is_memset = true;
+	snprintf(job_params.job_str, HL_STR_MAX,
+		 "PDMA %u Channels clearing %s test area\n",
+		 test_params.num_active_channels, is_dram_test ? "DRAM" : "SRAM");
+
+	gaudi3_trigger_all_pdma_channels(hdev, &job_params, &cq_params);
+	rc =  gaudi3_wait_for_cq_completion(hdev, &cq_params);
+	gaudi3_test_pdma_clear_ctrl_regs(hdev);
+
+exit:
+	gaudi3_test_pdma_job_fini(hdev, &test_params);
 	return rc;
 }
 
@@ -9570,7 +9800,7 @@ int gaudi3_test_cpu_queue(struct hl_device *hdev)
 
 int gaudi3_test_queues(struct hl_device *hdev)
 {
-	int rc = 0, i;
+	int rc;
 
 	/* TODO: used for debug, so can be removed once H9-5315 is resolved.
 	 * The reset value is 0x3, and we force 0x2 (turn off bit 0)
@@ -9580,9 +9810,7 @@ int gaudi3_test_queues(struct hl_device *hdev)
 
 	dev_dbg(hdev->dev, "Testing PDMA access on %u channels\n", hdev->asic_prop.pdma_ch_max);
 
-	for (i = 0 ; i < hdev->asic_prop.pdma_ch_max ; i++)
-		rc |= gaudi3_test_pdma_access(hdev, i);
-
+	rc = gaudi3_test_pdma_access(hdev);
 	if (rc)
 		return rc;
 

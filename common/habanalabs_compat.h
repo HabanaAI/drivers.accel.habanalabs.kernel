@@ -910,6 +910,10 @@ enum ib_port_phys_state {
 int rdma_nl_put_driver_string(struct sk_buff *msg, const char *name, const char *str);
 #endif
 
+#ifndef _HAS_MEMSET32
+void *memset32(uint32_t *s, uint32_t v, size_t count);
+#endif
+
 #ifndef _HAS_VM_FLAGS_SET
 static inline void vm_flags_set(struct vm_area_struct *vma, vm_flags_t flags)
 {

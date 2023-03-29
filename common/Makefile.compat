@@ -526,3 +526,7 @@ endif
 ifneq ($(shell grep "xa_lock" include/linux/xarray.h > /dev/null 2>&1 && echo 1),)
 	ccflags-y += -D_HAS_XA_LOCK_DEFINES
 endif
+
+ifneq ($(shell grep "void \*memset32" include/linux/string.h > /dev/null 2>&1 && echo 1),)
+	ccflags-y += -D_HAS_MEMSET32
+endif

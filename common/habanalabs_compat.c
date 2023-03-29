@@ -1678,3 +1678,24 @@ int rdma_nl_put_driver_string(struct sk_buff *msg, const char *name, const char 
 	return 0;
 }
 #endif
+
+#ifndef _HAS_MEMSET32
+/**
+ * memset32() - Fill a memory area with a uint32_t
+ * @s: Pointer to the start of the area.
+ * @v: The value to fill the area with
+ * @count: The number of values to store
+ *
+ * Differs from memset() in that it fills with a uint32_t instead
+ * of a byte.  Remember that @count is the number of uint32_ts to
+ * store, not the number of bytes.
+ */
+void *memset32(uint32_t *s, uint32_t v, size_t count)
+{
+	uint32_t *xs = s;
+
+	while (count--)
+		*xs++ = v;
+	return s;
+}
+#endif /* _HAS_MEMSET32 */
