@@ -5,6 +5,7 @@
  * All Rights Reserved.
  */
 #include "gaudi3_coresight_regs.h"
+#include "gaudi3_sni.h"
 #include <uapi/drm/habanalabs_accel.h>
 
 #define CORESIGHT_TIMEOUT_USEC		100000		/* 100 ms */
@@ -38,6 +39,14 @@ struct component_config_offsets {
 	u32 bmon_ids[MAX_BMONS_PER_UNIT];
 };
 
+static struct hl_sni_stat gaudi3_sni_spmu_stats[] = {
+	{"spmu_req_out_of_range_psn", 5},
+	{"spmu_req_unset_psn", 6},
+	{"spmu_res_duplicate_psn", 10},
+	{"spmu_res_out_of_sequence_psn", 11}
+};
+
+static size_t gaudi3_sni_spmu_stats_len = ARRAY_SIZE(gaudi3_sni_spmu_stats);
 
 static u64 debug_funnel_regs[GAUDI3_FUNNEL_LAST + 1] = {
 	[GAUDI3_FUNNEL_HD0_TPC0_CS_DBG] = mmHD0_TPC0_CS_DBG_FUNNEL_BASE,
@@ -6217,6 +6226,11 @@ static int gaudi3_config_bmon(struct hl_device *hdev, struct hl_debug_params *pa
 	return 0;
 }
 
+static bool gaudi3_reg_is_nic_spmu(enum gaudi3_debug_spmu_regs_index reg_idx)
+{
+	return reg_idx >= GAUDI3_SPMU_D0_NIC0_CS_DBG && reg_idx <= GAUDI3_SPMU_D1_NIC5_CS_DBG;
+}
+
 static int gaudi3_config_spmu(struct hl_device *hdev, struct hl_debug_params *params)
 {
 	struct hl_debug_params_spmu *input = params->input;
@@ -6255,8 +6269,11 @@ static int gaudi3_config_spmu(struct hl_device *hdev, struct hl_debug_params *pa
 		WREG32(base_reg + mmCS_DBG_TPC_EML_EML_SPMU_PMCR_EL0, 0x41013040);
 
 		/* dummy read for pldm to flush outstanding writes */
-		if (hdev->pldm)
+		if (hdev->pldm) {
+			/* sleep is required for previous write(s) to complete */
+			msleep(2000);
 			RREG32(base_reg);
+		}
 
 		for (i = 0 ; i < input->event_types_num ; i++)
 			WREG32(base_reg + mmCS_DBG_TPC_EML_EML_SPMU_PMEVTYPER0_EL0 + i * 4,
@@ -6756,6 +6773,49 @@ int gaudi3_coresight_init(struct hl_device *hdev)
 	return 0;
 }
 
+static int gaudi3_sample_spmu(struct hl_device *hdev, struct hl_debug_params *params)
+{
+	u32 output_arr_len;
+	u32 events_num;
+	u64 base_reg;
+	u64 *output;
+	int i;
+
+	if (params->reg_idx >= ARRAY_SIZE(debug_spmu_regs)) {
+		dev_err(hdev->dev, "Invalid register index in SPMU\n");
+		return -EINVAL;
+	}
+
+	base_reg = debug_spmu_regs[params->reg_idx];
+
+	/* in case base reg is 0x0 we ignore this configuration */
+	if (!base_reg)
+		return 0;
+
+	output = params->output;
+	output_arr_len = params->output_size / sizeof(u64);
+	events_num = output_arr_len;
+
+	if (output_arr_len < 1) {
+		dev_err(hdev->dev, "not enough values for SPMU sample\n");
+		return -EINVAL;
+	}
+
+	if (events_num > SPMU_MAX_COUNTERS) {
+		dev_err(hdev->dev, "too many events values for SPMU sample\n");
+		return -EINVAL;
+	}
+
+	/* capture */
+	WREG32(base_reg + mmCS_DBG_TPC_EML_EML_SPMU_PMSCR, 1);
+
+	/* read the shadow registers */
+	for (i = 0 ; i < events_num ; i++)
+		output[i] = RREG32(base_reg + mmCS_DBG_TPC_EML_EML_SPMU_PMEVCNTR0_EL0 + i * 4);
+
+	return 0;
+}
+
 void gaudi3_sni_spmu_get_stats_info(struct hl_device *hdev, u32 port, struct hl_sni_stat **stats,
 					u32 *n_stats)
 {
@@ -6763,26 +6823,73 @@ void gaudi3_sni_spmu_get_stats_info(struct hl_device *hdev, u32 port, struct hl_
 		*n_stats = 0;
 		return;
 	}
-	/* TODO: SW-63320: add SPMU support */
+
+	*n_stats = gaudi3_sni_spmu_stats_len;
+	*stats = gaudi3_sni_spmu_stats;
 }
 
 int gaudi3_sni_spmu_config(struct hl_device *hdev, u32 port, u32 num_event_types, u32 event_types[],
 				bool enable)
 {
+	struct hl_debug_params_spmu spmu;
+	struct hl_debug_params params;
+	u64 event_counters[SPMU_DATA_LEN];
+	int i;
+
 	if (!hdev->supports_coresight)
 		return 0;
 
-	/* TODO: SW-63320: add SPMU support */
-	return 0;
+	/* For odd ports in 200G mode, if SPMU is already configured for even port, then return,
+	 * since SPMU base regs are per macro.
+	 */
+	if (hdev->sni_lanes_per_port == PORT_LANES_2 && (port & 1) &&
+	    (hdev->sni_ports_mask & BIT(port - 1)))
+		return 0;
+
+	/* validate nic port */
+	if  (!gaudi3_reg_is_nic_spmu(GAUDI3_SPMU_D0_NIC0_CS_DBG + NIC_PORT_TO_MACRO(port))) {
+		dev_err(hdev->dev, "Invalid nic port %u\n", port);
+		return -EINVAL;
+	}
+
+	memset(&params, 0, sizeof(struct hl_debug_params));
+	params.op = HL_DEBUG_OP_SPMU;
+	params.input = &spmu;
+	params.enable = enable;
+	params.output_size = sizeof(event_counters);
+	params.output = event_counters;
+	params.reg_idx = GAUDI3_SPMU_D0_NIC0_CS_DBG + NIC_PORT_TO_MACRO(port);
+
+	memset(&spmu, 0, sizeof(struct hl_debug_params_spmu));
+	spmu.event_types_num = num_event_types;
+	spmu.trc_ctrl_host_val = 0x5 | (0x8 << 16);
+	spmu.pmtrc_val = 0x100400;
+
+	for (i = 0 ; i < spmu.event_types_num ; i++)
+		spmu.event_types[i] = event_types[i];
+
+	return gaudi3_config_spmu(hdev, &params);
 }
 
 int gaudi3_sni_spmu_sample(struct hl_device *hdev, u32 port, u32 num_out_data, u64 out_data[])
 {
+	struct hl_debug_params params;
+
 	if (!hdev->supports_coresight)
 		return 0;
 
-	/* TODO: SW-63320: add SPMU support */
-	return 0;
+	/* validate nic port */
+	if  (!gaudi3_reg_is_nic_spmu(GAUDI3_SPMU_D0_NIC0_CS_DBG + NIC_PORT_TO_MACRO(port))) {
+		dev_err(hdev->dev, "Invalid nic port %u\n", port);
+		return -EINVAL;
+	}
+
+	memset(&params, 0, sizeof(struct hl_debug_params));
+	params.output = out_data;
+	params.output_size = num_out_data * sizeof(u64);
+	params.reg_idx = GAUDI3_SPMU_D0_NIC0_CS_DBG + NIC_PORT_TO_MACRO(port);
+
+	return gaudi3_sample_spmu(hdev, &params);
 }
 
 int gaudi3_sni_ack_spmu_bmon_interrupt(struct hl_device *hdev, int nic_macro_idx)

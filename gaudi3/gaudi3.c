@@ -4993,6 +4993,7 @@ int gaudi3_sw_init(struct hl_device *hdev)
 	hdev->supports_custom_fw_binning = true;
 	hdev->asic_funcs->set_pci_memory_regions(hdev);
 	hdev->support_preboot_binning = true;
+	hdev->supports_coresight = true;
 
 	rc = gaudi3_special_blocks_iterator_config(hdev);
 	if (rc)
