@@ -392,19 +392,19 @@ static int hl_nic_update_mtu(struct hl_aux_dev *aux_dev, u32 port, u32 mtu)
 	struct hl_device *hdev = container_of(nic, struct hl_device, nic);
 	struct hl_nic_port *nic_port = &nic->nic_ports[port];
 	struct hl_nic_port_funcs *port_funcs;
+	unsigned long qp_id = 0;
 	struct hl_qp *qp;
 	int rc = 0;
-	u32 qp_id;
 
 	port_funcs = hdev->asic_funcs->nic_funcs->port_funcs;
 	mtu += HL_EN_MAX_HEADERS_SZ;
 
 	port_funcs->cfg_lock(nic_port);
-	idr_for_each_entry(&nic_port->qp_ids, qp, qp_id) {
+	xa_for_each(&nic_port->qp_ids, qp_id, qp) {
 		if (qp->mtu_type == MTU_FROM_NETDEV && qp->mtu != mtu) {
 			rc = port_funcs->update_qp_mtu(nic_port, qp, mtu);
 			if (rc) {
-				dev_err(hdev->dev, "Failed to update MTU, port: %d, qpn: %d, %d\n",
+				dev_err(hdev->dev, "Failed to update MTU, port: %d, qpn: %ld, %d\n",
 					port, qp_id, rc);
 				break;
 			}
@@ -816,7 +816,7 @@ static int hl_nic_ib_verify_qp_id(struct hl_aux_dev *aux_dev, u32 qp_id, u32 por
 		qp = hl_nic_get_qp_from_coll_conn_id(nic_port, qp_id);
 	} else {
 		port_funcs->cfg_lock(nic_port);
-		qp = idr_find(&nic_port->qp_ids, qp_id);
+		qp = xa_load(&nic_port->qp_ids, qp_id);
 	}
 
 	if (IS_ERR_OR_NULL(qp)) {
@@ -1754,7 +1754,7 @@ static struct hl_coll_qp *get_coll_qp_from_conn_id(struct hl_nic_port *nic_port,
 
 	coll_conn_id = conn_id - port_funcs->get_coll_qps_offset(nic_port);
 
-	coll_qp = idr_find(&nic->coll_props[coll_conn_type].coll_qp_ids, coll_conn_id);
+	coll_qp = xa_load(&nic->coll_props[coll_conn_type].coll_qp_ids, coll_conn_id);
 
 	return coll_qp;
 }
@@ -1831,7 +1831,10 @@ static void hl_nic_qp_do_release(struct hl_qp *qp)
 
 		coll_qp->qps_array[nic_port->port] = NULL;
 	} else {
-		idr_replace(&qp->nic_port->qp_ids, NULL, qp->qp_id);
+		/* QP was found before, hence use xa_store to replace the pointer but don't release
+		 * index. xa_store should not fail in such scenario.
+		 */
+		xa_store(&qp->nic_port->qp_ids, qp->qp_id, NULL, GFP_KERNEL);
 	}
 
 	/* drain the Req QP now in order to make sure that accesses to the WQ will not
@@ -1849,6 +1852,7 @@ static int alloc_qp(struct hl_device *hdev, struct hl_ctx *ctx, struct hl_nic_al
 	struct hl_wq_array_properties *swq_arr_props, *rwq_arr_props;
 	struct hl_nic_port_funcs *port_funcs;
 	struct hl_nic_port *nic_port;
+	struct xa_limit id_limit;
 	struct hl_qp *qp;
 	u32 min_id, max_id, port;
 	int id, rc;
@@ -1909,10 +1913,10 @@ static int alloc_qp(struct hl_device *hdev, struct hl_ctx *ctx, struct hl_nic_al
 		goto error_exit;
 	}
 
-	id = idr_alloc(&nic_port->qp_ids, qp, min_id, max_id + 1, GFP_KERNEL);
-	if (id < 0) {
+	id_limit = XA_LIMIT(min_id, max_id);
+	rc = xa_alloc(&nic_port->qp_ids, &id, qp, id_limit, GFP_KERNEL);
+	if (rc) {
 		dev_dbg(hdev->dev, "Failed allocate QP IDR entry, port %d", port);
-		rc = id;
 		goto error_exit;
 	}
 
@@ -1937,7 +1941,7 @@ static int alloc_qp(struct hl_device *hdev, struct hl_ctx *ctx, struct hl_nic_al
 	return 0;
 
 qp_register_error:
-	idr_remove(&qp->nic_port->qp_ids, qp->qp_id);
+	xa_erase(&qp->nic_port->qp_ids, qp->qp_id);
 error_exit:
 	port_funcs->cfg_unlock(nic_port);
 	kfree(qp);
@@ -1952,6 +1956,7 @@ static int alloc_coll_qp(struct hl_device *hdev, struct hl_ctx *ctx,
 	struct hl_nic_funcs *nic_funcs;
 	struct hl_nic_port *nic_port;
 	struct hl_coll_qp *coll_qp;
+	struct xa_limit id_limit;
 	struct hl_nic *nic;
 	struct hl_qp *qp;
 	u32 min_id, max_id, port, _port, coll_conn_type;
@@ -2004,11 +2009,11 @@ static int alloc_coll_qp(struct hl_device *hdev, struct hl_ctx *ctx,
 
 	hl_nic_cfg_lock_all(hdev);
 
-	id = idr_alloc(&nic->coll_props[coll_conn_type].coll_qp_ids, coll_qp, min_id,
-			max_id + 1, GFP_KERNEL);
-	if (id < 0) {
+	id_limit = XA_LIMIT(min_id, max_id);
+	rc = xa_alloc(&nic->coll_props[coll_conn_type].coll_qp_ids, &id, coll_qp, id_limit,
+				GFP_KERNEL);
+	if (rc) {
 		dev_dbg(hdev->dev, "Failed to allocate coll QP\n");
-		rc = id;
 		goto cfg_unlock_all;
 	}
 
@@ -2105,7 +2110,7 @@ free_qps:
 		kfree(qp);
 	}
 
-	idr_remove(&nic->coll_props[coll_conn_type].coll_qp_ids, coll_qp->id);
+	xa_erase(&nic->coll_props[coll_conn_type].coll_qp_ids, coll_qp->id);
 cfg_unlock_all:
 	hl_nic_cfg_unlock_all(hdev);
 	kfree(coll_qp->qps_array);
@@ -2243,7 +2248,7 @@ static int set_req_qp_ctx(struct hl_device *hdev, struct hl_nic_req_conn_ctx_in 
 				struct hl_nic_req_conn_ctx_out *out)
 {
 	struct hl_wq_array_properties *swq_arr_props, *rwq_arr_props;
-	struct hl_nic_encap_idr_pdata *encap_data;
+	struct hl_nic_encap_xarray_pdata *encap_data;
 	struct hl_nic_port_funcs *port_funcs;
 	struct hl_nic_funcs *nic_funcs;
 	struct hl_nic_port *nic_port;
@@ -2301,7 +2306,7 @@ static int set_req_qp_ctx(struct hl_device *hdev, struct hl_nic_req_conn_ctx_in 
 		qp = hl_nic_get_qp_from_coll_conn_id(nic_port, in->conn_id);
 	} else {
 		port_funcs->cfg_lock(nic_port);
-		qp = idr_find(&nic_port->qp_ids, in->conn_id);
+		qp = xa_load(&nic_port->qp_ids, in->conn_id);
 	}
 
 	if (IS_ERR_OR_NULL(qp)) {
@@ -2320,7 +2325,7 @@ static int set_req_qp_ctx(struct hl_device *hdev, struct hl_nic_req_conn_ctx_in 
 
 	/* TODO: w/a SW-99462 remove when HCL stops using the prev ctx structure */
 	if (in->encap_en) {
-		encap_data = idr_find(&nic_port->encap_ids, in->encap_id);
+		encap_data = xa_load(&nic_port->encap_ids, in->encap_id);
 		if (!encap_data) {
 			dev_dbg_ratelimited(hdev->dev,
 					"Encapsulation ID %d not found, ignoring\n", in->encap_id);
@@ -2448,7 +2453,7 @@ cfg_unlock:
 static int set_res_qp_ctx(struct hl_device *hdev, struct hl_ctx *ctx,
 				struct hl_nic_res_conn_ctx_in *in)
 {
-	struct hl_nic_encap_idr_pdata *encap_data;
+	struct hl_nic_encap_xarray_pdata *encap_data;
 	struct hl_nic_port_funcs *port_funcs;
 	struct hl_nic_funcs *nic_funcs;
 	struct hl_nic_port *nic_port;
@@ -2501,7 +2506,7 @@ static int set_res_qp_ctx(struct hl_device *hdev, struct hl_ctx *ctx,
 		qp = hl_nic_get_qp_from_coll_conn_id(nic_port, in->conn_id);
 	} else {
 		port_funcs->cfg_lock(nic_port);
-		qp = idr_find(&nic_port->qp_ids, in->conn_id);
+		qp = xa_load(&nic_port->qp_ids, in->conn_id);
 	}
 
 	if (IS_ERR_OR_NULL(qp)) {
@@ -2513,7 +2518,7 @@ static int set_res_qp_ctx(struct hl_device *hdev, struct hl_ctx *ctx,
 
 	/* TODO: w/a SW-99462 remove when HCL stops using the prev ctx structure */
 	if (in->encap_en) {
-		encap_data = idr_find(&nic_port->encap_ids, in->encap_id);
+		encap_data = xa_load(&nic_port->encap_ids, in->encap_id);
 		if (!encap_data) {
 			dev_dbg_ratelimited(hdev->dev,
 					"Encapsulation ID %d not found, ignoring\n", in->encap_id);
@@ -2581,10 +2586,10 @@ unlock_cfg:
 u32 hl_nic_get_max_qp_id(struct hl_nic_port *nic_port)
 {
 	int max_qp_id = nic_port->qp_idx_offset;
+	unsigned long qp_id = 0;
 	struct hl_qp *qp;
-	int qp_id;
 
-	idr_for_each_entry(&nic_port->qp_ids, qp, qp_id)
+	xa_for_each(&nic_port->qp_ids, qp_id, qp)
 		if (qp->qp_id > max_qp_id)
 			max_qp_id = qp->qp_id;
 
@@ -2611,7 +2616,7 @@ static void hl_nic_coll_qp_free(struct hl_coll_qp *coll_qp)
 {
 	struct hl_nic *nic = &coll_qp->hdev->nic;
 
-	idr_remove(&nic->coll_props[coll_qp->coll_conn_type].coll_qp_ids, coll_qp->id);
+	xa_erase(&nic->coll_props[coll_qp->coll_conn_type].coll_qp_ids, coll_qp->id);
 	kfree(coll_qp->qps_array);
 	kfree(coll_qp);
 }
@@ -2723,7 +2728,7 @@ static void qp_destroy_work(struct work_struct *work)
 				__user_wq_arr_unset(nic_port, coll_props->rwq_type, ctx);
 		}
 	} else {
-		idr_remove(&nic_port->qp_ids, qp->qp_id);
+		xa_erase(&nic_port->qp_ids, qp->qp_id);
 
 		if (atomic_dec_and_test(&nic_port->num_of_allocated_qps)) {
 			if (swq_arr_props->under_unset)
@@ -2843,7 +2848,7 @@ static int destroy_qp(struct hl_device *hdev, struct hl_nic_destroy_conn_in *in)
 		qp = hl_nic_get_qp_from_coll_conn_id(nic_port, in->conn_id);
 	} else {
 		port_funcs->cfg_lock(nic_port);
-		qp = idr_find(&nic_port->qp_ids, in->conn_id);
+		qp = xa_load(&nic_port->qp_ids, in->conn_id);
 	}
 
 	if (IS_ERR_OR_NULL(qp)) {
@@ -2873,12 +2878,12 @@ void hl_nic_qps_stop(struct hl_nic_port *nic_port)
 {
 	struct hl_nic_port_funcs *port_funcs = nic_port->hdev->asic_funcs->nic_funcs->port_funcs;
 	struct hl_nic_qpc_drain_attr drain = { .wait_for_idle = false, };
+	unsigned long qp_id = 0;
 	struct hl_qp *qp;
-	int qp_id;
 
 	port_funcs->cfg_lock(nic_port);
 
-	idr_for_each_entry(&nic_port->qp_ids, qp, qp_id) {
+	xa_for_each(&nic_port->qp_ids, qp_id, qp) {
 		if (IS_ERR_OR_NULL(qp))
 			continue;
 
@@ -2913,8 +2918,9 @@ static void qps_destroy(struct hl_device *hdev)
 	struct hl_nic_port *nic_port;
 	struct hl_nic *nic = &hdev->nic;
 	struct hl_coll_qp *coll_qp;
+	unsigned long qp_id = 0;
+	int i, coll_conn_type;
 	struct hl_qp *qp;
-	int qp_id, i, coll_conn_type;
 
 	/* destroy the QPs */
 	for (i = 0 ; i < nic_props->max_num_of_ports ; i++) {
@@ -2926,7 +2932,7 @@ static void qps_destroy(struct hl_device *hdev)
 		/* protect against destroy_qp occurring in parallel */
 		port_funcs->cfg_lock(nic_port);
 
-		idr_for_each_entry(&nic_port->qp_ids, qp, qp_id) {
+		xa_for_each(&nic_port->qp_ids, qp_id, qp) {
 			if (IS_ERR_OR_NULL(qp))
 				continue;
 
@@ -2939,7 +2945,7 @@ static void qps_destroy(struct hl_device *hdev)
 	hl_nic_cfg_lock_all(hdev);
 
 	for (coll_conn_type = 0 ; coll_conn_type < HL_NIC_COLL_CONN_TYPE_MAX ; coll_conn_type++) {
-		idr_for_each_entry(&nic->coll_props[coll_conn_type].coll_qp_ids, coll_qp, qp_id) {
+		xa_for_each(&nic->coll_props[coll_conn_type].coll_qp_ids, qp_id, coll_qp) {
 			if (IS_ERR_OR_NULL(coll_qp))
 				continue;
 
@@ -2967,9 +2973,9 @@ static void qps_destroy(struct hl_device *hdev)
 
 		port_funcs->cfg_lock(nic_port);
 
-		idr_for_each_entry(&nic_port->qp_ids, qp, qp_id)
+		xa_for_each(&nic_port->qp_ids, qp_id, qp)
 			dev_err_ratelimited(hdev->dev,
-					"Port %d QP %d is still alive\n", nic_port->port, qp_id);
+					"Port %d QP %ld is still alive\n", nic_port->port, qp_id);
 
 		port_funcs->cfg_unlock(nic_port);
 	}
@@ -2977,8 +2983,8 @@ static void qps_destroy(struct hl_device *hdev)
 	hl_nic_cfg_lock_all(hdev);
 
 	for (coll_conn_type = 0 ; coll_conn_type < HL_NIC_COLL_CONN_TYPE_MAX ; coll_conn_type++) {
-		idr_for_each_entry(&nic->coll_props[coll_conn_type].coll_qp_ids, coll_qp, qp_id)
-			dev_err_ratelimited(hdev->dev, "Collective QP %d is still alive\n", qp_id);
+		xa_for_each(&nic->coll_props[coll_conn_type].coll_qp_ids, qp_id, coll_qp)
+			dev_err_ratelimited(hdev->dev, "Collective QP %ld is still alive\n", qp_id);
 	}
 
 	hl_nic_cfg_unlock_all(hdev);
@@ -3017,11 +3023,12 @@ static void encap_ids_destroy(struct hl_device *hdev, struct hl_ctx *ctx)
 {
 	struct hl_nic_port_funcs *port_funcs = hdev->asic_funcs->nic_funcs->port_funcs;
 	struct hl_nic_properties *nic_props = &hdev->asic_prop.nic_props;
-	struct hl_nic_encap_idr_pdata *idr_pdata;
+	struct hl_nic_encap_xarray_pdata *xa_pdata;
 	struct hl_nic_port *nic_port;
 	struct hl_nic *nic = &hdev->nic;
 	struct hl_nic_funcs *nic_funcs;
-	int encap_id, i;
+	unsigned long encap_id;
+	int i;
 
 	nic_funcs = hdev->asic_funcs->nic_funcs;
 
@@ -3033,14 +3040,14 @@ static void encap_ids_destroy(struct hl_device *hdev, struct hl_ctx *ctx)
 
 		port_funcs->cfg_lock(nic_port);
 
-		idr_for_each_entry(&nic_port->encap_ids, idr_pdata, encap_id) {
-			nic_funcs->port_funcs->encap_unset(nic_port, encap_id, idr_pdata);
+		xa_for_each(&nic_port->encap_ids, encap_id, xa_pdata) {
+			nic_funcs->port_funcs->encap_unset(nic_port, encap_id, xa_pdata);
 
-			if (idr_pdata->encap_type != HL_NIC_ENCAP_NONE)
-				kfree(idr_pdata->encap_header);
+			if (xa_pdata->encap_type != HL_NIC_ENCAP_NONE)
+				kfree(xa_pdata->encap_header);
 
-			kfree(idr_pdata);
-			idr_remove(&nic_port->encap_ids, encap_id);
+			kfree(xa_pdata);
+			xa_erase(&nic_port->encap_ids, encap_id);
 		}
 
 		port_funcs->cfg_unlock(nic_port);
@@ -3374,6 +3381,7 @@ static int alloc_user_cq_id(struct hl_device *hdev, struct hl_nic_alloc_user_cq_
 	struct hl_nic_user_cq *user_cq;
 	struct hl_nic_port *nic_port;
 	u32 min_id, max_id, port, flags;
+	struct xa_limit id_limit;
 	int id, rc;
 
 	if (!in || !out) {
@@ -3419,10 +3427,10 @@ static int alloc_user_cq_id(struct hl_device *hdev, struct hl_nic_alloc_user_cq_
 		goto cfg_unlock;
 	}
 
-	id = idr_alloc(&nic_port->cq_ids, user_cq, min_id, max_id + 1, GFP_KERNEL);
-	if (id < 0) {
+	id_limit = XA_LIMIT(min_id, max_id);
+	rc = xa_alloc(&nic_port->cq_ids, &id, user_cq, id_limit, GFP_KERNEL);
+	if (rc) {
 		dev_err(hdev->dev, "No available user CQ, port %d\n", port);
-		rc = id;
 		goto cfg_unlock;
 	}
 
@@ -3516,7 +3524,7 @@ static int __user_cq_set(struct hl_device *hdev, struct hl_nic_user_cq_set_in_pa
 	port_funcs->cfg_lock(nic_port);
 
 	/* Validate if user CQ is allocated. */
-	user_cq = idr_find(&nic_port->cq_ids, id);
+	user_cq = xa_load(&nic_port->cq_ids, id);
 	if (!user_cq) {
 		dev_dbg(hdev->dev, "NIC user CQ %d wasn't allocated, port %d\n", id, port);
 		rc = -EINVAL;
@@ -3634,7 +3642,7 @@ static void user_cq_destroy(struct kref *kref)
 		port_funcs->user_cq_destroy(user_cq);
 
 	mutex_destroy(&user_cq->overrun_lock);
-	idr_remove(&nic_port->cq_ids, user_cq->id);
+	xa_erase(&nic_port->cq_ids, user_cq->id);
 	kfree(user_cq);
 }
 
@@ -3642,7 +3650,7 @@ struct hl_nic_user_cq *hl_nic_user_cq_get(struct hl_nic_port *nic_port, u8 cq_id
 {
 	struct hl_nic_user_cq *user_cq;
 
-	user_cq = idr_find(&nic_port->cq_ids, cq_id);
+	user_cq = xa_load(&nic_port->cq_ids, cq_id);
 	if (!user_cq || user_cq->state != USER_CQ_STATE_SET)
 		return NULL;
 
@@ -3722,7 +3730,7 @@ static int __user_cq_unset(struct hl_device *hdev, struct hl_nic_user_cq_unset_i
 	port_funcs->cfg_lock(nic_port);
 
 	/* Validate if user CQ is allocated. */
-	user_cq = idr_find(&nic_port->cq_ids, id);
+	user_cq = xa_load(&nic_port->cq_ids, id);
 	if (!user_cq) {
 		dev_dbg(hdev->dev, "NIC user CQ %d wasn't allocated, port %d\n", id, port);
 		rc = -EINVAL;
@@ -3781,7 +3789,7 @@ static void user_cqs_destroy(struct hl_device *hdev, struct hl_ctx *ctx)
 	struct hl_nic *nic = &hdev->nic;
 	struct hl_nic_user_cq *user_cq;
 	struct hl_nic_port *nic_port;
-	u32 id;
+	unsigned long id;
 	int i;
 
 	for (i = 0 ; i < nic_props->max_num_of_ports ; i++) {
@@ -3790,7 +3798,7 @@ static void user_cqs_destroy(struct hl_device *hdev, struct hl_ctx *ctx)
 
 		nic_port = &nic->nic_ports[i];
 
-		idr_for_each_entry(&nic_port->cq_ids, user_cq, id) {
+		xa_for_each(&nic_port->cq_ids, id, user_cq) {
 			if (user_cq->state == USER_CQ_STATE_ALLOC)
 				hl_nic_user_cq_put(user_cq);
 			else if (user_cq->state == USER_CQ_STATE_SET)
@@ -3834,7 +3842,7 @@ static int user_cq_update_ci(struct hl_device *hdev, struct hl_nic_user_cq_updat
 	port_funcs->cfg_lock(nic_port);
 
 	/* This function is used for Gaudi only which supports a single CQ per port */
-	user_cq = idr_find(&nic_port->cq_ids, 0);
+	user_cq = xa_load(&nic_port->cq_ids, 0);
 	if (!user_cq) {
 		dev_dbg(hdev->dev, "NIC user CQ 0 wasn't allocated, can't update CI, port %d\n",
 			port);
@@ -4023,9 +4031,10 @@ static int alloc_user_db_fifo(struct hl_device *hdev, struct hl_ctx *ctx,
 	int rc, id;
 	u32 port;
 	u32 min_id, max_id;
+	struct xa_limit id_limit;
 	struct hl_nic_port *nic_port;
 	struct hl_nic_port_funcs *port_funcs;
-	struct hl_nic_db_fifo_idr_pdata *idr_pdata;
+	struct hl_nic_db_fifo_xarray_pdata *xa_pdata;
 
 	if (!in || !out) {
 		dev_dbg(hdev->dev, "Missing in/out param for allocating db fifo ID\n");
@@ -4043,13 +4052,13 @@ static int alloc_user_db_fifo(struct hl_device *hdev, struct hl_ctx *ctx,
 	get_user_db_fifo_id_range(nic_port, &min_id, &max_id, in->id_hint);
 
 	/* IDR private data. */
-	idr_pdata = kzalloc(sizeof(*idr_pdata), GFP_KERNEL);
-	if (!idr_pdata)
+	xa_pdata = kzalloc(sizeof(*xa_pdata), GFP_KERNEL);
+	if (!xa_pdata)
 		return -ENOMEM;
 
-	idr_pdata->asid = ctx->asid;
-	idr_pdata->state = DB_FIFO_STATE_ALLOC;
-	idr_pdata->port = port;
+	xa_pdata->asid = ctx->asid;
+	xa_pdata->state = DB_FIFO_STATE_ALLOC;
+	xa_pdata->port = port;
 
 	port_funcs->cfg_lock(nic_port);
 
@@ -4061,13 +4070,13 @@ static int alloc_user_db_fifo(struct hl_device *hdev, struct hl_ctx *ctx,
 		goto cfg_unlock;
 	}
 
-	id = idr_alloc(&nic_port->db_fifo_ids, idr_pdata, min_id, max_id + 1, GFP_KERNEL);
+	id_limit = XA_LIMIT(min_id, max_id);
+	rc = xa_alloc(&nic_port->db_fifo_ids, &id, xa_pdata, id_limit, GFP_KERNEL);
 	port_funcs->cfg_unlock(nic_port);
 
-	if (id < 0) {
+	if (rc) {
 		dev_dbg_ratelimited(hdev->dev, "DB FIFO ID allocation failed, port %d\n", port);
-		rc = id;
-		goto free_idr_pdata;
+		goto free_xa_pdata;
 	}
 
 	out->id = id;
@@ -4076,8 +4085,8 @@ static int alloc_user_db_fifo(struct hl_device *hdev, struct hl_ctx *ctx,
 
 cfg_unlock:
 	port_funcs->cfg_unlock(nic_port);
-free_idr_pdata:
-	kfree(idr_pdata);
+free_xa_pdata:
+	kfree(xa_pdata);
 	return rc;
 }
 
@@ -4127,13 +4136,13 @@ static int validate_db_fifo_ioctl(struct hl_nic_port *nic_port, u32 db_fifo_id)
 }
 
 static int user_db_fifo_unset_and_free(struct hl_nic_port *nic_port, struct hl_ctx *ctx, u32 id,
-					struct hl_nic_db_fifo_idr_pdata *idr_pdata)
+					struct hl_nic_db_fifo_xarray_pdata *xa_pdata)
 {
 	struct hl_device *hdev = nic_port->hdev;
 	struct hl_nic_funcs *nic_funcs = hdev->asic_funcs->nic_funcs;
 	int rc = 0;
 
-	nic_funcs->port_funcs->db_fifo_unset(nic_port, ctx, id, idr_pdata);
+	nic_funcs->port_funcs->db_fifo_unset(nic_port, ctx, id, xa_pdata);
 
 	/*
 	 * Destroy CI buffer if we allocated one.
@@ -4145,11 +4154,11 @@ static int user_db_fifo_unset_and_free(struct hl_nic_port *nic_port, struct hl_c
 	 * still left in the pool. So, the db_fifo_pool needs to be freed irrespective of the ci
 	 * memory being destroyed or not.
 	 */
-	if (idr_pdata->ci_mmap_handle)
-		rc = hl_nic_mem_destroy(ctx, idr_pdata->ci_mmap_handle);
+	if (xa_pdata->ci_mmap_handle)
+		rc = hl_nic_mem_destroy(ctx, xa_pdata->ci_mmap_handle);
 
-	nic_funcs->port_funcs->db_fifo_free(nic_port, idr_pdata->db_pool_addr,
-								idr_pdata->fifo_size);
+	nic_funcs->port_funcs->db_fifo_free(nic_port, xa_pdata->db_pool_addr,
+								xa_pdata->fifo_size);
 
 	return rc;
 }
@@ -4160,7 +4169,7 @@ static int user_db_fifo_set(struct hl_device *hdev, struct hl_ctx *ctx,
 {
 	struct hl_nic_port *nic_port;
 	struct hl_nic_port_funcs *port_funcs;
-	struct hl_nic_db_fifo_idr_pdata *idr_pdata;
+	struct hl_nic_db_fifo_xarray_pdata *xa_pdata;
 	struct hl_nic_mem_data mem_data = {};
 	u64 umr_block_addr, umr_mmap_handle, ci_mmap_handle = 0, ci_device_handle;
 	u32 umr_db_offset, port, id, sob_payload;
@@ -4196,8 +4205,8 @@ static int user_db_fifo_set(struct hl_device *hdev, struct hl_ctx *ctx,
 	 * that user do not trick kernel into configuring db fifo HW for an unallocated ID.
 	 */
 	port_funcs->cfg_lock(nic_port);
-	idr_pdata = idr_find(&nic_port->db_fifo_ids, id);
-	if (!idr_pdata) {
+	xa_pdata = xa_load(&nic_port->db_fifo_ids, id);
+	if (!xa_pdata) {
 		dev_dbg_ratelimited(hdev->dev, "DB FIFO ID %d is not allocated, port: %d\n", id,
 					port);
 		rc = -EINVAL;
@@ -4212,13 +4221,13 @@ static int user_db_fifo_set(struct hl_device *hdev, struct hl_ctx *ctx,
 			(in->mode == HL_NIC_DB_FIFO_TYPE_COLL_OPS_LONG) ||
 			(in->mode == HL_NIC_DB_FIFO_TYPE_COLL_DIR_OPS_SHORT) ||
 			(in->mode == HL_NIC_DB_FIFO_TYPE_COLL_DIR_OPS_LONG);
-	idr_pdata->fifo_mode = in->mode;
+	xa_pdata->fifo_mode = in->mode;
 
 	/* User may call db_fifo_set multiple times post db_fifo_alloc. So, before doing any
 	 * further register changes, make sure to unset the previous settings for this id
 	 */
-	if (idr_pdata->state == DB_FIFO_STATE_SET) {
-		rc = user_db_fifo_unset_and_free(nic_port, ctx, id, idr_pdata);
+	if (xa_pdata->state == DB_FIFO_STATE_SET) {
+		rc = user_db_fifo_unset_and_free(nic_port, ctx, id, xa_pdata);
 		if (rc) {
 			dev_dbg(hdev->dev, "Fail to unset DB FIFO %d before set, port %d\n", id,
 				port);
@@ -4226,7 +4235,7 @@ static int user_db_fifo_set(struct hl_device *hdev, struct hl_ctx *ctx,
 		}
 	}
 
-	rc = port_funcs->db_fifo_allocate(nic_port, idr_pdata);
+	rc = port_funcs->db_fifo_allocate(nic_port, xa_pdata);
 	if (rc) {
 		dev_dbg(hdev->dev, "DB FIFO %d allocation failed, port %d, mode %d\n", id, port,
 			in->mode);
@@ -4251,8 +4260,8 @@ static int user_db_fifo_set(struct hl_device *hdev, struct hl_ctx *ctx,
 	}
 
 	if (is_coll_ops && in->num_sobs) {
-		idr_pdata->base_sob_addr = in->base_sob_addr;
-		idr_pdata->num_sobs = in->num_sobs;
+		xa_pdata->base_sob_addr = in->base_sob_addr;
+		xa_pdata->num_sobs = in->num_sobs;
 
 		/* SOB operation increment with value 1. */
 		sob_payload = FIELD_PREP(NIC_SOB_INC_MASK, 1) | FIELD_PREP(NIC_SOB_VAL_MASK, 1);
@@ -4261,7 +4270,7 @@ static int user_db_fifo_set(struct hl_device *hdev, struct hl_ctx *ctx,
 		 * Lower 32 bits: SOB offset from LBW base.
 		 * Upper 32 bits: LBW SOB payload.
 		 */
-		ci_device_handle = (((u64) sob_payload) << 32) | idr_pdata->base_sob_addr;
+		ci_device_handle = (((u64) sob_payload) << 32) | xa_pdata->base_sob_addr;
 	} else {
 		/*
 		 * Allocate a consumer-index(CI) buffer in host kernel.
@@ -4284,9 +4293,9 @@ static int user_db_fifo_set(struct hl_device *hdev, struct hl_ctx *ctx,
 		ci_device_handle = mem_data.addr;
 	}
 
-	idr_pdata->dir_dup_ports_mask = in->dir_dup_ports_mask;
+	xa_pdata->dir_dup_ports_mask = in->dir_dup_ports_mask;
 
-	rc = port_funcs->db_fifo_set(nic_port, ctx, id, ci_device_handle, idr_pdata);
+	rc = port_funcs->db_fifo_set(nic_port, ctx, id, ci_device_handle, xa_pdata);
 	if (rc) {
 		dev_dbg_ratelimited(hdev->dev, "DB FIFO id %d, HW config failed, port %d\n", id,
 					port);
@@ -4294,13 +4303,13 @@ static int user_db_fifo_set(struct hl_device *hdev, struct hl_ctx *ctx,
 	}
 
 	/* Cache IDR metadata and init IOCTL out. */
-	idr_pdata->ci_mmap_handle = out->ci_handle = ci_mmap_handle;
-	idr_pdata->umr_mmap_handle = out->regs_handle = umr_mmap_handle;
-	idr_pdata->umr_db_offset = out->regs_offset = umr_db_offset;
-	idr_pdata->state = DB_FIFO_STATE_SET;
+	xa_pdata->ci_mmap_handle = out->ci_handle = ci_mmap_handle;
+	xa_pdata->umr_mmap_handle = out->regs_handle = umr_mmap_handle;
+	xa_pdata->umr_db_offset = out->regs_offset = umr_db_offset;
+	xa_pdata->state = DB_FIFO_STATE_SET;
 
-	out->fifo_size = idr_pdata->fifo_size;
-	out->fifo_bp_thresh = idr_pdata->fifo_size / 2;
+	out->fifo_size = xa_pdata->fifo_size;
+	out->fifo_bp_thresh = xa_pdata->fifo_size / 2;
 
 	port_funcs->cfg_unlock(nic_port);
 
@@ -4310,7 +4319,7 @@ free_ci:
 	if (ci_mmap_handle)
 		hl_nic_mem_destroy(ctx, ci_mmap_handle);
 free_db_fifo:
-	port_funcs->db_fifo_free(nic_port, idr_pdata->db_pool_addr, idr_pdata->fifo_size);
+	port_funcs->db_fifo_free(nic_port, xa_pdata->db_pool_addr, xa_pdata->fifo_size);
 cfg_unlock:
 	port_funcs->cfg_unlock(nic_port);
 
@@ -4318,7 +4327,7 @@ cfg_unlock:
 }
 
 static int __user_db_fifo_unset(struct hl_nic_port *nic_port, struct hl_ctx *ctx, u32 id,
-				struct hl_nic_db_fifo_idr_pdata *idr_pdata)
+				struct hl_nic_db_fifo_xarray_pdata *xa_pdata)
 {
 	int rc = 0;
 
@@ -4328,11 +4337,11 @@ static int __user_db_fifo_unset(struct hl_nic_port *nic_port, struct hl_ctx *ctx
 	 * So to fix this issue, we maintain the state of the idr. Perform unset only if set had
 	 * been previously done for the idr.
 	 */
-	if (idr_pdata->state == DB_FIFO_STATE_SET)
-		rc = user_db_fifo_unset_and_free(nic_port, ctx, id, idr_pdata);
+	if (xa_pdata->state == DB_FIFO_STATE_SET)
+		rc = user_db_fifo_unset_and_free(nic_port, ctx, id, xa_pdata);
 
-	kfree(idr_pdata);
-	idr_remove(&nic_port->db_fifo_ids, id);
+	kfree(xa_pdata);
+	xa_erase(&nic_port->db_fifo_ids, id);
 
 	return rc;
 }
@@ -4343,7 +4352,7 @@ static int user_db_fifo_unset(struct hl_device *hdev, struct hl_ctx *ctx,
 	int rc;
 	struct hl_nic_port *nic_port;
 	struct hl_nic_port_funcs *port_funcs;
-	struct hl_nic_db_fifo_idr_pdata *idr_pdata;
+	struct hl_nic_db_fifo_xarray_pdata *xa_pdata;
 	u32 id;
 
 	if (!in) {
@@ -4365,15 +4374,15 @@ static int user_db_fifo_unset(struct hl_device *hdev, struct hl_ctx *ctx,
 
 	port_funcs->cfg_lock(nic_port);
 
-	idr_pdata = idr_find(&nic_port->db_fifo_ids, id);
-	if (!idr_pdata) {
+	xa_pdata = xa_load(&nic_port->db_fifo_ids, id);
+	if (!xa_pdata) {
 		dev_dbg_ratelimited(hdev->dev, "DB fifo ID %d is not allocated, port: %d\n", id,
 											in->port);
 		rc = -EINVAL;
 		goto out;
 	}
 
-	rc = __user_db_fifo_unset(nic_port, ctx, id, idr_pdata);
+	rc = __user_db_fifo_unset(nic_port, ctx, id, xa_pdata);
 out:
 	port_funcs->cfg_unlock(nic_port);
 
@@ -4383,14 +4392,14 @@ out:
 static void __user_db_fifo_ctx_destroy(struct hl_nic_port *nic_port, struct hl_ctx *ctx)
 {
 	struct hl_nic_port_funcs *port_funcs = nic_port->hdev->asic_funcs->nic_funcs->port_funcs;
-	struct hl_nic_db_fifo_idr_pdata *idr_pdata;
-	u32 id;
+	struct hl_nic_db_fifo_xarray_pdata *xa_pdata;
+	unsigned long id;
 
 	port_funcs->cfg_lock(nic_port);
 
-	idr_for_each_entry(&nic_port->db_fifo_ids, idr_pdata, id) {
-		if (idr_pdata->asid == ctx->asid)
-			__user_db_fifo_unset(nic_port, ctx, id, idr_pdata);
+	xa_for_each(&nic_port->db_fifo_ids, id, xa_pdata) {
+		if (xa_pdata->asid == ctx->asid)
+			__user_db_fifo_unset(nic_port, ctx, id, xa_pdata);
 	}
 
 	port_funcs->cfg_unlock(nic_port);
@@ -4414,9 +4423,10 @@ static int user_encap_alloc(struct hl_device *hdev,
 	int rc, id;
 	u32 port;
 	u32 min_id, max_id;
+	struct xa_limit id_limit;
 	struct hl_nic_port *nic_port;
 	struct hl_nic_port_funcs *port_funcs;
-	struct hl_nic_encap_idr_pdata *idr_pdata;
+	struct hl_nic_encap_xarray_pdata *xa_pdata;
 
 	if (!in || !out) {
 		dev_dbg_ratelimited(hdev->dev,
@@ -4440,11 +4450,11 @@ static int user_encap_alloc(struct hl_device *hdev,
 	port_funcs->get_encap_id_range(nic_port, &min_id, &max_id);
 
 	/* IDR private data. */
-	idr_pdata = kzalloc(sizeof(*idr_pdata), GFP_KERNEL);
-	if (!idr_pdata)
+	xa_pdata = kzalloc(sizeof(*xa_pdata), GFP_KERNEL);
+	if (!xa_pdata)
 		return -ENOMEM;
 
-	idr_pdata->port = port;
+	xa_pdata->port = port;
 
 	port_funcs->cfg_lock(nic_port);
 
@@ -4456,17 +4466,16 @@ static int user_encap_alloc(struct hl_device *hdev,
 		goto cfg_unlock;
 	}
 
-	id = idr_alloc(&nic_port->encap_ids, idr_pdata, min_id, max_id + 1, GFP_KERNEL);
-	idr_pdata->id = id;
-
-	port_funcs->cfg_unlock(nic_port);
-
-	if (id < 0) {
+	id_limit = XA_LIMIT(min_id, max_id);
+	rc = xa_alloc(&nic_port->encap_ids, &id, xa_pdata, id_limit, GFP_KERNEL);
+	if (rc) {
 		dev_dbg_ratelimited(hdev->dev, "Encapsulation ID allocation failed, port %d\n",
-					port);
-		rc = id;
-		goto free_idr_pdata;
+							port);
+		goto cfg_unlock;
 	}
+
+	xa_pdata->id = id;
+	port_funcs->cfg_unlock(nic_port);
 
 	out->id = id;
 
@@ -4474,8 +4483,7 @@ static int user_encap_alloc(struct hl_device *hdev,
 
 cfg_unlock:
 	port_funcs->cfg_unlock(nic_port);
-free_idr_pdata:
-	kfree(idr_pdata);
+	kfree(xa_pdata);
 
 	return rc;
 }
@@ -4519,7 +4527,7 @@ static int user_encap_set(struct hl_device *hdev, struct hl_nic_user_encap_set_i
 	struct hl_nic_properties *nic_props = &hdev->asic_prop.nic_props;
 	void *encap_header = NULL;
 	u32 id;
-	struct hl_nic_encap_idr_pdata *idr_pdata;
+	struct hl_nic_encap_xarray_pdata *xa_pdata;
 	u32 encap_type_data = 0;
 
 	if (!in) {
@@ -4570,8 +4578,8 @@ static int user_encap_set(struct hl_device *hdev, struct hl_nic_user_encap_set_i
 
 	port_funcs->cfg_lock(nic_port);
 
-	idr_pdata = idr_find(&nic_port->encap_ids, id);
-	if (!idr_pdata) {
+	xa_pdata = xa_load(&nic_port->encap_ids, id);
+	if (!xa_pdata) {
 		dev_dbg_ratelimited(hdev->dev, "Encapsulation ID %d is not allocated\n", id);
 		rc = -EINVAL;
 		goto cfg_unlock;
@@ -4582,10 +4590,10 @@ static int user_encap_set(struct hl_device *hdev, struct hl_nic_user_encap_set_i
 	 * encap or encap_none. In this case, we should be clearing the existing settings as well
 	 * as freeing any allocated buffer. So, call unset API to clear the settings
 	 */
-	port_funcs->encap_unset(nic_port, id, idr_pdata);
+	port_funcs->encap_unset(nic_port, id, xa_pdata);
 
-	if (idr_pdata->encap_type != HL_NIC_ENCAP_NONE)
-		kfree(idr_pdata->encap_header);
+	if (xa_pdata->encap_type != HL_NIC_ENCAP_NONE)
+		kfree(xa_pdata->encap_header);
 
 	if (in->encap_type != HL_NIC_ENCAP_NONE) {
 		if (in->tnl_hdr_size > nic_props->max_tnl_hdr_size) {
@@ -4611,16 +4619,16 @@ static int user_encap_set(struct hl_device *hdev, struct hl_nic_user_encap_set_i
 			goto free_header;
 		}
 
-		idr_pdata->encap_header = encap_header;
-		idr_pdata->encap_header_size = in->tnl_hdr_size;
+		xa_pdata->encap_header = encap_header;
+		xa_pdata->encap_header_size = in->tnl_hdr_size;
 	}
 
-	idr_pdata->encap_type = in->encap_type;
-	idr_pdata->encap_type_data = encap_type_data;
-	idr_pdata->src_ip = in->ipv4_addr;
-	idr_pdata->is_set = true;
+	xa_pdata->encap_type = in->encap_type;
+	xa_pdata->encap_type_data = encap_type_data;
+	xa_pdata->src_ip = in->ipv4_addr;
+	xa_pdata->is_set = true;
 
-	rc = port_funcs->encap_set(nic_port, id, idr_pdata);
+	rc = port_funcs->encap_set(nic_port, id, xa_pdata);
 	if (rc)
 		goto free_header;
 
@@ -4643,7 +4651,7 @@ static int user_encap_unset(struct hl_device *hdev, struct hl_nic_user_encap_uns
 	struct hl_nic_port *nic_port;
 	struct hl_nic_port_funcs *port_funcs;
 	u32 id;
-	struct hl_nic_encap_idr_pdata *idr_pdata;
+	struct hl_nic_encap_xarray_pdata *xa_pdata;
 
 	if (!in) {
 		dev_dbg_ratelimited(hdev->dev, "Missing in param for encapsulation unset\n");
@@ -4664,22 +4672,22 @@ static int user_encap_unset(struct hl_device *hdev, struct hl_nic_user_encap_uns
 
 	port_funcs->cfg_lock(nic_port);
 
-	idr_pdata = idr_find(&nic_port->encap_ids, id);
-	if (!idr_pdata) {
+	xa_pdata = xa_load(&nic_port->encap_ids, id);
+	if (!xa_pdata) {
 		dev_dbg_ratelimited(hdev->dev, "Encapsulation ID %d is not allocated\n", id);
 		rc = -EINVAL;
 		goto out;
 	}
 
-	if (idr_pdata->is_set) {
-		port_funcs->encap_unset(nic_port, id, idr_pdata);
+	if (xa_pdata->is_set) {
+		port_funcs->encap_unset(nic_port, id, xa_pdata);
 
-		if (idr_pdata->encap_type != HL_NIC_ENCAP_NONE)
-			kfree(idr_pdata->encap_header);
+		if (xa_pdata->encap_type != HL_NIC_ENCAP_NONE)
+			kfree(xa_pdata->encap_header);
 	}
 
-	idr_remove(&nic_port->encap_ids, id);
-	kfree(idr_pdata);
+	xa_erase(&nic_port->encap_ids, id);
+	kfree(xa_pdata);
 
 out:
 	port_funcs->cfg_unlock(nic_port);
@@ -5270,10 +5278,10 @@ static void nic_port_sw_fini(struct hl_nic_port *nic_port)
 
 	nic_funcs->port_funcs->port_sw_fini(nic_port);
 
-	idr_destroy(&nic_port->cq_ids);
-	idr_destroy(&nic_port->encap_ids);
-	idr_destroy(&nic_port->db_fifo_ids);
-	idr_destroy(&nic_port->qp_ids);
+	xa_destroy(&nic_port->cq_ids);
+	xa_destroy(&nic_port->encap_ids);
+	xa_destroy(&nic_port->db_fifo_ids);
+	xa_destroy(&nic_port->qp_ids);
 
 	mutex_destroy(&nic_port->cnt_lock);
 	mutex_destroy(&nic_port->control_lock);
@@ -5363,10 +5371,10 @@ static int nic_port_sw_init(struct hl_nic_port *nic_port)
 	mutex_init(&nic_port->control_lock);
 	mutex_init(&nic_port->cnt_lock);
 
-	idr_init(&nic_port->qp_ids);
-	idr_init(&nic_port->db_fifo_ids);
-	idr_init(&nic_port->encap_ids);
-	idr_init(&nic_port->cq_ids);
+	xa_init_flags(&nic_port->qp_ids, XA_FLAGS_ALLOC);
+	xa_init_flags(&nic_port->db_fifo_ids, XA_FLAGS_ALLOC);
+	xa_init_flags(&nic_port->encap_ids, XA_FLAGS_ALLOC);
+	xa_init_flags(&nic_port->cq_ids, XA_FLAGS_ALLOC);
 
 	INIT_DELAYED_WORK(&nic_port->nic_status_work, nic_status_work);
 	INIT_DELAYED_WORK(&nic_port->link_status_work, port_funcs->phy_link_status_work);
@@ -5386,10 +5394,10 @@ static int nic_port_sw_init(struct hl_nic_port *nic_port)
 	return 0;
 
 sw_init_err:
-	idr_destroy(&nic_port->cq_ids);
-	idr_destroy(&nic_port->encap_ids);
-	idr_destroy(&nic_port->db_fifo_ids);
-	idr_destroy(&nic_port->qp_ids);
+	xa_destroy(&nic_port->cq_ids);
+	xa_destroy(&nic_port->encap_ids);
+	xa_destroy(&nic_port->db_fifo_ids);
+	xa_destroy(&nic_port->qp_ids);
 
 	mutex_destroy(&nic_port->cnt_lock);
 	mutex_destroy(&nic_port->control_lock);
@@ -5406,12 +5414,12 @@ qp_wq_err:
 
 static void nic_coll_props_init(struct hl_coll_properties *coll_props)
 {
-	idr_init(&coll_props[HL_NIC_COLL_CONN_TYPE_NON_SCALE_OUT].coll_qp_ids);
+	xa_init_flags(&coll_props[HL_NIC_COLL_CONN_TYPE_NON_SCALE_OUT].coll_qp_ids, XA_FLAGS_ALLOC);
 	atomic_set(&coll_props[HL_NIC_COLL_CONN_TYPE_NON_SCALE_OUT].num_of_coll_wq_arrays, 0);
 	coll_props[HL_NIC_COLL_CONN_TYPE_NON_SCALE_OUT].swq_type = HL_NIC_USER_COLL_WQ_SEND;
 	coll_props[HL_NIC_COLL_CONN_TYPE_NON_SCALE_OUT].rwq_type = HL_NIC_USER_COLL_WQ_RECV;
 
-	idr_init(&coll_props[HL_NIC_COLL_CONN_TYPE_SCALE_OUT].coll_qp_ids);
+	xa_init_flags(&coll_props[HL_NIC_COLL_CONN_TYPE_SCALE_OUT].coll_qp_ids, XA_FLAGS_ALLOC);
 	atomic_set(&coll_props[HL_NIC_COLL_CONN_TYPE_SCALE_OUT].num_of_coll_wq_arrays, 0);
 	coll_props[HL_NIC_COLL_CONN_TYPE_SCALE_OUT].swq_type = HL_NIC_USER_COLL_SCALE_OUT_WQ_SEND;
 	coll_props[HL_NIC_COLL_CONN_TYPE_SCALE_OUT].rwq_type = HL_NIC_USER_COLL_SCALE_OUT_WQ_RECV;
@@ -5419,8 +5427,8 @@ static void nic_coll_props_init(struct hl_coll_properties *coll_props)
 
 static void nic_coll_props_fini(struct hl_coll_properties *coll_props)
 {
-	idr_destroy(&coll_props[HL_NIC_COLL_CONN_TYPE_NON_SCALE_OUT].coll_qp_ids);
-	idr_destroy(&coll_props[HL_NIC_COLL_CONN_TYPE_SCALE_OUT].coll_qp_ids);
+	xa_destroy(&coll_props[HL_NIC_COLL_CONN_TYPE_NON_SCALE_OUT].coll_qp_ids);
+	xa_destroy(&coll_props[HL_NIC_COLL_CONN_TYPE_SCALE_OUT].coll_qp_ids);
 }
 
 static int nic_macro_sw_init(struct hl_nic_macro *nic_macro)

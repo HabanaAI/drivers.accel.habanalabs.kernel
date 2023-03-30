@@ -132,21 +132,21 @@ release_mem:
 static struct hl_nic_mem_buf *nic_mem_buf_alloc(struct hl_ctx *ctx, gfp_t gfp,
 						struct hl_nic_mem_data *mem_data)
 {
+	struct xa_limit id_limit = XA_LIMIT(1, INT_MAX);
 	struct hl_nic_ctx *nic_ctx = &ctx->nic_ctx;
 	struct hl_device *hdev = ctx->hdev;
 	struct hl_nic_mem_buf *buf;
 	int rc;
+	u32 id;
 
 	buf = kzalloc(sizeof(*buf), gfp);
 	if (!buf)
 		return NULL;
 
-	mutex_lock(&nic_ctx->mem_idr_lock);
-	rc = idr_alloc(&nic_ctx->mem_ids, buf, 1, 0, GFP_ATOMIC);
-	mutex_unlock(&nic_ctx->mem_idr_lock);
-	if (rc < 0) {
+	rc = xa_alloc(&nic_ctx->mem_ids, &id, buf, id_limit, GFP_ATOMIC);
+	if (rc) {
 		dev_err(hdev->dev,
-			"Failed to allocate IDR for a new NIC buffer, rc=%d\n", rc);
+			"Failed to allocate xarray for a new NIC buffer, rc=%d\n", rc);
 		goto free_buf;
 	}
 
@@ -154,19 +154,17 @@ static struct hl_nic_mem_buf *nic_mem_buf_alloc(struct hl_ctx *ctx, gfp_t gfp,
 	buf->ctx = ctx;
 	buf->mem_id = mem_data->mem_id;
 
-	buf->handle = (((u64) rc | HL_MMAP_TYPE_NIC_MEM) << PAGE_SHIFT);
+	buf->handle = (((u64) id | HL_MMAP_TYPE_NIC_MEM) << PAGE_SHIFT);
 	kref_init(&buf->refcount);
 
 	rc = __nic_mem_buf_alloc(buf, gfp, mem_data);
 	if (rc)
-		goto remove_idr;
+		goto remove_xa;
 
 	return buf;
 
-remove_idr:
-	mutex_lock(&nic_ctx->mem_idr_lock);
-	idr_remove(&nic_ctx->mem_ids, lower_32_bits(buf->handle >> PAGE_SHIFT));
-	mutex_unlock(&nic_ctx->mem_idr_lock);
+remove_xa:
+	xa_erase(&nic_ctx->mem_ids, lower_32_bits(buf->handle >> PAGE_SHIFT));
 free_buf:
 	kfree(buf);
 	return NULL;
@@ -302,7 +300,7 @@ int hl_nic_mem_mmap(struct hl_ctx *ctx, struct vm_area_struct *vma)
 
 	hdev = ctx->hdev;
 
-	/* We use the page offset to hold the idr and thus we need to clear
+	/* We use the page offset to hold the xarray and thus we need to clear
 	 * it before doing the mmap itself
 	 */
 	handle = vma->vm_pgoff << PAGE_SHIFT;
@@ -371,9 +369,7 @@ static void nic_mem_buf_release(struct kref *kref)
 	struct hl_nic_mem_buf *buf = container_of(kref, struct hl_nic_mem_buf, refcount);
 	struct hl_nic_ctx *nic_ctx = &buf->ctx->nic_ctx;
 
-	mutex_lock(&nic_ctx->mem_idr_lock);
-	idr_remove(&nic_ctx->mem_ids, lower_32_bits(buf->handle >> PAGE_SHIFT));
-	mutex_unlock(&nic_ctx->mem_idr_lock);
+	xa_erase(&nic_ctx->mem_ids, lower_32_bits(buf->handle >> PAGE_SHIFT));
 
 	nic_mem_buf_destroy(buf);
 }
@@ -383,16 +379,16 @@ struct hl_nic_mem_buf *hl_nic_mem_buf_get(struct hl_ctx *ctx, u64 handle)
 	struct hl_nic_ctx *nic_ctx = &ctx->nic_ctx;
 	struct hl_nic_mem_buf *buf;
 
-	mutex_lock(&nic_ctx->mem_idr_lock);
-	buf = idr_find(&nic_ctx->mem_ids, lower_32_bits(handle >> PAGE_SHIFT));
+	xa_lock(&nic_ctx->mem_ids);
+	buf = xa_load(&nic_ctx->mem_ids, lower_32_bits(handle >> PAGE_SHIFT));
 	if (!buf) {
-		mutex_unlock(&nic_ctx->mem_idr_lock);
+		xa_unlock(&nic_ctx->mem_ids);
 		dev_dbg(ctx->hdev->dev, "Buff get failed, no match to handle %#llx\n", handle);
 		return NULL;
 	}
 
 	kref_get(&buf->refcount);
-	mutex_unlock(&nic_ctx->mem_idr_lock);
+	xa_unlock(&nic_ctx->mem_ids);
 
 	return buf;
 }
@@ -402,11 +398,11 @@ int hl_nic_mem_buf_put(struct hl_nic_mem_buf *buf)
 	return kref_put(&buf->refcount, nic_mem_buf_release);
 }
 
-static void nic_mem_buf_remove_idr_locked(struct kref *kref)
+static void nic_mem_buf_remove_xa_locked(struct kref *kref)
 {
 	struct hl_nic_mem_buf *buf = container_of(kref, struct hl_nic_mem_buf, refcount);
 
-	idr_remove(&buf->ctx->nic_ctx.mem_ids, lower_32_bits(buf->handle >> PAGE_SHIFT));
+	__xa_erase(&buf->ctx->nic_ctx.mem_ids, lower_32_bits(buf->handle >> PAGE_SHIFT));
 }
 
 int hl_nic_mem_buf_put_handle(struct hl_ctx *ctx, u64 handle)
@@ -414,21 +410,21 @@ int hl_nic_mem_buf_put_handle(struct hl_ctx *ctx, u64 handle)
 	struct hl_nic_ctx *nic_ctx = &ctx->nic_ctx;
 	struct hl_nic_mem_buf *buf;
 
-	mutex_lock(&nic_ctx->mem_idr_lock);
-	buf = idr_find(&nic_ctx->mem_ids, lower_32_bits(handle >> PAGE_SHIFT));
+	xa_lock(&nic_ctx->mem_ids);
+	buf = xa_load(&nic_ctx->mem_ids, lower_32_bits(handle >> PAGE_SHIFT));
 	if (!buf) {
-		mutex_unlock(&nic_ctx->mem_idr_lock);
+		xa_unlock(&nic_ctx->mem_ids);
 		dev_dbg(ctx->hdev->dev, "Buff put failed, no match to handle %#llx\n", handle);
 		return -EINVAL;
 	}
 
-	if (kref_put(&buf->refcount, nic_mem_buf_remove_idr_locked)) {
-		mutex_unlock(&nic_ctx->mem_idr_lock);
+	if (kref_put(&buf->refcount, nic_mem_buf_remove_xa_locked)) {
+		xa_unlock(&nic_ctx->mem_ids);
 		nic_mem_buf_destroy(buf);
 		return 1;
 	}
 
-	mutex_unlock(&nic_ctx->mem_idr_lock);
+	xa_unlock(&nic_ctx->mem_ids);
 	return 0;
 }
 
@@ -436,20 +432,18 @@ void hl_nic_mem_init(struct hl_ctx *ctx)
 {
 	struct hl_nic_ctx *nic_ctx = &ctx->nic_ctx;
 
-	idr_init(&nic_ctx->mem_ids);
-	mutex_init(&nic_ctx->mem_idr_lock);
+	xa_init_flags(&nic_ctx->mem_ids, XA_FLAGS_ALLOC);
 }
 
 void hl_nic_mem_fini(struct hl_ctx *ctx)
 {
 	struct hl_nic_ctx *nic_ctx = &ctx->nic_ctx;
-	struct idr *mem_ids;
+	struct xarray *mem_ids;
 
 	mem_ids = &nic_ctx->mem_ids;
 
-	if (!idr_is_empty(mem_ids))
+	if (!xa_empty(mem_ids))
 		dev_crit(ctx->hdev->dev, "NIC memory manager IDR is destroyed while it is not empty!\n");
 
-	idr_destroy(mem_ids);
-	mutex_destroy(&nic_ctx->mem_idr_lock);
+	xa_destroy(mem_ids);
 }

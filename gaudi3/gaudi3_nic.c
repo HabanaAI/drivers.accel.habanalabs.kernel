@@ -122,7 +122,7 @@
 #define RX_DROP_ECO_DCAP_UNSET_MASK	0xFFFF
 
 static int gaudi3_encap_set(struct hl_nic_port *nic_port, u32 encap_id,
-				struct hl_nic_encap_idr_pdata *idr_pdata);
+				struct hl_nic_encap_xarray_pdata *xa_pdata);
 
 static u8 db_fifo_sw_to_hw_map[] = {
 	[HL_NIC_DB_FIFO_TYPE_DB] = DB_FIFO_TYPE_DOORBELL,
@@ -600,14 +600,14 @@ static int gaudi3_nic_set_pfc(struct hl_nic_port *nic_port)
 }
 
 static int gaudi3_db_fifo_allocate(struct hl_nic_port *nic_port,
-				struct hl_nic_db_fifo_idr_pdata *idr_pdata)
+				struct hl_nic_db_fifo_xarray_pdata *xa_pdata)
 {
 	struct gaudi3_nic_macro *gaudi3_macro = nic_port->nic_macro->asic_priv;
 	struct hl_device *hdev = nic_port->hdev;
 	u64 gen_pool_offset;
 	u32 fifo_size;
 
-	switch (idr_pdata->fifo_mode) {
+	switch (xa_pdata->fifo_mode) {
 	case HL_NIC_DB_FIFO_TYPE_DB:
 		fifo_size = DB_FIFO_RDMA_SIZE;
 		break;
@@ -642,7 +642,7 @@ static int gaudi3_db_fifo_allocate(struct hl_nic_port *nic_port,
 
 	default:
 		dev_dbg(hdev->dev, "Invalid DB fifo mode: %d. Allocation failed\n",
-									idr_pdata->fifo_mode);
+									xa_pdata->fifo_mode);
 		return -EINVAL;
 	}
 
@@ -650,9 +650,9 @@ static int gaudi3_db_fifo_allocate(struct hl_nic_port *nic_port,
 	if (!gen_pool_offset)
 		return -ENOMEM;
 
-	idr_pdata->db_pool_addr = gen_pool_offset;
-	idr_pdata->fifo_offset = gen_pool_offset - gaudi3_macro->db_fifo_start_addr;
-	idr_pdata->fifo_size = fifo_size;
+	xa_pdata->db_pool_addr = gen_pool_offset;
+	xa_pdata->fifo_offset = gen_pool_offset - gaudi3_macro->db_fifo_start_addr;
+	xa_pdata->fifo_size = fifo_size;
 
 	return 0;
 }
@@ -2372,7 +2372,7 @@ static int get_src_ip(struct hl_nic_port *nic_port, u32 *src_ip)
 
 static void gaudi3_set_ip_addr_encap(struct hl_nic_port *nic_port, u32 *encap_id, u32 src_ip)
 {
-	struct hl_nic_encap_idr_pdata encap_data;
+	struct hl_nic_encap_xarray_pdata encap_data;
 	uint8_t dummy_hdr[NIC_MAX_TNL_HDR_SIZE] = {};
 
 	gaudi3_get_default_encap_id(nic_port, encap_id);
@@ -2786,7 +2786,7 @@ static int gaudi3_nic_set_res_qp_ctx(struct hl_device *hdev,
 
 		peer_qp = qp->is_coll ?
 				hl_nic_get_qp_from_coll_conn_id(nic_port, in->conn_peer) :
-				idr_find(&nic_port->qp_ids, in->conn_peer);
+				xa_load(&nic_port->qp_ids, in->conn_peer);
 
 		if (IS_ERR_OR_NULL(peer_qp)) {
 			dev_dbg(hdev->dev, "conn_peer %d is invalid, port %d\n",
@@ -4466,7 +4466,7 @@ static int gaudi3_eq_poll(struct hl_nic_port *nic_port, u32 asid, struct hl_nic_
 	return 0;
 }
 
-static u32 gaudi3_db_fifo_update_freq(struct hl_nic_db_fifo_idr_pdata *idr_pdata,
+static u32 gaudi3_db_fifo_update_freq(struct hl_nic_db_fifo_xarray_pdata *xa_pdata,
 					enum hl_nic_db_fifo_type fifo_type)
 {
 	u32 fifo_update_freq;
@@ -4487,7 +4487,7 @@ static u32 gaudi3_db_fifo_update_freq(struct hl_nic_db_fifo_idr_pdata *idr_pdata
 	case HL_NIC_DB_FIFO_TYPE_COLL_OPS_LONG:
 	case HL_NIC_DB_FIFO_TYPE_COLL_DIR_OPS_SHORT:
 	case HL_NIC_DB_FIFO_TYPE_COLL_DIR_OPS_LONG:
-		fifo_update_freq = idr_pdata->fifo_size / 2;
+		fifo_update_freq = xa_pdata->fifo_size / 2;
 		break;
 
 	default:
@@ -4573,7 +4573,7 @@ static int validate_dir_dup_mask(struct hl_device *hdev, int port, u8 *direct_po
 }
 
 static int gaudi3_db_fifo_set(struct hl_nic_port *nic_port, struct hl_ctx *ctx, u32 id,
-			u64 ci_device_handle, struct hl_nic_db_fifo_idr_pdata *idr_pdata)
+			u64 ci_device_handle, struct hl_nic_db_fifo_xarray_pdata *xa_pdata)
 {
 	struct gaudi3_nic_port *gaudi3_nic = nic_port->nic_specific;
 	struct hl_device *hdev = nic_port->hdev;
@@ -4585,9 +4585,9 @@ static int gaudi3_db_fifo_set(struct hl_nic_port *nic_port, struct hl_ctx *ctx, 
 	bool is_coll_op;
 
 	mmu_bypass = !!(!hdev->mmu_enable || hdev->nic.mmu_bypass);
-	db_type = db_fifo_sw_to_hw_map[idr_pdata->fifo_mode];
-	fifo_offset = idr_pdata->fifo_offset / sizeof(u32);
-	size = ilog2((idr_pdata->fifo_size) / sizeof(u32));
+	db_type = db_fifo_sw_to_hw_map[xa_pdata->fifo_mode];
+	fifo_offset = xa_pdata->fifo_offset / sizeof(u32);
+	size = ilog2((xa_pdata->fifo_size) / sizeof(u32));
 	is_coll_op = (db_type == DB_FIFO_TYPE_DIRECT_PATCHER) ||
 			(db_type == DB_FIFO_TYPE_SCHEDULER_DESC);
 
@@ -4595,7 +4595,7 @@ static int gaudi3_db_fifo_set(struct hl_nic_port *nic_port, struct hl_ctx *ctx, 
 	 * that the user provided. Hence, we need to verify its value because the HW will
 	 * access the address that is based on this offset.
 	 */
-	if (idr_pdata->num_sobs) {
+	if (xa_pdata->num_sobs) {
 		bool found = false;
 		u64 base, ci_device_handle_offset = lower_32_bits(ci_device_handle);
 		int i;
@@ -4626,7 +4626,7 @@ static int gaudi3_db_fifo_set(struct hl_nic_port *nic_port, struct hl_ctx *ctx, 
 
 	/* validate the dir_dup_ports_mask */
 	if (db_type == DB_FIFO_TYPE_DIRECT_PATCHER) {
-		rc = validate_dir_dup_mask(hdev, port, &idr_pdata->dir_dup_ports_mask);
+		rc = validate_dir_dup_mask(hdev, port, &xa_pdata->dir_dup_ports_mask);
 		if (rc)
 			return rc;
 	}
@@ -4641,7 +4641,7 @@ static int gaudi3_db_fifo_set(struct hl_nic_port *nic_port, struct hl_ctx *ctx, 
 	 *
 	 * SW-67924: Manage all EQs.
 	 */
-	msg_freq = gaudi3_db_fifo_update_freq(idr_pdata, idr_pdata->fifo_mode);
+	msg_freq = gaudi3_db_fifo_update_freq(xa_pdata, xa_pdata->fifo_mode);
 
 	val = ctx->asid;
 	val |= mmu_bypass << NIC_QPC_DB_FIFO_CFG_MMU_BP_S;
@@ -4654,7 +4654,7 @@ static int gaudi3_db_fifo_set(struct hl_nic_port *nic_port, struct hl_ctx *ctx, 
 	 * and source data from DUP interface. Hence, piggyback on SOB for DUP
 	 * interface enablement.
 	 */
-	if (is_coll_op && idr_pdata->num_sobs) {
+	if (is_coll_op && xa_pdata->num_sobs) {
 		NIC_RMWREG32(mmD0_NIC0_QPC_BASE + mmNIC_QPC_DB_FIFO_DUP_EN, 1, 1 << id);
 		val |= DB_FIFO_SRC_DUP << NIC_QPC_DB_FIFO_CFG_DB_SOURCE_S;
 	}
@@ -4663,16 +4663,16 @@ static int gaudi3_db_fifo_set(struct hl_nic_port *nic_port, struct hl_ctx *ctx, 
 	 * 0: Update sync objects.
 	 * 1: Update memory.
 	 */
-	if (!idr_pdata->num_sobs) {
+	if (!xa_pdata->num_sobs) {
 		val |= 1 << NIC_QPC_DB_FIFO_CFG_UPDATE_MSG_TYPE_S;
 	} else {
-		__val = ilog2(idr_pdata->num_sobs) &
+		__val = ilog2(xa_pdata->num_sobs) &
 			(NIC_QPC_DB_FIFO_CFG_L2_UPDATE_NUM_OF_SOB_M >>
 			NIC_QPC_DB_FIFO_CFG_L2_UPDATE_NUM_OF_SOB_S);
 
-		if (ilog2(idr_pdata->num_sobs) > __val)
+		if (ilog2(xa_pdata->num_sobs) > __val)
 			dev_warn_ratelimited(hdev->dev, "Truncating number of SOBs %d -> %d",
-						idr_pdata->num_sobs, 1 << __val);
+						xa_pdata->num_sobs, 1 << __val);
 
 		val |= __val << NIC_QPC_DB_FIFO_CFG_L2_UPDATE_NUM_OF_SOB_S;
 	}
@@ -4697,7 +4697,7 @@ static int gaudi3_db_fifo_set(struct hl_nic_port *nic_port, struct hl_ctx *ctx, 
 	NIC_OFFSET_WREG32(mmD0_NIC0_QPC_BASE + mmNIC_QPC_DB_FIFO_CFG2_0,
 			(fifo_offset << NIC_QPC_DB_FIFO_CFG2_FIFO_OFFSET_S) |
 			(size << NIC_QPC_DB_FIFO_CFG2_FIFO_L2_SIZE_S) |
-			(idr_pdata->dir_dup_ports_mask <<
+			(xa_pdata->dir_dup_ports_mask <<
 					 NIC_QPC_DB_FIFO_CFG2_DIRECT_PORT_EN_S));
 
 	/* TODO SW-71143: Set security per DB type. */
@@ -4708,7 +4708,7 @@ static int gaudi3_db_fifo_set(struct hl_nic_port *nic_port, struct hl_ctx *ctx, 
 }
 
 static void gaudi3_db_fifo_unset(struct hl_nic_port *nic_port, struct hl_ctx *ctx, u32 id,
-					struct hl_nic_db_fifo_idr_pdata *idr_pdata)
+					struct hl_nic_db_fifo_xarray_pdata *xa_pdata)
 {
 	struct hl_device *hdev = nic_port->hdev;
 	u32 port = nic_port->port, offset = id;
@@ -4717,13 +4717,13 @@ static void gaudi3_db_fifo_unset(struct hl_nic_port *nic_port, struct hl_ctx *ct
 	/* Reset DB fifo consumer index.
 	 * Note, CI could be sync objects or memory buffer.
 	 */
-	if (idr_pdata->num_sobs) {
+	if (xa_pdata->num_sobs) {
 		rc = db_fifo_reset(hdev, port, offset);
 		if (rc)
 			dev_dbg_ratelimited(hdev->dev,
 				"Port %d user DB fifo %d SOB reset timed out, %d\n", port, id, rc);
 	} else {
-		gaudi3_nic_db_fifo_reset(nic_port, ctx, id, idr_pdata->ci_mmap_handle);
+		gaudi3_nic_db_fifo_reset(nic_port, ctx, id, xa_pdata->ci_mmap_handle);
 	}
 
 	/* Zero out HW CI buffer address register for added safety */
@@ -4768,10 +4768,10 @@ static void gaudi3_get_encap_id_range(struct hl_nic_port *nic_port, u32 *min_id,
 }
 
 static int gaudi3_encap_set(struct hl_nic_port *nic_port, u32 encap_id,
-				struct hl_nic_encap_idr_pdata *idr_pdata)
+				struct hl_nic_encap_xarray_pdata *xa_pdata)
 {
 	struct gaudi3_nic_port *gaudi3_nic = nic_port->nic_specific;
-	u32 port = nic_port->port, *encap_header = idr_pdata->encap_header, offset = encap_id,
+	u32 port = nic_port->port, *encap_header = xa_pdata->encap_header, offset = encap_id,
 		encap_cfg = 0, decap_cfg = 0, port_offset;
 	struct hl_device *hdev = nic_port->hdev;
 	u32 encap_hdr_offset = mmNIC_TXE_ENCAP_DATA_63_32_0 - mmNIC_TXE_ENCAP_DATA_31_0_0;
@@ -4782,40 +4782,40 @@ static int gaudi3_encap_set(struct hl_nic_port *nic_port, u32 encap_id,
 							mmNIC_TXE_SOURCE_IP_PORT0_0);
 
 	NIC_OFFSET_WREG32(mmD0_NIC0_TXE_BASE + mmNIC_TXE_SOURCE_IP_PORT0_0 + port_offset,
-						idr_pdata->src_ip);
+						xa_pdata->src_ip);
 
-	encap_cfg |= (idr_pdata->encap_type_data <<
+	encap_cfg |= (xa_pdata->encap_type_data <<
 				NIC_TXE_ENCAP_CFG_IPV4_PROTOCOL_UDP_DEST_S) &
 				NIC_TXE_ENCAP_CFG_IPV4_PROTOCOL_UDP_DEST_M;
 
-	if (idr_pdata->encap_type == HL_NIC_ENCAP_NONE) {
+	if (xa_pdata->encap_type == HL_NIC_ENCAP_NONE) {
 		NIC_OFFSET_WREG32(mmD0_NIC0_TXE_BASE + mmNIC_TXE_ENCAP_CFG_0, encap_cfg);
 		return 0;
 	}
 
-	if (!IS_ALIGNED(idr_pdata->encap_header_size, sizeof(u32))) {
+	if (!IS_ALIGNED(xa_pdata->encap_header_size, sizeof(u32))) {
 		dev_err(hdev->dev, "Encap header size(%d) must be a multiple of %ld\n",
-			idr_pdata->encap_header_size, sizeof(u32));
+			xa_pdata->encap_header_size, sizeof(u32));
 		return -EINVAL;
 	}
 
-	hdr_size = idr_pdata->encap_header_size / sizeof(u32);
+	hdr_size = xa_pdata->encap_header_size / sizeof(u32);
 	encap_cfg |= (hdr_size << NIC_TXE_ENCAP_CFG_ENCAP_SIZE_S) &
 			NIC_TXE_ENCAP_CFG_ENCAP_SIZE_M;
 
-	if (idr_pdata->encap_type == HL_NIC_ENCAP_OVER_UDP) {
+	if (xa_pdata->encap_type == HL_NIC_ENCAP_OVER_UDP) {
 		encap_cfg |= BIT(NIC_TXE_ENCAP_CFG_HDR_FORMAT_S);
 
 		if (!hdev->nic.is_decap_disabled)
 			decap_cfg |= BIT(NIC_RXB_CORE_PRT_TNL_DECAP_ENTRY_VALID_UDP_S);
 
-	} else if (idr_pdata->encap_type == HL_NIC_ENCAP_OVER_IPV4) {
+	} else if (xa_pdata->encap_type == HL_NIC_ENCAP_OVER_IPV4) {
 		if (!hdev->nic.is_decap_disabled)
 			decap_cfg |= BIT(NIC_RXB_CORE_PRT_TNL_DECAP_ENTRY_VALID_IPV4_S);
 	}
 
 	if (!hdev->nic.is_decap_disabled) {
-		decap_cfg |= (idr_pdata->encap_type_data <<
+		decap_cfg |= (xa_pdata->encap_type_data <<
 					NIC_RXB_CORE_PRT_TNL_DECAP_ENTRY_NEXT_HDR_TUNNEL_S) &
 					NIC_RXB_CORE_PRT_TNL_DECAP_ENTRY_NEXT_HDR_TUNNEL_M;
 
@@ -4827,7 +4827,7 @@ static int gaudi3_encap_set(struct hl_nic_port *nic_port, u32 encap_id,
 	 * Encapsulation header is already aligned to 32 bits. Hence, it's
 	 * safe to access it in chunks of 4 bytes.
 	 */
-	for (i = 0 ; i * sizeof(u32) < idr_pdata->encap_header_size ; i++)
+	for (i = 0 ; i * sizeof(u32) < xa_pdata->encap_header_size ; i++)
 		NIC_OFFSET_WREG32(
 			mmD0_NIC0_TXE_BASE + mmNIC_TXE_ENCAP_DATA_31_0_0 + encap_hdr_offset * i,
 					encap_header[i]);
@@ -4860,7 +4860,7 @@ static int gaudi3_encap_set(struct hl_nic_port *nic_port, u32 encap_id,
 }
 
 static void gaudi3_encap_unset(struct hl_nic_port *nic_port, u32 encap_id,
-				struct hl_nic_encap_idr_pdata *idr_pdata)
+				struct hl_nic_encap_xarray_pdata *xa_pdata)
 {
 	struct gaudi3_nic_port *gaudi3_nic = nic_port->nic_specific;
 	u32 port = nic_port->port, offset = encap_id, port_offset;
@@ -4877,7 +4877,7 @@ static void gaudi3_encap_unset(struct hl_nic_port *nic_port, u32 encap_id,
 
 	NIC_OFFSET_WREG32(mmD0_NIC0_RXB_CORE_PRT_BASE + mmNIC_RXB_CORE_PRT_TNL_DECAP_ENTRY_0, 0);
 
-	for (i = 0 ; i * sizeof(u32) < idr_pdata->encap_header_size ; i++)
+	for (i = 0 ; i * sizeof(u32) < xa_pdata->encap_header_size ; i++)
 		NIC_OFFSET_WREG32(mmD0_NIC0_TXE_BASE + mmNIC_TXE_ENCAP_DATA_31_0_0 +
 						encap_hdr_offset * i, 0);
 }
@@ -5368,7 +5368,7 @@ bool is_coll_qp_in_reset(struct hl_nic_port *nic_port, u32 qpn)
 		(coll_qp_id >= (GAUDI3_MIN_COLL_QP_ID + NIC_MAX_NON_SCALE_OUT_COLL_CONNS)) ?
 		HL_NIC_COLL_CONN_TYPE_SCALE_OUT : HL_NIC_COLL_CONN_TYPE_NON_SCALE_OUT;
 
-	coll_qp = idr_find(&nic->coll_props[coll_conn_type].coll_qp_ids, coll_qp_id);
+	coll_qp = xa_load(&nic->coll_props[coll_conn_type].coll_qp_ids, coll_qp_id);
 	if (IS_ERR_OR_NULL(coll_qp)) {
 		dev_dbg(hdev->dev,
 			"Failed to find matching collective QP %u, port %u\n",

@@ -354,8 +354,8 @@ enum db_fifo_state {
 };
 
 /**
- * struct hl_nic_db_fifo_idr_pdata - Holds private data of
- *                                   userspace doorbell idr
+ * struct hl_nic_db_fifo_xarray_pdata - Holds private data of
+ *                                   userspace doorbell xarray
  * @asid: Associated user context
  * @port: NIC specific port
  * @ci_mmap_handle: Consumer index mmap handle
@@ -369,7 +369,7 @@ enum db_fifo_state {
  * @num_sobs: Number of sync objects for collective operations.
  * @fifo_mode: mode of the fifo as received in the IOCTL
  */
-struct hl_nic_db_fifo_idr_pdata {
+struct hl_nic_db_fifo_xarray_pdata {
 	u32			asid;
 	u32			port;
 	u64			ci_mmap_handle;
@@ -386,8 +386,8 @@ struct hl_nic_db_fifo_idr_pdata {
 };
 
 /**
- * struct hl_nic_encap_idr_pdata - Holds private data of
- *                                 userspace encapsulation idr
+ * struct hl_nic_encap_xarray_pdata - Holds private data of
+ *                                 userspace encapsulation xarray
  * @port: NIC specific port
  * @id: Encapsulation ID
  * @src_ip: Source port IPv4 address.
@@ -397,7 +397,7 @@ struct hl_nic_db_fifo_idr_pdata {
  * @encap_header_size: Encapsulation header size
  * @is_set: True if encap was set, false otherwise
  */
-struct hl_nic_encap_idr_pdata {
+struct hl_nic_encap_xarray_pdata {
 	u32			port;
 	u32			id;
 	u32			src_ip;
@@ -535,9 +535,9 @@ enum hl_nic_status_cmd {
  *                parallel (such as event handling).
  * @cnt_lock: protects the counters from concurrent reading. Needed for SPMU and
  *            XPCS91 counters.
- * @qp_ids: IDR to hold all QP IDs.
+ * @qp_ids: xarray to hold all QP IDs.
  * @db_fifo_ids: Allocated doorbell fifo IDs.
- * @cq_ids: IDR to hold all CQ IDs.
+ * @cq_ids: xarray to hold all CQ IDs.
  * @encap_ids: Allocated encapsulation IDs.
  * @pcs_fail_fifo: queue for keeping the PCS link failures time stamps in order
  *                 to reconfigure F/W if needed.
@@ -620,10 +620,10 @@ struct hl_nic_port {
 	struct delayed_work		nic_status_work;
 	struct mutex			control_lock;
 	struct mutex			cnt_lock;
-	struct idr			qp_ids;
-	struct idr			db_fifo_ids;
-	struct idr			cq_ids;
-	struct idr			encap_ids;
+	struct xarray			qp_ids;
+	struct xarray			db_fifo_ids;
+	struct xarray			cq_ids;
+	struct xarray			encap_ids;
 	struct kfifo			pcs_fail_fifo;
 	struct hl_nic_eqe		link_eqe;
 	ktime_t				last_fw_tuning_ts;
@@ -708,18 +708,16 @@ struct hl_nic_mem_buf {
 /**
  * struct hl_nic_ctx - habanalabs NIC context common structure.
  * @wq_arrays_pool: memory pool for WQ arrays on HBM.
- * @mem_ids: an idr holding all active memory handles.
- * @mem_idr_lock: lock to protect parallel accesses to the mem idr.
+ * @mem_ids: an xarray holding all active memory handles.
  */
 struct hl_nic_ctx {
 	struct gen_pool		*wq_arrays_pool;
-	struct idr		mem_ids;
-	struct mutex		mem_idr_lock;
+	struct xarray		mem_ids;
 };
 
 /**
  * struct hl_coll_properties - collective properties.
- * @coll_qp_ids: IDR to hold all collective QP IDs.
+ * @coll_qp_ids: xarray to hold all collective QP IDs.
  * @num_of_coll_wq_arrays: number of allocated collective WQ arrays (each port will have two).
  * @num_of_coll_wqs: number of configured collective WQs.
  * @num_of_coll_wq_entries: number of entries configured per collective WQ.
@@ -727,7 +725,7 @@ struct hl_nic_ctx {
  * @rwq_type: the type of receive work-queue array.
  */
 struct hl_coll_properties {
-	struct idr		coll_qp_ids;
+	struct xarray		coll_qp_ids;
 	atomic_t		num_of_coll_wq_arrays;
 	u32			num_of_coll_wqs;
 	u32			num_of_coll_wq_entries;
@@ -1261,21 +1259,21 @@ struct hl_nic_port_funcs {
 			const struct hl_nic_eqe *eqe);
 	void (*get_db_fifo_id_range)(struct hl_nic_port *nic_port, u32 *min_id, u32 *max_id);
 	int (*db_fifo_set)(struct hl_nic_port *nic_port, struct hl_ctx *ctx, u32 id,
-				u64 ci_device_handle, struct hl_nic_db_fifo_idr_pdata *idr_pdata);
+			u64 ci_device_handle, struct hl_nic_db_fifo_xarray_pdata *xa_pdata);
 	void (*db_fifo_unset)(struct hl_nic_port *nic_port, struct hl_ctx *ctx, u32 id,
-				struct hl_nic_db_fifo_idr_pdata *idr_pdata);
+				struct hl_nic_db_fifo_xarray_pdata *xa_pdata);
 	void (*get_db_fifo_umr)(struct hl_nic_port *nic_port, u32 id,
 				u64 *umr_block_addr, u32 *umr_db_offset);
 	void (*get_db_fifo_modes_mask)(struct hl_nic_port *nic_port, u32 *mode_mask);
 	int (*db_fifo_allocate)(struct hl_nic_port *nic_port,
-				struct hl_nic_db_fifo_idr_pdata *idr_pdata);
+				struct hl_nic_db_fifo_xarray_pdata *xa_pdata);
 	void (*db_fifo_free)(struct hl_nic_port *nic_port, u32 db_pool_addr, u32 fifo_size);
 	int (*set_pfc)(struct hl_nic_port *nic_port);
 	void (*get_encap_id_range)(struct hl_nic_port *nic_port, u32 *min_id, u32 *max_id);
 	int (*encap_set)(struct hl_nic_port *nic_port, u32 encap_id,
-				struct hl_nic_encap_idr_pdata *idr_pdata);
+				struct hl_nic_encap_xarray_pdata *xa_pdata);
 	void (*encap_unset)(struct hl_nic_port *nic_port, u32 encap_id,
-				struct hl_nic_encap_idr_pdata *idr_pdata);
+				struct hl_nic_encap_xarray_pdata *xa_pdata);
 	void (*set_ip_addr_encap)(struct hl_nic_port *nic_port, u32 *encap_id, u32 src_ip);
 	int (*qpc_write)(struct hl_nic_port *nic_port, void *qpc, struct qpc_mask *qpc_mask,
 				u32 qpn, bool is_req);
