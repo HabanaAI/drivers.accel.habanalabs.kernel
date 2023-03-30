@@ -126,7 +126,7 @@ static void gaudi3_nic_config_hw_rxe_fw(struct hl_device *hdev, u32 port)
 	NIC_WREG32(mmD0_NIC0_RXE_BASE + mmNIC_RXE_QPC_CHECKS_EN, rxe_qpc_checks_mask);
 
 	NIC_WREG32(mmD0_NIC0_RXE_BASE + mmNIC_RXE_WQE_CHECKS_EN,
-			(1 << NIC_RXE_WQE_CHECKS_EN_WQE_IDX_MISMATCH_S) |
+			(0 << NIC_RXE_WQE_CHECKS_EN_WQE_IDX_MISMATCH_S) |
 			(1 << NIC_RXE_WQE_CHECKS_EN_WQE_WR_OPCODE_INV_S) |
 			(1 << NIC_RXE_WQE_CHECKS_EN_WQE_RDV_OPCODE_INV_S) |
 			(1 << NIC_RXE_WQE_CHECKS_EN_WQE_RD_OPCODE_INV_S) |
@@ -447,7 +447,7 @@ void gaudi3_nic_macros_fw_config(struct hl_device *hdev)
 	}
 }
 
-int gaudi3_nic_disable_wqe_index_checker_fw(struct hl_nic_port *nic_port)
+int gaudi3_nic_set_wqe_index_checker_fw(struct hl_nic_port *nic_port, bool enable)
 {
 	struct hl_device *hdev = nic_port->hdev;
 	struct hl_nic_port_funcs *port_funcs;
@@ -462,13 +462,14 @@ int gaudi3_nic_disable_wqe_index_checker_fw(struct hl_nic_port *nic_port)
 	if (!(hdev->fw_components & FW_TYPE_BOOT_CPU)) {
 		hdev->asic_funcs->set_priv_assertions(hdev, false);
 
-		NIC_RMWREG32(mmD0_NIC0_RXE_BASE + mmNIC_RXE_WQE_CHECKS_EN, 0,
+		NIC_RMWREG32(mmD0_NIC0_RXE_BASE + mmNIC_RXE_WQE_CHECKS_EN, enable,
 			NIC_RXE_WQE_CHECKS_EN_WQE_IDX_MISMATCH_M);
 
 		hdev->asic_funcs->set_priv_assertions(hdev, true);
 	} else {
 		port_funcs = hdev->asic_funcs->nic_funcs->port_funcs;
 		rc = port_funcs->send_cpucp_packet(nic_port, CPUCP_PACKET_NIC_SET_CHECKERS,
+					((int) enable << NIC_CHECKERS_CHECK_SHIFT) |
 						RX_WQE_IDX_MISMATCH);
 	}
 
@@ -478,6 +479,11 @@ int gaudi3_nic_disable_wqe_index_checker_fw(struct hl_nic_port *nic_port)
 			port, rc);
 
 	return rc;
+}
+
+int gaudi3_nic_disable_wqe_index_checker_fw(struct hl_nic_port *nic_port)
+{
+	return gaudi3_nic_set_wqe_index_checker_fw(nic_port, false);
 }
 
 void gaudi3_nic_restore_dynamic_cfg_soft_reset_fw(struct hl_device *hdev)
@@ -494,7 +500,7 @@ void gaudi3_nic_restore_dynamic_cfg_soft_reset_fw(struct hl_device *hdev)
 		if (!gaudi3_nic_is_macro_enabled(hdev, nic_macro))
 			continue;
 
-		NIC_RMWREG32(mmD0_NIC0_RXE_BASE + mmNIC_RXE_WQE_CHECKS_EN, 1,
+		NIC_RMWREG32(mmD0_NIC0_RXE_BASE + mmNIC_RXE_WQE_CHECKS_EN, 0,
 				NIC_RXE_WQE_CHECKS_EN_WQE_IDX_MISMATCH_M);
 	}
 }

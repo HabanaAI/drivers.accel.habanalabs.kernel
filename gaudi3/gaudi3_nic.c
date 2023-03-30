@@ -3326,10 +3326,8 @@ static int gaudi3_user_set_app_params(struct hl_device *hdev,
 		else
 			break;
 
-	*modify_wqe_checkers = bp_off_num > 0;
-
 	if (!gaudi3_nic->advanced) {
-		if (*modify_wqe_checkers || in->fna_mask_size) {
+		if ((bp_off_num > 0) || in->fna_mask_size) {
 			dev_dbg(hdev->dev,
 				"Port %u: advanced features are set but advanced flag is disabled\n",
 				port);
@@ -3361,7 +3359,7 @@ static int gaudi3_user_set_app_params(struct hl_device *hdev,
 				ctx->asid << NIC_RXE_AFA_ARUSER_ATTR_0_ASID_S);
 	}
 
-	if (*modify_wqe_checkers) {
+	if (bp_off_num > 0) {
 		NIC_RMWREG32(mmD0_NIC0_QPC_BASE + mmNIC_QPC_WTD_CONFIG, 1,
 				 NIC_QPC_WTD_CONFIG_WQ_BP_DB_ACCOUNTED_M);
 
@@ -3395,7 +3393,8 @@ static int gaudi3_user_set_app_params(struct hl_device *hdev,
 	/* SW-99892 - configure port's encapsulation for source ip-address automatically */
 	gaudi3_set_ip_addr_encap(nic_port, &encap_id, 0);
 
-	return 0;
+	/* TODO: SW-140236 - Remove the expliclit setting of the wqe index checker to false */
+	return gaudi3_nic_set_wqe_index_checker_fw(nic_port, false);
 }
 
 static void gaudi3_user_get_app_params(struct hl_device *hdev,
