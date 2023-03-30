@@ -2637,8 +2637,12 @@ void gaudi3_hw_init_fw_config(struct hl_device *hdev)
 	 */
 	gaudi3_nic_ecos_override(hdev);
 
-	/* TODO (SW-108260): Temporary allow those configs for SIM_GAUDI3_ARC */
-	if ((hdev->fw_components & FW_TYPE_BOOT_CPU) && (hdev->asic_type != ASIC_GAUDI3_SIM_ARC))
+	/*
+	 * TODO (SW-108260) (SW-139644): Temporary allow those configs for SIM_GAUDI3_ARC
+	 * & GAUDI3 PLDM.
+	 */
+	if ((hdev->fw_components & FW_TYPE_BOOT_CPU) &&
+		((hdev->asic_type != ASIC_GAUDI3_SIM_ARC) && (!hdev->pldm)))
 		return;
 
 	hdev->asic_funcs->set_binning_masks(hdev);
