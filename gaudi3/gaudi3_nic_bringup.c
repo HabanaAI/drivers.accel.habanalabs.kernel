@@ -533,7 +533,7 @@ static void gaudi3_nic_set_sal_override_eco_pldm(struct hl_nic_macro *nic_macro)
 	if (hdev->nic_enable_h9_sal_override_eco)
 		return;
 
-	NIC_RMWREG32(mmD0_NIC0_RXE_SPECIAL_BASE + mmNIC_QPC_SPECIAL_GLBL_SPARE_0, 1,
+	NIC_RMWREG32(mmD0_NIC0_RXE_SPECIAL_BASE + mmNIC_RXE_SPECIAL_GLBL_SPARE_0, 1,
 			NIC_RXE_SPECIAL_GLBL_SPARE_0_ECO_5499_DISABLE_M);
 }
 
