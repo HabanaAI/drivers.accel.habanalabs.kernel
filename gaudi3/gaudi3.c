@@ -7272,7 +7272,7 @@ static uint64_t gaudi3_set_hbm_bar_base(struct hl_device *hdev, u64 addr)
 int gaudi3_set_dynamic_dram_properties(struct hl_device *hdev)
 {
 	u64 hbm_nic_base_offset = 0, hbm_etr_offset = 0, hbm_user_base_offset,
-			etr_buf_size = 0, etr_total_bufs_size;
+			etr_total_bufs_size;
 	struct asic_fixed_properties *prop = &hdev->asic_prop;
 	struct hl_nic_properties *nic_prop = &prop->nic_props;
 
@@ -7285,7 +7285,7 @@ int gaudi3_set_dynamic_dram_properties(struct hl_device *hdev)
 			prop->dram_page_size);
 	prop->etr_bufs_dram_phys_base = prop->dram_base_address + hbm_etr_offset;
 	prop->etr_buf_dram_size_aligned = roundup(prop->etr_buf_dram_size, prop->dram_page_size);
-	etr_total_bufs_size = etr_buf_size * prop->etr_buf_number;
+	etr_total_bufs_size = prop->etr_buf_dram_size_aligned * prop->etr_buf_number;
 	hbm_user_base_offset = roundup(hbm_etr_offset + etr_total_bufs_size,
 			prop->dram_page_size);
 	/*
