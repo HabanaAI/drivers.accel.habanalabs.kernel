@@ -11,8 +11,9 @@
 #include <linux/pci.h>
 #include <linux/circ_buf.h>
 
-#define GAUDI2_NIC_WTD_BP_UPPER_TH_DIFF		4
-#define GAUDI2_NIC_WTD_BP_LOWER_TH_DIFF		8
+#define GAUDI2_NIC_WTD_BP_UPPER_TH_DIFF		24
+#define GAUDI2_NIC_WTD_BP_LOWER_TH_DIFF		26
+#define GAUDI2_NIC_MIN_WQ_SIZE_BP_ENABLED	32
 #define GAUDI2_NIC_MTU_DEFAULT			SZ_8K /* 8KB */
 #define QPC_SANITY_CHECK_INTERVAL_MS		1 /* 1 msec */
 #define ACCUMULATE_FEC_STATS_DURATION_MS	100
@@ -2232,6 +2233,12 @@ static int gaudi2_set_req_qp_ctx(struct hl_device *hdev,
 		return -EINVAL;
 	}
 
+	if (nic_port->bp_enable && in->wq_size < GAUDI2_NIC_MIN_WQ_SIZE_BP_ENABLED) {
+		dev_err(hdev->dev, "WQ size (%d) can't be smaller than %d when back pressure is enabled, port %d\n",
+			in->wq_size, GAUDI2_NIC_MIN_WQ_SIZE_BP_ENABLED, port);
+		return -EINVAL;
+	}
+
 	if (in->cq_number) {
 		/* User CQ. */
 		cqn = in->cq_number;
@@ -2359,13 +2366,14 @@ static int gaudi2_set_req_qp_ctx(struct hl_device *hdev,
 	if (rc)
 		goto qpc_write_fail;
 
-	if (gaudi2_nic->advanced && (in->wq_size < gaudi2_nic->min_qp_size)) {
+	if (gaudi2_nic->advanced && nic_port->bp_enable &&
+		(in->wq_size < gaudi2_nic->min_qp_size)) {
 		gaudi2_nic->min_qp_size = in->wq_size;
 
 		/*
 		 * The back-pressure thresholds values describe the occupancy of the QP,
 		 * thus should be configured to be the size of the smallest QP minus some
-		 * defined numbers (currently 4/8 for the upper/lower thresholds
+		 * defined numbers (currently 24/26 for the upper/lower thresholds
 		 * respectively).
 		 */
 		NIC_WREG32(mmNIC0_QPC0_WQ_UPPER_THRESHOLD,
@@ -3059,7 +3067,9 @@ static int gaudi2_user_set_app_params(struct hl_device *hdev,
 		NIC_WREG32(mmNIC0_QPC0_WTD_CONFIG, wtd_config);
 
 		*modify_wqe_checkers = true;
+		nic_port->bp_enable = true;
 	} else {
+		nic_port->bp_enable = false;
 		*modify_wqe_checkers = false;
 	}
 

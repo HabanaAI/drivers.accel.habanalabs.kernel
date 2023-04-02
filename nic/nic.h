@@ -599,6 +599,7 @@ enum hl_nic_status_cmd {
  * @set_app_params: set_app_params operation was executed by the user. This is mandatory step for
  *                  Gaudi and above in order to initialize the NIC uAPI.
  * @disabled: true if this port is disabled, i.e. need to block its initialization, false otherwise.
+ * @bp_enable: true if WQ back-pressure was enabled, false otherwise.
  */
 struct hl_nic_port {
 	struct hl_device		*hdev;
@@ -670,6 +671,7 @@ struct hl_nic_port {
 	u8				ccq_enable;
 	u8				set_app_params;
 	u8				disabled;
+	u8				bp_enable;
 };
 
 /**
