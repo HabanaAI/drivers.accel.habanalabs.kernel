@@ -8960,8 +8960,6 @@ static u32 gaudi3_err_cause_iterator(struct hl_device *hdev, u32 err_msk,
 {
 	u32 err_idx = 0, err_cnt = 0;
 
-	dev_dbg(hdev->dev, "Error mask is 0x%X\n", err_msk);
-
 	while (err_msk) {
 		if (err_msk & 1) {
 			dev_err_ratelimited(hdev->dev, "%s %s error: %s\n",
