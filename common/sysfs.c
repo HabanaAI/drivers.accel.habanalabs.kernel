@@ -585,6 +585,13 @@ int hl_sysfs_init(struct hl_device *hdev)
 		goto remove_groups;
 	}
 
+	/* TODO: remove when moving sysfs files to be under a "device" subdirectory (SW-114047) */
+	rc = sysfs_create_link(&hdev->accel_dev->kobj, &hdev->accel_dev->kobj, "device");
+	if (rc) {
+		dev_err(hdev->accel_dev, "Failed to create a device symlink, error %d\n", rc);
+		goto remove_accel_groups;
+	}
+
 	if (!hdev->asic_prop.allow_inference_soft_reset)
 		return 0;
 
@@ -592,7 +599,7 @@ int hl_sysfs_init(struct hl_device *hdev)
 	if (rc) {
 		dev_err(hdev->dev,
 			"Failed to add groups to device, error %d\n", rc);
-		goto remove_accel_groups;
+		goto remove_symlink;
 	}
 
 	rc = device_add_groups(hdev->accel_dev, hl_dev_inference_attr_groups);
@@ -606,6 +613,8 @@ int hl_sysfs_init(struct hl_device *hdev)
 
 remove_inference_groups:
 	device_remove_groups(hdev->dev, hl_dev_inference_attr_groups);
+remove_symlink:
+	sysfs_remove_link(&hdev->accel_dev->kobj, "device");
 remove_accel_groups:
 	device_remove_groups(hdev->accel_dev, hl_dev_attr_groups);
 remove_groups:
@@ -616,6 +625,10 @@ remove_groups:
 void hl_sysfs_fini(struct hl_device *hdev)
 {
 	device_remove_groups(hdev->dev, hl_dev_attr_groups);
+
+	/* TODO: remove when moving sysfs files to be under a "device" subdirectory (SW-114047) */
+	sysfs_remove_link(&hdev->accel_dev->kobj, "device");
+
 	device_remove_groups(hdev->accel_dev, hl_dev_attr_groups);
 
 	if (!hdev->asic_prop.allow_inference_soft_reset)
