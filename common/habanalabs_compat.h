@@ -169,6 +169,22 @@ void device_remove_groups(struct device *dev,
 				const struct attribute_group **groups);
 #endif /* !_HAS_DEVICE_ADD_GROUPS */
 
+#ifndef _HAS_DEVICE_ADD_GROUP
+static inline int device_add_group(struct device *dev, const struct attribute_group *grp)
+{
+	const struct attribute_group *groups[] = { grp, NULL };
+
+	return device_add_groups(dev, groups);
+}
+
+static inline void device_remove_group(struct device *dev, const struct attribute_group *grp)
+{
+	const struct attribute_group *groups[] = { grp, NULL };
+
+	return device_remove_groups(dev, groups);
+}
+#endif /* !_HAS_DEVICE_ADD_GROUP */
+
 #ifndef _HAS_PCI_IOREMAP_WC_BAR
 void __iomem *pci_ioremap_wc_bar(struct pci_dev *pdev, int bar);
 #endif
