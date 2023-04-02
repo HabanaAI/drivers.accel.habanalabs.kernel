@@ -9693,17 +9693,37 @@ free_mem:
 	return ret_val;
 }
 
-static int gaudi3_test_qman(struct hl_device *hdev, u32 engine_id, u32 sob_addr, u32 sob_val,
-				dma_addr_t pkt_dma_addr, size_t pkt_size)
+static int gaudi3_test_qman_wait_completion(struct hl_device *hdev, u32 engine_id,
+					    const char *test_name, u32 sob_addr, u32 sob_val)
 {
-	u32 qm_reg_base = gaudi3_qm_blocks_bases[engine_id], timeout_usec, tmp;
+	u32 tmp, timeout_usec = GAUDI3_QMAN_TEST_WAIT_USEC;
 	int rc;
 
-	timeout_usec = GAUDI3_QMAN_TEST_WAIT_USEC;
 	if (hdev->pldm)
 		timeout_usec = GAUDI3_PLDM_QMAN_TEST_WAIT_USEC;
 
-	gaudi3_axuser_hbw_mmu_bp_set(hdev, qm_reg_base + QM_AXUSER_HBW_BASE_OFFSET, true);
+	rc = hl_poll_timeout(hdev, sob_addr, tmp, (tmp == sob_val),
+					HL_POLL_SLEEP_US, timeout_usec);
+	if (rc == -ETIMEDOUT) {
+		dev_err(hdev->dev, "%s test for engine %d failed\n", test_name, engine_id);
+		rc = -EIO;
+	}
+
+	return rc;
+}
+
+static void gaudi3_qman_set_test_mode(struct hl_device *hdev, u32 engine_id, bool enable)
+{
+	u32 qm_reg_base = gaudi3_qm_blocks_bases[engine_id];
+
+	gaudi3_axuser_hbw_mmu_bp_set(hdev, qm_reg_base + QM_AXUSER_HBW_BASE_OFFSET, enable);
+}
+
+static int gaudi3_test_qman(struct hl_device *hdev, u32 engine_id, u32 sob_addr, u32 sob_val,
+				dma_addr_t pkt_dma_addr, size_t pkt_size)
+{
+	u32 qm_reg_base = gaudi3_qm_blocks_bases[engine_id];
+	int rc;
 
 	/* Reset the SOB value */
 	WREG32(sob_addr, 0);
@@ -9714,12 +9734,19 @@ static int gaudi3_test_qman(struct hl_device *hdev, u32 engine_id, u32 sob_addr,
 	WREG32(qm_reg_base + mmQMAN_CQ_TSIZE, pkt_size);
 	WREG32(qm_reg_base + mmQMAN_CQ_CTL, 0);
 
-	rc = hl_poll_timeout(hdev, sob_addr, tmp, (tmp == sob_val), 1000, timeout_usec);
-	if (rc == -ETIMEDOUT) {
-		dev_err(hdev->dev, "QMAN CQF test for engine %d failed\n", engine_id);
-		rc = -EIO;
-		goto out;
-	}
+	rc = gaudi3_test_qman_wait_completion(hdev, engine_id, "QMAN CQF", sob_addr, sob_val);
+
+	/* Reset the SOB value */
+	WREG32(sob_addr, 0);
+
+	return rc;
+}
+
+static int gaudi3_test_qman_arc(struct hl_device *hdev, u32 engine_id, u32 sob_addr, u32 sob_val,
+				dma_addr_t pkt_dma_addr, size_t pkt_size)
+{
+	u32 qm_reg_base = gaudi3_qm_blocks_bases[engine_id];
+	int rc;
 
 	/* Reset the SOB value */
 	WREG32(sob_addr, 0);
@@ -9730,16 +9757,10 @@ static int gaudi3_test_qman(struct hl_device *hdev, u32 engine_id, u32 sob_addr,
 	WREG32(qm_reg_base + mmQMAN_ARC_CQ_TSIZE, pkt_size);
 	WREG32(qm_reg_base + mmQMAN_ARC_CQ_CTL, 0);
 
-	rc = hl_poll_timeout(hdev, sob_addr, tmp, (tmp == sob_val), 1000, timeout_usec);
-	if (rc == -ETIMEDOUT) {
-		dev_err(hdev->dev, "QMAN ARC_CQF test for engine %d failed\n", engine_id);
-		rc = -EIO;
-	}
-out:
+	rc = gaudi3_test_qman_wait_completion(hdev, engine_id, "QMAN ARC_CQF", sob_addr, sob_val);
+
 	/* Reset the SOB value */
 	WREG32(sob_addr, 0);
-
-	gaudi3_axuser_hbw_mmu_bp_set(hdev, qm_reg_base + QM_AXUSER_HBW_BASE_OFFSET, false);
 
 	return rc;
 }
@@ -9776,7 +9797,14 @@ static int gaudi3_test_qmans(struct hl_device *hdev)
 		if (!gaudi3_is_engine_enabled(hdev, i))
 			continue;
 
+		gaudi3_qman_set_test_mode(hdev, i, true);
 		rc = gaudi3_test_qman(hdev, i, sob_addr, sob_val, pkt_dma_addr, pkt_size);
+		if (!rc)
+			rc = gaudi3_test_qman_arc(hdev, i, sob_addr, sob_val,
+						  pkt_dma_addr, pkt_size);
+
+		gaudi3_qman_set_test_mode(hdev, i, false);
+
 		if (rc)
 			goto free_pkt;
 	}

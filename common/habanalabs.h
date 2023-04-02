@@ -2892,6 +2892,8 @@ void hl_wreg(struct hl_device *hdev, u32 reg, u32 val);
 #define hl_poll_timeout_elbi(hdev, addr, val, cond, sleep_us, timeout_us) \
 		hl_poll_timeout_common(hdev, addr, val, cond, sleep_us, timeout_us, true)
 
+#define HL_POLL_SLEEP_US 1000
+
 /*
  * poll array of register addresses.
  * condition is satisfied if all registers values match the expected value.
