@@ -30,6 +30,8 @@ int hl_accel_wait_ioctl(struct hl_fpriv *hpriv, void *data);
 int hl_accel_mem_ioctl(struct hl_fpriv *hpriv, void *data);
 int hl_accel_debug_ioctl(struct hl_fpriv *hpriv, void *data);
 int hl_accel_nic_ioctl(struct hl_fpriv *hpriv, void *data);
+int hl_accel_device_add_groups(struct device *dev, const struct attribute_group **groups);
+void hl_accel_device_remove_groups(struct device *dev, const struct attribute_group **groups);
 #endif /* !IS_ENABLED(CONFIG_DRM_ACCEL) */
 
 #endif /* HABANALABS_COMPAT_ACCEL_H_ */

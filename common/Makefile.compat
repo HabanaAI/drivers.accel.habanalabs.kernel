@@ -40,6 +40,10 @@ ifneq ($(shell grep "device_add_groups" include/linux/device.h > /dev/null 2>&1 
 	ccflags-y += -D_HAS_DEVICE_ADD_GROUPS
 endif
 
+ifneq ($(shell grep "static inline.*device_add_group" include/linux/device.h > /dev/null 2>&1 && echo 1),)
+	ccflags-y += -D_HAS_DEVICE_ADD_GROUP
+endif
+
 ifneq ($(shell grep "pci_ioremap_wc_bar" include/linux/pci.h > /dev/null 2>&1 && echo 1),)
 	ccflags-y += -D_HAS_PCI_IOREMAP_WC_BAR
 endif
