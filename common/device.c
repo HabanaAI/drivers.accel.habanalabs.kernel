@@ -2810,7 +2810,7 @@ void hl_device_fini(struct hl_device *hdev)
 	 * message won't be send. Also, in case of heartbeat, the device CPU is
 	 * marked as disable so this message won't be sent
 	 */
-	hl_fw_send_pci_access_msg(hdev,	CPUCP_PACKET_DISABLE_PCI_ACCESS, 0x0);
+	send_disable_pci_access(hdev, HL_DRV_RESET_HARD);
 
 	/* Mark device as disabled */
 	hdev->disabled = true;
