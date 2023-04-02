@@ -2044,7 +2044,7 @@ static void greco_init_binning(struct hl_device *hdev)
 	greco_init_binning_mme(hdev);
 
 	/* TODO - remove once we're not required to support older FW */
-	if (hdev->fw_major_version > 35)
+	if (hdev->fw_inner_major_ver > 35)
 		greco_report_driver_performed_binning(hdev);
 }
 

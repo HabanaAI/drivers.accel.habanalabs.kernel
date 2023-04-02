@@ -3619,8 +3619,8 @@ struct hl_etr_buf_store {
  * @etr_buf_store: datastructure holding the descriptors of all the full etr
  *                 buffers in the system, ready to be fetched by the user
  * @stream_master_qid_arr: pointer to array with QIDs of master streams.
- * @fw_major_version: major version of current loaded preboot.
- * @fw_minor_version: minor version of current loaded preboot.
+ * @fw_inner_major_ver: the major of current loaded preboot inner version.
+ * @fw_inner_minor_ver: the minor of current loaded preboot inner version.
  * @dram_used_mem: current DRAM memory consumption.
  * @memory_scrub_val: the value to which the dram will be scrubbed to using cb scrub_device_dram
  * @timeout_jiffies: device CS timeout value.
@@ -3837,8 +3837,8 @@ struct hl_device {
 	struct hl_etr_buf_store	etr_buf_store;
 
 	u32				*stream_master_qid_arr;
-	u32				fw_major_version;
-	u32				fw_minor_version;
+	u32				fw_inner_major_ver;
+	u32				fw_inner_minor_ver;
 	atomic64_t			dram_used_mem;
 	u64				memory_scrub_val;
 	u64				timeout_jiffies;
@@ -4070,7 +4070,7 @@ struct hl_ioctl_desc {
 
 static inline bool hl_is_fw_ver_below_1_9(struct hl_device *hdev)
 {
-	return (hdev->fw_major_version < 42);
+	return (hdev->fw_inner_major_ver < 42);
 }
 
 static inline bool hl_is_fw_ver_below_1_10(struct hl_device *hdev)

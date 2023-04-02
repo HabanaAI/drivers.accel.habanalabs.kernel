@@ -2190,18 +2190,18 @@ static bool gaudi2_get_edma_idle_status(struct hl_device *hdev, u64 *mask_arr, u
 
 int gaudi2_is_fw_ver_below_1_8(struct hl_device *hdev)
 {
-	return (hdev->fw_major_version < 39);
+	return (hdev->fw_inner_major_ver < 39);
 }
 
 static int gaudi2_is_fw_ver_1_7_1(struct hl_device *hdev)
 {
-	return (hdev->fw_major_version == 38 && hdev->fw_minor_version == 3);
+	return (hdev->fw_inner_major_ver == 38 && hdev->fw_inner_minor_ver == 3);
 }
 
 static int gaudi2_is_fw_ver_below_1_7(struct hl_device *hdev)
 {
-	return ((hdev->fw_major_version < 37) ||
-			((hdev->fw_major_version == 37) && (hdev->fw_minor_version < 4)));
+	return ((hdev->fw_inner_major_ver < 37) ||
+			((hdev->fw_inner_major_ver == 37) && (hdev->fw_inner_minor_ver < 4)));
 }
 
 u32 gaudi2_get_signal_cb_size(struct hl_device *hdev)

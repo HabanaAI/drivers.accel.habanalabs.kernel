@@ -717,7 +717,7 @@ static void init_lane_for_fw_tx(struct hl_device *hdev, u32 port, int lane, bool
 	/* The polairy values which are provided by F/W version < v1.4 are flipped,
 	 * so need to set them correctly.
 	 */
-	if (hdev->nic.use_fw_serdes_info && (hdev->fw_major_version < 35))
+	if (hdev->nic.use_fw_serdes_info && (hdev->fw_inner_major_ver < 35))
 		tx_pol = !tx_pol;
 
 	tx_gc = (pam4 && !do_lt) ? 1 : 0;
@@ -743,7 +743,7 @@ static void init_lane_for_fw_rx(struct hl_device *hdev, u32 port, int lane, bool
 	/* The polairy values which are provided by F/W version < v1.4 are flipped,
 	 * so need to set them correctly.
 	 */
-	if (hdev->nic.use_fw_serdes_info && (hdev->fw_major_version < 35))
+	if (hdev->nic.use_fw_serdes_info && (hdev->fw_inner_major_ver < 35))
 		rx_pol = !rx_pol;
 
 	rx_gc = (pam4 && !do_lt) ? 1 : 0;
@@ -1230,8 +1230,8 @@ static int fw_config_speed_nrz(struct hl_device *hdev, u32 port, int lane)
 static int reset_mac_tx(struct hl_device *hdev, u32 port)
 {
 	/* For F/W version 37.1.0 and above, the reset will be done by the F/W */
-	if (((hdev->fw_major_version == 37) && (hdev->fw_minor_version > 1)) ||
-			(hdev->fw_major_version > 37)) {
+	if (((hdev->fw_inner_major_ver == 37) && (hdev->fw_inner_minor_ver > 1)) ||
+			(hdev->fw_inner_major_ver > 37)) {
 		struct cpucp_packet pkt;
 		int rc;
 
