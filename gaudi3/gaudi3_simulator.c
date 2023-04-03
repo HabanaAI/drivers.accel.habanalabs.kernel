@@ -1111,8 +1111,14 @@ static int gaudi3_sim_sw_init(struct hl_device *hdev)
 	if (rc)
 		goto special_blocks_fini;
 
+	rc = gaudi3_test_qmans_msgs_alloc(hdev);
+	if (rc)
+		goto page_fault_queue_sw_fini;
+
 	return 0;
 
+page_fault_queue_sw_fini:
+	gaudi3_page_fault_queue_sw_fini(hdev);
 special_blocks_fini:
 	gaudi3_special_blocks_iterator_free(hdev);
 etr_sw_fini:
@@ -1134,6 +1140,8 @@ free_gaudi3_device:
 static int gaudi3_sim_sw_fini(struct hl_device *hdev)
 {
 	struct gaudi3_device *gaudi3 = hdev->asic_specific;
+
+	gaudi3_test_qmans_msgs_free(hdev);
 
 	gaudi3_page_fault_queue_sw_fini(hdev);
 

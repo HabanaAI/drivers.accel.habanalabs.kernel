@@ -530,6 +530,36 @@ struct gaudi3_page_fault_queue_entry {
 	bool	is_valid;
 };
 
+#define GAUDI3_NUM_TESTED_QMANS	\
+			(1 + GAUDI3_HDCORE6_ENGINE_ID_ROT_1 - GAUDI3_HDCORE1_ENGINE_ID_EDMA_0)
+
+/**
+ * struct gaudi3_sob_info - Holds information regarding a sync-object being used
+ * @offset: the sob offset in the sync-obj group being used.
+ * @addr: The physical address of the sync object.
+ * @base: indication for QMAN CP message base for SOB.
+ * @val: the value being used.
+ */
+struct gaudi3_sob_info {
+	u32 offset;
+	u32 addr;
+	u32 base;
+	u32 val;
+};
+
+/**
+ * struct gaudi3_qmans_test_info - Holds the addresses of a the messages used for testing the
+ *                                 device qmans.
+ * @dma_addr: the address used by the HW for accessing the message.
+ * @kern_addr: The address used by the driver for accessing the message.
+ * @sob: The SOB to use and its expected value.
+ */
+struct gaudi3_qmans_test_info {
+	dma_addr_t dma_addr;
+	void *kern_addr;
+	struct gaudi3_sob_info sob;
+};
+
 /**
  * struct gaudi3_device - ASIC specific manage structure.
  * @cpucp_info_get: get information on device from CPU-CP
@@ -541,6 +571,7 @@ struct gaudi3_page_fault_queue_entry {
  * @en_aux_ops: ASIC specific functions for core <-> eth drivers communication.
  * @hbm_cfg: HBM subsystem settings
  * @kdma_lock_mutex: Lock protecting the access to the KDMA engine
+ * @qmans_test_info: Information used by the driver when testing the QMANs.
  * @page_fault_queue: page fault queue, (since PMMU1 is disabled, only one is needed)
  * @pgf_q_entries: buffer that holds current page fault queue entries to be handled
  * @hw_cap_initialized: This field contains a bit per H/W component. When that component is
@@ -597,6 +628,7 @@ struct gaudi3_device {
 	struct gaudi3_page_fault_queue_entry	pgf_q_entries[GAUDI3_PAGE_FAULT_QUEUE_SIZE];
 	struct gaudi3_hbm			hbm_cfg;
 	struct mutex				kdma_lock_mutex;
+	struct gaudi3_qmans_test_info		qmans_test_info[GAUDI3_NUM_TESTED_QMANS];
 	u64					hw_cap_initialized;
 	u64					hw_cap_pdma_initialized;
 	u64					hw_cap_tpc_initialized;
@@ -827,6 +859,9 @@ int gaudi3_special_blocks_iterator_config(struct hl_device *hdev);
 void gaudi3_special_blocks_iterator_free(struct hl_device *hdev);
 int gaudi3_set_dynamic_dram_properties(struct hl_device *hdev);
 int gaudi3_validate_set_tpc_binning(struct hl_device *hdev);
+
+int gaudi3_test_qmans_msgs_alloc(struct hl_device *hdev);
+void gaudi3_test_qmans_msgs_free(struct hl_device *hdev);
 
 /* Functions exported for bring-up support */
 int gaudi3_pre_hw_init(struct hl_device *hdev);

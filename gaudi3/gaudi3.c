@@ -1860,6 +1860,10 @@ static const char * const gaudi3_interrupt_hdcore_name[INT_HDCORE_MAX] = {
 	[INT_PSOC]    = "PSOC"
 };
 
+static int gaudi3_test_qmans_get_sob_for_engine(struct hl_device *hdev,
+						enum gaudi3_engine_id engine_id,
+						struct gaudi3_sob_info *sob);
+
 void gaudi3_iterate_edmas(struct hl_device *hdev, struct iterate_module_ctx *ctx)
 {
 	u32 hdcore_array[] = {1, 3, 4, 6}, hdcore_index, inst, edma_id, offset;
@@ -4730,6 +4734,54 @@ void gaudi3_page_fault_queue_sw_fini(struct hl_device *hdev)
 		page_fault_queue->host_virt, page_fault_queue->host_dma);
 }
 
+void gaudi3_test_qmans_msgs_free(struct hl_device *hdev)
+{
+	struct gaudi3_device *gaudi3 = hdev->asic_specific;
+	struct gaudi3_qmans_test_info *msg_info = gaudi3->qmans_test_info;
+	int i;
+
+	for (i = 0 ; i < GAUDI3_NUM_TESTED_QMANS ; i++) {
+		/* bail-out if this is an allocation failure point */
+		if (!msg_info[i].kern_addr)
+			break;
+
+		hl_asic_dma_pool_free(hdev, msg_info[i].kern_addr, msg_info[i].dma_addr);
+		msg_info[i].kern_addr = NULL;
+	}
+}
+
+int gaudi3_test_qmans_msgs_alloc(struct hl_device *hdev)
+{
+	struct gaudi3_device *gaudi3 = hdev->asic_specific;
+	struct gaudi3_qmans_test_info *msg_info = gaudi3->qmans_test_info;
+	int i, rc;
+
+	/* allocate a message-short buf for each Q we intend to test and init the sob info */
+	for (i = 0 ; i <  GAUDI3_NUM_TESTED_QMANS; i++) {
+		msg_info[i].kern_addr =
+			(void *)hl_asic_dma_pool_zalloc(hdev, sizeof(struct packet_msg_short),
+							GFP_KERNEL, &msg_info[i].dma_addr);
+		if (!msg_info[i].kern_addr) {
+			dev_err(hdev->dev,
+				"Failed to allocate dma memory for H/W queue %d testing\n", i);
+			rc = -ENOMEM;
+			goto err_exit;
+		}
+
+		rc = gaudi3_test_qmans_get_sob_for_engine(hdev,
+							  i + GAUDI3_HDCORE1_ENGINE_ID_EDMA_0,
+							  &msg_info[i].sob);
+		if (rc)
+			goto err_exit;
+	}
+
+	return 0;
+
+err_exit:
+	gaudi3_test_qmans_msgs_free(hdev);
+	return rc;
+}
+
 int gaudi3_sw_init(struct hl_device *hdev)
 {
 	struct gaudi3_device *gaudi3;
@@ -4807,8 +4859,14 @@ int gaudi3_sw_init(struct hl_device *hdev)
 	if (rc)
 		goto special_blocks_fini;
 
+	rc = gaudi3_test_qmans_msgs_alloc(hdev);
+	if (rc)
+		goto page_fault_queue_sw_fini;
+
 	return 0;
 
+page_fault_queue_sw_fini:
+	gaudi3_page_fault_queue_sw_fini(hdev);
 special_blocks_fini:
 	gaudi3_special_blocks_iterator_free(hdev);
 etr_sw_fini:
@@ -4831,6 +4889,8 @@ free_gaudi3_device:
 int gaudi3_sw_fini(struct hl_device *hdev)
 {
 	struct gaudi3_device *gaudi3 = hdev->asic_specific;
+
+	gaudi3_test_qmans_msgs_free(hdev);
 
 	gaudi3_page_fault_queue_sw_fini(hdev);
 
@@ -9761,53 +9821,65 @@ static int gaudi3_test_qman_arc(struct hl_device *hdev, u32 engine_id, u32 sob_a
 	return rc;
 }
 
+static int gaudi3_test_qmans_get_sob_for_engine(struct hl_device *hdev,
+						enum gaudi3_engine_id engine_id,
+						struct gaudi3_sob_info *sob)
+{
+	if (engine_id >= GAUDI3_ENGINE_ID_SIZE)
+		return -EINVAL;
+
+	sob->offset = (hdev->asic_prop.first_available_user_sob[0] + engine_id) * sizeof(u32);
+	sob->addr = mmHD0_SYNC_MNGR_OBJS_BASE + mmSOB_OBJS_SOB_OBJ_0_0 + sob->offset;
+	sob->base = 1;	/* QMAN CP message base for SOB */
+	sob->val = 0x5a5a;
+
+	return 0;
+}
+
 static int gaudi3_test_qmans(struct hl_device *hdev)
 {
-	u32 sob_base, sob_offset, sob_addr, sob_val, ctl;
+	struct gaudi3_device *gaudi3 = hdev->asic_specific;
+	struct gaudi3_qmans_test_info *msg_info = gaudi3->qmans_test_info;
 	struct packet_msg_short *msg_short_pkt;
+	struct gaudi3_sob_info *sob;
 	dma_addr_t pkt_dma_addr;
-	size_t pkt_size;
-	int rc = 0, i;
-
-	pkt_size = sizeof(*msg_short_pkt);
-	msg_short_pkt = hl_asic_dma_pool_zalloc(hdev, pkt_size, GFP_KERNEL, &pkt_dma_addr);
-	if (!msg_short_pkt)
-		return -ENOMEM;
-
-	sob_base = 1; /* QMAN CP message base for SOB */
-	sob_offset = hdev->asic_prop.first_available_user_sob[0] * sizeof(u32);
-	sob_addr = mmHD0_SYNC_MNGR_OBJS_BASE + mmSOB_OBJS_SOB_OBJ_0_0 + sob_offset;
-	sob_val = 0x5a5a;
-
-	ctl = FIELD_PREP(GAUDI3_PKT_CTL_OPCODE_MASK, PACKET_MSG_SHORT) |
-		FIELD_PREP(GAUDI3_PKT_CTL_EB_MASK, 0x1) |
-		FIELD_PREP(GAUDI3_PKT_CTL_SWITCH_MASK, 0x1) |
-		FIELD_PREP(GAUDI3_PKT_CTL_MB_MASK, 0x1) |
-		FIELD_PREP(GAUDI3_PKT_MSG_SHORT_CTL_BASE_LSB_MASK, sob_base) |
-		FIELD_PREP(GAUDI3_PKT_MSG_SHORT_CTL_ADDR_OFFSET_MASK, sob_offset);
-
-	msg_short_pkt->value = cpu_to_le32(sob_val);
-	msg_short_pkt->ctl = cpu_to_le32(ctl);
+	size_t pkt_size = sizeof(struct packet_msg_short);
+	u32 ctl;
+	int rc = 0, i, j;
 
 	for (i = GAUDI3_HDCORE1_ENGINE_ID_EDMA_0 ; i <= GAUDI3_HDCORE6_ENGINE_ID_ROT_1 ; i++) {
 		if (!gaudi3_is_engine_enabled(hdev, i))
 			continue;
 
+		j = i - GAUDI3_HDCORE1_ENGINE_ID_EDMA_0;
+		msg_short_pkt = msg_info[j].kern_addr;
+		pkt_dma_addr = msg_info[j].dma_addr;
+		sob = &msg_info[j].sob;
+
+		/* fill msg info */
+		ctl = FIELD_PREP(GAUDI3_PKT_CTL_OPCODE_MASK, PACKET_MSG_SHORT) |
+			FIELD_PREP(GAUDI3_PKT_CTL_EB_MASK, 0x1) |
+			FIELD_PREP(GAUDI3_PKT_CTL_SWITCH_MASK, 0x1) |
+			FIELD_PREP(GAUDI3_PKT_CTL_MB_MASK, 0x1) |
+			FIELD_PREP(GAUDI3_PKT_MSG_SHORT_CTL_BASE_LSB_MASK, sob->base) |
+			FIELD_PREP(GAUDI3_PKT_MSG_SHORT_CTL_ADDR_OFFSET_MASK, sob->offset);
+
+		msg_short_pkt->value = cpu_to_le32(sob->val);
+		msg_short_pkt->ctl = cpu_to_le32(ctl);
+
 		gaudi3_qman_set_test_mode(hdev, i, true);
-		rc = gaudi3_test_qman(hdev, i, sob_addr, sob_val, pkt_dma_addr, pkt_size);
+		rc = gaudi3_test_qman(hdev, i, sob->addr, sob->val, pkt_dma_addr, pkt_size);
 		if (!rc)
-			rc = gaudi3_test_qman_arc(hdev, i, sob_addr, sob_val,
+			rc = gaudi3_test_qman_arc(hdev, i, sob->addr, sob->val,
 						  pkt_dma_addr, pkt_size);
 
 		gaudi3_qman_set_test_mode(hdev, i, false);
 
 		if (rc)
-			goto free_pkt;
+			goto exit;
 	}
 
-free_pkt:
-	hl_asic_dma_pool_free(hdev, msg_short_pkt, pkt_dma_addr);
-
+exit:
 	return rc;
 }
 
