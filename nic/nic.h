@@ -746,6 +746,7 @@ struct hl_coll_properties {
  * @qp_info: details of a QP to read via debugfs.
  * @wqe_info: details of a WQE to read via debugfs.
  * @coll_props: array of collective properties (to distinguish between scale-up/out ports).
+ * @status_cmd: NIC status packet command from FW.
  * @mac_lane_remap: MAC to PHY lane mapping.
  * @eth_ports_mask: Ethernet ports enable mask.
  * @mac_loopback: enable MAC loopback on specific NIC ports.
@@ -755,7 +756,8 @@ struct hl_coll_properties {
  * @pcs_fail_time_frame: time frame is seconds to count PCS link failure.
  * @pcs_fail_threshold: PCS link failures threshold to reset link.
  * @card_location: the OAM number in the HLS (relevant for PMC card type).
- * @phy_port_to_dump: the port which its serdes params will be dump.
+ * @phy_port_to_dump: the port which its serdes params will be dumped.
+ * @phy_calc_ber_wait_sec: time in seconds to wait before BER calculation.
  * @phy_load_fw: true if the NIC PHY F/W should be loaded, false otherwise.
  *               The NIC PHY F/W should be loaded on ASIC only, in contrary to
  *               simulator/Palladium.
@@ -772,9 +774,9 @@ struct hl_coll_properties {
  * @eth_loopback: enable hack in hl_en_handle_tx to test eth traffic.
  * @phy_regs_print: print all PHY registers reads/writes.
  * @phy_calc_ber: show PHY BER statistics during power-up.
- * @status_cmd: NIC status packet command from FW.
  * @is_eth_aux_dev_initialized: true if the eth auxiliary device is initialized.
  * @is_ib_aux_dev_initialized: true if the IB auxiliary device is initialized.
+ * @is_decap_disabled: true if need to skip decapsulation, false otherwise.
  * @skip_mac_reset: skip MAC reset.
  * @phy_set_nrz: Set the PHY to NRZ mode (25Gbps speed).
  * @skip_odd_ports_cfg_lock: do not lock the odd ports when acquiring the cfg lock for all ports.
@@ -796,6 +798,7 @@ struct hl_nic {
 	struct hl_nic_qp_info		qp_info;
 	struct hl_nic_wqe_info		wqe_info;
 	struct hl_coll_properties	coll_props[HL_NIC_COLL_CONN_TYPE_MAX];
+	enum hl_nic_status_cmd		status_cmd;
 	u32				*mac_lane_remap;
 	u64				eth_ports_mask;
 	u64				mac_loopback;
@@ -807,7 +810,6 @@ struct hl_nic {
 	u32				card_location;
 	u32				phy_port_to_dump;
 	u16				phy_calc_ber_wait_sec;
-	enum hl_nic_status_cmd		status_cmd;
 	u8				phy_load_fw;
 	u8				phy_config_fw;
 	u8				use_fw_serdes_info;
