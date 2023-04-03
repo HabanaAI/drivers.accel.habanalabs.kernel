@@ -156,6 +156,11 @@ enum hl_mmu_enablement {
 	MMU_EN_PMMU_ONLY = 3,	/* N/A for Goya/Gaudi */
 };
 
+static inline bool hl_is_pmmu_enabled(enum hl_mmu_enablement mmu_enable)
+{
+	return mmu_enable == MMU_EN_ALL || mmu_enable == MMU_EN_PMMU_ONLY;
+}
+
 /*
  * HL_RSVD_SOBS 'sync stream' reserved sync objects per QMAN stream
  * HL_RSVD_MONS 'sync stream' reserved monitors per QMAN stream

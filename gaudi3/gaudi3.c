@@ -4666,7 +4666,7 @@ int gaudi3_sw_init(struct hl_device *hdev)
 	}
 
 	gaudi3_user_interrupt_setup(hdev);
-	hdev->supports_cb_mapping = true;
+	hdev->supports_cb_mapping = hl_is_pmmu_enabled(hdev->mmu_enable);
 	hdev->supports_mmu_prefetch = true;
 	hdev->supports_custom_fw_binning = true;
 	hdev->asic_funcs->set_pci_memory_regions(hdev);

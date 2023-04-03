@@ -4024,7 +4024,7 @@ int gaudi2_sw_init(struct hl_device *hdev)
 	hdev->supports_coresight = true;
 	hdev->supports_custom_fw_binning = true;
 	hdev->supports_sync_stream = true;
-	hdev->supports_cb_mapping = true;
+	hdev->supports_cb_mapping = hl_is_pmmu_enabled(hdev->mmu_enable);
 	hdev->supports_wait_for_multi_cs = false;
 	hdev->supports_fw_cfg_skip = true;
 

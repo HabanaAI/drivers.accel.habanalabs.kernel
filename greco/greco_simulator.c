@@ -1019,7 +1019,7 @@ static int greco_sim_sw_init(struct hl_device *hdev)
 
 	hdev->supports_coresight = false;
 	hdev->supports_sync_stream = true;
-	hdev->supports_cb_mapping = true;
+	hdev->supports_cb_mapping = hl_is_pmmu_enabled(hdev->mmu_enable);
 	hdev->supports_wait_for_multi_cs = true;
 
 	hdev->asic_funcs->set_pci_memory_regions(hdev);

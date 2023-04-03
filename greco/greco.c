@@ -1927,7 +1927,7 @@ static int greco_sw_init(struct hl_device *hdev)
 	hdev->asic_prop.supports_compute_reset = true;
 	hdev->asic_prop.allow_inference_soft_reset = false;
 	hdev->supports_sync_stream = true;
-	hdev->supports_cb_mapping = true;
+	hdev->supports_cb_mapping = hl_is_pmmu_enabled(hdev->mmu_enable);
 	hdev->supports_wait_for_multi_cs = true;
 	hdev->supports_custom_fw_binning = true;
 	hdev->asic_funcs->set_pci_memory_regions(hdev);
