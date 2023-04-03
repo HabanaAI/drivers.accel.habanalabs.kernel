@@ -9461,13 +9461,13 @@ kernel_unmap_dev:
 	return rc;
 }
 
-static void gaudi3_test_pdma_job_fini(struct hl_device *hdev,
+static int gaudi3_test_pdma_job_fini(struct hl_device *hdev,
 				      struct gaudi3_test_pdma_params *test_params)
 {
 	struct asic_fixed_properties *prop = &hdev->asic_prop;
 	struct gaudi3_device *gaudi3 = hdev->asic_specific;
 	u32 ch_reg_base;
-	int ch_idx;
+	int ch_idx, rc, ret = 0;
 
 	for (ch_idx = 0 ; ch_idx < hdev->asic_prop.pdma_ch_max ; ch_idx++) {
 		if (!(gaudi3->hw_cap_pdma_initialized & BIT(ch_idx)))
@@ -9485,15 +9485,16 @@ static void gaudi3_test_pdma_job_fini(struct hl_device *hdev,
 		}
 	}
 
-	gaudi3_kernel_ctx_unmap_addr(hdev, test_params->host_va,
-					test_params->transfer_size, false);
-
+	rc = gaudi3_kernel_ctx_unmap_addr(hdev, test_params->host_va,
+					  test_params->transfer_size, false);
 	hl_asic_dma_free_coherent(hdev, test_params->transfer_size,
 				  test_params->host_ptr, test_params->host_mem_dma_addr);
 	if (test_params->region_type == PCI_REGION_DRAM) {
-		gaudi3_kernel_ctx_unmap_addr(hdev, test_params->device_va,
-						test_params->transfer_size, true);
+		ret = gaudi3_kernel_ctx_unmap_addr(hdev, test_params->device_va,
+						   test_params->transfer_size, true);
 	}
+
+	return rc ? rc : ret;
 }
 
 static int gaudi3_test_pdma_verify_result(struct hl_device *hdev,
@@ -9574,7 +9575,7 @@ static int gaudi3_test_pdma_access(struct hl_device *hdev)
 	struct gaudi3_pdma_job_params job_params = {};
 	struct gaudi3_cq_mode_params cq_params = {};
 	struct gaudi3_device *gaudi3 = hdev->asic_specific;
-	int rc;
+	int rc, ret;
 	bool is_dram_test = !!hdev->cache_enable;
 
 	/* No PDMA channel is initialized */
@@ -9641,8 +9642,8 @@ static int gaudi3_test_pdma_access(struct hl_device *hdev)
 	gaudi3_test_pdma_clear_ctrl_regs(hdev);
 
 exit:
-	gaudi3_test_pdma_job_fini(hdev, &test_params);
-	return rc;
+	ret = gaudi3_test_pdma_job_fini(hdev, &test_params);
+	return rc ? rc : ret;
 }
 
 static int gaudi3_test_kdma_access(struct hl_device *hdev)
@@ -9775,50 +9776,28 @@ static void gaudi3_qman_set_test_mode(struct hl_device *hdev, u32 engine_id, boo
 	gaudi3_axuser_hbw_mmu_bp_set(hdev, qm_reg_base + QM_AXUSER_HBW_BASE_OFFSET, enable);
 }
 
-static int gaudi3_test_qman(struct hl_device *hdev, u32 engine_id, u32 sob_addr, u32 sob_val,
-				dma_addr_t pkt_dma_addr, size_t pkt_size)
+static void gaudi3_test_qman_send_msg(struct hl_device *hdev, u32 engine_id,
+				      dma_addr_t pkt_dma_addr, size_t pkt_size)
 {
 	u32 qm_reg_base = gaudi3_qm_blocks_bases[engine_id];
-	int rc;
-
-	/* Reset the SOB value */
-	WREG32(sob_addr, 0);
 
 	/* QMAN CQF */
 	WREG32(qm_reg_base + mmQMAN_CQ_PTR_LO, lower_32_bits(pkt_dma_addr));
 	WREG32(qm_reg_base + mmQMAN_CQ_PTR_HI, upper_32_bits(pkt_dma_addr));
 	WREG32(qm_reg_base + mmQMAN_CQ_TSIZE, pkt_size);
 	WREG32(qm_reg_base + mmQMAN_CQ_CTL, 0);
-
-	rc = gaudi3_test_qman_wait_completion(hdev, engine_id, "QMAN CQF", sob_addr, sob_val);
-
-	/* Reset the SOB value */
-	WREG32(sob_addr, 0);
-
-	return rc;
 }
 
-static int gaudi3_test_qman_arc(struct hl_device *hdev, u32 engine_id, u32 sob_addr, u32 sob_val,
-				dma_addr_t pkt_dma_addr, size_t pkt_size)
+static void gaudi3_test_qman_arc_send_msg(struct hl_device *hdev, u32 engine_id,
+					  dma_addr_t pkt_dma_addr, size_t pkt_size)
 {
 	u32 qm_reg_base = gaudi3_qm_blocks_bases[engine_id];
-	int rc;
-
-	/* Reset the SOB value */
-	WREG32(sob_addr, 0);
 
 	/* QMAN ARC_CQF */
 	WREG32(qm_reg_base + mmQMAN_ARC_CQ_PTR_LO, lower_32_bits(pkt_dma_addr));
 	WREG32(qm_reg_base + mmQMAN_ARC_CQ_PTR_HI, upper_32_bits(pkt_dma_addr));
 	WREG32(qm_reg_base + mmQMAN_ARC_CQ_TSIZE, pkt_size);
 	WREG32(qm_reg_base + mmQMAN_ARC_CQ_CTL, 0);
-
-	rc = gaudi3_test_qman_wait_completion(hdev, engine_id, "QMAN ARC_CQF", sob_addr, sob_val);
-
-	/* Reset the SOB value */
-	WREG32(sob_addr, 0);
-
-	return rc;
 }
 
 static int gaudi3_test_qmans_get_sob_for_engine(struct hl_device *hdev,
@@ -9836,7 +9815,7 @@ static int gaudi3_test_qmans_get_sob_for_engine(struct hl_device *hdev,
 	return 0;
 }
 
-static int gaudi3_test_qmans(struct hl_device *hdev)
+static int gaudi3_test_qmans_kdma_and_cpu(struct hl_device *hdev)
 {
 	struct gaudi3_device *gaudi3 = hdev->asic_specific;
 	struct gaudi3_qmans_test_info *msg_info = gaudi3->qmans_test_info;
@@ -9847,6 +9826,7 @@ static int gaudi3_test_qmans(struct hl_device *hdev)
 	u32 ctl;
 	int rc = 0, i, j;
 
+	/* send messages on all QMANs */
 	for (i = GAUDI3_HDCORE1_ENGINE_ID_EDMA_0 ; i <= GAUDI3_HDCORE6_ENGINE_ID_ROT_1 ; i++) {
 		if (!gaudi3_is_engine_enabled(hdev, i))
 			continue;
@@ -9868,19 +9848,68 @@ static int gaudi3_test_qmans(struct hl_device *hdev)
 		msg_short_pkt->ctl = cpu_to_le32(ctl);
 
 		gaudi3_qman_set_test_mode(hdev, i, true);
-		rc = gaudi3_test_qman(hdev, i, sob->addr, sob->val, pkt_dma_addr, pkt_size);
-		if (!rc)
-			rc = gaudi3_test_qman_arc(hdev, i, sob->addr, sob->val,
-						  pkt_dma_addr, pkt_size);
+		/* Reset the SOB value */
+		WREG32(sob->addr, 0);
+
+		gaudi3_test_qman_send_msg(hdev, i, pkt_dma_addr, pkt_size);
+	}
+
+	/* test the KDMA while QMANs are working */
+	rc = gaudi3_test_kdma_access(hdev);
+	if (rc)
+		return rc;
+
+	/* wait for QMANs completion */
+	for (i = GAUDI3_HDCORE1_ENGINE_ID_EDMA_0 ; i <= GAUDI3_HDCORE6_ENGINE_ID_ROT_1 ; i++) {
+		if (!gaudi3_is_engine_enabled(hdev, i))
+			continue;
+
+		j = i - GAUDI3_HDCORE1_ENGINE_ID_EDMA_0;
+		sob = &msg_info[j].sob;
+
+		rc = gaudi3_test_qman_wait_completion(hdev, i, "QMAN CQF", sob->addr, sob->val);
+		/* Clear the SOB value */
+		WREG32(sob->addr, 0);
+		if (rc)
+			return rc;
+	}
+
+	/* send messages on all QMAN ARCs */
+	for (i = GAUDI3_HDCORE1_ENGINE_ID_EDMA_0 ; i <= GAUDI3_HDCORE6_ENGINE_ID_ROT_1 ; i++) {
+		if (!gaudi3_is_engine_enabled(hdev, i))
+			continue;
+
+		j = i - GAUDI3_HDCORE1_ENGINE_ID_EDMA_0;
+		pkt_dma_addr = msg_info[j].dma_addr;
+
+		gaudi3_test_qman_arc_send_msg(hdev, i, pkt_dma_addr, pkt_size);
+	}
+
+	/* test the CPU-Q while QMAN ARCs are working */
+	rc = gaudi3_test_cpu_queue(hdev);
+	if (rc)
+		return rc;
+
+	/* wait for ARCs completion */
+	for (i = GAUDI3_HDCORE1_ENGINE_ID_EDMA_0 ; i <= GAUDI3_HDCORE6_ENGINE_ID_ROT_1 ; i++) {
+		if (!gaudi3_is_engine_enabled(hdev, i))
+			continue;
+
+		j = i - GAUDI3_HDCORE1_ENGINE_ID_EDMA_0;
+		sob = &msg_info[j].sob;
+
+		rc = gaudi3_test_qman_wait_completion(hdev,
+						      i, "QMAN ARC_CQF", sob->addr, sob->val);
+		/* Clear the SOB value */
+		WREG32(sob->addr, 0);
 
 		gaudi3_qman_set_test_mode(hdev, i, false);
 
 		if (rc)
-			goto exit;
+			return rc;
 	}
 
-exit:
-	return rc;
+	return 0;
 }
 
 int gaudi3_test_cpu_queue(struct hl_device *hdev)
@@ -9910,18 +9939,10 @@ int gaudi3_test_queues(struct hl_device *hdev)
 	if (rc)
 		return rc;
 
-	rc = gaudi3_test_kdma_access(hdev);
-	if (rc)
-		return rc;
-
 	/* TODO: used for debug, so can be removed once H9-5315 is resolved */
 	WREG32(mmD0_NRTR0_CRDT_RRTR_OB_CRDT_BASE + mmNRTR_CRDT_RRTR_OB_CRDT_CRDT_EN, 0x3);
 
-	rc = gaudi3_test_qmans(hdev);
-	if (rc)
-		return rc;
-
-	rc = gaudi3_test_cpu_queue(hdev);
+	rc = gaudi3_test_qmans_kdma_and_cpu(hdev);
 	if (rc)
 		return rc;
 
