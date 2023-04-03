@@ -2432,7 +2432,7 @@ static void gaudi3_init_pci_mmu_fw_config(struct hl_device *hdev)
 	dev_dbg(hdev->dev, "Initializing PCI MMU (FW init)\n");
 
 	/* init PMMU prefetch-cache to store only hop5 */
-	RMWREG32(mmD0_PMMU_HBW_STLB_BASE, 0x20,
+	RMWREG32(mmD0_PMMU_HBW_STLB_BASE + mmPSTLB_MEM_CACHE_CONFIG, 0x20,
 			PSTLB_MEM_CACHE_CONFIG_CACHE_HOP_PREFETCH_EN_M);
 }
 
