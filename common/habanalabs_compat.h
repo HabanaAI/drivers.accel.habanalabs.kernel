@@ -924,4 +924,101 @@ static inline void eth_hw_addr_set(struct net_device *dev, const u8 *addr)
 }
 #endif
 
+#ifndef _HAS_XARRAY_LIB
+struct xa_limit {
+	u32 max;
+	u32 min;
+};
+
+struct xarray {
+	struct idr idr;
+	spinlock_t xa_lock;
+};
+
+#define XA_LIMIT(_min, _max) ((struct xa_limit) { .min = _min, .max = _max })
+#define XA_FLAGS_ALLOC	0
+
+#define xa_for_each(xa, index, entry) \
+	idr_for_each_entry(xa.idr, entry, *(int *)&index)
+
+static inline void xa_init_flags(struct xarray *xa, gfp_t flags)
+{
+	spin_lock_init(&xa->xa_lock);
+	idr_init(&xa->idr);
+}
+
+static inline void xa_destroy(struct xarray *xa)
+{
+	idr_destroy(&xa->idr);
+}
+
+static inline void *xa_load(struct xarray *xa, unsigned long index)
+{
+	return idr_find(&xa->idr, index);
+}
+
+static inline __must_check int xa_alloc(struct xarray *xa, u32 *id,
+		void *entry, struct xa_limit limit, gfp_t gfp)
+{
+	int rc;
+
+	spin_lock(&xa->xa_lock);
+	rc = idr_alloc(&xa->idr, entry, limit.min, limit.max + 1, gfp);
+	spin_unlock(&xa->xa_lock);
+
+	if (rc < 0) {
+		*id = 0;
+		return rc;
+	}
+
+	*id = rc;
+
+	return 0;
+}
+
+static inline void *xa_store(struct xarray *xa, unsigned long index, void *entry, gfp_t gfp)
+{
+	return idr_replace(&xa->idr, entry, index);
+}
+
+static inline void *idr_remove_compat(struct idr *idr, unsigned long idx)
+{
+#ifndef _HAS_OLD_IDR_LIB
+	return idr_remove(idr, idx);
+#else /* _HAS_OLD_IDR_LIB */
+	/* Old kernels have idr_remove with void signature */
+	idr_remove(idr, idx);
+	return NULL;
+#endif
+}
+
+static inline void *xa_erase(struct xarray *xa, unsigned long index)
+{
+	void *ptr;
+
+	spin_lock(&xa->xa_lock);
+	ptr = idr_remove_compat(&xa->idr, index);
+	spin_unlock(&xa->xa_lock);
+
+	return ptr;
+}
+
+static inline void *__xa_erase(struct xarray *xa, unsigned long index)
+{
+	return idr_remove_compat(&xa->idr, index);
+}
+
+static inline bool xa_empty(struct xarray *xa)
+{
+	return idr_is_empty(&xa->idr);
+}
+
+/* The kerenl with old IDR lib also lacks this xa function definitions */
+#ifdef _HAS_OLD_IDR_LIB
+#define xa_lock(xa)		spin_lock(&(xa)->xa_lock)
+#define xa_unlock(xa)		spin_unlock(&(xa)->xa_lock)
+#endif
+
+#endif /* !_HAS_XARRAY_LIB */
+
 #endif /* HABANALABS_COMPAT_H_ */

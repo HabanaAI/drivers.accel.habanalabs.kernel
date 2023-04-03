@@ -514,3 +514,11 @@ endif
 ifneq ($(shell grep "eth_hw_addr_set" include/linux/etherdevice.h > /dev/null 2>&1 && echo 1),)
 	ccflags-y += -D_HAS_ETH_HW_ADDR_SET
 endif
+
+ifneq ($(shell grep "struct xarray\|RH_KABI_RENAME(radix_tree_root, xarray)" include/linux/xarray.h > /dev/null 2>&1 && echo 1),)
+	ccflags-y += -D_HAS_XARRAY_LIB
+endif
+
+ifneq ($(shell grep "void idr_remove" include/linux/idr.h > /dev/null 2>&1 && echo 1),)
+	ccflags-y += -D_HAS_OLD_IDR_LIB
+endif
