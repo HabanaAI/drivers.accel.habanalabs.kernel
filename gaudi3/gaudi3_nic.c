@@ -111,6 +111,7 @@
 
 #define QPC_COLL_LAG_SZ_DEFAULT		0x3
 #define QPC_RX_WQE_CT_MASK_DEFAULT	0x3
+#define QPC_ACK_REQ_FREQ		8
 #define NIC_TMR_TIMEOUT_US		1000 /* 1 msec */
 
 #define IPv4_PROTOCOL_UDP	17
@@ -2559,7 +2560,7 @@ static int gaudi3_nic_set_req_qp_ctx(struct hl_device *hdev,
 	/* ASID is also used as protection-domain, so always configure it */
 	REQ_QPC_SET_ASID(req_qpc, qp->asid);
 
-	REQ_QPC_SET_ACKREQ_FREQ(req_qpc, 8);
+	REQ_QPC_SET_ACKREQ_FREQ(req_qpc, QPC_ACK_REQ_FREQ);
 	REQ_QPC_SET_WQ_TYPE(req_qpc, in->wq_type);
 	REQ_QPC_SET_SACK_ENABLE(req_qpc, in->sack_en);
 
@@ -2762,8 +2763,8 @@ static int gaudi3_nic_set_res_qp_ctx(struct hl_device *hdev,
 
 	/* ASID is also used as protection-domain, so always configure it */
 	RES_QPC_SET_ASID(res_qpc, qp->asid);
-
 	RES_QPC_SET_SACK_EN(res_qpc, in->sack_en);
+	RES_QPC_SET_RES_ACKREQ_FREQ(res_qpc, QPC_ACK_REQ_FREQ);
 
 	RES_QPC_SET_SCHD_Q_NUM(res_qpc,
 			__gaudi3_nic_txs_get_schedq_num(logical_port, priority, TS_RC, false));
