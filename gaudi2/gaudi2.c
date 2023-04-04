@@ -3062,8 +3062,16 @@ static int gaudi2_cpucp_info_get(struct hl_device *hdev)
 	u64 dram_size;
 	int rc;
 
-	if (!(gaudi2->hw_cap_initialized & HW_CAP_CPU_Q))
+	if (!(gaudi2->hw_cap_initialized & HW_CAP_CPU_Q)) {
+		/* Skip for hard or device release reset flow. No need to repopulate. */
+		if (!hdev->reset_info.in_reset) {
+			rc = gaudi2_nic_set_info(hdev, false);
+			if (rc)
+				return rc;
+		}
+
 		return 0;
+	}
 
 	/* No point of asking this information again when not doing hard reset, as the device
 	 * CPU hasn't been reset
@@ -3130,8 +3138,13 @@ static int gaudi2_cpucp_info_get(struct hl_device *hdev)
 
 	prop->max_power_default = (u64) max_power;
 
+	/* If reading from FW, repopulate post hard reset since device CPU has been reset.
+	 * For ignore FW case, no need to repopulate.
+	 */
 	if (!hdev->ignore_fw_nic_info)
 		rc = gaudi2_nic_set_info(hdev, true);
+	else if (!hdev->reset_info.in_reset)
+		rc = gaudi2_nic_set_info(hdev, false);
 
 	return rc;
 }

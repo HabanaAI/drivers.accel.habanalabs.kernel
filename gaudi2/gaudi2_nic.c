@@ -3188,13 +3188,7 @@ static void gaudi2_nic_kernel_ctx_fini(struct hl_ctx *ctx)
 
 static int gaudi2_nic_pre_core_init(struct hl_device *hdev)
 {
-	struct gaudi2_device *gaudi2 = hdev->asic_specific;
-
-	/* This case is handled as part of gaudi2_cpucp_info_get() */
-	if ((gaudi2->hw_cap_initialized & HW_CAP_CPU_Q) && !hdev->ignore_fw_nic_info)
-		return 0;
-
-	return gaudi2_nic_set_info(hdev, false);
+	return 0;
 }
 
 static void gaudi2_nic_set_speed(struct hl_device *hdev)
