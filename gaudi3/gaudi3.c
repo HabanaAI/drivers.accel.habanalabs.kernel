@@ -102,6 +102,7 @@ MODULE_FIRMWARE(GAUDI3_BOOT_FIT_FILE);
 #define GAUDI3_RESET_WAIT_MSEC				1		/* 1ms */
 #define GAUDI3_RESET_TIMEOUT_MSEC			500		/* 500ms */
 #define GAUDI3_RESET_POLL_TIMEOUT_USEC			50000		/* 50ms */
+#define GAUDI3_CPU_RESET_WAIT_MSEC			100		/* 100ms */
 #define GAUDI3_MSG_TO_CPU_TIMEOUT_USEC			4000000		/* 4s */
 #define GAUDI3_PLDM_MSG_TO_CPU_TIMEOUT_USEC		300000000	/* 300s */
 
@@ -3396,6 +3397,14 @@ int gaudi3_set_fixed_properties(struct hl_device *hdev)
 	prop->supports_odp = true;
 
 	prop->hbw_flush_reg = mmD0_PCIE_WRAP_SPECIAL_BASE + mmPCIE_WRAP_SPECIAL_GLBL_SPARE_0;
+	prop->hard_reset_sleep_ms = hdev->pldm ? GAUDI3_PLDM_DUAL_DIE_HARD_RESET_WAIT_MSEC
+						: GAUDI3_RESET_TIMEOUT_MSEC;
+
+	prop->soft_reset_sleep_ms = hdev->pldm ? GAUDI3_PLDM_RESET_WAIT_MSEC
+						: GAUDI3_RESET_TIMEOUT_MSEC;
+
+	prop->reset_poll_timeout_us = hdev->pldm ? GAUDI3_PLDM_PREBOOT_RESET_POLL_TIMEOUT_USEC
+						: GAUDI3_RESET_POLL_TIMEOUT_USEC;
 
 	nic_prop->max_hw_qps_num = NIC_HW_MAX_QP_NUM;
 	nic_prop->max_qps_num = ELEMENT_COUNT(NIC_MAX_GEN_QP_NUM);
@@ -7729,7 +7738,7 @@ void gaudi3_send_hard_reset_cmd(struct hl_device *hdev)
 	if (!preboot_only && gaudi3 && (gaudi3->hw_cap_initialized & HW_CAP_CPU) &&
 			(cpu_boot_status == CPU_BOOT_STATUS_SRAM_AVAIL)) {
 		WREG32(mmD0_PARC_INT_GEN_BASE + mmINTR_GEN_MSG2WIRE_SW, 0x1);
-		msleep(100);
+		msleep(GAUDI3_CPU_RESET_WAIT_MSEC);
 	}
 
 	/* TODO: SW-108036 Enable firmware reset code when gaudi3_irq_map_table is added */
@@ -7801,7 +7810,7 @@ void gaudi3_clear_hw_cap(struct hl_device *hdev, bool hard_reset)
 						HW_CAP_SET_CACHE_MODE_MASK | HW_CAP_SRAM);
 }
 
-static int gaudi3_wait_reset(struct hl_device *hdev, u32 poll_timeout_us,
+static int gaudi3_wait_reset(struct hl_device *hdev, u32 reset_poll_timeout_us,
 			u32 reset_sleep_ms, bool hard_reset)
 {
 	u32 status;
@@ -7815,12 +7824,12 @@ static int gaudi3_wait_reset(struct hl_device *hdev, u32 poll_timeout_us,
 		return 0;
 	}
 
-	rc = hl_poll_timeout_elbi(hdev,
-		CFG_BAR_BASE + mmD0_PCIE_WRAP_BASE + mmPCIE_WRAP_PSOC_BOOT_MNG_DONE,
+	rc = hl_poll_timeout(hdev,
+		mmD0_PCIE_WRAP_BASE + mmPCIE_WRAP_PSOC_BOOT_MNG_DONE,
 		status,
 		(status & PCIE_WRAP_PSOC_BOOT_MNG_DONE_PSOC_BOOT_MNG_DONE_M),
 		1000,
-		poll_timeout_us);
+		reset_poll_timeout_us);
 	if (rc)
 		dev_err(hdev->dev, "Error %d while waiting for device to reset\n", rc);
 	return rc;
@@ -7828,20 +7837,13 @@ static int gaudi3_wait_reset(struct hl_device *hdev, u32 poll_timeout_us,
 
 int gaudi3_hw_fini(struct hl_device *hdev, bool hard_reset, bool fw_reset)
 {
-	u32 poll_timeout_us, reset_sleep_ms;
+	u32 reset_poll_timeout_us, reset_sleep_ms;
 	bool wait_reset = true;
 	int rc;
 
-	if (hdev->pldm) {
-		reset_sleep_ms = GAUDI3_PLDM_RESET_WAIT_MSEC;
-		poll_timeout_us = GAUDI3_PLDM_PREBOOT_RESET_POLL_TIMEOUT_USEC;
-
-		if (hard_reset)
-			reset_sleep_ms = GAUDI3_PLDM_DUAL_DIE_HARD_RESET_WAIT_MSEC;
-	} else {
-		reset_sleep_ms = GAUDI3_RESET_TIMEOUT_MSEC;
-		poll_timeout_us = GAUDI3_RESET_POLL_TIMEOUT_USEC;
-	}
+	reset_poll_timeout_us = hdev->asic_prop.reset_poll_timeout_us;
+	reset_sleep_ms = hard_reset ? hdev->asic_prop.hard_reset_sleep_ms
+			: hdev->asic_prop.soft_reset_sleep_ms;
 
 	if (fw_reset) {
 		dev_dbg(hdev->dev, "Firmware performs self HARD reset\n");
@@ -7867,7 +7869,7 @@ int gaudi3_hw_fini(struct hl_device *hdev, bool hard_reset, bool fw_reset)
 
 wait_reset_done:
 	if (wait_reset) {
-		rc = gaudi3_wait_reset(hdev, poll_timeout_us, reset_sleep_ms, hard_reset);
+		rc = gaudi3_wait_reset(hdev, reset_poll_timeout_us, reset_sleep_ms, hard_reset);
 		if (rc)
 			return rc;
 	}

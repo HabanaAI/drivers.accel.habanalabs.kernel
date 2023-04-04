@@ -781,6 +781,9 @@ struct hl_mem_block_info {
  * @glbl_err_cause_num: global err cause number.
  * @hbw_flush_reg: register to read to generate HBW flush. value of 0 means HBW flush is
  *                 not supported.
+ * @hard_reset_sleep_ms: sleep time in ms for hard reset
+ * @soft_reset_sleep_ms: sleep time in mms for soft reset
+ * @reset_poll_timeout_us: timeout in us for poll reset indication
  * @collective_first_sob: first sync object available for collective use
  * @collective_first_mon: first monitor available for collective use
  * @sync_stream_first_sob: first sync object available for sync stream use
@@ -935,6 +938,9 @@ struct asic_fixed_properties {
 	u32				num_of_special_blocks;
 	u32				glbl_err_cause_num;
 	u32				hbw_flush_reg;
+	u32				hard_reset_sleep_ms;
+	u32				soft_reset_sleep_ms;
+	u32				reset_poll_timeout_us;
 	u16				collective_first_sob;
 	u16				collective_first_mon;
 	u16				sync_stream_first_sob;
