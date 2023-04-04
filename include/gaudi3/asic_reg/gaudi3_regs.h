@@ -113,6 +113,7 @@
 #include "nic_mac_glob_stat_tx3_regs.h"
 #include "psoc_reset_conf_regs.h"
 #include "psoc_boot_conf_regs.h"
+#include "psoc_security_regs.h"
 #include "rtr_ctrl_rr_lbw_regs.h"
 #include "rtr_ctrl_rr_hbw_regs.h"
 #include "gic_regs.h"

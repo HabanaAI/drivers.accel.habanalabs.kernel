@@ -4063,6 +4063,7 @@ static int gaudi3_early_init(struct hl_device *hdev)
 	struct asic_fixed_properties *prop = &hdev->asic_prop;
 	struct pci_dev *pdev = hdev->pdev;
 	resource_size_t pci_bar_size;
+	u32 status;
 	int rc;
 
 	rc = gaudi3_set_fixed_properties(hdev);
@@ -4110,6 +4111,18 @@ static int gaudi3_early_init(struct hl_device *hdev)
 			/* we are already on failure flow, so don't check if hw_fini fails. */
 			hdev->asic_funcs->hw_fini(hdev, true, false);
 		goto pci_fini;
+	}
+
+	/* TODO - can be removed in the future, since for development purposes only (SW-139611) */
+	if (hdev->pldm && (hdev->fw_components == FW_TYPE_PREBOOT_CPU)) {
+		status = RREG32(mmD0_PSOC_SECURITY_BASE + mmPSOC_SECURITY_SW_STATUS_0);
+		if (status) {
+			dev_dbg(hdev->dev, "Loading LKD with full Preboot for embedded regression\n");
+			hdev->fw_components |= FW_TYPE_BOOT_CPU;
+			hdev->fw_loader.fw_comp_loaded |= FW_TYPE_BOOT_CPU;
+			hdev->cpu_queues_enable = 1;
+			hdev->heartbeat = 1;
+		}
 	}
 
 	if (gaudi3_get_hw_state(hdev) == HL_DEVICE_HW_STATE_DIRTY) {
