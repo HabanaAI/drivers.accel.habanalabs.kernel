@@ -348,7 +348,7 @@ static void gaudi3_fpga_halt_coresight(struct hl_device *hdev, struct hl_ctx *ct
 static bool gaudi3_fpga_is_device_idle(struct hl_device *hdev, u64 *mask_arr, u8 mask_len,
 					struct engines_data *e)
 {
-	return false;
+	return true;
 }
 
 static int gaudi3_fpga_send_cpu_message(struct hl_device *hdev, u32 *msg,
