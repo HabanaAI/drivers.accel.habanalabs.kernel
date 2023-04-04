@@ -29,6 +29,9 @@
 static_assert(RA_SIMPLE_FORWARD > 0);
 static_assert(RA_SIMPLE_BACKWARD >= 0);
 
+/* TODO: SW-113262 remove once prints are moved to ftrace */
+#define ODP_SKIP_DEBUG_PRINTS
+
 #ifdef _HAS_MMU_RANGE_FLAGS
 /* Note: older kernel */
 static const uint64_t hmm_range_flags[HMM_PFN_FLAG_MAX] = {
@@ -208,8 +211,9 @@ struct hl_odp_region_ctx *hl_odp_region_ctx_create(struct hl_device *hdev,
 		goto free_rg;
 	}
 
+#ifndef ODP_SKIP_DEBUG_PRINTS
 	dev_dbg(hdev->dev, "ODP region created: %#llx+%#llx\n", addr, size);
-
+#endif
 	goto out;
 
 free_rg:
@@ -243,7 +247,9 @@ void hl_odp_region_ctx_destroy(struct hl_odp_region_ctx *rg)
 		if (!entry)
 			continue;
 		device_addr = (va_pfn << PAGE_SHIFT);
+#ifndef ODP_SKIP_DEBUG_PRINTS
 		dev_dbg(hdev->dev, "ODP region destroy: unmap %#llx\n", device_addr);
+#endif
 		dma_addr = xa_to_value(entry);
 		hl_mmu_unmap_page(ctx, device_addr, PAGE_SIZE, true);
 		hdev->asic_funcs->asic_dma_unmap_page(hdev, dma_addr, PAGE_SIZE,
@@ -291,9 +297,9 @@ static int odp_mmu_update_page_in_locked(struct hl_odp_region_ctx *rg,
 
 		if (entry) {
 			/* This is a valid case because of the read ahead */
-			dev_dbg(hdev->dev,
-				"Virtual address %#llx is already mapped\n",
-				addr);
+#ifndef ODP_SKIP_DEBUG_PRINTS
+			dev_dbg(hdev->dev, "Virtual address %#llx is already mapped\n", addr);
+#endif
 			continue;
 		}
 
@@ -319,9 +325,11 @@ static int odp_mmu_update_page_in_locked(struct hl_odp_region_ctx *rg,
 				hdev, dma_addr, PAGE_SIZE, rg->userptr->dir);
 			goto rollback;
 		}
+#ifndef ODP_SKIP_DEBUG_PRINTS
 		dev_dbg(hdev->dev,
 			"Device address %#llx mapped to physical address %#llx",
 			device_addr, dma_addr);
+#endif
 	}
 
 	/* Last, invalidate cache */
@@ -400,8 +408,10 @@ static bool odp_mmu_update_page_out_locked(struct hl_odp_region_ctx *rg, u64 sta
 	void *entry;
 	int rc;
 
+#ifndef ODP_SKIP_DEBUG_PRINTS
 	dev_dbg(hdev->dev, "Page out event on addr=%#llx, npages=%#llx\n",
 		start, npages);
+#endif
 
 	addr_aligned = round_down(rg->userptr->addr, PAGE_SIZE);
 	start_page = (start - addr_aligned) >> PAGE_SHIFT;
@@ -413,8 +423,10 @@ static bool odp_mmu_update_page_out_locked(struct hl_odp_region_ctx *rg, u64 sta
 			continue;
 		dma_addr = xa_to_value(entry);
 		device_addr = (va_pfn << PAGE_SHIFT);
+#ifndef ODP_SKIP_DEBUG_PRINTS
 		dev_dbg(hdev->dev, "Paging out %#llx (device_addr=%#llx)\n",
 			dma_addr, device_addr);
+#endif
 		rc = hl_mmu_unmap_page(ctx, device_addr, PAGE_SIZE, true);
 		if (rc) {
 			dev_err(hdev->dev,
