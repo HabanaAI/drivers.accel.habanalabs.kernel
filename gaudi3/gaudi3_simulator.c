@@ -961,12 +961,21 @@ static int gaudi3_sim_cpucp_info_get(struct hl_device *hdev)
 	int rc;
 
 	if (!(gaudi3->hw_cap_initialized & HW_CAP_CPU_Q)) {
-		/* Set nic_info by the driver because F/W is disabled on simulator. */
-		if (!hdev->ignore_fw_nic_info) {
-			gaudi3_sim_get_nic_info(hdev);
-			hdev->nic_ports_ext_mask &= le64_to_cpu(nic_info->link_ext_mask[0]);
-			hdev->nic_ports_mask &= le64_to_cpu(nic_info->link_mask[0]);
-			hdev->nic_auto_neg_mask &= le64_to_cpu(nic_info->auto_neg_mask[0]);
+		/* Skip for hard or device release reset flow. No need to repopulate. */
+		if (!hdev->reset_info.in_reset) {
+			/* Set nic_info by the driver because F/W is disabled on simulator.
+			 * Override info from module param.
+			 */
+			if (!hdev->ignore_fw_nic_info) {
+				gaudi3_sim_get_nic_info(hdev);
+				hdev->nic_ports_ext_mask &= le64_to_cpu(nic_info->link_ext_mask[0]);
+				hdev->nic_ports_mask &= le64_to_cpu(nic_info->link_mask[0]);
+				hdev->nic_auto_neg_mask &= le64_to_cpu(nic_info->auto_neg_mask[0]);
+			}
+
+			rc = gaudi3_nic_set_info(hdev, false);
+			if (rc)
+				return rc;
 		}
 
 		return 0;
@@ -1020,9 +1029,14 @@ static int gaudi3_sim_cpucp_info_get(struct hl_device *hdev)
 		prop->dram_end_address = prop->dram_base_address + dram_size;
 	}
 
-	if (!hdev->ignore_fw_nic_info)
-		hdev->card_type =
-			le32_to_cpu(hdev->asic_prop.cpucp_info.card_type);
+	if (!hdev->reset_info.in_reset) {
+		/* Override info from module param. */
+		if (!hdev->ignore_fw_nic_info)
+			hdev->card_type = le32_to_cpu(hdev->asic_prop.cpucp_info.card_type);
+
+		/* For NIC do not populate from FW. */
+		rc = gaudi3_nic_set_info(hdev, false);
+	}
 
 	return 0;
 }

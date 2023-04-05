@@ -4553,8 +4553,16 @@ static int gaudi3_cpucp_info_get(struct hl_device *hdev)
 	struct gaudi3_device *gaudi3 = hdev->asic_specific;
 	int rc;
 
-	if (!(gaudi3->hw_cap_initialized & HW_CAP_CPU_Q))
+	if (!(gaudi3->hw_cap_initialized & HW_CAP_CPU_Q)) {
+		/* Skip for hard or device release reset flow. No need to repopulate. */
+		if (!hdev->reset_info.in_reset) {
+			rc = gaudi3_nic_set_info(hdev, false);
+			if (rc)
+				return rc;
+		}
+
 		return 0;
+	}
 
 	/* No point of asking this information again when not doing hard reset, as the device
 	 * CPU hasn't been reset
@@ -4577,8 +4585,13 @@ static int gaudi3_cpucp_info_get(struct hl_device *hdev)
 	if (rc)
 		return rc;
 
+	/* If reading from FW, repopulate post hard reset since device CPU has been reset.
+	 * For ignore FW case, no need to repopulate.
+	 */
 	if (!hdev->ignore_fw_nic_info)
 		rc = gaudi3_nic_set_info(hdev, true);
+	else if (!hdev->reset_info.in_reset)
+		rc = gaudi3_nic_set_info(hdev, false);
 
 	return rc;
 }

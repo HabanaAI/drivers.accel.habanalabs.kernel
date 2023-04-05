@@ -1866,13 +1866,7 @@ int gaudi3_nic_set_info(struct hl_device *hdev, bool get_from_fw)
 
 static int gaudi3_nic_pre_core_init(struct hl_device *hdev)
 {
-	struct gaudi3_device *gaudi3 = hdev->asic_specific;
-
-	/* This case is handled as part of gaudi3_cpucp_info_get() */
-	if ((gaudi3->hw_cap_initialized & HW_CAP_CPU_Q) && !hdev->ignore_fw_nic_info)
-		return 0;
-
-	return gaudi3_nic_set_info(hdev, false);
+	return 0;
 }
 
 static bool gaudi3_nic_get_hw_cap(struct hl_device *hdev)
