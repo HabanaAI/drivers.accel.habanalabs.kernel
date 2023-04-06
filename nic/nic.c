@@ -764,6 +764,7 @@ static void hl_nic_ib_query_device(struct hl_aux_dev *aux_dev,
 		dev_attr->hw_ver = hdev->pdev->subsystem_device;
 	} else {
 		dev_attr->vendor_id = PCI_VENDOR_ID_HABANALABS;
+		dev_attr->vendor_part_id = hdev->asic_funcs->get_pci_id(hdev);
 	}
 
 	/* TODO: SW-99351: handle QPs per port */
