@@ -1915,6 +1915,18 @@ int gaudi2_nic_phy_port_power_up(struct hl_nic_port *nic_port)
 
 	phy_port_reset(hdev, port);
 
+	/* Port 8 is an external port which will usually be brought UP after all the internal ports
+	 * are UP. Due to NIC macro clock nest dependency, when PHY reset is called for port 8,
+	 * port 9 (which is internal) is being toggled and might lost stabilization.
+	 * A W/A to overcome this issue is to perform PHY reset to port 9 right after, and force its
+	 * PHY to be reconfigured from start.
+	 */
+	if (port == 8) {
+		phy_port_reset(hdev, 9);
+		dev_dbg(hdev->dev, "Card %u Port 9: Performing reset due to port 8 reset\n",
+			card_location);
+	}
+
 	nic_port->phy_func_mode_en = false;
 
 	if (nic_port->auto_neg_enable) {
