@@ -2489,6 +2489,10 @@ skip_pci:
 
 	hl_accel_exit();
 
+	/* wait for trace events to be processed by user app */
+	if (enable_events_tracing)
+		ssleep(5);
+
 	/*
 	 * Removing debugfs must be after all devices or simulator devices
 	 * have been removed because otherwise we get a bug in the
