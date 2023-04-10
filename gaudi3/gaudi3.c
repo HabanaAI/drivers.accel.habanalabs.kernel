@@ -102,8 +102,6 @@ MODULE_FIRMWARE(GAUDI3_BOOT_FIT_FILE);
 #define GAUDI3_RESET_WAIT_MSEC				1		/* 1ms */
 #define GAUDI3_RESET_TIMEOUT_MSEC			500		/* 500ms */
 #define GAUDI3_RESET_POLL_TIMEOUT_USEC			50000		/* 50ms */
-#define GAUDI3_PLDM_PSOC_HARD_RESET_TIMEOUT_MSEC	25000		/* 25s */
-#define GAUDI3_CPU_RESET_WAIT_MSEC			100		/* 100ms */
 #define GAUDI3_MSG_TO_CPU_TIMEOUT_USEC			4000000		/* 4s */
 #define GAUDI3_PLDM_MSG_TO_CPU_TIMEOUT_USEC		300000000	/* 300s */
 
@@ -7632,9 +7630,7 @@ static int gaudi3_hw_fini(struct hl_device *hdev, bool hard_reset, bool fw_reset
 		reset_sleep_ms = GAUDI3_PLDM_RESET_WAIT_MSEC;
 		poll_timeout_us = GAUDI3_PLDM_PREBOOT_RESET_POLL_TIMEOUT_USEC;
 
-		if (gaudi3 && hard_reset)
-			reset_sleep_ms = GAUDI3_PLDM_PSOC_HARD_RESET_TIMEOUT_MSEC;
-		else if (!gaudi3 && hard_reset && hdev->asic_prop.num_of_dies == 2)
+		if (hard_reset)
 			reset_sleep_ms = GAUDI3_PLDM_DUAL_DIE_HARD_RESET_WAIT_MSEC;
 	} else {
 		reset_sleep_ms = GAUDI3_RESET_TIMEOUT_MSEC;
