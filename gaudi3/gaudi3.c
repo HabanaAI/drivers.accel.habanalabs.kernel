@@ -11763,7 +11763,7 @@ static u32 gaudi3_handle_spi_event(struct hl_device *hdev,
 {
 	u16 data_size = le16_to_cpu(eq_dynamic_entry->hdr.size);
 	enum hl_agg_component_type agg_component_type;
-	u32 die, hdcore = 0, instance;
+	u32 die, hdcore = 0, instance, err_cnt = 0;
 	int rc;
 
 	rc = gaudi3_validate_eq_agg_header(hdev, &eq_dynamic_entry->agg_hdr);
@@ -11778,28 +11778,30 @@ static u32 gaudi3_handle_spi_event(struct hl_device *hdev,
 
 	switch (agg_component_type) {
 	case INT_COMP_TYPE_DEC:
-		return gaudi3_handle_decoder_spi(hdev, data_size, &eq_dynamic_entry->spi_data,
+		err_cnt = gaudi3_handle_decoder_spi(hdev, data_size, &eq_dynamic_entry->spi_data,
 							event_mask);
+		break;
 	case INT_COMP_TYPE_NIC:
-		rc = gaudi3_handle_nic_spi(hdev, die * NIC_NUM_MACROS_PER_DIE + instance,
+		err_cnt = gaudi3_handle_nic_spi(hdev, die * NIC_NUM_MACROS_PER_DIE + instance,
 						data_size, &eq_dynamic_entry->nic_spi_data);
 		break;
 	case INT_COMP_TYPE_PCIE:
-		rc = gaudi3_handle_pcie0_spi_err(hdev, data_size, &eq_dynamic_entry->pcie_spi_data);
+		err_cnt = gaudi3_handle_pcie0_spi_err(hdev, data_size,
+							&eq_dynamic_entry->pcie_spi_data);
 		break;
 	case INT_COMP_TYPE_PMMU:
-		rc = handle_pmmu_events(hdev, die, event_mask);
+		err_cnt = handle_pmmu_events(hdev, die, event_mask);
 		break;
 	case INT_COMP_TYPE_STLB:
-		rc = handle_hmmu_events(hdev, die, hdcore, event_mask);
+		err_cnt = handle_hmmu_events(hdev, die, hdcore, event_mask);
 		break;
 	default:
-		return 0;
+		break;
 	}
 
 	hl_check_for_glbl_errors(hdev);
 
-	return rc;
+	return err_cnt;
 }
 
 static u32 gaudi3_handle_hw_event(struct hl_device *hdev,
