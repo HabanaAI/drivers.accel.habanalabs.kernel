@@ -3767,7 +3767,7 @@ static void handle_and_clear_decoder_events(struct hl_device *hdev, u32 die, u32
 					enum err_grp type, u32 sts, u32 sts_idx, u32 idx,
 					u32 aggr_mask_reg, u32 events_mask)
 {
-	u32 hdcore_orig, instance, offset, irq_status_addr, irq_status, cause_intr_addr;
+	u32 hdcore_orig, instance, offset, irq_status_addr, irq_status, cause_intr_addr, cause_intr;
 	struct hl_eq_dynamic_entry eq_dynamic_entry = {};
 	struct eq_agg_header_params params = {};
 	bool unmask_event_in_aggr = false;
@@ -3789,6 +3789,16 @@ static void handle_and_clear_decoder_events(struct hl_device *hdev, u32 die, u32
 	case ERR_GRP_SEI:
 		hdcore = decoder_sei_instance_fixup[die][hdcore_orig][idx].hdcore;
 		instance = decoder_sei_instance_fixup[die][hdcore_orig][idx].instance;
+		offset = (die * NUM_OF_HDCORES_PER_DIE + hdcore) * HDCORE_OFFSET +
+				instance * HDCORE_DECODER_OFFSET;
+		cause_intr_addr = mmHD0_VDEC0_BRDG_CTRL_BASE + offset + mmVDEC_BRDG_CTRL_CAUSE_INTR;
+		cause_intr = RREG32(cause_intr_addr) & VDEC_BRDG_CTRL_CAUSE_INTR_SEI_M;
+		eq_dynamic_entry.intr_cause.intr_cause_data = cpu_to_le64(cause_intr);
+		eq_dynamic_entry.hdr.size = cpu_to_le16(sizeof(struct hl_eq_intr_cause));
+
+		/* Clear interrupt (W1C) */
+		WREG32(cause_intr_addr, cause_intr);
+		unmask_event_in_aggr = true;
 		break;
 
 	case ERR_GRP_SPI_ECO:
@@ -3801,7 +3811,7 @@ static void handle_and_clear_decoder_events(struct hl_device *hdev, u32 die, u32
 		eq_dynamic_entry.spi_data.cause.intr_cause_data = cpu_to_le64(irq_status);
 		eq_dynamic_entry.hdr.size = cpu_to_le16(sizeof(struct hl_eq_generic_spi_data));
 
-		/* Clear interrupt */
+		/* Clear interrupt (W1C) */
 		WREG32(irq_status_addr, irq_status);
 		cause_intr_addr = mmHD0_VDEC0_BRDG_CTRL_BASE + offset + mmVDEC_BRDG_CTRL_CAUSE_INTR;
 		WREG32_AND(cause_intr_addr, VDEC_BRDG_CTRL_CAUSE_INTR_SPI_M);

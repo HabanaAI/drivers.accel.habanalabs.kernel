@@ -1100,6 +1100,40 @@ static const char * const gaudi3_arc_farm_sei_err_cause[] = {
 		"arc_frm_mstrif_lbw_rd_resp_err_intr_cause"
 };
 
+static const char * const gaudi3_decoder_intr_cause[] = {
+	"msix_vcd_hbw_sei",
+	"msix_l2c_hbw_sei",
+	"msix_nrm_hbw_sei",
+	"msix_abnrm_hbw_sei",
+	"msix_vcd_lbw_sei",
+	"msix_l2c_lbw_sei",
+	"msix_nrm_lbw_sei",
+	"msix_abnrm_lbw_sei",
+	"apb_vcd_lbw_sei",
+	"apb_l2c_lbw_sei",
+	"apb_nrm_lbw_sei",
+	"apb_abnrm_lbw_sei",
+	"dec_sei",
+	"dec_apb_sei",
+	"trc_apb_sei",
+	"lbw_mstr_if_sei",
+	"axi_split_bresp_err_sei",
+	"hbw_axi_wr_viol_sei",
+	"hbw_axi_rd_viol_sei",
+	"lbw_axi_wr_viol_sei",
+	"lbw_axi_rd_viol_sei",
+	"vcd_spi",
+	"l2c_spi",
+	"nrm_spi",
+	"abnrm_spi",
+	"msix_vcd_rr_dbg_sei",
+	"msix_l2c_rr_dbg_sei",
+	"msix_nrm_rr_dbg_sei",
+	"msix_abnrm_rr_dbg_sei",
+	"dec_wr_rr_dbg_sei",
+	"dec_rd_rr_dbg_sei"
+};
+
 static const char * const gaudi3_pdma_sei_err_cause[] = {
 		"eng_hbw_rd_rsp_err",
 		"eng_timeout_err",
@@ -11222,7 +11256,7 @@ static void gaudi3_razwi_handler(struct hl_device *hdev,  enum razwi_initiztor r
 }
 
 static void gaudi3_sei_razwi_handler(struct hl_device *hdev,  enum hl_agg_component_type component,
-		u8 die, u8 hdcore, u64 *event_mask)
+					u8 die, u8 hdcore, u8 initiator_idx, u64 *event_mask)
 {
 	switch (component) {
 	case INT_COMP_TYPE_PCIE:
@@ -11241,6 +11275,14 @@ static void gaudi3_sei_razwi_handler(struct hl_device *hdev,  enum hl_agg_compon
 				(hdcore * NUM_ARC_SCHED_PER_HDCORE) + 1,
 				event_mask);
 		break;
+
+	case INT_COMP_TYPE_DEC:
+		gaudi3_razwi_handler(hdev, RAZWI_DEC, die, hdcore, initiator_idx,
+				GAUDI3_HDCORE0_ENGINE_ID_DEC_0 +
+					hdcore * NUM_OF_DECODER_PER_HDCORE + initiator_idx,
+				event_mask);
+		break;
+
 	case INT_COMP_TYPE_PDMA:
 		gaudi3_razwi_handler(hdev, RAZWI_PDMA, die, hdcore, 0,
 				GAUDI3_DIE0_ENGINE_ID_PDMA_0_CH_0 + die * NUM_OF_PDMA_CH_PER_DIE,
@@ -11468,6 +11510,22 @@ static int gaudi3_validate_eqe_data_size(struct hl_device *hdev, u16 actual_size
 	}
 
 	return 0;
+}
+
+static u32 gaudi3_handle_decoder_sei_err(struct hl_device *hdev, u16 data_size,
+						struct hl_eq_intr_cause *intr_cause)
+{
+	u32 err_mask;
+	int rc;
+
+	rc = gaudi3_validate_eqe_data_size(hdev, data_size, sizeof(*intr_cause));
+	if (rc)
+		return 0;
+
+	err_mask = lower_32_bits(le64_to_cpu(intr_cause->intr_cause_data)) &
+			VDEC_BRDG_CTRL_CAUSE_INTR_SEI_M;
+
+	return gaudi3_err_cause_iterator(hdev, err_mask, gaudi3_decoder_intr_cause, "DEC", "SEI");
 }
 
 static u32 gaudi3_handle_pcie0_sei_err(struct hl_device *hdev, u16 data_size,
@@ -11726,6 +11784,10 @@ static u32 gaudi3_handle_sei_event(struct hl_device *hdev,
 	case INT_COMP_TYPE_ARC_FARM:
 		err_cnt = gaudi3_handle_arc_farm_sei_err(hdev, hdcore);
 		break;
+	case INT_COMP_TYPE_DEC:
+		err_cnt = gaudi3_handle_decoder_sei_err(hdev, data_size,
+							&eq_dynamic_entry->intr_cause);
+		break;
 	case INT_COMP_TYPE_NIC:
 		err_cnt = gaudi3_handle_nic_sei_error_event(hdev,
 					die * NIC_NUM_MACROS_PER_DIE + instance);
@@ -11744,7 +11806,7 @@ static u32 gaudi3_handle_sei_event(struct hl_device *hdev,
 		break;
 	}
 
-	gaudi3_sei_razwi_handler(hdev, agg_component_type, die, hdcore, event_mask);
+	gaudi3_sei_razwi_handler(hdev, agg_component_type, die, hdcore, instance, event_mask);
 
 	/*
 	 * TODO: Enable iterator after SW-140969 is resolved.
