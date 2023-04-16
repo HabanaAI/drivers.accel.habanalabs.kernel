@@ -2865,7 +2865,7 @@ void gaudi3_enable_interrupt_aggr_msgs(struct hl_device *hdev)
 		 * Skip setting up PSOC aggregators if FW exist since those
 		 * event will pass through the EQ handler and we don't want to receive it twice.
 		 */
-		if (hdev->fw_components == (FW_TYPE_PREBOOT_CPU | FW_TYPE_BOOT_CPU)) {
+		if (hdev->fw_components != (FW_TYPE_PREBOOT_CPU | FW_TYPE_BOOT_CPU)) {
 			msix_addr = CFG_BAR_BASE - LBW_BASE + mmD0_PCIE_MSIX_BASE;
 
 			for (i = 0 ; i < PSOC_INTR_AGGR_NUM_OF_AGGR_BLOCKS ; i++) {
