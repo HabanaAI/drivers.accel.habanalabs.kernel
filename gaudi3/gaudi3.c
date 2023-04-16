@@ -7628,7 +7628,6 @@ static int gaudi3_wait_reset(struct hl_device *hdev, u32 poll_timeout_us, u32 re
 
 static int gaudi3_hw_fini(struct hl_device *hdev, bool hard_reset, bool fw_reset)
 {
-	struct gaudi3_device *gaudi3 = hdev->asic_specific;
 	u32 poll_timeout_us, reset_sleep_ms;
 	int rc;
 
