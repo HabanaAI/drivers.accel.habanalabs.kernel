@@ -2258,7 +2258,8 @@ static bool is_old_phy_fw_loaded(struct hl_device *hdev)
 
 static bool is_phy_fw_with_anlt_support(struct hl_device *hdev)
 {
-	return gaudi2_nic_phy_get_crc(hdev) == 0x185E;
+	/* raven32.fw.20230223.bin */
+	return gaudi2_nic_phy_get_crc(hdev) == 0x421;
 }
 
 int gaudi2_nic_phy_init(struct hl_device *hdev)
@@ -2276,11 +2277,17 @@ int gaudi2_nic_phy_init(struct hl_device *hdev)
 		return -EINVAL;
 	}
 
-	/* In case LKD override the existing PHY F/W with an unofficial one and this F/W has ANLT
-	 * support, ANLT will be enabled according to the mask.
-	 * Otherwise, ANLT will be disabled on all ports.
+	/* In case the PHY F/W has ANLT support we will enable it according to the mask.
+	 * Otherwise, set the mask to 0 (ANLT is disabled on all ports).
+	 * Such PHY FW can be loaded by embedded F/W with version >= 1.10.0 or manually by the
+	 * driver (for debug purposes).
+	 *
+	 * NOTE - this code doesn't cover the case that the user manually loaded PHY F/W w/o ANLT
+	 * support with an embedded F/W >= 1.10.0 - for such a case he can set the nic_auto_neg_mask
+	 * module parameter to 0.
 	 */
-	if (nic->phy_load_fw && is_phy_fw_with_anlt_support(hdev))
+	if (!hl_is_fw_sw_ver_below(hdev, 1, 10) ||
+			(nic->phy_load_fw && is_phy_fw_with_anlt_support(hdev)))
 		nic->auto_neg_mask = hdev->nic_auto_neg_mask;
 	else
 		nic->auto_neg_mask = 0;
