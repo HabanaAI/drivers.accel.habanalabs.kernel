@@ -265,6 +265,18 @@ static void gaudi3_fpga_disable_msix(struct hl_device *hdev)
 	gaudi3->hw_cap_initialized &= ~HW_CAP_MSIX;
 }
 
+static int gaudi3_fpga_sw_init(struct hl_device *hdev)
+{
+	int rc;
+
+	rc = gaudi3_sw_init(hdev);
+	if (rc)
+		return rc;
+	hdev->supports_cb_mapping = (hdev->mmu_enable == MMU_EN_ALL ||
+					hdev->mmu_enable == MMU_EN_PMMU_ONLY);
+	return 0;
+}
+
 static int gaudi3_fpga_hw_init(struct hl_device *hdev)
 {
 	struct gaudi3_device *gaudi3 = hdev->asic_specific;
@@ -425,7 +437,7 @@ static const struct hl_asic_funcs gaudi3_fpga_funcs = {
 	.early_fini = gaudi3_early_fini,
 	.late_init = gaudi3_fpga_late_init,
 	.late_fini = gaudi3_late_fini,
-	.sw_init = gaudi3_sw_init,
+	.sw_init = gaudi3_fpga_sw_init,
 	.sw_fini = gaudi3_sw_fini,
 	.hw_init = gaudi3_fpga_hw_init,
 	.hw_fini = gaudi3_fpga_hw_fini,

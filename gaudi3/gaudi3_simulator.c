@@ -1099,7 +1099,7 @@ static int gaudi3_sim_sw_init(struct hl_device *hdev)
 	nic->debugfs_reset = true;
 	nic->cq_arm_timeout = CQ_ARM_TIMEOUT_USEC;
 	nic->skip_mac_reset = true;
-	hdev->supports_cb_mapping = hl_is_pmmu_enabled(hdev->mmu_enable);
+	hdev->supports_cb_mapping = true;
 	nic->skip_mac_cnts = true;
 	nic->skip_cq_arm_timeout = true;
 
