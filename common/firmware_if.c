@@ -80,10 +80,13 @@ free_fw_ver:
 	return NULL;
 }
 
-/*
- * get a string of the format "<u32><given_char>*" and return the u32 in ver_num.
- * Upon success, return the pointer to the given_char.
- * Upon failure, return NULL
+/**
+ * extract_u32_until_given_char() - given a string of the format "<u32><char>*", extract the u32.
+ * @str: the given string
+ * @ver_num: the pointer to the extracted u32 to be returned to the caller.
+ * @given_char: the given char at the end of the u32 in the string
+ *
+ * Return: Upon success, return a pointer to the given_char in the string. Upon failure, return NULL
  */
 static char *extract_u32_until_given_char(char *str, u32 *ver_num, char given_char)
 {
@@ -99,10 +102,20 @@ static char *extract_u32_until_given_char(char *str, u32 *ver_num, char given_ch
 	return ch;
 }
 
-/*
- * expecting something like:
+/**
+ * hl_get_sw_major_minor_subminor() - extract the FW's SW version major, minor, sub-minor
+ *				      from the version string
+ * @hdev: pointer to the hl_device
+ * @fw_str: the FW's version string
+ *
+ * The extracted version is set in the hdev fields: fw_sw_{major/minor/sub_minor}_ver.
+ *
+ * fw_str is expected to have one of two possible formats, examples:
  * 1) 'Preboot version hl-gaudi2-1.9.0-fw-42.0.1-sec-3'
  * 2) 'Preboot version hl-gaudi2-1.9.0-rc-fw-42.0.1-sec-3'
+ * In those examples, the SW major,minor,subminor are correspondingly: 1,9,0.
+ *
+ * Return: 0 for success or a negative error code for failure.
  */
 static int hl_get_sw_major_minor_subminor(struct hl_device *hdev, const char *fw_str)
 {
@@ -154,9 +167,15 @@ err_zero_ver:
 	return -EINVAL;
 }
 
-/*
- * preboot_ver is expected to be the format of <major>.<minor>.<sub minor>
- * e.g: 42.0.1-sec-3
+/**
+ * hl_get_preboot_major_minor() - extract the FW's version major, minor from the version string.
+ * @hdev: pointer to the hl_device
+ * @preboot_ver: the FW's version string
+ *
+ * preboot_ver is expected to be the format of <major>.<minor>.<sub minor>*, e.g: 42.0.1-sec-3
+ * The extracted version is set in the hdev fields: fw_inner_{major/minor}_ver.
+ *
+ * Return: 0 on success, negative error code for failure.
  */
 static int hl_get_preboot_major_minor(struct hl_device *hdev, char *preboot_ver)
 {
