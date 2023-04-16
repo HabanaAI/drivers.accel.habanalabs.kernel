@@ -2744,8 +2744,6 @@ void gaudi3_enable_interrupt_aggr_msgs(struct hl_device *hdev)
 	if (!hdev->pldm || !hdev->enable_intr_aggr)
 		return;
 
-	irq = GAUDI3_PLDM_IRQ_FIRST;
-
 	/*
 	 * Enable interrupt aggregators messages for all aggregators in CPU
 	 * and PSOC blocks.
@@ -2757,6 +2755,7 @@ void gaudi3_enable_interrupt_aggr_msgs(struct hl_device *hdev)
 		 * As this bit is the die select, the W/A for these aggregators is writing the other
 		 * die address, i.e. in this case: die1 PCIE_MSIX instead of die0 PCIE_MSIX.
 		 */
+		irq = GAUDI3_PLDM_IRQ_FIRST + (die * INTR_AGGR_NUM_OF_MSIX_VECTORS_PER_DIE);
 		msix_addr = CFG_BAR_BASE - LBW_BASE + mmD0_PCIE_MSIX_BASE + die * DIE_OFFSET;
 
 		/* CPU HDCORE aggregators */
