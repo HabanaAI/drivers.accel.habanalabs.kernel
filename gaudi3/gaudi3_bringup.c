@@ -3269,7 +3269,7 @@ static void handle_and_clear_pcie_events(struct hl_device *hdev, u32 die,
 
 	switch (type) {
 	case ERR_GRP_DERR:
-		handle_and_clear_derr_events(hdev, pcie_special_regs_base, 1, 0x0,
+		handle_and_clear_derr_events(hdev, &pcie_special_regs_base[idx], 1, 0x0,
 						&eq_dynamic_entry.ecc_data);
 		eq_dynamic_entry.hdr.size = cpu_to_le16(sizeof(struct hl_eq_ecc_data));
 		unmask_event_in_aggr = true;
