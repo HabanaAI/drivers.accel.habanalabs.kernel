@@ -3687,6 +3687,76 @@ static void handle_and_clear_arc_farm_events(struct hl_device *hdev, u32 die, u3
 		WREG32_AND(aggr_mask_reg, events_mask);
 }
 
+struct decoder_instance {
+	u32 die;
+	u32 hdcore;
+	u32 instance;
+};
+
+static const struct decoder_instance
+decoder_derr_instance_fixup[MAX_NUM_OF_DIES][NUM_OF_HDCORES_PER_DIE][4] = {
+	{
+		{{0, 0, 0} /* HD0_VDEC0 */, {0, 0, 1} /* HD0_VDEC1 */,
+				{0, 0, 0} /* HD0_VDEC0 */, {0, 0, 1} /* HD0_VDEC1 */},
+		{{0, 1, 0} /* HD1_VDEC0 */, {0, 1, 1} /* HD1_VDEC1 */,
+				{0, 1, 0} /* HD1_VDEC0 */, {0, 1, 1} /* HD1_VDEC1 */},
+		{{0, 2, 0} /* HD2_VDEC0 */, {0, 2, 1} /* HD2_VDEC1 */,
+				{0, 2, 0} /* HD2_VDEC0 */, {0, 2, 1} /* HD2_VDEC1 */},
+		{{0, 3, 0} /* HD3_VDEC0 */, {0, 3, 1} /* HD3_VDEC1 */,
+				{0, 3, 0} /* HD3_VDEC0 */, {0, 3, 1} /* HD3_VDEC1 */}
+	},
+	{
+		{{1, 3, 0} /* HD7_VDEC0 */, {1, 3, 1} /* HD7_VDEC1 */,
+				{1, 3, 0} /* HD7_VDEC0 */, {1, 3, 1} /* HD7_VDEC1 */},
+		{{1, 2, 0} /* HD6_VDEC0 */, {1, 2, 1} /* HD6_VDEC1 */,
+				{1, 2, 0} /* HD6_VDEC0 */, {1, 2, 1} /* HD6_VDEC1 */},
+		{{1, 1, 0} /* HD5_VDEC0 */, {1, 1, 1} /* HD5_VDEC1 */,
+				{1, 1, 0} /* HD5_VDEC0 */, {1, 1, 1} /* HD5_VDEC1 */},
+		{{1, 0, 0} /* HD4_VDEC0 */, {1, 0, 1} /* HD4_VDEC1 */,
+				{1, 0, 0} /* HD4_VDEC0 */, {1, 0, 1} /* HD4_VDEC1 */}
+	}
+};
+
+static const struct decoder_instance
+decoder_sei_instance_fixup[MAX_NUM_OF_DIES][NUM_OF_HDCORES_PER_DIE][2] = {
+	{
+		{{0, 0, 0} /* HD0_VDEC0 */, {0, 2, 0} /* HD2_VDEC0 */},
+		{{0, 0, 1} /* HD0_VDEC1 */, {0, 2, 1} /* HD2_VDEC1 */},
+		{{0, 1, 0} /* HD1_VDEC0 */, {0, 3, 0} /* HD3_VDEC0 */},
+		{{0, 1, 1} /* HD1_VDEC1 */, {0, 3, 1} /* HD3_VDEC1 */}
+	},
+	{
+		{{1, 3, 0} /* HD7_VDEC0 */, {1, 1, 0} /* HD5_VDEC0 */},
+		{{1, 3, 1} /* HD7_VDEC1 */, {1, 1, 1} /* HD5_VDEC1 */},
+		{{1, 2, 0} /* HD6_VDEC0 */, {1, 0, 0} /* HD4_VDEC0 */},
+		{{1, 2, 1} /* HD6_VDEC1 */, {1, 0, 1} /* HD4_VDEC1 */}
+	}
+};
+
+static const struct decoder_instance
+decoder_spi_instance_fixup[MAX_NUM_OF_DIES][NUM_OF_HDCORES_PER_DIE][4] = {
+	{
+		{{0, 0, 0} /* HD0_VDEC0 */, {0, 0, 0} /* HD0_VDEC0 */,
+				{0, 2, 0} /* HD2_VDEC0 */, {0, 2, 0} /* HD2_VDEC0 */},
+		{{0, 0, 1} /* HD0_VDEC1 */, {0, 0, 1} /* HD0_VDEC1 */,
+				{0, 2, 1} /* HD2_VDEC1 */, {0, 2, 1} /* HD2_VDEC1 */},
+		{{0, 1, 0} /* HD1_VDEC0 */, {0, 1, 0} /* HD1_VDEC0 */,
+				{0, 3, 0} /* HD3_VDEC0 */, {0, 3, 0} /* HD3_VDEC0 */},
+		{{0, 1, 1} /* HD1_VDEC1 */, {0, 1, 1} /* HD1_VDEC1 */,
+				{0, 3, 1} /* HD3_VDEC1 */, {0, 3, 1} /* HD3_VDEC1 */}
+	},
+	{
+		{{1, 3, 0} /* HD7_VDEC0 */, {1, 3, 0} /* HD7_VDEC0 */,
+				{1, 1, 0} /* HD5_VDEC0 */, {1, 1, 0} /* HD5_VDEC0 */},
+		{{1, 3, 1} /* HD7_VDEC1 */, {1, 3, 1} /* HD7_VDEC1 */,
+				{1, 1, 1} /* HD5_VDEC1 */, {1, 1, 1} /* HD5_VDEC1 */},
+		{{1, 2, 0} /* HD6_VDEC0 */, {1, 2, 0} /* HD6_VDEC0 */,
+				{1, 0, 0} /* HD4_VDEC0 */, {1, 0, 0} /* HD4_VDEC0 */},
+		{{1, 2, 1} /* HD6_VDEC1 */, {1, 2, 1} /* HD6_VDEC1 */,
+				{1, 0, 1} /* HD4_VDEC1 */, {1, 0, 1} /* HD4_VDEC1 */}
+	}
+};
+
 static u32 decoder_special_regs_base[] = {
 	mmHD0_VDEC0_CTRL_SPECIAL_BASE,
 	mmHD0_VDEC0_BRDG_CTRL_SPECIAL_BASE
@@ -3697,28 +3767,33 @@ static void handle_and_clear_decoder_events(struct hl_device *hdev, u32 die, u32
 					enum err_grp type, u32 sts, u32 sts_idx, u32 idx,
 					u32 aggr_mask_reg, u32 events_mask)
 {
-	u32 instance, offset, irq_status_addr, irq_status, cause_intr_addr;
+	u32 hdcore_orig, instance, offset, irq_status_addr, irq_status, cause_intr_addr;
 	struct hl_eq_dynamic_entry eq_dynamic_entry = {};
 	struct eq_agg_header_params params = {};
 	bool unmask_event_in_aggr = false;
 
+	hdcore_orig = hdcore;
+
 	switch (type) {
 	case ERR_GRP_DERR:
-		instance = idx % 2;
+		hdcore = decoder_derr_instance_fixup[die][hdcore_orig][idx].hdcore;
+		instance = decoder_derr_instance_fixup[die][hdcore_orig][idx].instance;
 		offset = (die * NUM_OF_HDCORES_PER_DIE + hdcore) * HDCORE_OFFSET +
 				instance * HDCORE_DECODER_OFFSET;
-		handle_and_clear_derr_events(hdev, &decoder_special_regs_base[idx], 1, offset,
-						&eq_dynamic_entry.ecc_data);
+		handle_and_clear_derr_events(hdev, &decoder_special_regs_base[idx / 2], 1,
+						offset, &eq_dynamic_entry.ecc_data);
 		eq_dynamic_entry.hdr.size = cpu_to_le16(sizeof(struct hl_eq_ecc_data));
 		unmask_event_in_aggr = true;
 		break;
 
 	case ERR_GRP_SEI:
-		instance = idx;
+		hdcore = decoder_sei_instance_fixup[die][hdcore_orig][idx].hdcore;
+		instance = decoder_sei_instance_fixup[die][hdcore_orig][idx].instance;
 		break;
 
 	case ERR_GRP_SPI_ECO:
-		instance = idx / 2;
+		hdcore = decoder_spi_instance_fixup[die][hdcore_orig][idx].hdcore;
+		instance = decoder_spi_instance_fixup[die][hdcore_orig][idx].instance;
 		offset = (die * NUM_OF_HDCORES_PER_DIE + hdcore) * HDCORE_OFFSET +
 				instance * HDCORE_DECODER_OFFSET;
 		irq_status_addr = mmHD0_VDEC0_CMD_BASE + offset + mmVSI_CMD_SWREG17;
