@@ -11752,7 +11752,10 @@ static u32 gaudi3_handle_sei_event(struct hl_device *hdev,
 
 	gaudi3_sei_razwi_handler(hdev, agg_component_type, die, hdcore, event_mask);
 
-	hl_check_for_glbl_errors(hdev);
+	/*
+	 * TODO: Enable iterator after SW-140969 is resolved.
+	 * hl_check_for_glbl_errors(hdev);
+	 */
 
 	return err_cnt;
 }
@@ -11798,8 +11801,10 @@ static u32 gaudi3_handle_spi_event(struct hl_device *hdev,
 		break;
 	}
 
-	hl_check_for_glbl_errors(hdev);
-
+	/*
+	 * TODO: Enable iterator after SW-140969 is resolved.
+	 * hl_check_for_glbl_errors(hdev);
+	 */
 	return err_cnt;
 }
 
