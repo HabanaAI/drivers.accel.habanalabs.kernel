@@ -3053,7 +3053,8 @@ static void handle_and_clear_cs_events(struct hl_device *hdev, u32 die, u32 hdco
 	switch (type) {
 	case ERR_GRP_DERR:
 		instance = idx;
-		offset = hdcore * HDCORE_OFFSET + instance * CSLICE_OFFSET;
+		offset = (die * NUM_OF_HDCORES_PER_DIE + hdcore) * HDCORE_OFFSET +
+				instance * CSLICE_OFFSET;
 		handle_and_clear_derr_events(hdev, cs_special_regs_base,
 						ARRAY_SIZE(cs_special_regs_base), offset,
 						&eq_dynamic_entry.ecc_data);
@@ -3062,7 +3063,8 @@ static void handle_and_clear_cs_events(struct hl_device *hdev, u32 die, u32 hdco
 		break;
 	case ERR_GRP_SEI:
 		instance = idx;
-		offset = hdcore * HDCORE_OFFSET + instance * CSLICE_OFFSET;
+		offset = (die * NUM_OF_HDCORES_PER_DIE + hdcore * HDCORE_OFFSET) +
+				instance * CSLICE_OFFSET;
 		eq_dynamic_entry.hdr.size = cpu_to_le16(sizeof(struct hl_eq_intr_cause));
 		intr_cause_reg = mmHD0_CS0_MAIN_BASE + offset + mmCACHE_MAIN_SEI_CAUSE_REG;
 		intr_cause_data = RREG32(intr_cause_reg);
@@ -3071,7 +3073,8 @@ static void handle_and_clear_cs_events(struct hl_device *hdev, u32 die, u32 hdco
 		break;
 	case ERR_GRP_SPI_ECO:
 		instance = idx / 2;
-		offset = hdcore * HDCORE_OFFSET + instance * CSLICE_OFFSET;
+		offset = (die * NUM_OF_HDCORES_PER_DIE + hdcore) * HDCORE_OFFSET +
+				instance * CSLICE_OFFSET;
 		eq_dynamic_entry.hdr.size = cpu_to_le16(sizeof(struct hl_eq_intr_cause));
 		intr_cause_reg = mmHD0_CS0_MAIN_BASE + offset + mmCACHE_MAIN_SPI_CAUSE_REG;
 		intr_cause_data = RREG32(intr_cause_reg);
@@ -3443,7 +3446,8 @@ static void handle_and_clear_tpc_events(struct hl_device *hdev, u32 die, u32 hdc
 	switch (type) {
 	case ERR_GRP_DERR:
 		instance = idx;
-		offset = hdcore * HDCORE_OFFSET + instance * HDCORE_TPC_OFFSET;
+		offset = (die * NUM_OF_HDCORES_PER_DIE + hdcore) * HDCORE_OFFSET +
+				instance * HDCORE_TPC_OFFSET;
 		handle_and_clear_derr_events(hdev, tpc_special_regs_base,
 						ARRAY_SIZE(tpc_special_regs_base), offset,
 						&eq_dynamic_entry.ecc_data);
@@ -3500,7 +3504,7 @@ static void handle_and_clear_mme_events(struct hl_device *hdev, u32 die, u32 hdc
 
 	switch (type) {
 	case ERR_GRP_DERR:
-		offset = hdcore * HDCORE_OFFSET;
+		offset = (die * NUM_OF_HDCORES_PER_DIE + hdcore) * HDCORE_OFFSET;
 		handle_and_clear_derr_events(hdev, &mme_special_regs_base[idx], 1, offset,
 						&eq_dynamic_entry.ecc_data);
 		eq_dynamic_entry.hdr.size = cpu_to_le16(sizeof(struct hl_eq_ecc_data));
@@ -3544,7 +3548,7 @@ static void handle_and_clear_stlb_events(struct hl_device *hdev, u32 die, u32 hd
 
 	switch (type) {
 	case ERR_GRP_DERR:
-		offset = hdcore * HDCORE_OFFSET;
+		offset = (die * NUM_OF_HDCORES_PER_DIE + hdcore) * HDCORE_OFFSET;
 		handle_and_clear_derr_events(hdev, stlb_special_regs_base,
 						ARRAY_SIZE(stlb_special_regs_base), offset,
 						&eq_dynamic_entry.ecc_data);
@@ -3638,7 +3642,7 @@ static void handle_and_clear_arc_farm_events(struct hl_device *hdev, u32 die, u3
 
 	switch (type) {
 	case ERR_GRP_DERR:
-		offset = hdcore * HDCORE_OFFSET;
+		offset = (die * NUM_OF_HDCORES_PER_DIE + hdcore) * HDCORE_OFFSET;
 		handle_and_clear_derr_events(hdev, arc_farm_special_regs_base,
 						ARRAY_SIZE(arc_farm_special_regs_base), offset,
 						&eq_dynamic_entry.ecc_data);
@@ -3646,6 +3650,7 @@ static void handle_and_clear_arc_farm_events(struct hl_device *hdev, u32 die, u3
 		unmask_event_in_aggr = true;
 		break;
 	case ERR_GRP_SEI:
+		offset = (die * NUM_OF_HDCORES_PER_DIE + hdcore) * HDCORE_OFFSET;
 		unmask_event_in_aggr = true;
 		break;
 	default:
@@ -3664,20 +3669,18 @@ static void handle_and_clear_arc_farm_events(struct hl_device *hdev, u32 die, u3
 
 	/* Clear event */
 	if (type == ERR_GRP_SEI) {
-		err_msk = RREG32(hdcore * HDCORE_OFFSET + mmHD0_ARC_FARM_ARC0_AUX_BASE +
-				mmQMAN_ARC_AUX_ARC_SEI_INTR_STS);
-		WREG32(hdcore * HDCORE_OFFSET + mmHD0_ARC_FARM_ARC0_AUX_BASE +
-				mmQMAN_ARC_AUX_ARC_SEI_INTR_CLR, err_msk);
+		err_msk = RREG32(mmHD0_ARC_FARM_ARC0_AUX_BASE + offset +
+					mmQMAN_ARC_AUX_ARC_SEI_INTR_STS);
+		WREG32(mmHD0_ARC_FARM_ARC0_AUX_BASE + offset + mmQMAN_ARC_AUX_ARC_SEI_INTR_CLR,
+				err_msk);
 
-		err_msk = RREG32(hdcore * HDCORE_OFFSET + mmHD0_ARC_FARM_ARC1_AUX_BASE +
-				mmQMAN_ARC_AUX_ARC_SEI_INTR_STS);
-		WREG32(hdcore * HDCORE_OFFSET + mmHD0_ARC_FARM_ARC1_AUX_BASE +
-				mmQMAN_ARC_AUX_ARC_SEI_INTR_CLR, err_msk);
+		err_msk = RREG32(mmHD0_ARC_FARM_ARC1_AUX_BASE + offset +
+					mmQMAN_ARC_AUX_ARC_SEI_INTR_STS);
+		WREG32(mmHD0_ARC_FARM_ARC1_AUX_BASE + offset + mmQMAN_ARC_AUX_ARC_SEI_INTR_CLR,
+				err_msk);
 
-		err_msk = RREG32(hdcore * HDCORE_OFFSET + mmHD0_ARC_FARM_FARM_BASE +
-				mmFARM_FARM_SEI_INTR_STS);
-		WREG32(hdcore * HDCORE_OFFSET + mmHD0_ARC_FARM_FARM_BASE +
-				mmFARM_FARM_SEI_INTR_CLR, err_msk);
+		err_msk = RREG32(mmHD0_ARC_FARM_FARM_BASE + offset + mmFARM_FARM_SEI_INTR_STS);
+		WREG32(mmHD0_ARC_FARM_FARM_BASE + offset + mmFARM_FARM_SEI_INTR_CLR, err_msk);
 	}
 
 	if (unmask_event_in_aggr)
@@ -3702,7 +3705,8 @@ static void handle_and_clear_decoder_events(struct hl_device *hdev, u32 die, u32
 	switch (type) {
 	case ERR_GRP_DERR:
 		instance = idx % 2;
-		offset = hdcore * HDCORE_OFFSET + instance * HDCORE_DECODER_OFFSET;
+		offset = (die * NUM_OF_HDCORES_PER_DIE + hdcore) * HDCORE_OFFSET +
+				instance * HDCORE_DECODER_OFFSET;
 		handle_and_clear_derr_events(hdev, &decoder_special_regs_base[idx], 1, offset,
 						&eq_dynamic_entry.ecc_data);
 		eq_dynamic_entry.hdr.size = cpu_to_le16(sizeof(struct hl_eq_ecc_data));
@@ -3715,7 +3719,8 @@ static void handle_and_clear_decoder_events(struct hl_device *hdev, u32 die, u32
 
 	case ERR_GRP_SPI_ECO:
 		instance = idx / 2;
-		offset = hdcore * HDCORE_OFFSET + instance * HDCORE_DECODER_OFFSET;
+		offset = (die * NUM_OF_HDCORES_PER_DIE + hdcore) * HDCORE_OFFSET +
+				instance * HDCORE_DECODER_OFFSET;
 		irq_status_addr = mmHD0_VDEC0_CMD_BASE + offset + mmVSI_CMD_SWREG17;
 		irq_status = RREG32(irq_status_addr);
 		eq_dynamic_entry.spi_data.cause.intr_cause_data = cpu_to_le64(irq_status);
@@ -3763,14 +3768,18 @@ static void handle_and_clear_edma_events(struct hl_device *hdev, u32 die, u32 hd
 	struct eq_agg_header_params params = {};
 	bool unmask_event_in_aggr = false;
 
-	if (hdcore == 0 || hdcore == 2 || hdcore == 5 || hdcore == 7) {
-		dev_err(hdev->dev, "No EDMA interrupts are expected for HD%u!\n", hdcore);
+	/* There are EDMA blocks only in HD 1/3/4/6 */
+	if ((die == 0 && (hdcore == 0 || hdcore == 2)) ||
+			(die == 1 && (hdcore == 1 || hdcore == 3)))  {
+		dev_err(hdev->dev, "No EDMA interrupts are expected for DIE%u_HD%u!\n",
+			die, hdcore);
 		return;
 	}
 
 	switch (type) {
 	case ERR_GRP_DERR:
-		hdcore_index = hdcore / 2; /* [0] = HD1, [1] = HD3, [2] = HD4, [3] = HD6 */
+		/* [0] = HD1, [1] = HD3, [2] = HD4, [3] = HD6 */
+		hdcore_index = (die * NUM_OF_HDCORES_PER_DIE + hdcore) / 2;
 		offset = (hdcore_array[hdcore_index] - hdcore_array[0]) * HDCORE_OFFSET;
 		handle_and_clear_derr_events(hdev, edma_special_regs_base,
 						ARRAY_SIZE(edma_special_regs_base), offset,
