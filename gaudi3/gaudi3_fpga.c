@@ -351,6 +351,11 @@ static bool gaudi3_fpga_is_device_idle(struct hl_device *hdev, u64 *mask_arr, u8
 	return true;
 }
 
+static int gaudi3_fpga_compute_reset_late_init(struct hl_device *hdev)
+{
+	return 0;
+}
+
 static int gaudi3_fpga_send_cpu_message(struct hl_device *hdev, u32 *msg,
 				u16 len, u32 timeout, u64 *result)
 {
@@ -484,7 +489,7 @@ static const struct hl_asic_funcs gaudi3_fpga_funcs = {
 	.send_heartbeat = gaudi3_send_heartbeat,
 	.debug_coresight = gaudi3_fpga_debug_coresight,
 	.is_device_idle = gaudi3_fpga_is_device_idle,
-	.compute_reset_late_init = gaudi3_compute_reset_late_init,
+	.compute_reset_late_init = gaudi3_fpga_compute_reset_late_init,
 	.hw_queues_lock = gaudi3_hw_queues_lock,
 	.hw_queues_unlock = gaudi3_hw_queues_unlock,
 	.get_pci_id = gaudi3_get_pci_id,
