@@ -1742,6 +1742,12 @@ void gaudi2_nic_phy_link_status_work(struct work_struct *work)
 	card_location = hdev->nic.card_location;
 	port = nic_port->port;
 
+	/* Reschedule this work if the device is under compute reset */
+	if (hdev->reset_info.in_compute_reset) {
+		timeout_ms = 1000;
+		goto reschedule;
+	}
+
 	if (nic_port->phy_fw_tuned) {
 		if (!nic_port->phy_func_mode_en) {
 			calc_ber(nic_port);
@@ -1770,6 +1776,7 @@ void gaudi2_nic_phy_link_status_work(struct work_struct *work)
 		timeout_ms = NIC_PHY_CHECK_LINK_INTERVAL_MS;
 	}
 
+reschedule:
 	queue_delayed_work(nic_port->wq, &nic_port->link_status_work,
 			msecs_to_jiffies(timeout_ms));
 }
@@ -1988,6 +1995,21 @@ int gaudi2_nic_phy_reset_macro(struct hl_nic_macro *nic_macro)
 	phy_port_reset(hdev, port + 1);
 
 	return 0;
+}
+
+void gaudi2_nic_phy_flush_link_status_work(struct hl_device *hdev)
+{
+	struct hl_nic_port *nic_port;
+	int i;
+
+	for (i = 0 ; i < hdev->asic_prop.nic_props.max_num_of_ports ; i++) {
+		if (!(hdev->nic_ports_mask & BIT(i)))
+			continue;
+
+		nic_port = &hdev->nic.nic_ports[i];
+
+		flush_delayed_work(&nic_port->link_status_work);
+	}
 }
 
 static int find_first_enabled_port(struct hl_device *hdev, u32 *port)

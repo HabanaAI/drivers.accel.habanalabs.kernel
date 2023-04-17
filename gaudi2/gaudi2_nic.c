@@ -4996,6 +4996,7 @@ static bool gaudi2_nic_cfg_is_locked(struct hl_nic_port *nic_port)
 void gaudi2_nic_compute_reset_prepare(struct hl_device *hdev)
 {
 	gaudi2_nic_eq_enter_temporal_polling_mode(hdev);
+	gaudi2_nic_phy_flush_link_status_work(hdev);
 }
 
 void gaudi2_nic_compute_reset_late_init(struct hl_device *hdev)

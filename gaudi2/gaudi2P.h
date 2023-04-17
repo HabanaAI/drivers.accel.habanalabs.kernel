@@ -780,6 +780,7 @@ void gaudi2_nic_compute_reset_prepare(struct hl_device *hdev);
 void gaudi2_nic_compute_reset_late_init(struct hl_device *hdev);
 void gaudi2_nic_eq_enter_temporal_polling_mode(struct hl_device *hdev);
 void gaudi2_nic_eq_exit_temporal_polling_mode(struct hl_device *hdev);
+void gaudi2_nic_phy_flush_link_status_work(struct hl_device *hdev);
 
 /* Functions exported for bring-up support */
 int gaudi2_init_pll(struct hl_device *hdev);
