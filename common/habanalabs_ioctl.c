@@ -1568,20 +1568,20 @@ static int hl_nic_ioctl(struct hl_fpriv *hpriv, void *data)
 }
 
 #define HL_IOCTL_DEF(ioctl, _func) \
-	[_IOC_NR(ioctl)] = {.cmd = ioctl, .func = _func}
+	[_IOC_NR(ioctl) - HL_COMMAND_START] = {.cmd = ioctl, .func = _func}
 
 static const struct hl_ioctl_desc hl_ioctls[] = {
-	HL_IOCTL_DEF(HL_IOCTL_INFO, hl_info_ioctl),
-	HL_IOCTL_DEF(HL_IOCTL_CB, hl_cb_ioctl),
-	HL_IOCTL_DEF(HL_IOCTL_CS, hl_cs_ioctl),
-	HL_IOCTL_DEF(HL_IOCTL_WAIT_CS, hl_wait_ioctl),
-	HL_IOCTL_DEF(HL_IOCTL_MEMORY, hl_mem_ioctl),
-	HL_IOCTL_DEF(HL_IOCTL_DEBUG, hl_debug_ioctl),
-	HL_IOCTL_DEF(HL_IOCTL_NIC, hl_nic_ioctl)
+	HL_IOCTL_DEF(DRM_IOCTL_HL_INFO, hl_info_ioctl),
+	HL_IOCTL_DEF(DRM_IOCTL_HL_CB, hl_cb_ioctl),
+	HL_IOCTL_DEF(DRM_IOCTL_HL_CS, hl_cs_ioctl),
+	HL_IOCTL_DEF(DRM_IOCTL_HL_WAIT_CS, hl_wait_ioctl),
+	HL_IOCTL_DEF(DRM_IOCTL_HL_MEMORY, hl_mem_ioctl),
+	HL_IOCTL_DEF(DRM_IOCTL_HL_DEBUG, hl_debug_ioctl),
+	HL_IOCTL_DEF(DRM_IOCTL_HL_NIC, hl_nic_ioctl)
 };
 
 static const struct hl_ioctl_desc hl_ioctls_control[] = {
-	HL_IOCTL_DEF(HL_IOCTL_INFO, hl_info_ioctl_control)
+	HL_IOCTL_DEF(DRM_IOCTL_HL_INFO, hl_info_ioctl_control)
 };
 
 static long _hl_ioctl(struct hl_fpriv *hpriv, unsigned int cmd, unsigned long arg,
@@ -1663,8 +1663,11 @@ long hl_ioctl(struct file *filep, unsigned int cmd, unsigned long arg)
 		return -ENODEV;
 	}
 
-	if ((nr >= HL_COMMAND_START) && (nr < HL_COMMAND_END)) {
-		ioctl = &hl_ioctls[nr];
+	/* TODO: remove _OLD when removing old IOCTL defines (SW-114047) */
+	if (nr >= HL_COMMAND_START_OLD && nr < HL_COMMAND_END_OLD) {
+		ioctl = &hl_ioctls[nr - 1];
+	} else if (nr >= HL_COMMAND_START && nr < HL_COMMAND_END) {
+		ioctl = &hl_ioctls[nr - HL_COMMAND_START];
 	} else {
 		char task_comm[TASK_COMM_LEN];
 
@@ -1689,8 +1692,11 @@ long hl_ioctl_control(struct file *filep, unsigned int cmd, unsigned long arg)
 		return -ENODEV;
 	}
 
+	/* TODO: remove _IOC_NR(HL_IOCTL_INFO) when removing old IOCTL defines (SW-114047) */
 	if (nr == _IOC_NR(HL_IOCTL_INFO)) {
-		ioctl = &hl_ioctls_control[nr];
+		ioctl = &hl_ioctls_control[nr - 1];
+	} else if (nr == _IOC_NR(DRM_IOCTL_HL_INFO)) {
+		ioctl = &hl_ioctls_control[nr - HL_COMMAND_START];
 	} else {
 		char task_comm[TASK_COMM_LEN];
 
