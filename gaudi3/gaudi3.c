@@ -11006,7 +11006,10 @@ static void gaudi3_generic_check_for_hdcore_razwi(struct hl_device *hdev,
 static void gaudi3_check_for_tpc_razwi(struct hl_device *hdev, u8 hdcore, u8 initiator_idx,
 					u16 eng_id, u64 *event_mask)
 {
+	/* maps hdcore 0, 2, 5, 7 to 0, 1, 2, 3 */
+	static u8 const hdcore_idx_map[] = {0, 255, 1, 255, 255, 2, 255, 3};
 	u16 arr_size = ARRAY_SIZE(tpc_razwi_info) - NUM_HDCORES_WITH_9_TPC;
+	u8 idx;
 
 	/* non redundant tpc */
 	if (initiator_idx < NUM_OF_TPC_PER_HDCORE)
@@ -11014,26 +11017,15 @@ static void gaudi3_check_for_tpc_razwi(struct hl_device *hdev, u8 hdcore, u8 ini
 				initiator_idx, eng_id, event_mask);
 
 	/* redundant tpc */
-	switch (hdcore) {
-	case 0:
-		gaudi3_check_for_razwi(hdev, &tpc_razwi_info[arr_size], eng_id, event_mask);
-		break;
+	idx = hdcore_idx_map[hdcore];
 
-	case 2:
-		gaudi3_check_for_razwi(hdev, &tpc_razwi_info[arr_size + 1], eng_id, event_mask);
-		break;
-
-	case 5:
-		gaudi3_check_for_razwi(hdev, &tpc_razwi_info[arr_size + 2], eng_id, event_mask);
-		break;
-
-	case 7:
-		gaudi3_check_for_razwi(hdev, &tpc_razwi_info[arr_size + 3], eng_id, event_mask);
-		break;
-
-	default:
-		break;
+	/* does not suppose to happen but just in case */
+	if (idx == 255) {
+		dev_err(hdev->dev, "initiator is %u but hdcore is %u\n", initiator_idx, hdcore);
+		return;
 	}
+
+	gaudi3_check_for_razwi(hdev, &tpc_razwi_info[arr_size + idx], eng_id, event_mask);
 }
 
 static void gaudi3_check_for_mme_razwi(struct hl_device *hdev, u8 hdcore, u16 eng_id,
