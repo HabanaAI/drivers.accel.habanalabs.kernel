@@ -1013,8 +1013,8 @@ static inline bool xa_empty(struct xarray *xa)
 	return idr_is_empty(&xa->idr);
 }
 
-/* The kerenl with old IDR lib also lacks this xa function definitions */
-#ifdef _HAS_OLD_IDR_LIB
+/* Some old kernels have basic xarray header with defines. */
+#ifndef _HAS_XA_LOCK_DEFINES
 #define xa_lock(xa)		spin_lock(&(xa)->xa_lock)
 #define xa_unlock(xa)		spin_unlock(&(xa)->xa_lock)
 #endif

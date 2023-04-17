@@ -522,3 +522,7 @@ endif
 ifneq ($(shell grep "void idr_remove" include/linux/idr.h > /dev/null 2>&1 && echo 1),)
 	ccflags-y += -D_HAS_OLD_IDR_LIB
 endif
+
+ifneq ($(shell grep "xa_lock" include/linux/xarray.h > /dev/null 2>&1 && echo 1),)
+	ccflags-y += -D_HAS_XA_LOCK_DEFINES
+endif
