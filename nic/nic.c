@@ -5172,10 +5172,15 @@ static void hl_nic_get_status(struct hl_nic_port *nic_port, struct cpucp_nic_sta
 {
 	struct hl_device *hdev = nic_port->hdev;
 	struct hl_nic *nic = &hdev->nic;
+	struct hl_nic_funcs *nic_funcs;
 	u32 port = nic_port->port;
 
 	nic_status->port = cpu_to_le32(port);
-	nic_status->up = hl_nic_is_port_open(nic_port);
+
+	nic_funcs = hdev->asic_funcs->nic_funcs;
+
+	/* if hl_nic_init has failed, then aux devices won't have valid values */
+	nic_status->up = (nic_funcs->get_hw_cap(hdev)) ? hl_nic_is_port_open(nic_port) : false;
 
 	if (!nic_status->up)
 		return;
