@@ -569,8 +569,6 @@ module_param(bfe_glbl_errors_read_enable, int, 0444);
 MODULE_PARM_DESC(bfe_glbl_errors_read_enable,
 	"Enable global errors read iterator (0 - disabled, 1 - enabled, default 1)");
 
-#define PCI_VENDOR_ID_HABANALABS	0x1da3
-
 #define PCI_IDS_GOYA			0x0001
 
 #define PCI_IDS_GRECO			0x0020	/* Deprecated, to be removed */

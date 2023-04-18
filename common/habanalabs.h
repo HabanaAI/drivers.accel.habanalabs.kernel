@@ -54,6 +54,8 @@
 struct hl_device;
 struct hl_fpriv;
 
+#define PCI_VENDOR_ID_HABANALABS	0x1da3
+
 /* INTERNAL NOTE
  * There is a test in the synapse profiler suite that contains a hack that looks at the bits
  * of the mmap. If HL_MMAP_TYPE_SHIFT is modified, that test will fail.
