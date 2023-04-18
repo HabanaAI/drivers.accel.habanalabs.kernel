@@ -809,8 +809,9 @@ static void gaudi3_nic_config_hw_txs(struct hl_nic_macro *nic_macro)
 	NIC_WREG32(mmD0_NIC0_TXS_BASE + mmNIC_TXS_FORCE_HIT_EN, 0);
 
 	/* TXS AXI cache should be set to read mode but not alloc = 0x3 */
-	NIC_WREG32(mmD0_NIC0_TXS_BASE + mmNIC_TXS_AXI_CACHE, (0x3 << NIC_TXS_AXI_CACHE_AR_CACHE_S));
-	NIC_WREG32(mmD0_NIC0_TXS_BASE + mmNIC_TXS_AXI_CACHE, (0x3 << NIC_TXS_AXI_CACHE_AW_CACHE_S));
+	NIC_WREG32(mmD0_NIC0_TXS_BASE + mmNIC_TXS_AXI_CACHE,
+							(0x3 << NIC_TXS_AXI_CACHE_AR_CACHE_S) |
+							(0x3 << NIC_TXS_AXI_CACHE_AW_CACHE_S));
 }
 
 static void gaudi3_nic_config_hw_txe(struct hl_nic_macro *nic_macro)
@@ -2190,12 +2191,9 @@ static void gaudi3_nic_config_hw_tmr(struct hl_nic_macro *nic_macro)
 
 	/* TMR cache should be set to read mode but not alloc = 0x3 */
 	NIC_WREG32(mmD0_NIC0_TMR_BASE + mmNIC_TMR_TMR_AXI_CACHE,
-						(0x3 << NIC_TMR_TMR_AXI_CACHE_AR_S));
-	NIC_WREG32(mmD0_NIC0_TMR_BASE + mmNIC_TMR_TMR_AXI_CACHE,
-						(0x3 << NIC_TMR_TMR_AXI_CACHE_AW_S));
-	NIC_WREG32(mmD0_NIC0_TMR_BASE + mmNIC_TMR_TMR_AXI_CACHE,
-						(0x3 << NIC_TMR_TMR_AXI_CACHE_CACHE_AR_S));
-	NIC_WREG32(mmD0_NIC0_TMR_BASE + mmNIC_TMR_TMR_AXI_CACHE,
+						(0x3 << NIC_TMR_TMR_AXI_CACHE_AR_S) |
+						(0x3 << NIC_TMR_TMR_AXI_CACHE_AW_S) |
+						(0x3 << NIC_TMR_TMR_AXI_CACHE_CACHE_AR_S) |
 						(0x3 << NIC_TMR_TMR_AXI_CACHE_CACHE_AW_S));
 
 	/* Perform read from the device to flush all configurations */
