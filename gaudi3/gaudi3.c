@@ -3834,30 +3834,6 @@ static void gaudi3_send_job_to_pdma(struct hl_device *hdev, void *data)
 	RREG32(ch_reg_base + PDMA_CH_A_CTX_OFFSET + mmPDMA_CH_A_CTX_COMMIT);
 }
 
-static void gaudi3_split_job_between_all_pdma_engines(struct hl_device *hdev, void *data)
-{
-	struct gaudi3_pdma_job_params curr_job, *job_params = (struct gaudi3_pdma_job_params *)data;
-	u8 num_of_pdma = hdev->asic_prop.num_of_dies;
-	u32 remainder;
-	int i;
-
-	memset(&curr_job, 0, sizeof(struct gaudi3_pdma_job_params));
-	curr_job.size = job_params->size / num_of_pdma;
-	remainder = job_params->size % num_of_pdma;
-	curr_job.is_memset = job_params->is_memset;
-
-	for (i = 0 ; i < num_of_pdma ; i++) {
-		curr_job.src = job_params->src + (curr_job.size * i);
-		curr_job.dst = job_params->dst + (curr_job.size * i);
-		/* Last PDMA shall deal with remainder */
-		if (i == (num_of_pdma - 1))
-			curr_job.size += remainder;
-		curr_job.ch_reg_base =
-				gaudi3_pdma_get_ch_reg_base(hdev, i * NUM_OF_PDMA_CH_PER_DIE);
-		gaudi3_send_job_to_pdma(hdev, &curr_job);
-	}
-}
-
 static int gaudi3_trigger_pdma_job_and_wait_for_cq_completion(struct hl_device *hdev,
 					struct gaudi3_pdma_job_params *job_params)
 {
@@ -3885,57 +3861,14 @@ static int gaudi3_trigger_pdma_job_and_wait_for_cq_completion(struct hl_device *
 	return rc;
 }
 
-static int gaudi3_trigger_all_pdma_job_and_wait_for_cq_completion(struct hl_device *hdev,
-					struct gaudi3_pdma_job_params *job_params)
-{
-	struct gaudi3_cq_mode_params cq_params = { NULL };
-	u8 num_of_pdma = hdev->asic_prop.num_of_dies;
-	u32 pdma_channel_idx, reg_base;
-	int rc, i;
-
-	for (i = 0 ; i < num_of_pdma ; i++) {
-		/* Using only channel 0 of each pdma */
-		pdma_channel_idx = i * NUM_OF_PDMA_CH_PER_DIE;
-		reg_base = gaudi3_pdma_get_ch_reg_base(hdev, pdma_channel_idx);
-
-		if (hdev->asic_prop.pdma_user_owned_ch_mask & BIT(pdma_channel_idx)) {
-			gaudi3_config_pdma_ch_mmu_mode(hdev, reg_base, true, HL_KERNEL_ASID_ID);
-			/* Since PDMAs used from kernel, set them as secured in case they don't */
-			gaudi3_config_pdma_ch_protection(hdev, reg_base, true);
-		}
-	}
-
-	cq_params.job_data = job_params;
-	cq_params.job_str = job_params->job_str;
-	cq_params.job = gaudi3_split_job_between_all_pdma_engines;
-	cq_params.sob_id = GAUDI3_RESERVED_SOB_PDMA;
-	cq_params.mon_id = GAUDI3_RESERVED_MON_PDMA;
-	cq_params.cq_id = GAUDI3_RESERVED_CQ_PDMA;
-	cq_params.target_sob_value = num_of_pdma;
-	cq_params.timeout_usec = (hdev->pldm) ?
-				(((job_params->size / SZ_1M) + 1) * GAUDI3_PDMA_TIMEOUT_USEC) :
-				GAUDI3_PDMA_TIMEOUT_USEC;
-
-	rc = gaudi3_trigger_job_and_wait_for_cq_completion(hdev, &cq_params);
-
-	for (i = 0 ; i < num_of_pdma ; i++) {
-		/* Using only channel 0 of each pdma */
-		pdma_channel_idx = i * NUM_OF_PDMA_CH_PER_DIE;
-		reg_base = gaudi3_pdma_get_ch_reg_base(hdev, pdma_channel_idx);
-		/* Revert channel's prior security level */
-		if (hdev->asic_prop.pdma_user_owned_ch_mask & BIT(pdma_channel_idx))
-			gaudi3_config_pdma_ch_protection(hdev, reg_base, false);
-	}
-
-	return rc;
-}
-
 static int gaudi3_memset_device_memory(struct hl_device *hdev, u64 addr, u64 size, u64 val,
 					const char *desc)
 {
 	struct gaudi3_pdma_job_params job_params;
 	int rc = 0;
 
+	job_params.ch_idx = KDMA_CH_ID;
+	job_params.ch_reg_base = gaudi3_pdma_get_ch_reg_base(hdev, KDMA_CH_ID);
 	job_params.is_memset = true;
 	job_params.dst = addr;
 	/* When memset is set, set value written in source registers */
@@ -3944,13 +3877,13 @@ static int gaudi3_memset_device_memory(struct hl_device *hdev, u64 addr, u64 siz
 
 	while ((size > U32_MAX) && !rc) {
 		job_params.size = U32_MAX;
-		rc = gaudi3_trigger_all_pdma_job_and_wait_for_cq_completion(hdev, &job_params);
+		rc = gaudi3_trigger_pdma_job_and_wait_for_cq_completion(hdev, &job_params);
 		size -= U32_MAX;
 	}
 
 	if (!rc && size) {
 		job_params.size = size;
-		rc = gaudi3_trigger_all_pdma_job_and_wait_for_cq_completion(hdev, &job_params);
+		rc = gaudi3_trigger_pdma_job_and_wait_for_cq_completion(hdev, &job_params);
 	}
 
 	return rc;
@@ -4009,9 +3942,6 @@ static int gaudi3_scrub_arc_dccm(struct hl_device *hdev, u32 cpu_id)
 	u32 reg_base;
 	int rc;
 
-	if (!hdev->scrub_arc_dccm)
-		return 0;
-
 	reg_base = gaudi3_arc_dccm_bases[cpu_id];
 	if (cpu_id <= CPU_ID_SCHED_ARC15)
 		size *= 2;
@@ -4046,20 +3976,39 @@ static bool gaudi3_is_arc_initialized(struct hl_device *hdev, u64 arc_id)
 	}
 }
 
+static void gaudi3_config_pdma_ch_bw_access(struct hl_device *hdev, u32 reg_base, bool is_lbw)
+{
+	u32 val = 0;
+
+	if (is_lbw)
+		val = FIELD_PREP(PDMA_CH_B_CH_LBW_VAL_M, 1);
+
+	/* HBW: 0, LBW: 1 */
+	WREG32(reg_base + PDMA_CH_B_OFFSET + mmPDMA_CH_B_CH_LBW, val);
+}
+
 static int gaudi3_scrub_arcs_dccm(struct hl_device *hdev)
 {
+	u32 reg_base;
 	u16 arc_id;
-	int rc;
+	int rc = 0;
+
+	if (!hdev->scrub_arc_dccm)
+		return 0;
+
+	reg_base = gaudi3_pdma_grp_blocks_bases[0];
+	gaudi3_config_pdma_ch_bw_access(hdev, reg_base, true);
 
 	for (arc_id = CPU_ID_SCHED_ARC0 ; arc_id < CPU_ID_MAX ; arc_id++) {
 		if (gaudi3_is_arc_initialized(hdev, arc_id)) {
 			rc = gaudi3_scrub_arc_dccm(hdev, arc_id);
 			if (rc)
-				return rc;
+				break;
 		}
 	}
+	gaudi3_config_pdma_ch_bw_access(hdev, reg_base, false);
 
-	return 0;
+	return rc;
 }
 
 void gaudi3_halt_pdma(struct hl_device *hdev)
@@ -4088,17 +4037,6 @@ void gaudi3_halt_dup(struct hl_device *hdev)
 
 		WREG32(reg_base + DUP_CONTROL_HALT_OFFSET, 0x1);
 	}
-}
-
-static void gaudi3_config_pdma_ch_bw_access(struct hl_device *hdev, u32 reg_base, bool is_lbw)
-{
-	u32 val = 0;
-
-	if (is_lbw)
-		val = FIELD_PREP(PDMA_CH_B_CH_LBW_VAL_M, 1);
-
-	/* HBW: 0, LBW: 1 */
-	WREG32(reg_base + PDMA_CH_B_OFFSET + mmPDMA_CH_B_CH_LBW, val);
 }
 
 static void gaudi3_init_pdma_ch_blk_b(struct hl_device *hdev, u32 reg_base, u8 ch_id)
