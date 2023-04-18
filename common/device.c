@@ -1638,7 +1638,7 @@ static void send_disable_pci_access(struct hl_device *hdev, u32 flags)
 
 		/* verify that last EQs are handled before disabled is set */
 		if (hdev->cpu_queues_enable)
-			synchronize_irq(pci_irq_vector(hdev->pdev,
+			synchronize_irq(hdev->asic_funcs->irq_vector(hdev,
 					hdev->asic_prop.eq_interrupt_id));
 	}
 }
