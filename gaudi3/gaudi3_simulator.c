@@ -1383,7 +1383,7 @@ static void gaudi3_sim_poll_on_reset_complete(struct hl_device *hdev, u32 die)
 static int gaudi3_sim_hw_fini(struct hl_device *hdev, bool hard_reset, bool fw_reset)
 {
 	struct asic_fixed_properties *prop = &hdev->asic_prop;
-	int die;
+	int die, rc;
 
 	gaudi3_reset_arcs(hdev);
 
@@ -1392,17 +1392,23 @@ static int gaudi3_sim_hw_fini(struct hl_device *hdev, bool hard_reset, bool fw_r
 	if (hdev->simulator_crashed)
 		goto clear_hw_cap;
 
-	/* Order of reset is DIE1 followed by DIE0 */
-	for (die = prop->num_of_dies - 1; die >= 0 ; die--) {
-		gaudi3_sim_trigger_reset(hdev, hard_reset, die);
-		gaudi3_sim_poll_on_reset_complete(hdev, die);
-	}
+	if (hard_reset || !(hdev->fw_components & FW_TYPE_BOOT_CPU)) {
+		/* Order of reset is DIE1 followed by DIE0 */
+		for (die = prop->num_of_dies - 1; die >= 0 ; die--) {
+			gaudi3_sim_trigger_reset(hdev, hard_reset, die);
+			gaudi3_sim_poll_on_reset_complete(hdev, die);
+		}
 
-	/* Reset bit is not self-clearing, need to manually clear it */
-	for (die = 0; die < prop->num_of_dies; die++)
-		WREG32(mmD0_PSOC_RESET_CONF_BASE + die * DIE_OFFSET +
-			(hard_reset ? mmPSOC_RESET_CONF_SW_ALL_RST : mmPSOC_RESET_CONF_SOFT_RST),
-			0x0);
+		/* Reset bit is not self-clearing, need to manually clear it */
+		for (die = 0; die < prop->num_of_dies; die++)
+			WREG32(mmD0_PSOC_RESET_CONF_BASE + die * DIE_OFFSET +
+				(hard_reset ? mmPSOC_RESET_CONF_SW_ALL_RST :
+					mmPSOC_RESET_CONF_SOFT_RST), 0x0);
+	} else {
+		rc = hl_fw_send_soft_reset(hdev);
+		if (rc)
+			return rc;
+	}
 
 clear_hw_cap:
 	gaudi3_clear_hw_cap(hdev, hard_reset);
