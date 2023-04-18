@@ -1417,11 +1417,8 @@ static void _calc_ber_lane(struct hl_nic_port *nic_port, int lane, u64 total_cnt
 				struct hl_nic_ber_info *ber_info)
 {
 	u64 total_high_digits, error_high_digits, integer, frac;
-	u32 port;
 	u8 total_num_digits, error_num_digits, exp;
 	int i;
-
-	port = nic_port->port;
 
 	total_num_digits = hl_nic_get_num_of_digits(total_cnt);
 	error_num_digits = hl_nic_get_num_of_digits(error_cnt);

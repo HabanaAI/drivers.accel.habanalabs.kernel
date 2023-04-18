@@ -2540,7 +2540,6 @@ static int gaudi2_user_wq_arr_set(struct hl_device *hdev,
 	struct hl_wq_array_properties *wq_arr_props;
 	struct hl_nic_mem_data mem_data = {};
 	struct gaudi2_nic_port *gaudi2_nic;
-	struct gaudi2_device *gaudi2;
 	struct hl_nic_port *nic_port;
 	u64 wq_base_addr, wq_size_cline_log, wq_size, wq_arr_size, num_of_wqs,
 		num_of_wq_entries;
@@ -2552,7 +2551,6 @@ static int gaudi2_user_wq_arr_set(struct hl_device *hdev,
 	port = in->port;
 	nic_port = &hdev->nic.nic_ports[port];
 	gaudi2_nic = nic_port->nic_specific;
-	gaudi2 = hdev->asic_specific;
 
 	if (in->addr) {
 		dev_dbg(hdev->dev, "WQ array address shouldn't be set: 0x%llx\n", in->addr);
@@ -4663,7 +4661,7 @@ static void __qpc_sanity_check(struct gaudi2_nic_port *gaudi2_nic, u32 qpn)
 	struct hl_device *hdev;
 	struct gaudi2_qpc_requester req_qpc = {};
 	struct qpc_mask qpc_mask = {};
-	u32 ona_psn, nts_psn, in_work, bcs_psn, bcc_psn, rem_pi, ona_rem_pi,
+	u32 ona_psn, nts_psn, in_work, bcs_psn, bcc_psn, ona_rem_pi,
 	    consumer_idx, execution_idx, is_valid, port, wq_type;
 	int retry_cnt_in_work = 0, retry_cnt_qpc_timeout = 0;
 	int rc;
@@ -4712,7 +4710,6 @@ retry:
 	consumer_idx = REQ_QPC_GET_CONSUMER_IDX(req_qpc);
 	execution_idx = REQ_QPC_GET_EXECUTION_IDX(req_qpc);
 
-	rem_pi = REQ_QPC_GET_REMOTE_PRODUCER_IDX(req_qpc);
 	ona_rem_pi = REQ_QPC_GET_OLDEST_UNACKED_REMOTE_PRODUCER_IDX(req_qpc);
 
 	wq_type = REQ_QPC_GET_WQ_TYPE(req_qpc);
@@ -5067,7 +5064,7 @@ static bool gaudi2_nic_is_encap_supported(struct hl_device *hdev,
 	return true;
 }
 
-void gaudi2_fw_nic_status(struct hl_nic_port *nic_port)
+static void gaudi2_fw_nic_status(struct hl_nic_port *nic_port)
 {
 	struct hl_device *hdev = nic_port->hdev;
 	struct hl_nic_properties *nic_props = &hdev->asic_prop.nic_props;

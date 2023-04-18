@@ -605,7 +605,7 @@ static const struct pci_device_id ids[] = {
 };
 MODULE_DEVICE_TABLE(pci, ids);
 
-void set_pci_revision_id(struct hl_device *hdev, enum hl_asic_type asic_type)
+static void set_pci_revision_id(struct hl_device *hdev, enum hl_asic_type asic_type)
 {
 	struct pci_dev *pdev = hdev->pdev;
 

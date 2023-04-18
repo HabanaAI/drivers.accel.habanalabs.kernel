@@ -2595,7 +2595,7 @@ static int gaudi_nic_inject_rx_err(struct hl_device *hdev, u8 drop_percent)
 	return 0;
 }
 
-void gaudi_fw_nic_status(struct hl_nic_port *nic_port)
+static void gaudi_fw_nic_status(struct hl_nic_port *nic_port)
 {
 	struct hl_device *hdev = nic_port->hdev;
 	struct hl_nic_properties *nic_props = &hdev->asic_prop.nic_props;

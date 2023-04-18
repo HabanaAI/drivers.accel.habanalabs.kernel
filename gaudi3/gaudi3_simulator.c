@@ -811,7 +811,7 @@ static int gaudi3_sim_validate_set_rotator_binning(struct hl_device *hdev)
 	return 0;
 }
 
-int gaudi3_sim_set_binning_masks(struct hl_device *hdev)
+static int gaudi3_sim_set_binning_masks(struct hl_device *hdev)
 {
 	int rc;
 

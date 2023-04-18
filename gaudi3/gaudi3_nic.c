@@ -5848,7 +5848,7 @@ static bool gaudi3_nic_is_encap_supported(struct hl_device *hdev,
 	return true;
 }
 
-void gaudi3_fw_nic_status(struct hl_nic_port *nic_port)
+static void gaudi3_fw_nic_status(struct hl_nic_port *nic_port)
 {
 	/* FW does not mask MSG interrupts, so unmask_irq is not needed */
 }

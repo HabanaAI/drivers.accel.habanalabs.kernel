@@ -35,7 +35,7 @@ habanalabs-$(CONFIG_DEBUG_FS) += common/debugfs.o
 
 include $(src)/common/Makefile.compat
 
-ccflags-y += $(HL_CFLAGS)
+ccflags-y += $(HL_CFLAGS) -Werror
 
 habanalabs-y += common/simulator.o common/habanalabs_compat.o \
 		common/importer_drv.o common/habanalabs_compat_accel.o
@@ -69,22 +69,22 @@ DEBUG_CFLAGS += -g -DDEBUG
 DRV_CFLAGS_MODULE="-DHL_DRIVER_GIT_SHA=$(GIT_SHA)"
 
 default:
-	$(MAKE) CFLAGS_MODULE=$(DRV_CFLAGS_MODULE) -C $(KERNELDIR) M=$(SRC_DIR) modules
+	$(MAKE) CFLAGS_MODULE=$(DRV_CFLAGS_MODULE) -C $(KERNELDIR) M=$(SRC_DIR) W=1 modules
 
 debug:
-	$(MAKE) EXTRA_CFLAGS="$(DEBUG_CFLAGS)" CFLAGS_MODULE=$(DRV_CFLAGS_MODULE) -C $(KERNELDIR) M=$(SRC_DIR) modules
+	$(MAKE) EXTRA_CFLAGS="$(DEBUG_CFLAGS)" CFLAGS_MODULE=$(DRV_CFLAGS_MODULE) -C $(KERNELDIR) M=$(SRC_DIR) W=1 modules
 
 custom:
-	$(MAKE) CFLAGS_MODULE=$(DRV_CFLAGS_MODULE) -C $(CUSTOMKERNELDIR) M=$(SRC_DIR) modules
+	$(MAKE) CFLAGS_MODULE=$(DRV_CFLAGS_MODULE) -C $(CUSTOMKERNELDIR) M=$(SRC_DIR) W=1 modules
 
 debug_custom:
-	$(MAKE) EXTRA_CFLAGS="$(DEBUG_CFLAGS)" CFLAGS_MODULE=$(DRV_CFLAGS_MODULE) -C $(CUSTOMKERNELDIR) M=$(SRC_DIR) modules
+	$(MAKE) EXTRA_CFLAGS="$(DEBUG_CFLAGS)" CFLAGS_MODULE=$(DRV_CFLAGS_MODULE) -C $(CUSTOMKERNELDIR) M=$(SRC_DIR) W=1 modules
 
 importer:
-	$(MAKE) CFLAGS_MODULE="$(DRV_CFLAGS_MODULE) -D__IMPORTER" -C $(KERNELDIR) M=$(SRC_DIR) modules
+	$(MAKE) CFLAGS_MODULE="$(DRV_CFLAGS_MODULE) -D__IMPORTER" -C $(KERNELDIR) M=$(SRC_DIR) W=1 modules
 
 custom_importer:
-	$(MAKE) CFLAGS_MODULE="$(DRV_CFLAGS_MODULE) -D__IMPORTER" -C $(CUSTOMKERNELDIR) M=$(SRC_DIR) modules
+	$(MAKE) CFLAGS_MODULE="$(DRV_CFLAGS_MODULE) -D__IMPORTER" -C $(CUSTOMKERNELDIR) M=$(SRC_DIR) W=1 modules
 
 clean:
 	$(MAKE) -C $(KERNELDIR) M=$(SRC_DIR) clean

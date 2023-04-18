@@ -1105,7 +1105,6 @@ hl_sim_copy_user_remote(struct hl_vm_user_pages *user_pages, u64 usr_addr,
 	u64 start_page_addr, end_page_addr, nr_pages, nr_pages_pinned;
 	struct mm_struct *owner_mm;
 	unsigned long copied = 0;
-	struct task_struct *tsk;
 	struct page **pages;
 	void *vmap_addr;
 	int i, locked;
@@ -1116,7 +1115,6 @@ hl_sim_copy_user_remote(struct hl_vm_user_pages *user_pages, u64 usr_addr,
 	 * onwner_mm existence must be assured.
 	 */
 	owner_mm = user_pages->owner_mm;
-	tsk = user_pages->tsk;
 
 	start_page_addr = usr_addr & PAGE_MASK;
 	end_page_addr = (usr_addr + size) & PAGE_MASK;
@@ -1133,17 +1131,17 @@ hl_sim_copy_user_remote(struct hl_vm_user_pages *user_pages, u64 usr_addr,
 #ifdef _HAS_GET_USER_PAGES_WITH_GUP_FLAGS
 #ifdef _HAS_GET_USER_PAGES_REMOTE_LOCKED
 	nr_pages_pinned =
-		get_user_pages_remote(tsk, owner_mm, start_page_addr, nr_pages,
+		get_user_pages_remote(user_pages->tsk, owner_mm, start_page_addr, nr_pages,
 					FOLL_WRITE | FOLL_POPULATE, pages, NULL,
 					&locked);
 #else /* _HAS_GET_USER_PAGES_REMOTE_LOCKED */
 	nr_pages_pinned =
-		get_user_pages_remote(tsk, owner_mm, start_page_addr, nr_pages,
+		get_user_pages_remote(user_pages->tsk, owner_mm, start_page_addr, nr_pages,
 				FOLL_WRITE | FOLL_POPULATE, pages, NULL);
 #endif
 #else /* _HAS_GET_USER_PAGES_WITH_GUP_FLAGS */
 	nr_pages_pinned =
-		get_user_pages_remote(tsk, owner_mm, start_page_addr, nr_pages,
+		get_user_pages_remote(user_pages->tsk, owner_mm, start_page_addr, nr_pages,
 					true, false, pages, NULL);
 #endif /* ifdef _HAS_GET_USER_PAGES_WITH_GUP_FLAGS */
 #else /* _HAS_GET_USER_PAGES_REMOTE_WITH_TASK_PTR */
@@ -1155,7 +1153,7 @@ hl_sim_copy_user_remote(struct hl_vm_user_pages *user_pages, u64 usr_addr,
 					FOLL_WRITE, pages, NULL, &locked);
 #endif /* _HAS_GET_USER_PAGES_REMOTE_WITH_TASK_PTR */
 #else /* _HAS_GET_USER_PAGES_REMOTE */
-	nr_pages_pinned = get_user_pages(tsk, owner_mm, start_page_addr,
+	nr_pages_pinned = get_user_pages(user_pages->tsk, owner_mm, start_page_addr,
 					 nr_pages, true, false, pages, NULL);
 #endif /* _HAS_GET_USER_PAGES_REMOTE */
 	if (locked)

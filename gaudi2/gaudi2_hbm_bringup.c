@@ -950,8 +950,7 @@ static int phy_trigger_lanerepair_fsm(struct hl_device *hdev, u32 dev, u32 ctrl,
 
 static int phy_test_io_dc(struct hl_device *hdev, u32 dev)
 {
-	u32 offset, ch, dw, lanerepair_ctrl, lanerepair_status, aw_remap_info[HBM_PHY_CHANNELS_NUM];
-	u32 dw_remap_info[HBM_PHY_CHANNELS_NUM][HBM_CHANNEL_DWORDS_NUM];
+	u32 lanerepair_ctrl, lanerepair_status;
 	int rc;
 
 	/* read HARD repair info from the HBM */
@@ -966,17 +965,6 @@ static int phy_test_io_dc(struct hl_device *hdev, u32 dev)
 	if (rc) {
 		dev_err(hdev->dev, "HBM%d PHY IO-DC test FAILED\n", dev);
 		return rc;
-	}
-
-	/* Store PHY remapping info */
-	for (ch = 0; ch < HBM_PHY_CHANNELS_NUM; ch++) {
-		offset = ch * PHY_CH_OFFSET;
-		aw_remap_info[ch] = PHY_RREG(mmHBM_PHY_CHAN_CHAN0_AWORD_AWREMAP + offset);
-		for (dw = 0; dw < HBM_CHANNEL_DWORDS_NUM; dw++) {
-			offset = ch * PHY_CH_OFFSET + dw * DW_OFFSET;
-			dw_remap_info[ch][dw] = PHY_RREG(mmHBM_PHY_CHAN_CHAN0_AWORD_AWREMAP +
-							 offset);
-		}
 	}
 
 	/* EXTEST */
@@ -1144,7 +1132,7 @@ static void phy_config_lcdl_cal(struct hl_device *hdev, u32 hbm_dev)
 
 static void phy_config_mode_registers(struct hl_device *hdev, u32 hbm_dev)
 {
-	const u32 mr3_tras_mask = 0x3f, mr4_parity_lat_mask = 0xc, mr4_ext_wl_mask = 0x10,
+	const u64 mr3_tras_mask = 0x3f, mr4_parity_lat_mask = 0xc, mr4_ext_wl_mask = 0x10,
 		mr4_ext_rl_mask = 0x20, mr4_ecc_mask = 0x3;
 	struct gaudi2_device *gaudi2 = hdev->asic_specific;
 	struct gaudi2_hbm *hbm_cfg = gaudi2->hbm_cfg;
