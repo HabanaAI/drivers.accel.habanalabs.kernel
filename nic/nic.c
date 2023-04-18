@@ -1192,7 +1192,8 @@ static int hl_nic_ib_aux_drv_init(struct hl_device *hdev)
 
 	probe = symbol_get(hl_ib_probe);
 	if (!probe) {
-		dev_err(hdev->dev, "hl_ib_probe symbol isn't found\n");
+		dev_err(hdev->dev, "hl_ib_probe symbol isn't found. Maybe %s module is unloaded?\n",
+				HL_IB_NAME);
 		rc = -ENODEV;
 		goto probe_fail;
 	}
@@ -1223,7 +1224,8 @@ static void hl_nic_ib_aux_drv_fini(struct hl_device *hdev)
 
 	remove = symbol_get(hl_ib_remove);
 	if (!remove) {
-		dev_err(hdev->dev, "hl_ib_remove symbol isn't found\n");
+		dev_err(hdev->dev, "hl_ib_remove symbol isn't found. Maybe %s module is unloaded?\n",
+				HL_IB_NAME);
 		return;
 	}
 
