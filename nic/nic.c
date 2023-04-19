@@ -243,8 +243,6 @@ static void __hl_nic_port_hw_fini(struct hl_nic_port *nic_port)
 	struct hl_device *hdev = nic_port->hdev;
 	struct hl_nic_funcs *nic_funcs = hdev->asic_funcs->nic_funcs;
 
-	cancel_delayed_work_sync(&nic_port->nic_status_work);
-
 	/* in hard reset the QPs were stopped by hl_nic_stop called from halt engines */
 	if (!hdev->reset_info.hard_reset_pending)
 		hl_nic_qps_stop(nic_port);
@@ -1273,7 +1271,7 @@ static void hl_nic_internal_ports_fini(struct hl_device *hdev)
 	}
 }
 
-static void hl_nic_ext_ports_cancel_work(struct hl_device *hdev)
+static void hl_nic_ports_cancel_status_work(struct hl_device *hdev)
 {
 	struct hl_nic_properties *nic_props = &hdev->asic_prop.nic_props;
 	struct hl_nic *nic = &hdev->nic;
@@ -1281,16 +1279,12 @@ static void hl_nic_ext_ports_cancel_work(struct hl_device *hdev)
 	int i;
 
 	for (i = 0 ; i < nic_props->max_num_of_ports ; i++) {
-		if (!(hdev->nic_ports_mask & BIT(i)) || !(nic->eth_ports_mask & BIT(i)))
+		if (!(hdev->nic_ports_mask & BIT(i)))
 			continue;
 
 		nic_port = &nic->nic_ports[i];
 
-		if (!hl_nic_is_port_open(nic_port)) {
-			mutex_lock(&nic_port->control_lock);
-			cancel_delayed_work_sync(&nic_port->nic_status_work);
-			mutex_unlock(&nic_port->control_lock);
-		}
+		cancel_delayed_work_sync(&nic_port->nic_status_work);
 	}
 }
 
@@ -1630,15 +1624,17 @@ void hl_nic_stop(struct hl_device *hdev)
 	aux_dev = &nic->en_aux_dev;
 	aux_ops = aux_dev->aux_ops;
 
+	/*
+	 * Cancel NIC status work before get_hw_cap, which might be false, if
+	 * NIC init failed. In general, cancelling all outstanding works
+	 * for all ports should be the first thing to be done in NIC stop.
+	 */
+	hl_nic_ports_cancel_status_work(hdev);
+
 	if (!nic_funcs->get_hw_cap(hdev))
 		return;
 
 	qps_stop(hdev);
-
-	/* for external ports that are not up, hl_en_ports_stop()
-	 * never gets called, so cancel nic_status_work here.
-	 */
-	hl_nic_ext_ports_cancel_work(hdev);
 
 	if (aux_ops->ports_stop)
 		aux_ops->ports_stop(aux_dev);
