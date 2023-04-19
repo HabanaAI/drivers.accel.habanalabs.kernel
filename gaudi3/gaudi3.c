@@ -4221,7 +4221,6 @@ static int gaudi3_early_init(struct hl_device *hdev)
 		if (status) {
 			dev_dbg(hdev->dev, "Loading LKD with full Preboot for embedded regression\n");
 			hdev->fw_components |= FW_TYPE_BOOT_CPU;
-			hdev->fw_loader.fw_comp_loaded |= FW_TYPE_BOOT_CPU;
 			hdev->cpu_queues_enable = 1;
 			hdev->heartbeat = 1;
 		}
