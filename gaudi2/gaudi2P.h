@@ -943,6 +943,7 @@ int gaudi2_set_engine_cores(struct hl_device *hdev, u32 *core_ids,
 int gaudi2_set_engines(struct hl_device *hdev, u32 *engine_ids,
 					u32 num_engines, u32 engine_command);
 int gaudi2_is_fw_ver_below_1_8(struct hl_device *hdev);
+int gaudi2_irq_vector(struct hl_device *hdev, unsigned int nr);
 
 /* Bringup functions (w/o F/W support) */
 int gaudi2_nic_config_wqe_asid(struct hl_nic_port *nic_port, u32 asid, bool set_asid);

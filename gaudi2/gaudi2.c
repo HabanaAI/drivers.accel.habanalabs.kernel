@@ -12231,6 +12231,11 @@ int gaudi2_send_device_activity(struct hl_device *hdev, bool open)
 	return hl_fw_send_device_activity(hdev, open);
 }
 
+int gaudi2_irq_vector(struct hl_device *hdev, unsigned int nr)
+{
+	return pci_irq_vector(hdev->pdev, nr);
+}
+
 void gaudi2_fw_security_emulation_init(struct hl_device *hdev)
 {
 }
@@ -12303,6 +12308,7 @@ static const struct hl_asic_funcs gaudi2_funcs = {
 	.init_iatu = gaudi2_init_iatu,
 	.rreg = hl_rreg,
 	.wreg = hl_wreg,
+	.irq_vector = gaudi2_irq_vector,
 	.halt_coresight = gaudi2_halt_coresight,
 	.ctx_init = gaudi2_ctx_init,
 	.ctx_fini = gaudi2_ctx_fini,

@@ -9777,6 +9777,11 @@ static int gaudi_send_device_activity(struct hl_device *hdev, bool open)
 	return 0;
 }
 
+static int gaudi_irq_vector(struct hl_device *hdev, unsigned int nr)
+{
+	return gaudi_pci_irq_vector(hdev, 0, false);
+}
+
 static int gaudi_read_fetch_memory_block(struct hl_device *hdev, u32 *buf,
 					u64 start_addr, u32 size, int entry_block)
 {
@@ -9859,6 +9864,7 @@ static const struct hl_asic_funcs gaudi_funcs = {
 	.nic_init = gaudi_nic_init,
 	.nic_fini = hl_nic_fini,
 	.nic_control = hl_nic_control,
+	.irq_vector = gaudi_irq_vector,
 	.pci_bars_map = gaudi_pci_bars_map,
 	.init_iatu = gaudi_init_iatu,
 	.rreg = hl_rreg,
