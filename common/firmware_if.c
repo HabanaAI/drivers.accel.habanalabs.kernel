@@ -1465,12 +1465,12 @@ void hl_fw_ask_halt_machine_without_linux(struct hl_device *hdev)
 	if (hdev->device_cpu_is_halted)
 		return;
 
-	pre_fw_load = &fw_loader->pre_fw_load;
-	cpu_timeout = fw_loader->cpu_timeout;
-	cpu_boot_status_reg = pre_fw_load->cpu_boot_status_reg;
-
 	/* Stop device CPU to make sure nothing bad happens */
 	if (hdev->asic_prop.dynamic_fw_load) {
+		pre_fw_load = &fw_loader->pre_fw_load;
+		cpu_timeout = fw_loader->cpu_timeout;
+		cpu_boot_status_reg = pre_fw_load->cpu_boot_status_reg;
+
 		rc = hl_fw_dynamic_send_protocol_cmd(hdev, &hdev->fw_loader,
 				COMMS_GOTO_WFE, 0, false, cpu_timeout);
 		if (rc) {
@@ -1488,6 +1488,7 @@ void hl_fw_ask_halt_machine_without_linux(struct hl_device *hdev)
 						status);
 		}
 	} else {
+		static_loader = &hdev->fw_loader.static_loader;
 		WREG32(static_loader->kmd_msg_to_cpu_reg, KMD_MSG_GOTO_WFE);
 		msleep(static_loader->cpu_reset_wait_msec);
 
