@@ -1437,6 +1437,9 @@ static int hl_debug_ioctl(struct hl_fpriv *hpriv, void *data)
 	case HL_DEBUG_OP_READBLOCK:
 		rc = debug_read_dev_mem_block(hpriv, args);
 		break;
+	case HL_DEBUG_ENABLE_ERR_INFO_CAPTURE:
+		hl_enable_err_info_capture(&hdev->captured_err_info);
+		break;
 	default:
 		dev_err(hdev->dev, "Invalid request %d\n", args->op);
 		rc = -EINVAL;
