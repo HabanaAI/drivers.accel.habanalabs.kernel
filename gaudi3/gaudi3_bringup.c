@@ -1005,11 +1005,6 @@ static void gaudi3_reset_config(struct hl_device *hdev)
 				mmPSOC_RESET_CONF_PMMU_SW_RST_CFG,
 				PSOC_RESET_CONF_PMMU_SW_RST_CFG_EN_M);
 
-		/* Reset NIC_QMAN during soft-reset */
-		WREG32(mmD0_PSOC_RESET_CONF_BASE + offset +
-				mmPSOC_RESET_CONF_NIC_QMAN_SOFT_RST_CFG,
-				PSOC_RESET_CONF_NIC_QMAN_SOFT_RST_CFG_EN_M);
-
 		/* PPW termination of all transactions after reset should be cleared by F/W via a
 		 * non-PCIe access to PCIE_AUX.BOOT_TERM_CLR.
 		 * This cleanup cannot be done when working w/o F/W, so this feature is disabled.
@@ -2191,33 +2186,6 @@ static void gaudi3_init_decoder_fw_config(struct hl_device *hdev)
 	gaudi3_iterate_decoders(hdev, &iter_ctx);
 }
 
-static void gaudi3_init_nic_qman_fw_config(struct hl_device *hdev, int die, int inst, u32 offset,
-						struct iterate_module_ctx *ctx)
-{
-	u32 qm_reg_base;
-
-	qm_reg_base = mmD0_NIC0_QM_BASE + offset;
-	gaudi3_init_qman_fw_config(hdev, qm_reg_base);
-}
-
-static void gaudi3_init_nic_qmans_fw_config(struct hl_device *hdev)
-{
-	struct gaudi3_device *gaudi3 = hdev->asic_specific;
-	struct iterate_module_ctx iter_ctx = {
-		.fn = gaudi3_init_nic_qman_fw_config
-	};
-
-	if (!hdev->sni_ports_mask)
-		return;
-
-	if ((gaudi3->hw_cap_nic_initialized & HW_CAP_NIC_MASK) == HW_CAP_NIC_MASK)
-		return;
-
-	dev_dbg(hdev->dev, "Initializing NICs QM [F/W configuration]\n");
-
-	gaudi3_iterate_nics(hdev, &iter_ctx);
-}
-
 static void gaudi3_init_odp(struct hl_device *hdev)
 {
 	/* Enable odp */
@@ -2731,7 +2699,6 @@ void gaudi3_hw_init_fw_config(struct hl_device *hdev)
 	gaudi3_init_mme_fw_config(hdev);
 	gaudi3_init_rotator_fw_config(hdev);
 	gaudi3_init_decoder_fw_config(hdev);
-	gaudi3_init_nic_qmans_fw_config(hdev);
 	gaudi3_init_sm_axprot_overrides(hdev);
 	gaudi3_enable_clock_gating(hdev);
 	gaudi3_init_odp(hdev);
@@ -5802,9 +5769,6 @@ static void gaudi3_disable_qmans_clock_gating(struct hl_device *hdev)
 
 	first_qm_reg_base = mmHD1_ROT0_QM_BASE;
 	gaudi3_iterate_rotators(hdev, &iter_ctx);
-
-	first_qm_reg_base = mmD0_NIC0_QM_BASE;
-	gaudi3_iterate_nics(hdev, &iter_ctx);
 }
 
 static void gaudi3_disable_clock_gating(struct hl_device *hdev)
