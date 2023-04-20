@@ -7467,7 +7467,7 @@ int gaudi3_set_dynamic_dram_properties(struct hl_device *hdev)
 	if (!hdev->dram_enable)
 		return 0;
 
-	hbm_nic_base_offset = roundup(prop->cpucp_info.fw_hbm_region_size,
+	hbm_nic_base_offset = roundup(le32_to_cpu(prop->cpucp_info.fw_hbm_region_size),
 			prop->dram_page_size);
 	hbm_etr_offset = roundup(hbm_nic_base_offset + nic_prop->nic_drv_size,
 			prop->dram_page_size);
