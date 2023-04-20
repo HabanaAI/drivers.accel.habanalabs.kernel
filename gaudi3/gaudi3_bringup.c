@@ -3068,7 +3068,7 @@ static void handle_and_clear_cs_events(struct hl_device *hdev, u32 die, u32 hdco
 		eq_dynamic_entry.hdr.size = cpu_to_le16(sizeof(struct hl_eq_intr_cause));
 		intr_cause_reg = mmHD0_CS0_MAIN_BASE + offset + mmCACHE_MAIN_SEI_CAUSE_REG;
 		intr_cause_data = RREG32(intr_cause_reg);
-		eq_dynamic_entry.intr_cause.intr_cause_data = cpu_to_le32(intr_cause_data);
+		eq_dynamic_entry.intr_cause.intr_cause_data = cpu_to_le64((u64)intr_cause_data);
 		need_clear = unmask_event_in_aggr = true;
 		break;
 	case ERR_GRP_SPI_ECO:
@@ -3078,7 +3078,7 @@ static void handle_and_clear_cs_events(struct hl_device *hdev, u32 die, u32 hdco
 		eq_dynamic_entry.hdr.size = cpu_to_le16(sizeof(struct hl_eq_intr_cause));
 		intr_cause_reg = mmHD0_CS0_MAIN_BASE + offset + mmCACHE_MAIN_SPI_CAUSE_REG;
 		intr_cause_data = RREG32(intr_cause_reg);
-		eq_dynamic_entry.intr_cause.intr_cause_data = cpu_to_le32(intr_cause_data);
+		eq_dynamic_entry.intr_cause.intr_cause_data = cpu_to_le64((u64)intr_cause_data);
 		need_clear = unmask_event_in_aggr = true;
 		break;
 	default:

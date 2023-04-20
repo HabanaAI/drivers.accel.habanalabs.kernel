@@ -11989,7 +11989,7 @@ static u32 gaudi3_handle_nic_status_event(struct hl_device *hdev,
 		return -EINVAL;
 	}
 
-	mask = eq_dynamic_entry->nic_sts_req_data.port_en_mask;
+	mask = le64_to_cpu(eq_dynamic_entry->nic_sts_req_data.port_en_mask);
 	period = eq_dynamic_entry->nic_sts_req_data.period;
 
 	for (port = 0 ; port < hdev->asic_prop.nic_props.max_num_of_ports ; port++) {
