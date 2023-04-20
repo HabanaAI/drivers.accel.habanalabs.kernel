@@ -9407,7 +9407,7 @@ static void gaudi3_test_pdma_job_fini(struct hl_device *hdev,
 	struct asic_fixed_properties *prop = &hdev->asic_prop;
 	struct gaudi3_device *gaudi3 = hdev->asic_specific;
 	u32 ch_reg_base;
-	int ch_idx, ret, rc = 0;
+	int ch_idx;
 
 	for (ch_idx = 0 ; ch_idx < hdev->asic_prop.pdma_ch_max ; ch_idx++) {
 		if (!(gaudi3->hw_cap_pdma_initialized & BIT(ch_idx)))
@@ -9425,18 +9425,14 @@ static void gaudi3_test_pdma_job_fini(struct hl_device *hdev,
 		}
 	}
 
-	ret = gaudi3_kernel_ctx_unmap_addr(hdev, test_params->host_va,
-					   test_params->transfer_size, false);
-	if (ret)
-		rc = ret;
+	gaudi3_kernel_ctx_unmap_addr(hdev, test_params->host_va,
+					test_params->transfer_size, false);
 
 	hl_asic_dma_free_coherent(hdev, test_params->transfer_size,
 				  test_params->host_ptr, test_params->host_mem_dma_addr);
 	if (test_params->region_type == PCI_REGION_DRAM) {
-		ret = gaudi3_kernel_ctx_unmap_addr(hdev, test_params->device_va,
-						   test_params->transfer_size, true);
-		if (ret)
-			rc = ret;
+		gaudi3_kernel_ctx_unmap_addr(hdev, test_params->device_va,
+						test_params->transfer_size, true);
 	}
 }
 
