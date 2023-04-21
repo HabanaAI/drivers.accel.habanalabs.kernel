@@ -543,22 +543,6 @@ struct hl_eq_spmu_bmon {
 };
 
 /**
- * struct hl_eq_generic_spi_data - SPI generic event information
- * @data: event cause information
- * @spmu_bmon_data:  SPMU/BMON event information
- *
- * For any SPI event which falls in generic category where
- * only single cause and BMON/SPMU event info needs to be provided,
- * FW will forward hl_eq_generic_spi_data data structure to LKD. LKD should
- * check all the data structure values to identify the event type
- * and process accordingly.
- */
-struct hl_eq_generic_spi_data {
-	struct hl_eq_intr_cause cause;
-	struct hl_eq_spmu_bmon spmu_bmon_data;
-};
-
-/*
  * struct hl_eq_tpc_spi_data - TPC SPI event information
  * @hl_eq_tpc_data: TPC configuration event information
  * @hl_eq_spmu_bmon: TPC SPMU/BMON event information
@@ -600,6 +584,64 @@ struct hl_eq_tpc_sei_data {
 	struct hl_eq_qm_sei_data qm_data;
 };
 
+/**
+ * struct hl_eq_generic_spi_data - SPI generic event information
+ * @data: event cause information
+ * @spmu_bmon_data:  SPMU/BMON event information
+ *
+ * For any SPI event which falls in generic category where
+ * only single cause and BMON/SPMU event info needs to be provided,
+ * FW will forward hl_eq_generic_spi_data data structure to LKD. LKD should
+ * check all the data structure values to identify the event type
+ * and process accordingly.
+ */
+struct hl_eq_generic_spi_data {
+	struct hl_eq_intr_cause cause;
+	struct hl_eq_spmu_bmon spmu_bmon_data;
+};
+
+enum hl_eq_edma_chn {
+	SEDMA_CHANNEL0,
+	SEDMA_CHANNEL1,
+	SEDMA_CHANNEL2,
+	SEDMA_CHANNEL_MAX
+};
+
+enum hl_eq_edma_id {
+	SEDMA_ID0,
+	SEDMA_ID1,
+	SEDMA_ID_MAX
+};
+
+#define SEDMA_NUM_CHN_DATA	(SEDMA_ID_MAX * SEDMA_CHANNEL_MAX)
+
+/**
+ * struct hl_eq_edma_chn_data - EDMA channel information
+ * @err_sts: EDMA0/1 CH0/1/2 error status information
+ * @ctx_id: EDMA0/1 CH0/1/2 context ID
+ * @pad: Padding
+ */
+struct hl_eq_edma_chn_data {
+	__le32 err_sts;
+	__le16 ctx_id;
+	__u8 pad[2];
+};
+
+/**
+ * struct hl_eq_edma_sei_data - EDMA SEI event information
+ * @edma_data: EDMA0/1 SEI QM information
+ * @chn_data: Channel data consisting of error status and context id
+ *
+ * For any SEI event related to EDMA, FW will forward
+ * hl_eq_edma_sei_data data structure to LKD. LKD should
+ * check all the data structure values to identify the event type
+ * and process accordingly.
+ */
+struct hl_eq_edma_sei_data {
+	struct hl_eq_qm_sei_data qm_data[SEDMA_ID_MAX];
+	struct hl_eq_edma_chn_data chn_data[SEDMA_NUM_CHN_DATA];
+};
+
 struct hl_eq_entry {
 	struct hl_eq_header hdr;
 	union {
@@ -633,9 +675,10 @@ struct hl_eq_dynamic_entry {
 		struct hl_eq_pcie_spi_data pcie_spi_data;
 		struct hl_eq_nic_spi_data nic_spi_data;
 		struct hl_eq_nic_sts_req_data nic_sts_req_data;
-		struct hl_eq_generic_spi_data spi_data;
 		struct hl_eq_tpc_spi_data tpc_spi_data;
 		struct hl_eq_tpc_sei_data tpc_sei_data;
+		struct hl_eq_generic_spi_data spi_data;
+		struct hl_eq_edma_sei_data edma_sei_data;
 	};
 };
 

@@ -1238,6 +1238,31 @@ static const char * const gaudi3_decoder_intr_cause[] = {
 	"dec_rd_rr_dbg_sei"
 };
 
+static const char * const gaudi3_edma_err_cause[] = {
+	"eng_hbw_rd_rsp_err",
+	"eng_timeout_err",
+	"eng_lbw_rd_rsp_err",
+	"eng_hbw_wr_rsp_err",
+	"eng_lbw_wr_rsp_err",
+	"eng_msg_wr_err",
+	"eng_nan_det",
+	"eng_inf_det",
+	"eng_m_inf_det",
+	"lbw_chn_num_exc",
+	"src_range_err",
+	"src_nan_det",
+	"src_inf_det",
+	"src_m_inf_det",
+	"dst_range_err",
+	"dst_nan_det",
+	"dst_inf_det",
+	"dst_m_inf_det",
+	"desc_ovf",
+	"eng_bad_config_err",
+	"te_desc_fifo_ovf",
+	"eng_inf_input_det"
+};
+
 static const char * const gaudi3_pdma_sei_err_cause[] = {
 		"eng_hbw_rd_rsp_err",
 		"eng_timeout_err",
@@ -11982,6 +12007,40 @@ static u32 gaudi3_handle_qm_sei_err(struct hl_device *hdev, struct hl_eq_qm_sei_
 	return err_num;
 }
 
+static u32 gaudi3_handle_edma_sei_err(struct hl_device *hdev, u16 data_size,
+					struct hl_eq_edma_sei_data *edma_sei_data)
+{
+	u32 instance, channel, chn_data_idx, err_num = 0, err_mask, err_num_tmp;
+	struct hl_eq_edma_chn_data *edma_chn_data;
+	char buf[32];
+	int rc;
+
+	rc = gaudi3_validate_eqe_data_size(hdev, data_size, sizeof(*edma_sei_data));
+	if (rc)
+		return 0;
+
+	for (instance = 0 ; instance < NUM_OF_EDMA_PER_HDCORE ; ++instance) {
+		for (channel = 0 ; channel < NUM_OF_EDMA_CHANNELS ; ++channel) {
+			chn_data_idx = instance * NUM_OF_EDMA_PER_HDCORE + channel;
+			edma_chn_data = &edma_sei_data->chn_data[chn_data_idx];
+			err_mask = le32_to_cpu(edma_chn_data->err_sts);
+			err_mask &= ~EDMA_CHN_ERR_STATUS_VALID_M;
+			snprintf(buf, sizeof(buf), "EDMA%u_CH%u", instance, channel);
+			err_num_tmp = gaudi3_err_cause_iterator(hdev, err_mask,
+								gaudi3_edma_err_cause, buf, "SEI");
+			if (err_num_tmp)
+				dev_err_ratelimited(hdev->dev, "%s context ID: %u\n",
+							buf, le16_to_cpu(edma_chn_data->ctx_id));
+			err_num += err_num_tmp;
+		}
+
+		snprintf(buf, sizeof(buf), "EDMA%u", instance);
+		err_num += gaudi3_handle_qm_sei_err(hdev, &edma_sei_data->qm_data[instance], buf);
+	}
+
+	return err_num;
+}
+
 static u32 handle_tpc_events(struct hl_device *hdev, struct hl_eq_tpc_data *tpc_data,
 					enum hl_agg_grp_type type)
 {
@@ -12308,6 +12367,10 @@ static u32 gaudi3_handle_sei_event(struct hl_device *hdev,
 	case INT_COMP_TYPE_DEC:
 		err_cnt = gaudi3_handle_decoder_sei_err(hdev, data_size,
 							&eq_dynamic_entry->intr_cause);
+		break;
+	case INT_COMP_TYPE_EDMA:
+		err_cnt = gaudi3_handle_edma_sei_err(hdev, data_size,
+							&eq_dynamic_entry->edma_sei_data);
 		break;
 	case INT_COMP_TYPE_NIC:
 		err_cnt = gaudi3_handle_nic_sei_error_event(hdev,

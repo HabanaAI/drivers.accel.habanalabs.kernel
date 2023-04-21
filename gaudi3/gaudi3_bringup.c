@@ -3971,11 +3971,13 @@ static void handle_and_clear_edma_events(struct hl_device *hdev, u32 die, u32 hd
 					enum err_grp type, u32 sts, u32 sts_idx, u32 idx,
 					u32 aggr_mask_reg, u32 events_mask)
 {
+	u32 offset, edma_id, edma_offset, channel, channel_offset, chn_data_idx, chn_reg_base;
 	struct hl_eq_dynamic_entry eq_dynamic_entry = {};
+	struct hl_eq_edma_sei_data *edma_sei_data;
+	struct hl_eq_edma_chn_data *edma_chn_data;
 	struct eq_agg_header_params params = {};
 	const struct block_instance *block;
 	bool unmask_event_in_aggr = false;
-	u32 offset = 0x0;
 
 	block = &edma_event_aggr_to_instance[die][hdcore][idx];
 	hdcore = block->hdcore;
@@ -3988,21 +3990,52 @@ static void handle_and_clear_edma_events(struct hl_device *hdev, u32 die, u32 hd
 		return;
 	}
 
+	/* Subtract 1 from hdcore because the offset is relative to the first EDMA in HD1 */
+	offset = (die * NUM_OF_HDCORES_PER_DIE + hdcore - 1) * HDCORE_OFFSET;
+
 	switch (type) {
 	case ERR_GRP_DERR:
-		/* Subtract 1 from hdcore because the offset is relative to the first EDMA in HD1 */
-		offset = (die * NUM_OF_HDCORES_PER_DIE + hdcore - 1) * HDCORE_OFFSET;
 		handle_and_clear_derr_events(hdev, edma_special_regs_base,
 						ARRAY_SIZE(edma_special_regs_base), offset,
 						&eq_dynamic_entry.ecc_data);
 		eq_dynamic_entry.hdr.size = cpu_to_le16(sizeof(struct hl_eq_ecc_data));
 		unmask_event_in_aggr = true;
 		break;
+
 	case ERR_GRP_SEI:
+		eq_dynamic_entry.hdr.size = cpu_to_le16(sizeof(struct hl_eq_edma_sei_data));
+		for (edma_id = SEDMA_ID0 ; edma_id < SEDMA_ID_MAX ; ++edma_id) {
+			edma_sei_data = &eq_dynamic_entry.edma_sei_data;
+			edma_offset = offset + edma_id * HDCORE_EDMA_OFFSET;
+
+			for (channel = SEDMA_CHANNEL0 ; channel < SEDMA_CHANNEL_MAX ; ++channel) {
+				chn_data_idx = edma_id * SEDMA_CHANNEL_MAX + channel;
+				edma_chn_data = &edma_sei_data->chn_data[chn_data_idx];
+				channel_offset = channel * EDMA_CHANNEL_OFFSET;
+				chn_reg_base = mmHD1_SEDMA0_CH0_BASE + edma_offset + channel_offset;
+				edma_chn_data->err_sts =
+					cpu_to_le32(RREG32(chn_reg_base + mmEDMA_CHN_ERR_STATUS));
+				edma_chn_data->ctx_id =
+					cpu_to_le16(RREG32(chn_reg_base + mmEDMA_CHN_ERR_CTX_ID));
+
+				/* Clear interrupt (W1C) */
+				WREG32(chn_reg_base + mmEDMA_CHN_ERR_STATUS,
+						le32_to_cpu(edma_chn_data->err_sts));
+			}
+
+			handle_and_clear_qman_interrupts(hdev,
+							mmHD1_SEDMA0_QM_BASE + edma_offset,
+							mmHD1_SEDMA0_QM_ARC_AUX_BASE + edma_offset,
+							&edma_sei_data->qm_data[edma_id]);
+		}
+
+		unmask_event_in_aggr = true;
 		break;
+
 	case ERR_GRP_SPI_ECO:
 		/* SPI interrupt is only for trace/debug so there's nothing to pass to EQ handler */
 		break;
+
 	default:
 		return;
 	}
