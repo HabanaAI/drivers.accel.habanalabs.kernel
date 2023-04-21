@@ -755,7 +755,9 @@ static void hl_nic_ib_query_device(struct hl_aux_dev *aux_dev,
 		dev_attr->fw_ver = ((u64)major << 32) | ((u64)minor << 16) | sub_ver;
 	}
 
-	dev_attr->max_mr_size = core_info->dram_size;
+	/* IB restriction. Memory region must be > PAGE_SIZE. */
+	dev_attr->max_mr_size = hdev->dram_enable ? core_info->dram_size : (2 * PAGE_SIZE);
+
 	dev_attr->page_size_cap = PAGE_SIZE;
 
 	if (hdev->pdev) {
