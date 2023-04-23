@@ -12252,11 +12252,6 @@ static u32 gaudi3_handle_sei_event(struct hl_device *hdev,
 	u16 data_size = le16_to_cpu(eq_dynamic_entry->hdr.size);
 	enum hl_agg_component_type agg_component_type;
 	u32 die, hdcore = 0, instance, err_cnt = 0;
-	int rc;
-
-	rc = gaudi3_validate_eq_agg_header(hdev, &eq_dynamic_entry->agg_hdr);
-	if (rc)
-		return 0;
 
 	agg_component_type = eq_dynamic_entry->agg_hdr.int_comp_type;
 	die = eq_dynamic_entry->agg_hdr.die_id;
@@ -12309,11 +12304,6 @@ static u32 gaudi3_handle_spi_event(struct hl_device *hdev,
 	u16 data_size = le16_to_cpu(eq_dynamic_entry->hdr.size);
 	enum hl_agg_component_type agg_component_type;
 	u32 die, hdcore = 0, instance, err_cnt = 0;
-	int rc;
-
-	rc = gaudi3_validate_eq_agg_header(hdev, &eq_dynamic_entry->agg_hdr);
-	if (rc)
-		return 0;
 
 	agg_component_type = eq_dynamic_entry->agg_hdr.int_comp_type;
 	die = eq_dynamic_entry->agg_hdr.die_id;
@@ -12360,8 +12350,13 @@ static u32 gaudi3_handle_hw_event(struct hl_device *hdev,
 	enum hl_agg_grp_type agg_grp_type = eq_dynamic_entry->agg_hdr.int_grp_type;
 	u16 event_id = le16_to_cpu(eq_dynamic_entry->agg_hdr.event_id);
 	u32 err_cnt = 0;
+	int rc;
 
 	gaudi3_print_hw_event_info(hdev, &eq_dynamic_entry->agg_hdr);
+
+	rc = gaudi3_validate_eq_agg_header(hdev, &eq_dynamic_entry->agg_hdr);
+	if (rc)
+		return 0;
 
 	switch (agg_grp_type) {
 	case INT_GRP_TYPE_DERR:
