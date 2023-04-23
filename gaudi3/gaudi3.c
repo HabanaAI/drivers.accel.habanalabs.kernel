@@ -11947,6 +11947,24 @@ static u32 gaudi3_handle_pcie0_sei_err(struct hl_device *hdev, u16 data_size,
 	return gaudi3_err_cause_iterator(hdev, err_msk, gaudi3_pcie_sei_err_cause, "PCIE", "SEI");
 }
 
+static u32 gaudi3_handle_qm_sei_err(struct hl_device *hdev, struct hl_eq_qm_sei_data *qm_sei_data,
+					const char *engine)
+{
+	u32 err_num, err_msk;
+	char buf[32];
+
+	snprintf(buf, sizeof(buf), "%s_QM", engine);
+	err_msk = lower_32_bits(le64_to_cpu(qm_sei_data->qm_cause.intr_cause_data));
+	err_num = gaudi3_err_cause_iterator(hdev, err_msk, gaudi3_qm_err_cause, buf, "SEI");
+
+	snprintf(buf, sizeof(buf), "%s_QM_ARC_AUX", engine);
+	err_msk = lower_32_bits(le64_to_cpu(qm_sei_data->arc_qm_cause.intr_cause_data));
+	err_num += gaudi3_err_cause_iterator(hdev, err_msk, gaudi3_qm_arc_aux_sei_intr_cause, buf,
+						"SEI");
+
+	return err_num;
+}
+
 static u32 handle_tpc_events(struct hl_device *hdev, struct hl_eq_tpc_data *tpc_data,
 					enum hl_agg_grp_type type)
 {
@@ -12020,24 +12038,19 @@ static u32 handle_tpc_spi_events(struct hl_device *hdev, u16 data_size,
 static u32 handle_tpc_sei_events(struct hl_device *hdev, u16 data_size,
 					struct hl_eq_tpc_sei_data *sei_data)
 {
-	u32 err_num, err_msk;
+	u32 err_num;
 	int rc;
 
 	rc = gaudi3_validate_eqe_data_size(hdev, data_size, sizeof(struct hl_eq_tpc_sei_data));
 	if (rc)
 		return 0;
 
-	err_msk = lower_32_bits(le64_to_cpu(sei_data->qm_data.qm_cause.intr_cause_data));
-	err_num = gaudi3_err_cause_iterator(hdev, err_msk, gaudi3_qm_err_cause, "TPC_QM", "SEI");
-
-	err_msk = lower_32_bits(le64_to_cpu(sei_data->qm_data.arc_qm_cause.intr_cause_data));
-	err_num += gaudi3_err_cause_iterator(hdev, err_msk, gaudi3_qm_arc_aux_sei_intr_cause,
-			"TPC_QM_ARC", "SEI");
-
-	err_num += handle_tpc_events(hdev, &sei_data->data, INT_GRP_TYPE_SEI);
+	err_num = handle_tpc_events(hdev, &sei_data->data, INT_GRP_TYPE_SEI);
 	if (err_num)
 		dev_err_ratelimited(hdev->dev, "TPC KERNEL ID: 0x%x\n",
 				le16_to_cpu(sei_data->data.kernel_id));
+
+	err_num += gaudi3_handle_qm_sei_err(hdev, &sei_data->qm_data, "TPC");
 
 	return err_num;
 }
