@@ -716,17 +716,20 @@ static void hl_nic_ib_query_port(struct hl_aux_dev *aux_dev, u32 port,
 	port_attr->rwqe_size = nic_prop->rwqe_size;
 }
 
-static inline int parse_fw_ver(char *str, u32 *maj, u16 *min, u16 *sub)
+static inline void parse_fw_ver(struct hl_device *hdev, char *str, u32 *maj, u16 *min, u16 *sub)
 {
 	char *ver = strstr(str, "fw-");
 	int ret;
 
 	if (!ver)
-		return -1;
+		goto failure;
 
 	ret = sscanf(ver, "fw-%d.%hu.%hu", maj, min, sub);
-
-	return ret;
+	if (ret < 3) {
+failure:
+		dev_dbg(hdev->dev, "Failed to read version string\n");
+		*maj = *min = *sub = 0;
+	}
 }
 
 static void hl_nic_ib_query_device(struct hl_aux_dev *aux_dev,
@@ -739,19 +742,12 @@ static void hl_nic_ib_query_device(struct hl_aux_dev *aux_dev,
 	struct hl_ib_core_info *core_info;
 	u16 minor, sub_ver;
 	u32 major;
-	int ret;
 
 	core_info = aux_dev->core_info;
 	nic_props = &asic_props->nic_props;
 
 	if (hdev->fw_components & FW_TYPE_BOOT_CPU) {
-		ret = parse_fw_ver(core_info->fw_ver, &major, &minor, &sub_ver);
-
-		if (ret < 3) {
-			dev_dbg(hdev->dev, "Failed to read version string\n");
-			major = minor = sub_ver = 0;
-		}
-
+		parse_fw_ver(hdev, core_info->fw_ver, &major, &minor, &sub_ver);
 		dev_attr->fw_ver = ((u64)major << 32) | ((u64)minor << 16) | sub_ver;
 	}
 
