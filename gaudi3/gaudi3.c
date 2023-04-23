@@ -3168,7 +3168,9 @@ int gaudi3_set_fixed_properties(struct hl_device *hdev)
 	q_props[GAUDI3_QUEUE_ID_CPU_PQ].driver_only = 1;
 	q_props[GAUDI3_QUEUE_ID_CPU_PQ].cb_alloc_flags = CB_ALLOC_KERNEL;
 
-	prop->num_of_dies = (hdev->asic_type == ASIC_GAUDI3_SINGLE_DIE) ? 1 : 2;
+	prop->num_of_dies = ((hdev->asic_type == ASIC_GAUDI3_SINGLE_DIE) ||
+			     (hdev->asic_type == ASIC_GAUDI3_SIM_SINGLE_DIE) ||
+			     (hdev->asic_type == ASIC_GAUDI3_SIM_SINGLE_DIE_ARC)) ? 1 : 2;
 	prop->num_of_hdcores = prop->num_of_dies * NUM_OF_HDCORES_PER_DIE;
 
 	prop->pdma_ch_max = prop->num_of_dies * NUM_OF_PDMA_CH_PER_DIE;
