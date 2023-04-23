@@ -237,7 +237,7 @@ static int nic_qp_invalidate(struct hl_nic_port *nic_port, struct hl_qp *qp,
 
 	/* TODO: SW-63650 do not wait for idle in simulator as qpc reads are very expensive */
 	if (!wait_for_idle || !hdev->pdev)
-		return rc;
+		return 0;
 
 	rc = wait_for_qpc_idle(nic_port, qp, is_req);
 	if (rc) {
