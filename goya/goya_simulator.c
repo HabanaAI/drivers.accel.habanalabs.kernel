@@ -134,11 +134,11 @@ static int goya_simulator_release(struct inode *inode, struct file *filp)
 	edev->open = 0;
 
 	if (edev->hdev) {
+		edev->hdev->disabled = true;
+		edev->hdev->simulator_crashed = true;
 		dev_warn(edev->dev,
 			"Simulator was closed, shouldn't use the hl%d device!\n",
 			edev->hdev->id / 2);
-		edev->hdev->disabled = true;
-		edev->hdev->simulator_crashed = true;
 	}
 
 	goya_simulator_stop(minor);
