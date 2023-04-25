@@ -39,25 +39,21 @@ static int greco_sim_access_dev_mem(struct hl_device *hdev, enum pci_region reg_
 			reg_type, addr, val, acc_type);
 }
 
-static int greco_sim_start(struct hl_simulator_device *edev, int major,
-				int minor, struct hl_device **hdev);
+static int greco_sim_start_device(struct hl_simulator_device *edev);
 
 static void greco_simulator_create_device(struct work_struct *work)
 {
-	int rc;
 	struct hl_simulator_device *edev =
-		container_of(work, struct hl_simulator_device,
-				work_create.work);
+			container_of(work, struct hl_simulator_device, work_create.work);
+	int rc;
 
-	dev_dbg(edev->dev,
-		"Starting delayed work to create simulated device\n");
+	dev_dbg(edev->dev, "Starting delayed work to create simulated device\n");
 
-	rc = greco_sim_start(edev, edev->major, edev->id - HLV_SIM_ID_OFFSET,
-				&edev->hdev);
+	rc = greco_sim_start_device(edev);
 	if (rc) {
-		dev_err(edev->dev, "Failed to create GRECO Simulator device\n");
-		/* Set hdev to NULL to prevent call of greco_sim_stop() */
+		/* Set hdev to NULL to prevent a call to greco_sim_stop_device() */
 		edev->hdev = NULL;
+		dev_err(edev->dev, "Failed to create GRECO Simulator device\n");
 	}
 }
 
@@ -534,21 +530,19 @@ static ssize_t rw_regs_timeout_us_store(struct device *dev,
 
 static DEVICE_ATTR_RW(rw_regs_timeout_us);
 
-static int greco_sim_start(struct hl_simulator_device *edev, int major,
-			int minor, struct hl_device **hdev)
+static int greco_sim_start_device(struct hl_simulator_device *edev)
 {
-	int rc;
+	int rc, minor = edev->id - HLV_SIM_ID_OFFSET;
 
-	rc = create_hdev(hdev, NULL, edev->virt_dev_type, minor);
+	rc = create_hdev(&edev->hdev, NULL, edev->virt_dev_type, minor);
 	if (rc) {
-		dev_err(edev->dev,
-			"Failed to create real device for GRECO simulator\n");
+		dev_err(edev->dev, "Failed to create real device for GRECO simulator\n");
 		return rc;
 	}
 
-	(*hdev)->sdev = &edev->sdev;
+	edev->hdev->sdev = &edev->sdev;
 
-	rc = hl_device_init(*hdev);
+	rc = hl_device_init(edev->hdev);
 	if (rc) {
 		dev_err(edev->dev, "fatal error during GRECO simulator init\n");
 		rc = -ENODEV;
@@ -558,12 +552,12 @@ static int greco_sim_start(struct hl_simulator_device *edev, int major,
 	return 0;
 
 free_hdev:
-	kfree(*hdev);
+	kfree(edev->hdev);
 
 	return rc;
 }
 
-static void greco_sim_stop(struct hl_device *hdev)
+static void greco_sim_stop_device(struct hl_device *hdev)
 {
 	hl_device_fini(hdev);
 	kfree(hdev);
@@ -787,7 +781,7 @@ void greco_simulator_stop(u32 minor)
 	cancel_delayed_work_sync(&edev->work_create);
 
 	if (edev->hdev)
-		greco_sim_stop(edev->hdev);
+		greco_sim_stop_device(edev->hdev);
 
 	/* Disable open on device */
 	greco_simulator_dev_table[minor] = NULL;

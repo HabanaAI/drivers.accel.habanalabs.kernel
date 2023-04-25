@@ -28,8 +28,7 @@ static struct attribute *goya_sim_dev_attrs[] = {
 	NULL,
 };
 
-static int goya_sim_start(struct hl_simulator_device *edev, int major,
-			int minor, struct hl_device **hdev);
+static int goya_sim_start_device(struct hl_simulator_device *edev);
 
 static int goya_sim_access_dev_mem(struct hl_device *hdev, enum pci_region reg_type,
 				u64 addr, u64 *val, enum debugfs_access_type acc_type)
@@ -40,17 +39,15 @@ static int goya_sim_access_dev_mem(struct hl_device *hdev, enum pci_region reg_t
 
 static void goya_simulator_create_device(struct work_struct *work)
 {
-	int rc;
 	struct hl_simulator_device *edev =
-		container_of(work, struct hl_simulator_device,
-				work_create.work);
+			container_of(work, struct hl_simulator_device, work_create.work);
+	int rc;
 
-	rc = goya_sim_start(edev, edev->major,
-			edev->id - HLV_SIM_ID_OFFSET, &edev->hdev);
+	rc = goya_sim_start_device(edev);
 	if (rc) {
-		dev_err(edev->dev, "Failed to create Goya Simulator device\n");
-		/* Set hdev to NULL to prevent call of goya_sim_stop() */
+		/* Set hdev to NULL to prevent a call to goya_sim_stop_device() */
 		edev->hdev = NULL;
+		dev_err(edev->dev, "Failed to create Goya Simulator device\n");
 	}
 }
 
@@ -516,21 +513,19 @@ static ssize_t rw_regs_timeout_us_store(struct device *dev,
 
 static DEVICE_ATTR_RW(rw_regs_timeout_us);
 
-static int goya_sim_start(struct hl_simulator_device *edev, int major,
-			int minor, struct hl_device **hdev)
+static int goya_sim_start_device(struct hl_simulator_device *edev)
 {
-	int rc;
+	int rc, minor = edev->id - HLV_SIM_ID_OFFSET;
 
-	rc = create_hdev(hdev, NULL, edev->virt_dev_type, minor);
+	rc = create_hdev(&edev->hdev, NULL, edev->virt_dev_type, minor);
 	if (rc) {
-		dev_err(edev->dev,
-			"Failed to create real device for GAUDI simulator\n");
+		dev_err(edev->dev, "Failed to create real device for GAUDI simulator\n");
 		return rc;
 	}
 
-	(*hdev)->sdev = &edev->sdev;
+	edev->hdev->sdev = &edev->sdev;
 
-	rc = hl_device_init(*hdev);
+	rc = hl_device_init(edev->hdev);
 	if (rc) {
 		dev_err(edev->dev, "fatal error during GOYA simulator init\n");
 		rc = -ENODEV;
@@ -540,12 +535,12 @@ static int goya_sim_start(struct hl_simulator_device *edev, int major,
 	return 0;
 
 free_hdev:
-	kfree(*hdev);
+	kfree(edev->hdev);
 
 	return rc;
 }
 
-static void goya_sim_stop(struct hl_device *hdev)
+static void goya_sim_stop_device(struct hl_device *hdev)
 {
 	hl_device_fini(hdev);
 	kfree(hdev);
@@ -766,7 +761,7 @@ void goya_simulator_stop(u32 minor)
 	cancel_delayed_work_sync(&edev->work_create);
 
 	if (edev->hdev)
-		goya_sim_stop(edev->hdev);
+		goya_sim_stop_device(edev->hdev);
 
 	/* Disable open on device */
 	goya_simulator_dev_table[minor] = NULL;
