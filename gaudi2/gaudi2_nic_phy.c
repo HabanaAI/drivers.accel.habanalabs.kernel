@@ -1551,9 +1551,11 @@ static void check_pcs_link(struct hl_nic_port *nic_port)
 	}
 
 	if (nic_port->pcs_remote_fault_seq_cnt == NIC_PHY_MAC_REMOTE_FAULT_CNT) {
-		dev_dbg(hdev->dev, "Card %u Port %u: got %d sequential remote faults\n",
+		dev_dbg(hdev->dev, "Card %u Port %u: got %d sequential remote faults - reconfiguring PHY\n",
 			card_location, port, NIC_PHY_MAC_REMOTE_FAULT_CNT);
-		nic_port->pcs_remote_fault_seq_cnt = 0;
+		nic_port->pcs_remote_fault_reconfig_cnt++;
+
+		hl_nic_phy_port_reconfig(nic_port);
 	}
 
 	if (nic_port->pcs_link) {
