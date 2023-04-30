@@ -23,6 +23,13 @@ struct class *hl_accel_get_class(void);
 struct dentry *hl_accel_get_debugfs_root(void);
 int hl_accel_device_open(struct inode *inode, struct file *filp);
 int hl_accel_device_release(struct inode *inode, struct file *filp);
+int hl_accel_info_ioctl(struct hl_fpriv *hpriv, void *data);
+int hl_accel_cb_ioctl(struct hl_fpriv *hpriv, void *data);
+int hl_accel_cs_ioctl(struct hl_fpriv *hpriv, void *data);
+int hl_accel_wait_ioctl(struct hl_fpriv *hpriv, void *data);
+int hl_accel_mem_ioctl(struct hl_fpriv *hpriv, void *data);
+int hl_accel_debug_ioctl(struct hl_fpriv *hpriv, void *data);
+int hl_accel_nic_ioctl(struct hl_fpriv *hpriv, void *data);
 #endif /* !IS_ENABLED(CONFIG_DRM_ACCEL) */
 
 #endif /* HABANALABS_COMPAT_ACCEL_H_ */
