@@ -3851,6 +3851,10 @@ static int gaudi3_trigger_pdma_job_and_wait_for_cq_completion(struct hl_device *
 				(((job_params->size / SZ_1M) + 1) * GAUDI3_PDMA_TIMEOUT_USEC) :
 				GAUDI3_PDMA_TIMEOUT_USEC;
 
+	/* TODO - remove when H9-5542 is resolved */
+	if (!strcmp(cq_params.job_str, "ARC scrub") && hdev->pldm)
+		cq_params.timeout_usec = GAUDI3_PDMA_TIMEOUT_USEC * 10;
+
 	rc = gaudi3_trigger_job_and_wait_for_cq_completion(hdev, &cq_params);
 	if (rc)
 		gaudi3_pdma_print_debug_info(hdev, job_params->ch_idx);
