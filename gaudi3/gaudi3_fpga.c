@@ -307,7 +307,15 @@ static int gaudi3_fpga_hw_init(struct hl_device *hdev)
 
 static int gaudi3_fpga_hw_fini(struct hl_device *hdev, bool hard_reset, bool fw_reset)
 {
+	int rc;
+
 	gaudi3_fpga_disable_msix(hdev);
+	rc = gaudi3_hw_fini(hdev, hard_reset, fw_reset);
+	if (rc) {
+		dev_err(hdev->dev, "Failed in HW finish\n");
+		return rc;
+	}
+
 	return 0;
 }
 
