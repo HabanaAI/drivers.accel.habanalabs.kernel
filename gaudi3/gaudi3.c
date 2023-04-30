@@ -7787,6 +7787,7 @@ static int gaudi3_wait_reset(struct hl_device *hdev, u32 poll_timeout_us, u32 re
 static int gaudi3_hw_fini(struct hl_device *hdev, bool hard_reset, bool fw_reset)
 {
 	u32 poll_timeout_us, reset_sleep_ms;
+	bool wait_reset = true;
 	int rc;
 
 	if (hdev->pldm) {
@@ -7802,10 +7803,7 @@ static int gaudi3_hw_fini(struct hl_device *hdev, bool hard_reset, bool fw_reset
 
 	if (fw_reset) {
 		dev_dbg(hdev->dev, "Firmware performs self HARD reset\n");
-		rc = gaudi3_wait_reset(hdev, poll_timeout_us, reset_sleep_ms);
-		if (rc)
-			return rc;
-		goto clear_hw_cap;
+		goto wait_reset_done;
 	}
 
 	gaudi3_reset_arcs(hdev);
@@ -7814,17 +7812,23 @@ static int gaudi3_hw_fini(struct hl_device *hdev, bool hard_reset, bool fw_reset
 
 	if (hard_reset) {
 		gaudi3_execute_hard_reset(hdev);
-		rc = gaudi3_wait_reset(hdev, poll_timeout_us, reset_sleep_ms);
-	} else if (hdev->fw_components & FW_TYPE_BOOT_CPU) {
-		rc = hl_fw_send_soft_reset(hdev);
 	} else {
-		gaudi3_execute_reset_no_fw(hdev, false);
-		rc = gaudi3_wait_reset(hdev, poll_timeout_us, reset_sleep_ms);
+		if (hdev->fw_components & FW_TYPE_BOOT_CPU) {
+			rc = hl_fw_send_soft_reset(hdev);
+			if (rc)
+				return rc;
+			wait_reset = false;
+		} else {
+			gaudi3_execute_reset_no_fw(hdev, false);
+		}
 	}
 
-	if (rc)
-		return rc;
-clear_hw_cap:
+wait_reset_done:
+	if (wait_reset) {
+		rc = gaudi3_wait_reset(hdev, poll_timeout_us, reset_sleep_ms);
+		if (rc)
+			return rc;
+	}
 
 	gaudi3_clear_hw_cap(hdev, hard_reset);
 
