@@ -9,6 +9,7 @@
 
 #include <uapi/drm/habanalabs_accel.h>
 #include "habanalabs.h"
+#include "habanalabs_compat_accel.h"
 
 #include <linux/fs.h>
 #include <linux/kernel.h>
@@ -1396,8 +1397,10 @@ static int _hl_info_ioctl(struct hl_fpriv *hpriv, void *data,
 	return rc;
 }
 
-static int hl_info_ioctl(struct hl_fpriv *hpriv, void *data)
+int hl_info_ioctl(struct drm_device *ddev, void *data, struct drm_file *file_priv)
 {
+	struct hl_fpriv *hpriv = file_priv->driver_priv;
+
 	return _hl_info_ioctl(hpriv, data, hpriv->hdev->dev);
 }
 
@@ -1406,10 +1409,11 @@ static int hl_info_ioctl_control(struct hl_fpriv *hpriv, void *data)
 	return _hl_info_ioctl(hpriv, data, hpriv->hdev->dev_ctrl);
 }
 
-static int hl_debug_ioctl(struct hl_fpriv *hpriv, void *data)
+int hl_debug_ioctl(struct drm_device *ddev, void *data, struct drm_file *file_priv)
 {
-	struct hl_debug_args *args = data;
+	struct hl_fpriv *hpriv = file_priv->driver_priv;
 	struct hl_device *hdev = hpriv->hdev;
+	struct hl_debug_args *args = data;
 	enum hl_device_status status;
 
 	int rc = 0;
@@ -1530,8 +1534,9 @@ out:
 	return rc;
 }
 
-static int hl_nic_ioctl(struct hl_fpriv *hpriv, void *data)
+int hl_nic_ioctl(struct drm_device *ddev, void *data, struct drm_file *file_priv)
 {
+	struct hl_fpriv *hpriv = file_priv->driver_priv;
 	struct hl_device *hdev = hpriv->hdev;
 	struct hl_nic_args *args = data;
 	enum hl_device_status status;
@@ -1594,15 +1599,17 @@ static int hl_nic_ioctl(struct hl_fpriv *hpriv, void *data)
 #define HL_IOCTL_DEF(ioctl, _func) \
 	[_IOC_NR(ioctl) - HL_COMMAND_START] = {.cmd = ioctl, .func = _func}
 
+#if !IS_ENABLED(CONFIG_DRM_ACCEL)
 static const struct hl_ioctl_desc hl_ioctls[] = {
-	HL_IOCTL_DEF(DRM_IOCTL_HL_INFO, hl_info_ioctl),
-	HL_IOCTL_DEF(DRM_IOCTL_HL_CB, hl_cb_ioctl),
-	HL_IOCTL_DEF(DRM_IOCTL_HL_CS, hl_cs_ioctl),
-	HL_IOCTL_DEF(DRM_IOCTL_HL_WAIT_CS, hl_wait_ioctl),
-	HL_IOCTL_DEF(DRM_IOCTL_HL_MEMORY, hl_mem_ioctl),
-	HL_IOCTL_DEF(DRM_IOCTL_HL_DEBUG, hl_debug_ioctl),
-	HL_IOCTL_DEF(DRM_IOCTL_HL_NIC, hl_nic_ioctl)
+	HL_IOCTL_DEF(DRM_IOCTL_HL_INFO, hl_accel_info_ioctl),
+	HL_IOCTL_DEF(DRM_IOCTL_HL_CB, hl_accel_cb_ioctl),
+	HL_IOCTL_DEF(DRM_IOCTL_HL_CS, hl_accel_cs_ioctl),
+	HL_IOCTL_DEF(DRM_IOCTL_HL_WAIT_CS, hl_accel_wait_ioctl),
+	HL_IOCTL_DEF(DRM_IOCTL_HL_MEMORY, hl_accel_mem_ioctl),
+	HL_IOCTL_DEF(DRM_IOCTL_HL_DEBUG, hl_accel_debug_ioctl),
+	HL_IOCTL_DEF(DRM_IOCTL_HL_NIC, hl_accel_nic_ioctl)
 };
+#endif /* !IS_ENABLED(CONFIG_DRM_ACCEL) */
 
 static const struct hl_ioctl_desc hl_ioctls_control[] = {
 	HL_IOCTL_DEF(DRM_IOCTL_HL_INFO, hl_info_ioctl_control)
@@ -1674,6 +1681,7 @@ out_err:
 	return retcode;
 }
 
+#if !IS_ENABLED(CONFIG_DRM_ACCEL)
 long hl_ioctl(struct file *filep, unsigned int cmd, unsigned long arg)
 {
 	struct drm_file *file_priv = filep->private_data;
@@ -1700,6 +1708,7 @@ long hl_ioctl(struct file *filep, unsigned int cmd, unsigned long arg)
 
 	return _hl_ioctl(hpriv, cmd, arg, ioctl, hdev->dev);
 }
+#endif /* !IS_ENABLED(CONFIG_DRM_ACCEL) */
 
 long hl_ioctl_control(struct file *filep, unsigned int cmd, unsigned long arg)
 {

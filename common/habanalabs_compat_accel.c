@@ -152,4 +152,39 @@ int hl_accel_device_release(struct inode *inode, struct file *filp)
 
 	return 0;
 }
+
+int hl_accel_info_ioctl(struct hl_fpriv *hpriv, void *data)
+{
+	return hl_info_ioctl(&hpriv->hdev->drm, data, hpriv->file_priv);
+}
+
+int hl_accel_cb_ioctl(struct hl_fpriv *hpriv, void *data)
+{
+	return hl_cb_ioctl(&hpriv->hdev->drm, data, hpriv->file_priv);
+}
+
+int hl_accel_cs_ioctl(struct hl_fpriv *hpriv, void *data)
+{
+	return hl_cs_ioctl(&hpriv->hdev->drm, data, hpriv->file_priv);
+}
+
+int hl_accel_wait_ioctl(struct hl_fpriv *hpriv, void *data)
+{
+	return hl_wait_ioctl(&hpriv->hdev->drm, data, hpriv->file_priv);
+}
+
+int hl_accel_mem_ioctl(struct hl_fpriv *hpriv, void *data)
+{
+	return hl_mem_ioctl(&hpriv->hdev->drm, data, hpriv->file_priv);
+}
+
+int hl_accel_debug_ioctl(struct hl_fpriv *hpriv, void *data)
+{
+	return hl_debug_ioctl(&hpriv->hdev->drm, data, hpriv->file_priv);
+}
+
+int hl_accel_nic_ioctl(struct hl_fpriv *hpriv, void *data)
+{
+	return hl_nic_ioctl(&hpriv->hdev->drm, data, hpriv->file_priv);
+}
 #endif /* !IS_ENABLED(CONFIG_DRM_ACCEL) */
