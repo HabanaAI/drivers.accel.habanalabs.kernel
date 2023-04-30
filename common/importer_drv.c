@@ -230,7 +230,7 @@ static struct dma_buf_attach_ops hl_importer_dmabuf_attach_ops = {
 	.move_notify = hl_importer_dmabuf_invalidate_cb
 };
 
-struct hl_importer_mr*
+static struct hl_importer_mr*
 hl_importer_reg_user_mr_dmabuf(struct hl_importer_device *idev, u64 offset,
 				u64 length, u64 virt_addr, int fd,
 				int access_flags)
