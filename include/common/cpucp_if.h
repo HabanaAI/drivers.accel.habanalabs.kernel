@@ -495,6 +495,14 @@ struct hl_eq_nic_spi_data {
 	__u8 pad[7];
 };
 
+enum hl_cs_dbg_mme_sub_type {
+	CS_DBG_MME0_SBTE0_1,
+	CS_DBG_MME0_SBTE2_3,
+	CS_DBG_MME1_SBTE0_1,
+	CS_DBG_MME1_SBTE2_3,
+	CS_DBG_MME_QM
+};
+
 enum hl_cs_dbg_err_type {
 	CS_DBG_SPMU,
 	CS_DBG_BMON0,
@@ -584,6 +592,184 @@ struct hl_eq_tpc_sei_data {
 	struct hl_eq_qm_sei_data qm_data;
 };
 
+#define HL_EQ_ROT_CTX_ID_MAX	28
+
+/**
+ * struct hl_eq_rot_data - ROTATOR event cause information
+ * @intr_cause: ROTATOR event cause
+ * @rsb_err_cause: RSB event, check based on intr_cause value
+ * @wch_err_cause: WCH event, check based on intr_cause value
+ * @ip_num_cause: IP NUM event, check based on intr_cause value
+ * @ctx_id: context id for RSB, WCH and IP number event
+ *		0 - 8: RSB event context id
+ *		9 - 18: WCH event context id
+ *		19 - 27: IP NUM event context id
+ * @pad: padding
+ */
+struct hl_eq_rot_data {
+	struct hl_eq_intr_cause intr_cause; /* 32 bit interrupt cause */
+	__le32 rsb_err_cause;
+	__le32 wch_err_cause;
+	__le32 ip_num_cause;
+	__le16 ctx_id[HL_EQ_ROT_CTX_ID_MAX];
+	__u8 pad[4];
+};
+
+/**
+ * struct hl_eq_rot_spi_data - ROTATOR SPI event information
+ * @data: ROTATOR event cause information
+ * @spmu_bmon_data: ROTATOR SPMU/BMON event information
+ *
+ * For any SPI event related to rotator, FW will forward
+ * hl_eq_rot_spi_data data structure to LKD. LKD should
+ * check all the data structure values to identify the event type
+ * and process accordingly.
+ * Note: SPMU/BMON event bit is available as part
+ * hl_eq_rot_data intr_cause field for ROTATOR SPI events.
+ */
+struct hl_eq_rot_spi_data {
+	struct hl_eq_rot_data data;
+	struct hl_eq_spmu_bmon spmu_bmon_data;
+};
+
+/**
+ * struct hl_eq_rot_sei_data - ROTATOR SEI event information
+ * @cause: ROTATOR SEI event cause
+ * @qm_data: ROTATOR QM event information
+ *
+ * For any SEI event related to rotator, FW will forward
+ * hl_eq_rot_sei_data data structure to LKD. Refer QM data
+ * in case QM related bits are set in cause.
+ */
+struct hl_eq_rot_sei_data {
+	struct hl_eq_intr_cause cause;
+	struct hl_eq_qm_sei_data qm_data;
+};
+
+enum hl_eq_mme_acc_ctx_id {
+	MME_ACC_CTX_ID_CH0_SET0,
+	MME_ACC_CTX_ID_CH0_SET1,
+	MME_ACC_CTX_ID_CH1_SET0,
+	MME_ACC_CTX_ID_CH1_SET1,
+	MME_ACC_CTX_ID_MAX
+};
+
+enum hl_cs_mme_acc_type {
+	CS_DBG_MME_ACC0,
+	CS_DBG_MME_ACC1
+};
+
+enum hl_eq_mme_stbe_id {
+	MME_SBTE_ID0,
+	MME_SBTE_ID1,
+	MME_SBTE_ID2,
+	MME_SBTE_ID3
+};
+
+enum hl_eq_mme_eu_id {
+	MME_EU_ID0,
+	MME_EU_ID1
+};
+
+enum hl_eq_mme_event_type {
+	MME_DATA_TYPE_SBTE,
+	MME_DATA_TYPE_ACC,
+	MME_DATA_TYPE_CTRL,
+	MME_DATA_TYPE_CS_DBG
+};
+
+/**
+ * struct hl_eq_mme_acc_data - MME SPI ACC information
+ * @intr_cause: MME ACC cause
+ * @ctxt_id: context information, refer intr_cause to check
+ *	     context array values.
+ * @id: MME ACC id refer hl_cs_mme_acc_type
+ * @pad: padding
+ */
+struct hl_eq_mme_acc_data {
+	struct hl_eq_intr_cause intr_cause;
+	__le16 ctx_id[MME_ACC_CTX_ID_MAX];
+	__u8 id;
+	__u8 pad[7];
+};
+
+/**
+ * struct hl_eq_mme_spmu_bmon - MME SPI SPMU/BMON information
+ * @data: MME SPMU/BMON event information
+ * @comp_sub_type: Component subtype within MME
+ *		   Refer enum hl_cs_dbg_mme_sub_type
+ * @pad: padding
+ */
+struct hl_eq_mme_spmu_bmon {
+	struct hl_eq_spmu_bmon data;
+	__u8 comp_sub_type;
+	__u8 pad[7];
+};
+
+/**
+ * struct hl_eq_mme_spi_data - MME SPI event information
+ * @spmu_bmon_data: MME SPMU/BMON event information
+ * @acc_data: MME ACC event information
+ * @type: MME event type, refer enum hl_eq_mme_event_type
+ *
+ * For any SPI event related to MME, FW will forward
+ * hl_eq_mme_spi_data data structure to LKD. LKD should
+ * check type and read/process data accordingly.
+ */
+struct hl_eq_mme_spi_data {
+	struct hl_eq_mme_spmu_bmon spmu_bmon_data;
+	struct hl_eq_mme_acc_data acc_data;
+	__u8 type;
+	__u8 pad[7];
+};
+
+/**
+ * struct hl_eq_mme_sbte_data - MME SEI event information
+ * @cause: MME SBTE event cause
+ * @ctx_id: context information
+ * @sbte_id: SBTE ID, refer enum hl_eq_mme_sbte_id
+ * @mme_eu_id: MME EU ID, refer enum hl_eq_mme_eu_id
+ */
+struct hl_eq_mme_sbte_data {
+	struct hl_eq_intr_cause cause;
+	__le16 ctx_id;
+	__u8 sbte_id;
+	__u8 mme_eu_id;
+	__u8 pad[4];
+};
+
+/**
+ * struct hl_eq_mme_ctrl_data - MME CTRL event information
+ * @cause: MME CTRL event cause
+ * @qm_data: MME QM event information
+ *
+ * Refer QM data in case QM related bit is set in
+ * cause.
+ */
+struct hl_eq_mme_ctrl_data {
+	struct hl_eq_intr_cause cause;
+	struct hl_eq_qm_sei_data qm_data;
+};
+
+/**
+ * struct hl_eq_mme_sei_data - MME SEI event information
+ * @sbte_data: MME SBTE event information
+ * @acc_data: MME ACC event information
+ * @control_data: MME CTRL event information
+ * @type: MME event type, refer enum hl_eq_mme_event_type
+ *
+ * For any SEI event related to MME, FW will forward
+ * hl_eq_mme_sei_data data structure to LKD. LKD should
+ * check type and read/process data accordingly.
+ */
+struct hl_eq_mme_sei_data {
+	struct hl_eq_mme_sbte_data sbte_data;
+	struct hl_eq_mme_acc_data acc_data;
+	struct hl_eq_mme_ctrl_data control_data;
+	__u8 type;
+	__u8 pad[7];
+};
+
 /**
  * struct hl_eq_generic_spi_data - SPI generic event information
  * @data: event cause information
@@ -598,6 +784,118 @@ struct hl_eq_tpc_sei_data {
 struct hl_eq_generic_spi_data {
 	struct hl_eq_intr_cause cause;
 	struct hl_eq_spmu_bmon spmu_bmon_data;
+};
+
+/**
+ * struct hl_eq_stlb_fault_data - STLB fault information
+ * @syndrom_dti: DTI syndrom information
+ * @syndrom_pte: PTE syndrom information
+ */
+struct hl_eq_stlb_fault_data {
+	__le64 syndrom_dti;
+	__le64 syndrom_pte;
+};
+
+/**
+ * struct hl_eq_stlb_spi_data - STLB SPI event information
+ * @data: STLB event cause information
+ * @fault_data:  fault data information
+ *
+ * For any SPI event related to STLB, FW will forward
+ * hl_eq_stlb_spi_data data structure to LKD. LKD should
+ * check all the data structure values to identify the event type
+ * and process accordingly. LKD should check fault data only
+ * when fault cause bits are set in cause.
+ */
+struct hl_eq_stlb_spi_data {
+	struct hl_eq_intr_cause cause;
+	struct hl_eq_stlb_fault_data fault_data;
+};
+
+/**
+ * struct hl_eq_stlb_lbw_data - STLB LBW information
+ * @addr: LBW address information
+ * @data: LBW data information
+ */
+struct hl_eq_stlb_lbw_data {
+	__le32 addr;
+	__le32 data;
+};
+
+/**
+ * struct hl_eq_stlb_sei_data - STLB SPI event information
+ * @cause: STLB event cause information
+ * @fault_data:  fault data information (only syndrom_dti valid)
+ * @lbw_data: LBW fault data information
+ *
+ * For any SEI event related to STLB, FW will forward
+ * hl_eq_stlb_sei_data data structure to LKD. LKD should
+ * refer to fault and lbw data based on relevant bits set in
+ * cause data.
+ */
+struct hl_eq_stlb_sei_data {
+	struct hl_eq_intr_cause cause;
+	struct hl_eq_stlb_fault_data fault_data;
+	struct hl_eq_stlb_lbw_data lbw_data;
+};
+
+/**
+ * struct hl_eq_cs_err_host_data - CS SEI host error information
+ * @info: Info error information (valid bits 39..0)
+ * @addr: Address information (valid bits 39..0)
+ * @num_err: Number of errors
+ * @pad: padding
+ */
+struct hl_eq_cs_err_host_data {
+	__le64 info;
+	__le64 addr;
+	__u8 num_err;
+	__u8 pad[7];
+};
+
+/**
+ * struct hl_eq_cs_err_poison_data - CS SEI poison error information
+ * @id: Info error information (valid bits 35..0)
+ * @addr: Address information (valid bits 39..0)
+ */
+struct hl_eq_cs_err_poison_data {
+	__le64 id;
+	__le64 addr;
+};
+
+/**
+ * struct hl_eq_cs_err_data - CS SEI error information
+ * @far_data: Far host error information
+ * @close_data: Close host error information
+ * @poison_data: Poison error information
+ * @slv_err_addr: Slave error address
+ * @dn_conv_id: DN conv id
+ * @aab_num_err: AAB reduce number of errors
+ * @pad: padding
+ */
+struct hl_eq_cs_err_data {
+	struct hl_eq_cs_err_host_data far_data;
+	struct hl_eq_cs_err_host_data close_data;
+	struct hl_eq_cs_err_poison_data poison_data;
+	__le64 slv_err_addr;
+	__le64 dn_conv_id;
+	__u8 aab_num_err;
+	__u8 pad[7];
+};
+
+/**
+ * struct hl_eq_cs_sei_data - CS SEI event information
+ * @cause: CS SEI event cause information
+ * @err_data: CS error data
+ *
+ * For any SEI event related to CS, FW will forward
+ * hl_eq_cs_sei_data data structure to LKD. LKD should
+ * check cause bits and accordingly refer hl_eq_cs_err_data
+ * data structure elements.
+ */
+struct hl_eq_cs_sei_data {
+	struct hl_eq_intr_cause cause;
+	struct hl_eq_cs_err_data err_data;
 };
 
 enum hl_eq_edma_chn {
@@ -629,7 +927,7 @@ struct hl_eq_edma_chn_data {
 
 /**
  * struct hl_eq_edma_sei_data - EDMA SEI event information
- * @edma_data: EDMA0/1 SEI QM information
+ * @qm_data: EDMA0/1 SEI QM information
  * @chn_data: Channel data consisting of error status and context id
  *
  * For any SEI event related to EDMA, FW will forward
@@ -642,12 +940,29 @@ struct hl_eq_edma_sei_data {
 	struct hl_eq_edma_chn_data chn_data[SEDMA_NUM_CHN_DATA];
 };
 
+/**
+ * struct hl_eq_arcfarm_sei_data - ARC FARM SEI event information
+ * @internal_cause: Internal ARC Farm error information
+ * @arc0_wrapper_cause: ARC0 wrapper system error
+ * @arc1_wrapper_cause: ARC1 wrapper system error
+ *
+ * For any SEI event related to ARC FARM, FW will forward
+ * hl_eq_arcfarm_sei_data data structure to LKD. If internal cause
+ * value is zero, check ARC0/1 wrapper cause to identify event type
+ * and process accordingly.
+ */
+struct hl_eq_arcfarm_sei_data {
+	struct hl_eq_intr_cause internal_cause;
+	struct hl_eq_intr_cause arc0_wrapper_cause;
+	struct hl_eq_intr_cause arc1_wrapper_cause;
+};
+
 struct hl_eq_entry {
 	struct hl_eq_header hdr;
 	union {
 		__le64 data_placeholder;
 		struct hl_eq_ecc_data ecc_data;
-		struct hl_eq_hbm_ecc_data hbm_ecc_data;	/* Gaudi1 HBM */
+		struct hl_eq_hbm_ecc_data hbm_ecc_data;	/* Obsolete */
 		struct hl_eq_sm_sei_data sm_sei_data;
 		struct cpucp_pkt_sync_err pkt_sync_err;
 		struct hl_eq_fw_alive fw_alive;
@@ -677,8 +992,16 @@ struct hl_eq_dynamic_entry {
 		struct hl_eq_nic_sts_req_data nic_sts_req_data;
 		struct hl_eq_tpc_spi_data tpc_spi_data;
 		struct hl_eq_tpc_sei_data tpc_sei_data;
+		struct hl_eq_rot_spi_data rot_spi_data;
+		struct hl_eq_rot_sei_data rot_sei_data;
+		struct hl_eq_mme_spi_data mme_spi_data;
+		struct hl_eq_mme_sei_data mme_sei_data;
 		struct hl_eq_generic_spi_data spi_data;
+		struct hl_eq_stlb_spi_data stlb_spi_data;
+		struct hl_eq_stlb_sei_data stlb_sei_data;
+		struct hl_eq_cs_sei_data cs_sei_data;
 		struct hl_eq_edma_sei_data edma_sei_data;
+		struct hl_eq_arcfarm_sei_data arcfarm_sei_data;
 	};
 };
 
@@ -986,10 +1309,10 @@ enum pq_init_status {
  *       which address is passed via the CpuCp packet. In addition, the host's driver
  *       passes the max size it allows the CpuCP to write to the structure, to prevent
  *       data corruption in case of mismatched driver/FW versions.
- *       Relevant only to Gaudi.
+ *       Obsolete.
  *
  * CPUCP_PACKET_BINNING_DONE -
- *       Packet is sent when binning and isolation done in lkd is completed. e.g. greco
+ *       Packet is sent when binning and isolation done in lkd is completed.
  *       Before receiving this pkt, fw is not expected to handle GIC interrupts for
  *       components which are binning candidates.
  *
@@ -1241,19 +1564,19 @@ struct cpucp_array_data_packet {
 enum cpucp_led_index {
 	CPUCP_LED0_INDEX = 0,
 	CPUCP_LED1_INDEX,
-	CPUCP_LED2_INDEX
+	CPUCP_LED2_INDEX,
+	CPUCP_LED_MAX_INDEX = CPUCP_LED2_INDEX
 };
 
 /*
  * enum cpucp_packet_rc - Error return code
  * @cpucp_packet_success	-> in case of success.
- * @cpucp_packet_invalid	-> this is to support Goya and Gaudi platform.
+ * @cpucp_packet_invalid	-> this is to support first generation platforms.
  * @cpucp_packet_fault		-> in case of processing error like failing to
  *                                 get device binding or semaphore etc.
- * @cpucp_packet_invalid_pkt	-> when cpucp packet is un-supported. This is
- *                                 supported Greco onwards.
+ * @cpucp_packet_invalid_pkt	-> when cpucp packet is un-supported.
  * @cpucp_packet_invalid_params	-> when checking parameter like length of buffer
- *				   or attribute value etc. Supported Greco onwards.
+ *				   or attribute value etc.
  * @cpucp_packet_rc_max		-> It indicates size of enum so should be at last.
  */
 enum cpucp_packet_rc {
@@ -1757,7 +2080,7 @@ struct cpucp_dev_info_signed {
 #define DCORE_MON_REGS_SZ	512
 /*
  * struct dcore_monitor_regs_data - DCORE monitor regs data.
- * the structure follows sync manager block layout. relevant only to Gaudi.
+ * the structure follows sync manager block layout. Obsolete.
  * @mon_pay_addrl: array of payload address low bits.
  * @mon_pay_addrh: array of payload address high bits.
  * @mon_pay_data: array of payload data.
@@ -1772,7 +2095,7 @@ struct dcore_monitor_regs_data {
 	__le32 mon_status[DCORE_MON_REGS_SZ];
 };
 
-/* contains SM data for each SYNC_MNGR (relevant only to Gaudi) */
+/* contains SM data for each SYNC_MNGR (Obsolete) */
 struct cpucp_monitor_dump {
 	struct dcore_monitor_regs_data sync_mngr_w_s;
 	struct dcore_monitor_regs_data sync_mngr_e_s;
