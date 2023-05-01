@@ -1580,6 +1580,8 @@ int hl_nic_init(struct hl_device *hdev)
 
 	nic_funcs->set_hw_cap(hdev, true);
 
+	hdev->nic.is_initialized = true;
+
 	return 0;
 
 ib_aux_drv_fail:
@@ -1602,9 +1604,14 @@ void hl_nic_fini(struct hl_device *hdev)
 	if (!hdev->nic_ports_mask)
 		return;
 
+	if (!hdev->nic.is_initialized)
+		return;
+
 	hl_nic_ib_aux_drv_fini(hdev);
 	/* must be called after MSI was disabled */
 	hl_nic_en_aux_drv_fini(hdev);
+
+	hdev->nic.is_initialized = false;
 }
 
 /**

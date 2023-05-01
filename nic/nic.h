@@ -787,6 +787,7 @@ struct hl_coll_properties {
  * @rx_drop_percent: RX packet drop percentage set via debugfs.
  * @skip_phy_default_tx_taps_cfg: Used to skip re-configuration of the default tx_taps.
  * @status_period: periodic time in secs at which FW expects NIC status packet.
+ * @is_initialized: is device initialized.
  */
 struct hl_nic {
 	struct hl_nic_port		*nic_ports;
@@ -833,6 +834,7 @@ struct hl_nic {
 	u8				rx_drop_percent;
 	u8				skip_phy_default_tx_taps_cfg;
 	u8				status_period;
+	u8				is_initialized;
 };
 
 /**
