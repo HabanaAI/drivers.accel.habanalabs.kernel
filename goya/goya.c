@@ -5496,6 +5496,11 @@ static int goya_send_device_activity(struct hl_device *hdev, bool open)
 	return 0;
 }
 
+static int goya_irq_vector(struct hl_device *hdev, unsigned int nr)
+{
+	return pci_irq_vector(hdev->pdev, nr);
+}
+
 void goya_fw_security_emulation_init(struct hl_device *hdev)
 {
 }
@@ -5612,6 +5617,7 @@ static const struct hl_asic_funcs goya_funcs = {
 	.set_dram_properties = goya_set_dram_properties,
 	.set_priv_assertions = goya_set_priv_assertions,
 	.set_binning_masks = goya_set_binning_masks,
+	.irq_vector = goya_irq_vector
 };
 
 /*

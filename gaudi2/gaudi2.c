@@ -12238,7 +12238,7 @@ int gaudi2_send_device_activity(struct hl_device *hdev, bool open)
 	return hl_fw_send_device_activity(hdev, open);
 }
 
-int gaudi2_irq_vector(struct hl_device *hdev, unsigned int nr)
+static int gaudi2_irq_vector(struct hl_device *hdev, unsigned int nr)
 {
 	return pci_irq_vector(hdev->pdev, nr);
 }
