@@ -9534,6 +9534,10 @@ static int gaudi3_test_pdma_verify_result(struct hl_device *hdev,
 			if (test_params->host_ptr[offset + i] == val)
 				continue;
 
+			/* We should avoid any error in case simulator is already going down */
+			if (hdev->simulator_crashed)
+				return 0;
+
 			dev_err(hdev->dev,
 				"PDMA ch %u test Device <--> Host, data validation failed",
 				ch_idx);
