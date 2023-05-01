@@ -1384,6 +1384,74 @@ static const char * const gaudi3_decoder_spi_intr_cause[] = {
 	"sw_irq_jmp"
 };
 
+/* mmSB_INTR_CAUSE */
+static const char * const gaudi3_mme_sbte_intr_cause[] = {
+	"SLV_ERR_LEGACY",
+	"SLV_ERR",
+	"RR_DBG",
+	"NUM_ERR",
+};
+
+/* mmACC_INTR_CAUSE */
+static const char * const gaudi3_mme_acc_intr_cause[] = {
+/* SEI */
+	"WBC ERR RESP - legacy - no wkl_id",
+	"WBC ERR RESP SET0 CH0",
+	"WBC ERR RESP SET0 CH1",
+	"WBC ERR RESP SET1 CH0",
+	"WBC ERR RESP SET1 CH1",
+/* SPI */
+	"WBC_BUSER_NUMERICAL_INF_ERR_SET0, CH0",
+	"WBC_BUSER_NUMERICAL_INF_ERR_SET0, CH1",
+	"WBC_BUSER_NUMERICAL_NINF_ERR_SET0, CH0",
+	"WBC_BUSER_NUMERICAL_NINF_ERR_SET0, CH1",
+	"WBC_BUSER_NUMERICAL_NAN_ERR_SET0, CH0",
+	"WBC_BUSER_NUMERICAL_NAN_ERR_SET0, CH1",
+	"WBC_BUSER_RR_DBG_ERR_SET0, CH0",
+	"WBC_BUSER_RR_DBG_ERR_SET0, CH1",
+	"WBC_BUSER_NUMERICAL_INF_ERR_SET1, CH0",
+	"WBC_BUSER_NUMERICAL_INF_ERR_SET1, CH1",
+	"WBC_BUSER_NUMERICAL_NINF_ERR_SET1, CH0",
+	"WBC_BUSER_NUMERICAL_NINF_ERR_SET1, CH1",
+	"WBC_BUSER_NUMERICAL_NAN_ERR_SET1, CH0",
+	"WBC_BUSER_NUMERICAL_NAN_ERR_SET1, CH1",
+	"WBC_BUSER_RR_DBG_ERR_SET1, CH0",
+	"WBC_BUSER_RR_DBG_ERR_SET1, CH1",
+	"AP_STS_SRC_DNRM_INTR_P",
+	"AP_STS_SRC_INF_INTR_P",
+	"AP_STS_SRC_NINF_INTR_P",
+	"AP_STS_SRC_NAN_INTR_P",
+	"AP_STS_RES_INF_INTR_P",
+	"AP_STS_RES_NINF_INTR_P",
+	"AP_STS_RES_NAN_INTR_P",
+};
+
+/* mmMME_CTRL_LO_INTR_CAUSE */
+static const char * const gaudi3_mme_ctrl_lo_intr_cause[] = {
+	"agu_lbw_resp_intr",
+	"qman_axi_err",
+	"N/A",
+	"N/A",
+	"arc sei",
+	"mme_cfg_unalign_addr",
+	"qm_sw_err",
+	"sb0_eco_intr",
+	"sb1_eco_intr",
+	"sb2_eco_intr",
+	"sb3_eco_intr",
+	"sb4_eco_intr",
+	"sb5_eco_intr",
+	"sb6_eco_intr",
+	"sb7_eco_intr",
+	"wap0_eco_intr",
+	"wap1_eco_intr",
+	"N/A",
+	"N/A",
+	"N/A",
+	"N/A",
+	"N/A",
+};
+
 struct gaudi3_dup_grp_info {
 	enum gaudi3_dup_group name;
 	u32 fixup_offset;
@@ -12042,6 +12110,69 @@ static u32 handle_tpc_spi_events(struct hl_device *hdev, u16 data_size,
 	return err_num;
 }
 
+static u32 gaudi3_handle_mme_acc_event(struct hl_device *hdev, struct hl_eq_mme_acc_data *acc_data,
+						char *event)
+{
+	char initiator_str[128] = {};
+	u32 cause, err_num = 0;
+	int i;
+
+	snprintf(initiator_str, sizeof(initiator_str), "MME_ACC%u", acc_data->id);
+	cause = le64_to_cpu(acc_data->intr_cause.intr_cause_data);
+	err_num = gaudi3_err_cause_iterator(hdev, cause, gaudi3_mme_acc_intr_cause,
+							initiator_str, event);
+	for (i = MME_ACC_CTX_ID_CH0_SET0; i < MME_ACC_CTX_ID_MAX; i++) {
+		u32 ch = i / 2, set = i % 2;
+
+		if (acc_data->ctx_id[i])
+			dev_err_ratelimited(hdev->dev,
+					"MME ACC %s event context ch%u set%u: 0x%x\n",
+						event, ch, set, le16_to_cpu(acc_data->ctx_id[i]));
+	}
+	return err_num;
+}
+
+static u32 gaudi3_handle_mme_sei_err(struct hl_device *hdev, u16 data_size,
+					struct hl_eq_mme_sei_data *sei_data)
+{
+	struct hl_eq_mme_ctrl_data *ctrl_data = &sei_data->control_data;
+	struct hl_eq_mme_acc_data *acc_data = &sei_data->acc_data;
+	struct hl_eq_mme_sbte_data *sbte = &sei_data->sbte_data;
+	char initiator_str[128] = {};
+	u32 cause, err_num = 0;
+	int rc;
+
+	rc = gaudi3_validate_eqe_data_size(hdev, data_size, sizeof(struct hl_eq_mme_sei_data));
+	if (rc)
+		return 0;
+
+	switch (sei_data->type) {
+	case MME_DATA_TYPE_SBTE:
+		snprintf(initiator_str, sizeof(initiator_str), "MME_EU_%u SBTE%u",
+						sbte->mme_eu_id, sbte->sbte_id);
+		cause = le64_to_cpu(sbte->cause.intr_cause_data);
+		err_num = gaudi3_err_cause_iterator(hdev, cause, gaudi3_mme_sbte_intr_cause,
+								initiator_str, "SEI");
+		if (err_num)
+			dev_err_ratelimited(hdev->dev, "MME context ID: %u\n",
+							le16_to_cpu(sbte->ctx_id));
+		break;
+	case MME_DATA_TYPE_ACC:
+		err_num  = gaudi3_handle_mme_acc_event(hdev, acc_data, "SEI");
+		break;
+	case MME_DATA_TYPE_CTRL:
+		cause = le64_to_cpu(ctrl_data->cause.intr_cause_data);
+		err_num = gaudi3_err_cause_iterator(hdev, cause, gaudi3_mme_ctrl_lo_intr_cause,
+								"MME_CTRL", "SEI");
+		err_num += gaudi3_handle_qm_sei_err(hdev, &ctrl_data->qm_data, "MME");
+		break;
+	default:
+		break;
+	}
+
+	return err_num;
+}
+
 static u32 handle_tpc_sei_events(struct hl_device *hdev, u16 data_size,
 					struct hl_eq_tpc_sei_data *sei_data)
 {
@@ -12326,6 +12457,10 @@ static u32 gaudi3_handle_sei_event(struct hl_device *hdev,
 		break;
 	case INT_COMP_TYPE_TPC:
 		err_cnt = handle_tpc_sei_events(hdev, data_size, &eq_dynamic_entry->tpc_sei_data);
+		break;
+	case INT_COMP_TYPE_MME:
+		err_cnt = gaudi3_handle_mme_sei_err(hdev, data_size,
+							&eq_dynamic_entry->mme_sei_data);
 		break;
 	default:
 		break;
