@@ -331,6 +331,11 @@ static void nic_eq_handler(struct gaudi2_nic_port *gaudi2_nic)
 	 */
 	eq_ring->pi_shadow = *((u32 *) RING_PI_ADDRESS(eq_ring));
 
+	if (!gaudi2_nic->eq_handler) {
+		dev_WARN_ONCE(hdev->dev, true, "Port-%d EQ handler is not set", port);
+		return;
+	}
+
 	while (eq_ring->ci_shadow != eq_ring->pi_shadow) {
 		eqe_p = (struct hl_nic_eqe *) RING_BUF_ADDRESS(eq_ring) +
 			(eq_ring->ci_shadow & (eq_ring->count - 1));
