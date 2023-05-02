@@ -3045,6 +3045,22 @@ static u32 cs_special_regs_base[] = {
 	mmHD0_CS0_SPECIAL_BASE
 };
 
+static void instance_fixup(u32 die, u32 *hd, u32 *idx)
+{
+	if (*idx == 8)
+		return;
+
+	/* a swap in die 1 */
+	if (die == 1)
+		*hd = 7 - *hd;
+
+	/* an instance swap for hdcores 2,3,6,7 */
+	if (*hd == 2 || *hd == 3 || *hd == 6 || *hd == 7)
+		*idx = 7 - *idx;
+
+	*hd = *hd % 4;
+}
+
 /* HDCORE_CS_EVENT */
 static void handle_and_clear_cs_events(struct hl_device *hdev, u32 die, u32 hdcore,
 					enum err_grp type, u32 sts, u32 sts_idx, u32 idx,
@@ -3059,6 +3075,7 @@ static void handle_and_clear_cs_events(struct hl_device *hdev, u32 die, u32 hdco
 	switch (type) {
 	case ERR_GRP_DERR:
 		instance = idx;
+		instance_fixup(die, &hdcore, &instance);
 		offset = (die * NUM_OF_HDCORES_PER_DIE + hdcore) * HDCORE_OFFSET +
 				instance * CSLICE_OFFSET;
 		handle_and_clear_derr_events(hdev, cs_special_regs_base,
@@ -3069,6 +3086,7 @@ static void handle_and_clear_cs_events(struct hl_device *hdev, u32 die, u32 hdco
 		break;
 	case ERR_GRP_SEI:
 		instance = idx;
+		instance_fixup(die, &hdcore, &instance);
 		offset = (die * NUM_OF_HDCORES_PER_DIE + hdcore) * HDCORE_OFFSET +
 				instance * CSLICE_OFFSET;
 		eq_dynamic_entry.hdr.size = cpu_to_le16(sizeof(struct hl_eq_intr_cause));
@@ -3079,6 +3097,7 @@ static void handle_and_clear_cs_events(struct hl_device *hdev, u32 die, u32 hdco
 		break;
 	case ERR_GRP_SPI_ECO:
 		instance = idx / 2;
+		instance_fixup(die, &hdcore, &instance);
 		offset = (die * NUM_OF_HDCORES_PER_DIE + hdcore) * HDCORE_OFFSET +
 				instance * CSLICE_OFFSET;
 		eq_dynamic_entry.hdr.size = cpu_to_le16(sizeof(struct hl_eq_intr_cause));
@@ -3473,13 +3492,10 @@ static void handle_and_clear_tpc_events(struct hl_device *hdev, u32 die, u32 hdc
 	u64 intr_cause;
 	int th;
 
-	/* TODO: SW-102663: the order of the TPCs are not as specified in the excel
-	 * e.g. writing to intr reg on TPC0 on HD2 generates event on HD2 TPC7 (and not TPC0)
-	 */
-
 	switch (type) {
 	case ERR_GRP_DERR:
 		instance = idx;
+		instance_fixup(die, &hdcore, &instance);
 		offset = (die * NUM_OF_HDCORES_PER_DIE + hdcore) * HDCORE_OFFSET +
 				instance * HDCORE_TPC_OFFSET;
 		handle_and_clear_derr_events(hdev, tpc_special_regs_base,
@@ -3505,6 +3521,8 @@ static void handle_and_clear_tpc_events(struct hl_device *hdev, u32 die, u32 hdc
 			tpc_data = &eq_dynamic_entry.tpc_spi_data.data;
 			eq_dynamic_entry.hdr.size = cpu_to_le16(sizeof(struct hl_eq_tpc_spi_data));
 		}
+
+		instance_fixup(die, &hdcore, &instance);
 
 		offset = (die * NUM_OF_HDCORES_PER_DIE + hdcore) * HDCORE_OFFSET +
 				instance * HDCORE_TPC_OFFSET;
