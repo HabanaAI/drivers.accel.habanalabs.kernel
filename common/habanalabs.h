@@ -2567,6 +2567,7 @@ struct hl_debugfs_entry {
 /**
  * struct hl_dbg_device_entry - ASIC specific debugfs manager.
  * @root: root dentry.
+ * @accel_symlink: symbolic link to the debugfs accel device directory.
  * @hdev: habanalabs device structure.
  * @entry_arr: array of available hl_debugfs_entry.
  * @file_list: list of available debugfs files.
@@ -2602,6 +2603,7 @@ struct hl_dbg_device_entry {
 	/** @accel_root: accel root dentry. */
 	struct dentry			*accel_root;
 #endif
+	struct dentry			*accel_symlink;
 	struct hl_device		*hdev;
 	struct hl_debugfs_entry		*entry_arr;
 	struct list_head		file_list;
@@ -4542,7 +4544,7 @@ void hl_debugfs_fini(void);
 int hl_debugfs_device_init(struct hl_device *hdev);
 void hl_debugfs_device_fini(struct hl_device *hdev);
 void hl_debugfs_add_device(struct hl_device *hdev);
-#if !IS_ENABLED(CONFIG_DRM_ACCEL)
+#if !IS_ENABLED(CONFIG_DRM_ACCEL) || !defined(_HAS_DEBUGFS_ROOT_IN_DRM_DEVICE)
 void hl_debugfs_remove_device(struct hl_device *hdev);
 #endif
 void hl_debugfs_add_file(struct hl_fpriv *hpriv);
@@ -4586,7 +4588,7 @@ static inline void hl_debugfs_add_device(struct hl_device *hdev)
 {
 }
 
-#if !IS_ENABLED(CONFIG_DRM_ACCEL)
+#if !IS_ENABLED(CONFIG_DRM_ACCEL) || !defined(_HAS_DEBUGFS_ROOT_IN_DRM_DEVICE)
 static inline void hl_debugfs_remove_device(struct hl_device *hdev)
 {
 }

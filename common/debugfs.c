@@ -1891,6 +1891,9 @@ void hl_debugfs_device_fini(struct hl_device *hdev)
 void hl_debugfs_add_device(struct hl_device *hdev)
 {
 	struct hl_dbg_device_entry *dev_entry = &hdev->hl_debugfs;
+#ifndef _HAS_DEBUGFS_ROOT_IN_DRM_DEVICE
+	char name[64];
+#endif
 
 	dev_entry->root = hdev->drm.accel->debugfs_root;
 
@@ -1898,6 +1901,12 @@ void hl_debugfs_add_device(struct hl_device *hdev)
 
 	if (!hdev->asic_prop.fw_security_enabled)
 		add_secured_nodes(dev_entry, dev_entry->root);
+
+#ifndef _HAS_DEBUGFS_ROOT_IN_DRM_DEVICE
+	sprintf(name, "%d", hdev->cdev_idx);
+	dev_entry->accel_symlink =
+			debugfs_create_symlink(HL_DEV_NAME(hdev), dev_entry->root->d_parent, name);
+#endif
 }
 #else
 void hl_debugfs_add_device(struct hl_device *hdev)
@@ -1907,8 +1916,12 @@ void hl_debugfs_add_device(struct hl_device *hdev)
 
 	dev_entry->root = debugfs_create_dir(dev_name(hdev->dev), hl_debug_root);
 
+	dev_entry->accel_root = debugfs_create_dir(HL_DEV_NAME(hdev), hl_accel_get_debugfs_root());
+
+	/* TODO: remove symlink when all use the device-name named directory (SW-143101) */
 	sprintf(name, "%d", hdev->cdev_idx);
-	dev_entry->accel_root = debugfs_create_dir(name, hl_accel_get_debugfs_root());
+	dev_entry->accel_symlink =
+		debugfs_create_symlink(name, hl_accel_get_debugfs_root(), HL_DEV_NAME(hdev));
 
 	add_files_to_device(hdev, dev_entry, dev_entry->root);
 	add_files_to_device(hdev, dev_entry, dev_entry->accel_root);
@@ -1918,11 +1931,23 @@ void hl_debugfs_add_device(struct hl_device *hdev)
 		add_secured_nodes(dev_entry, dev_entry->accel_root);
 	}
 }
+#endif /* IS_ENABLED(CONFIG_DRM_ACCEL) */
 
+#if IS_ENABLED(CONFIG_DRM_ACCEL)
+#ifndef _HAS_DEBUGFS_ROOT_IN_DRM_DEVICE
 void hl_debugfs_remove_device(struct hl_device *hdev)
 {
 	struct hl_dbg_device_entry *entry = &hdev->hl_debugfs;
 
+	debugfs_remove(entry->accel_symlink);
+}
+#endif /* _HAS_DEBUGFS_ROOT_IN_DRM_DEVICE */
+#else
+void hl_debugfs_remove_device(struct hl_device *hdev)
+{
+	struct hl_dbg_device_entry *entry = &hdev->hl_debugfs;
+
+	debugfs_remove(entry->accel_symlink);
 	debugfs_remove_recursive(entry->root);
 	debugfs_remove_recursive(entry->accel_root);
 }

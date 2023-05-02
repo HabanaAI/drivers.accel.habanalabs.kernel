@@ -401,3 +401,7 @@ endif
 ifneq ($(shell (grep "class_create" include/linux/device.h include/linux/device/class.h | grep "owner") > /dev/null 2>&1 && echo 1),)
 	ccflags-y += -D_HAS_CLASS_CREATE_WITH_MODULE
 endif
+
+ifneq ($(shell grep "debugfs_root" include/drm/drm_device.h > /dev/null 2>&1 && echo 1),)
+	ccflags-y += -D_HAS_DEBUGFS_ROOT_IN_DRM_DEVICE
+endif

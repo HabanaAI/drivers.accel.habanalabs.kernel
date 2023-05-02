@@ -896,6 +896,9 @@ static void cdev_sysfs_debugfs_remove(struct hl_device *hdev)
 	if (!hdev->cdev_sysfs_debugfs_created)
 		return;
 
+#ifndef _HAS_DEBUGFS_ROOT_IN_DRM_DEVICE
+	hl_debugfs_remove_device(hdev);
+#endif
 	hl_sysfs_fini(hdev);
 
 	cdev_device_del(&hdev->accel_cdev_ctrl, hdev->accel_dev_ctrl);
