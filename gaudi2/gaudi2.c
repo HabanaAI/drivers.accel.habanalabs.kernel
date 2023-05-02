@@ -9660,13 +9660,13 @@ static int gaudi2_handle_kdma_core_event(struct hl_device *hdev, u16 event_type,
 	return error_count;
 }
 
-static int gaudi2_handle_dma_core_event(struct hl_device *hdev, u16 event_type, int sts_addr)
+static int gaudi2_handle_dma_core_event(struct hl_device *hdev, u16 event_type, u64 intr_cause)
 {
-	u32 error_count = 0, sts_val = RREG32(sts_addr);
+	u32 error_count = 0;
 	int i;
 
 	for (i = 0 ; i < GAUDI2_NUM_OF_DMA_CORE_INTR_CAUSE ; i++)
-		if (sts_val & BIT(i)) {
+		if (intr_cause & BIT(i)) {
 			gaudi2_print_event(hdev, event_type, true,
 				"err cause: %s", gaudi2_dma_core_interrupts_cause[i]);
 			error_count++;
@@ -9675,27 +9675,6 @@ static int gaudi2_handle_dma_core_event(struct hl_device *hdev, u16 event_type, 
 	hl_check_for_glbl_errors(hdev);
 
 	return error_count;
-}
-
-static int gaudi2_handle_pdma_core_event(struct hl_device *hdev, u16 event_type, int pdma_idx)
-{
-	u32 sts_addr;
-
-	sts_addr = mmPDMA0_CORE_ERR_CAUSE + pdma_idx * PDMA_OFFSET;
-	return gaudi2_handle_dma_core_event(hdev, event_type, sts_addr);
-}
-
-static int gaudi2_handle_edma_core_event(struct hl_device *hdev, u16 event_type, int edma_idx)
-{
-	static const int edma_event_index_map[] = {2, 3, 0, 1, 6, 7, 4, 5};
-	u32 sts_addr, index;
-
-	index = edma_event_index_map[edma_idx];
-
-	sts_addr = mmDCORE0_EDMA0_CORE_ERR_CAUSE +
-				DCORE_OFFSET * (index / NUM_OF_EDMA_PER_DCORE) +
-				DCORE_EDMA_OFFSET * (index % NUM_OF_EDMA_PER_DCORE);
-	return gaudi2_handle_dma_core_event(hdev, event_type, sts_addr);
 }
 
 static void gaudi2_print_pcie_mstr_rr_mstr_if_razwi_info(struct hl_device *hdev, u64 *event_mask)
@@ -10481,6 +10460,7 @@ void gaudi2_handle_eqe(struct hl_device *hdev, struct hl_eq_entry *eq_entry)
 
 	case GAUDI2_EVENT_ROTATOR0_AXI_ERROR_RESPONSE:
 	case GAUDI2_EVENT_ROTATOR1_AXI_ERROR_RESPONSE:
+		/* Use FW's error cause data as a SW W/A, due to HW bug: HL-3110 */
 		index = event_type - GAUDI2_EVENT_ROTATOR0_AXI_ERROR_RESPONSE;
 		error_count = gaudi2_handle_rot_err(hdev, index, event_type,
 					&eq_entry->razwi_with_intr_cause, &event_mask);
@@ -10489,6 +10469,7 @@ void gaudi2_handle_eqe(struct hl_device *hdev, struct hl_eq_entry *eq_entry)
 		break;
 
 	case GAUDI2_EVENT_TPC0_AXI_ERR_RSP ... GAUDI2_EVENT_TPC24_AXI_ERR_RSP:
+		/* Use FW's error cause data as a SW W/A, due to HW bug: HL-3110 */
 		index = event_type - GAUDI2_EVENT_TPC0_AXI_ERR_RSP;
 		error_count = gaudi2_tpc_ack_interrupts(hdev, index, event_type,
 						&eq_entry->razwi_with_intr_cause, &event_mask);
@@ -10527,6 +10508,7 @@ void gaudi2_handle_eqe(struct hl_device *hdev, struct hl_eq_entry *eq_entry)
 	case GAUDI2_EVENT_TPC22_KERNEL_ERR:
 	case GAUDI2_EVENT_TPC23_KERNEL_ERR:
 	case GAUDI2_EVENT_TPC24_KERNEL_ERR:
+		/* Use FW's error cause data as a SW W/A, due to HW bug: HL-3110 */
 		index = (event_type - GAUDI2_EVENT_TPC0_KERNEL_ERR) /
 			(GAUDI2_EVENT_TPC1_KERNEL_ERR - GAUDI2_EVENT_TPC0_KERNEL_ERR);
 		error_count = gaudi2_tpc_ack_interrupts(hdev, index, event_type,
@@ -10586,20 +10568,23 @@ void gaudi2_handle_eqe(struct hl_device *hdev, struct hl_eq_entry *eq_entry)
 
 	case GAUDI2_EVENT_KDMA_CH0_AXI_ERR_RSP:
 	case GAUDI2_EVENT_KDMA0_CORE:
+		/* Use FW's error cause data as a SW W/A, due to HW bug: HL-3110 */
 		error_count = gaudi2_handle_kdma_core_event(hdev, event_type,
-					le64_to_cpu(eq_entry->intr_cause.intr_cause_data));
+				le64_to_cpu(eq_entry->intr_cause.intr_cause_data));
 		event_mask |= HL_NOTIFIER_EVENT_GENERAL_HW_ERR;
 		break;
 
 	case GAUDI2_EVENT_HDMA2_CORE ... GAUDI2_EVENT_HDMA5_CORE:
-		index = event_type - GAUDI2_EVENT_HDMA2_CORE;
-		error_count = gaudi2_handle_edma_core_event(hdev, event_type, index);
+		/* Use FW's error cause data as a SW W/A, due to HW bug: HL-3110 */
+		error_count = gaudi2_handle_dma_core_event(hdev, event_type,
+				le64_to_cpu(eq_entry->intr_cause.intr_cause_data));
 		event_mask |= HL_NOTIFIER_EVENT_USER_ENGINE_ERR;
 		break;
 
 	case GAUDI2_EVENT_PDMA0_CORE ... GAUDI2_EVENT_PDMA1_CORE:
-		index = event_type - GAUDI2_EVENT_PDMA0_CORE;
-		error_count = gaudi2_handle_pdma_core_event(hdev, event_type, index);
+		/* Use FW's error cause data as a SW W/A, due to HW bug: HL-3110 */
+		error_count = gaudi2_handle_dma_core_event(hdev, event_type,
+				le64_to_cpu(eq_entry->intr_cause.intr_cause_data));
 		event_mask |= HL_NOTIFIER_EVENT_USER_ENGINE_ERR;
 		break;
 
@@ -10686,6 +10671,7 @@ void gaudi2_handle_eqe(struct hl_device *hdev, struct hl_eq_entry *eq_entry)
 	case GAUDI2_EVENT_MME1_SBTE0_AXI_ERR_RSP ... GAUDI2_EVENT_MME1_SBTE4_AXI_ERR_RSP:
 	case GAUDI2_EVENT_MME2_SBTE0_AXI_ERR_RSP ... GAUDI2_EVENT_MME2_SBTE4_AXI_ERR_RSP:
 	case GAUDI2_EVENT_MME3_SBTE0_AXI_ERR_RSP ... GAUDI2_EVENT_MME3_SBTE4_AXI_ERR_RSP:
+		/* Use FW's error cause data as a SW W/A, due to HW bug: HL-3110 */
 		error_count = gaudi2_handle_mme_sbte_err(hdev, event_type,
 						le64_to_cpu(eq_entry->intr_cause.intr_cause_data));
 		event_mask |= HL_NOTIFIER_EVENT_USER_ENGINE_ERR;
