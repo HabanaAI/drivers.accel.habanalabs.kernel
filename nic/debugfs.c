@@ -35,7 +35,7 @@ static int hl_device_hard_reset_sync(struct hl_device *hdev)
 	hl_device_reset(hdev, HL_DRV_RESET_HARD);
 
 	timeout = ktime_add_ms(ktime_get(), reset_sec * 1000);
-	while (hdev->reset_info.in_reset) {
+	while (hdev->reset_info.in_reset && !hdev->device_fini_pending) {
 		ssleep(1);
 		if (ktime_compare(ktime_get(), timeout) > 0) {
 			dev_crit(hdev->dev, "Timed out waiting for hard reset to finish\n");
