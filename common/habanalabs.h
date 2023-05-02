@@ -54,6 +54,10 @@
 #include "habanalabs_compat.h"
 #include "security.h"
 
+#if (KERNEL_VERSION(6, 2, 0) <= LINUX_VERSION_CODE) && !IS_ENABLED(CONFIG_DRM_ACCEL)
+#error "habanalabs requires CONFIG_DRM_ACCEL to be enabled"
+#endif
+
 #define HL_NAME				"habanalabs"
 
 struct hl_device;
