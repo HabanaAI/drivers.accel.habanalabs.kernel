@@ -130,6 +130,21 @@ enum hdcore_handler_type {
 	HDCORE_HIF_EVENT,
 };
 
+enum sei_intr_idx {
+	SEI_INTR_MME0_SBTE0,
+	SEI_INTR_MME0_SBTE1,
+	SEI_INTR_MME0_SBTE2,
+	SEI_INTR_MME0_SBTE3,
+	SEI_INTR_MME1_SBTE0,
+	SEI_INTR_MME1_SBTE1,
+	SEI_INTR_MME1_SBTE2,
+	SEI_INTR_MME1_SBTE3,
+	SEI_INTR_MME0_ACC,
+	SEI_INTR_MME1_ACC,
+	SEI_INTR_MME_CTRL0_LO0,
+	SEI_INTR_MME_CTRL0_LO1,
+};
+
 struct block_instance {
 	u32 die;
 	u32 hdcore;
@@ -3595,6 +3610,126 @@ static u32 mme_special_regs_base[] = {
 	mmHD0_MME1_ACC_SPECIAL_BASE
 };
 
+static void gaudi3_set_mme_acc_ctx_id_interrupt(struct hl_device *hdev,
+		struct hl_eq_mme_acc_data *data, u32 cause, u32 acc_base)
+{
+	if (cause & (MME0_ACC_WBC_ERR_RESP_SET0_CH0 |
+			MME0_ACC_WBC_BUSER_NUMERICAL_INF_ERR_SET0_CH0 |
+			MME0_ACC_WBC_BUSER_NUMERICAL_NINF_ERR_SET0_CH0 |
+			MME0_ACC_WBC_BUSER_NUMERICAL_NAN_ERR_SET0_CH0 |
+			MME0_ACC_WBC_BUSER_RR_DBG_ERR_SET0_CH0)) {
+		data->ctx_id[MME_ACC_CTX_ID_CH0_SET0] = cpu_to_le16(RREG32(acc_base +
+					mmACC_INTR_WBC_BUSER_CTX_ID_CH0) &
+					ACC_INTR_WBC_BUSER_CTX_ID_CH0_SET0_M);
+	}
+
+	if (cause & (MME0_ACC_WBC_ERR_RESP_SET0_CH1 |
+			MME0_ACC_WBC_BUSER_NUMERICAL_INF_ERR_SET0_CH1 |
+			MME0_ACC_WBC_BUSER_NUMERICAL_NINF_ERR_SET0_CH1 |
+			MME0_ACC_WBC_BUSER_NUMERICAL_NAN_ERR_SET0_CH1 |
+			MME0_ACC_WBC_BUSER_RR_DBG_ERR_SET0_CH1)) {
+		data->ctx_id[MME_ACC_CTX_ID_CH1_SET0] = cpu_to_le16(RREG32(acc_base +
+					mmACC_INTR_WBC_BUSER_CTX_ID_CH1) &
+					ACC_INTR_WBC_BUSER_CTX_ID_CH1_SET0_M);
+	}
+
+	if (cause & (MME0_ACC_WBC_ERR_RESP_SET1_CH0 |
+			MME0_ACC_WBC_BUSER_NUMERICAL_INF_ERR_SET1_CH0 |
+			MME0_ACC_WBC_BUSER_NUMERICAL_NINF_ERR_SET1_CH0 |
+			MME0_ACC_WBC_BUSER_NUMERICAL_NAN_ERR_SET1_CH0 |
+			MME0_ACC_WBC_BUSER_RR_DBG_ERR_SET1_CH0)) {
+		data->ctx_id[MME_ACC_CTX_ID_CH0_SET1] = cpu_to_le16((RREG32(acc_base +
+					mmACC_INTR_WBC_BUSER_CTX_ID_CH0) &
+					ACC_INTR_WBC_BUSER_CTX_ID_CH0_SET1_M) >>
+					ACC_INTR_WBC_BUSER_CTX_ID_CH0_SET1_S);
+	}
+
+	if (cause & (MME0_ACC_WBC_ERR_RESP_SET1_CH1 |
+			MME0_ACC_WBC_BUSER_NUMERICAL_INF_ERR_SET1_CH1 |
+			MME0_ACC_WBC_BUSER_NUMERICAL_NINF_ERR_SET1_CH1 |
+			MME0_ACC_WBC_BUSER_NUMERICAL_NAN_ERR_SET1_CH1 |
+			MME0_ACC_WBC_BUSER_RR_DBG_ERR_SET1_CH1)) {
+		data->ctx_id[MME_ACC_CTX_ID_CH1_SET1] = cpu_to_le16((RREG32(acc_base +
+					mmACC_INTR_WBC_BUSER_CTX_ID_CH1) &
+					ACC_INTR_WBC_BUSER_CTX_ID_CH1_SET1_M) >>
+					ACC_INTR_WBC_BUSER_CTX_ID_CH1_SET1_S);
+	}
+}
+
+static void handle_and_clear_mme_sei_events(struct hl_device *hdev, u32 idx, u32 offset,
+					struct hl_eq_mme_sei_data *sei_data)
+{
+	u32 mme_id, sbte_id, ctrl_lo_base, acc_base, sbte_base, cause, mask;
+
+	switch (idx) {
+	case SEI_INTR_MME0_SBTE0:
+	case SEI_INTR_MME0_SBTE1:
+	case SEI_INTR_MME0_SBTE2:
+	case SEI_INTR_MME0_SBTE3:
+	case SEI_INTR_MME1_SBTE0:
+	case SEI_INTR_MME1_SBTE1:
+	case SEI_INTR_MME1_SBTE2:
+	case SEI_INTR_MME1_SBTE3:
+		mme_id = idx / 4;
+		sbte_id = idx % 4;
+		sbte_base = mmHD0_MME0_SBTE0_BASE +
+			mme_id * HDCORE_MME_SBTE_GRP_OFFSET +
+			sbte_id * HDCORE_MME_SBTE_OFFSET + offset;
+
+		cause = RREG32(sbte_base + mmSB_INTR_CAUSE);
+
+		sei_data->sbte_data.cause.intr_cause_data =
+			cpu_to_le64(cause & MME_SBTE_SEI_INTR_MASK);
+		sei_data->sbte_data.mme_eu_id = mme_id;
+		sei_data->sbte_data.sbte_id = sbte_id;
+		sei_data->sbte_data.ctx_id =
+			cpu_to_le16((cause & SB_INTR_CAUSE_CONTEXT_ID_M) >>
+						SB_INTR_CAUSE_CONTEXT_ID_S);
+		sei_data->type = MME_DATA_TYPE_SBTE;
+
+		WREG32(sbte_base + mmSB_INTR_CLEAR, cause & MME_SBTE_SEI_INTR_MASK);
+		break;
+	case SEI_INTR_MME0_ACC:
+	case SEI_INTR_MME1_ACC:
+		mme_id = idx - SEI_INTR_MME0_ACC;
+		acc_base = mmHD0_MME0_ACC_BASE + HDCORE_MME_EU_OFFSET * mme_id + offset;
+
+		cause = RREG32(acc_base + mmACC_INTR_CAUSE) & MME_ACC_SEI_INTR_MASK;
+
+		gaudi3_set_mme_acc_ctx_id_interrupt(hdev, &sei_data->acc_data, cause,
+							acc_base);
+		sei_data->acc_data.intr_cause.intr_cause_data = cpu_to_le64(cause);
+		sei_data->acc_data.id = mme_id;
+		sei_data->type = MME_DATA_TYPE_ACC;
+		WREG32(acc_base + mmACC_INTR_CLEAR, cause);
+		break;
+	case SEI_INTR_MME_CTRL0_LO0:
+	case SEI_INTR_MME_CTRL0_LO1:
+		if (idx == SEI_INTR_MME_CTRL0_LO0)
+			mask = MME_CTRL_SEI0_INTR_MASK;
+		else
+			mask = MME_CTRL_SEI1_INTR_MASK;
+
+		ctrl_lo_base = mmHD0_MME_CTRL_LO_BASE;
+
+		cause = RREG32(ctrl_lo_base + mmMME_CTRL_LO_INTR_CAUSE + offset);
+		sei_data->control_data.cause.intr_cause_data = cpu_to_le64(cause & mask);
+		sei_data->type = MME_DATA_TYPE_CTRL;
+
+		if ((cause & MME_CTRL_SEI0_QM_INTR_MASK) ||
+		    (cause & MME_CTRL_SEI1_QM_INTR_MASK))
+			handle_and_clear_qman_interrupts(hdev,
+						mmHD0_MME_QM_BASE + offset,
+						mmHD0_MME_QM_ARC_AUX_BASE + offset,
+						&sei_data->control_data.qm_data);
+
+		WREG32(ctrl_lo_base + mmMME_CTRL_LO_INTR_CLEAR + offset, (cause & mask));
+		break;
+	default:
+		break;
+	}
+}
+
 /* HDCORE_MME_EVENT */
 static void handle_and_clear_mme_events(struct hl_device *hdev, u32 die, u32 hdcore,
 					enum err_grp type, u32 sts, u32 sts_idx, u32 idx,
@@ -3605,15 +3740,20 @@ static void handle_and_clear_mme_events(struct hl_device *hdev, u32 die, u32 hdc
 	bool unmask_event_in_aggr = false;
 	u32 offset;
 
+	/* swap hd for die 1 */
+	if (die == 1)
+		hdcore = 3 - hdcore;
+
+	offset = (die * NUM_OF_HDCORES_PER_DIE + hdcore) * HDCORE_OFFSET;
 	switch (type) {
 	case ERR_GRP_DERR:
-		offset = (die * NUM_OF_HDCORES_PER_DIE + hdcore) * HDCORE_OFFSET;
 		handle_and_clear_derr_events(hdev, &mme_special_regs_base[idx], 1, offset,
 						&eq_dynamic_entry.ecc_data);
 		eq_dynamic_entry.hdr.size = cpu_to_le16(sizeof(struct hl_eq_ecc_data));
 		unmask_event_in_aggr = true;
 		break;
 	case ERR_GRP_SEI:
+		handle_and_clear_mme_sei_events(hdev, idx, offset, &eq_dynamic_entry.mme_sei_data);
 		break;
 	case ERR_GRP_SPI_ECO:
 		break;

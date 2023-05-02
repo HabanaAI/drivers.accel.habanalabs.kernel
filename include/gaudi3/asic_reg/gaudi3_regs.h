@@ -154,6 +154,7 @@
 #include "prt_phy_special_regs.h"
 #include "prt_mac_aux_special_regs.h"
 #include "mac_pcs_rsfec400_regs.h"
+#include "farm_regs.h"
 
 /* TODO: used for debug, so can be removed once H9-5315 is resolved */
 #include "nrtr_crdt_rrtr_ob_crdt_regs.h"
@@ -230,7 +231,8 @@
 #include "rtr_ctrl_rr_hbw_masks.h"
 #include "cs_dbg_w_spmu_0_bmon_spmu_masks.h"
 #include "cs_dbg_tpc_eml_bmon0_masks.h"
-#include "farm_regs.h"
+#include "sb_masks.h"
+#include "acc_masks.h"
 
 /* CSLICE */
 #define CS_MAINT_BASE_OFFSET		(mmHD0_CS0_MAINT_BASE - mmHD0_CS0_MAIN_BASE)
