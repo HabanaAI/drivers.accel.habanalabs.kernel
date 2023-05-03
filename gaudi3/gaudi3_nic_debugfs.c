@@ -10,21 +10,118 @@
 /* Reset or no drop config. */
 #define GAUDI3_NIC_ERR_INJ_RESET_VALUE	0x4000
 
-#define __snprintf(buf, bsize, fmt, ...)							\
-		do {										\
-			size_t _blen = strlen(buf);						\
-												\
-			if (_blen < (bsize))							\
-				snprintf((buf) + _blen, (bsize) - _blen, fmt, ##__VA_ARGS__);	\
-		} while (0)
+#define __snprintf(buf, bsize, fmt, ...)					\
+do {										\
+	size_t _blen = strlen(buf);						\
+										\
+	if (_blen < (bsize))							\
+		snprintf((buf) + _blen, (bsize) - _blen, fmt, ##__VA_ARGS__);	\
+} while (0)
 
-#define _fsnprintf(buf, size, fmt, ...)							\
-		do {									\
-			if (full_print)							\
-				__snprintf(buf, size, fmt, ##__VA_ARGS__);		\
-											\
-		} while (0)
+static void qpc_req_parse_basic(char *buf, size_t bsize, struct gaudi3_qpc_requester *req)
+{
+	__snprintf(buf, bsize, "in work: 0x%llx\n", REQ_QPC_GET_IN_WORK(*req));
+	__snprintf(buf, bsize, "remote CI: 0x%llx\n", REQ_QPC_GET_REM_CI(*req));
+	__snprintf(buf, bsize, "remote PI count: 0x%llx\n", REQ_QPC_GET_REM_PI_CNT(*req));
+	__snprintf(buf, bsize, "remote PI: 0x%llx\n", REQ_QPC_GET_REM_PI(*req));
+	__snprintf(buf, bsize, "PI: 0x%llx\n", REQ_QPC_GET_PI(*req));
+	__snprintf(buf, bsize, "CI: 0x%llx\n", REQ_QPC_GET_CI(*req));
+	__snprintf(buf, bsize, "EI: 0x%llx\n", REQ_QPC_GET_EI(*req));
+	__snprintf(buf, bsize, "BCC PSN: 0x%llx\n", REQ_QPC_GET_BCC_PSN(*req));
+	__snprintf(buf, bsize, "ONA PSN: 0x%llx\n", REQ_QPC_GET_ONA_PSN(*req));
+	__snprintf(buf, bsize, "BCS PSN: 0x%llx\n", REQ_QPC_GET_BCS_PSN(*req));
+	__snprintf(buf, bsize, "NTS PSN: 0x%llx\n", REQ_QPC_GET_NTS_PSN(*req));
+	__snprintf(buf, bsize, "timeout retry cnt: 0x%llx\n", REQ_QPC_GET_TMOUT_RTRY_CNT(*req));
+	__snprintf(buf, bsize, "SEQ err retry cnt: 0x%llx\n", REQ_QPC_GET_SEQ_ERR_RTRY_CNT(*req));
+	__snprintf(buf, bsize, "dst MAC: %04llx%08llx\n", REQ_QPC_GET_DST_MAC_MSB(*req),
+			REQ_QPC_GET_DST_MAC_LSB(*req));
+}
 
+static void qpc_req_parse_full(char *buf, size_t bsize, struct gaudi3_qpc_requester *req)
+{
+	__snprintf(buf, bsize, "trusted: 0x%llx\n", REQ_QPC_GET_TRUST_LEVEL(*req));
+	__snprintf(buf, bsize, "WQ base addr: 0x%llx\n", REQ_QPC_GET_WQ_BASE_ADDR(*req));
+	__snprintf(buf, bsize, "MTU: 0x%llx\n", REQ_QPC_GET_MTU(*req));
+	__snprintf(buf, bsize, "cong mode: 0x%llx\n", REQ_QPC_GET_CONGESTION_MODE(*req));
+	__snprintf(buf, bsize, "priority: 0x%llx\n", REQ_QPC_GET_PRIORITY(*req));
+	__snprintf(buf, bsize, "transport service: 0x%llx\n", REQ_QPC_GET_TRANSPORT_SERVICE(*req));
+	__snprintf(buf, bsize, "SWQ gran: 0x%llx\n", REQ_QPC_GET_SWQ_GRANULARITY(*req));
+	__snprintf(buf, bsize, "loopback: 0x%llx\n", REQ_QPC_GET_LOOPBACK(*req));
+	__snprintf(buf, bsize, "EQ number: 0x%llx\n", REQ_QPC_GET_EQ_NUM(*req));
+	__snprintf(buf, bsize, "WQ type: 0x%llx\n", REQ_QPC_GET_WQ_TYPE(*req));
+	__snprintf(buf, bsize, "port/lane: 0x%llx\n", REQ_QPC_GET_PORT(*req));
+	__snprintf(buf, bsize, "data MMU BP: 0x%llx\n", REQ_QPC_GET_DATA_MMU_BYPASS(*req));
+	__snprintf(buf, bsize, "plain RDMA: 0x%llx\n", REQ_QPC_GET_PLAIN_RDMA(*req));
+	__snprintf(buf, bsize, "compression EN: 0x%llx\n", REQ_QPC_GET_COMPRESSION_EN(*req));
+	__snprintf(buf, bsize, "FOL seg 0 RSN: 0x%llx\n", REQ_QPC_GET_FOL_SEG_0_RSN_VAL(*req));
+	__snprintf(buf, bsize, "FOL seg 1 RSN: 0x%llx\n", REQ_QPC_GET_FOL_SEG_1_RSN_VAL(*req));
+	__snprintf(buf, bsize, "FOL seg 2 RSN: 0x%llx\n", REQ_QPC_GET_FOL_SEG_2_RSN_VAL(*req));
+	__snprintf(buf, bsize, "FOL seg 3 RSN: 0x%llx\n", REQ_QPC_GET_FOL_SEG_3_RSN_VAL(*req));
+	__snprintf(buf, bsize, "FOL seg 4 RSN: 0x%llx\n", REQ_QPC_GET_FOL_SEG_4_RSN_VAL(*req));
+	__snprintf(buf, bsize, "FOL seg 5 RSN: 0x%llx\n",
+			MERGE_FIELDS(REQ_QPC_GET_FOL_SEG_5_RSN_VAL_HI(*req),
+						REQ_QPC_GET_FOL_SEG_5_RSN_VAL_LO(*req), 4));
+	__snprintf(buf, bsize, "FOL seg 6 RSN: 0x%llx\n", REQ_QPC_GET_FOL_SEG_6_RSN_VAL(*req));
+	__snprintf(buf, bsize, "FOL seg 7 RSN: 0x%llx\n", REQ_QPC_GET_FOL_SEG_7_RSN_VAL(*req));
+	__snprintf(buf, bsize, "FOL seg 8 RSN: 0x%llx\n", REQ_QPC_GET_FOL_SEG_8_RSN_VAL(*req));
+	__snprintf(buf, bsize, "FOL seg 9 RSN: 0x%llx\n", REQ_QPC_GET_FOL_SEG_9_RSN_VAL(*req));
+	__snprintf(buf, bsize, "FOL seg 10 RSN: 0x%llx\n", REQ_QPC_GET_FOL_SEG_10_RSN_VAL(*req));
+	__snprintf(buf, bsize, "FOL seg 11 RSN: 0x%llx\n", REQ_QPC_GET_FOL_SEG_11_RSN_VAL(*req));
+	__snprintf(buf, bsize, "FOL seg 12 RSN: 0x%llx\n", REQ_QPC_GET_FOL_SEG_12_RSN_VAL(*req));
+	__snprintf(buf, bsize, "FOL seg 13 RSN: 0x%llx\n", REQ_QPC_GET_FOL_SEG_13_RSN_VAL(*req));
+	__snprintf(buf, bsize, "FOL seg 14 RSN: 0x%llx\n", REQ_QPC_GET_FOL_SEG_14_RSN_VAL(*req));
+	__snprintf(buf, bsize, "FOL seg 15 RSN: 0x%llx\n", REQ_QPC_GET_FOL_SEG_15_RSN_VAL(*req));
+	__snprintf(buf, bsize, "ONA RSN: 0x%llx\n", REQ_QPC_GET_ONA_RSN(*req));
+	__snprintf(buf, bsize, "NTS PSN retrans: 0x%llx\n", REQ_QPC_GET_NTS_PSN_RETRANS(*req));
+	__snprintf(buf, bsize, "SACK EN: 0x%llx\n", REQ_QPC_GET_SACK_EN(*req));
+	__snprintf(buf, bsize, "IN retrans: 0x%llx\n", REQ_QPC_GET_IN_RETRANS(*req));
+	__snprintf(buf, bsize, "NTS RSN: 0x%llx\n", REQ_QPC_GET_NTS_RSN(*req));
+	__snprintf(buf, bsize, "QP timeout: 0x%llx\n", REQ_QPC_GET_QP_TIMEOUT(*req));
+	__snprintf(buf, bsize, "remain burst valid: 0x%llx\n", REQ_QPC_GET_REMAIN_BURST_VLD(*req));
+	__snprintf(buf, bsize, "remain burst: 0x%llx\n", REQ_QPC_GET_REMAIN_BURST(*req));
+	__snprintf(buf, bsize, "PSN delivered: 0x%llx\n", REQ_QPC_GET_PSN_DELIVERED(*req));
+	__snprintf(buf, bsize, "pacing time: 0x%llx\n", REQ_QPC_GET_PACING_TIME(*req));
+	__snprintf(buf, bsize, "ackreq freq: 0x%llx\n", REQ_QPC_GET_ACKREQ_FREQ(*req));
+	__snprintf(buf, bsize, "PSN since ackreq: 0x%llx\n", REQ_QPC_GET_PSN_SINCE_ACKREQ(*req));
+	__snprintf(buf, bsize, "patcher remote PI: 0x%llx\n", REQ_QPC_GET_PATCHER_REM_PI(*req));
+	__snprintf(buf, bsize, "latest acked bit: 0x%llx\n", REQ_QPC_GET_LASTEST_ACKED_BIT(*req));
+	__snprintf(buf, bsize, "remote PI highest: 0x%llx\n", REQ_QPC_GET_REM_PI_HIGHEST(*req));
+	__snprintf(buf, bsize, "RDV local class: 0x%llx\n", REQ_QPC_GET_RDV_LCL_CLASS(*req));
+	__snprintf(buf, bsize, "RDV remote class: 0x%llx\n", REQ_QPC_GET_RDV_REM_CLASS(*req));
+	__snprintf(buf, bsize, "RDV local MCID: 0x%llx\n", REQ_QPC_GET_RDV_LCL_MCID(*req));
+	__snprintf(buf, bsize, "RDV remote MCID: 0x%llx\n", REQ_QPC_GET_RDV_REM_MCID(*req));
+	__snprintf(buf, bsize, "WQ log size: 0x%llx\n", REQ_QPC_GET_LOCAL_WQ_LOG_SZ(*req));
+	__snprintf(buf, bsize, "ASID: 0x%llx\n", REQ_QPC_GET_ASID(*req));
+	__snprintf(buf, bsize, "burst size: 0x%llx\n", REQ_QPC_GET_BURST_SIZE(*req));
+	__snprintf(buf, bsize, "MAX MDF: 0x%llx\n", REQ_QPC_GET_MAX_MDF(*req));
+	__snprintf(buf, bsize, "RTT marked PSN: 0x%llx\n", REQ_QPC_GET_RTT_MARKED_PSN(*req));
+	__snprintf(buf, bsize, "msg coalesce cntr:0x%llx\n", REQ_QPC_GET_MSG_COALESCE_CNT(*req));
+	__snprintf(buf, bsize, "RTT timestamp: 0x%llx\n", REQ_QPC_GET_RTT_TIMESTAMP(*req));
+	__snprintf(buf, bsize, "BETA nominator: 0x%llx\n", REQ_QPC_GET_BETA_NOMINATOR(*req));
+	__snprintf(buf, bsize, "target delay: 0x%llx\n", REQ_QPC_GET_TARGET_DELAY(*req));
+	__snprintf(buf, bsize, "BETA de-nominator: 0x%llx\n", REQ_QPC_GET_BETA_DE_NOMINATOR(*req));
+	__snprintf(buf, bsize, "congestion window: 0x%llx\n", REQ_QPC_GET_CONGESTION_WIN(*req));
+	__snprintf(buf, bsize, "AI: 0x%llx\n", REQ_QPC_GET_AI(*req));
+	__snprintf(buf, bsize, "cngstn non-marked ack: 0x%llx\n",
+			REQ_QPC_GET_CONG_NON_MRKD_ACK(*req));
+	__snprintf(buf, bsize, "back pressure: 0x%llx\n", REQ_QPC_GET_WQ_BACK_PRESSURE(*req));
+	__snprintf(buf, bsize, "Timeout gran: 0x%llx\n", REQ_QPC_GET_TM_GRANULARITY(*req));
+	__snprintf(buf, bsize, "cngstn marked ack: 0x%llx\n",
+			REQ_QPC_GET_CONGESTION_MARKED_ACK(*req));
+	__snprintf(buf, bsize, "encap enable: 0x%llx\n", REQ_QPC_GET_ENCAP_ENABLE(*req));
+	__snprintf(buf, bsize, "RTT state: 0x%llx\n", REQ_QPC_GET_RTT_STATE(*req));
+	__snprintf(buf, bsize, "remote WQ log sz: 0x%llx\n", REQ_QPC_GET_REMOTE_WQ_LOG_SZ(*req));
+	__snprintf(buf, bsize, "encap type: 0x%llx\n", REQ_QPC_GET_ENCAP_TYPE(*req));
+	__snprintf(buf, bsize, "CQ number: 0x%llx\n", REQ_QPC_GET_CQ_NUM(*req));
+	__snprintf(buf, bsize, "sched queue num: 0x%llx\n", REQ_QPC_GET_SCHD_Q_NUM(*req));
+	__snprintf(buf, bsize, "dst ipv4: 0x%llx\n", REQ_QPC_GET_DST_IP(*req));
+	__snprintf(buf, bsize, "remote key: 0x%llx\n", REQ_QPC_GET_RKEY(*req));
+	__snprintf(buf, bsize, "dst QP: 0x%llx\n", REQ_QPC_GET_DST_QP(*req));
+	__snprintf(buf, bsize, "dst RANK: 0x%llx\n", REQ_QPC_GET_DST_RANK(*req));
+	__snprintf(buf, bsize, "is last RANK: 0x%llx\n", REQ_QPC_GET_LAST_RANK(*req));
+	__snprintf(buf, bsize, "Last NIC in Lag: 0x%llx\n", REQ_QPC_GET_LAST_NIC_IN_LAG(*req));
+	__snprintf(buf, bsize, "WQ Index: 0x%llx\n", REQ_QPC_GET_WQ_IDX(*req));
+}
 
 static int gaudi3_nic_debugfs_qpc_req_parse(struct hl_device *hdev,
 					struct hl_nic_qp_info *qp_info,
@@ -49,114 +146,17 @@ static int gaudi3_nic_debugfs_qpc_req_parse(struct hl_device *hdev,
 	if (!force_read && REQ_QPC_GET_ERROR(*req))
 		return 0;
 
-	__snprintf(buf, bsize, "in work: 0x%llx\n", REQ_QPC_GET_IN_WORK(*req));
-	_fsnprintf(buf, bsize, "trusted: 0x%llx\n", REQ_QPC_GET_TRUST_LEVEL(*req));
-	_fsnprintf(buf, bsize, "WQ base addr: 0x%llx\n", REQ_QPC_GET_WQ_BASE_ADDR(*req));
-	_fsnprintf(buf, bsize, "MTU: 0x%llx\n", REQ_QPC_GET_MTU(*req));
-	_fsnprintf(buf, bsize, "cong mode: 0x%llx\n", REQ_QPC_GET_CONGESTION_MODE(*req));
-	_fsnprintf(buf, bsize, "priority: 0x%llx\n", REQ_QPC_GET_PRIORITY(*req));
-	_fsnprintf(buf, bsize, "transport service: 0x%llx\n", REQ_QPC_GET_TRANSPORT_SERVICE(*req));
-	_fsnprintf(buf, bsize, "SWQ gran: 0x%llx\n", REQ_QPC_GET_SWQ_GRANULARITY(*req));
-	_fsnprintf(buf, bsize, "loopback: 0x%llx\n", REQ_QPC_GET_LOOPBACK(*req));
-	_fsnprintf(buf, bsize, "EQ number: 0x%llx\n", REQ_QPC_GET_EQ_NUM(*req));
-	_fsnprintf(buf, bsize, "WQ type: 0x%llx\n", REQ_QPC_GET_WQ_TYPE(*req));
-	_fsnprintf(buf, bsize, "port/lane: 0x%llx\n", REQ_QPC_GET_PORT(*req));
-	_fsnprintf(buf, bsize, "data MMU BP: 0x%llx\n", REQ_QPC_GET_DATA_MMU_BYPASS(*req));
-	_fsnprintf(buf, bsize, "plain RDMA: 0x%llx\n", REQ_QPC_GET_PLAIN_RDMA(*req));
-	_fsnprintf(buf, bsize, "compression EN: 0x%llx\n", REQ_QPC_GET_COMPRESSION_EN(*req));
-	_fsnprintf(buf, bsize, "FOL seg 0 RSN: 0x%llx\n", REQ_QPC_GET_FOL_SEG_0_RSN_VAL(*req));
-	_fsnprintf(buf, bsize, "FOL seg 1 RSN: 0x%llx\n", REQ_QPC_GET_FOL_SEG_1_RSN_VAL(*req));
-	_fsnprintf(buf, bsize, "FOL seg 2 RSN: 0x%llx\n", REQ_QPC_GET_FOL_SEG_2_RSN_VAL(*req));
-	_fsnprintf(buf, bsize, "FOL seg 3 RSN: 0x%llx\n", REQ_QPC_GET_FOL_SEG_3_RSN_VAL(*req));
-	_fsnprintf(buf, bsize, "FOL seg 4 RSN: 0x%llx\n", REQ_QPC_GET_FOL_SEG_4_RSN_VAL(*req));
-	_fsnprintf(buf, bsize, "FOL seg 5 RSN: 0x%llx\n",
-			MERGE_FIELDS(REQ_QPC_GET_FOL_SEG_5_RSN_VAL_HI(*req),
-						REQ_QPC_GET_FOL_SEG_5_RSN_VAL_LO(*req), 4));
-	_fsnprintf(buf, bsize, "FOL seg 6 RSN: 0x%llx\n", REQ_QPC_GET_FOL_SEG_6_RSN_VAL(*req));
-	_fsnprintf(buf, bsize, "FOL seg 7 RSN: 0x%llx\n", REQ_QPC_GET_FOL_SEG_7_RSN_VAL(*req));
-	_fsnprintf(buf, bsize, "FOL seg 8 RSN: 0x%llx\n", REQ_QPC_GET_FOL_SEG_8_RSN_VAL(*req));
-	_fsnprintf(buf, bsize, "FOL seg 9 RSN: 0x%llx\n", REQ_QPC_GET_FOL_SEG_9_RSN_VAL(*req));
-	_fsnprintf(buf, bsize, "FOL seg 10 RSN: 0x%llx\n", REQ_QPC_GET_FOL_SEG_10_RSN_VAL(*req));
-	_fsnprintf(buf, bsize, "FOL seg 11 RSN: 0x%llx\n", REQ_QPC_GET_FOL_SEG_11_RSN_VAL(*req));
-	_fsnprintf(buf, bsize, "FOL seg 12 RSN: 0x%llx\n", REQ_QPC_GET_FOL_SEG_12_RSN_VAL(*req));
-	_fsnprintf(buf, bsize, "FOL seg 13 RSN: 0x%llx\n", REQ_QPC_GET_FOL_SEG_13_RSN_VAL(*req));
-	_fsnprintf(buf, bsize, "FOL seg 14 RSN: 0x%llx\n", REQ_QPC_GET_FOL_SEG_14_RSN_VAL(*req));
-	_fsnprintf(buf, bsize, "FOL seg 15 RSN: 0x%llx\n", REQ_QPC_GET_FOL_SEG_15_RSN_VAL(*req));
-	_fsnprintf(buf, bsize, "ONA RSN: 0x%llx\n", REQ_QPC_GET_ONA_RSN(*req));
-	_fsnprintf(buf, bsize, "NTS PSN retrans: 0x%llx\n", REQ_QPC_GET_NTS_PSN_RETRANS(*req));
-	_fsnprintf(buf, bsize, "SACK EN: 0x%llx\n", REQ_QPC_GET_SACK_EN(*req));
-	_fsnprintf(buf, bsize, "IN retrans: 0x%llx\n", REQ_QPC_GET_IN_RETRANS(*req));
-	_fsnprintf(buf, bsize, "NTS RSN: 0x%llx\n", REQ_QPC_GET_NTS_RSN(*req));
-	_fsnprintf(buf, bsize, "QP timeout: 0x%llx\n", REQ_QPC_GET_QP_TIMEOUT(*req));
-	_fsnprintf(buf, bsize, "remain burst valid: 0x%llx\n", REQ_QPC_GET_REMAIN_BURST_VLD(*req));
-	_fsnprintf(buf, bsize, "remain burst: 0x%llx\n", REQ_QPC_GET_REMAIN_BURST(*req));
-	_fsnprintf(buf, bsize, "PSN delivered: 0x%llx\n", REQ_QPC_GET_PSN_DELIVERED(*req));
-	_fsnprintf(buf, bsize, "pacing time: 0x%llx\n", REQ_QPC_GET_PACING_TIME(*req));
-	_fsnprintf(buf, bsize, "ackreq freq: 0x%llx\n", REQ_QPC_GET_ACKREQ_FREQ(*req));
-	_fsnprintf(buf, bsize, "PSN since ackreq: 0x%llx\n", REQ_QPC_GET_PSN_SINCE_ACKREQ(*req));
-	_fsnprintf(buf, bsize, "patcher remote PI: 0x%llx\n", REQ_QPC_GET_PATCHER_REM_PI(*req));
-	_fsnprintf(buf, bsize, "latest acked bit: 0x%llx\n", REQ_QPC_GET_LASTEST_ACKED_BIT(*req));
-	__snprintf(buf, bsize, "remote CI: 0x%llx\n", REQ_QPC_GET_REM_CI(*req));
-	__snprintf(buf, bsize, "remote PI count: 0x%llx\n", REQ_QPC_GET_REM_PI_CNT(*req));
-	_fsnprintf(buf, bsize, "remote PI highest: 0x%llx\n", REQ_QPC_GET_REM_PI_HIGHEST(*req));
-	__snprintf(buf, bsize, "remote PI: 0x%llx\n", REQ_QPC_GET_REM_PI(*req));
-	__snprintf(buf, bsize, "PI: 0x%llx\n", REQ_QPC_GET_PI(*req));
-	__snprintf(buf, bsize, "CI: 0x%llx\n", REQ_QPC_GET_CI(*req));
-	__snprintf(buf, bsize, "EI: 0x%llx\n", REQ_QPC_GET_EI(*req));
-	_fsnprintf(buf, bsize, "RDV local class: 0x%llx\n", REQ_QPC_GET_RDV_LCL_CLASS(*req));
-	_fsnprintf(buf, bsize, "RDV remote class: 0x%llx\n", REQ_QPC_GET_RDV_REM_CLASS(*req));
-	_fsnprintf(buf, bsize, "RDV local MCID: 0x%llx\n", REQ_QPC_GET_RDV_LCL_MCID(*req));
-	_fsnprintf(buf, bsize, "RDV remote MCID: 0x%llx\n", REQ_QPC_GET_RDV_REM_MCID(*req));
-	_fsnprintf(buf, bsize, "WQ log size: 0x%llx\n", REQ_QPC_GET_LOCAL_WQ_LOG_SZ(*req));
-	_fsnprintf(buf, bsize, "ASID: 0x%llx\n", REQ_QPC_GET_ASID(*req));
-	_fsnprintf(buf, bsize, "burst size: 0x%llx\n", REQ_QPC_GET_BURST_SIZE(*req));
-	_fsnprintf(buf, bsize, "MAX MDF: 0x%llx\n", REQ_QPC_GET_MAX_MDF(*req));
-	_fsnprintf(buf, bsize, "RTT marked PSN: 0x%llx\n", REQ_QPC_GET_RTT_MARKED_PSN(*req));
-	_fsnprintf(buf, bsize, "msg coalesce cntr:0x%llx\n", REQ_QPC_GET_MSG_COALESCE_CNT(*req));
-	_fsnprintf(buf, bsize, "RTT timestamp: 0x%llx\n", REQ_QPC_GET_RTT_TIMESTAMP(*req));
-	_fsnprintf(buf, bsize, "BETA nominator: 0x%llx\n", REQ_QPC_GET_BETA_NOMINATOR(*req));
-	_fsnprintf(buf, bsize, "target delay: 0x%llx\n", REQ_QPC_GET_TARGET_DELAY(*req));
-	_fsnprintf(buf, bsize, "BETA de-nominator: 0x%llx\n", REQ_QPC_GET_BETA_DE_NOMINATOR(*req));
-	_fsnprintf(buf, bsize, "congestion window: 0x%llx\n", REQ_QPC_GET_CONGESTION_WIN(*req));
-	_fsnprintf(buf, bsize, "AI: 0x%llx\n", REQ_QPC_GET_AI(*req));
-	_fsnprintf(buf, bsize, "cngstn non-marked ack: 0x%llx\n",
-			REQ_QPC_GET_CONG_NON_MRKD_ACK(*req));
-	_fsnprintf(buf, bsize, "back pressure: 0x%llx\n", REQ_QPC_GET_WQ_BACK_PRESSURE(*req));
-	_fsnprintf(buf, bsize, "Timeout gran: 0x%llx\n", REQ_QPC_GET_TM_GRANULARITY(*req));
-	_fsnprintf(buf, bsize, "cngstn marked ack: 0x%llx\n",
-			REQ_QPC_GET_CONGESTION_MARKED_ACK(*req));
-	_fsnprintf(buf, bsize, "encap enable: 0x%llx\n", REQ_QPC_GET_ENCAP_ENABLE(*req));
-	_fsnprintf(buf, bsize, "RTT state: 0x%llx\n", REQ_QPC_GET_RTT_STATE(*req));
-	_fsnprintf(buf, bsize, "remote WQ log sz: 0x%llx\n", REQ_QPC_GET_REMOTE_WQ_LOG_SZ(*req));
-	__snprintf(buf, bsize, "BCC PSN: 0x%llx\n", REQ_QPC_GET_BCC_PSN(*req));
-	_fsnprintf(buf, bsize, "encap type: 0x%llx\n", REQ_QPC_GET_ENCAP_TYPE(*req));
-	_fsnprintf(buf, bsize, "CQ number: 0x%llx\n", REQ_QPC_GET_CQ_NUM(*req));
-	__snprintf(buf, bsize, "ONA PSN: 0x%llx\n", REQ_QPC_GET_ONA_PSN(*req));
-	_fsnprintf(buf, bsize, "sched queue num: 0x%llx\n", REQ_QPC_GET_SCHD_Q_NUM(*req));
-	__snprintf(buf, bsize, "BCS PSN: 0x%llx\n", REQ_QPC_GET_BCS_PSN(*req));
-	__snprintf(buf, bsize, "NTS PSN: 0x%llx\n", REQ_QPC_GET_NTS_PSN(*req));
-	__snprintf(buf, bsize, "timeout retry cnt: 0x%llx\n", REQ_QPC_GET_TMOUT_RTRY_CNT(*req));
-	__snprintf(buf, bsize, "SEQ err retry cnt: 0x%llx\n", REQ_QPC_GET_SEQ_ERR_RTRY_CNT(*req));
-	__snprintf(buf, bsize, "dst MAC: %04llx%08llx\n", REQ_QPC_GET_DST_MAC_MSB(*req),
-			REQ_QPC_GET_DST_MAC_LSB(*req));
-	_fsnprintf(buf, bsize, "dst ipv4: 0x%llx\n", REQ_QPC_GET_DST_IP(*req));
-	_fsnprintf(buf, bsize, "remote key: 0x%llx\n", REQ_QPC_GET_RKEY(*req));
-	_fsnprintf(buf, bsize, "dst QP: 0x%llx\n", REQ_QPC_GET_DST_QP(*req));
-	_fsnprintf(buf, bsize, "dst RANK: 0x%llx\n", REQ_QPC_GET_DST_RANK(*req));
-	_fsnprintf(buf, bsize, "is last RANK: 0x%llx\n", REQ_QPC_GET_LAST_RANK(*req));
-	_fsnprintf(buf, bsize, "Last NIC in Lag: 0x%llx\n", REQ_QPC_GET_LAST_NIC_IN_LAG(*req));
-	_fsnprintf(buf, bsize, "WQ Index: 0x%llx\n", REQ_QPC_GET_WQ_IDX(*req));
+	qpc_req_parse_basic(buf, bsize, req);
+
+	if (full_print)
+		qpc_req_parse_full(buf, bsize, req);
 
 	/* make sure the caller is aware that the buffer it is using is not long enough */
 	return (strlen(buf) >= bsize) ? -EFBIG : 0;
 }
 
-static int gaudi3_nic_debugfs_qpc_req_coll_parse(struct hl_device *hdev,
-					struct hl_nic_qp_info *qp_info,
-					struct gaudi3_qpc_requester *req, char *buf, size_t bsize)
+static void qpc_req_coll_parse_basic(char *buf, size_t bsize, struct gaudi3_qpc_requester *req)
 {
-	bool full_print;
-
 	__snprintf(buf, bsize, "\nCollective desc:\n");
 
 	__snprintf(buf, bsize, "dest rank: 0x%llx\n", REQ_QPC_GET_COLL_DEST_RANK(*req));
@@ -187,6 +187,33 @@ static int gaudi3_nic_debugfs_qpc_req_coll_parse(struct hl_device *hdev,
 	__snprintf(buf, bsize, "SOB CMD: 0x%llx\n", REQ_QPC_GET_COLL_SO_CMD(*req));
 	__snprintf(buf, bsize, "completion type: 0x%llx\n", REQ_QPC_GET_COLL_CT(*req));
 
+}
+
+static void qpc_req_coll_parse_full(char *buf, size_t bsize, struct gaudi3_qpc_requester *req)
+{
+	__snprintf(buf, bsize, "remote base address: 0x%0llx%0llx\n",
+			REQ_QPC_GET_COLL_WR_REM_BASE_ADDR_H(*req),
+			REQ_QPC_GET_COLL_WR_REM_BASE_ADDR_L(*req));
+	__snprintf(buf, bsize, "remote tag: 0x%llx\n", REQ_QPC_GET_COLL_WR_REM_TAG(*req));
+	__snprintf(buf, bsize, "remote SOB: 0x%llx\n", REQ_QPC_GET_COLL_WR_REM_SOB(*req));
+	__snprintf(buf, bsize, "remote SM: 0x%llx\n", REQ_QPC_GET_COLL_WR_REM_SM(*req));
+	__snprintf(buf, bsize, "remote MCID: 0x%llx\n", REQ_QPC_GET_COLL_WR_REM_MCID(*req));
+	__snprintf(buf, bsize, "remote cache class: 0x%llx\n",
+			REQ_QPC_GET_COLL_WR_REM_CLASS(*req));
+	__snprintf(buf, bsize, "remote long SOB: 0x%llx\n", REQ_QPC_GET_COLL_WR_REM_LSO(*req));
+	__snprintf(buf, bsize, "remote COB CMD: 0x%llx\n", REQ_QPC_GET_COLL_WR_REM_SO_CMD(*req));
+	__snprintf(buf, bsize, "remote completion type: 0x%llx\n",
+			REQ_QPC_GET_COLL_WR_REM_CT(*req));
+}
+
+static int gaudi3_nic_debugfs_qpc_req_coll_parse(struct hl_device *hdev,
+					struct hl_nic_qp_info *qp_info,
+					struct gaudi3_qpc_requester *req, char *buf, size_t bsize)
+{
+	bool full_print;
+
+	qpc_req_coll_parse_basic(buf, bsize, req);
+
 	/* Use the full-print to filter out the remote params when the opcode does not supp them */
 	switch (REQ_QPC_GET_COLL_OPCODE(*req)) {
 	case WQE_NOP:
@@ -199,22 +226,55 @@ static int gaudi3_nic_debugfs_qpc_req_coll_parse(struct hl_device *hdev,
 		break;
 	}
 
-	_fsnprintf(buf, bsize, "remote base address: 0x%0llx%0llx\n",
-			REQ_QPC_GET_COLL_WR_REM_BASE_ADDR_H(*req),
-			REQ_QPC_GET_COLL_WR_REM_BASE_ADDR_L(*req));
-	_fsnprintf(buf, bsize, "remote tag: 0x%llx\n", REQ_QPC_GET_COLL_WR_REM_TAG(*req));
-	_fsnprintf(buf, bsize, "remote SOB: 0x%llx\n", REQ_QPC_GET_COLL_WR_REM_SOB(*req));
-	_fsnprintf(buf, bsize, "remote SM: 0x%llx\n", REQ_QPC_GET_COLL_WR_REM_SM(*req));
-	_fsnprintf(buf, bsize, "remote MCID: 0x%llx\n", REQ_QPC_GET_COLL_WR_REM_MCID(*req));
-	_fsnprintf(buf, bsize, "remote cache class: 0x%llx\n",
-			REQ_QPC_GET_COLL_WR_REM_CLASS(*req));
-	_fsnprintf(buf, bsize, "remote long SOB: 0x%llx\n", REQ_QPC_GET_COLL_WR_REM_LSO(*req));
-	_fsnprintf(buf, bsize, "remote COB CMD: 0x%llx\n", REQ_QPC_GET_COLL_WR_REM_SO_CMD(*req));
-	_fsnprintf(buf, bsize, "remote completion type: 0x%llx\n",
-			REQ_QPC_GET_COLL_WR_REM_CT(*req));
+	if (full_print)
+		qpc_req_coll_parse_full(buf, bsize, req);
 
 	/* make sure the caller is aware that the buffer it is using is not long enough */
 	return (strlen(buf) >= bsize) ? -EFBIG : 0;
+}
+
+static void qpc_res_parse_basic(char *buf, size_t bsize, struct gaudi3_qpc_responder *res)
+{
+	__snprintf(buf, bsize, "RSN highest val: 0x%llx\n", RES_QPC_GET_RSN_HIGHEST_VALUE(*res));
+	__snprintf(buf, bsize, "pkts since ackreq: 0x%llx\n", RES_QPC_GET_PKTS_SINCE_ACKREQ(*res));
+	__snprintf(buf, bsize, "in_work: 0x%llx\n", RES_QPC_GET_IN_WORK(*res));
+	__snprintf(buf, bsize, "cyc_idx: 0x%llx\n", RES_QPC_GET_CYCLIC_INDEX(*res));
+	__snprintf(buf, bsize, "expected PSN: 0x%llx\n", RES_QPC_GET_EXPECTED_PSN(*res));
+	__snprintf(buf, bsize, "ECN count: 0x%llx\n", RES_QPC_GET_ECN_COUNT(*res));
+	__snprintf(buf, bsize, "NACK syndrome: 0x%llx\n", RES_QPC_GET_NACK_SYNDROME_(*res));
+	__snprintf(buf, bsize, "conn state: 0x%llx\n", RES_QPC_GET_CONN_STATE(*res));
+	__snprintf(buf, bsize, "peer CI: 0x%llx\n", RES_QPC_GET_PEER_REMOTE_CI(*res));
+}
+
+static void qpc_res_parse_full(char *buf, size_t bsize, struct gaudi3_qpc_responder *res)
+{
+	__snprintf(buf, bsize, "atomic F&A val: 0x%llx\n", RES_QPC_GET_ATOMIC_FA_VAL(*res));
+	__snprintf(buf, bsize, "atomic F&A EN: 0x%llx\n", RES_QPC_GET_ATOMIC_FA_EN(*res));
+	__snprintf(buf, bsize, "enable SACK: 0x%llx\n", RES_QPC_GET_SACK_EN(*res));
+	__snprintf(buf, bsize, "plain RDMA: 0x%llx\n", RES_QPC_GET_PLAIN_RDMA(*res));
+	__snprintf(buf, bsize, "loopback: 0x%llx\n", RES_QPC_GET_LOOPBACK(*res));
+	__snprintf(buf, bsize, "ackreq freq: 0x%llx\n", RES_QPC_GET_RES_ACKREQ_FREQ(*res));
+	__snprintf(buf, bsize, "CQ num: 0x%llx\n", RES_QPC_GET_CQ_NUM(*res));
+	__snprintf(buf, bsize, "data MMU BP: 0x%llx\n", RES_QPC_GET_DATA_MMU_BYPASS(*res));
+	__snprintf(buf, bsize, "encap EN: 0x%llx\n", RES_QPC_GET_ENCAP_ENABLE(*res));
+	__snprintf(buf, bsize, "encap type: 0x%llx\n", RES_QPC_GET_ENCAP_TYPE(*res));
+	__snprintf(buf, bsize, "EQ num: 0x%llx\n", RES_QPC_GET_EQ_NUM(*res));
+	__snprintf(buf, bsize, "trust level: 0x%llx\n", RES_QPC_GET_TRUST_LEVEL(*res));
+	__snprintf(buf, bsize, "sched Q: 0x%llx\n", RES_QPC_GET_SCHD_Q_NUM(*res));
+	__snprintf(buf, bsize, "ASID: 0x%llx\n", RES_QPC_GET_ASID(*res));
+	__snprintf(buf, bsize, "transport service: 0x%llx\n", RES_QPC_GET_TRANSPORT_SERVICE(*res));
+	__snprintf(buf, bsize, "dst MAC: %04llx%08llx\n", RES_QPC_GET_DST_MAC_MSB(*res),
+			RES_QPC_GET_DST_MAC_LSB(*res));
+	__snprintf(buf, bsize, "dst ipv4: 0x%llx\n", RES_QPC_GET_DST_IP(*res));
+	__snprintf(buf, bsize, "local key: 0x%llx\n", RES_QPC_GET_LKEY(*res));
+	__snprintf(buf, bsize, "Priority:0x%llx\n", RES_QPC_GET_PRIORITY(*res));
+	__snprintf(buf, bsize, "port/lane: 0x%llx\n", RES_QPC_GET_PORT(*res));
+	__snprintf(buf, bsize, "dest QP: 0x%llx\n", RES_QPC_GET_DST_QP(*res));
+	__snprintf(buf, bsize, "peer WQ log size: 0x%llx\n", RES_QPC_GET_PEER_WQ_LOG_SIZE(*res));
+	__snprintf(buf, bsize, "peer WQ base addr: 0x%llx\n", RES_QPC_GET_PEER_WQ_BASE_ADDR(*res));
+	__snprintf(buf, bsize, "peer WQ gran: 0x%llx\n", RES_QPC_GET_PEER_WQ_GRAN(*res));
+	__snprintf(buf, bsize, "peer QP: 0x%llx\n", RES_QPC_GET_PEER_QP(*res));
+	__snprintf(buf, bsize, "Peer WQ Index: 0x%llx\n", RES_QPC_GET_PEER_WQ_IDX(*res));
 }
 
 static int gaudi3_nic_debugfs_qpc_res_parse(struct hl_device *hdev,
@@ -233,42 +293,10 @@ static int gaudi3_nic_debugfs_qpc_res_parse(struct hl_device *hdev,
 	if (!force_read && !RES_QPC_GET_VALID(*res))
 		return 0;
 
-	_fsnprintf(buf, bsize, "atomic F&A val: 0x%llx\n", RES_QPC_GET_ATOMIC_FA_VAL(*res));
-	_fsnprintf(buf, bsize, "atomic F&A EN: 0x%llx\n", RES_QPC_GET_ATOMIC_FA_EN(*res));
-	_fsnprintf(buf, bsize, "enable SACK: 0x%llx\n", RES_QPC_GET_SACK_EN(*res));
-	__snprintf(buf, bsize, "RSN highest val: 0x%llx\n", RES_QPC_GET_RSN_HIGHEST_VALUE(*res));
-	_fsnprintf(buf, bsize, "plain RDMA: 0x%llx\n", RES_QPC_GET_PLAIN_RDMA(*res));
-	_fsnprintf(buf, bsize, "loopback: 0x%llx\n", RES_QPC_GET_LOOPBACK(*res));
-	__snprintf(buf, bsize, "pkts since ackreq: 0x%llx\n", RES_QPC_GET_PKTS_SINCE_ACKREQ(*res));
-	_fsnprintf(buf, bsize, "ackreq freq: 0x%llx\n", RES_QPC_GET_RES_ACKREQ_FREQ(*res));
-	__snprintf(buf, bsize, "in_work: 0x%llx\n", RES_QPC_GET_IN_WORK(*res));
-	_fsnprintf(buf, bsize, "CQ num: 0x%llx\n", RES_QPC_GET_CQ_NUM(*res));
-	_fsnprintf(buf, bsize, "data MMU BP: 0x%llx\n", RES_QPC_GET_DATA_MMU_BYPASS(*res));
-	__snprintf(buf, bsize, "cyc_idx: 0x%llx\n", RES_QPC_GET_CYCLIC_INDEX(*res));
-	_fsnprintf(buf, bsize, "encap EN: 0x%llx\n", RES_QPC_GET_ENCAP_ENABLE(*res));
-	_fsnprintf(buf, bsize, "encap type: 0x%llx\n", RES_QPC_GET_ENCAP_TYPE(*res));
-	_fsnprintf(buf, bsize, "EQ num: 0x%llx\n", RES_QPC_GET_EQ_NUM(*res));
-	_fsnprintf(buf, bsize, "trust level: 0x%llx\n", RES_QPC_GET_TRUST_LEVEL(*res));
-	__snprintf(buf, bsize, "expected PSN: 0x%llx\n", RES_QPC_GET_EXPECTED_PSN(*res));
-	_fsnprintf(buf, bsize, "sched Q: 0x%llx\n", RES_QPC_GET_SCHD_Q_NUM(*res));
-	_fsnprintf(buf, bsize, "ASID: 0x%llx\n", RES_QPC_GET_ASID(*res));
-	_fsnprintf(buf, bsize, "transport service: 0x%llx\n", RES_QPC_GET_TRANSPORT_SERVICE(*res));
-	__snprintf(buf, bsize, "ECN count: 0x%llx\n", RES_QPC_GET_ECN_COUNT(*res));
-	_fsnprintf(buf, bsize, "dst MAC: %04llx%08llx\n", RES_QPC_GET_DST_MAC_MSB(*res),
-			RES_QPC_GET_DST_MAC_LSB(*res));
-	_fsnprintf(buf, bsize, "dst ipv4: 0x%llx\n", RES_QPC_GET_DST_IP(*res));
-	_fsnprintf(buf, bsize, "local key: 0x%llx\n", RES_QPC_GET_LKEY(*res));
-	__snprintf(buf, bsize, "NACK syndrome: 0x%llx\n", RES_QPC_GET_NACK_SYNDROME_(*res));
-	__snprintf(buf, bsize, "conn state: 0x%llx\n", RES_QPC_GET_CONN_STATE(*res));
-	_fsnprintf(buf, bsize, "Priority:0x%llx\n", RES_QPC_GET_PRIORITY(*res));
-	_fsnprintf(buf, bsize, "port/lane: 0x%llx\n", RES_QPC_GET_PORT(*res));
-	_fsnprintf(buf, bsize, "dest QP: 0x%llx\n", RES_QPC_GET_DST_QP(*res));
-	_fsnprintf(buf, bsize, "peer WQ log size: 0x%llx\n", RES_QPC_GET_PEER_WQ_LOG_SIZE(*res));
-	__snprintf(buf, bsize, "peer CI: 0x%llx\n", RES_QPC_GET_PEER_REMOTE_CI(*res));
-	_fsnprintf(buf, bsize, "peer WQ base addr: 0x%llx\n", RES_QPC_GET_PEER_WQ_BASE_ADDR(*res));
-	_fsnprintf(buf, bsize, "peer WQ gran: 0x%llx\n", RES_QPC_GET_PEER_WQ_GRAN(*res));
-	_fsnprintf(buf, bsize, "peer QP: 0x%llx\n", RES_QPC_GET_PEER_QP(*res));
-	_fsnprintf(buf, bsize, "Peer WQ Index: 0x%llx\n", RES_QPC_GET_PEER_WQ_IDX(*res));
+	qpc_res_parse_basic(buf, bsize, res);
+
+	if (full_print)
+		qpc_res_parse_full(buf, bsize, res);
 
 	/* make sure the caller is aware that the buffer it is using is not long enough */
 	if (strlen(buf) >= bsize)
