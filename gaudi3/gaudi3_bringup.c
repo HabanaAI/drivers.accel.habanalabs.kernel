@@ -3069,7 +3069,7 @@ static void handle_and_clear_cs_events(struct hl_device *hdev, u32 die, u32 hdco
 		break;
 	case ERR_GRP_SEI:
 		instance = idx;
-		offset = (die * NUM_OF_HDCORES_PER_DIE + hdcore * HDCORE_OFFSET) +
+		offset = (die * NUM_OF_HDCORES_PER_DIE + hdcore) * HDCORE_OFFSET +
 				instance * CSLICE_OFFSET;
 		eq_dynamic_entry.hdr.size = cpu_to_le16(sizeof(struct hl_eq_intr_cause));
 		intr_cause_reg = mmHD0_CS0_MAIN_BASE + offset + mmCACHE_MAIN_SEI_CAUSE_REG;
