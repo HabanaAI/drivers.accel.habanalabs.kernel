@@ -772,6 +772,7 @@ static int device_init_cdev(struct hl_device *hdev, struct class *class,
 #if IS_ENABLED(CONFIG_DRM_ACCEL)
 static int cdev_sysfs_debugfs_add(struct hl_device *hdev)
 {
+	struct class *accel_class = hdev->drm.accel->kdev->class;
 	char name[32];
 	int rc;
 
@@ -790,10 +791,24 @@ static int cdev_sysfs_debugfs_add(struct hl_device *hdev)
 		goto free_ctrl_device;
 	}
 
+	/* Initialize cdev and device structures for the control device */
+	snprintf(name, sizeof(name), "accel_controlD%d", hdev->cdev_idx);
+	rc = device_init_cdev(hdev, accel_class, hdev->cdev_idx, &hl_ctrl_ops, name,
+				&hdev->accel_cdev_ctrl, &hdev->accel_dev_ctrl, hdev->accel_major);
+	if (rc)
+		goto delete_ctrl_cdev_device;
+
+	rc = cdev_device_add(&hdev->accel_cdev_ctrl, hdev->accel_dev_ctrl);
+	if (rc) {
+		dev_err(hdev->accel_dev_ctrl,
+			"failed to add an accel control char device to the system\n");
+		goto free_accel_ctrl_device;
+	}
+
 	rc = hl_sysfs_init(hdev);
 	if (rc) {
 		dev_err(hdev->dev, "failed to initialize sysfs\n");
-		goto delete_ctrl_cdev_device;
+		goto delete_accel_ctrl_cdev_device;
 	}
 
 	hl_debugfs_add_device(hdev);
@@ -802,6 +817,10 @@ static int cdev_sysfs_debugfs_add(struct hl_device *hdev)
 
 	return 0;
 
+delete_accel_ctrl_cdev_device:
+	cdev_device_del(&hdev->accel_cdev_ctrl, hdev->accel_dev_ctrl);
+free_accel_ctrl_device:
+	put_device(hdev->accel_dev_ctrl);
 delete_ctrl_cdev_device:
 	cdev_device_del(&hdev->cdev_ctrl, hdev->dev_ctrl);
 free_ctrl_device:
@@ -870,6 +889,9 @@ static void cdev_sysfs_debugfs_remove(struct hl_device *hdev)
 		return;
 
 	hl_sysfs_fini(hdev);
+
+	cdev_device_del(&hdev->accel_cdev_ctrl, hdev->accel_dev_ctrl);
+	put_device(hdev->accel_dev_ctrl);
 
 	cdev_device_del(&hdev->cdev_ctrl, hdev->dev_ctrl);
 	put_device(hdev->dev_ctrl);
