@@ -3794,31 +3794,31 @@ static const struct block_instance
 decoder_derr_aggr_to_instance[MAX_NUM_OF_DIES][NUM_OF_HDCORES_PER_DIE][4] = {
 	{
 		/* D0_CPU_INT_AGG_HDCORE0 */
-		{{0, 0, 0} /* HD0_VDEC0 */, {0, 0, 1} /* HD0_VDEC1 */,
-				{0, 0, 0} /* HD0_VDEC0 */, {0, 0, 1} /* HD0_VDEC1 */},
+		{{0, 0, 0} /* HD0_VDEC0 */, {0, 2, 0} /* HD2_VDEC0 */,
+				{0, 0, 0} /* HD0_VDEC0 */, {0, 2, 0} /* HD2_VDEC0 */},
 		/* D0_CPU_INT_AGG_HDCORE1 */
-		{{0, 1, 0} /* HD1_VDEC0 */, {0, 1, 1} /* HD1_VDEC1 */,
-				{0, 1, 0} /* HD1_VDEC0 */, {0, 1, 1} /* HD1_VDEC1 */},
+		{{0, 0, 1} /* HD0_VDEC1 */, {0, 2, 1} /* HD2_VDEC1 */,
+				{0, 0, 1} /* HD0_VDEC1 */, {0, 2, 1} /* HD2_VDEC1 */},
 		/* D0_CPU_INT_AGG_HDCORE2 */
-		{{0, 2, 0} /* HD2_VDEC0 */, {0, 2, 1} /* HD2_VDEC1 */,
-				{0, 2, 0} /* HD2_VDEC0 */, {0, 2, 1} /* HD2_VDEC1 */},
+		{{0, 1, 0} /* HD1_VDEC0 */, {0, 3, 0} /* HD3_VDEC0 */,
+				{0, 1, 0} /* HD1_VDEC0 */, {0, 3, 0} /* HD3_VDEC0 */},
 		/* D0_CPU_INT_AGG_HDCORE3 */
-		{{0, 3, 0} /* HD3_VDEC0 */, {0, 3, 1} /* HD3_VDEC1 */,
-				{0, 3, 0} /* HD3_VDEC0 */, {0, 3, 1} /* HD3_VDEC1 */}
+		{{0, 1, 1} /* HD1_VDEC1 */, {0, 3, 1} /* HD3_VDEC1 */,
+				{0, 1, 1} /* HD1_VDEC1 */, {0, 3, 1} /* HD3_VDEC1 */}
 	},
 	{
 		/* D1_CPU_INT_AGG_HDCORE0 */
-		{{1, 3, 0} /* HD7_VDEC0 */, {1, 3, 1} /* HD7_VDEC1 */,
-				{1, 3, 0} /* HD7_VDEC0 */, {1, 3, 1} /* HD7_VDEC1 */},
+		{{1, 3, 0} /* HD7_VDEC0 */, {1, 1, 0} /* HD5_VDEC0 */,
+				{1, 3, 0} /* HD7_VDEC0 */, {1, 1, 0} /* HD5_VDEC0 */},
 		/* D1_CPU_INT_AGG_HDCORE1 */
-		{{1, 2, 0} /* HD6_VDEC0 */, {1, 2, 1} /* HD6_VDEC1 */,
-				{1, 2, 0} /* HD6_VDEC0 */, {1, 2, 1} /* HD6_VDEC1 */},
+		{{1, 3, 1} /* HD7_VDEC1 */, {1, 1, 1} /* HD5_VDEC1 */,
+				{1, 3, 1} /* HD7_VDEC1 */, {1, 1, 1} /* HD5_VDEC1 */},
 		/* D1_CPU_INT_AGG_HDCORE2 */
-		{{1, 1, 0} /* HD5_VDEC0 */, {1, 1, 1} /* HD5_VDEC1 */,
-				{1, 1, 0} /* HD5_VDEC0 */, {1, 1, 1} /* HD5_VDEC1 */},
+		{{1, 2, 0} /* HD6_VDEC0 */, {1, 0, 0} /* HD4_VDEC0 */,
+				{1, 2, 0} /* HD6_VDEC0 */, {1, 0, 0} /* HD4_VDEC0 */},
 		/* D1_CPU_INT_AGG_HDCORE3 */
-		{{1, 0, 0} /* HD4_VDEC0 */, {1, 0, 1} /* HD4_VDEC1 */,
-				{1, 0, 0} /* HD4_VDEC0 */, {1, 0, 1} /* HD4_VDEC1 */}
+		{{1, 2, 1} /* HD6_VDEC1 */, {1, 0, 1} /* HD4_VDEC1 */,
+				{1, 2, 1} /* HD6_VDEC1 */, {1, 0, 1} /* HD4_VDEC1 */}
 	}
 };
 
