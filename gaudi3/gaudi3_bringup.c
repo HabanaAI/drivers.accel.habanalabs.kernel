@@ -1955,9 +1955,10 @@ static void gaudi3_init_tpc_fw_config(struct hl_device *hdev)
 	gaudi3_iterate_tpcs(hdev, &iter_ctx);
 }
 
-static void gaudi3_init_mme_ctrl_lo_fw_config(struct hl_device *hdev, u32 reg_base)
+static void gaudi3_init_mme_ctrl_lo_row_enable(struct hl_device *hdev, u32 reg_base)
 {
-	u32 reg_val;
+	if (hdev->fw_components & FW_TYPE_PREBOOT_CPU)
+		return;
 
 	WREG32(reg_base + mmMME_CTRL_LO_REDUN_PSOC_SEL_SEC, 0x0);
 	WREG32(reg_base + mmMME_CTRL_LO_EU0_REDUN_CLK_EN, GAUDI3_EU0_REDUN_CLK_EN);
@@ -1969,6 +1970,13 @@ static void gaudi3_init_mme_ctrl_lo_fw_config(struct hl_device *hdev, u32 reg_ba
 	WREG32(reg_base + mmMME_CTRL_LO_EU_ISOLATION_DIS,
 			FIELD_PREP(MME_CTRL_LO_EU_ISOLATION_DIS_EU0_M, 0x1) |
 			FIELD_PREP(MME_CTRL_LO_EU_ISOLATION_DIS_EU1_M, 0x1));
+}
+
+static void gaudi3_init_mme_ctrl_lo_fw_config(struct hl_device *hdev, u32 reg_base)
+{
+	u32 reg_val;
+
+	gaudi3_init_mme_ctrl_lo_row_enable(hdev, reg_base);
 
 	reg_val = FIELD_PREP(MME_CTRL_LO_QM_STOP_ON_SB_ERR_M, 1) |
 			FIELD_PREP(MME_CTRL_LO_QM_STOP_ON_WAP_AXI_ERR_M, 1) |
@@ -2659,6 +2667,11 @@ void gaudi3_hw_init_fw_config(struct hl_device *hdev)
 	gaudi3_init_pdma_fw_config(hdev);
 	gaudi3_init_edma_fw_config(hdev);
 	gaudi3_init_tpc_fw_config(hdev);
+
+	/*
+	 * Note that inside this mme fw config we skip part of them if preboot exist
+	 * since part of those configs are done in preboot and the other part in FW management app.
+	 */
 	gaudi3_init_mme_fw_config(hdev);
 	gaudi3_init_rotator_fw_config(hdev);
 	gaudi3_init_decoder_fw_config(hdev);
