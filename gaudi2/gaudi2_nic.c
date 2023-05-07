@@ -4732,7 +4732,7 @@ retry:
 			goto retry;
 		}
 
-		dev_info(hdev->dev, "Port %d QP %d in limited state. Applying fix.\n", port, qpn);
+		dev_dbg(hdev->dev, "Port %d QP %d in limited state. Applying fix.\n", port, qpn);
 
 		/* Force update QPC fields. */
 
