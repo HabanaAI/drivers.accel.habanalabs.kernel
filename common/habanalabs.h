@@ -1860,8 +1860,7 @@ struct hl_asic_funcs {
 	int (*debugfs_read_dma)(struct hl_device *hdev, u64 addr, u32 size,
 				void *blob_addr);
 	void (*add_device_attr)(struct hl_device *hdev, struct attribute_group *dev_clk_attr_grp,
-				struct attribute_group *dev_vrm_attr_grp,
-				struct attribute_group *dev_nic_attr_grp);
+				struct attribute_group *dev_vrm_attr_grp);
 	void (*handle_eqe)(struct hl_device *hdev,
 				struct hl_eq_entry *eq_entry);
 	void* (*get_events_stat)(struct hl_device *hdev, bool aggregate,
@@ -4202,7 +4201,6 @@ u32 hl_hw_queue_add_ptr(u32 ptr, u16 val);
 void hl_hw_queue_inc_ci_kernel(struct hl_device *hdev, u32 hw_queue_id);
 void hl_hw_queue_update_ci(struct hl_cs *cs);
 void hl_hw_queue_reset(struct hl_device *hdev, bool hard_reset);
-bool hl_is_internal_ports_status_work_running(void);
 
 #define hl_queue_inc_ptr(p)		hl_hw_queue_add_ptr(p, 1)
 #define hl_pi_2_offset(pi)		((pi) & (HL_QUEUE_LENGTH - 1))
@@ -4475,7 +4473,6 @@ int hl_fw_get_clk_rate(struct hl_device *hdev, u32 *cur_clk, u32 *max_clk);
 void hl_fw_set_pll_profile(struct hl_device *hdev);
 void hl_sysfs_add_dev_clk_attr(struct hl_device *hdev, struct attribute_group *dev_clk_attr_grp);
 void hl_sysfs_add_dev_vrm_attr(struct hl_device *hdev, struct attribute_group *dev_vrm_attr_grp);
-void hl_sysfs_add_dev_nic_attr(struct hl_device *hdev, struct attribute_group *dev_nic_attr_grp);
 int hl_fw_send_binning_info(struct hl_device *hdev);
 int hl_fw_send_generic_request(struct hl_device *hdev, enum hl_passthrough_type sub_opcode,
 						dma_addr_t buff, u32 *size);

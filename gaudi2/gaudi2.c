@@ -12163,12 +12163,10 @@ int gaudi2_scheduler_submit_buf(struct hl_device *hdev, u32 cpu_id, u32 queue_id
 }
 
 void gaudi2_add_device_attr(struct hl_device *hdev, struct attribute_group *dev_clk_attr_grp,
-				struct attribute_group *dev_vrm_attr_grp,
-				struct attribute_group *dev_nic_attr_grp)
+				struct attribute_group *dev_vrm_attr_grp)
 {
 	hl_sysfs_add_dev_clk_attr(hdev, dev_clk_attr_grp);
 	hl_sysfs_add_dev_vrm_attr(hdev, dev_vrm_attr_grp);
-	hl_sysfs_add_dev_nic_attr(hdev, dev_nic_attr_grp);
 }
 
 int gaudi2_mmu_get_real_page_size(struct hl_device *hdev, struct hl_mmu_properties *mmu_prop,

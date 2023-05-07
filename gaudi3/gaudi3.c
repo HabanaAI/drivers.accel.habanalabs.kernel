@@ -10145,17 +10145,11 @@ int gaudi3_debugfs_read_dma(struct hl_device *hdev, u64 addr, u32 size,
 	return -EPERM;
 }
 
-static struct attribute *gaudi3_nic_dev_attrs[] = {
-	NULL,
-};
-
 void gaudi3_add_device_attr(struct hl_device *hdev, struct attribute_group *dev_clk_attr_grp,
-					struct attribute_group *dev_vrm_attr_grp,
-					struct attribute_group *dev_nic_attr_grp)
+					struct attribute_group *dev_vrm_attr_grp)
 {
 	hl_sysfs_add_dev_clk_attr(hdev, dev_clk_attr_grp);
 	hl_sysfs_add_dev_vrm_attr(hdev, dev_vrm_attr_grp);
-	dev_nic_attr_grp->attrs = gaudi3_nic_dev_attrs;
 }
 
 void *gaudi3_get_events_stat(struct hl_device *hdev, bool aggregate, u32 *size)

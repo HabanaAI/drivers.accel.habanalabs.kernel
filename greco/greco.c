@@ -7977,18 +7977,12 @@ static void greco_no_fw_monitor(struct hl_device *hdev, bool *stop_monitor)
 {
 }
 
-static struct attribute *greco_nic_dev_attrs[] = {
-	NULL,
-};
-
 static void greco_add_device_attr(struct hl_device *hdev,
 				struct attribute_group *dev_clk_attr_grp,
-				struct attribute_group *dev_vrm_attr_grp,
-				struct attribute_group *dev_nic_attr_grp)
+				struct attribute_group *dev_vrm_attr_grp)
 {
 	hl_sysfs_add_dev_clk_attr(hdev, dev_clk_attr_grp);
 	hl_sysfs_add_dev_vrm_attr(hdev, dev_vrm_attr_grp);
-	dev_nic_attr_grp->attrs = greco_nic_dev_attrs;
 }
 
 static int greco_send_device_activity(struct hl_device *hdev, bool open)

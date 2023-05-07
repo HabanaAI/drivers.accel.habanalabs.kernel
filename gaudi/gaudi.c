@@ -9759,17 +9759,11 @@ static struct attribute *gaudi_vrm_dev_attrs[] = {
 	NULL,
 };
 
-static struct attribute *gaudi_nic_dev_attrs[] = {
-	NULL,
-};
-
 static void gaudi_add_device_attr(struct hl_device *hdev, struct attribute_group *dev_clk_attr_grp,
-					struct attribute_group *dev_vrm_attr_grp,
-					struct attribute_group *dev_nic_attr_grp)
+					struct attribute_group *dev_vrm_attr_grp)
 {
 	hl_sysfs_add_dev_clk_attr(hdev, dev_clk_attr_grp);
 	dev_vrm_attr_grp->attrs = gaudi_vrm_dev_attrs;
-	dev_nic_attr_grp->attrs = gaudi_nic_dev_attrs;
 }
 
 static int gaudi_send_device_activity(struct hl_device *hdev, bool open)

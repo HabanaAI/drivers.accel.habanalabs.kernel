@@ -1632,12 +1632,10 @@ static int gaudi2_sim_block_mmap(struct hl_device *hdev,
 
 static void gaudi2_sim_add_device_attr(struct hl_device *hdev,
 					struct attribute_group *dev_clk_attr_grp,
-					struct attribute_group *dev_vrm_attr_grp,
-					struct attribute_group *dev_nic_attr_grp)
+					struct attribute_group *dev_vrm_attr_grp)
 {
 	dev_clk_attr_grp->attrs = gaudi2_sim_dev_attrs;
 	dev_vrm_attr_grp->attrs = gaudi2_sim_dev_attrs;
-	dev_nic_attr_grp->attrs = gaudi2_sim_dev_attrs;
 }
 
 static void gaudi2_sim_enable_events_from_fw(struct hl_device *hdev)

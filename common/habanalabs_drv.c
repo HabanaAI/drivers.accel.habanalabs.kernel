@@ -693,186 +693,6 @@ static enum hl_asic_type get_asic_type(struct hl_device *hdev)
 	return asic_type;
 }
 
-#define CHECK_INT_PORTS_STATUS_EXECUTION_DELAY_SEC	40
-#define CHECK_INT_PORTS_STATUS_INTERVAL_SEC		10
-#define WAIT_FOR_INT_PORTS_STATUS_SEC			40
-#define MAX_NUM_OF_TRIALS				3
-
-enum int_ports_status_state {
-	NOT_RUNNING = 0x0,
-	NOT_ALL_OPERATIONAL = 0x1,
-	ALL_OPERATIONAL,
-	ALL_INT_PORTS_UP,
-};
-
-struct int_ports_status {
-	struct workqueue_struct		*wq;
-	struct delayed_work		dwork;
-	enum int_ports_status_state	state;
-	u8				num_of_trials;
-	u8				timeout;
-};
-
-static struct int_ports_status int_ports_sts;
-
-static bool check_all_int_ports_up(struct hl_device *hdev)
-{
-	struct hl_nic_properties *nic_props;
-	struct hl_nic_port *nic_port;
-	struct hl_nic *nic;
-	int i;
-
-	nic_props = &hdev->asic_prop.nic_props;
-	nic = &hdev->nic;
-
-	for (i = 0 ; i < nic_props->max_num_of_ports ; i++) {
-		if (!(hdev->nic_ports_mask & BIT(i)) || (nic->eth_ports_mask & BIT(i)))
-			continue;
-
-		nic_port = &nic->nic_ports[i];
-		if (!nic_port->pcs_link)
-			return false;
-	}
-
-	return true;
-}
-
-/* This function is called under hl_devs_idr_lock, hence shouldn't take it again */
-static void disable_all_devices(void)
-{
-	struct hl_device *hdev;
-	int id;
-
-	idr_for_each_entry(&hl_devs_idr, hdev, id) {
-		/* continue if it's not main device */
-		if (hdev->id != id)
-			continue;
-
-		hdev->disabled = true;
-	}
-}
-
-/* This function is called under hl_devs_idr_lock, hence shouldn't take it again */
-static void reset_all_devices(void)
-{
-	struct hl_device *hdev;
-	int id;
-
-	idr_for_each_entry(&hl_devs_idr, hdev, id) {
-		/* continue if it's not main device */
-		if (hdev->id != id)
-			continue;
-
-		hl_device_reset(hdev, HL_DRV_RESET_HARD);
-	}
-}
-
-static bool is_device_needs_int_ports_check(struct hl_device *hdev)
-{
-	return false;
-}
-
-static void check_int_ports_status_work(struct work_struct *unused)
-{
-	enum hl_device_status status;
-	struct hl_device *hdev;
-	int id;
-
-	mutex_lock(&hl_devs_idr_lock);
-
-	/* Check once that this operation is relevant for this devices - if all relevant mark them
-	 * as not operational.
-	 */
-	if (int_ports_sts.state < NOT_ALL_OPERATIONAL) {
-		idr_for_each_entry(&hl_devs_idr, hdev, id) {
-			if (!is_device_needs_int_ports_check(hdev)) {
-				mutex_unlock(&hl_devs_idr_lock);
-				return;
-			}
-		}
-
-		/* In case number of devices (main + control) is different than 16, i.e. number of
-		 * cards is different than 8, it means that we are not running on HLS2, hence this
-		 * mechanism is not relevant and we can return.
-		 */
-		if (id != 16) {
-			mutex_unlock(&hl_devs_idr_lock);
-			return;
-		}
-
-		int_ports_sts.state = NOT_ALL_OPERATIONAL;
-	}
-
-	int_ports_sts.timeout = CHECK_INT_PORTS_STATUS_INTERVAL_SEC;
-
-	idr_for_each_entry(&hl_devs_idr, hdev, id) {
-		/* continue if it's not main device */
-		if (hdev->id != id)
-			continue;
-
-		hl_device_operational(hdev, &status);
-		if (status != HL_DEVICE_STATUS_OPERATIONAL && !hdev->reset_info.in_compute_reset) {
-			dev_dbg(hdev->dev,
-				"Internal ports status check: device is not operational, will try again in %d seconds\n",
-				CHECK_INT_PORTS_STATUS_INTERVAL_SEC);
-
-			int_ports_sts.state = NOT_ALL_OPERATIONAL;
-			goto again;
-		}
-	}
-
-	if (int_ports_sts.state == NOT_ALL_OPERATIONAL) {
-		pr_debug("Internal ports status check: all devices are operational, waiting %d seconds before checking links\n",
-			WAIT_FOR_INT_PORTS_STATUS_SEC);
-		int_ports_sts.state = ALL_OPERATIONAL;
-		int_ports_sts.timeout = WAIT_FOR_INT_PORTS_STATUS_SEC;
-
-		goto again;
-	}
-
-	if (int_ports_sts.state == ALL_INT_PORTS_UP)
-		goto again;
-
-	idr_for_each_entry(&hl_devs_idr, hdev, id) {
-		/* continue if it's not main device */
-		if (hdev->id != id)
-			continue;
-
-		if (!check_all_int_ports_up(hdev)) {
-			int_ports_sts.num_of_trials++;
-			if (int_ports_sts.num_of_trials > MAX_NUM_OF_TRIALS) {
-				dev_err(hdev->dev,
-					"Internal ports status check: reached the maximum number of trials (%d),  devices are not usable!\n",
-					MAX_NUM_OF_TRIALS);
-				disable_all_devices();
-				int_ports_sts.state = NOT_RUNNING;
-				mutex_unlock(&hl_devs_idr_lock);
-				return;
-			}
-
-			dev_err(hdev->dev, "Internal ports status check: not all ports are UP, reset all devices\n");
-			reset_all_devices();
-			goto again;
-		}
-	}
-
-	int_ports_sts.state = ALL_INT_PORTS_UP;
-	int_ports_sts.num_of_trials = 0;
-	pr_info("Internal ports status check: all ports are UP\n");
-
-again:
-	mutex_unlock(&hl_devs_idr_lock);
-
-	queue_delayed_work(int_ports_sts.wq, &int_ports_sts.dwork,
-				msecs_to_jiffies(int_ports_sts.timeout * 1000));
-}
-
-bool hl_is_internal_ports_status_work_running(void)
-{
-	return (int_ports_sts.state == NOT_ALL_OPERATIONAL ||
-			int_ports_sts.state == ALL_OPERATIONAL);
-}
-
 static bool is_asic_secured(enum hl_asic_type asic_type)
 {
 	switch (asic_type) {
@@ -2413,31 +2233,16 @@ static int __init hl_init(void)
 		goto remove_importer;
 	}
 
-	/* Create a WQ to check ports status */
-	int_ports_sts.wq = create_singlethread_workqueue("hl_ports_status");
-	if (!int_ports_sts.wq) {
-		rc = -ENOMEM;
-		pr_err("Failed to create ports status WQ\n");
-		goto remove_pci_mon;
-	}
-
-	INIT_DELAYED_WORK(&int_ports_sts.dwork, check_int_ports_status_work);
-	queue_delayed_work(int_ports_sts.wq, &int_ports_sts.dwork,
-			msecs_to_jiffies(CHECK_INT_PORTS_STATUS_EXECUTION_DELAY_SEC * 1000));
-
 	rc = pci_register_driver(&hl_pci_driver);
 	if (rc) {
 		pr_err("failed to register pci device\n");
-		goto destroy_int_ports_sts_wq;
+		goto remove_pci_mon;
 	}
 
 	pr_debug("driver loaded\n");
 
 	return 0;
 
-destroy_int_ports_sts_wq:
-	cancel_delayed_work_sync(&int_ports_sts.dwork);
-	destroy_workqueue(int_ports_sts.wq);
 remove_pci_mon:
 	hl_pci_mon.in_teardown = true;
 	/* Set the teardown flag before waking up the waiting thread */
@@ -2471,9 +2276,6 @@ static void __exit hl_exit(void)
 	if (hl_sim_fini())
 		goto skip_pci;
 	/* END OF SIMULATOR CODE */
-
-	cancel_delayed_work_sync(&int_ports_sts.dwork);
-	destroy_workqueue(int_ports_sts.wq);
 
 	hl_pci_mon.in_teardown = true;
 	/* Set the teardown flag before waking up the waiting thread */

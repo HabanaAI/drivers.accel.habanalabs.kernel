@@ -1313,12 +1313,10 @@ static void goya_sim_halt_coresight(struct hl_device *hdev, struct hl_ctx *ctx)
 
 static void goya_sim_add_device_attr(struct hl_device *hdev,
 					struct attribute_group *dev_clk_attr_grp,
-					struct attribute_group *dev_vrm_attr_grp,
-					struct attribute_group *dev_nic_attr_grp)
+					struct attribute_group *dev_vrm_attr_grp)
 {
 	dev_clk_attr_grp->attrs = goya_sim_dev_attrs;
 	dev_vrm_attr_grp->attrs = goya_sim_dev_attrs;
-	dev_nic_attr_grp->attrs = goya_sim_dev_attrs;
 }
 
 static int goya_sim_mmu_invalidate_cache_range(struct hl_device *hdev,

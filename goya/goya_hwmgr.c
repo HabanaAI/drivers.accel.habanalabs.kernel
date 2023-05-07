@@ -379,15 +379,9 @@ static struct attribute *goya_vrm_dev_attrs[] = {
 	NULL,
 };
 
-static struct attribute *goya_nic_dev_attrs[] = {
-	NULL,
-};
-
 void goya_add_device_attr(struct hl_device *hdev, struct attribute_group *dev_clk_attr_grp,
-				struct attribute_group *dev_vrm_attr_grp,
-				struct attribute_group *dev_nic_attr_grp)
+				struct attribute_group *dev_vrm_attr_grp)
 {
 	dev_clk_attr_grp->attrs = goya_clk_dev_attrs;
 	dev_vrm_attr_grp->attrs = goya_vrm_dev_attrs;
-	dev_nic_attr_grp->attrs = goya_nic_dev_attrs;
 }

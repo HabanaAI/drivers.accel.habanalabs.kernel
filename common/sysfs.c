@@ -97,23 +97,6 @@ static struct attribute *hl_dev_vrm_attrs[] = {
 	NULL,
 };
 
-static ssize_t nic_int_ports_work_status_show(struct device *dev, struct device_attribute *attr,
-						char *buf)
-{
-	char *str;
-
-	str = hl_is_internal_ports_status_work_running() ? "running" : "not running";
-
-	return sprintf(buf, "%s\n", str);
-}
-
-static DEVICE_ATTR_RO(nic_int_ports_work_status);
-
-static struct attribute *hl_dev_nic_attrs[] = {
-	&dev_attr_nic_int_ports_work_status.attr,
-	NULL,
-};
-
 static ssize_t uboot_ver_show(struct device *dev, struct device_attribute *attr,
 				char *buf)
 {
@@ -522,13 +505,11 @@ static struct attribute_group hl_dev_attr_group = {
 
 static struct attribute_group hl_dev_clks_attr_group;
 static struct attribute_group hl_dev_vrm_attr_group;
-static struct attribute_group hl_dev_nic_attr_group;
 
 static const struct attribute_group *hl_dev_attr_groups[] = {
 	&hl_dev_attr_group,
 	&hl_dev_clks_attr_group,
 	&hl_dev_vrm_attr_group,
-	&hl_dev_nic_attr_group,
 	NULL,
 };
 
@@ -557,19 +538,13 @@ void hl_sysfs_add_dev_vrm_attr(struct hl_device *hdev, struct attribute_group *d
 	dev_vrm_attr_grp->attrs = hl_dev_vrm_attrs;
 }
 
-void hl_sysfs_add_dev_nic_attr(struct hl_device *hdev, struct attribute_group *dev_nic_attr_grp)
-{
-	dev_nic_attr_grp->attrs = hl_dev_nic_attrs;
-}
-
 int hl_sysfs_init(struct hl_device *hdev)
 {
 	int rc;
 
 	hdev->max_power = hdev->asic_prop.max_power_default;
 
-	hdev->asic_funcs->add_device_attr(hdev, &hl_dev_clks_attr_group, &hl_dev_vrm_attr_group,
-						&hl_dev_nic_attr_group);
+	hdev->asic_funcs->add_device_attr(hdev, &hl_dev_clks_attr_group, &hl_dev_vrm_attr_group);
 
 	rc = device_add_groups(hdev->dev, hl_dev_attr_groups);
 	if (rc) {

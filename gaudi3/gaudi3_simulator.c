@@ -1581,12 +1581,10 @@ static int gaudi3_sim_get_hw_block_id(struct hl_device *hdev, u64 block_addr,
 
 static void gaudi3_sim_add_device_attr(struct hl_device *hdev,
 					struct attribute_group *dev_clk_attr_grp,
-					struct attribute_group *dev_vrm_attr_grp,
-					struct attribute_group *dev_nic_attr_grp)
+					struct attribute_group *dev_vrm_attr_grp)
 {
 	dev_clk_attr_grp->attrs = gaudi3_sim_dev_attrs;
 	dev_vrm_attr_grp->attrs = gaudi3_sim_dev_attrs;
-	dev_nic_attr_grp->attrs = gaudi3_sim_dev_attrs;
 }
 
 static int gaudi3_sim_mmu_invalidate_cache(struct hl_device *hdev, bool is_hard, u32 flags)

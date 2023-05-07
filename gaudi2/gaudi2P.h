@@ -927,8 +927,7 @@ int gaudi2_set_cluster_binning_masks_common(struct hl_device *hdev, u8 xbar_edge
 int gaudi2_scheduler_submit_buf(struct hl_device *hdev, u32 cpu_id, u32 queue_id, void *buf,
 					u32 len);
 void gaudi2_add_device_attr(struct hl_device *hdev, struct attribute_group *dev_clk_attr_grp,
-				struct attribute_group *dev_vrm_attr_grp,
-				struct attribute_group *dev_nic_attr_grp);
+				struct attribute_group *dev_vrm_attr_grp);
 int gaudi2_mmu_get_real_page_size(struct hl_device *hdev, struct hl_mmu_properties *mmu_prop,
 					u32 page_size, u32 *real_page_size, bool is_dram_addr);
 int gaudi2_get_monitor_dump(struct hl_device *hdev, void *data);
