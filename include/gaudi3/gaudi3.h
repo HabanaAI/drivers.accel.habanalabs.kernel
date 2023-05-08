@@ -30,6 +30,10 @@
 #define FW_MEM_BASE		0x0300007FD0000000ull
 #define FW_MEM_SIZE		0x0000000010000000ull	/* 256MB FW-MEM */
 
+#define D0_GLOBAL_STM_BASE	0x0300007FD0000000ull
+#define D1_GLOBAL_STM_BASE	0x0300007FD8000000ull
+#define GLOBAL_STM_SIZE		0x2000000ull		/* 32MB */
+
 #define CFG_BAR_BASE		TPC_DBG_BASE
 
 #define SRAM_BASE_ADDR		0x0200FFFFF0000000ull
@@ -61,6 +65,8 @@
 
 #define NUM_ARC_CPUS		120
 
+#define NUM_ACTIVE_ARCS		108			/* excluding NIC ARCs/QMANs */
+
 #define NUM_OF_EDMA_CHANNELS	3
 
 #define MAX_NUM_OF_DIES		2
@@ -86,6 +92,8 @@
 #define NIC_MAX_NUM_OF_PORTS	(NIC_MAX_NUM_OF_ENGINES * NIC_MAC_NUM_OF_LANES)
 
 #define NIC_MAX_FIFO_RINGS	24
+
+#define HMMU_TLB_MAX_SUPPORTED_PAGE_TYPES	3
 
 /* DIE */
 #define NUM_OF_HDCORES_PER_DIE		4
@@ -155,5 +163,9 @@
 #define DB_FIFO_ELEMENT_SIZE	4
 
 #define NIC_HW_MAX_QP_NUM	(1 << 24) /* 16M (per nic) */
+
+#define NIC_MIN_CONN_ID		1
+
+#define NIC_MAX_CONN_ID		((1 << 15) - 1) /* 32K QPs */
 
 #endif /* GAUDI3_H */
