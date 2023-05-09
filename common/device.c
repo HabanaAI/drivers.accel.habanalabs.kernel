@@ -954,11 +954,6 @@ static int device_early_init(struct hl_device *hdev)
 		gaudi2_set_asic_funcs(hdev);
 		strscpy(hdev->asic_name, "GAUDI2B", sizeof(hdev->asic_name));
 		break;
-	case ASIC_GAUDI2_FPGA:
-		gaudi2_fpga_set_asic_funcs(hdev);
-		strscpy(hdev->asic_name, "GAUDI2 FPGA",
-				sizeof(hdev->asic_name));
-		break;
 	case ASIC_GAUDI3:
 		gaudi3_set_asic_funcs(hdev);
 		strscpy(hdev->asic_name, "GAUDI3",

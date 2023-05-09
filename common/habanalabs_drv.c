@@ -555,7 +555,6 @@ MODULE_PARM_DESC(bfe_glbl_errors_read_enable,
 #define PCI_IDS_GAUDI3			0x1060
 #define PCI_IDS_GAUDI3_SINGLE_DIE	0x1062
 
-#define PCI_IDS_GAUDI2_FPGA		0xFF08
 #define PCI_IDS_GAUDI3_FPGA		0xFF0D
 
 static const struct pci_device_id ids[] = {
@@ -569,7 +568,6 @@ static const struct pci_device_id ids[] = {
 	{ PCI_DEVICE(PCI_VENDOR_ID_HABANALABS, PCI_IDS_GAUDI2), },
 	{ PCI_DEVICE(PCI_VENDOR_ID_HABANALABS, PCI_IDS_GAUDI3), },
 	{ PCI_DEVICE(PCI_VENDOR_ID_HABANALABS, PCI_IDS_GAUDI3_SINGLE_DIE), },
-	{ PCI_DEVICE(PCI_VENDOR_ID_HABANALABS, PCI_IDS_GAUDI2_FPGA), },
 	{ PCI_DEVICE(PCI_VENDOR_ID_HABANALABS, PCI_IDS_GAUDI3_FPGA), },
 	{ 0, }
 };
@@ -649,9 +647,6 @@ static enum hl_asic_type get_asic_type(struct hl_device *hdev)
 	case PCI_IDS_GAUDI3_SINGLE_DIE:
 		asic_type = ASIC_GAUDI3_SINGLE_DIE;
 		break;
-	case PCI_IDS_GAUDI2_FPGA:
-		asic_type = ASIC_GAUDI2_FPGA;
-		break;
 	case PCI_IDS_GAUDI3_FPGA:
 		asic_type = ASIC_GAUDI3_FPGA;
 		break;
@@ -690,7 +685,6 @@ static bool is_cpu_queue_enabled(struct hl_device *hdev)
 	case ASIC_GAUDI2B_SIM:
 	case ASIC_GAUDI2_SIM_ARC:
 	case ASIC_GAUDI2B_SIM_ARC:
-	case ASIC_GAUDI2_FPGA:
 		enabled = !!(hdev->fw_components & FW_TYPE_BOOT_CPU);
 		break;
 	default:
@@ -1040,33 +1034,6 @@ static void set_driver_behavior_per_device(struct hl_device *hdev)
 		hdev->rotator_binning = 0;
 		hdev->hbm_compression_enable = 0;
 		hdev->heartbeat_reset_enable = 0;
-		break;
-
-	case ASIC_GAUDI2_FPGA:
-		hdev->dram_enable = 1;
-		hdev->fw_components = FW_TYPE_ALL_TYPES;
-		hdev->security_enable = 0;
-		hdev->tpc_mask = 0;
-		hdev->mme_mask = 0;
-		hdev->pdma_ch_mask = 0x0;
-		hdev->edma_mask = 0x0;
-		hdev->hard_reset_on_fw_events = 1;
-		hdev->decoder_mask = 0;
-		hdev->dram_binning = 0x0;
-		hdev->edma_binning = 0x0;
-		hdev->tpc_binning = 0x0;
-		hdev->decoder_binning = 0x0;
-		hdev->scrub_arc_dccm = 0;
-		hdev->axi_drain = AXI_DRAIN_SKIP;
-		hdev->fw_communication_enable = 1;
-		hdev->sched_arc_mask = 0x3F;
-		hdev->rotator_mask = 0x0;
-		hdev->use_8_bit_hops = 0;
-		hdev->priv_security_enable = 0;
-		hdev->cache_enable = 0;
-		hdev->rotator_binning = 0;
-		hdev->hbm_compression_enable = 0;
-		hdev->heartbeat_reset_enable = 1;
 		break;
 
 	case ASIC_GAUDI3:
@@ -1511,7 +1478,6 @@ static void fixup_device_params_per_asic(struct hl_device *hdev, int timeout)
 		}
 		break;
 
-	case ASIC_GAUDI2_FPGA:
 	case ASIC_GAUDI3_FPGA:
 		hdev->mmu_disable = true;
 		break;

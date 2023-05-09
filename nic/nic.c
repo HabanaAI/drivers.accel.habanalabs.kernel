@@ -547,7 +547,6 @@ static int hl_nic_get_asic_type(struct hl_device *hdev, enum hl_nic_asic_type *a
 	case ASIC_GAUDI2B_SIM_ARC:
 	case ASIC_GAUDI2:
 	case ASIC_GAUDI2B:
-	case ASIC_GAUDI2_FPGA:
 		*asic_type = HL_ASIC_GAUDI2;
 		break;
 	case ASIC_GAUDI3:

@@ -26,8 +26,6 @@
 
 #define GAUDI2_CPU_TIMEOUT_USEC		30000000	/* 30s */
 
-#define GAUDI2_FPGA_CPU_TIMEOUT		100000000	/* 100s */
-
 #define NUMBER_OF_PDMA_QUEUES		2
 #define NUMBER_OF_EDMA_QUEUES		8
 #define NUMBER_OF_MME_QUEUES		4
@@ -787,7 +785,7 @@ int gaudi2_set_cluster_binning_masks_fw_config(struct hl_device *hdev);
 int gaudi2_test_queues_msgs_alloc(struct hl_device *hdev);
 void gaudi2_test_queues_msgs_free(struct hl_device *hdev);
 
-/* Functions exported for FPGA support */
+/* Functions exported for bringup support */
 int gaudi2_early_fini(struct hl_device *hdev);
 int gaudi2_sw_init(struct hl_device *hdev);
 int gaudi2_sw_fini(struct hl_device *hdev);

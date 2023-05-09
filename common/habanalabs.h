@@ -1394,7 +1394,6 @@ struct hl_dec {
  * @ASIC_GAUDI_HL2000M_SEC: Gaudi secured device (HL-2000M).
  * @ASIC_GAUDI2: Gaudi2 device.
  * @ASIC_GAUDI2B: Gaudi2B device.
- * @ASIC_GAUDI2_FPGA: Gaudi2 device FPGA.
  * @ASIC_GAUDI3: Gaudi3 device.
  * @ASIC_GAUDI3_SINGLE_DIE: Gaudi3 stream single die device.
  * @ASIC_GAUDI3_FPGA: Gaudi3 device FPGA.
@@ -1422,7 +1421,6 @@ enum hl_asic_type {
 	ASIC_GAUDI_HL2000M_SEC,
 	ASIC_GAUDI2,
 	ASIC_GAUDI2B,
-	ASIC_GAUDI2_FPGA,
 	ASIC_GAUDI3,
 	ASIC_GAUDI3_SINGLE_DIE,
 	ASIC_GAUDI3_FPGA,
@@ -4276,10 +4274,8 @@ u32 hl_get_active_cs_num(struct hl_device *hdev);
 
 void goya_set_asic_funcs(struct hl_device *hdev);
 void greco_set_asic_funcs(struct hl_device *hdev);
-void greco_fpga_set_asic_funcs(struct hl_device *hdev);
 void gaudi_set_asic_funcs(struct hl_device *hdev);
 void gaudi2_set_asic_funcs(struct hl_device *hdev);
-void gaudi2_fpga_set_asic_funcs(struct hl_device *hdev);
 void gaudi3_set_asic_funcs(struct hl_device *hdev);
 void gaudi3_fpga_set_asic_funcs(struct hl_device *hdev);
 

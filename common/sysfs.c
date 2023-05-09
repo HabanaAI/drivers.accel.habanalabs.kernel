@@ -296,9 +296,6 @@ static ssize_t device_type_show(struct device *dev,
 	case ASIC_GAUDI2B:
 		str = "GAUDI2B";
 		break;
-	case ASIC_GAUDI2_FPGA:
-		str = "GAUDI2 FPGA";
-		break;
 	case ASIC_GAUDI3:
 		str = "GAUDI3";
 		break;
