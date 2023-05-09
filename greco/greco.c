@@ -832,13 +832,7 @@ static void greco_dcore_set_fixed_properties(struct hl_device *hdev,
 			(*num_sync_stream_queues)++;
 		}
 
-		if ((i <= GRECO_QUEUE_ID_DCORE0_PDMA_1_3) ||
-			(i >= GRECO_QUEUE_ID_DCORE1_PDMA_0_0 &&
-					i <= GRECO_QUEUE_ID_DCORE1_PDMA_1_3))
-			queue_props->cb_alloc_flags = hdev->mmu_enable ?
-					CB_ALLOC_USER : CB_ALLOC_KERNEL;
-		else
-			queue_props->cb_alloc_flags = CB_ALLOC_USER;
+		queue_props->cb_alloc_flags = CB_ALLOC_USER;
 
 		if ((dcore_id == 1) &&
 		    !(HW_CAP_MME_MASK & HW_CAP_DCORE1_MME0) &&
@@ -2612,9 +2606,6 @@ static int greco_dram_mmu_init(struct hl_device *hdev)
 	if (!hdev->dram_enable)
 		return 0;
 
-	if (hdev->mmu_enable != MMU_EN_ALL)
-		return 0;
-
 	dev_dbg(hdev->dev, "Initializing DRAM MMU\n");
 
 	for (dcore_id = 0 ; dcore_id < NUM_OF_DCORES ; dcore_id++)
@@ -2632,9 +2623,6 @@ static int greco_dram_mmu_init(struct hl_device *hdev)
 int greco_mmu_init(struct hl_device *hdev)
 {
 	int rc;
-
-	if (!hdev->mmu_enable)
-		return 0;
 
 	dev_dbg(hdev->dev, "Initializing MMU\n");
 

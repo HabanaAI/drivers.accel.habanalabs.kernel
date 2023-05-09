@@ -3583,9 +3583,6 @@ static void greco_ack_pb_hmmu(struct hl_device *hdev)
 	u32 hmmu_offset = mmDCORE0_HMMU1_MMU_BASE - mmDCORE0_HMMU0_MMU_BASE;
 	int i, j, array_size = ARRAY_SIZE(greco_pb_dcr0_hmmu0);
 
-	if (!hdev->mmu_enable)
-		return;
-
 	/* ack all blocks */
 	for (i = 0 ; i < NUM_OF_DCORES ; i++) {
 		for (j = 0 ; j < 2 ; j++)
@@ -3799,9 +3796,6 @@ static void greco_ack_pb_pcie(struct hl_device *hdev)
 static void greco_ack_pb_pmmu(struct hl_device *hdev)
 {
 	int array_size = ARRAY_SIZE(greco_pb_pmmu);
-
-	if (!hdev->mmu_enable)
-		return;
 
 	hl_ack_pb_security_violations(hdev, greco_pb_pmmu, 0, array_size);
 }

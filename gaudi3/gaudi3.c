@@ -3254,16 +3254,14 @@ int gaudi3_set_fixed_properties(struct hl_device *hdev)
 	else
 		prop->dmmu.supported_pages_mask = HMMU_DEFAULT_PAGE_SIZE_MASK;
 	prop->dmmu.page_size = BIT_ULL(__ffs(prop->dmmu.supported_pages_mask));
-
-	if (hdev->mmu_enable == MMU_EN_ALL)
-		prop->dmmu.pgt_size = (hdev->pldm) ? 0x800000 : MMU_PAGE_TABLES_SIZE;
+	prop->dmmu.pgt_size = (hdev->pldm) ? 0x800000 : MMU_PAGE_TABLES_SIZE;
 
 	/* bind HMMU props to the mmu_info structure */
 	hdev->hmmu_info.prop = &prop->dmmu;
 
 	if (hdev->dram_enable) {
 		prop->dram_base_address = DRAM_PHYS_BASE;
-		prop->dram_supports_virtual_memory = (hdev->mmu_enable == MMU_EN_ALL);
+		prop->dram_supports_virtual_memory = true;
 
 		/*
 		 * number of HBMs does not affect page size so DRAM page size is picked to match
@@ -5182,7 +5180,7 @@ static void gaudi3_hbm_mmu_init(struct hl_device *hdev)
 {
 	struct gaudi3_device *gaudi3 = hdev->asic_specific;
 
-	if (!hdev->dram_enable || (hdev->mmu_enable != MMU_EN_ALL))
+	if (!hdev->dram_enable)
 		return;
 
 	if (gaudi3->hw_cap_initialized & HW_CAP_HMMU_MASK)
@@ -5222,9 +5220,6 @@ void gaudi3_lbw_dup_init(struct hl_device *hdev)
 int gaudi3_mmu_init(struct hl_device *hdev)
 {
 	int rc;
-
-	if (!hdev->mmu_enable)
-		return 0;
 
 	rc = gaudi3_pci_mmu_init(hdev);
 	if (rc)

@@ -3418,12 +3418,11 @@ static void gaudi2_init_dcores_static_mstr_ifs(struct hl_device *hdev,
 	/* init all DCORES MASTER_IFs */
 	for (i = 0 ; i < NUM_OF_DCORES ; i++) {
 		/* HMMUs */
-		if (hdev->mmu_enable)
-			gaudi2_init_dcore_mstr_if(hdev, i,
-				NUM_OF_HMMU_PER_DCORE,
-				mmDCORE0_HMMU0_MSTR_IF_RR_SHRD_HBW_BASE,
-				DCORE_HMMU_OFFSET, prop->hmmu_hif_enabled_mask,
-				block_ctx);
+		gaudi2_init_dcore_mstr_if(hdev, i,
+			NUM_OF_HMMU_PER_DCORE,
+			mmDCORE0_HMMU0_MSTR_IF_RR_SHRD_HBW_BASE,
+			DCORE_HMMU_OFFSET, prop->hmmu_hif_enabled_mask,
+			block_ctx);
 
 		/* RTRs */
 		gaudi2_init_dcore_mstr_if(hdev, i,
@@ -4061,16 +4060,14 @@ static void gaudi2_init_dcores_e2e_mstr_ifs(struct hl_device *hdev)
 		unsigned long mme_mask = hdev->mme_mask;
 
 		/* HMMUs */
-		if (hdev->mmu_enable) {
-			init_e2e_emem_config(emem_rd_conf, 16, 16, 16, 16);
-			init_e2e_emem_config(emem_wr_conf, 0, 0, 0, 0);
-			init_e2e_pcie_config(emem_pcie_conf, 3, 0);
-			gaudi2_init_dcore_mstr_if(hdev, i,
-				NUM_OF_HMMU_PER_DCORE,
-				mmDCORE0_HMMU0_MSTR_IF_RR_SHRD_HBW_BASE,
-				DCORE_HMMU_OFFSET, prop->hmmu_hif_enabled_mask,
-				&e2e_ctx);
-		}
+		init_e2e_emem_config(emem_rd_conf, 16, 16, 16, 16);
+		init_e2e_emem_config(emem_wr_conf, 0, 0, 0, 0);
+		init_e2e_pcie_config(emem_pcie_conf, 3, 0);
+		gaudi2_init_dcore_mstr_if(hdev, i,
+			NUM_OF_HMMU_PER_DCORE,
+			mmDCORE0_HMMU0_MSTR_IF_RR_SHRD_HBW_BASE,
+			DCORE_HMMU_OFFSET, prop->hmmu_hif_enabled_mask,
+			&e2e_ctx);
 
 		/* MME */
 		if (test_bit(i, &mme_mask)) {

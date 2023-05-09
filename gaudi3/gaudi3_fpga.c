@@ -272,8 +272,8 @@ static int gaudi3_fpga_sw_init(struct hl_device *hdev)
 	rc = gaudi3_sw_init(hdev);
 	if (rc)
 		return rc;
-	hdev->supports_cb_mapping = (hdev->mmu_enable == MMU_EN_ALL ||
-					hdev->mmu_enable == MMU_EN_PMMU_ONLY);
+	hdev->supports_cb_mapping = false;
+
 	return 0;
 }
 

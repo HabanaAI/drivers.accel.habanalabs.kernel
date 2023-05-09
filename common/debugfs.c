@@ -256,9 +256,6 @@ static int vm_show(struct seq_file *s, void *data)
 	u64 j;
 	int i;
 
-	if (!dev_entry->hdev->mmu_enable)
-		return 0;
-
 	mutex_lock(&dev_entry->ctx_mem_hash_mutex);
 
 	list_for_each_entry(ctx, &dev_entry->ctx_mem_hash_list, debugfs_list) {
@@ -437,9 +434,6 @@ static int mmu_show(struct seq_file *s, void *data)
 	u64 virt_addr = dev_entry->mmu_addr, phys_addr;
 	int i;
 
-	if (!hdev->mmu_enable)
-		return 0;
-
 	if (dev_entry->mmu_asid == HL_KERNEL_ASID_ID)
 		ctx = hdev->kernel_ctx;
 	else
@@ -497,9 +491,6 @@ static ssize_t mmu_asid_va_write(struct file *file, const char __user *buf,
 	char *c;
 	ssize_t rc;
 
-	if (!hdev->mmu_enable)
-		return count;
-
 	if (count > sizeof(kbuf) - 1)
 		goto err;
 	if (copy_from_user(kbuf, buf, count))
@@ -536,9 +527,6 @@ static int mmu_ack_error(struct seq_file *s, void *data)
 	struct hl_device *hdev = dev_entry->hdev;
 	int rc;
 
-	if (!hdev->mmu_enable)
-		return 0;
-
 	if (!dev_entry->mmu_cap_mask) {
 		dev_err(hdev->dev, "mmu_cap_mask is not set\n");
 		goto err;
@@ -563,9 +551,6 @@ static ssize_t mmu_ack_error_value_write(struct file *file,
 	struct hl_device *hdev = dev_entry->hdev;
 	char kbuf[MMU_KBUF_SIZE];
 	ssize_t rc;
-
-	if (!hdev->mmu_enable)
-		return count;
 
 	if (count > sizeof(kbuf) - 1)
 		goto err;
@@ -662,9 +647,6 @@ bool hl_is_device_va(struct hl_device *hdev, u64 addr)
 {
 	struct asic_fixed_properties *prop = &hdev->asic_prop;
 
-	if (!hdev->mmu_enable)
-		goto out;
-
 	if (prop->dram_supports_virtual_memory &&
 		(addr >= prop->dmmu.start_addr && addr < prop->dmmu.end_addr))
 		return true;
@@ -676,7 +658,7 @@ bool hl_is_device_va(struct hl_device *hdev, u64 addr)
 	if (addr >= prop->pmmu_huge.start_addr &&
 		addr < prop->pmmu_huge.end_addr)
 		return true;
-out:
+
 	return false;
 }
 
@@ -685,9 +667,6 @@ static bool hl_is_device_internal_memory_va(struct hl_device *hdev, u64 addr,
 {
 	struct asic_fixed_properties *prop = &hdev->asic_prop;
 	u64 dram_start_addr, dram_end_addr;
-
-	if (!hdev->mmu_enable)
-		return false;
 
 	if (prop->dram_supports_virtual_memory) {
 		dram_start_addr = prop->dmmu.start_addr;

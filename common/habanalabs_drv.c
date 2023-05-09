@@ -80,7 +80,6 @@ static int ignore_eeprom_errors;
 static int pldm;
 static int bringup_flags_enable;
 static int bfe_gaudi_huge_page_optimization = 1;
-static int bfe_mmu_enable = MMU_EN_ALL;
 static int bfe_clock_gating = 1;
 static uint bfe_mme_mask = 0x3;
 static ulong bfe_tpc_mask = 0x3FF;
@@ -252,10 +251,6 @@ MODULE_PARM_DESC(bringup_flags_enable,
 module_param(bfe_gaudi_huge_page_optimization, int, 0444);
 MODULE_PARM_DESC(bfe_gaudi_huge_page_optimization,
 	"GAUDI MMU huge page optimization enabled (0 = no, 1 = yes, default yes)");
-
-module_param(bfe_mmu_enable, int, 0444);
-MODULE_PARM_DESC(bfe_mmu_enable,
-	"Device MMU enabled (0 = no, 1 = yes (all), 3 = PMMU only (N/A for GOYA/GAUDI), default yes)");
 
 module_param(bfe_clock_gating, int, 0444);
 MODULE_PARM_DESC(bfe_clock_gating,
@@ -940,7 +935,6 @@ static void set_driver_behavior_per_device(struct hl_device *hdev)
 	case ASIC_GRECO:
 		hdev->dram_enable = 1;
 		hdev->fw_components = FW_TYPE_ALL_TYPES;
-		hdev->mmu_enable = MMU_EN_ALL;
 		hdev->security_enable = 1;
 		hdev->tpc_mask = 0x3FF;
 		hdev->mme_mask = 0x3;
@@ -968,7 +962,6 @@ static void set_driver_behavior_per_device(struct hl_device *hdev)
 	case ASIC_GAUDI2B_SIM:
 		hdev->dram_enable = 1;
 		hdev->fw_components = 0;
-		hdev->mmu_enable = MMU_EN_ALL;
 		hdev->security_enable = 1;
 		hdev->tpc_mask = 0x1FFFFFF;
 		hdev->mme_mask = 0xF;
@@ -997,7 +990,6 @@ static void set_driver_behavior_per_device(struct hl_device *hdev)
 	case ASIC_GAUDI2B_SIM_ARC:
 		hdev->dram_enable = 1;
 		hdev->fw_components = 0;
-		hdev->mmu_enable = MMU_EN_ALL;
 		hdev->security_enable = 1;
 		hdev->tpc_mask = 0x1FFFFFF;
 		hdev->mme_mask = 0xF;
@@ -1026,7 +1018,6 @@ static void set_driver_behavior_per_device(struct hl_device *hdev)
 	case ASIC_GAUDI2B:
 		hdev->dram_enable = 1;
 		hdev->fw_components = FW_TYPE_ALL_TYPES;
-		hdev->mmu_enable = MMU_EN_ALL;
 		hdev->security_enable = 1;
 		hdev->tpc_mask = 0x1FFFFFF;
 		hdev->mme_mask = 0xF;
@@ -1054,7 +1045,6 @@ static void set_driver_behavior_per_device(struct hl_device *hdev)
 	case ASIC_GAUDI2_FPGA:
 		hdev->dram_enable = 1;
 		hdev->fw_components = FW_TYPE_ALL_TYPES;
-		hdev->mmu_enable = MMU_EN_NONE;
 		hdev->security_enable = 0;
 		hdev->tpc_mask = 0;
 		hdev->mme_mask = 0;
@@ -1082,7 +1072,6 @@ static void set_driver_behavior_per_device(struct hl_device *hdev)
 	case ASIC_GAUDI3:
 		hdev->dram_enable = 0;
 		hdev->fw_components = 0;
-		hdev->mmu_enable = 0;
 		hdev->security_enable = 1;
 		hdev->tpc_mask = 0;
 		hdev->mme_mask = 0;
@@ -1111,7 +1100,6 @@ static void set_driver_behavior_per_device(struct hl_device *hdev)
 	case ASIC_GAUDI3_SIM:
 		hdev->dram_enable = 1;
 		hdev->fw_components = 0;
-		hdev->mmu_enable = MMU_EN_ALL;
 		hdev->security_enable = 1;
 		hdev->tpc_mask = 0xFFFFFFFFFFFFFFFFull;
 		hdev->mme_mask = 0xFF;
@@ -1139,7 +1127,6 @@ static void set_driver_behavior_per_device(struct hl_device *hdev)
 	case ASIC_GAUDI3_SIM_ARC:
 		hdev->dram_enable = 1;
 		hdev->fw_components = FW_TYPE_BOOT_CPU | FW_TYPE_PREBOOT_CPU;
-		hdev->mmu_enable = MMU_EN_ALL;
 		hdev->security_enable = 1;
 		hdev->tpc_mask = 0xFFFFFFFFFFFFFFFFull;
 		hdev->mme_mask = 0xFF;
@@ -1167,7 +1154,6 @@ static void set_driver_behavior_per_device(struct hl_device *hdev)
 	case ASIC_GAUDI3_SIM_SINGLE_DIE:
 		hdev->dram_enable = 1;
 		hdev->fw_components = 0;
-		hdev->mmu_enable = MMU_EN_ALL;
 		hdev->security_enable = 0;
 		hdev->tpc_mask = 0xFFFFFFFF;
 		hdev->mme_mask = 0xF;
@@ -1195,7 +1181,6 @@ static void set_driver_behavior_per_device(struct hl_device *hdev)
 	case ASIC_GAUDI3_SIM_SINGLE_DIE_ARC:
 		hdev->dram_enable = 1;
 		hdev->fw_components = FW_TYPE_BOOT_CPU | FW_TYPE_PREBOOT_CPU;
-		hdev->mmu_enable = MMU_EN_ALL;
 		hdev->security_enable = 0;
 		hdev->tpc_mask = 0xFFFFFFFF;
 		hdev->mme_mask = 0xF;
@@ -1223,7 +1208,6 @@ static void set_driver_behavior_per_device(struct hl_device *hdev)
 	case ASIC_GAUDI3_FPGA:
 		hdev->dram_enable = 1;
 		hdev->fw_components = FW_TYPE_BOOT_CPU | FW_TYPE_PREBOOT_CPU;
-		hdev->mmu_enable = 0;
 		hdev->security_enable = 0;
 		hdev->tpc_mask = 0;
 		hdev->mme_mask = 0;
@@ -1251,7 +1235,6 @@ static void set_driver_behavior_per_device(struct hl_device *hdev)
 	default:
 		hdev->dram_enable = 1;
 		hdev->fw_components = FW_TYPE_ALL_TYPES;
-		hdev->mmu_enable = MMU_EN_ALL;
 		hdev->security_enable = 1;
 		hdev->tpc_mask = 0x3FF;
 		hdev->mme_mask = 0x3;
@@ -1359,7 +1342,6 @@ static void copy_bfe_params_to_device(struct hl_device *hdev)
 	if (!hdev->bringup_flags_enable)
 		return;
 
-	hdev->mmu_enable = bfe_mmu_enable;
 	hdev->clock_gating_enabled = bfe_clock_gating;
 	hdev->fw_components = bfe_fw_components;
 	hdev->fw_communication_enable = bfe_fw_communication_enable;
@@ -1529,6 +1511,10 @@ static void fixup_device_params_per_asic(struct hl_device *hdev, int timeout)
 		}
 		break;
 
+	case ASIC_GAUDI2_FPGA:
+	case ASIC_GAUDI3_FPGA:
+		hdev->mmu_disable = true;
+		break;
 	default:
 		hdev->reset_upon_device_release = 0;
 		break;
@@ -1573,11 +1559,6 @@ static int fixup_device_params(struct hl_device *hdev)
 	/* If DRAM is disabled, don't load legacy F/W, don't enable DMMU/MMU */
 	if (!hdev->dram_enable) {
 		hdev->fw_components &= ~FW_TYPE_LINUX;
-		if (hdev->mmu_enable)
-			hdev->mmu_enable = MMU_EN_PMMU_ONLY;
-		else
-			hdev->mmu_enable = MMU_EN_NONE;
-
 		hdev->dram_scrambler_enable = 0;
 		hdev->hbm_ecc_enable = 0;
 	}
@@ -1595,9 +1576,6 @@ static int fixup_device_params(struct hl_device *hdev)
 	/* If CPU queues not enabled, no way to do heartbeat */
 	if (!hdev->cpu_queues_enable)
 		hdev->heartbeat = 0;
-
-	if (!hdev->mmu_enable)
-		hdev->security_enable = 0;
 
 	/* Adjust NIC ports parameters according to the device in-hand */
 	dev_nic_ports_mask = get_dev_nic_ports_mask(hdev->asic_type);

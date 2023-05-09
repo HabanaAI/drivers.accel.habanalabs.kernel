@@ -618,7 +618,7 @@ static int hl_nic_sni_aux_data_init(struct hl_device *hdev)
 	aux_data->cache_line_size = asic_props->cache_line_size;
 	aux_data->kernel_asid = HL_KERNEL_ASID_ID;
 	aux_data->card_location = nic->card_location;
-	aux_data->mmu_enable = hdev->mmu_enable;
+	aux_data->mmu_enable = true;
 	aux_data->lanes_per_port = hdev->nic_lanes_per_port;
 	aux_data->mmap_type_flag = HL_MMAP_TYPE_NIC_MEM;
 	aux_data->device_timeout = HL_DEVICE_TIMEOUT_USEC;

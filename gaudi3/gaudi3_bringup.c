@@ -2419,7 +2419,7 @@ static void gaudi3_init_hbm_mmu_fw_config(struct hl_device *hdev)
 		.data = &dtlb_init_data,
 	};
 
-	if (!hdev->dram_enable || (hdev->mmu_enable != MMU_EN_ALL))
+	if (!hdev->dram_enable)
 		return;
 
 	if (gaudi3->hw_cap_initialized & HW_CAP_HMMU_MASK)
@@ -2448,12 +2448,7 @@ static void gaudi3_init_pci_mmu_fw_config(struct hl_device *hdev)
 
 static void gaudi3_init_mmu_fw_config(struct hl_device *hdev)
 {
-	/* contains only HMMU config but exist as a placeholder for PMMU */
-	if (!hdev->mmu_enable)
-		return;
-
 	gaudi3_init_pci_mmu_fw_config(hdev);
-
 	gaudi3_init_hbm_mmu_fw_config(hdev);
 }
 

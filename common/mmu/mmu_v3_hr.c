@@ -582,7 +582,7 @@ static int hl_mmu_v3_hr_get_tlb_info(struct hl_ctx *ctx, u64 virt_addr,
 void hl_mmu_v3_hr_set_funcs(struct hl_device *hdev, struct hl_mmu_funcs *mmu)
 {
 	/* MMU V3 is currently for HMMU only */
-	if (!hdev->dram_enable || (hdev->mmu_enable != MMU_EN_ALL))
+	if (!hdev->dram_enable)
 		return;
 
 	mmu->init = hl_mmu_v3_hr_init;

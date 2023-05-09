@@ -146,7 +146,7 @@ static int hw_ip_info(struct hl_device *hdev, struct hl_info_args *args)
 	hw_ip.device_id = hdev->asic_funcs->get_pci_id(hdev);
 	hw_ip.sram_base_address = prop->sram_user_base_address;
 	hw_ip.dram_base_address =
-			hdev->mmu_enable && prop->dram_supports_virtual_memory ?
+			prop->dram_supports_virtual_memory ?
 			prop->dmmu.start_addr : prop->dram_user_base_address;
 	hw_ip.tpc_enabled_mask = prop->tpc_enabled_mask & 0xFF;
 	hw_ip.tpc_enabled_mask_ext = prop->tpc_enabled_mask;
@@ -166,7 +166,7 @@ static int hw_ip_info(struct hl_device *hdev, struct hl_info_args *args)
 	else
 		dram_available_size = prop->dram_size - dram_kmd_size;
 
-	if (hdev->dram_enable && hdev->mmu_enable == MMU_EN_ALL)
+	if (hdev->dram_enable)
 		hw_ip.dram_size = DIV_ROUND_DOWN_ULL(dram_available_size, prop->dram_page_size) *
 					prop->dram_page_size;
 	else
@@ -1130,7 +1130,7 @@ static int module_params_info(struct hl_device *hdev, struct hl_info_args *args)
 			jiffies_to_msecs(hdev->timeout_jiffies) / 1000;
 	module_params->reset_on_lockup = hdev->reset_on_lockup;
 	module_params->pldm = hdev->pldm;
-	module_params->mmu_enable = hdev->mmu_enable;
+	module_params->mmu_enable = true;
 	if (hdev->clock_gating_enabled) {
 		module_params->clock_gating = U32_MAX;
 		module_params->clock_gating_ext = U32_MAX;

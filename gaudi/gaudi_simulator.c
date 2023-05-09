@@ -1197,9 +1197,6 @@ static int gaudi_sim_mmu_init(struct hl_device *hdev)
 	u64 hop0_addr;
 	int rc, i;
 
-	if (!hdev->mmu_enable)
-		return 0;
-
 	if (gaudi->hw_cap_initialized & HW_CAP_MMU)
 		return 0;
 

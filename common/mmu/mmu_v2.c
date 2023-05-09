@@ -214,9 +214,6 @@ static int hl_mmu_v2_init(struct hl_device *hdev)
 	struct asic_fixed_properties *prop = &hdev->asic_prop;
 	int rc;
 
-	if (!hdev->mmu_enable)
-		return 0;
-
 	hdev->mmu_priv.dr.mmu_pgt_pool =
 			gen_pool_create(__ffs(prop->mmu_hop_table_size), -1);
 
@@ -287,11 +284,6 @@ static void hl_mmu_v2_fini(struct hl_device *hdev)
  */
 static int hl_mmu_v2_ctx_init(struct hl_ctx *ctx)
 {
-	struct hl_device *hdev = ctx->hdev;
-
-	if (!hdev->mmu_enable)
-		return 0;
-
 	hash_init(ctx->mmu_shadow_hash);
 
 	return 0;
@@ -313,9 +305,6 @@ static void hl_mmu_v2_ctx_fini(struct hl_ctx *ctx)
 	struct pgt_info *pgt_info;
 	struct hlist_node *tmp;
 	int i;
-
-	if (!hdev->mmu_enable)
-		return;
 
 	if (!hash_empty(ctx->mmu_shadow_hash))
 		dev_err(hdev->dev, "ctx %d is freed while it has pgts in use\n",
