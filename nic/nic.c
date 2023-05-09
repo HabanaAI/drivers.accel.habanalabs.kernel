@@ -986,8 +986,10 @@ int hl_nic_ctx_init(struct hl_ctx *ctx)
 		nic->ctx = ctx;
 
 		rc = aux_ops->ctx_init(aux_dev, ctx->asid);
-		if (rc)
+		if (rc) {
+			nic->ctx = NULL;
 			return rc;
+		}
 	}
 
 	return 0;
@@ -996,22 +998,25 @@ int hl_nic_ctx_init(struct hl_ctx *ctx)
 void hl_nic_ctx_fini(struct hl_ctx *ctx)
 {
 	struct hl_device *hdev = ctx->hdev;
-	struct hl_nic_funcs *nic_funcs = hdev->asic_funcs->nic_funcs;
 	struct hl_nic *nic = &hdev->nic;
 	struct hl_aux_dev *aux_dev = &nic->sni_aux_dev;
 	struct hl_sni_aux_ops *aux_ops;
 
 	aux_ops = aux_dev->aux_ops;
 
-	if (!nic_funcs->get_hw_cap(hdev))
+	/* Check the context pointer instead of the capability bit because the SNI ctx_fini should
+	 * be called even if the ports are stopped.
+	 */
+	if (!nic->ctx)
 		return;
 
-	if (aux_ops->ctx_fini) {
-		aux_ops->ctx_fini(aux_dev, ctx->asid);
+	/* No need to check for NULL pointer because here the context is not NULL so we can be sure
+	 * that the aux_ops pointer is not NULL either.
+	 */
+	aux_ops->ctx_fini(aux_dev, ctx->asid);
 
-		/* muet be done after calling SNI ctx_fini as it might be used there */
-		nic->ctx = NULL;
-	}
+	/* must be done after calling SNI ctx_fini as it might be used there */
+	nic->ctx = NULL;
 }
 
 int hl_nic_send_status(struct hl_device *hdev, int port, u8 cmd, u8 period)
