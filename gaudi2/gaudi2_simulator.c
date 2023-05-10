@@ -414,6 +414,28 @@ static int gaudi2_simulator_reset_device_ioctl(struct hl_simulator_device *edev,
 	return hl_device_reset(hdev, HL_DRV_RESET_HARD);
 }
 
+static int gaudi2_simulator_memory_ioctl(struct hl_simulator_device *edev, void *data)
+{
+	struct simulator_memory_args *args = data;
+	int rc;
+
+	dev_dbg(edev->dev, "receive memory ioctl. op=%d\n", args->op);
+
+	switch (args->op) {
+	case MEMORY_CREATE_SHARED_OP:
+		rc = hl_sim_create_shared_block(edev, args);
+		break;
+	case MEMORY_RELEASE_SHARED_OP:
+		rc = hl_sim_release_shared_block(edev, args);
+		break;
+	default:
+		dev_err(edev->dev, "Gaudi2 Simulator wrong op: %d for ioctl memory\n", args->op);
+		rc = -EINVAL;
+	}
+
+	return rc;
+}
+
 /*
  * Ioctl function type.
  *
@@ -439,6 +461,8 @@ static const struct gaudi2_simulator_ioctl_desc gaudi2_simulator_ioctls[] = {
 			gaudi2_simulator_pci_access_ioctl),
 	GAUDI2_SIMULATOR_IOCTL_DEF(SIMULATOR_IOCTL_RESET_DEVICE,
 			gaudi2_simulator_reset_device_ioctl),
+	GAUDI2_SIMULATOR_IOCTL_DEF(SIMULATOR_IOCTL_MEMORY,
+			gaudi2_simulator_memory_ioctl),
 };
 
 #define GAUDI2_SIMULATOR_IOCTL_COUNT	ARRAY_SIZE(gaudi2_simulator_ioctls)
@@ -775,6 +799,8 @@ int gaudi2_simulator_start(struct simulator_start_args *args)
 		goto remove_name;
 	}
 
+	mutex_init(&edev->shared_block_idr_mutex);
+	idr_init(&edev->shared_block_idr);
 	dev_set_drvdata(edev->dev, edev);
 
 	return 0;
@@ -819,9 +845,10 @@ free_edev:
 
 void gaudi2_simulator_stop(u32 minor)
 {
+	struct simulator_shared_mem_block *shared_block;
 	struct hl_simulator_device *edev;
 	struct simulator_msg *msg;
-	int count, i;
+	int count, i, handle;
 
 	if (minor >= HL_MAX_MINORS) {
 		pr_crit("habanalabs: minor is out of bounds %u, can't stop sim\n", minor);
@@ -848,6 +875,16 @@ void gaudi2_simulator_stop(u32 minor)
 
 	/* Hide device from user */
 	cdev_device_del(&edev->cdev, edev->dev);
+
+	if (!idr_is_empty(&edev->shared_block_idr)) {
+		idr_for_each_entry(&edev->shared_block_idr, shared_block, handle) {
+			hl_sim_free_shared_block(shared_block, true);
+			idr_remove(&edev->shared_block_idr, handle);
+		}
+	}
+
+	idr_destroy(&edev->shared_block_idr);
+	mutex_destroy(&edev->shared_block_idr_mutex);
 
 	gen_pool_destroy(edev->pool);
 

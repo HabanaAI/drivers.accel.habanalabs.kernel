@@ -4735,6 +4735,8 @@ struct hl_simulator_device {
 	struct hl_vm_user_pages	user_sram_dram;
 	struct hl_vm_user_pages	user_sram;
 	struct hl_sim_irq	sirq;
+	struct mutex		shared_block_idr_mutex;
+	struct idr		shared_block_idr;
 	wait_queue_head_t	pollq;
 	void			*sram;
 	void			*dram;
@@ -4784,6 +4786,24 @@ struct simulator_start_args {
 	u32 virt_dev_type;
 	u8 single_msi_mode;
 };
+
+struct simulator_shared_mem_block {
+	u64 *pfn_arr;
+	u32 num_pages;
+};
+
+struct simulator_memory_args;
+int hl_sim_create_shared_block(struct hl_simulator_device *edev,
+				struct simulator_memory_args *args);
+int hl_sim_release_shared_block(struct hl_simulator_device *edev,
+				struct simulator_memory_args *args);
+int hl_sim_alloc_irq_vectors(struct hl_simulator_device *edev, unsigned int min_vecs,
+			unsigned int max_vecs, unsigned int flags);
+void hl_sim_free_irq_vectors(struct hl_simulator_device *edev);
+int hl_sim_irq_vector(struct hl_simulator_device *edev, unsigned int nr);
+int hl_sim_send_irq(struct hl_simulator_device *edev, unsigned int irq);
+void hl_sim_free_shared_block(struct simulator_shared_mem_block *shared_block,
+					bool refcount);
 
 int goya_simulator_start(struct simulator_start_args *args);
 void goya_simulator_stop(u32 minor);

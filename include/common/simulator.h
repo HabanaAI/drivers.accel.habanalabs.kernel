@@ -96,17 +96,21 @@ struct simulator_pci_access_args {
 	__u8 pad[3];
 };
 
+#define MEMORY_CREATE_SHARED_OP		0x1
+#define MEMORY_RELEASE_SHARED_OP	0x2
+
+struct simulator_memory_args {
+	__u64 device_address;	/* in param */
+	__u64 size;		/* in param */
+	__u64 handle;		/* out param */
+	__u32 op;		/* in param */
+	__u32 pad;
+};
+
 struct simulator_reset_device_args {
 	__u64 pad;
 };
 
-int hl_sim_alloc_irq_vectors(struct hl_simulator_device *edev, unsigned int min_vecs,
-			unsigned int max_vecs, unsigned int flags);
-void hl_sim_free_irq_vectors(struct hl_simulator_device *edev);
-int hl_sim_irq_vector(struct hl_simulator_device *edev, unsigned int nr);
-int hl_sim_send_irq(struct hl_simulator_device *edev, unsigned int irq);
-
-/* Gather information about the device and pass it to user-space */
 #define SIMULATOR_IOCTL_GEN_INT \
 			_IOW('O', 0x01, struct simulator_gen_int_args)
 
@@ -116,13 +120,17 @@ int hl_sim_send_irq(struct hl_simulator_device *edev, unsigned int irq);
 #define SIMULATOR_IOCTL_RESET_DEVICE \
 			_IOW('O', 0x03, struct simulator_reset_device_args)
 
+#define SIMULATOR_IOCTL_MEMORY \
+			_IOWR('O', 0x04, struct simulator_memory_args)
+
 #define SIMULATOR_COMMAND_START		0x01
-#define SIMULATOR_COMMAND_END		0x04
+#define SIMULATOR_COMMAND_END		0x05
 
 /* Get the device type from user-space and pass it its allocated minor number */
 #define HLV_SIMULATOR_IOCTL_SET_DEVTYPE_GET_MINOR \
 			_IOWR('O', 0x01, struct hlv_sim_devtype_minor_args)
 
+/* Gather information about the device and pass it to user-space */
 #define HLV_SIMULATOR_IOCTL_GET_SUPPORTED_FEATURES \
 			_IOR('O', 0x02, struct hlv_sim_supported_features)
 

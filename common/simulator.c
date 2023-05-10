@@ -22,6 +22,9 @@
 #define HL_SIM_MAX_MINORS	(HL_MAX_MINORS - 1)
 #define HL_SIM_MODE_DEV_MINOR	HL_SIM_MAX_MINORS
 
+/* The coral shall no request more than - 2MB */
+#define HL_SIM_MAX_SHARED_BLOCK_SIZE	(512 * PAGE_SIZE)
+
 static int sim_mode;
 static int sim_single_msi;
 
@@ -1503,4 +1506,168 @@ void sim_devices_init(struct hl_simulator_device *sim_dev, struct class *hclass,
 	dev_set_name(dev, "%s", name);
 
 	sim_dev->dev = dev;
+}
+
+static struct simulator_shared_mem_block *hl_sim_alloc_shared_block(u64 block_size)
+{
+	struct simulator_shared_mem_block *shared_block;
+	int num_pages = block_size / PAGE_SIZE;
+
+	shared_block = kzalloc(sizeof(*shared_block), GFP_KERNEL);
+	if (!shared_block)
+		return NULL;
+
+	shared_block->pfn_arr = kcalloc(num_pages, sizeof(*shared_block->pfn_arr), GFP_KERNEL);
+
+	if (!shared_block->pfn_arr) {
+		kfree(shared_block);
+		return NULL;
+	}
+
+	shared_block->num_pages = num_pages;
+	return shared_block;
+}
+
+void hl_sim_free_shared_block(struct simulator_shared_mem_block *shared_block, bool refcount)
+{
+	struct page *page;
+	int i;
+
+	if (refcount) {
+		for (i = 0; i < shared_block->num_pages; i++) {
+			page = pfn_to_page(shared_block->pfn_arr[i]);
+			page_ref_dec(page);
+		}
+	}
+
+	if (shared_block->num_pages > 0)
+		kfree(shared_block->pfn_arr);
+
+	kfree(shared_block);
+}
+
+int hl_sim_create_shared_block(struct hl_simulator_device *edev,
+				struct simulator_memory_args *args)
+{
+	struct hl_mmu_hop_info hops_info = {};
+	struct simulator_shared_mem_block *shared_block;
+	u64 virt_addr = args->device_address, out_handle;
+	struct hl_device *hdev = edev->hdev;
+	struct page *page;
+	struct hl_ctx *ctx;
+	int rc = 0, handle, i, err_idx;
+
+	/* TODO: SW-147312 - check if to change PAGE_SIZE to prop->pmmu.page */
+	/* TODO: SW-147312 - check how to handle HUGE_PAGE                   */
+	if (!args->size || args->size % PAGE_SIZE || args->size > HL_SIM_MAX_SHARED_BLOCK_SIZE) {
+		dev_err(edev->dev, "invalid size for shared block. size: %llu\n", args->size);
+		return -EINVAL;
+	}
+
+	/* TODO: SW-147312 - add device_address validation */
+	ctx = hl_get_compute_ctx(hdev);
+	if (!ctx) {
+		dev_err(edev->dev, "Can't get compute context\n");
+		return -EINVAL;
+	}
+
+	shared_block = hl_sim_alloc_shared_block(args->size);
+	if (!shared_block) {
+		rc = -ENOMEM;
+		goto put_ctx;
+	}
+
+	/* Use the idr with start value as '1', to support current .mmap,
+	 * which uses the 'offset' parameter and refers offset - 0 value
+	 * to memory allocations (legacy code).
+	 */
+	mutex_lock(&edev->shared_block_idr_mutex);
+	handle = idr_alloc(&edev->shared_block_idr, shared_block, 1, 0,
+				GFP_KERNEL);
+	mutex_unlock(&edev->shared_block_idr_mutex);
+
+	if (handle < 0) {
+		dev_err(edev->dev, "Failed to get handle for shared block\n");
+		rc = -EINVAL;
+		goto free_shared_block;
+	}
+
+	out_handle = (u64)handle << PAGE_SHIFT;
+	dev_dbg(edev->dev, "create shared block: virt: %#llx size: %llu handle: 0x%llx (0x%x)\n",
+			virt_addr, args->size, out_handle, handle);
+
+	for (i = 0 ; i < shared_block->num_pages ; i++) {
+		mutex_lock(&hdev->mmu_lock);
+		rc = hl_mmu_hr_get_tlb_info(ctx, virt_addr + (i * PAGE_SIZE), &hops_info,
+			&ctx->hdev->mmu_func[MMU_HR_PGT].hr_funcs);
+		mutex_unlock(&hdev->mmu_lock);
+		if (rc) {
+			dev_err(edev->dev, "failed to get tlb info. virt: %#llx\n",
+					virt_addr + (i * PAGE_SIZE));
+			goto remove_idr;
+		}
+
+		shared_block->pfn_arr[i] = hops_info.unscrambled_paddr >> PAGE_SHIFT;
+
+		/* until the release block is called, hold a ref count to avoid page free.
+		 * In case page ref count is zero, it probably means that page was
+		 * unmapped and freed, right after get_tlb_info was called.
+		 */
+		page = pfn_to_page(shared_block->pfn_arr[i]);
+		if (!get_page_unless_zero(page)) {
+			dev_err(edev->dev, "Failed to get page-%d. %#llx\n",
+					i, shared_block->pfn_arr[i]);
+
+			rc = -EINVAL;
+			goto remove_idr;
+		}
+
+		dev_dbg(edev->dev, "	page-%d: address - %#llx\n", i, shared_block->pfn_arr[i]);
+	}
+
+	hl_ctx_put(ctx);
+	args->handle = out_handle;
+
+	return 0;
+
+remove_idr:
+	err_idx = i;
+	for (i = 0; i < err_idx; i++) {
+		page = pfn_to_page(shared_block->pfn_arr[i]);
+		page_ref_dec(page);
+	}
+
+	mutex_lock(&edev->shared_block_idr_mutex);
+	idr_remove(&edev->shared_block_idr, handle);
+	mutex_unlock(&edev->shared_block_idr_mutex);
+
+free_shared_block:
+	hl_sim_free_shared_block(shared_block, false);
+
+put_ctx:
+	hl_ctx_put(ctx);
+	return rc;
+}
+
+int hl_sim_release_shared_block(struct hl_simulator_device *edev,
+				struct simulator_memory_args *args)
+{
+	struct simulator_shared_mem_block *shared_block;
+	int handle = args->handle >> PAGE_SHIFT;
+
+	mutex_lock(&edev->shared_block_idr_mutex);
+	shared_block = idr_find(&edev->shared_block_idr, handle);
+	if (!shared_block) {
+		mutex_unlock(&edev->shared_block_idr_mutex);
+		dev_err(edev->dev, "Failed to release shared block, no such handle 0x%llx\n",
+					args->handle);
+		return -EINVAL;
+	}
+
+	idr_remove(&edev->shared_block_idr, handle);
+	mutex_unlock(&edev->shared_block_idr_mutex);
+
+	hl_sim_free_shared_block(shared_block, true);
+
+	return 0;
 }
