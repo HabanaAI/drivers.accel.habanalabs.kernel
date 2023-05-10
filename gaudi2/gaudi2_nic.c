@@ -337,8 +337,6 @@ static void gaudi2_nic_set_sni_data(struct hl_device *hdev)
 	gaudi2_aux_ops = &gaudi2->sni_aux_ops;
 	aux_ops->asic_ops = gaudi2_aux_ops;
 
-	gaudi2_aux_data->pcie_bar = hdev->pcie_bar[DRAM_BAR_ID];
-	gaudi2_aux_data->dram_bar_cur_addr = &gaudi2->dram_bar_cur_addr;
 	gaudi2_aux_data->cfg_base = CFG_BASE;
 	gaudi2_aux_data->fw_security_enabled = hdev->asic_prop.fw_security_enabled;
 	gaudi2_aux_data->msix_enabled = !!(gaudi2->hw_cap_initialized & HW_CAP_MSIX);
