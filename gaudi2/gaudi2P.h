@@ -8,7 +8,7 @@
 #ifndef GAUDI2P_H_
 #define GAUDI2P_H_
 
-#include <linux/habanalabs/gaudi2/gaudi2.h>
+#include <linux/habanalabs/gaudi2.h>
 #include <uapi/drm/habanalabs_accel.h>
 #include "../common/habanalabs.h"
 #include "../include/common/hl_boot_if.h"

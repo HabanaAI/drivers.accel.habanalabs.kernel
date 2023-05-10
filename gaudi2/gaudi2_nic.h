@@ -8,8 +8,6 @@
 #ifndef GAUDI2_NIC_H_
 #define GAUDI2_NIC_H_
 
-#include <linux/habanalabs/gaudi2/gaudi2.h>
-
 #include "gaudi2P.h"
 #include "../include/gaudi2/asic_reg/gaudi2_regs.h"
 
