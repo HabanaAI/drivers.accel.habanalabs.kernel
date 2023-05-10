@@ -6049,15 +6049,6 @@ static void gaudi3_iterate_nic_mstr_if_dbg_blocks(struct hl_device *hdev,
 		.data = operation
 	};
 
-	/* TODO:
-	 * Enable when/if some of hl_nic_ctop() moves to be before the "skip_engines" label in
-	 * gaudi3_halt_engines() (SW-116829).
-	 * When enabled, need to add more info in the mstr_if_dbg_block data/operation structures
-	 * about hard/compute reset, to allow skipping it for NIC if needed.
-	 */
-	if (true)
-		return;
-
 	gaudi3_iterate_nics(hdev, &iter_ctx);
 }
 
@@ -6095,7 +6086,7 @@ static void gaudi3_iterate_arc_farm_mstr_if_dbg_blocks(struct hl_device *hdev,
 	}
 }
 
-static void gaudi3_iterate_mstr_if_dbg_blocks(struct hl_device *hdev,
+static void gaudi3_iterate_compute_mstr_if_dbg_blocks(struct hl_device *hdev,
 					struct gaudi3_mstr_if_dbg_block_operation *operation)
 {
 	gaudi3_iterate_pdma_mstr_if_dbg_blocks(hdev, operation);
@@ -6105,8 +6096,14 @@ static void gaudi3_iterate_mstr_if_dbg_blocks(struct hl_device *hdev,
 	gaudi3_iterate_mme_mstr_if_dbg_blocks(hdev, operation);
 	gaudi3_iterate_rotator_mstr_if_dbg_blocks(hdev, operation);
 	gaudi3_iterate_decoder_mstr_if_dbg_blocks(hdev, operation);
-	gaudi3_iterate_nic_mstr_if_dbg_blocks(hdev, operation);
 	gaudi3_iterate_arc_farm_mstr_if_dbg_blocks(hdev, operation);
+}
+
+static void gaudi3_iterate_mstr_if_dbg_blocks(struct hl_device *hdev,
+					struct gaudi3_mstr_if_dbg_block_operation *operation)
+{
+	gaudi3_iterate_compute_mstr_if_dbg_blocks(hdev, operation);
+	gaudi3_iterate_nic_mstr_if_dbg_blocks(hdev, operation);
 }
 
 static void gaudi3_enable_mstr_if_dbg_counters_func(struct hl_device *hdev,
@@ -8941,13 +8938,22 @@ static void gaudi3_verify_mstr_if_dbg_counters_func(struct hl_device *hdev,
 			addr, lbw_otf_wr_cnt, lbw_otf_rd_cnt);
 }
 
-static void gaudi3_verify_mstr_if_dbg_counters(struct hl_device *hdev)
+static void gaudi3_verify_compute_mstr_if_dbg_counters(struct hl_device *hdev)
 {
 	struct gaudi3_mstr_if_dbg_block_operation operation = {
 		.func = gaudi3_verify_mstr_if_dbg_counters_func,
 	};
 
-	gaudi3_iterate_mstr_if_dbg_blocks(hdev, &operation);
+	gaudi3_iterate_compute_mstr_if_dbg_blocks(hdev, &operation);
+}
+
+static void gaudi3_verify_nic_mstr_if_dbg_counters(struct hl_device *hdev)
+{
+	struct gaudi3_mstr_if_dbg_block_operation operation = {
+		.func = gaudi3_verify_mstr_if_dbg_counters_func,
+	};
+
+	gaudi3_iterate_nic_mstr_if_dbg_blocks(hdev, &operation);
 }
 
 static void gaudi3_halt_engines(struct hl_device *hdev, bool hard_reset, bool fw_reset)
@@ -8999,11 +9005,12 @@ static void gaudi3_halt_engines(struct hl_device *hdev, bool hard_reset, bool fw
 	gaudi3_disable_timestamp(hdev);
 
 	/* Verify that there are no on-the-fly AXI transactions after halting the engines */
-	gaudi3_verify_mstr_if_dbg_counters(hdev);
+	gaudi3_verify_compute_mstr_if_dbg_counters(hdev);
 
 skip_engines:
 	if (hard_reset) {
 		hl_nic_stop(hdev);
+		gaudi3_verify_nic_mstr_if_dbg_counters(hdev);
 		gaudi3_disable_msix(hdev);
 		return;
 	}
