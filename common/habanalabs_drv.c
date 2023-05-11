@@ -101,7 +101,6 @@ static int bfe_hbm_ecc_enable = 1;
 static int bfe_compatibility_mode;
 static int bfe_hard_reset_on_fw_events = 1;
 static int bfe_bmc_enable = 1;
-/* TODO: SW-123246: move to SNI driver */
 static int bfe_nic_load_fw;
 static int bfe_rl_enable = 1;
 static int bfe_sram_binning;
@@ -123,7 +122,6 @@ static int bfe_fw_cfg_skip;
 static int bfe_bmu_enable = 1;
 static int bfe_nic_eth_on_internal;
 static int bfe_config_qman_arc_for_stub_mme;
-/* TODO: SW-123246: move to SNI driver */
 static int bfe_skip_nic_phy_init;
 /*
  * The debug_[rw]reg control on tracing LBW RW
