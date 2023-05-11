@@ -102,6 +102,8 @@
 #include "rtr_ctrl_adec_hbw_regs.h"
 #include "stm_regs.h"
 #include "cs_dbg_tpc_eml_eml_etf_regs.h"
+#include "cs_dbg_w_spmu_4_bmon_spmu_regs.h"
+#include "cs_dbg_w_spmu_4_bmon_bmon0_regs.h"
 #include "etf_1kb_regs.h"
 #include "cs_dbg_tpc_eml_eml_spmu_regs.h"
 #include "cs_dbg_tpc_eml_bmon0_regs.h"
@@ -234,6 +236,8 @@
 #include "sb_masks.h"
 #include "acc_masks.h"
 
+#define BMON_BASE_OFFSET		(mmHD0_TPC0_CS_DBG_BMON1_BASE - \
+						mmHD0_TPC0_CS_DBG_BMON0_BASE)
 /* CSLICE */
 #define CS_MAINT_BASE_OFFSET		(mmHD0_CS0_MAINT_BASE - mmHD0_CS0_MAIN_BASE)
 

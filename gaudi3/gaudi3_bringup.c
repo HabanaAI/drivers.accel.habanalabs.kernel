@@ -197,6 +197,79 @@ enum sei_intr_idx {
 	SEI_INTR_MME_CTRL0_LO1,
 };
 
+enum spi_intr_idx {
+	SPI_INTR_MME0_SBTE0_1_CS_DBG,
+	SPI_INTR_MME0_SBTE0,
+	SPI_INTR_MME0_SBTE1,
+	SPI_INTR_MME0_SBTE2_3_CS_DBG,
+	SPI_INTR_MME0_SBTE2,
+	SPI_INTR_MME0_SBTE3,
+	SPI_INTR_MME1_SBTE0_1_CS_DBG,
+	SPI_INTR_MME1_SBTE0,
+	SPI_INTR_MME1_SBTE1,
+	SPI_INTR_MME1_SBTE2_3_CS_DBG,
+	SPI_INTR_MME1_SBTE2,
+	SPI_INTR_MME1_SBTE3,
+	SPI_INTR_MME_QM_CS,
+	SPI_INTR_MME0_ACC,
+	SPI_INTR_MME1_ACC,
+	SPI_INTR_TPC0_BMON_SPMU,
+	SPI_INTR_TPC0_KERNEL_ERR,
+	SPI_INTR_TPC1_BMON_SPMU,
+	SPI_INTR_TPC1_KERNEL_ERR,
+	SPI_INTR_TPC2_BMON_SPMU,
+	SPI_INTR_TPC2_KERNEL_ERR,
+	SPI_INTR_TPC3_BMON_SPMU,
+	SPI_INTR_TPC3_KERNEL_ERR,
+	SPI_INTR_TPC4_BMON_SPMU,
+	SPI_INTR_TPC4_KERNEL_ERR,
+	SPI_INTR_TPC5_BMON_SPMU,
+	SPI_INTR_TPC5_KERNEL_ERR,
+	SPI_INTR_TPC6_BMON_SPMU,
+	SPI_INTR_TPC6_KERNEL_ERR,
+	SPI_INTR_TPC7_BMON_SPMU,
+	SPI_INTR_TPC7_KERNEL_ERR,
+	SPI_INTR_TPC8_BMON_SPMU,
+	SPI_INTR_TPC8_KERNEL_ERR,
+	SPI_INTR_ROT0_ERR,
+	SPI_INTR_ROT0_RSVD,
+	SPI_INTR_ROT1_ERR,
+	SPI_INTR_ROT1_RSVD,
+	SPI_INTR_CS0_TRACE_N_DBG,
+	SPI_INTR_CS0_RSVD,
+	SPI_INTR_CS1_TRACE_N_DBG,
+	SPI_INTR_CS1_RSVD,
+	SPI_INTR_CS2_TRACE_N_DBG,
+	SPI_INTR_CS2_RSVD,
+	SPI_INTR_CS3_TRACE_N_DBG,
+	SPI_INTR_CS3_RSVD,
+	SPI_INTR_CS4_TRACE_N_DBG,
+	SPI_INTR_CS4_RSVD,
+	SPI_INTR_CS5_TRACE_N_DBG,
+	SPI_INTR_CS5_RSVD,
+	SPI_INTR_CS6_TRACE_N_DBG,
+	SPI_INTR_CS6_RSVD,
+	SPI_INTR_CS7_TRACE_N_DBG,
+	SPI_INTR_CS7_RSVD,
+	SPI_INTR_STLB_FAULT,
+	SPI_INTR_STLB_MAINT_QUEUE_FULL,
+	SPI_INTR_STLB_SW_PREFETCH_FAIL,
+	SPI_INTR_STLB_RSVD,
+	SPI_INTR_EDMA0_TRACE_N_DBG,
+	SPI_INTR_EDMA1_TRACE_N_DBG,
+	SPI_INTR_MC0,
+	SPI_INTR_MC1,
+	SPI_INTR_MC2,
+	SPI_INTR_MC3,
+	SPI_INTR_SOB0_TRACE_N_DBG,
+	SPI_INTR_ARC_FARM0_RSVD,
+	SPI_INTR_ARC_FARM1_RSVD,
+	SPI_INTR_DEC0,
+	SPI_INTR_DEC0_TRACE_N_DBG,
+	SPI_INTR_DEC1,
+	SPI_INTR_DEC1_TRACE_N_DBG,
+};
+
 typedef void (*shared_aggr_handle_and_clear)(struct hl_device *hdev, u32 die,
 					enum err_grp type, u32 sts, u32 sts_idx, u32 idx,
 					u32 aggr_mask_reg, u32 events_mask);
@@ -3756,15 +3829,38 @@ static void handle_and_clear_mme_sei_events(struct hl_device *hdev, u32 idx, u32
 	}
 }
 
+static void process_spmu_bmon_spi_interrupt(struct hl_device *hdev,
+						struct hl_eq_spmu_bmon *spmu_bmon_data,
+					u32 spmu_base, u32 bmon_base)
+{
+	__le32 *cause_arr = spmu_bmon_data->cause;
+	u32 cause;
+	int i;
+
+	cause = RREG32(spmu_base + mmCS_DBG_W_SPMU_4_BMON_SPMU_PMINTENSET_EL1);
+	cause_arr[CS_DBG_SPMU] = cpu_to_le32(cause);
+	if (cause)
+		WREG32(spmu_base + mmCS_DBG_W_SPMU_4_BMON_SPMU_PMINTENCLR_EL1, cause);
+
+	for (i = CS_DBG_BMON0; i < CS_DBG_BMON_MAX; i++) {
+		cause = RREG32(bmon_base + mmCS_DBG_W_SPMU_4_BMON_BMON0_TRIG_TH);
+		spmu_bmon_data->cause[i] = cpu_to_le32(cause);
+		if (cause)
+			WREG32(bmon_base + mmCS_DBG_W_SPMU_4_BMON_BMON0_INT_CLR, cause);
+		bmon_base += BMON_BASE_OFFSET;
+	}
+}
+
 /* HDCORE_MME_EVENT */
 static void handle_and_clear_mme_events(struct hl_device *hdev, u32 die, u32 hdcore, u32 instance,
 					enum err_grp type, u32 sts, u32 sts_idx, u32 idx,
 					u32 aggr_mask_reg, u32 events_mask)
 {
+	u32 offset, cause, mme_id, acc_base, spmu_base, bmon_base;
 	struct hl_eq_dynamic_entry eq_dynamic_entry = {};
 	struct eq_agg_header_params params = {};
+	struct hl_eq_mme_spi_data *spi_data;
 	bool unmask_event_in_aggr = false;
-	u32 offset;
 
 	offset = (die * NUM_OF_HDCORES_PER_DIE + hdcore) * HDCORE_OFFSET;
 
@@ -3779,7 +3875,38 @@ static void handle_and_clear_mme_events(struct hl_device *hdev, u32 die, u32 hdc
 		handle_and_clear_mme_sei_events(hdev, idx, offset, &eq_dynamic_entry.mme_sei_data);
 		break;
 	case ERR_GRP_SPI_ECO:
-		break;
+		spi_data = &eq_dynamic_entry.mme_spi_data;
+		/* the driver only cares about interrupts 12-14, which are mapped to 0-2 in 'idx' */
+		switch (idx + 12) {
+		case SPI_INTR_MME_QM_CS:
+			spmu_base = mmHD0_MME_QMAN_CS_DBG_SPMU_BASE + offset;
+			bmon_base = mmHD0_MME_QMAN_CS_DBG_BMON0_BASE + offset;
+			spi_data->spmu_bmon_data.comp_sub_type = CS_DBG_MME_QM;
+			spi_data->type = MME_DATA_TYPE_CS_DBG;
+			process_spmu_bmon_spi_interrupt(hdev, &spi_data->spmu_bmon_data.data,
+							spmu_base, bmon_base);
+			break;
+		case SPI_INTR_MME0_ACC:
+		case SPI_INTR_MME1_ACC:
+			if (idx + 12 == SPI_INTR_MME0_ACC)
+				mme_id = 0;
+			else
+				mme_id = 1;
+
+			acc_base = mmHD0_MME0_ACC_BASE + HDCORE_MME_EU_OFFSET * mme_id + offset;
+			cause = RREG32(acc_base + mmACC_INTR_CAUSE) & MME_ACC_SPI_INTR_MASK;
+
+			spi_data->type = MME_DATA_TYPE_ACC;
+			gaudi3_set_mme_acc_ctx_id_interrupt(hdev, &spi_data->acc_data, cause,
+								acc_base);
+			spi_data->acc_data.intr_cause.intr_cause_data = cpu_to_le64(cause);
+			spi_data->acc_data.id = mme_id;
+
+			WREG32(acc_base + mmACC_INTR_CLEAR, cause);
+			break;
+		default:
+			return;
+		}
 	default:
 		return;
 	}
