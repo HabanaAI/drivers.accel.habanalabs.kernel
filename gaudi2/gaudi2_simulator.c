@@ -974,8 +974,6 @@ static int gaudi2_sim_set_fixed_properties(struct hl_device *hdev)
 
 	nic_prop->nic_drv_size = nic_drv_size;
 	nic_prop->wq_base_size = WQ_BASE_SIZE(nic_drv_addr, nic_drv_size);
-	nic_prop->nic_qpc_cache_inv_timeout = NIC_SIM_QPC_INV_USEC;
-	nic_prop->advanced_hw_support = false;
 
 	return 0;
 }

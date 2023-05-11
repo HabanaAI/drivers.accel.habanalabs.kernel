@@ -15,7 +15,6 @@
 
 /* This is the max frame length the H/W supports (Tx/Rx) */
 #define NIC_MAX_RDMA_HDRS	128
-#define NIC_MAX_TNL_HDR_SIZE	32 /* Bytes */
 #define NIC_MAX_FRM_LEN		(NIC_MAX_RC_MTU + NIC_MAX_RDMA_HDRS)
 #define NIC_RAW_MIN_MTU		(SZ_1K - HL_EN_MAX_HEADERS_SZ)
 #define NIC_RAW_MAX_MTU		(NIC_MAX_RC_MTU - HL_EN_MAX_HEADERS_SZ)
@@ -35,8 +34,6 @@ static_assert(IS_POWER_OF_2(NIC_RAW_ELEM_SIZE));
 
 /* Number of available QPs must not exceed NIC_HW_MAX_QP_NUM */
 static_assert(NIC_MAX_QP_NUM <= NIC_HW_MAX_QP_NUM);
-
-#define NIC_MAX_WQ_ARRAY_TYPE	HL_NIC_USER_WQ_RECV
 
 /* Allocate an extra QP to be used as dummy QP. */
 #define REQ_QPC_TOTAL_PORT_SIZE	((NIC_MAX_QP_NUM + 1) * sizeof(struct gaudi2_qpc_requester))
@@ -94,19 +91,6 @@ static_assert(NIC_MAX_QP_NUM <= NIC_HW_MAX_QP_NUM);
 /* Unlike the other NIC related sizes, this size is shared between all the engines */
 #define WQ_BASE_SIZE(nic_drv_addr, nic_drv_size) \
 			(NIC_DRV_END_ADDR(nic_drv_addr, nic_drv_size) - WQ_BASE_ADDR(nic_drv_addr))
-
-#define CQE_SIZE			sizeof(struct gaudi2_cqe)
-#define CQ_USER_MIN_ENTRIES		128
-
-#define NIC_CQ_MAX_ENTRIES		BIT(13)
-
-#define NIC_CQ_USER_MIN_ENTRIES		4
-#define NIC_CQ_USER_MAX_ENTRIES		NIC_CQ_MAX_ENTRIES
-
-static_assert(IS_POWER_OF_2(NIC_CQ_MAX_ENTRIES));
-
-#define USER_WQES_MIN_NUM		16
-#define USER_WQES_MAX_NUM		(1 << 15) /* 32K */
 
 #define NIC_CFG_LO_SIZE		(mmNIC0_QPC1_REQ_STATIC_CONFIG - \
 					mmNIC0_QPC0_REQ_STATIC_CONFIG)

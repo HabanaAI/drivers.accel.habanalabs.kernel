@@ -3402,24 +3402,8 @@ int gaudi3_set_fixed_properties(struct hl_device *hdev)
 	prop->reset_poll_timeout_us = hdev->pldm ? GAUDI3_PLDM_PREBOOT_RESET_POLL_TIMEOUT_USEC
 						: GAUDI3_RESET_POLL_TIMEOUT_USEC;
 
-	nic_prop->max_hw_qps_num = NIC_HW_MAX_QP_NUM;
-	nic_prop->max_qps_num = ELEMENT_COUNT(NIC_MAX_GEN_QP_NUM);
-	nic_prop->max_hw_user_wqs_num = USER_WQES_MAX_NUM;
-	nic_prop->min_hw_user_wqs_num = USER_WQES_MIN_NUM;
-	nic_prop->rwqe_size = NIC_RECV_WQE_SIZE;
-	nic_prop->force_cq = false;
-	nic_prop->max_num_of_lanes = NIC_MAX_NUM_OF_LANES;
 	nic_prop->max_num_of_ports = NIC_NUMBER_OF_PORTS;
-	nic_prop->num_of_macros = NIC_NUMBER_OF_MACROS;
-	nic_prop->max_cqs = GAUDI3_NIC_MAX_CQS_NUM;
-	nic_prop->max_ccqs = GAUDI3_NIC_MAX_CCQS_NUM;
-	nic_prop->max_db_fifos = GAUDI3_NIC_NUM_DB_FIFOS;
-	nic_prop->cq_min_entries = CQ_USER_MIN_ENTRIES;
-	nic_prop->user_cq_min_entries = NIC_CQ_USER_MIN_ENTRIES;
-	nic_prop->user_cq_max_entries = NIC_CQ_USER_MAX_ENTRIES;
-	nic_prop->cqe_size = CQE_SIZE;
 	nic_prop->macro_cfg_size = NIC_OFFSET;
-
 	nic_prop->nic_drv_size = NIC_DRV_SIZE;
 	/* wq_base_size most likely to be overridden later */
 	nic_prop->wq_base_size = WQ_BASE_SIZE(0, nic_prop->nic_drv_size);
@@ -3428,25 +3412,15 @@ int gaudi3_set_fixed_properties(struct hl_device *hdev)
 	nic_prop->req_qpc_base_size = REQ_QPC_BASE_SIZE;
 	nic_prop->res_qpc_base_size = RES_QPC_BASE_SIZE;
 	nic_prop->req_qpc_swl_base_size = REQ_QPC_SWL_BASE_SIZE;
-	nic_prop->nic_qpc_cache_inv_timeout = hdev->pldm ? NIC_PLDM_QPC_INV_USEC : NIC_QPC_INV_USEC;
-	nic_prop->max_tnl_hdr_size = NIC_MAX_TNL_HDR_SIZE;
-	nic_prop->advanced_hw_support = false;
-	nic_prop->max_frm_len = NIC_MAX_FRM_LEN;
-	nic_prop->raw_elem_size = NIC_RAW_ELEM_SIZE;
-	nic_prop->max_raw_mtu = NIC_RAW_MAX_MTU;
-	nic_prop->min_raw_mtu = NIC_RAW_MIN_MTU;
 	nic_prop->status_packet_size = sizeof(struct cpucp_nic_status);
-
 	/* SW-69799: TODO fetch nic clock frequency from F/W once available. */
 	nic_prop->clk = GAUDI3_NIC_CLK_FREQ / USEC_PER_SEC;
-	nic_prop->max_wq_arr_type = NIC_MAX_WQ_ARRAY_TYPE;
 
 	return 0;
 
 free_hw_queues_props:
 	kfree(prop->hw_queues_props);
 	return rc;
-
 }
 
 static int gaudi3_pci_bars_map(struct hl_device *hdev)
@@ -4446,7 +4420,7 @@ static bool gaudi3_special_blocks_skip_with_mask(struct hl_device *hdev,
 		if (hdev->pldm)
 			return true;
 
-		if (instance_idx >= prop->nic_props.num_of_macros)
+		if (instance_idx >= NIC_NUMBER_OF_MACROS)
 			return true;
 
 		if (hdev->nic_ports_mask & gaudi3_nic_get_macro_ports_mask(hdev, instance_idx))
@@ -12170,7 +12144,7 @@ static u32 gaudi3_handle_nic_status_event(struct hl_device *hdev,
 	mask = le64_to_cpu(eq_dynamic_entry->nic_sts_req_data.port_en_mask);
 	period = eq_dynamic_entry->nic_sts_req_data.period;
 
-	for (port = 0 ; port < hdev->asic_prop.nic_props.max_num_of_ports ; port++) {
+	for (port = 0 ; port < NIC_NUMBER_OF_PORTS ; port++) {
 		if (!(mask & BIT(port)))
 			continue;
 		rc = hl_nic_send_status(hdev, port, cmd, period);

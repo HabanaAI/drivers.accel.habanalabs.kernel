@@ -707,30 +707,12 @@ int gaudi_set_fixed_properties(struct hl_device *hdev)
 	prop->fuse_data_0_reg = mmPSOC_EFUSE_DATA_0;
 	prop->fuse_words_per_bank = FUSE_WORDS_PER_BANK;
 
-	nic_prop->max_hw_qps_num = NIC_HW_MAX_QP_NUM;
-	nic_prop->max_qps_num = NIC_MAX_QP_NUM;
-	nic_prop->max_hw_user_wqs_num = USER_WQES_MAX_NUM;
-	nic_prop->min_hw_user_wqs_num = USER_WQES_MIN_NUM;
-	nic_prop->rwqe_size = NIC_RECV_WQE_SIZE;
-	nic_prop->force_cq = true;
-	nic_prop->max_num_of_lanes = NIC_MAX_NUM_OF_LANES;
 	nic_prop->max_num_of_ports = NIC_NUMBER_OF_PORTS;
-	nic_prop->num_of_macros = NIC_NUMBER_OF_MACROS;
-	nic_prop->cq_min_entries = CQ_USER_MIN_ENTRIES;
-	nic_prop->user_cq_min_entries = USER_CQ_MIN_ENTRIES;
-	nic_prop->user_cq_max_entries = USER_CQ_MAX_ENTRIES;
-	nic_prop->cqe_size = CQE_SIZE;
-	nic_prop->nic_qpc_cache_inv_timeout = hdev->pldm ?
-				NIC_PLDM_QPC_INV_USEC : NIC_QPC_INV_USEC;
-	prop->nic_props.macro_cfg_size = mmNIC1_QM0_GLBL_CFG0 -
-						mmNIC0_QM0_GLBL_CFG0;
-	prop->nic_props.base_status_event_idx = GAUDI_EVENT_STATUS_NIC0_ENG0;
-
+	nic_prop->macro_cfg_size = mmNIC1_QM0_GLBL_CFG0 - mmNIC0_QM0_GLBL_CFG0;
 	nic_prop->nic_drv_addr = NIC_DRV_ADDR;
 	nic_prop->nic_drv_size = NIC_DRV_SIZE;
 	nic_prop->nic_drv_base_addr = NIC_DRV_BASE_ADDR;
 	nic_prop->nic_drv_end_addr = NIC_DRV_END_ADDR;
-
 	nic_prop->sb_base_addr = SB_BASE_ADDR;
 	nic_prop->sb_base_size = SB_BASE_SIZE;
 	nic_prop->swq_base_addr = SWQ_BASE_ADDR;
@@ -739,19 +721,10 @@ int gaudi_set_fixed_properties(struct hl_device *hdev)
 	nic_prop->txs_base_size = TXS_BASE_SIZE;
 	nic_prop->tmr_base_addr = TMR_BASE_ADDR;
 	nic_prop->tmr_base_size = TMR_BASE_SIZE;
-
 	nic_prop->req_qpc_base_addr = REQ_QPC_BASE_ADDR;
 	nic_prop->req_qpc_base_size = REQ_QPC_BASE_SIZE;
 	nic_prop->res_qpc_base_addr = RES_QPC_BASE_ADDR;
 	nic_prop->res_qpc_base_size = RES_QPC_BASE_SIZE;
-
-	nic_prop->max_frm_len = NIC_MAX_FRM_LEN;
-	nic_prop->raw_elem_size = NIC_RAW_ELEM_SIZE;
-	nic_prop->max_raw_mtu = NIC_RAW_MAX_MTU;
-	nic_prop->min_raw_mtu = NIC_RAW_MIN_MTU;
-
-	nic_prop->max_wq_arr_type = NIC_MAX_WQ_ARRAY_TYPE;
-
 	nic_prop->status_packet_size = NIC_STATUS_PACKET_SIZE;
 
 	return 0;

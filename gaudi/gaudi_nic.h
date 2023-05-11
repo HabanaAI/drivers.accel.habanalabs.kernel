@@ -28,8 +28,6 @@ static_assert(IS_POWER_OF_2(NIC_RAW_ELEM_SIZE));
 /* Number of available QPs must not exceed NIC_HW_MAX_QP_NUM */
 static_assert(NIC_MAX_QP_NUM <= NIC_HW_MAX_QP_NUM);
 
-#define NIC_MAX_WQ_ARRAY_TYPE	HL_NIC_USER_WQ_RECV
-
 /* The '*_SIZE' defines are per NIC port */
 #define REQ_QPC_BASE_SIZE	(NIC_MAX_QP_NUM * sizeof(struct gaudi_qpc_requester))
 #define RES_QPC_BASE_SIZE	(NIC_MAX_QP_NUM * sizeof(struct gaudi_qpc_responder))
@@ -85,17 +83,8 @@ static_assert(NIC_MAX_QP_NUM <= NIC_HW_MAX_QP_NUM);
 
 #define WQ_BUFFER_LOG_SIZE		8
 #define WQ_BUFFER_SIZE			(1 << WQ_BUFFER_LOG_SIZE)
-#define CQ_USER_MIN_ENTRIES		128
 #define RX_MSI_IDX			(GAUDI_EVENT_QUEUE_MSI_IDX + 1)
 #define RX_MSI_ADDRESS			(mmPCIE_MSI_INTR_0 + RX_MSI_IDX * 4)
-#define CQ_MSI_IDX			(NUMBER_OF_CMPLT_QUEUES + NUMBER_OF_CPU_HW_QUEUES + \
-						NIC_NUMBER_OF_ENGINES)
-
-#define USER_CQ_MIN_ENTRIES		(1 << 10)
-#define USER_CQ_MAX_ENTRIES		(1 << 27)
-
-#define USER_WQES_MIN_NUM		(1 << 4)
-#define USER_WQES_MAX_NUM		(1 << 21) /* 2MB */
 
 /* On Gaudi1, the F/W does extra validation that the received nic_status packet size is equal to
  * the size of the cpcpu_nic_status structure.
@@ -108,12 +97,6 @@ static_assert(NIC_MAX_QP_NUM <= NIC_HW_MAX_QP_NUM);
  * Therefore, this value must not changed !!!
  */
 #define NIC_STATUS_PACKET_SIZE		40
-
-struct cqe {
-	__le64	data;
-};
-
-#define CQE_SIZE			sizeof(struct cqe)
 
 /*
  * Some registers are specific for each NIC port, and some are shared for all

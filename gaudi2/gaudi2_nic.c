@@ -400,9 +400,7 @@ static int gaudi2_nic_send_cpucp_packet(struct hl_device *hdev, u32 port,
 
 static void gaudi2_fw_nic_status(struct hl_device *hdev, u32 port)
 {
-	struct hl_nic_properties *nic_props = &hdev->asic_prop.nic_props;
-
-	hl_fw_unmask_irq(hdev, nic_props->base_status_event_idx + port);
+	hl_fw_unmask_irq(hdev, GAUDI2_EVENT_CPU0_STATUS_NIC0_ENG0 + port);
 }
 
 static struct hl_nic_port_funcs gaudi2_nic_port_funcs = {

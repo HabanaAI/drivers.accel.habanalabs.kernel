@@ -496,9 +496,7 @@ static void gaudi_nic_set_sni_data(struct hl_device *hdev)
 
 static void gaudi_fw_nic_status(struct hl_device *hdev, u32 port)
 {
-	struct hl_nic_properties *nic_props = &hdev->asic_prop.nic_props;
-
-	hl_fw_unmask_irq(hdev, nic_props->base_status_event_idx + port);
+	hl_fw_unmask_irq(hdev, GAUDI_EVENT_STATUS_NIC0_ENG0 + port);
 }
 
 static struct hl_nic_port_funcs gaudi_nic_port_funcs = {

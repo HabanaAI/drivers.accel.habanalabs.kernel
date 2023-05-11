@@ -74,7 +74,7 @@ static void gaudi3_nic_config_hw_rxe_fw(struct hl_device *hdev, u32 port)
 	NIC_WREG32(mmD0_NIC0_RXE_BASE + mmNIC_RXE_ARPROT_HBW_UNSEC, 0);
 
 	/* Initialize AXI prot bits for all CQs to non-priv, secured, data access */
-	for (i = 0 ; i < hdev->asic_prop.nic_props.max_cqs ; i++) {
+	for (i = 0 ; i < GAUDI3_NIC_MAX_CQS_NUM ; i++) {
 		NIC_WREG32(mmD0_NIC0_RXE_BASE + mmNIC_RXE_CQ_AXI_PROT0_0 + i * sizeof(u32), 0);
 		NIC_WREG32(mmD0_NIC0_RXE_BASE + mmNIC_RXE_CQ_AXI_PROT0_1 + i * sizeof(u32), 0);
 		NIC_WREG32(mmD0_NIC0_RXE_BASE + mmNIC_RXE_CQ_AXI_PROT0_2 + i * sizeof(u32), 0);

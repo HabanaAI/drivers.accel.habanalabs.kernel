@@ -2531,38 +2531,14 @@ int gaudi2_set_fixed_properties(struct hl_device *hdev)
 	prop->fuse_data_0_reg = mmPSOC_EFUSE_DATA_0;
 	prop->fuse_words_per_bank = FUSE_WORDS_PER_BANK;
 
-	nic_prop->max_hw_qps_num = NIC_HW_MAX_QP_NUM;
-	nic_prop->max_qps_num = NIC_MAX_QP_NUM;
-	nic_prop->max_hw_user_wqs_num = USER_WQES_MAX_NUM;
-	nic_prop->min_hw_user_wqs_num = USER_WQES_MIN_NUM;
-	nic_prop->rwqe_size = NIC_RECV_WQE_SIZE;
-	nic_prop->force_cq = false;
-	nic_prop->max_num_of_lanes = NIC_MAX_NUM_OF_LANES;
 	nic_prop->max_num_of_ports = NIC_NUMBER_OF_PORTS;
-	nic_prop->num_of_macros = NIC_NUMBER_OF_MACROS;
-	nic_prop->max_cqs = GAUDI2_NIC_MAX_CQS_NUM;
-	nic_prop->max_ccqs = NIC_MAX_CCQS_NUM;
-	nic_prop->max_db_fifos = GAUDI2_NIC_NUM_DB_FIFOS;
-	nic_prop->cq_min_entries = CQ_USER_MIN_ENTRIES;
-	nic_prop->user_cq_min_entries = NIC_CQ_USER_MIN_ENTRIES;
-	nic_prop->user_cq_max_entries = NIC_CQ_USER_MAX_ENTRIES;
-	nic_prop->cqe_size = CQE_SIZE;
 	nic_prop->macro_cfg_size = NIC_OFFSET;
 	nic_prop->txs_base_size = TXS_TOTAL_PORT_SIZE;
 	nic_prop->tmr_base_size = TMR_TOTAL_MACRO_SIZE;
 	nic_prop->req_qpc_base_size = REQ_QPC_TOTAL_PORT_SIZE;
 	nic_prop->res_qpc_base_size = RES_QPC_TOTAL_PORT_SIZE;
-	nic_prop->nic_qpc_cache_inv_timeout = hdev->pldm ? NIC_PLDM_QPC_INV_USEC : NIC_QPC_INV_USEC;
-	nic_prop->max_tnl_hdr_size = NIC_MAX_TNL_HDR_SIZE;
-	nic_prop->advanced_hw_support = true;
-	nic_prop->base_status_event_idx = GAUDI2_EVENT_CPU0_STATUS_NIC0_ENG0;
-	nic_prop->max_frm_len = NIC_MAX_FRM_LEN;
-	nic_prop->raw_elem_size = NIC_RAW_ELEM_SIZE;
-	nic_prop->max_raw_mtu = NIC_RAW_MAX_MTU;
-	nic_prop->min_raw_mtu = NIC_RAW_MIN_MTU;
 	nic_prop->status_packet_size = sizeof(struct cpucp_nic_status);
 	nic_prop->clk = GAUDI2_NIC_CLK_FREQ / USEC_PER_SEC;
-	nic_prop->max_wq_arr_type = NIC_MAX_WQ_ARRAY_TYPE;
 
 	return 0;
 

@@ -13,8 +13,6 @@
 
 #define NIC_MAX_RC_MTU		SZ_8K
 
-#define NIC_MAX_TNL_HDR_SIZE	32 /* Bytes */
-
 /* This is the max frame length the H/W supports (Tx/Rx) */
 #define NIC_MAX_RDMA_HDRS	234
 #define NIC_MAX_FRM_LEN		(NIC_MAX_RC_MTU + NIC_MAX_RDMA_HDRS)
@@ -40,8 +38,6 @@ static_assert(IS_POWER_OF_2(NIC_RAW_ELEM_SIZE));
 
 /* Number of available QPs must not exceed NIC_HW_MAX_QP_NUM */
 static_assert((NIC_MAX_CONN_ID + 1) <= NIC_HW_MAX_QP_NUM);
-
-#define NIC_MAX_WQ_ARRAY_TYPE	HL_NIC_USER_COLL_SCALE_OUT_WQ_RECV
 
 /* The '*_SIZE' defines are per NIC port */
 /* TODO: change to gaudi3 values */
@@ -113,17 +109,6 @@ static_assert((NIC_MAX_CONN_ID + 1) <= NIC_HW_MAX_QP_NUM);
 /* Unlike the other NIC related sizes, this size is shared between all the engines */
 #define WQ_BASE_SIZE(nic_drv_addr, nic_drv_size) \
 			(NIC_DRV_END_ADDR(nic_drv_addr, nic_drv_size) - WQ_BASE_ADDR(nic_drv_addr))
-
-#define CQE_SIZE			sizeof(struct gaudi3_cqe)
-#define CQ_USER_MIN_ENTRIES		128
-
-#define NIC_CQ_MAX_ENTRIES		BIT(13)
-
-#define NIC_CQ_USER_MIN_ENTRIES		4
-#define NIC_CQ_USER_MAX_ENTRIES		NIC_CQ_MAX_ENTRIES
-
-#define USER_WQES_MIN_NUM		4
-#define USER_WQES_MAX_NUM		(1 << 15) /* 32K */
 
 /* read/write port specific registers */
 #define NIC_PORT_DIE_OFFSET(port)	(((port) >= NIC_NUM_PORTS_PER_DIE) ? NIC_DIE_OFFSET : 0)

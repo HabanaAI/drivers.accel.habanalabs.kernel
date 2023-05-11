@@ -325,10 +325,9 @@ static bool gaudi2_nic_is_macro_enabled(struct hl_device *hdev, u8 macro_idx)
 
 static void gaudi2_nic_macros_hw_config_no_fw(struct hl_device *hdev)
 {
-	struct hl_nic_properties *nic_props = &hdev->asic_prop.nic_props;
 	int i;
 
-	for (i = 0 ; i < nic_props->num_of_macros ; i++) {
+	for (i = 0 ; i < NIC_NUMBER_OF_MACROS ; i++) {
 		if (!gaudi2_nic_is_macro_enabled(hdev, i))
 			continue;
 
@@ -338,10 +337,9 @@ static void gaudi2_nic_macros_hw_config_no_fw(struct hl_device *hdev)
 
 static void gaudi2_nic_ports_config_no_fw(struct hl_device *hdev)
 {
-	struct hl_nic_properties *nic_props = &hdev->asic_prop.nic_props;
 	int port;
 
-	for (port = 0 ; port < nic_props->max_num_of_ports ; port++) {
+	for (port = 0 ; port < NIC_NUMBER_OF_PORTS ; port++) {
 		/* SW-42306: Due to H/W bug on gaudi2, link events for both even and odd ports
 		 * arrive only on the odd port in the macro. Therefore, need to initialize
 		 * all EQs of all ports regardless of their enablement.
@@ -383,10 +381,9 @@ void gaudi2_nic_blocks_fw_config(struct hl_device *hdev)
 
 void gaudi2_nic_restore_dynamic_cfg_soft_reset_fw(struct hl_device *hdev)
 {
-	struct hl_nic_properties *nic_props = &hdev->asic_prop.nic_props;
 	int port;
 
-	for (port = 0 ; port < nic_props->max_num_of_ports ; port++) {
+	for (port = 0 ; port < NIC_NUMBER_OF_PORTS ; port++) {
 		/* Don't initialize disabled ports */
 		if (!(hdev->nic_ports_mask & BIT(port)))
 			continue;

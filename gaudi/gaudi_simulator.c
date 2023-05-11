@@ -906,8 +906,6 @@ static int gaudi_sim_set_fixed_properties(struct hl_device *hdev)
 	nic_prop->req_qpc_base_addr = GAUDI_SIM_REQ_QPC_BASE_ADDR;
 	nic_prop->res_qpc_base_addr = GAUDI_SIM_RES_QPC_BASE_ADDR;
 
-	nic_prop->nic_qpc_cache_inv_timeout = NIC_SIM_QPC_INV_USEC;
-
 	return 0;
 }
 
