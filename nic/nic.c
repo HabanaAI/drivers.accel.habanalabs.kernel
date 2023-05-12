@@ -1104,3 +1104,21 @@ int hl_nic_get_port_statistics(struct hl_device *hdev, u32 port,
 
 	return -EFAULT;
 }
+
+int hl_nic_check_ib_driver(struct hl_device *hdev)
+{
+#ifdef HL_LOAD_IB
+	struct module *modules_list;
+
+	list_for_each_entry(modules_list, THIS_MODULE->list.prev, list) {
+		if (!strcmp(modules_list->name, HL_IB_NAME))
+			return 0;
+	}
+
+	dev_err(hdev->dev, "habanalabs_ib module is not found. Maybe %s module is unloaded?\n",
+				HL_IB_NAME);
+	return -ENODEV;
+#else
+	return 0;
+#endif
+}

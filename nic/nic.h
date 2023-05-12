@@ -110,6 +110,7 @@ int hl_nic_mmap(struct hl_device *hdev, u32 asid, struct vm_area_struct *vma);
 int hl_nic_get_port_state(struct hl_device *hdev, u32 port, bool *up);
 int hl_nic_get_port_statistics(struct hl_device *hdev, u32 port,
 				struct hl_sni_port_statistics *out);
+int hl_nic_check_ib_driver(struct hl_device *hdev);
 
 #ifndef _HAS_AUX_BUS_H
 extern int hl_sni_probe(struct hl_aux_dev *aux_dev);

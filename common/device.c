@@ -880,6 +880,10 @@ static int device_early_init(struct hl_device *hdev)
 	int i, rc;
 	char workq_name[32];
 
+	rc = hl_nic_check_ib_driver(hdev);
+	if (rc)
+		return rc;
+
 	switch (hdev->asic_type) {
 	case ASIC_GOYA_SIM:
 		goya_sim_set_asic_funcs(hdev);
