@@ -7990,6 +7990,11 @@ void greco_set_priv_assertions(struct hl_device *hdev, bool enable)
 {
 }
 
+static int greco_irq_vector(struct hl_device *hdev, unsigned int nr)
+{
+	return pci_irq_vector(hdev->pdev, nr);
+}
+
 static const struct hl_asic_funcs greco_funcs = {
 	.early_init = greco_early_init,
 	.early_fini = greco_early_fini,
@@ -8083,6 +8088,7 @@ static const struct hl_asic_funcs greco_funcs = {
 	.set_pci_memory_regions = greco_set_pci_memory_regions,
 	.get_stream_master_qid_arr = greco_get_stream_master_qid_arr,
 	.check_if_razwi_happened = greco_check_if_razwi_happened,
+	.irq_vector = greco_irq_vector,
 	.scheduler_submit_buf = greco_scheduler_submit_buf,
 	.no_fw_monitor = greco_no_fw_monitor,
 	.mmu_get_real_page_size = hl_mmu_get_real_page_size,
