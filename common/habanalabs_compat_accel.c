@@ -62,9 +62,9 @@ struct dentry *hl_accel_get_debugfs_root(void)
 
 void hl_accel_exit(void)
 {
-	unregister_chrdev_region(MKDEV(accel_major, 0), ACCEL_MAX_MINORS);
 	debugfs_remove(accel_debugfs_root);
 	accel_sysfs_destroy();
+	unregister_chrdev_region(MKDEV(accel_major, 0), ACCEL_MAX_MINORS);
 }
 
 int __init hl_accel_init(void)
@@ -72,22 +72,22 @@ int __init hl_accel_init(void)
 	dev_t dev;
 	int rc;
 
-	rc = accel_sysfs_init();
-	if (rc < 0) {
-		pr_err("Cannot create ACCEL class: %d\n", rc);
-		goto error;
-	}
-
-	accel_debugfs_root = debugfs_create_dir("accel", NULL);
-
 	rc = alloc_chrdev_region(&dev, 0, ACCEL_MAX_MINORS, ACCEL_NAME);
 	if (rc < 0) {
-		pr_err("unable to get major\n");
+		pr_err("Unable to get accel major\n");
 		return rc;
 	}
 
 	accel_major = MAJOR(dev);
 
-error:
-	return rc;
+	rc = accel_sysfs_init();
+	if (rc < 0) {
+		pr_err("Cannot create accel class: %d\n", rc);
+		unregister_chrdev_region(MKDEV(accel_major, 0), ACCEL_MAX_MINORS);
+		return rc;
+	}
+
+	accel_debugfs_root = debugfs_create_dir("accel", NULL);
+
+	return 0;
 }
