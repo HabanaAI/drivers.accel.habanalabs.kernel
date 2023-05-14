@@ -11351,6 +11351,8 @@ static bool gaudi3_razwi_status(struct hl_device *hdev, struct razwi_initiator_i
 
 	hl_handle_razwi(hdev, razwi_addr, &eng_id, 1, flags, event_mask);
 
+	WREG32(base + mmRTR_CTRL_CH_RAZWI_HBW_RR_RAZWI_AW_HAPPENED_CLR, 1);
+
 	return true;
 }
 
