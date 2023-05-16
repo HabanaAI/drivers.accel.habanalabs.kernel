@@ -1180,6 +1180,9 @@ static int send_fw_generic_request(struct hl_device *hdev, struct hl_info_args *
 	case HL_PASSTHROUGH_VERSIONS:
 		need_input_buff = false;
 		break;
+	case HL_ECC_INJECTION:
+		need_input_buff = true;
+		break;
 	default:
 		return -EINVAL;
 	}
