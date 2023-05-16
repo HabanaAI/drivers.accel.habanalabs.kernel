@@ -364,10 +364,13 @@ static struct hl_automated_pb_cfg gaudi3_sec_pb_cfg[] = GAUDI3_SEC_PROTBITS_CFG;
 GAUDI3_PRIV_PROTBITS_DATA;
 static struct hl_automated_pb_cfg gaudi3_priv_pb_cfg[] = GAUDI3_PRIV_PROTBITS_CFG;
 
-/* TODO - remove exclusion of ARC_FARM once SW-123176 is resolved */
+/* TODO - remove exclusion of ARC_FARM once SW-123176 is resolved
+ * Part of PSOC blocks cannot be accessed through PCIe, so need to skip.
+ */
 static const int gaudi3_iterator_skip_block_types[] = {
 		GAUDI3_BLOCK_TYPE_ARC_FARM,
-		GAUDI3_BLOCK_TYPE_EU_BIST
+		GAUDI3_BLOCK_TYPE_EU_BIST,
+		GAUDI3_BLOCK_TYPE_PSOC
 };
 
 static const struct range gaudi3_iterator_skip_special_blocks_ranges[] = {
@@ -4359,7 +4362,7 @@ static bool gaudi3_special_blocks_skip_with_mask(struct hl_device *hdev,
 		auto_pb_cfg = &auto_pb_cfg_arr[blk_idx];
 		block_info = &auto_pb_cfg->addr;
 	} else {
-		block_info = prop->special_blocks;
+		block_info = &prop->special_blocks[blk_idx];
 	}
 
 	/* 'major' is either the die index or the half-dcores index.
@@ -12330,10 +12333,7 @@ static u32 gaudi3_handle_sei_event(struct hl_device *hdev,
 
 	gaudi3_sei_razwi_handler(hdev, agg_component_type, die, hdcore, instance, event_mask);
 
-	/*
-	 * TODO: Enable iterator after SW-140969 is resolved.
-	 * hl_check_for_glbl_errors(hdev);
-	 */
+	hl_check_for_glbl_errors(hdev);
 
 	return err_cnt;
 }
@@ -12377,10 +12377,8 @@ static u32 gaudi3_handle_spi_event(struct hl_device *hdev,
 		break;
 	}
 
-	/*
-	 * TODO: Enable iterator after SW-140969 is resolved.
-	 * hl_check_for_glbl_errors(hdev);
-	 */
+	hl_check_for_glbl_errors(hdev);
+
 	return err_cnt;
 }
 
