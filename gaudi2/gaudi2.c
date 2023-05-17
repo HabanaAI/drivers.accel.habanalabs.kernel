@@ -9332,6 +9332,10 @@ static int gaudi2_print_pcie_addr_dec_info(struct hl_device *hdev, u16 event_typ
 	u32 error_count = 0;
 	int i;
 
+	/* TODO: remove once SW-142252 is resolved */
+	gaudi2_print_event(hdev, event_type, true,
+		"intr_cause_data: %#llx", intr_cause_data);
+
 	for (i = 0 ; i < GAUDI2_NUM_OF_PCIE_ADDR_DEC_ERR_CAUSE ; i++) {
 		if (!(intr_cause_data & BIT_ULL(i)))
 			continue;
@@ -9353,9 +9357,10 @@ static int gaudi2_print_pcie_addr_dec_info(struct hl_device *hdev, u16 event_typ
 		 *      break;
 		 * }
 		 */
-		hl_check_for_glbl_errors(hdev);
-		gaudi2_print_pcie_mstr_rr_mstr_if_razwi_info(hdev, event_mask);
 	}
+
+	hl_check_for_glbl_errors(hdev);
+	gaudi2_print_pcie_mstr_rr_mstr_if_razwi_info(hdev, event_mask);
 
 	return error_count;
 }
