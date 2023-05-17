@@ -3308,8 +3308,9 @@ start_over:
 	return 0;
 }
 
-static int unregister_timestamp_node_ioctl(struct hl_device *hdev, struct hl_mem_mgr *mmg,
-		u64 ts_handle, u64 ts_offset, struct hl_user_interrupt *interrupt)
+static int unregister_timestamp_node_ioctl(struct hl_device *hdev, struct hl_ctx *ctx,
+			struct hl_mem_mgr *mmg, u64 ts_handle, u64 ts_offset,
+			struct hl_user_interrupt *interrupt)
 {
 	struct hl_user_pending_interrupt *req_event_record, *pend, *temp_pend;
 	struct hl_mmap_mem_buf *buff;
@@ -3327,7 +3328,7 @@ static int unregister_timestamp_node_ioctl(struct hl_device *hdev, struct hl_mem
 
 	rc = validate_and_get_ts_record(hdev->dev, ts_buff, ts_offset, &req_event_record);
 	if (rc)
-		goto out;
+		goto put_buf;
 
 	/*
 	 * Note: we don't use the ts in_use field here, but we rather scan the list
@@ -3354,7 +3355,8 @@ static int unregister_timestamp_node_ioctl(struct hl_device *hdev, struct hl_mem
 		hl_mmap_mem_buf_put(pend->ts_reg_info.buf);
 		hl_cb_put(pend->ts_reg_info.cq_cb);
 	}
-out:
+
+put_buf:
 	hl_mmap_mem_buf_put(buff);
 
 	return rc;
@@ -3394,6 +3396,7 @@ static int _hl_interrupt_wait_ioctl(struct hl_device *hdev, struct hl_ctx *ctx,
 	if (register_ts_record) {
 		dev_dbg(hdev->dev, "Timestamp registration: interrupt id: %u, ts offset: %llu, cq_offset: %llu\n",
 					interrupt->interrupt_id, ts_offset, cq_counters_offset);
+
 		buf = hl_mmap_mem_buf_get(mmg, ts_handle);
 		if (!buf) {
 			rc = -EINVAL;
@@ -3693,9 +3696,21 @@ static int hl_interrupt_wait_ioctl(struct hl_fpriv *hpriv, void *data)
 		return -EINVAL;
 	}
 
+	/*
+	 * Allow only one registration at a time. this is needed in order to prevent issues
+	 * while handling the flow of re-use of the same offset.
+	 * Since the registration flow is protected only by the interrupt lock, re-use flow
+	 * might request to move ts node to another interrupt list, and in such case we're
+	 * not protected.
+	 */
+	if ((args->in.flags & HL_WAIT_CS_FLAGS_UNREGISTER_INTERRUPT) ||
+		(args->in.flags & HL_WAIT_CS_FLAGS_REGISTER_INTERRUPT))
+		mutex_lock(&hpriv->ctx->ts_reg_lock);
+
 	if (args->in.flags & HL_WAIT_CS_FLAGS_UNREGISTER_INTERRUPT)
-		rc = unregister_timestamp_node_ioctl(hdev, &hpriv->mem_mgr,
-				args->in.timestamp_handle, args->in.timestamp_offset, interrupt);
+		rc = unregister_timestamp_node_ioctl(hdev, hpriv->ctx, &hpriv->mem_mgr,
+				args->in.timestamp_handle, args->in.timestamp_offset,
+				interrupt);
 	else if (args->in.flags & HL_WAIT_CS_FLAGS_INTERRUPT_KERNEL_CQ)
 		rc = _hl_interrupt_wait_ioctl(hdev, hpriv->ctx, &hpriv->mem_mgr, &hpriv->mem_mgr,
 				args->in.interrupt_timeout_us, args->in.cq_counters_handle,
@@ -3709,6 +3724,11 @@ static int hl_interrupt_wait_ioctl(struct hl_fpriv *hpriv, void *data)
 				args->in.interrupt_timeout_us, args->in.addr,
 				args->in.target, interrupt, &status,
 				&timestamp);
+
+	if ((args->in.flags & HL_WAIT_CS_FLAGS_UNREGISTER_INTERRUPT) ||
+		(args->in.flags & HL_WAIT_CS_FLAGS_REGISTER_INTERRUPT))
+		mutex_unlock(&hpriv->ctx->ts_reg_lock);
+
 	if (rc)
 		return rc;
 

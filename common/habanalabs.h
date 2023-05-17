@@ -2079,6 +2079,7 @@ struct hl_cs_outcome_store {
  * @va_range: holds available virtual addresses for host and dram mappings.
  * @mem_hash_lock: protects the mem_hash.
  * @hw_block_list_lock: protects the HW block memory list.
+ * @ts_reg_lock: timestamp registration ioctls lock.
  * @debugfs_list: node in debugfs list of contexts.
  * @hw_block_mem_list: list of HW block virtual mapped addresses.
  * @cs_counters: context command submission counters.
@@ -2116,6 +2117,7 @@ struct hl_ctx {
 	struct hl_va_range		*va_range[HL_VA_RANGE_TYPE_MAX];
 	struct mutex			mem_hash_lock;
 	struct mutex			hw_block_list_lock;
+	struct mutex			ts_reg_lock;
 	struct list_head		debugfs_list;
 	struct list_head		hw_block_mem_list;
 	struct hl_cs_counters_atomic	cs_counters;
