@@ -152,6 +152,8 @@ MODULE_FIRMWARE(GAUDI3_BOOT_FIT_FILE);
 
 #define GAUDI3_PDMA_TEST_VAL 0x12345600UL
 
+#define GAUDI3_EQ_SIZE_IN_BYTES	(HL_EQ_LENGTH * HL_EQ_DYNAMIC_ENTRY_SIZE)
+
 #define HL_STR(e) #e
 
 const char *gaudi3_engine_id_str[] = {
@@ -7481,7 +7483,7 @@ int gaudi3_init_cpu_queues(struct hl_device *hdev, u32 cpu_timeout)
 	WREG32(reg_base + mmARC_CQ_BASE_ADDR_HIGH, upper_32_bits(hdev->cpu_accessible_dma_address));
 
 	WREG32(reg_base + mmARC_PQ_LENGTH, HL_QUEUE_SIZE_IN_BYTES);
-	WREG32(reg_base + mmARC_EQ_LENGTH, HL_EQ_SIZE_IN_BYTES);
+	WREG32(reg_base + mmARC_EQ_LENGTH, GAUDI3_EQ_SIZE_IN_BYTES);
 	WREG32(reg_base + mmARC_CQ_LENGTH, HL_CPU_ACCESSIBLE_MEM_SIZE);
 
 	/* Used for EQ CI */
