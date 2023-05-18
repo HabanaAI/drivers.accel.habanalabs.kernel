@@ -1223,18 +1223,18 @@ static int gaudi3_sim_hw_init(struct hl_device *hdev)
 	/* Some blocks are isolated by default so must be called before hl_init_pb_security() */
 	gaudi3_sim_set_isolation(hdev, false, false);
 
-	rc = hl_init_pb_security(hdev, true);
-	if (rc) {
-		dev_err(hdev->dev, "Configuring privileged PBs failed!\n");
-		return rc;
-	}
-
 	gaudi3_lbw_dup_init(hdev);
 
 	/* Set all privileged registers instead of FW */
 	rc = gaudi3_sim_fw_config(hdev);
 	if (rc)
 		return rc;
+
+	rc = hl_init_pb_security(hdev, true);
+	if (rc) {
+		dev_err(hdev->dev, "Configuring privileged PBs failed!\n");
+		return rc;
+	}
 
 	rc = gaudi3_init_cpu(hdev);
 	if (rc) {

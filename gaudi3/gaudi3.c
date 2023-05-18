@@ -4592,7 +4592,11 @@ static bool gaudi3_special_blocks_skip_with_mask(struct hl_device *hdev,
 		break;
 	}
 
-	return true;
+	/* Some sub/blocks are inconsistently-stubbed/disabled on PLDM images */
+	if (hdev->pldm)
+		return true;
+	else
+		return false;
 }
 
 static int gaudi3_special_blocks_config(struct hl_device *hdev)
