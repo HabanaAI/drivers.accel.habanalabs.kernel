@@ -9733,6 +9733,7 @@ static int gaudi3_test_kdma_access(struct hl_device *hdev)
 		host_mem_virtual_addr[i] = val;
 		WREG32(regs_address + i * sizeof(u32), 0);
 	}
+
 	/* Flush writes */
 	RREG32(regs_address);
 
@@ -9802,6 +9803,9 @@ free_mem:
 	/* Free memory */
 	hl_asic_dma_free_coherent(hdev, num_regs * sizeof(u32), host_mem_virtual_addr,
 					host_mem_dma_addr);
+
+	if (hdev->simulator_crashed)
+		return 0;
 
 	return ret_val;
 }
