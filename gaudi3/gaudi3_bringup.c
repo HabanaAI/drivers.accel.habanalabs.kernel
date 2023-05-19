@@ -8,6 +8,7 @@
 #include "gaudi3P.h"
 #include "gaudi3_sni.h"
 #include "gaudi3_masks.h"
+#include "gaudi3_interrupt_map_bringup.h"
 
 #include <linux/bitrev.h>
 
@@ -71,6 +72,63 @@
  * It's configured for DIE0 only, since DIE1 PCIE/features are disabled.
  */
 #define mmD0_PIF_DUMMY_LBW_BLK_BASE		0xC41C000ull
+
+/*
+ * The interrupt map table for the CPU interrupts aggregators has the following order:
+ * D0_CPU_INT_AGG_HDCORE0
+ * ...
+ * D0_CPU_INT_AGG_HDCORE3
+ * D1_CPU_INT_AGG_HDCORE0
+ * ...
+ * D1_CPU_INT_AGG_HDCORE3
+ * D0_CPU_INT_AGG_SHARED
+ * D1_CPU_INT_AGG_SHARED
+ *
+ * Each CPU HDCORE aggregator aggregates 320 interrupts: 64 DERR, 64 SERR, 64 SEI and 128 SPI_ECO.
+ * Each CPU SHARED aggregator aggregates 256 interrupts: 32 DERR, 32 SERR, 96 SEI and 96 SPI_ECO.
+ *
+ * The table entries number is therefore: [2 dies x (4 hdcore x 320 + 1 shared x 256)] = 3072.
+ */
+#define CPU_HDCORE_AGGR_DERR_GRP_INTR_OFFSET	0
+#define CPU_HDCORE_AGGR_DERR_GRP_INTR_NUM	64
+#define CPU_HDCORE_AGGR_SERR_GRP_INTR_OFFSET	(CPU_HDCORE_AGGR_DERR_GRP_INTR_OFFSET + \
+						CPU_HDCORE_AGGR_DERR_GRP_INTR_NUM)
+#define CPU_HDCORE_AGGR_SERR_GRP_INTR_NUM	64
+#define CPU_HDCORE_AGGR_SEI_GRP_INTR_OFFSET	(CPU_HDCORE_AGGR_SERR_GRP_INTR_OFFSET + \
+						CPU_HDCORE_AGGR_SERR_GRP_INTR_NUM)
+#define CPU_HDCORE_AGGR_SEI_GRP_INTR_NUM	64
+#define CPU_HDCORE_AGGR_SPI_GRP_INTR_OFFSET	(CPU_HDCORE_AGGR_SEI_GRP_INTR_OFFSET + \
+						CPU_HDCORE_AGGR_SEI_GRP_INTR_NUM)
+#define CPU_HDCORE_AGGR_SPI_GRP_INTR_NUM	128
+#define CPU_HDCORE_AGGR_INTR_NUM		(CPU_HDCORE_AGGR_DERR_GRP_INTR_NUM + \
+						CPU_HDCORE_AGGR_SERR_GRP_INTR_NUM + \
+						CPU_HDCORE_AGGR_SEI_GRP_INTR_NUM + \
+						CPU_HDCORE_AGGR_SPI_GRP_INTR_NUM)
+#define CPU_HDCORE_AGGRS_INTR_NUM_PER_DIE	(CPU_INTR_AGGR_NUM_OF_HDCORE_AGGR * \
+						CPU_HDCORE_AGGR_INTR_NUM)
+#define CPU_SHARED_AGGR_DERR_GRP_INTR_OFFSET	0
+#define CPU_SHARED_AGGR_DERR_GRP_INTR_NUM	32
+#define CPU_SHARED_AGGR_SERR_GRP_INTR_OFFSET	(CPU_SHARED_AGGR_DERR_GRP_INTR_OFFSET + \
+						CPU_SHARED_AGGR_DERR_GRP_INTR_NUM)
+#define CPU_SHARED_AGGR_SERR_GRP_INTR_NUM	32
+#define CPU_SHARED_AGGR_SEI_GRP_INTR_OFFSET	(CPU_SHARED_AGGR_SERR_GRP_INTR_OFFSET + \
+						CPU_SHARED_AGGR_SERR_GRP_INTR_NUM)
+#define CPU_SHARED_AGGR_SEI_GRP_INTR_NUM	96
+#define CPU_SHARED_AGGR_SPI_GRP_INTR_OFFSET	(CPU_SHARED_AGGR_SEI_GRP_INTR_OFFSET + \
+						CPU_SHARED_AGGR_SEI_GRP_INTR_NUM)
+#define CPU_SHARED_AGGR_SPI_GRP_INTR_NUM	96
+#define CPU_SHARED_AGGR_INTR_GRP_NUM		(CPU_SHARED_AGGR_DERR_GRP_INTR_NUM + \
+						CPU_SHARED_AGGR_SERR_GRP_INTR_NUM + \
+						CPU_SHARED_AGGR_SEI_GRP_INTR_NUM + \
+						CPU_SHARED_AGGR_SPI_GRP_INTR_NUM)
+
+struct gaudi3_cpu_aggr_intr_map {
+	u32 grp_type;
+	u32 comp_type;
+	u32 comp_inst;
+	u32 hdcore_type;
+	u32 die_id;
+};
 
 struct tlb_init_data {
 	u32 cntrl_page_size;
@@ -139,19 +197,13 @@ enum sei_intr_idx {
 	SEI_INTR_MME_CTRL0_LO1,
 };
 
-struct block_instance {
-	u32 die;
-	u32 hdcore;
-	u32 instance;
-};
-
 typedef void (*shared_aggr_handle_and_clear)(struct hl_device *hdev, u32 die,
 					enum err_grp type, u32 sts, u32 sts_idx, u32 idx,
 					u32 aggr_mask_reg, u32 events_mask);
 
 typedef void (*hdcore_aggr_handle_and_clear)(struct hl_device *hdev, u32 die, u32 hdcore,
-					enum err_grp type, u32 sts, u32 sts_idx, u32 idx,
-					u32 aggr_mask_reg, u32 event_mask);
+					u32 instance, enum err_grp type, u32 sts, u32 sts_idx,
+					u32 idx, u32 aggr_mask_reg, u32 event_mask);
 
 static void handle_and_clear_pcie_events(struct hl_device *hdev, u32 die,
 					enum err_grp type, u32 sts, u32 sts_idx, u32 idx,
@@ -165,31 +217,31 @@ static void handle_and_clear_pmmu_events(struct hl_device *hdev, u32 die,
 static void handle_and_clear_pdma_events(struct hl_device *hdev, u32 die,
 					enum err_grp type, u32 sts, u32 sts_idx, u32 idx,
 					u32 aggr_mask_reg, u32 events_mask);
-static void handle_and_clear_tpc_events(struct hl_device *hdev, u32 die, u32 hdcore,
+static void handle_and_clear_tpc_events(struct hl_device *hdev, u32 die, u32 hdcore, u32 instance,
 					enum err_grp type, u32 sts, u32 sts_idx, u32 idx,
 					u32 aggr_mask_reg, u32 events_mask);
-static void handle_and_clear_mme_events(struct hl_device *hdev, u32 die, u32 hdcore,
+static void handle_and_clear_mme_events(struct hl_device *hdev, u32 die, u32 hdcore, u32 instance,
 					enum err_grp type, u32 sts, u32 sts_idx, u32 idx,
 					u32 aggr_mask_reg, u32 events_mask);
-static void handle_and_clear_stlb_events(struct hl_device *hdev, u32 die, u32 hdcore,
+static void handle_and_clear_stlb_events(struct hl_device *hdev, u32 die, u32 hdcore, u32 instance,
 					enum err_grp type, u32 sts, u32 sts_idx, u32 idx,
 					u32 aggr_mask_reg, u32 events_mask);
 static void handle_and_clear_arc_farm_events(struct hl_device *hdev, u32 die, u32 hdcore,
-					enum err_grp type, u32 sts, u32 sts_idx, u32 idx,
-					u32 aggr_mask_reg, u32 events_mask);
+					u32 instance, enum err_grp type, u32 sts, u32 sts_idx,
+					u32 idx, u32 aggr_mask_reg, u32 events_mask);
 static void handle_and_clear_decoder_events(struct hl_device *hdev, u32 die, u32 hdcore,
-					enum err_grp type, u32 sts, u32 sts_idx, u32 idx,
-					u32 aggr_mask_reg, u32 events_mask);
-static void handle_and_clear_edma_events(struct hl_device *hdev, u32 die, u32 hdcore,
+					u32 instance, enum err_grp type, u32 sts, u32 sts_idx,
+					u32 idx, u32 aggr_mask_reg, u32 events_mask);
+static void handle_and_clear_edma_events(struct hl_device *hdev, u32 die, u32 hdcore, u32 instance,
 					enum err_grp type, u32 sts, u32 sts_idx, u32 idx,
 					u32 aggr_mask_reg, u32 events_mask);
 static void handle_and_clear_nic_events(struct hl_device *hdev, u32 die,
 					enum err_grp type, u32 sts, u32 sts_idx, u32 idx,
 					u32 aggr_mask_reg, u32 events_mask);
-static void handle_and_clear_cs_events(struct hl_device *hdev, u32 die, u32 hdcore,
+static void handle_and_clear_cs_events(struct hl_device *hdev, u32 die, u32 hdcore, u32 instance,
 					enum err_grp type, u32 sts, u32 sts_idx, u32 idx,
 					u32 aggr_mask_reg, u32 events_mask);
-static void handle_and_clear_hbm_events(struct hl_device *hdev, u32 die, u32 hdcore,
+static void handle_and_clear_hbm_events(struct hl_device *hdev, u32 die, u32 hdcore, u32 instance,
 					enum err_grp type, u32 sts, u32 sts_idx, u32 idx,
 					u32 aggr_mask_reg, u32 events_mask);
 
@@ -3112,39 +3164,20 @@ static u32 cs_special_regs_base[] = {
 	mmHD0_CS0_SPECIAL_BASE
 };
 
-static void instance_fixup(u32 die, u32 *hd, u32 *idx)
-{
-	if (*idx == 8)
-		return;
-
-	/* a swap in die 1 */
-	if (die == 1)
-		*hd = 7 - *hd;
-
-	/* an instance swap for hdcores 2,3,6,7 */
-	if (*hd == 2 || *hd == 3 || *hd == 6 || *hd == 7)
-		*idx = 7 - *idx;
-
-	*hd = *hd % 4;
-}
-
 /* HDCORE_CS_EVENT */
-static void handle_and_clear_cs_events(struct hl_device *hdev, u32 die, u32 hdcore,
+static void handle_and_clear_cs_events(struct hl_device *hdev, u32 die, u32 hdcore, u32 instance,
 					enum err_grp type, u32 sts, u32 sts_idx, u32 idx,
 					u32 aggr_mask_reg, u32 events_mask)
 {
-	struct hl_eq_dynamic_entry eq_dynamic_entry = {};
-	struct eq_agg_header_params params = {};
 	bool unmask_event_in_aggr = false, need_clear = false;
-	u32 intr_cause_data, intr_cause_reg;
-	u32 instance, offset;
+	struct hl_eq_dynamic_entry eq_dynamic_entry = {};
+	u32 offset, intr_cause_data, intr_cause_reg;
+	struct eq_agg_header_params params = {};
+
+	offset = (die * NUM_OF_HDCORES_PER_DIE + hdcore) * HDCORE_OFFSET + instance * CSLICE_OFFSET;
 
 	switch (type) {
 	case ERR_GRP_DERR:
-		instance = idx;
-		instance_fixup(die, &hdcore, &instance);
-		offset = (die * NUM_OF_HDCORES_PER_DIE + hdcore) * HDCORE_OFFSET +
-				instance * CSLICE_OFFSET;
 		handle_and_clear_derr_events(hdev, cs_special_regs_base,
 						ARRAY_SIZE(cs_special_regs_base), offset,
 						&eq_dynamic_entry.ecc_data);
@@ -3152,10 +3185,6 @@ static void handle_and_clear_cs_events(struct hl_device *hdev, u32 die, u32 hdco
 		unmask_event_in_aggr = true;
 		break;
 	case ERR_GRP_SEI:
-		instance = idx;
-		instance_fixup(die, &hdcore, &instance);
-		offset = (die * NUM_OF_HDCORES_PER_DIE + hdcore) * HDCORE_OFFSET +
-				instance * CSLICE_OFFSET;
 		eq_dynamic_entry.hdr.size = cpu_to_le16(sizeof(struct hl_eq_intr_cause));
 		intr_cause_reg = mmHD0_CS0_MAIN_BASE + offset + mmCACHE_MAIN_SEI_CAUSE_REG;
 		intr_cause_data = RREG32(intr_cause_reg);
@@ -3163,10 +3192,6 @@ static void handle_and_clear_cs_events(struct hl_device *hdev, u32 die, u32 hdco
 		need_clear = unmask_event_in_aggr = true;
 		break;
 	case ERR_GRP_SPI_ECO:
-		instance = idx / 2;
-		instance_fixup(die, &hdcore, &instance);
-		offset = (die * NUM_OF_HDCORES_PER_DIE + hdcore) * HDCORE_OFFSET +
-				instance * CSLICE_OFFSET;
 		eq_dynamic_entry.hdr.size = cpu_to_le16(sizeof(struct hl_eq_intr_cause));
 		intr_cause_reg = mmHD0_CS0_MAIN_BASE + offset + mmCACHE_MAIN_SPI_CAUSE_REG;
 		intr_cause_data = RREG32(intr_cause_reg);
@@ -3201,7 +3226,7 @@ static u32 mc_special_regs_base[] = {
 };
 
 /* HDCORE_HBM_EVENT */
-static void handle_and_clear_hbm_events(struct hl_device *hdev, u32 die, u32 hdcore,
+static void handle_and_clear_hbm_events(struct hl_device *hdev, u32 die, u32 hdcore, u32 instance,
 					enum err_grp type, u32 sts, u32 sts_idx, u32 idx,
 					u32 aggr_mask_reg, u32 events_mask)
 {
@@ -3546,11 +3571,11 @@ static void handle_and_clear_qman_interrupts(struct hl_device *hdev, u32 qm_reg_
 }
 
 /* HDCORE_TPC_EVENT */
-static void handle_and_clear_tpc_events(struct hl_device *hdev, u32 die, u32 hdcore,
+static void handle_and_clear_tpc_events(struct hl_device *hdev, u32 die, u32 hdcore, u32 instance,
 					enum err_grp type, u32 sts, u32 sts_idx, u32 idx,
 					u32 aggr_mask_reg, u32 events_mask)
 {
-	u32 instance, offset, th_offset, cfg_base, smt_base, mask, smt_mask;
+	u32 offset, th_offset, cfg_base, smt_base, mask, smt_mask;
 	struct hl_eq_dynamic_entry eq_dynamic_entry = {};
 	struct eq_agg_header_params params = {};
 	struct hl_eq_tpc_sei_data *sei_data;
@@ -3559,12 +3584,11 @@ static void handle_and_clear_tpc_events(struct hl_device *hdev, u32 die, u32 hdc
 	u64 intr_cause;
 	int th;
 
+	offset = (die * NUM_OF_HDCORES_PER_DIE + hdcore) * HDCORE_OFFSET +
+			instance * HDCORE_TPC_OFFSET;
+
 	switch (type) {
 	case ERR_GRP_DERR:
-		instance = idx;
-		instance_fixup(die, &hdcore, &instance);
-		offset = (die * NUM_OF_HDCORES_PER_DIE + hdcore) * HDCORE_OFFSET +
-				instance * HDCORE_TPC_OFFSET;
 		handle_and_clear_derr_events(hdev, tpc_special_regs_base,
 						ARRAY_SIZE(tpc_special_regs_base), offset,
 						&eq_dynamic_entry.ecc_data);
@@ -3575,24 +3599,17 @@ static void handle_and_clear_tpc_events(struct hl_device *hdev, u32 die, u32 hdc
 	case ERR_GRP_SEI:
 	case ERR_GRP_SPI_ECO:
 		if (type == ERR_GRP_SEI) {
-			instance = idx;
 			mask = TPC_SEI_INTR_MASK;
 			smt_mask = TPC_SMT_TH_SEI_INTR_MASK;
 			tpc_data = &eq_dynamic_entry.tpc_sei_data.data;
 			sei_data = &eq_dynamic_entry.tpc_sei_data;
 			eq_dynamic_entry.hdr.size = cpu_to_le16(sizeof(struct hl_eq_tpc_sei_data));
 		} else {
-			instance = idx / 2;
 			mask = TPC_SPI_INTR_MASK;
 			smt_mask = TPC_SMT_TH_SPI_INTR_MASK;
 			tpc_data = &eq_dynamic_entry.tpc_spi_data.data;
 			eq_dynamic_entry.hdr.size = cpu_to_le16(sizeof(struct hl_eq_tpc_spi_data));
 		}
-
-		instance_fixup(die, &hdcore, &instance);
-
-		offset = (die * NUM_OF_HDCORES_PER_DIE + hdcore) * HDCORE_OFFSET +
-				instance * HDCORE_TPC_OFFSET;
 
 		cfg_base = mmHD0_TPC0_CFG_BASE + offset;
 		intr_cause = RREG32(cfg_base + mmTPC_TPC_INTR_CAUSE_0);
@@ -3777,7 +3794,7 @@ static void handle_and_clear_mme_sei_events(struct hl_device *hdev, u32 idx, u32
 }
 
 /* HDCORE_MME_EVENT */
-static void handle_and_clear_mme_events(struct hl_device *hdev, u32 die, u32 hdcore,
+static void handle_and_clear_mme_events(struct hl_device *hdev, u32 die, u32 hdcore, u32 instance,
 					enum err_grp type, u32 sts, u32 sts_idx, u32 idx,
 					u32 aggr_mask_reg, u32 events_mask)
 {
@@ -3786,11 +3803,8 @@ static void handle_and_clear_mme_events(struct hl_device *hdev, u32 die, u32 hdc
 	bool unmask_event_in_aggr = false;
 	u32 offset;
 
-	/* swap hd for die 1 */
-	if (die == 1)
-		hdcore = 3 - hdcore;
-
 	offset = (die * NUM_OF_HDCORES_PER_DIE + hdcore) * HDCORE_OFFSET;
+
 	switch (type) {
 	case ERR_GRP_DERR:
 		handle_and_clear_derr_events(hdev, &mme_special_regs_base[idx], 1, offset,
@@ -3826,7 +3840,7 @@ static u32 stlb_special_regs_base[] = {
 };
 
 /* HDCORE_STLB_EVENT */
-static void handle_and_clear_stlb_events(struct hl_device *hdev, u32 die, u32 hdcore,
+static void handle_and_clear_stlb_events(struct hl_device *hdev, u32 die, u32 hdcore, u32 instance,
 					enum err_grp type, u32 sts, u32 sts_idx, u32 idx,
 					u32 aggr_mask_reg, u32 events_mask)
 {
@@ -3835,9 +3849,10 @@ static void handle_and_clear_stlb_events(struct hl_device *hdev, u32 die, u32 hd
 	bool unmask_event_in_aggr = false;
 	u32 offset;
 
+	offset = (die * NUM_OF_HDCORES_PER_DIE + hdcore) * HDCORE_OFFSET;
+
 	switch (type) {
 	case ERR_GRP_DERR:
-		offset = (die * NUM_OF_HDCORES_PER_DIE + hdcore) * HDCORE_OFFSET;
 		handle_and_clear_derr_events(hdev, stlb_special_regs_base,
 						ARRAY_SIZE(stlb_special_regs_base), offset,
 						&eq_dynamic_entry.ecc_data);
@@ -3921,17 +3936,18 @@ static u32 arc_farm_special_regs_base[] = {
 
 /* HDCORE_ARCFARM_EVENT */
 static void handle_and_clear_arc_farm_events(struct hl_device *hdev, u32 die, u32 hdcore,
-					enum err_grp type, u32 sts, u32 sts_idx, u32 idx,
-					u32 aggr_mask_reg, u32 events_mask)
+					u32 instance, enum err_grp type, u32 sts, u32 sts_idx,
+					u32 idx, u32 aggr_mask_reg, u32 events_mask)
 {
 	struct hl_eq_dynamic_entry eq_dynamic_entry = {};
 	struct eq_agg_header_params params = {};
 	bool unmask_event_in_aggr = false;
 	u32 offset, err_msk;
 
+	offset = (die * NUM_OF_HDCORES_PER_DIE + hdcore) * HDCORE_OFFSET;
+
 	switch (type) {
 	case ERR_GRP_DERR:
-		offset = (die * NUM_OF_HDCORES_PER_DIE + hdcore) * HDCORE_OFFSET;
 		handle_and_clear_derr_events(hdev, arc_farm_special_regs_base,
 						ARRAY_SIZE(arc_farm_special_regs_base), offset,
 						&eq_dynamic_entry.ecc_data);
@@ -3976,94 +3992,6 @@ static void handle_and_clear_arc_farm_events(struct hl_device *hdev, u32 die, u3
 		WREG32_AND(aggr_mask_reg, events_mask);
 }
 
-static const struct block_instance
-decoder_derr_aggr_to_instance[MAX_NUM_OF_DIES][NUM_OF_HDCORES_PER_DIE][4] = {
-	{
-		/* D0_CPU_INT_AGG_HDCORE0 */
-		{{0, 0, 0} /* HD0_VDEC0 */, {0, 2, 0} /* HD2_VDEC0 */,
-				{0, 0, 0} /* HD0_VDEC0 */, {0, 2, 0} /* HD2_VDEC0 */},
-		/* D0_CPU_INT_AGG_HDCORE1 */
-		{{0, 0, 1} /* HD0_VDEC1 */, {0, 2, 1} /* HD2_VDEC1 */,
-				{0, 0, 1} /* HD0_VDEC1 */, {0, 2, 1} /* HD2_VDEC1 */},
-		/* D0_CPU_INT_AGG_HDCORE2 */
-		{{0, 1, 0} /* HD1_VDEC0 */, {0, 3, 0} /* HD3_VDEC0 */,
-				{0, 1, 0} /* HD1_VDEC0 */, {0, 3, 0} /* HD3_VDEC0 */},
-		/* D0_CPU_INT_AGG_HDCORE3 */
-		{{0, 1, 1} /* HD1_VDEC1 */, {0, 3, 1} /* HD3_VDEC1 */,
-				{0, 1, 1} /* HD1_VDEC1 */, {0, 3, 1} /* HD3_VDEC1 */}
-	},
-	{
-		/* D1_CPU_INT_AGG_HDCORE0 */
-		{{1, 3, 0} /* HD7_VDEC0 */, {1, 1, 0} /* HD5_VDEC0 */,
-				{1, 3, 0} /* HD7_VDEC0 */, {1, 1, 0} /* HD5_VDEC0 */},
-		/* D1_CPU_INT_AGG_HDCORE1 */
-		{{1, 3, 1} /* HD7_VDEC1 */, {1, 1, 1} /* HD5_VDEC1 */,
-				{1, 3, 1} /* HD7_VDEC1 */, {1, 1, 1} /* HD5_VDEC1 */},
-		/* D1_CPU_INT_AGG_HDCORE2 */
-		{{1, 2, 0} /* HD6_VDEC0 */, {1, 0, 0} /* HD4_VDEC0 */,
-				{1, 2, 0} /* HD6_VDEC0 */, {1, 0, 0} /* HD4_VDEC0 */},
-		/* D1_CPU_INT_AGG_HDCORE3 */
-		{{1, 2, 1} /* HD6_VDEC1 */, {1, 0, 1} /* HD4_VDEC1 */,
-				{1, 2, 1} /* HD6_VDEC1 */, {1, 0, 1} /* HD4_VDEC1 */}
-	}
-};
-
-static const struct block_instance
-decoder_sei_aggr_to_instance[MAX_NUM_OF_DIES][NUM_OF_HDCORES_PER_DIE][2] = {
-	{
-		/* D0_CPU_INT_AGG_HDCORE0 */
-		{{0, 0, 0} /* HD0_VDEC0 */, {0, 2, 0} /* HD2_VDEC0 */},
-		/* D0_CPU_INT_AGG_HDCORE1 */
-		{{0, 0, 1} /* HD0_VDEC1 */, {0, 2, 1} /* HD2_VDEC1 */},
-		/* D0_CPU_INT_AGG_HDCORE2 */
-		{{0, 1, 0} /* HD1_VDEC0 */, {0, 3, 0} /* HD3_VDEC0 */},
-		/* D0_CPU_INT_AGG_HDCORE3 */
-		{{0, 1, 1} /* HD1_VDEC1 */, {0, 3, 1} /* HD3_VDEC1 */}
-	},
-	{
-		/* D1_CPU_INT_AGG_HDCORE0 */
-		{{1, 3, 0} /* HD7_VDEC0 */, {1, 1, 0} /* HD5_VDEC0 */},
-		/* D1_CPU_INT_AGG_HDCORE1 */
-		{{1, 3, 1} /* HD7_VDEC1 */, {1, 1, 1} /* HD5_VDEC1 */},
-		/* D1_CPU_INT_AGG_HDCORE2 */
-		{{1, 2, 0} /* HD6_VDEC0 */, {1, 0, 0} /* HD4_VDEC0 */},
-		/* D1_CPU_INT_AGG_HDCORE3 */
-		{{1, 2, 1} /* HD6_VDEC1 */, {1, 0, 1} /* HD4_VDEC1 */}
-	}
-};
-
-static const struct block_instance
-decoder_spi_aggr_to_instance[MAX_NUM_OF_DIES][NUM_OF_HDCORES_PER_DIE][4] = {
-	{
-		/* D0_CPU_INT_AGG_HDCORE0 */
-		{{0, 0, 0} /* HD0_VDEC0 */, {0, 0, 0} /* HD0_VDEC0 */,
-				{0, 2, 0} /* HD2_VDEC0 */, {0, 2, 0} /* HD2_VDEC0 */},
-		/* D0_CPU_INT_AGG_HDCORE1 */
-		{{0, 0, 1} /* HD0_VDEC1 */, {0, 0, 1} /* HD0_VDEC1 */,
-				{0, 2, 1} /* HD2_VDEC1 */, {0, 2, 1} /* HD2_VDEC1 */},
-		/* D0_CPU_INT_AGG_HDCORE2 */
-		{{0, 1, 0} /* HD1_VDEC0 */, {0, 1, 0} /* HD1_VDEC0 */,
-				{0, 3, 0} /* HD3_VDEC0 */, {0, 3, 0} /* HD3_VDEC0 */},
-		/* D0_CPU_INT_AGG_HDCORE3 */
-		{{0, 1, 1} /* HD1_VDEC1 */, {0, 1, 1} /* HD1_VDEC1 */,
-				{0, 3, 1} /* HD3_VDEC1 */, {0, 3, 1} /* HD3_VDEC1 */}
-	},
-	{
-		/* D1_CPU_INT_AGG_HDCORE0 */
-		{{1, 3, 0} /* HD7_VDEC0 */, {1, 3, 0} /* HD7_VDEC0 */,
-				{1, 1, 0} /* HD5_VDEC0 */, {1, 1, 0} /* HD5_VDEC0 */},
-		/* D1_CPU_INT_AGG_HDCORE1 */
-		{{1, 3, 1} /* HD7_VDEC1 */, {1, 3, 1} /* HD7_VDEC1 */,
-				{1, 1, 1} /* HD5_VDEC1 */, {1, 1, 1} /* HD5_VDEC1 */},
-		/* D1_CPU_INT_AGG_HDCORE2 */
-		{{1, 2, 0} /* HD6_VDEC0 */, {1, 2, 0} /* HD6_VDEC0 */,
-				{1, 0, 0} /* HD4_VDEC0 */, {1, 0, 0} /* HD4_VDEC0 */},
-		/* D1_CPU_INT_AGG_HDCORE3 */
-		{{1, 2, 1} /* HD6_VDEC1 */, {1, 2, 1} /* HD6_VDEC1 */,
-				{1, 0, 1} /* HD4_VDEC1 */, {1, 0, 1} /* HD4_VDEC1 */}
-	}
-};
-
 static u32 decoder_special_regs_base[] = {
 	mmHD0_VDEC0_CTRL_SPECIAL_BASE,
 	mmHD0_VDEC0_BRDG_CTRL_SPECIAL_BASE
@@ -4071,22 +3999,19 @@ static u32 decoder_special_regs_base[] = {
 
 /* HDCORE_DEC_EVENT */
 static void handle_and_clear_decoder_events(struct hl_device *hdev, u32 die, u32 hdcore,
-					enum err_grp type, u32 sts, u32 sts_idx, u32 idx,
-					u32 aggr_mask_reg, u32 events_mask)
+					u32 instance, enum err_grp type, u32 sts, u32 sts_idx,
+					u32 idx, u32 aggr_mask_reg, u32 events_mask)
 {
-	u32 instance, offset, irq_status_addr, irq_status, cause_intr_addr, cause_intr;
+	u32 offset, irq_status_addr, irq_status, cause_intr_addr, cause_intr;
 	struct hl_eq_dynamic_entry eq_dynamic_entry = {};
 	struct eq_agg_header_params params = {};
-	const struct block_instance *block;
 	bool unmask_event_in_aggr = false;
+
+	offset = (die * NUM_OF_HDCORES_PER_DIE + hdcore) * HDCORE_OFFSET +
+			instance * HDCORE_DECODER_OFFSET;
 
 	switch (type) {
 	case ERR_GRP_DERR:
-		block = &decoder_derr_aggr_to_instance[die][hdcore][idx];
-		hdcore = block->hdcore;
-		instance = block->instance;
-		offset = (die * NUM_OF_HDCORES_PER_DIE + hdcore) * HDCORE_OFFSET +
-				instance * HDCORE_DECODER_OFFSET;
 		handle_and_clear_derr_events(hdev, &decoder_special_regs_base[idx / 2], 1,
 						offset, &eq_dynamic_entry.ecc_data);
 		eq_dynamic_entry.hdr.size = cpu_to_le16(sizeof(struct hl_eq_ecc_data));
@@ -4094,11 +4019,6 @@ static void handle_and_clear_decoder_events(struct hl_device *hdev, u32 die, u32
 		break;
 
 	case ERR_GRP_SEI:
-		block = &decoder_sei_aggr_to_instance[die][hdcore][idx];
-		hdcore = block->hdcore;
-		instance = block->instance;
-		offset = (die * NUM_OF_HDCORES_PER_DIE + hdcore) * HDCORE_OFFSET +
-				instance * HDCORE_DECODER_OFFSET;
 		cause_intr_addr = mmHD0_VDEC0_BRDG_CTRL_BASE + offset + mmVDEC_BRDG_CTRL_CAUSE_INTR;
 		cause_intr = RREG32(cause_intr_addr) & VDEC_BRDG_CTRL_CAUSE_INTR_SEI_M;
 		eq_dynamic_entry.intr_cause.intr_cause_data = cpu_to_le64(cause_intr);
@@ -4110,11 +4030,6 @@ static void handle_and_clear_decoder_events(struct hl_device *hdev, u32 die, u32
 		break;
 
 	case ERR_GRP_SPI_ECO:
-		block = &decoder_spi_aggr_to_instance[die][hdcore][idx];
-		hdcore = block->hdcore;
-		instance = block->instance;
-		offset = (die * NUM_OF_HDCORES_PER_DIE + hdcore) * HDCORE_OFFSET +
-				instance * HDCORE_DECODER_OFFSET;
 		irq_status_addr = mmHD0_VDEC0_CMD_BASE + offset + mmVSI_CMD_SWREG17;
 		irq_status = RREG32(irq_status_addr);
 		eq_dynamic_entry.spi_data.cause.intr_cause_data = cpu_to_le64(irq_status);
@@ -4145,30 +4060,6 @@ static void handle_and_clear_decoder_events(struct hl_device *hdev, u32 die, u32
 		WREG32_AND(aggr_mask_reg, events_mask);
 }
 
-static const struct block_instance
-edma_event_aggr_to_instance[MAX_NUM_OF_DIES][NUM_OF_HDCORES_PER_DIE][1] = {
-	{
-		/* D0_CPU_INT_AGG_HDCORE0 */
-		{{0, 0, 0} /* No SEDMA in HD0 */},
-		/* D0_CPU_INT_AGG_HDCORE1 */
-		{{0, 1, 0} /* HD1_SEDMA0/1 */},
-		/* D0_CPU_INT_AGG_HDCORE2 */
-		{{0, 2, 0} /* No SEDMA in HD2*/},
-		/* D0_CPU_INT_AGG_HDCORE3 */
-		{{0, 3, 0} /* HD3_SEDMA0/1 */}
-	},
-	{
-		/* D1_CPU_INT_AGG_HDCORE0 */
-		{{1, 3, 0} /* No SEDMA in HD7 */},
-		/* D1_CPU_INT_AGG_HDCORE1 */
-		{{1, 2, 0} /* HD6_SEDMA0/1 */},
-		/* D1_CPU_INT_AGG_HDCORE2 */
-		{{1, 1, 0} /* No SEDMA in HD5 */},
-		/* D1_CPU_INT_AGG_HDCORE3 */
-		{{1, 0, 0} /* HD4_SEDMA0/1 */}
-	}
-};
-
 static u32 edma_special_regs_base[] = {
 	mmHD1_SEDMA0_QM_ARC_AUX_SPECIAL_BASE,
 	mmHD1_SEDMA0_CMN_SPECIAL_BASE,
@@ -4177,7 +4068,7 @@ static u32 edma_special_regs_base[] = {
 };
 
 /* HDCORE_EDMA_EVENT */
-static void handle_and_clear_edma_events(struct hl_device *hdev, u32 die, u32 hdcore,
+static void handle_and_clear_edma_events(struct hl_device *hdev, u32 die, u32 hdcore, u32 instance,
 					enum err_grp type, u32 sts, u32 sts_idx, u32 idx,
 					u32 aggr_mask_reg, u32 events_mask)
 {
@@ -4186,11 +4077,7 @@ static void handle_and_clear_edma_events(struct hl_device *hdev, u32 die, u32 hd
 	struct hl_eq_edma_sei_data *edma_sei_data;
 	struct hl_eq_edma_chn_data *edma_chn_data;
 	struct eq_agg_header_params params = {};
-	const struct block_instance *block;
 	bool unmask_event_in_aggr = false;
-
-	block = &edma_event_aggr_to_instance[die][hdcore][idx];
-	hdcore = block->hdcore;
 
 	/* There are EDMA blocks only in HD 1/3/4/6 */
 	if ((die == 0 && (hdcore == 0 || hdcore == 2)) ||
@@ -4322,6 +4209,53 @@ static void handle_and_clear_nic_events(struct hl_device *hdev, u32 die,
 
 	if (unmask_event_in_aggr)
 		WREG32_AND(aggr_mask_reg, events_mask);
+}
+
+static void get_cpu_aggr_intr_map(u32 intr_map_idx, struct gaudi3_cpu_aggr_intr_map *intr_map)
+{
+	struct gaudi3_async_events_ids_map async_events_ids_map = { .intr_data = U32_MAX };
+
+	if (intr_map_idx < ARRAY_SIZE(gaudi3_irq_map_table))
+		async_events_ids_map.intr_data = gaudi3_irq_map_table[intr_map_idx].intr_data;
+
+	intr_map->grp_type = async_events_ids_map.grp_type;
+	intr_map->comp_type = async_events_ids_map.comp_type;
+	intr_map->comp_inst = async_events_ids_map.comp_inst;
+	intr_map->hdcore_type = async_events_ids_map.hdcore_type;
+	intr_map->die_id = async_events_ids_map.die_id;
+}
+
+static void hdcore_aggr_intr_to_hdcore_and_instance(u32 die, u32 aggr_hdcore, enum err_grp grp_type,
+							u32 aggr_idx, u32 *hdcore, u32 *instance)
+{
+	struct gaudi3_cpu_aggr_intr_map intr_map = {};
+	u32 intr_map_idx, grp_offset = 0;
+
+	switch (grp_type) {
+	case ERR_GRP_DERR:
+		grp_offset = CPU_HDCORE_AGGR_DERR_GRP_INTR_OFFSET;
+		break;
+	case ERR_GRP_SERR:
+		grp_offset = CPU_HDCORE_AGGR_SERR_GRP_INTR_OFFSET;
+		break;
+	case ERR_GRP_SEI:
+		grp_offset = CPU_HDCORE_AGGR_SEI_GRP_INTR_OFFSET;
+		break;
+	case ERR_GRP_SPI_ECO:
+		grp_offset = CPU_HDCORE_AGGR_SPI_GRP_INTR_OFFSET;
+		break;
+	default:
+		*hdcore = *instance = U32_MAX;
+		return;
+	}
+
+	intr_map_idx = die * CPU_HDCORE_AGGRS_INTR_NUM_PER_DIE +
+			aggr_hdcore * CPU_HDCORE_AGGR_INTR_NUM + grp_offset + aggr_idx;
+
+	get_cpu_aggr_intr_map(intr_map_idx, &intr_map);
+
+	*hdcore = intr_map.hdcore_type;
+	*instance = intr_map.comp_inst;
 }
 
 static void gaudi3_shared_spi_event_info(struct hl_device *hdev, u32 die)
@@ -4502,9 +4436,10 @@ static void gaudi3_shared_spi_event_info(struct hl_device *hdev, u32 die)
 				mmINT_AGG_SHARED_SPI_ECO_INT_MSG_MSG_PENDING + offset, 1);
 }
 
-static void gaudi3_hdcore_spi_event_info(struct hl_device *hdev, u32 offset, u32 die, u32 hdcore)
+static void gaudi3_hdcore_spi_event_info(struct hl_device *hdev, u32 offset, u32 die,
+						u32 aggr_hdcore)
 {
-	u32 idx, sts0, sts1, sts2, sts3,
+	u32 hdcore, instance, idx, sts0, sts1, sts2, sts3,
 			sts0_mme_mask = GENMASK(14, 12),
 			sts0_tpc_mask = GENMASK(31, 15),
 			sts1_tpc_mask = BIT(0),
@@ -4538,125 +4473,161 @@ static void gaudi3_hdcore_spi_event_info(struct hl_device *hdev, u32 offset, u32
 	if (sts0 & sts0_mme_mask) {
 		idx = ffs(sts0 & sts0_mme_mask) - 1;
 		dev_err(hdev->dev, "Received MME_SPI[%u] interrupt in D%u_CPU_INT_AGG_HDCORE%u\n",
-			idx, die, hdcore);
+			idx, die, aggr_hdcore);
 
-		if (hdcore_handle_and_clear[HDCORE_MME_EVENT])
-			hdcore_handle_and_clear[HDCORE_MME_EVENT](hdev, die, hdcore,
+		if (hdcore_handle_and_clear[HDCORE_MME_EVENT]) {
+			hdcore_aggr_intr_to_hdcore_and_instance(die, aggr_hdcore, ERR_GRP_SPI_ECO,
+								__ffs(sts0 & sts0_mme_mask),
+								&hdcore, &instance);
+			hdcore_handle_and_clear[HDCORE_MME_EVENT](hdev, die, hdcore, instance,
 				ERR_GRP_SPI_ECO, sts0, 0, idx - 12,
 				mmD0_CPU_INT_AGG_HDCORE0_SPI_ECO_INT_MSG_BASE +
 				mmINT_AGG_HDCORE_SPI_ECO_INT_MSG_MASK_0 + offset,
 				~(sts0 & sts0_mme_mask));
+		}
 	}
 
 	/* Handle TPC */
 	if (sts0 & sts0_tpc_mask) {
 		idx = ffs(sts0 & sts0_tpc_mask) - 16;
 		dev_err(hdev->dev, "Received TPC_SPI[%u] interrupt in D%u_CPU_INT_AGG_HDCORE%u\n",
-			idx, die, hdcore);
+			idx, die, aggr_hdcore);
 
-		if (hdcore_handle_and_clear[HDCORE_TPC_EVENT])
-			hdcore_handle_and_clear[HDCORE_TPC_EVENT](hdev, die, hdcore,
+		if (hdcore_handle_and_clear[HDCORE_TPC_EVENT]) {
+			hdcore_aggr_intr_to_hdcore_and_instance(die, aggr_hdcore, ERR_GRP_SPI_ECO,
+								__ffs(sts0 & sts0_tpc_mask),
+								&hdcore, &instance);
+			hdcore_handle_and_clear[HDCORE_TPC_EVENT](hdev, die, hdcore, instance,
 				ERR_GRP_SPI_ECO, sts0, 0, idx,
 				mmD0_CPU_INT_AGG_HDCORE0_SPI_ECO_INT_MSG_BASE +
 				mmINT_AGG_HDCORE_SPI_ECO_INT_MSG_MASK_0 + offset,
 				~(sts0 & sts0_tpc_mask));
+		}
 	}
 
 	if (sts1 & sts1_tpc_mask) {
 		idx = 17;
 		dev_err(hdev->dev, "Received TPC_SPI[%u] interrupt in D%u_CPU_INT_AGG_HDCORE%u\n",
-			idx, die, hdcore);
+			idx, die, aggr_hdcore);
 
-		if (hdcore_handle_and_clear[HDCORE_TPC_EVENT])
-			hdcore_handle_and_clear[HDCORE_TPC_EVENT](hdev, die, hdcore,
+		if (hdcore_handle_and_clear[HDCORE_TPC_EVENT]) {
+			hdcore_aggr_intr_to_hdcore_and_instance(die, aggr_hdcore, ERR_GRP_SPI_ECO,
+								32 + __ffs(sts1 & sts1_tpc_mask),
+								&hdcore, &instance);
+			hdcore_handle_and_clear[HDCORE_TPC_EVENT](hdev, die, hdcore, instance,
 				ERR_GRP_SPI_ECO, sts1, 1, idx,
 				mmD0_CPU_INT_AGG_HDCORE0_SPI_ECO_INT_MSG_BASE +
 				mmINT_AGG_HDCORE_SPI_ECO_INT_MSG_MASK_1 + offset,
 				~(sts1 & sts1_tpc_mask));
+		}
 	}
 
 	/* Handle ROT */
 	if (sts1 & sts1_rot_mask) {
 		idx = ffs(sts1 & sts1_rot_mask) - 2;
 		dev_err(hdev->dev, "Received ROT_SPI[%u] interrupt in D%u_CPU_INT_AGG_HDCORE%u\n",
-			idx, die, hdcore);
+			idx, die, aggr_hdcore);
 
-		if (hdcore_handle_and_clear[HDCORE_ROT_EVENT])
-			hdcore_handle_and_clear[HDCORE_ROT_EVENT](hdev, die, hdcore,
+		if (hdcore_handle_and_clear[HDCORE_ROT_EVENT]) {
+			hdcore_aggr_intr_to_hdcore_and_instance(die, aggr_hdcore, ERR_GRP_SPI_ECO,
+								32 + __ffs(sts1 & sts1_rot_mask),
+								&hdcore, &instance);
+			hdcore_handle_and_clear[HDCORE_ROT_EVENT](hdev, die, hdcore, instance,
 				ERR_GRP_SPI_ECO, sts1, 1, idx,
 				mmD0_CPU_INT_AGG_HDCORE0_SPI_ECO_INT_MSG_BASE +
 				mmINT_AGG_HDCORE_SPI_ECO_INT_MSG_MASK_1 + offset,
 				~(sts1 & sts1_rot_mask));
+		}
 	}
 
 	/* Handle Cache */
 	if (sts1 & sts1_cs_mask) {
 		idx = ffs(sts1 & sts1_cs_mask) - 6;
 		dev_err(hdev->dev, "Received CS_SPI[%u] interrupt in D%u_CPU_INT_AGG_HDCORE%u\n",
-			idx, die, hdcore);
+			idx, die, aggr_hdcore);
 
-		if (hdcore_handle_and_clear[HDCORE_CS_EVENT])
-			hdcore_handle_and_clear[HDCORE_CS_EVENT](hdev, die, hdcore,
+		if (hdcore_handle_and_clear[HDCORE_CS_EVENT]) {
+			hdcore_aggr_intr_to_hdcore_and_instance(die, aggr_hdcore, ERR_GRP_SPI_ECO,
+								32 + __ffs(sts1 & sts1_cs_mask),
+								&hdcore, &instance);
+			hdcore_handle_and_clear[HDCORE_CS_EVENT](hdev, die, hdcore, instance,
 				ERR_GRP_SPI_ECO, sts1, 1, idx,
 				mmD0_CPU_INT_AGG_HDCORE0_SPI_ECO_INT_MSG_BASE +
 				mmINT_AGG_HDCORE_SPI_ECO_INT_MSG_MASK_1 + offset,
 				~(sts1 & sts1_cs_mask));
+		}
 	}
 
 	/* Handle STLB */
 	if (sts1 & sts1_stlb_mask) {
 		idx = ffs(sts1 & sts1_stlb_mask) - 22;
 		dev_err(hdev->dev, "Received STLB_SPI[%u] interrupt in D%u_CPU_INT_AGG_HDCORE%u\n",
-			idx, die, hdcore);
+			idx, die, aggr_hdcore);
 
-		if (hdcore_handle_and_clear[HDCORE_STLB_EVENT])
-			hdcore_handle_and_clear[HDCORE_STLB_EVENT](hdev, die, hdcore,
+		if (hdcore_handle_and_clear[HDCORE_STLB_EVENT]) {
+			hdcore_aggr_intr_to_hdcore_and_instance(die, aggr_hdcore, ERR_GRP_SPI_ECO,
+								32 + __ffs(sts1 & sts1_stlb_mask),
+								&hdcore, &instance);
+			hdcore_handle_and_clear[HDCORE_STLB_EVENT](hdev, die, hdcore, instance,
 				ERR_GRP_SPI_ECO, sts1, 1, idx,
 				mmD0_CPU_INT_AGG_HDCORE0_SPI_ECO_INT_MSG_BASE +
 				mmINT_AGG_HDCORE_SPI_ECO_INT_MSG_MASK_1 + offset,
 				~(sts1 & sts1_stlb_mask));
+		}
 	}
 
 	/* Handle EDMA */
 	if (sts1 & sts1_edma_mask) {
 		idx = 0;
 		dev_err(hdev->dev, "Received EDMA_SPI[%u] interrupt in D%u_CPU_INT_AGG_HDCORE%u\n",
-			idx, die, hdcore);
+			idx, die, aggr_hdcore);
 
-		if (hdcore_handle_and_clear[HDCORE_EDMA_EVENT])
-			hdcore_handle_and_clear[HDCORE_EDMA_EVENT](hdev, die, hdcore,
+		if (hdcore_handle_and_clear[HDCORE_EDMA_EVENT]) {
+			hdcore_aggr_intr_to_hdcore_and_instance(die, aggr_hdcore, ERR_GRP_SPI_ECO,
+								32 + __ffs(sts1 & sts1_edma_mask),
+								&hdcore, &instance);
+			hdcore_handle_and_clear[HDCORE_EDMA_EVENT](hdev, die, hdcore, instance,
 				ERR_GRP_SPI_ECO, sts1, 1, idx,
 				mmD0_CPU_INT_AGG_HDCORE0_SPI_ECO_INT_MSG_BASE +
 				mmINT_AGG_HDCORE_SPI_ECO_INT_MSG_MASK_1 + offset,
 				~(sts1 & sts1_edma_mask));
+		}
 	}
 
 	/* Handle SOB */
 	if (sts1 & sts1_sob_mask) {
 		idx = 0;
 		dev_err(hdev->dev, "Received SOB_SPI[%u] interrupt in D%u_CPU_INT_AGG_HDCORE%u\n",
-			idx, die, hdcore);
+			idx, die, aggr_hdcore);
 
-		if (hdcore_handle_and_clear[HDCORE_SOB_EVENT])
-			hdcore_handle_and_clear[HDCORE_SOB_EVENT](hdev, die, hdcore,
+		if (hdcore_handle_and_clear[HDCORE_SOB_EVENT]) {
+			hdcore_aggr_intr_to_hdcore_and_instance(die, aggr_hdcore, ERR_GRP_SPI_ECO,
+								32 + __ffs(sts1 & sts1_sob_mask),
+								&hdcore, &instance);
+			hdcore_handle_and_clear[HDCORE_SOB_EVENT](hdev, die, hdcore, instance,
 				ERR_GRP_SPI_ECO, sts1, 1, idx,
 				mmD0_CPU_INT_AGG_HDCORE0_SPI_ECO_INT_MSG_BASE +
 				mmINT_AGG_HDCORE_SPI_ECO_INT_MSG_MASK_1 + offset,
 				~(sts1 & sts1_sob_mask));
+		}
 	}
 
 	/* Handle Decoder */
 	if (sts2 & sts2_dec_mask) {
 		idx = ffs(sts2 & sts2_dec_mask) - 3;
 		dev_err(hdev->dev, "Received DEC_SPI[%u] interrupt in D%u_CPU_INT_AGG_HDCORE%u\n",
-			idx, die, hdcore);
+			idx, die, aggr_hdcore);
 
-		if (hdcore_handle_and_clear[HDCORE_DEC_EVENT])
-			hdcore_handle_and_clear[HDCORE_DEC_EVENT](hdev, die, hdcore,
+		if (hdcore_handle_and_clear[HDCORE_DEC_EVENT]) {
+			hdcore_aggr_intr_to_hdcore_and_instance(die, aggr_hdcore, ERR_GRP_SPI_ECO,
+								64 + __ffs(sts2 & sts2_dec_mask),
+								&hdcore, &instance);
+			hdcore_handle_and_clear[HDCORE_DEC_EVENT](hdev, die, hdcore, instance,
 				ERR_GRP_SPI_ECO, sts2, 2, idx,
 				mmD0_CPU_INT_AGG_HDCORE0_SPI_ECO_INT_MSG_BASE +
 				mmINT_AGG_HDCORE_SPI_ECO_INT_MSG_MASK_2 + offset,
 				~(sts2 & sts2_dec_mask));
+		}
 	}
 
 	/* Clear interrupt - W1C */
@@ -4672,9 +4643,10 @@ static void gaudi3_hdcore_spi_event_info(struct hl_device *hdev, u32 offset, u32
 			mmINT_AGG_HDCORE_SPI_ECO_INT_MSG_MSG_PENDING + offset, 1);
 }
 
-static void gaudi3_hdcore_sei_event_info(struct hl_device *hdev, u32 offset, u32 die, u32 hdcore)
+static void gaudi3_hdcore_sei_event_info(struct hl_device *hdev, u32 offset, u32 die,
+						u32 aggr_hdcore)
 {
-	u32 idx, sts0, sts1,
+	u32 hdcore, instance, idx, sts0, sts1,
 			sts0_mme_mask = GENMASK(11, 0),
 			sts0_tpc_mask = GENMASK(20, 12),
 			sts0_rot_mask = GENMASK(22, 21),
@@ -4702,112 +4674,144 @@ static void gaudi3_hdcore_sei_event_info(struct hl_device *hdev, u32 offset, u32
 	if (sts0 & sts0_mme_mask) {
 		idx = ffs(sts0 & sts0_mme_mask) - 1;
 		dev_err(hdev->dev, "Received MME_SEI[%u] interrupt in D%u_CPU_INT_AGG_HDCORE%u\n",
-			idx, die, hdcore);
+			idx, die, aggr_hdcore);
 
-		if (hdcore_handle_and_clear[HDCORE_MME_EVENT])
-			hdcore_handle_and_clear[HDCORE_MME_EVENT](hdev, die, hdcore,
+		if (hdcore_handle_and_clear[HDCORE_MME_EVENT]) {
+			hdcore_aggr_intr_to_hdcore_and_instance(die, aggr_hdcore, ERR_GRP_SEI,
+								__ffs(sts0 & sts0_mme_mask),
+								&hdcore, &instance);
+			hdcore_handle_and_clear[HDCORE_MME_EVENT](hdev, die, hdcore, instance,
 				ERR_GRP_SEI, sts0, 0, idx,
 				mmD0_CPU_INT_AGG_HDCORE0_SEI_INT_MSG_BASE +
 				mmINT_AGG_HDCORE_SEI_INT_MSG_MASK_0 + offset,
 				~(sts0 & sts0_mme_mask));
+		}
 	}
 
 	/* Handle TPC */
 	if (sts0 & sts0_tpc_mask) {
 		idx = ffs(sts0 & sts0_tpc_mask) - 13;
 		dev_err(hdev->dev, "Received TPC_SEI[%u] interrupt in D%u_CPU_INT_AGG_HDCORE%u\n",
-			idx, die, hdcore);
+			idx, die, aggr_hdcore);
 
-		if (hdcore_handle_and_clear[HDCORE_TPC_EVENT])
-			hdcore_handle_and_clear[HDCORE_TPC_EVENT](hdev, die, hdcore,
+		if (hdcore_handle_and_clear[HDCORE_TPC_EVENT]) {
+			hdcore_aggr_intr_to_hdcore_and_instance(die, aggr_hdcore, ERR_GRP_SEI,
+								__ffs(sts0 & sts0_tpc_mask),
+								&hdcore, &instance);
+			hdcore_handle_and_clear[HDCORE_TPC_EVENT](hdev, die, hdcore, instance,
 				ERR_GRP_SEI, sts0, 0, idx,
 				mmD0_CPU_INT_AGG_HDCORE0_SEI_INT_MSG_BASE +
 				mmINT_AGG_HDCORE_SEI_INT_MSG_MASK_0 + offset,
 				~(sts0 & sts0_tpc_mask));
+		}
 	}
 
 	/* Handle ROT */
 	if (sts0 & sts0_rot_mask) {
 		idx = ffs(sts0 & sts0_rot_mask) - 22;
 		dev_err(hdev->dev, "Received ROT_SEI[%u] interrupt in D%u_CPU_INT_AGG_HDCORE%u\n",
-			idx, die, hdcore);
+			idx, die, aggr_hdcore);
 
-		if (hdcore_handle_and_clear[HDCORE_ROT_EVENT])
-			hdcore_handle_and_clear[HDCORE_ROT_EVENT](hdev, die, hdcore,
+		if (hdcore_handle_and_clear[HDCORE_ROT_EVENT]) {
+			hdcore_aggr_intr_to_hdcore_and_instance(die, aggr_hdcore, ERR_GRP_SEI,
+								__ffs(sts0 & sts0_rot_mask),
+								&hdcore, &instance);
+			hdcore_handle_and_clear[HDCORE_ROT_EVENT](hdev, die, hdcore, instance,
 				ERR_GRP_SEI, sts0, 0, idx,
 				mmD0_CPU_INT_AGG_HDCORE0_SEI_INT_MSG_BASE +
 				mmINT_AGG_HDCORE_SEI_INT_MSG_MASK_0 + offset,
 				~(sts0 & sts0_rot_mask));
+		}
 	}
 
 	/* Handle Cache */
 	if (sts0 & sts0_cs_mask) {
 		idx = ffs(sts0 & sts0_cs_mask) - 24;
 		dev_err(hdev->dev, "Received CS_SEI[%u] interrupt in D%u_CPU_INT_AGG_HDCORE%u\n",
-			idx, die, hdcore);
+			idx, die, aggr_hdcore);
 
-		if (hdcore_handle_and_clear[HDCORE_CS_EVENT])
-			hdcore_handle_and_clear[HDCORE_CS_EVENT](hdev, die, hdcore,
+		if (hdcore_handle_and_clear[HDCORE_CS_EVENT]) {
+			hdcore_aggr_intr_to_hdcore_and_instance(die, aggr_hdcore, ERR_GRP_SEI,
+								__ffs(sts0 & sts0_cs_mask),
+								&hdcore, &instance);
+			hdcore_handle_and_clear[HDCORE_CS_EVENT](hdev, die, hdcore, instance,
 				ERR_GRP_SEI, sts0, 0, idx,
 				mmD0_CPU_INT_AGG_HDCORE0_SEI_INT_MSG_BASE +
 				mmINT_AGG_HDCORE_SEI_INT_MSG_MASK_0 + offset,
 				~(sts0 & sts0_cs_mask));
+		}
 	}
 
 	/* Handle STLB */
 	if (sts0 & sts0_stlb_mask) {
 		idx = 0;
 		dev_err(hdev->dev, "Received STLB_SEI[%u] interrupt in D%u_CPU_INT_AGG_HDCORE%u\n",
-			idx, die, hdcore);
+			idx, die, aggr_hdcore);
 
-		if (hdcore_handle_and_clear[HDCORE_STLB_EVENT])
-			hdcore_handle_and_clear[HDCORE_STLB_EVENT](hdev, die, hdcore,
+		if (hdcore_handle_and_clear[HDCORE_STLB_EVENT]) {
+			hdcore_aggr_intr_to_hdcore_and_instance(die, aggr_hdcore, ERR_GRP_SEI,
+								__ffs(sts0 & sts0_stlb_mask),
+								&hdcore, &instance);
+			hdcore_handle_and_clear[HDCORE_STLB_EVENT](hdev, die, hdcore, instance,
 				ERR_GRP_SEI, sts0, 0, idx,
 				mmD0_CPU_INT_AGG_HDCORE0_SEI_INT_MSG_BASE +
 				mmINT_AGG_HDCORE_SEI_INT_MSG_MASK_0 + offset,
 				~(sts0 & sts0_stlb_mask));
+		}
 	}
 
 	/* Handle EDMA */
 	if (sts1 & sts1_edma_mask) {
 		idx = 0;
 		dev_err(hdev->dev, "Received EDMA_SEI[%u] interrupt in D%u_CPU_INT_AGG_HDCORE%u\n",
-			idx, die, hdcore);
+			idx, die, aggr_hdcore);
 
-		if (hdcore_handle_and_clear[HDCORE_EDMA_EVENT])
-			hdcore_handle_and_clear[HDCORE_EDMA_EVENT](hdev, die, hdcore,
+		if (hdcore_handle_and_clear[HDCORE_EDMA_EVENT]) {
+			hdcore_aggr_intr_to_hdcore_and_instance(die, aggr_hdcore, ERR_GRP_SEI,
+								32 + __ffs(sts1 & sts1_edma_mask),
+								&hdcore, &instance);
+			hdcore_handle_and_clear[HDCORE_EDMA_EVENT](hdev, die, hdcore, instance,
 				ERR_GRP_SEI, sts1, 1, idx,
 				mmD0_CPU_INT_AGG_HDCORE0_SEI_INT_MSG_BASE +
 				mmINT_AGG_HDCORE_SEI_INT_MSG_MASK_1 + offset,
 				~(sts1 & sts1_edma_mask));
+		}
 	}
 
 	/* Handle HBM */
 	if (sts1 & sts1_hbm_mask) {
 		idx = ffs(sts1 & sts1_hbm_mask) - 2;
 		dev_err(hdev->dev, "Received HBM_SEI[%u] interrupt in D%u_CPU_INT_AGG_HDCORE%u\n",
-			idx, die, hdcore);
+			idx, die, aggr_hdcore);
 
-		if (hdcore_handle_and_clear[HDCORE_HBM_EVENT])
-			hdcore_handle_and_clear[HDCORE_HBM_EVENT](hdev, die, hdcore,
+		if (hdcore_handle_and_clear[HDCORE_HBM_EVENT]) {
+			hdcore_aggr_intr_to_hdcore_and_instance(die, aggr_hdcore, ERR_GRP_SEI,
+								32 + __ffs(sts1 & sts1_hbm_mask),
+								&hdcore, &instance);
+			hdcore_handle_and_clear[HDCORE_HBM_EVENT](hdev, die, hdcore, instance,
 				ERR_GRP_SEI, sts1, 1, idx,
 				mmD0_CPU_INT_AGG_HDCORE0_SEI_INT_MSG_BASE +
 				mmINT_AGG_HDCORE_SEI_INT_MSG_MASK_1 + offset,
 				~(sts1 & sts1_hbm_mask));
+		}
 	}
 
 	/* Handle SOB */
 	if (sts1 & sts1_sob_mask) {
 		idx = 0;
 		dev_err(hdev->dev, "Received SOB_SEI[%u] interrupt in D%u_CPU_INT_AGG_HDCORE%u\n",
-			idx, die, hdcore);
+			idx, die, aggr_hdcore);
 
-		if (hdcore_handle_and_clear[HDCORE_SOB_EVENT])
-			hdcore_handle_and_clear[HDCORE_SOB_EVENT](hdev, die, hdcore,
+		if (hdcore_handle_and_clear[HDCORE_SOB_EVENT]) {
+			hdcore_aggr_intr_to_hdcore_and_instance(die, aggr_hdcore, ERR_GRP_SEI,
+								32 + __ffs(sts1 & sts1_sob_mask),
+								&hdcore, &instance);
+			hdcore_handle_and_clear[HDCORE_SOB_EVENT](hdev, die, hdcore, instance,
 				ERR_GRP_SEI, sts1, 1, idx,
 				mmD0_CPU_INT_AGG_HDCORE0_SEI_INT_MSG_BASE +
 				mmINT_AGG_HDCORE_SEI_INT_MSG_MASK_1 + offset,
 				~(sts1 & sts1_sob_mask));
+		}
 	}
 
 	/* Handle ARCFARM */
@@ -4815,42 +4819,54 @@ static void gaudi3_hdcore_sei_event_info(struct hl_device *hdev, u32 offset, u32
 		idx = 0;
 		dev_err(hdev->dev,
 			"Received ARC_FARM_SEI[%u] interrupt in D%u_CPU_INT_AGG_HDCORE%u\n",
-			idx, die, hdcore);
+			idx, die, aggr_hdcore);
 
-		if (hdcore_handle_and_clear[HDCORE_ARCFARM_EVENT])
-			hdcore_handle_and_clear[HDCORE_ARCFARM_EVENT](hdev, die, hdcore,
+		if (hdcore_handle_and_clear[HDCORE_ARCFARM_EVENT]) {
+			hdcore_aggr_intr_to_hdcore_and_instance(die, aggr_hdcore, ERR_GRP_SEI,
+							32 + __ffs(sts1 & sts1_arcfarm_mask),
+							&hdcore, &instance);
+			hdcore_handle_and_clear[HDCORE_ARCFARM_EVENT](hdev, die, hdcore, instance,
 				ERR_GRP_SEI, sts1, 1, idx,
 				mmD0_CPU_INT_AGG_HDCORE0_SEI_INT_MSG_BASE +
 				mmINT_AGG_HDCORE_SEI_INT_MSG_MASK_1 + offset,
 				~(sts1 & sts1_arcfarm_mask));
+		}
 	}
 
 	/* Handle DUP */
 	if (sts1 & sts1_dup_mask) {
 		idx = 0;
 		dev_err(hdev->dev, "Received DUP_SEI[%u] interrupt in D%u_CPU_INT_AGG_HDCORE%u\n",
-			idx, die, hdcore);
+			idx, die, aggr_hdcore);
 
-		if (hdcore_handle_and_clear[HDCORE_DUP_EVENT])
-			hdcore_handle_and_clear[HDCORE_DUP_EVENT](hdev, die, hdcore,
+		if (hdcore_handle_and_clear[HDCORE_DUP_EVENT]) {
+			hdcore_aggr_intr_to_hdcore_and_instance(die, aggr_hdcore, ERR_GRP_SEI,
+								32 + __ffs(sts1 & sts1_dup_mask),
+								&hdcore, &instance);
+			hdcore_handle_and_clear[HDCORE_DUP_EVENT](hdev, die, hdcore, instance,
 				ERR_GRP_SEI, sts1, 1, idx,
 				mmD0_CPU_INT_AGG_HDCORE0_SEI_INT_MSG_BASE +
 				mmINT_AGG_HDCORE_SEI_INT_MSG_MASK_1 + offset,
 				~(sts1 & sts1_dup_mask));
+		}
 	}
 
 	/* Handle DEC */
 	if (sts1 & sts1_dec_mask) {
 		idx = ffs(sts1 & sts1_dec_mask) - 13;
 		dev_err(hdev->dev, "Received DEC_SEI[%u] interrupt in D%u_CPU_INT_AGG_HDCORE%u\n",
-			idx, die, hdcore);
+			idx, die, aggr_hdcore);
 
-		if (hdcore_handle_and_clear[HDCORE_DEC_EVENT])
-			hdcore_handle_and_clear[HDCORE_DEC_EVENT](hdev, die, hdcore,
+		if (hdcore_handle_and_clear[HDCORE_DEC_EVENT]) {
+			hdcore_aggr_intr_to_hdcore_and_instance(die, aggr_hdcore, ERR_GRP_SEI,
+								32 + __ffs(sts1 & sts1_dec_mask),
+								&hdcore, &instance);
+			hdcore_handle_and_clear[HDCORE_DEC_EVENT](hdev, die, hdcore, instance,
 				ERR_GRP_SEI, sts1, 1, idx,
 				mmD0_CPU_INT_AGG_HDCORE0_SEI_INT_MSG_BASE +
 				mmINT_AGG_HDCORE_SEI_INT_MSG_MASK_1 + offset,
 				~(sts1 & sts1_dec_mask));
+		}
 	}
 
 	/* Clear interrupt - W1C */
@@ -5087,7 +5103,8 @@ static void gaudi3_shared_sei_event_info(struct hl_device *hdev, u32 die)
 				mmINT_AGG_SHARED_SEI_INT_MSG_MSG_PENDING + offset, 1);
 }
 
-static void gaudi3_hdcore_serr_event_info(struct hl_device *hdev, u32 offset, u32 die, u32 hdcore)
+static void gaudi3_hdcore_serr_event_info(struct hl_device *hdev, u32 offset, u32 die,
+						u32 aggr_hdcore)
 {
 	u32 sts0, sts1;
 
@@ -5133,9 +5150,10 @@ static void gaudi3_shared_serr_event_info(struct hl_device *hdev, u32 die)
 			mmINT_AGG_SHARED_REI_SERR_INT_MSG_MSG_PENDING + offset, 1);
 }
 
-static void gaudi3_hdcore_derr_event_info(struct hl_device *hdev, u32 offset, u32 die, u32 hdcore)
+static void gaudi3_hdcore_derr_event_info(struct hl_device *hdev, u32 offset, u32 die,
+						u32 aggr_hdcore)
 {
-	u32 idx, sts0, sts1,
+	u32 hdcore, instance, idx, sts0, sts1,
 			sts0_mme_mask = GENMASK(10, 0),
 			sts0_tpc_mask = GENMASK(19, 11),
 			sts0_rot_mask = GENMASK(21, 20),
@@ -5165,139 +5183,179 @@ static void gaudi3_hdcore_derr_event_info(struct hl_device *hdev, u32 offset, u3
 	if (sts0 & sts0_mme_mask) {
 		idx = ffs(sts0 & sts0_mme_mask) - 1;
 		dev_err(hdev->dev, "Received MME_DERR[%u] interrupt in D%u_CPU_INT_AGG_HDCORE%u\n",
-			idx, die, hdcore);
+			idx, die, aggr_hdcore);
 
-		if (hdcore_handle_and_clear[HDCORE_MME_EVENT])
-			hdcore_handle_and_clear[HDCORE_MME_EVENT](hdev, die, hdcore,
+		if (hdcore_handle_and_clear[HDCORE_MME_EVENT]) {
+			hdcore_aggr_intr_to_hdcore_and_instance(die, aggr_hdcore, ERR_GRP_DERR,
+								__ffs(sts0 & sts0_mme_mask),
+								&hdcore, &instance);
+			hdcore_handle_and_clear[HDCORE_MME_EVENT](hdev, die, hdcore, instance,
 				ERR_GRP_DERR, sts0, 0, idx,
 				mmD0_CPU_INT_AGG_HDCORE0_REI_DERR_INT_MSG_BASE +
 				mmINT_AGG_HDCORE_REI_DERR_INT_MSG_MASK_0 + offset,
 				~(sts0 & sts0_mme_mask));
+		}
 	}
 
 	/* Handle TPC */
 	if (sts0 & sts0_tpc_mask) {
 		idx = ffs(sts0 & sts0_tpc_mask) - 12;
 		dev_err(hdev->dev, "Received TPC_DERR[%u] interrupt in D%u_CPU_INT_AGG_HDCORE%u\n",
-			idx, die, hdcore);
+			idx, die, aggr_hdcore);
 
-		if (hdcore_handle_and_clear[HDCORE_TPC_EVENT])
-			hdcore_handle_and_clear[HDCORE_TPC_EVENT](hdev, die, hdcore,
+		if (hdcore_handle_and_clear[HDCORE_TPC_EVENT]) {
+			hdcore_aggr_intr_to_hdcore_and_instance(die, aggr_hdcore, ERR_GRP_DERR,
+								__ffs(sts0 & sts0_tpc_mask),
+								&hdcore, &instance);
+			hdcore_handle_and_clear[HDCORE_TPC_EVENT](hdev, die, hdcore, instance,
 				ERR_GRP_DERR, sts0, 0, idx,
 				mmD0_CPU_INT_AGG_HDCORE0_REI_DERR_INT_MSG_BASE +
 				mmINT_AGG_HDCORE_REI_DERR_INT_MSG_MASK_0 + offset,
 				~(sts0 & sts0_tpc_mask));
+		}
 	}
 
 	/* Handle ROT */
 	if (sts0 & sts0_rot_mask) {
 		idx = ffs(sts0 & sts0_rot_mask) - 21;
 		dev_err(hdev->dev, "Received ROT_DERR[%u] interrupt in D%u_CPU_INT_AGG_HDCORE%u\n",
-			idx, die, hdcore);
+			idx, die, aggr_hdcore);
 
-		if (hdcore_handle_and_clear[HDCORE_ROT_EVENT])
-			hdcore_handle_and_clear[HDCORE_ROT_EVENT](hdev, die, hdcore,
+		if (hdcore_handle_and_clear[HDCORE_ROT_EVENT]) {
+			hdcore_aggr_intr_to_hdcore_and_instance(die, aggr_hdcore, ERR_GRP_DERR,
+								__ffs(sts0 & sts0_rot_mask),
+								&hdcore, &instance);
+			hdcore_handle_and_clear[HDCORE_ROT_EVENT](hdev, die, hdcore, instance,
 				ERR_GRP_DERR, sts0, 0, idx,
 				mmD0_CPU_INT_AGG_HDCORE0_REI_DERR_INT_MSG_BASE +
 				mmINT_AGG_HDCORE_REI_DERR_INT_MSG_MASK_0 + offset,
 				~(sts0 & sts0_rot_mask));
+		}
 	}
 
 	/* Handle CS */
 	if (sts0 & sts0_cs_mask) {
 		idx = ffs(sts0 & sts0_cs_mask) - 23;
 		dev_err(hdev->dev, "Received CS_DERR[%u] interrupt in D%u_CPU_INT_AGG_HDCORE%u\n",
-			idx, die, hdcore);
+			idx, die, aggr_hdcore);
 
-		if (hdcore_handle_and_clear[HDCORE_CS_EVENT])
-			hdcore_handle_and_clear[HDCORE_CS_EVENT](hdev, die, hdcore,
+		if (hdcore_handle_and_clear[HDCORE_CS_EVENT]) {
+			hdcore_aggr_intr_to_hdcore_and_instance(die, aggr_hdcore, ERR_GRP_DERR,
+								__ffs(sts0 & sts0_cs_mask),
+								&hdcore, &instance);
+			hdcore_handle_and_clear[HDCORE_CS_EVENT](hdev, die, hdcore, instance,
 				ERR_GRP_DERR, sts0, 0, idx,
 				mmD0_CPU_INT_AGG_HDCORE0_REI_DERR_INT_MSG_BASE +
 				mmINT_AGG_HDCORE_REI_DERR_INT_MSG_MASK_0 + offset,
 				~(sts0 & sts0_cs_mask));
+		}
 	}
 
 	/* Handle STLB */
 	if (sts0 & sts0_stlb_mask) {
 		idx = 0;
 		dev_err(hdev->dev, "Received STLB_DERR[%u] interrupt in D%u_CPU_INT_AGG_HDCORE%u\n",
-			idx, die, hdcore);
+			idx, die, aggr_hdcore);
 
-		if (hdcore_handle_and_clear[HDCORE_STLB_EVENT])
-			hdcore_handle_and_clear[HDCORE_STLB_EVENT](hdev, die, hdcore,
+		if (hdcore_handle_and_clear[HDCORE_STLB_EVENT]) {
+			hdcore_aggr_intr_to_hdcore_and_instance(die, aggr_hdcore, ERR_GRP_DERR,
+								__ffs(sts0 & sts0_stlb_mask),
+								&hdcore, &instance);
+			hdcore_handle_and_clear[HDCORE_STLB_EVENT](hdev, die, hdcore, instance,
 				ERR_GRP_DERR, sts0, 0, idx,
 				mmD0_CPU_INT_AGG_HDCORE0_REI_DERR_INT_MSG_BASE +
 				mmINT_AGG_HDCORE_REI_DERR_INT_MSG_MASK_0 + offset,
 				~(sts0 & sts0_stlb_mask));
+		}
 	}
 
 	/* Handle RTR */
 	if (sts0 & sts0_rtr_mask) {
 		idx = 0;
 		dev_err(hdev->dev, "Received RTR_DERR[%u] interrupt in D%u_CPU_INT_AGG_HDCORE%u\n",
-			idx, die, hdcore);
+			idx, die, aggr_hdcore);
 
-		if (hdcore_handle_and_clear[HDCORE_RTR_EVENT])
-			hdcore_handle_and_clear[HDCORE_RTR_EVENT](hdev, die, hdcore,
+		if (hdcore_handle_and_clear[HDCORE_RTR_EVENT]) {
+			hdcore_aggr_intr_to_hdcore_and_instance(die, aggr_hdcore, ERR_GRP_DERR,
+								__ffs(sts0 & sts0_rtr_mask),
+								&hdcore, &instance);
+			hdcore_handle_and_clear[HDCORE_RTR_EVENT](hdev, die, hdcore, instance,
 				ERR_GRP_DERR, sts0, 0, idx,
 				mmD0_CPU_INT_AGG_HDCORE0_REI_DERR_INT_MSG_BASE +
 				mmINT_AGG_HDCORE_REI_DERR_INT_MSG_MASK_0 + offset,
 				~(sts0 & sts0_rtr_mask));
+		}
 	}
 
 	if (sts1 & sts1_rtr_mask) {
 		idx = ffs(sts1 & sts1_rtr_mask);
 		dev_err(hdev->dev, "Received RTR_DERR[%u] interrupt in D%u_CPU_INT_AGG_HDCORE%u\n",
-			idx, die, hdcore);
+			idx, die, aggr_hdcore);
 
-		if (hdcore_handle_and_clear[HDCORE_RTR_EVENT])
-			hdcore_handle_and_clear[HDCORE_RTR_EVENT](hdev, die, hdcore,
+		if (hdcore_handle_and_clear[HDCORE_RTR_EVENT]) {
+			hdcore_aggr_intr_to_hdcore_and_instance(die, aggr_hdcore, ERR_GRP_DERR,
+								32 + __ffs(sts1 & sts1_rtr_mask),
+								&hdcore, &instance);
+			hdcore_handle_and_clear[HDCORE_RTR_EVENT](hdev, die, hdcore, instance,
 				ERR_GRP_DERR, sts1, 1, idx,
 				mmD0_CPU_INT_AGG_HDCORE0_REI_DERR_INT_MSG_BASE +
 				mmINT_AGG_HDCORE_REI_DERR_INT_MSG_MASK_1 + offset,
 				~(sts1 & sts1_rtr_mask));
+		}
 	}
 
 	/* Handle EDMA */
 	if (sts1 & sts1_edma_mask) {
 		idx = 0;
 		dev_err(hdev->dev, "Received EDMA_DERR[%u] interrupt in D%u_CPU_INT_AGG_HDCORE%u\n",
-			idx, die, hdcore);
+			idx, die, aggr_hdcore);
 
-		if (hdcore_handle_and_clear[HDCORE_EDMA_EVENT])
-			hdcore_handle_and_clear[HDCORE_EDMA_EVENT](hdev, die, hdcore,
+		if (hdcore_handle_and_clear[HDCORE_EDMA_EVENT]) {
+			hdcore_aggr_intr_to_hdcore_and_instance(die, aggr_hdcore, ERR_GRP_DERR,
+								32 + __ffs(sts1 & sts1_edma_mask),
+								&hdcore, &instance);
+			hdcore_handle_and_clear[HDCORE_EDMA_EVENT](hdev, die, hdcore, instance,
 				ERR_GRP_DERR, sts1, 1, idx,
 				mmD0_CPU_INT_AGG_HDCORE0_REI_DERR_INT_MSG_BASE +
 				mmINT_AGG_HDCORE_REI_DERR_INT_MSG_MASK_1 + offset,
 				~(sts1 & sts1_edma_mask));
+		}
 	}
 
 	/* Handle HBM */
 	if (sts1 & sts1_hbm_mask) {
 		idx = ffs(sts0 & sts1_hbm_mask) - 9;
 		dev_err(hdev->dev, "Received HBM_DERR[%u] interrupt in D%u_CPU_INT_AGG_HDCORE%u\n",
-			idx, die, hdcore);
+			idx, die, aggr_hdcore);
 
-		if (hdcore_handle_and_clear[HDCORE_HBM_EVENT])
-			hdcore_handle_and_clear[HDCORE_HBM_EVENT](hdev, die, hdcore,
+		if (hdcore_handle_and_clear[HDCORE_HBM_EVENT]) {
+			hdcore_aggr_intr_to_hdcore_and_instance(die, aggr_hdcore, ERR_GRP_DERR,
+								32 + __ffs(sts1 & sts1_hbm_mask),
+								&hdcore, &instance);
+			hdcore_handle_and_clear[HDCORE_HBM_EVENT](hdev, die, hdcore, instance,
 				ERR_GRP_DERR, sts1, 1, idx,
 				mmD0_CPU_INT_AGG_HDCORE0_REI_DERR_INT_MSG_BASE +
 				mmINT_AGG_HDCORE_REI_DERR_INT_MSG_MASK_1 + offset,
 				~(sts1 & sts1_hbm_mask));
+		}
 	}
 
 	/* Handle SOB */
 	if (sts1 & sts1_sob_mask) {
 		idx = 0;
 		dev_err(hdev->dev, "Received SOB_DERR[%u] interrupt in D%u_CPU_INT_AGG_HDCORE%u\n",
-			idx, die, hdcore);
+			idx, die, aggr_hdcore);
 
-		if (hdcore_handle_and_clear[HDCORE_SOB_EVENT])
-			hdcore_handle_and_clear[HDCORE_SOB_EVENT](hdev, die, hdcore,
+		if (hdcore_handle_and_clear[HDCORE_SOB_EVENT]) {
+			hdcore_aggr_intr_to_hdcore_and_instance(die, aggr_hdcore, ERR_GRP_DERR,
+								32 + __ffs(sts1 & sts1_sob_mask),
+								&hdcore, &instance);
+			hdcore_handle_and_clear[HDCORE_SOB_EVENT](hdev, die, hdcore, instance,
 				ERR_GRP_DERR, sts1, 1, idx,
 				mmD0_CPU_INT_AGG_HDCORE0_REI_DERR_INT_MSG_BASE +
 				mmINT_AGG_HDCORE_REI_DERR_INT_MSG_MASK_1 + offset,
 				~(sts1 & sts1_sob_mask));
+		}
 	}
 
 	/* Handle ARCFARM */
@@ -5305,42 +5363,54 @@ static void gaudi3_hdcore_derr_event_info(struct hl_device *hdev, u32 offset, u3
 		idx = 0;
 		dev_err(hdev->dev,
 			"Received ARC_FARM_DERR[%u] interrupt in D%u_CPU_INT_AGG_HDCORE%u\n",
-			idx, die, hdcore);
+			idx, die, aggr_hdcore);
 
-		if (hdcore_handle_and_clear[HDCORE_ARCFARM_EVENT])
-			hdcore_handle_and_clear[HDCORE_ARCFARM_EVENT](hdev, die, hdcore,
+		if (hdcore_handle_and_clear[HDCORE_ARCFARM_EVENT]) {
+			hdcore_aggr_intr_to_hdcore_and_instance(die, aggr_hdcore, ERR_GRP_DERR,
+							32 + __ffs(sts1 & sts1_arcfarm_mask),
+							&hdcore, &instance);
+			hdcore_handle_and_clear[HDCORE_ARCFARM_EVENT](hdev, die, hdcore, instance,
 				ERR_GRP_DERR, sts1, 1, idx,
 				mmD0_CPU_INT_AGG_HDCORE0_REI_DERR_INT_MSG_BASE +
 				mmINT_AGG_HDCORE_REI_DERR_INT_MSG_MASK_1 + offset,
 				~(sts1 & sts1_arcfarm_mask));
+		}
 	}
 
 	/* Handle DEC */
 	if (sts1 & sts1_dec_mask) {
 		idx = ffs(sts0 & sts1_dec_mask) - 15;
 		dev_err(hdev->dev, "Received DEC_DERR[%u] interrupt in D%u_CPU_INT_AGG_HDCORE%u\n",
-			idx, die, hdcore);
+			idx, die, aggr_hdcore);
 
-		if (hdcore_handle_and_clear[HDCORE_DEC_EVENT])
-			hdcore_handle_and_clear[HDCORE_DEC_EVENT](hdev, die, hdcore,
+		if (hdcore_handle_and_clear[HDCORE_DEC_EVENT]) {
+			hdcore_aggr_intr_to_hdcore_and_instance(die, aggr_hdcore, ERR_GRP_DERR,
+								32 + __ffs(sts1 & sts1_dec_mask),
+								&hdcore, &instance);
+			hdcore_handle_and_clear[HDCORE_DEC_EVENT](hdev, die, hdcore, instance,
 				ERR_GRP_DERR, sts1, 1, idx,
 				mmD0_CPU_INT_AGG_HDCORE0_REI_DERR_INT_MSG_BASE +
 				mmINT_AGG_HDCORE_REI_DERR_INT_MSG_MASK_1 + offset,
 				~(sts1 & sts1_dec_mask));
+		}
 	}
 
 	/* Handle HIF */
 	if (sts1 & sts1_hif_mask) {
 		idx = 0;
 		dev_err(hdev->dev, "Received HIF_DERR[%u] interrupt in D%u_CPU_INT_AGG_HDCORE%u\n",
-			idx, die, hdcore);
+			idx, die, aggr_hdcore);
 
-		if (hdcore_handle_and_clear[HDCORE_HIF_EVENT])
-			hdcore_handle_and_clear[HDCORE_HIF_EVENT](hdev, die, hdcore,
+		if (hdcore_handle_and_clear[HDCORE_HIF_EVENT]) {
+			hdcore_aggr_intr_to_hdcore_and_instance(die, aggr_hdcore, ERR_GRP_DERR,
+								32 + __ffs(sts1 & sts1_hif_mask),
+								&hdcore, &instance);
+			hdcore_handle_and_clear[HDCORE_HIF_EVENT](hdev, die, hdcore, instance,
 				ERR_GRP_DERR, sts1, 1, idx,
 				mmD0_CPU_INT_AGG_HDCORE0_REI_DERR_INT_MSG_BASE +
 				mmINT_AGG_HDCORE_REI_DERR_INT_MSG_MASK_1 + offset,
 				~(sts1 & sts1_hif_mask));
+		}
 	}
 
 	/* Clear interrupt - W1C */
