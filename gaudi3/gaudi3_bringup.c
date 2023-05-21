@@ -2974,7 +2974,6 @@ static void gaudi3_handle_psoc_aggr(struct hl_device *hdev, u32 intr_aggr_irq, u
 {
 	u32 parc_block_idx, offset, sts0, idx, sts0_prstn_mask = GENMASK(1, 0),
 			sts0_vm_alarm_mask = GENMASK(3, 0);
-	char str[512];
 
 	parc_block_idx = intr_aggr_irq - die * INTR_AGGR_NUM_OF_MSIX_VECTORS_PER_DIE -
 				CPU_INTR_AGGR_NUM_OF_MSIX_VECTORS;
@@ -2992,8 +2991,8 @@ static void gaudi3_handle_psoc_aggr(struct hl_device *hdev, u32 intr_aggr_irq, u
 	/* Handle PRSTN Aggr */
 	if (parc_block_idx == 10) {
 		idx = ffs(sts0 & sts0_prstn_mask) - 1;
-		snprintf(str, 512, "PSOC%u_DIE%u_HDPSOC_PRSTN%u_SPI", die, die, idx);
-		dev_err(hdev->dev, "Received %s event\n", str);
+		dev_err(hdev->dev, "Received PRSTN_SPI[%u] in D%u_PARC_INT_AGGR\n",
+			idx, die);
 
 		if (shared_handle_and_clear[SHARED_PSOC_EVENT])
 			shared_handle_and_clear[SHARED_PSOC_EVENT](hdev, die,
@@ -3007,15 +3006,15 @@ static void gaudi3_handle_psoc_aggr(struct hl_device *hdev, u32 intr_aggr_irq, u
 	/* Handle VM_ALARMA_COMB Aggr */
 	if (parc_block_idx == 18) {
 		idx = ffs(sts0 & sts0_vm_alarm_mask) - 1;
-		snprintf(str, 512, "PSOC%u_DIE%u_HDPSOC_VM_ALARMA%u_SPI", die, die, idx);
-		dev_err(hdev->dev, "Received %s event\n", str);
+		dev_err(hdev->dev, "Received VM_ALARMA_COMB_SPI[%u] in D%u_PARC_INT_AGGR\n",
+			idx, die);
 	}
 
-	/* Handle VM_ALARMA_COMB Aggr */
+	/* Handle COMBINED Aggr */
 	if (parc_block_idx == 24) {
 		idx = 0;
-		snprintf(str, 512, "PSOC%u_DIE%u_HDPSOC_VM_ALARMA%u_SPI", die, die, idx);
-		dev_err(hdev->dev, "Received %s event\n", str);
+		dev_err(hdev->dev, "Received COMBINED_SPI[%u] in D%u_PARC_INT_AGGR\n",
+			idx, die);
 
 		if (sts0 & BIT(6))
 			dev_err(hdev->dev, "PSOC AXI drain event\n");
@@ -4338,7 +4337,6 @@ static void gaudi3_shared_spi_event_info(struct hl_device *hdev, u32 die)
 			sts1_ts_mask = GENMASK(15, 8),
 			sts1_pdma_mask = BIT(16),
 			sts1_d2d_mask = GENMASK(18, 17);
-	char str[512];
 
 	offset = die * DIE_OFFSET;
 	sts0 = RREG32(mmD0_CPU_INT_AGG_SHARED_SPI_ECO_INT_MSG_BASE +
@@ -4348,7 +4346,7 @@ static void gaudi3_shared_spi_event_info(struct hl_device *hdev, u32 die)
 	sts2 = RREG32(mmD0_CPU_INT_AGG_SHARED_SPI_ECO_INT_MSG_BASE +
 				mmINT_AGG_SHARED_SPI_ECO_INT_MSG_STS_2 + offset);
 
-	/* Mask events first, if there is a handler then it'll be unmaked back */
+	/* Mask events first, if there is a handler then it'll be unmasked back */
 	WREG32_OR(mmD0_CPU_INT_AGG_SHARED_SPI_ECO_INT_MSG_BASE +
 				mmINT_AGG_SHARED_SPI_ECO_INT_MSG_MASK_0 + offset, sts0);
 	WREG32_OR(mmD0_CPU_INT_AGG_SHARED_SPI_ECO_INT_MSG_BASE +
@@ -4359,8 +4357,8 @@ static void gaudi3_shared_spi_event_info(struct hl_device *hdev, u32 die)
 	/* Handle PCIE */
 	if (sts0 & sts0_pcie_mask0) {
 		idx = 1;
-		snprintf(str, 512, "PCIE%u_DIE%u_HDSHARED_SPI", idx, die);
-		dev_err(hdev->dev, "Received %s event\n", str);
+		dev_err(hdev->dev, "Received PCIE_SPI[%u] interrupt in D%u_CPU_INT_AGG_SHARED\n",
+			idx, die);
 
 		if (shared_handle_and_clear[SHARED_PCIE_EVENT])
 			shared_handle_and_clear[SHARED_PCIE_EVENT](hdev, die,
@@ -4372,8 +4370,8 @@ static void gaudi3_shared_spi_event_info(struct hl_device *hdev, u32 die)
 
 	if (sts0 & sts0_pcie_mask1) {
 		idx = ffs(sts0 & sts0_pcie_mask1) - 3;
-		snprintf(str, 512, "PCIE%u_DIE%u_HDSHARED_SPI", idx, die);
-		dev_err(hdev->dev, "Received %s event\n", str);
+		dev_err(hdev->dev, "Received PCIE_SPI[%u] interrupt in D%u_CPU_INT_AGG_SHARED\n",
+			idx, die);
 
 		if (shared_handle_and_clear[SHARED_PCIE_EVENT])
 			shared_handle_and_clear[SHARED_PCIE_EVENT](hdev, die,
@@ -4385,8 +4383,8 @@ static void gaudi3_shared_spi_event_info(struct hl_device *hdev, u32 die)
 
 	if (sts0 & sts0_pcie_mask2) {
 		idx = ffs(sts0 & sts0_pcie_mask2) - 3;
-		snprintf(str, 512, "PCIE%u_DIE%u_HDSHARED_SPI", idx, die);
-		dev_err(hdev->dev, "Received %s event\n", str);
+		dev_err(hdev->dev, "Received PCIE_SPI[%u] interrupt in D%u_CPU_INT_AGG_SHARED\n",
+			idx, die);
 
 		if (shared_handle_and_clear[SHARED_PCIE_EVENT])
 			shared_handle_and_clear[SHARED_PCIE_EVENT](hdev, die,
@@ -4399,8 +4397,8 @@ static void gaudi3_shared_spi_event_info(struct hl_device *hdev, u32 die)
 	/* Handle NIC */
 	if (sts0 & sts0_nic_mask) {
 		idx = ffs(sts0 & sts0_nic_mask) - 22;
-		snprintf(str, 512, "NIC%u_DIE%u_HDSHARED_SPI", idx, die);
-		dev_err(hdev->dev, "Received %s event\n", str);
+		dev_err(hdev->dev, "Received NIC_SPI[%u] interrupt in D%u_CPU_INT_AGG_SHARED\n",
+			idx, die);
 
 		if (shared_handle_and_clear[SHARED_NIC_EVENT])
 			shared_handle_and_clear[SHARED_NIC_EVENT](hdev, die,
@@ -4412,8 +4410,8 @@ static void gaudi3_shared_spi_event_info(struct hl_device *hdev, u32 die)
 
 	if (sts1 & sts1_nic_mask) {
 		idx = 11;
-		snprintf(str, 512, "NIC%u_DIE%u_HDSHARED_SPI", idx, die);
-		dev_err(hdev->dev, "Received %s event\n", str);
+		dev_err(hdev->dev, "Received NIC_SPI[%u] interrupt in D%u_CPU_INT_AGG_SHARED\n",
+			idx, die);
 
 		if (shared_handle_and_clear[SHARED_NIC_EVENT])
 			shared_handle_and_clear[SHARED_NIC_EVENT](hdev, die,
@@ -4426,8 +4424,8 @@ static void gaudi3_shared_spi_event_info(struct hl_device *hdev, u32 die)
 	/* Handle NCH */
 	if (sts1 & sts1_nch_mask) {
 		idx = ffs(sts1 & sts1_nch_mask) - 2;
-		snprintf(str, 512, "NCH%u_DIE%u_HDSHARED_SPI", idx, die);
-		dev_err(hdev->dev, "Received %s event\n", str);
+		dev_err(hdev->dev, "Received NCH_SPI[%u] interrupt in D%u_CPU_INT_AGG_SHARED\n",
+			idx, die);
 
 		if (shared_handle_and_clear[SHARED_NCH_EVENT])
 			shared_handle_and_clear[SHARED_NCH_EVENT](hdev, die,
@@ -4440,8 +4438,8 @@ static void gaudi3_shared_spi_event_info(struct hl_device *hdev, u32 die)
 	/* Handle PMMU */
 	if (sts1 & sts1_pmmu_mask) {
 		idx = ffs(sts1 & sts1_pmmu_mask) - 4;
-		snprintf(str, 512, "PMMU%u_DIE%u_HDSHARED_SPI", idx, die);
-		dev_err(hdev->dev, "Received %s event\n", str);
+		dev_err(hdev->dev, "Received PMMU_SPI[%u] interrupt in D%u_CPU_INT_AGG_SHARED\n",
+			idx, die);
 
 		if (shared_handle_and_clear[SHARED_PMMU_EVENT])
 			shared_handle_and_clear[SHARED_PMMU_EVENT](hdev, die,
@@ -4454,8 +4452,8 @@ static void gaudi3_shared_spi_event_info(struct hl_device *hdev, u32 die)
 	/* Handle TS */
 	if (sts1 & sts1_ts_mask) {
 		idx = ffs(sts1 & sts1_ts_mask) - 9;
-		snprintf(str, 512, "TS%u_DIE%u_HDSHARED_SPI", idx, die);
-		dev_err(hdev->dev, "Received %s event\n", str);
+		dev_err(hdev->dev, "Received TS_SPI[%u] interrupt in D%u_CPU_INT_AGG_SHARED\n",
+			idx, die);
 
 		if (shared_handle_and_clear[SHARED_TS_EVENT])
 			shared_handle_and_clear[SHARED_TS_EVENT](hdev, die,
@@ -4468,8 +4466,8 @@ static void gaudi3_shared_spi_event_info(struct hl_device *hdev, u32 die)
 	/* Handle PDMA */
 	if (sts1 & sts1_pdma_mask) {
 		idx = 0;
-		snprintf(str, 512, "PDMA%u_DIE%u_HDSHARED_SPI", idx, die);
-		dev_err(hdev->dev, "Received %s event\n", str);
+		dev_err(hdev->dev, "Received PDMA_SPI[%u] interrupt in D%u_CPU_INT_AGG_SHARED\n",
+			idx, die);
 
 		if (shared_handle_and_clear[SHARED_PDMA_EVENT])
 			shared_handle_and_clear[SHARED_PDMA_EVENT](hdev, die,
@@ -4482,8 +4480,8 @@ static void gaudi3_shared_spi_event_info(struct hl_device *hdev, u32 die)
 	/* Handle D2D */
 	if (sts1 & sts1_d2d_mask) {
 		idx = ffs(sts1 & sts1_d2d_mask) - 18;
-		snprintf(str, 512, "D2D%u_DIE%u_HDSHARED_SPI", idx, die);
-		dev_err(hdev->dev, "Received %s event\n", str);
+		dev_err(hdev->dev, "Received D2D_SPI[%u] interrupt in D%u_CPU_INT_AGG_SHARED\n",
+			idx, die);
 
 		if (shared_handle_and_clear[SHARED_D2D_EVENT])
 			shared_handle_and_clear[SHARED_D2D_EVENT](hdev, die,
@@ -4516,7 +4514,6 @@ static void gaudi3_hdcore_spi_event_info(struct hl_device *hdev, u32 offset, u32
 			sts1_edma_mask = BIT(25),
 			sts1_sob_mask = BIT(31),
 			sts2_dec_mask = GENMASK(5, 2);
-	char str[512];
 
 	sts0 = RREG32(mmD0_CPU_INT_AGG_HDCORE0_SPI_ECO_INT_MSG_BASE +
 			mmINT_AGG_HDCORE_SPI_ECO_INT_MSG_STS_0 + offset);
@@ -4527,7 +4524,7 @@ static void gaudi3_hdcore_spi_event_info(struct hl_device *hdev, u32 offset, u32
 	sts3 = RREG32(mmD0_CPU_INT_AGG_HDCORE0_SPI_ECO_INT_MSG_BASE +
 			mmINT_AGG_HDCORE_SPI_ECO_INT_MSG_STS_3 + offset);
 
-	/* Mask events first, if there is a handler then it'll be unmaked back */
+	/* Mask events first, if there is a handler then it'll be unmasked back */
 	WREG32_OR(mmD0_CPU_INT_AGG_HDCORE0_SPI_ECO_INT_MSG_BASE +
 			mmINT_AGG_HDCORE_SPI_ECO_INT_MSG_MASK_0 + offset, sts0);
 	WREG32_OR(mmD0_CPU_INT_AGG_HDCORE0_SPI_ECO_INT_MSG_BASE +
@@ -4540,8 +4537,8 @@ static void gaudi3_hdcore_spi_event_info(struct hl_device *hdev, u32 offset, u32
 	/* Handle MME */
 	if (sts0 & sts0_mme_mask) {
 		idx = ffs(sts0 & sts0_mme_mask) - 1;
-		snprintf(str, 512, "MME%u_DIE%u_HD%u_SPI", idx, die, hdcore);
-		dev_err(hdev->dev, "Received %s event\n", str);
+		dev_err(hdev->dev, "Received MME_SPI[%u] interrupt in D%u_CPU_INT_AGG_HDCORE%u\n",
+			idx, die, hdcore);
 
 		if (hdcore_handle_and_clear[HDCORE_MME_EVENT])
 			hdcore_handle_and_clear[HDCORE_MME_EVENT](hdev, die, hdcore,
@@ -4554,8 +4551,8 @@ static void gaudi3_hdcore_spi_event_info(struct hl_device *hdev, u32 offset, u32
 	/* Handle TPC */
 	if (sts0 & sts0_tpc_mask) {
 		idx = ffs(sts0 & sts0_tpc_mask) - 16;
-		snprintf(str, 512, "TPC%u_DIE%u_HD%u_SPI", idx, die, hdcore);
-		dev_err(hdev->dev, "Received %s event\n", str);
+		dev_err(hdev->dev, "Received TPC_SPI[%u] interrupt in D%u_CPU_INT_AGG_HDCORE%u\n",
+			idx, die, hdcore);
 
 		if (hdcore_handle_and_clear[HDCORE_TPC_EVENT])
 			hdcore_handle_and_clear[HDCORE_TPC_EVENT](hdev, die, hdcore,
@@ -4567,8 +4564,8 @@ static void gaudi3_hdcore_spi_event_info(struct hl_device *hdev, u32 offset, u32
 
 	if (sts1 & sts1_tpc_mask) {
 		idx = 17;
-		snprintf(str, 512, "TPC%u_DIE%u_HD%u_SPI", idx, die, hdcore);
-		dev_err(hdev->dev, "Received %s event\n", str);
+		dev_err(hdev->dev, "Received TPC_SPI[%u] interrupt in D%u_CPU_INT_AGG_HDCORE%u\n",
+			idx, die, hdcore);
 
 		if (hdcore_handle_and_clear[HDCORE_TPC_EVENT])
 			hdcore_handle_and_clear[HDCORE_TPC_EVENT](hdev, die, hdcore,
@@ -4581,8 +4578,8 @@ static void gaudi3_hdcore_spi_event_info(struct hl_device *hdev, u32 offset, u32
 	/* Handle ROT */
 	if (sts1 & sts1_rot_mask) {
 		idx = ffs(sts1 & sts1_rot_mask) - 2;
-		snprintf(str, 512, "ROT%u_DIE%u_HD%u_SPI", idx, die, hdcore);
-		dev_err(hdev->dev, "Received %s event\n", str);
+		dev_err(hdev->dev, "Received ROT_SPI[%u] interrupt in D%u_CPU_INT_AGG_HDCORE%u\n",
+			idx, die, hdcore);
 
 		if (hdcore_handle_and_clear[HDCORE_ROT_EVENT])
 			hdcore_handle_and_clear[HDCORE_ROT_EVENT](hdev, die, hdcore,
@@ -4595,8 +4592,8 @@ static void gaudi3_hdcore_spi_event_info(struct hl_device *hdev, u32 offset, u32
 	/* Handle Cache */
 	if (sts1 & sts1_cs_mask) {
 		idx = ffs(sts1 & sts1_cs_mask) - 6;
-		snprintf(str, 512, "CS%u_DIE%u_HD%u_SPI", idx, die, hdcore);
-		dev_err(hdev->dev, "Received %s event\n", str);
+		dev_err(hdev->dev, "Received CS_SPI[%u] interrupt in D%u_CPU_INT_AGG_HDCORE%u\n",
+			idx, die, hdcore);
 
 		if (hdcore_handle_and_clear[HDCORE_CS_EVENT])
 			hdcore_handle_and_clear[HDCORE_CS_EVENT](hdev, die, hdcore,
@@ -4609,8 +4606,9 @@ static void gaudi3_hdcore_spi_event_info(struct hl_device *hdev, u32 offset, u32
 	/* Handle STLB */
 	if (sts1 & sts1_stlb_mask) {
 		idx = ffs(sts1 & sts1_stlb_mask) - 22;
-		snprintf(str, 512, "STLB%u_DIE%u_HD%u_SPI", idx, die, hdcore);
-		dev_err(hdev->dev, "Received %s event\n", str);
+		dev_err(hdev->dev, "Received STLB_SPI[%u] interrupt in D%u_CPU_INT_AGG_HDCORE%u\n",
+			idx, die, hdcore);
+
 		if (hdcore_handle_and_clear[HDCORE_STLB_EVENT])
 			hdcore_handle_and_clear[HDCORE_STLB_EVENT](hdev, die, hdcore,
 				ERR_GRP_SPI_ECO, sts1, 1, idx,
@@ -4622,8 +4620,8 @@ static void gaudi3_hdcore_spi_event_info(struct hl_device *hdev, u32 offset, u32
 	/* Handle EDMA */
 	if (sts1 & sts1_edma_mask) {
 		idx = 0;
-		snprintf(str, 512, "EDMA%u_DIE%u_HD%u_SPI", idx, die, hdcore);
-		dev_err(hdev->dev, "Received %s event\n", str);
+		dev_err(hdev->dev, "Received EDMA_SPI[%u] interrupt in D%u_CPU_INT_AGG_HDCORE%u\n",
+			idx, die, hdcore);
 
 		if (hdcore_handle_and_clear[HDCORE_EDMA_EVENT])
 			hdcore_handle_and_clear[HDCORE_EDMA_EVENT](hdev, die, hdcore,
@@ -4636,8 +4634,8 @@ static void gaudi3_hdcore_spi_event_info(struct hl_device *hdev, u32 offset, u32
 	/* Handle SOB */
 	if (sts1 & sts1_sob_mask) {
 		idx = 0;
-		snprintf(str, 512, "SOB%u_DIE%u_HD%u_SPI", idx, die, hdcore);
-		dev_err(hdev->dev, "Received %s event\n", str);
+		dev_err(hdev->dev, "Received SOB_SPI[%u] interrupt in D%u_CPU_INT_AGG_HDCORE%u\n",
+			idx, die, hdcore);
 
 		if (hdcore_handle_and_clear[HDCORE_SOB_EVENT])
 			hdcore_handle_and_clear[HDCORE_SOB_EVENT](hdev, die, hdcore,
@@ -4650,8 +4648,8 @@ static void gaudi3_hdcore_spi_event_info(struct hl_device *hdev, u32 offset, u32
 	/* Handle Decoder */
 	if (sts2 & sts2_dec_mask) {
 		idx = ffs(sts2 & sts2_dec_mask) - 3;
-		snprintf(str, 512, "DEC%u_DIE%u_HD%u_SPI", idx, die, hdcore);
-		dev_err(hdev->dev, "Received %s event\n", str);
+		dev_err(hdev->dev, "Received DEC_SPI[%u] interrupt in D%u_CPU_INT_AGG_HDCORE%u\n",
+			idx, die, hdcore);
 
 		if (hdcore_handle_and_clear[HDCORE_DEC_EVENT])
 			hdcore_handle_and_clear[HDCORE_DEC_EVENT](hdev, die, hdcore,
@@ -4688,14 +4686,13 @@ static void gaudi3_hdcore_sei_event_info(struct hl_device *hdev, u32 offset, u32
 			sts1_arcfarm_mask = BIT(10),
 			sts1_dup_mask = BIT(11),
 			sts1_dec_mask = GENMASK(13, 12);
-	char str[512];
 
 	sts0 = RREG32(mmD0_CPU_INT_AGG_HDCORE0_SEI_INT_MSG_BASE +
 			mmINT_AGG_HDCORE_SEI_INT_MSG_STS_0 + offset);
 	sts1 = RREG32(mmD0_CPU_INT_AGG_HDCORE0_SEI_INT_MSG_BASE +
 			mmINT_AGG_HDCORE_SEI_INT_MSG_STS_1 + offset);
 
-	/* Mask events first, if there is a handler then it'll be unmaked back */
+	/* Mask events first, if there is a handler then it'll be unmasked back */
 	WREG32_OR(mmD0_CPU_INT_AGG_HDCORE0_SEI_INT_MSG_BASE +
 			mmINT_AGG_HDCORE_SEI_INT_MSG_MASK_0 + offset, sts0);
 	WREG32_OR(mmD0_CPU_INT_AGG_HDCORE0_SEI_INT_MSG_BASE +
@@ -4704,8 +4701,8 @@ static void gaudi3_hdcore_sei_event_info(struct hl_device *hdev, u32 offset, u32
 	/* Handle MME */
 	if (sts0 & sts0_mme_mask) {
 		idx = ffs(sts0 & sts0_mme_mask) - 1;
-		snprintf(str, 512, "MME%u_DIE%u_HD%u_SEI", idx, die, hdcore);
-		dev_err(hdev->dev, "Received %s event\n", str);
+		dev_err(hdev->dev, "Received MME_SEI[%u] interrupt in D%u_CPU_INT_AGG_HDCORE%u\n",
+			idx, die, hdcore);
 
 		if (hdcore_handle_and_clear[HDCORE_MME_EVENT])
 			hdcore_handle_and_clear[HDCORE_MME_EVENT](hdev, die, hdcore,
@@ -4718,8 +4715,8 @@ static void gaudi3_hdcore_sei_event_info(struct hl_device *hdev, u32 offset, u32
 	/* Handle TPC */
 	if (sts0 & sts0_tpc_mask) {
 		idx = ffs(sts0 & sts0_tpc_mask) - 13;
-		snprintf(str, 512, "TPC%u_DIE%u_HD%u_SEI", idx, die, hdcore);
-		dev_err(hdev->dev, "Received %s event\n", str);
+		dev_err(hdev->dev, "Received TPC_SEI[%u] interrupt in D%u_CPU_INT_AGG_HDCORE%u\n",
+			idx, die, hdcore);
 
 		if (hdcore_handle_and_clear[HDCORE_TPC_EVENT])
 			hdcore_handle_and_clear[HDCORE_TPC_EVENT](hdev, die, hdcore,
@@ -4732,8 +4729,8 @@ static void gaudi3_hdcore_sei_event_info(struct hl_device *hdev, u32 offset, u32
 	/* Handle ROT */
 	if (sts0 & sts0_rot_mask) {
 		idx = ffs(sts0 & sts0_rot_mask) - 22;
-		snprintf(str, 512, "ROT%u_DIE%u_HD%u_SEI", idx, die, hdcore);
-		dev_err(hdev->dev, "Received %s event\n", str);
+		dev_err(hdev->dev, "Received ROT_SEI[%u] interrupt in D%u_CPU_INT_AGG_HDCORE%u\n",
+			idx, die, hdcore);
 
 		if (hdcore_handle_and_clear[HDCORE_ROT_EVENT])
 			hdcore_handle_and_clear[HDCORE_ROT_EVENT](hdev, die, hdcore,
@@ -4746,8 +4743,8 @@ static void gaudi3_hdcore_sei_event_info(struct hl_device *hdev, u32 offset, u32
 	/* Handle Cache */
 	if (sts0 & sts0_cs_mask) {
 		idx = ffs(sts0 & sts0_cs_mask) - 24;
-		snprintf(str, 512, "CS%u_DIE%u_HD%u_SEI", idx, die, hdcore);
-		dev_err(hdev->dev, "Received %s event\n", str);
+		dev_err(hdev->dev, "Received CS_SEI[%u] interrupt in D%u_CPU_INT_AGG_HDCORE%u\n",
+			idx, die, hdcore);
 
 		if (hdcore_handle_and_clear[HDCORE_CS_EVENT])
 			hdcore_handle_and_clear[HDCORE_CS_EVENT](hdev, die, hdcore,
@@ -4760,8 +4757,8 @@ static void gaudi3_hdcore_sei_event_info(struct hl_device *hdev, u32 offset, u32
 	/* Handle STLB */
 	if (sts0 & sts0_stlb_mask) {
 		idx = 0;
-		snprintf(str, 512, "STLB%u_DIE%u_HD%u_SEI", idx, die, hdcore);
-		dev_err(hdev->dev, "Received %s event\n", str);
+		dev_err(hdev->dev, "Received STLB_SEI[%u] interrupt in D%u_CPU_INT_AGG_HDCORE%u\n",
+			idx, die, hdcore);
 
 		if (hdcore_handle_and_clear[HDCORE_STLB_EVENT])
 			hdcore_handle_and_clear[HDCORE_STLB_EVENT](hdev, die, hdcore,
@@ -4774,8 +4771,8 @@ static void gaudi3_hdcore_sei_event_info(struct hl_device *hdev, u32 offset, u32
 	/* Handle EDMA */
 	if (sts1 & sts1_edma_mask) {
 		idx = 0;
-		snprintf(str, 512, "EDMA%u_DIE%u_HD%u_SEI", idx, die, hdcore);
-		dev_err(hdev->dev, "Received %s event\n", str);
+		dev_err(hdev->dev, "Received EDMA_SEI[%u] interrupt in D%u_CPU_INT_AGG_HDCORE%u\n",
+			idx, die, hdcore);
 
 		if (hdcore_handle_and_clear[HDCORE_EDMA_EVENT])
 			hdcore_handle_and_clear[HDCORE_EDMA_EVENT](hdev, die, hdcore,
@@ -4788,8 +4785,8 @@ static void gaudi3_hdcore_sei_event_info(struct hl_device *hdev, u32 offset, u32
 	/* Handle HBM */
 	if (sts1 & sts1_hbm_mask) {
 		idx = ffs(sts1 & sts1_hbm_mask) - 2;
-		snprintf(str, 512, "HBM%u_DIE%u_HD%u_SEI", idx, die, hdcore);
-		dev_err(hdev->dev, "Received %s event\n", str);
+		dev_err(hdev->dev, "Received HBM_SEI[%u] interrupt in D%u_CPU_INT_AGG_HDCORE%u\n",
+			idx, die, hdcore);
 
 		if (hdcore_handle_and_clear[HDCORE_HBM_EVENT])
 			hdcore_handle_and_clear[HDCORE_HBM_EVENT](hdev, die, hdcore,
@@ -4802,8 +4799,8 @@ static void gaudi3_hdcore_sei_event_info(struct hl_device *hdev, u32 offset, u32
 	/* Handle SOB */
 	if (sts1 & sts1_sob_mask) {
 		idx = 0;
-		snprintf(str, 512, "SOB%u_DIE%u_HD%u_SEI", idx, die, hdcore);
-		dev_err(hdev->dev, "Received %s event\n", str);
+		dev_err(hdev->dev, "Received SOB_SEI[%u] interrupt in D%u_CPU_INT_AGG_HDCORE%u\n",
+			idx, die, hdcore);
 
 		if (hdcore_handle_and_clear[HDCORE_SOB_EVENT])
 			hdcore_handle_and_clear[HDCORE_SOB_EVENT](hdev, die, hdcore,
@@ -4816,8 +4813,9 @@ static void gaudi3_hdcore_sei_event_info(struct hl_device *hdev, u32 offset, u32
 	/* Handle ARCFARM */
 	if (sts1 & sts1_arcfarm_mask) {
 		idx = 0;
-		snprintf(str, 512, "ARC_FARM%u_DIE%u_HD%u_SEI", idx, die, hdcore);
-		dev_err(hdev->dev, "Received %s event\n", str);
+		dev_err(hdev->dev,
+			"Received ARC_FARM_SEI[%u] interrupt in D%u_CPU_INT_AGG_HDCORE%u\n",
+			idx, die, hdcore);
 
 		if (hdcore_handle_and_clear[HDCORE_ARCFARM_EVENT])
 			hdcore_handle_and_clear[HDCORE_ARCFARM_EVENT](hdev, die, hdcore,
@@ -4830,8 +4828,8 @@ static void gaudi3_hdcore_sei_event_info(struct hl_device *hdev, u32 offset, u32
 	/* Handle DUP */
 	if (sts1 & sts1_dup_mask) {
 		idx = 0;
-		snprintf(str, 512, "DUP%u_DIE%u_HD%u_SEI", idx, die, hdcore);
-		dev_err(hdev->dev, "Received %s event\n", str);
+		dev_err(hdev->dev, "Received DUP_SEI[%u] interrupt in D%u_CPU_INT_AGG_HDCORE%u\n",
+			idx, die, hdcore);
 
 		if (hdcore_handle_and_clear[HDCORE_DUP_EVENT])
 			hdcore_handle_and_clear[HDCORE_DUP_EVENT](hdev, die, hdcore,
@@ -4844,8 +4842,8 @@ static void gaudi3_hdcore_sei_event_info(struct hl_device *hdev, u32 offset, u32
 	/* Handle DEC */
 	if (sts1 & sts1_dec_mask) {
 		idx = ffs(sts1 & sts1_dec_mask) - 13;
-		snprintf(str, 512, "DEC%u_DIE%u_HD%u_SEI", idx, die, hdcore);
-		dev_err(hdev->dev, "Received %s event\n", str);
+		dev_err(hdev->dev, "Received DEC_SEI[%u] interrupt in D%u_CPU_INT_AGG_HDCORE%u\n",
+			idx, die, hdcore);
 
 		if (hdcore_handle_and_clear[HDCORE_DEC_EVENT])
 			hdcore_handle_and_clear[HDCORE_DEC_EVENT](hdev, die, hdcore,
@@ -4881,8 +4879,6 @@ static void gaudi3_shared_sei_event_info(struct hl_device *hdev, u32 die)
 		sts1_glink_mask = GENMASK(1, 0),
 		sts1_pll_mask = GENMASK(30, 6);
 
-	char str[512];
-
 	offset = die * DIE_OFFSET;
 	sts0 = RREG32(mmD0_CPU_INT_AGG_SHARED_SEI_INT_MSG_BASE +
 				mmINT_AGG_SHARED_SEI_INT_MSG_STS_0 + offset);
@@ -4891,7 +4887,7 @@ static void gaudi3_shared_sei_event_info(struct hl_device *hdev, u32 die)
 	sts2 = RREG32(mmD0_CPU_INT_AGG_SHARED_SEI_INT_MSG_BASE +
 				mmINT_AGG_SHARED_SEI_INT_MSG_STS_2 + offset);
 
-	/* Mask events first, if there is a handler then it'll be unmaked back */
+	/* Mask events first, if there is a handler then it'll be unmasked back */
 	WREG32_OR(mmD0_CPU_INT_AGG_SHARED_SEI_INT_MSG_BASE +
 				mmINT_AGG_SHARED_SEI_INT_MSG_MASK_0 + offset, sts0);
 	WREG32_OR(mmD0_CPU_INT_AGG_SHARED_SEI_INT_MSG_BASE +
@@ -4902,8 +4898,8 @@ static void gaudi3_shared_sei_event_info(struct hl_device *hdev, u32 die)
 	/* Handle CPU */
 	if (sts0 & sts0_cpu_mask) {
 		idx = ffs(sts0 & sts0_cpu_mask) - 1;
-		snprintf(str, 512, "CPU%u_DIE%u_HDSHARED_SEI", idx, die);
-		dev_err(hdev->dev, "Received %s event\n", str);
+		dev_err(hdev->dev, "Received CPU_SEI[%u] interrupt in D%u_CPU_INT_AGG_SHARED\n",
+			idx, die);
 
 		if (shared_handle_and_clear[SHARED_CPU_EVENT])
 			shared_handle_and_clear[SHARED_CPU_EVENT](hdev, die,
@@ -4916,8 +4912,8 @@ static void gaudi3_shared_sei_event_info(struct hl_device *hdev, u32 die)
 	/* Handle PCIE */
 	if (sts0 & sts0_pcie_mask) {
 		idx = ffs(sts0 & sts0_pcie_mask) - 4;
-		snprintf(str, 512, "PCIE%u_DIE%u_HDSHARED_SEI", idx, die);
-		dev_err(hdev->dev, "Received %s event\n", str);
+		dev_err(hdev->dev, "Received PCIE_SEI[%u] interrupt in D%u_CPU_INT_AGG_SHARED\n",
+			idx, die);
 
 		if (shared_handle_and_clear[SHARED_PCIE_EVENT])
 			shared_handle_and_clear[SHARED_PCIE_EVENT](hdev, die,
@@ -4930,8 +4926,8 @@ static void gaudi3_shared_sei_event_info(struct hl_device *hdev, u32 die)
 	/* Handle NIC */
 	if (sts0 & sts0_nic_mask) {
 		idx = ffs(sts0 & sts0_nic_mask) - 6;
-		snprintf(str, 512, "NIC%u_DIE%u_HDSHARED_SEI", idx, die);
-		dev_err(hdev->dev, "Received %s event\n", str);
+		dev_err(hdev->dev, "Received NIC_SEI[%u] interrupt in D%u_CPU_INT_AGG_SHARED\n",
+			idx, die);
 
 		if (shared_handle_and_clear[SHARED_NIC_EVENT])
 			shared_handle_and_clear[SHARED_NIC_EVENT](hdev, die,
@@ -4944,8 +4940,8 @@ static void gaudi3_shared_sei_event_info(struct hl_device *hdev, u32 die)
 	/* Handle NCH */
 	if (sts0 & sts0_nch_mask) {
 		idx = ffs(sts0 & sts0_nch_mask) - 12;
-		snprintf(str, 512, "NCH%u_DIE%u_HDSHARED_SEI", idx, die);
-		dev_err(hdev->dev, "Received %s event\n", str);
+		dev_err(hdev->dev, "Received NCH_SEI[%u] interrupt in D%u_CPU_INT_AGG_SHARED\n",
+			idx, die);
 
 		if (shared_handle_and_clear[SHARED_NCH_EVENT])
 			shared_handle_and_clear[SHARED_NCH_EVENT](hdev, die,
@@ -4958,8 +4954,8 @@ static void gaudi3_shared_sei_event_info(struct hl_device *hdev, u32 die)
 	/* Handle PMMU */
 	if (sts0 & sts0_pmmu_mask) {
 		idx = 1;
-		snprintf(str, 512, "PMMU%u_DIE%u_HDSHARED_SEI", idx, die);
-		dev_err(hdev->dev, "Received %s event\n", str);
+		dev_err(hdev->dev, "Received PMMU_SEI[%u] interrupt in D%u_CPU_INT_AGG_SHARED\n",
+			idx, die);
 
 		if (shared_handle_and_clear[SHARED_PMMU_EVENT])
 			shared_handle_and_clear[SHARED_PMMU_EVENT](hdev, die,
@@ -4972,8 +4968,8 @@ static void gaudi3_shared_sei_event_info(struct hl_device *hdev, u32 die)
 	/* Handle VM */
 	if (sts0 & sts0_vm_mask) {
 		idx = ffs(sts0 & sts0_vm_mask) - 16;
-		snprintf(str, 512, "VM%u_DIE%u_HDSHARED_SEI", idx, die);
-		dev_err(hdev->dev, "Received %s event\n", str);
+		dev_err(hdev->dev, "Received VM_SEI[%u] interrupt in D%u_CPU_INT_AGG_SHARED\n",
+			idx, die);
 
 		if (shared_handle_and_clear[SHARED_VM_EVENT])
 			shared_handle_and_clear[SHARED_VM_EVENT](hdev, die,
@@ -4986,8 +4982,8 @@ static void gaudi3_shared_sei_event_info(struct hl_device *hdev, u32 die)
 	/* Handle PDMA */
 	if (sts0 & sts0_pdma_mask) {
 		idx = 0;
-		snprintf(str, 512, "PDMA%u_DIE%u_HDSHARED_SEI", idx, die);
-		dev_err(hdev->dev, "Received %s event\n", str);
+		dev_err(hdev->dev, "Received PDMA_SEI[%u] interrupt in D%u_CPU_INT_AGG_SHARED\n",
+			idx, die);
 
 		if (shared_handle_and_clear[SHARED_PDMA_EVENT])
 			shared_handle_and_clear[SHARED_PDMA_EVENT](hdev, die,
@@ -5000,8 +4996,8 @@ static void gaudi3_shared_sei_event_info(struct hl_device *hdev, u32 die)
 	/* Handle PSOC */
 	if (sts0 & sts0_psoc_mask) {
 		idx = 0;
-		snprintf(str, 512, "PSOC%u_DIE%u_HDSHARED_SEI", idx, die);
-		dev_err(hdev->dev, "Received %s event\n", str);
+		dev_err(hdev->dev, "Received PSOC_SEI[%u] interrupt in D%u_CPU_INT_AGG_SHARED\n",
+			idx, die);
 
 		if (shared_handle_and_clear[SHARED_PSOC_EVENT])
 			shared_handle_and_clear[SHARED_PSOC_EVENT](hdev, die,
@@ -5014,8 +5010,8 @@ static void gaudi3_shared_sei_event_info(struct hl_device *hdev, u32 die)
 	/* Handle PARC */
 	if (sts0 & sts0_parc_mask) {
 		idx = 0;
-		snprintf(str, 512, "PARC%u_DIE%u_HDSHARED_SEI", idx, die);
-		dev_err(hdev->dev, "Received %s event\n", str);
+		dev_err(hdev->dev, "Received PARC_SEI[%u] interrupt in D%u_CPU_INT_AGG_SHARED\n",
+			idx, die);
 
 		if (shared_handle_and_clear[SHARED_PARC_EVENT])
 			shared_handle_and_clear[SHARED_PARC_EVENT](hdev, die,
@@ -5028,8 +5024,8 @@ static void gaudi3_shared_sei_event_info(struct hl_device *hdev, u32 die)
 	/* Handle D2D */
 	if (sts0 & sts0_d2d_mask) {
 		idx = ffs(sts0 & sts0_d2d_mask) - 27;
-		snprintf(str, 512, "D2D%u_DIE%u_HDSHARED_SEI", idx, die);
-		dev_err(hdev->dev, "Received %s event\n", str);
+		dev_err(hdev->dev, "Received D2D_SEI[%u] interrupt in D%u_CPU_INT_AGG_SHARED\n",
+			idx, die);
 
 		if (shared_handle_and_clear[SHARED_D2D_EVENT])
 			shared_handle_and_clear[SHARED_D2D_EVENT](hdev, die,
@@ -5042,8 +5038,8 @@ static void gaudi3_shared_sei_event_info(struct hl_device *hdev, u32 die)
 	/* Handle GLINK */
 	if (sts0 & sts0_glink_mask) {
 		idx = ffs(sts0 & sts0_glink_mask) - 29;
-		snprintf(str, 512, "GLINK%u_DIE%u_HDSHARED_SEI", idx, die);
-		dev_err(hdev->dev, "Received %s event\n", str);
+		dev_err(hdev->dev, "Received GLINK_SEI[%u] interrupt in D%u_CPU_INT_AGG_SHARED\n",
+			idx, die);
 
 		if (shared_handle_and_clear[SHARED_GLINK_EVENT])
 			shared_handle_and_clear[SHARED_GLINK_EVENT](hdev, die,
@@ -5055,8 +5051,8 @@ static void gaudi3_shared_sei_event_info(struct hl_device *hdev, u32 die)
 
 	if (sts1 & sts1_glink_mask) {
 		idx = (ffs(sts0 & sts1_glink_mask)) + 3; /* +3 to distinguish name from sts0 */
-		snprintf(str, 512, "GLINK%u_DIE%u_HDSHARED_SEI", idx, die);
-		dev_err(hdev->dev, "Received %s event\n", str);
+		dev_err(hdev->dev, "Received GLINK_SEI[%u] interrupt in D%u_CPU_INT_AGG_SHARED\n",
+			idx, die);
 
 		if (shared_handle_and_clear[SHARED_GLINK_EVENT])
 			shared_handle_and_clear[SHARED_GLINK_EVENT](hdev, die,
@@ -5069,8 +5065,8 @@ static void gaudi3_shared_sei_event_info(struct hl_device *hdev, u32 die)
 	/* Handle PLL */
 	if (sts1 & sts1_pll_mask) {
 		idx = ffs(sts0 & sts1_pll_mask) - 7;
-		snprintf(str, 512, "PLL%u_DIE%u_HDSHARED_SEI", idx, die);
-		dev_err(hdev->dev, "Received %s event\n", str);
+		dev_err(hdev->dev, "Received PLL_SEI[%u] interrupt in D%u_CPU_INT_AGG_SHARED\n",
+			idx, die);
 
 		if (shared_handle_and_clear[SHARED_PLL_EVENT])
 			shared_handle_and_clear[SHARED_PLL_EVENT](hdev, die,
@@ -5124,7 +5120,7 @@ static void gaudi3_shared_serr_event_info(struct hl_device *hdev, u32 die)
 	sts0 = RREG32(mmD0_CPU_INT_AGG_SHARED_REI_SERR_INT_MSG_BASE +
 			mmINT_AGG_SHARED_REI_SERR_INT_MSG_STS + offset);
 
-	/* Mask events first, if there is a handler then it'll be unmaked back */
+	/* Mask events first, if there is a handler then it'll be unmasked back */
 	WREG32_OR(mmD0_CPU_INT_AGG_SHARED_REI_SERR_INT_MSG_BASE +
 			mmINT_AGG_SHARED_REI_SERR_INT_MSG_MASK + offset, sts0);
 
@@ -5153,14 +5149,13 @@ static void gaudi3_hdcore_derr_event_info(struct hl_device *hdev, u32 offset, u3
 			sts1_arcfarm_mask = BIT(13),
 			sts1_dec_mask = GENMASK(17, 14),
 			sts1_hif_mask = BIT(18);
-	char str[512];
 
 	sts0 = RREG32(mmD0_CPU_INT_AGG_HDCORE0_REI_DERR_INT_MSG_BASE +
 			mmINT_AGG_HDCORE_REI_DERR_INT_MSG_STS_0 + offset);
 	sts1 = RREG32(mmD0_CPU_INT_AGG_HDCORE0_REI_DERR_INT_MSG_BASE +
 			mmINT_AGG_HDCORE_REI_DERR_INT_MSG_STS_1 + offset);
 
-	/* Mask events first, if there is a handler then it'll be unmaked back */
+	/* Mask events first, if there is a handler then it'll be unmasked back */
 	WREG32_OR(mmD0_CPU_INT_AGG_HDCORE0_REI_DERR_INT_MSG_BASE +
 			mmINT_AGG_HDCORE_REI_DERR_INT_MSG_MASK_0 + offset, sts0);
 	WREG32_OR(mmD0_CPU_INT_AGG_HDCORE0_REI_DERR_INT_MSG_BASE +
@@ -5169,8 +5164,8 @@ static void gaudi3_hdcore_derr_event_info(struct hl_device *hdev, u32 offset, u3
 	/* Handle MME */
 	if (sts0 & sts0_mme_mask) {
 		idx = ffs(sts0 & sts0_mme_mask) - 1;
-		snprintf(str, 512, "MME%u_DIE%u_HD%u_DERR", idx, die, hdcore);
-		dev_err(hdev->dev, "Received %s event\n", str);
+		dev_err(hdev->dev, "Received MME_DERR[%u] interrupt in D%u_CPU_INT_AGG_HDCORE%u\n",
+			idx, die, hdcore);
 
 		if (hdcore_handle_and_clear[HDCORE_MME_EVENT])
 			hdcore_handle_and_clear[HDCORE_MME_EVENT](hdev, die, hdcore,
@@ -5183,8 +5178,8 @@ static void gaudi3_hdcore_derr_event_info(struct hl_device *hdev, u32 offset, u3
 	/* Handle TPC */
 	if (sts0 & sts0_tpc_mask) {
 		idx = ffs(sts0 & sts0_tpc_mask) - 12;
-		snprintf(str, 512, "TPC%u_DIE%u_HD%u_DERR", idx, die, hdcore);
-		dev_err(hdev->dev, "Received %s event\n", str);
+		dev_err(hdev->dev, "Received TPC_DERR[%u] interrupt in D%u_CPU_INT_AGG_HDCORE%u\n",
+			idx, die, hdcore);
 
 		if (hdcore_handle_and_clear[HDCORE_TPC_EVENT])
 			hdcore_handle_and_clear[HDCORE_TPC_EVENT](hdev, die, hdcore,
@@ -5197,8 +5192,8 @@ static void gaudi3_hdcore_derr_event_info(struct hl_device *hdev, u32 offset, u3
 	/* Handle ROT */
 	if (sts0 & sts0_rot_mask) {
 		idx = ffs(sts0 & sts0_rot_mask) - 21;
-		snprintf(str, 512, "ROT%u_DIE%u_HD%u_DERR", idx, die, hdcore);
-		dev_err(hdev->dev, "Received %s event\n", str);
+		dev_err(hdev->dev, "Received ROT_DERR[%u] interrupt in D%u_CPU_INT_AGG_HDCORE%u\n",
+			idx, die, hdcore);
 
 		if (hdcore_handle_and_clear[HDCORE_ROT_EVENT])
 			hdcore_handle_and_clear[HDCORE_ROT_EVENT](hdev, die, hdcore,
@@ -5211,8 +5206,8 @@ static void gaudi3_hdcore_derr_event_info(struct hl_device *hdev, u32 offset, u3
 	/* Handle CS */
 	if (sts0 & sts0_cs_mask) {
 		idx = ffs(sts0 & sts0_cs_mask) - 23;
-		snprintf(str, 512, "CS%u_DIE%u_HD%u_DERR", idx, die, hdcore);
-		dev_err(hdev->dev, "Received %s event\n", str);
+		dev_err(hdev->dev, "Received CS_DERR[%u] interrupt in D%u_CPU_INT_AGG_HDCORE%u\n",
+			idx, die, hdcore);
 
 		if (hdcore_handle_and_clear[HDCORE_CS_EVENT])
 			hdcore_handle_and_clear[HDCORE_CS_EVENT](hdev, die, hdcore,
@@ -5225,8 +5220,8 @@ static void gaudi3_hdcore_derr_event_info(struct hl_device *hdev, u32 offset, u3
 	/* Handle STLB */
 	if (sts0 & sts0_stlb_mask) {
 		idx = 0;
-		snprintf(str, 512, "STLB%u_DIE%u_HD%u_DERR", idx, die, hdcore);
-		dev_err(hdev->dev, "Received %s event\n", str);
+		dev_err(hdev->dev, "Received STLB_DERR[%u] interrupt in D%u_CPU_INT_AGG_HDCORE%u\n",
+			idx, die, hdcore);
 
 		if (hdcore_handle_and_clear[HDCORE_STLB_EVENT])
 			hdcore_handle_and_clear[HDCORE_STLB_EVENT](hdev, die, hdcore,
@@ -5239,8 +5234,8 @@ static void gaudi3_hdcore_derr_event_info(struct hl_device *hdev, u32 offset, u3
 	/* Handle RTR */
 	if (sts0 & sts0_rtr_mask) {
 		idx = 0;
-		snprintf(str, 512, "RTR%u_DIE%u_HD%u_DERR", idx, die, hdcore);
-		dev_err(hdev->dev, "Received %s event\n", str);
+		dev_err(hdev->dev, "Received RTR_DERR[%u] interrupt in D%u_CPU_INT_AGG_HDCORE%u\n",
+			idx, die, hdcore);
 
 		if (hdcore_handle_and_clear[HDCORE_RTR_EVENT])
 			hdcore_handle_and_clear[HDCORE_RTR_EVENT](hdev, die, hdcore,
@@ -5252,8 +5247,8 @@ static void gaudi3_hdcore_derr_event_info(struct hl_device *hdev, u32 offset, u3
 
 	if (sts1 & sts1_rtr_mask) {
 		idx = ffs(sts1 & sts1_rtr_mask);
-		snprintf(str, 512, "RTR%u_DIE%u_HD%u_DERR", idx, die, hdcore);
-		dev_err(hdev->dev, "Received %s event\n", str);
+		dev_err(hdev->dev, "Received RTR_DERR[%u] interrupt in D%u_CPU_INT_AGG_HDCORE%u\n",
+			idx, die, hdcore);
 
 		if (hdcore_handle_and_clear[HDCORE_RTR_EVENT])
 			hdcore_handle_and_clear[HDCORE_RTR_EVENT](hdev, die, hdcore,
@@ -5266,8 +5261,8 @@ static void gaudi3_hdcore_derr_event_info(struct hl_device *hdev, u32 offset, u3
 	/* Handle EDMA */
 	if (sts1 & sts1_edma_mask) {
 		idx = 0;
-		snprintf(str, 512, "EDMA%u_DIE%u_HD%u_DERR", idx, die, hdcore);
-		dev_err(hdev->dev, "Received %s event\n", str);
+		dev_err(hdev->dev, "Received EDMA_DERR[%u] interrupt in D%u_CPU_INT_AGG_HDCORE%u\n",
+			idx, die, hdcore);
 
 		if (hdcore_handle_and_clear[HDCORE_EDMA_EVENT])
 			hdcore_handle_and_clear[HDCORE_EDMA_EVENT](hdev, die, hdcore,
@@ -5280,8 +5275,8 @@ static void gaudi3_hdcore_derr_event_info(struct hl_device *hdev, u32 offset, u3
 	/* Handle HBM */
 	if (sts1 & sts1_hbm_mask) {
 		idx = ffs(sts0 & sts1_hbm_mask) - 9;
-		snprintf(str, 512, "HBM%u_DIE%u_HD%u_DERR", idx, die, hdcore);
-		dev_err(hdev->dev, "Received %s event\n", str);
+		dev_err(hdev->dev, "Received HBM_DERR[%u] interrupt in D%u_CPU_INT_AGG_HDCORE%u\n",
+			idx, die, hdcore);
 
 		if (hdcore_handle_and_clear[HDCORE_HBM_EVENT])
 			hdcore_handle_and_clear[HDCORE_HBM_EVENT](hdev, die, hdcore,
@@ -5294,8 +5289,8 @@ static void gaudi3_hdcore_derr_event_info(struct hl_device *hdev, u32 offset, u3
 	/* Handle SOB */
 	if (sts1 & sts1_sob_mask) {
 		idx = 0;
-		snprintf(str, 512, "SOB%u_DIE%u_HD%u_DERR", idx, die, hdcore);
-		dev_err(hdev->dev, "Received %s event\n", str);
+		dev_err(hdev->dev, "Received SOB_DERR[%u] interrupt in D%u_CPU_INT_AGG_HDCORE%u\n",
+			idx, die, hdcore);
 
 		if (hdcore_handle_and_clear[HDCORE_SOB_EVENT])
 			hdcore_handle_and_clear[HDCORE_SOB_EVENT](hdev, die, hdcore,
@@ -5308,8 +5303,9 @@ static void gaudi3_hdcore_derr_event_info(struct hl_device *hdev, u32 offset, u3
 	/* Handle ARCFARM */
 	if (sts1 & sts1_arcfarm_mask) {
 		idx = 0;
-		snprintf(str, 512, "ARC_FARM%u_DIE%u_HD%u_DERR", idx, die, hdcore);
-		dev_err(hdev->dev, "Received %s event\n", str);
+		dev_err(hdev->dev,
+			"Received ARC_FARM_DERR[%u] interrupt in D%u_CPU_INT_AGG_HDCORE%u\n",
+			idx, die, hdcore);
 
 		if (hdcore_handle_and_clear[HDCORE_ARCFARM_EVENT])
 			hdcore_handle_and_clear[HDCORE_ARCFARM_EVENT](hdev, die, hdcore,
@@ -5322,8 +5318,8 @@ static void gaudi3_hdcore_derr_event_info(struct hl_device *hdev, u32 offset, u3
 	/* Handle DEC */
 	if (sts1 & sts1_dec_mask) {
 		idx = ffs(sts0 & sts1_dec_mask) - 15;
-		snprintf(str, 512, "DEC%u_DIE%u_HD%u_DERR", idx, die, hdcore);
-		dev_err(hdev->dev, "Received %s event\n", str);
+		dev_err(hdev->dev, "Received DEC_DERR[%u] interrupt in D%u_CPU_INT_AGG_HDCORE%u\n",
+			idx, die, hdcore);
 
 		if (hdcore_handle_and_clear[HDCORE_DEC_EVENT])
 			hdcore_handle_and_clear[HDCORE_DEC_EVENT](hdev, die, hdcore,
@@ -5336,8 +5332,8 @@ static void gaudi3_hdcore_derr_event_info(struct hl_device *hdev, u32 offset, u3
 	/* Handle HIF */
 	if (sts1 & sts1_hif_mask) {
 		idx = 0;
-		snprintf(str, 512, "HIF%u_DIE%u_HD%u_DERR", idx, die, hdcore);
-		dev_err(hdev->dev, "Received %s event\n", str);
+		dev_err(hdev->dev, "Received HIF_DERR[%u] interrupt in D%u_CPU_INT_AGG_HDCORE%u\n",
+			idx, die, hdcore);
 
 		if (hdcore_handle_and_clear[HDCORE_HIF_EVENT])
 			hdcore_handle_and_clear[HDCORE_HIF_EVENT](hdev, die, hdcore,
@@ -5368,21 +5364,20 @@ static void gaudi3_shared_derr_event_info(struct hl_device *hdev, u32 die)
 			sts0_parc_mask = BIT(15),
 			sts0_d2d_mask = GENMASK(17, 16),
 			sts0_rtr_mask = GENMASK(21, 18);
-	char str[512];
 
 	offset = die * DIE_OFFSET;
 	sts0 = RREG32(mmD0_CPU_INT_AGG_SHARED_REI_DERR_INT_MSG_BASE +
 			mmINT_AGG_SHARED_REI_DERR_INT_MSG_STS + offset);
 
-	/* Mask events first, if there is a handler then it'll be unmaked back */
+	/* Mask events first, if there is a handler then it'll be unmasked back */
 	WREG32_OR(mmD0_CPU_INT_AGG_SHARED_REI_DERR_INT_MSG_BASE +
 			mmINT_AGG_SHARED_REI_DERR_INT_MSG_MASK + offset, sts0);
 
 	/* Handle CPU */
 	if (sts0 & sts0_cpu_mask) {
 		idx = 0;
-		snprintf(str, 512, "CPU%u_DIE%u_HDSHARED_DERR", idx, die);
-		dev_err(hdev->dev, "Received %s event\n", str);
+		dev_err(hdev->dev, "Received CPU_DERR[%u] interrupt in D%u_CPU_INT_AGG_SHARED\n",
+			idx, die);
 
 		if (shared_handle_and_clear[SHARED_CPU_EVENT])
 			shared_handle_and_clear[SHARED_CPU_EVENT](hdev, die,
@@ -5395,8 +5390,8 @@ static void gaudi3_shared_derr_event_info(struct hl_device *hdev, u32 die)
 	/* Handle PCIE */
 	if (sts0 & sts0_pcie_mask) {
 		idx = ffs(sts0 & sts0_pcie_mask) - 2;
-		snprintf(str, 512, "PCIE%u_DIE%u_HDSHARED_DERR", idx, die);
-		dev_err(hdev->dev, "Received %s event\n", str);
+		dev_err(hdev->dev, "Received PCIE_DERR[%u] interrupt in D%u_CPU_INT_AGG_SHARED\n",
+			idx, die);
 
 		if (shared_handle_and_clear[SHARED_PCIE_EVENT])
 			shared_handle_and_clear[SHARED_PCIE_EVENT](hdev, die,
@@ -5409,8 +5404,8 @@ static void gaudi3_shared_derr_event_info(struct hl_device *hdev, u32 die)
 	/* Handle NIC */
 	if (sts0 & sts0_nic_mask) {
 		idx = ffs(sts0 & sts0_nic_mask) - 5;
-		snprintf(str, 512, "NIC%u_DIE%u_HDSHARED_DERR", idx, die);
-		dev_err(hdev->dev, "Received %s event\n", str);
+		dev_err(hdev->dev, "Received NIC_DERR[%u] interrupt in D%u_CPU_INT_AGG_SHARED\n",
+			idx, die);
 
 		if (shared_handle_and_clear[SHARED_NIC_EVENT])
 			shared_handle_and_clear[SHARED_NIC_EVENT](hdev, die,
@@ -5423,8 +5418,8 @@ static void gaudi3_shared_derr_event_info(struct hl_device *hdev, u32 die)
 	/* Handle NCH */
 	if (sts0 & sts0_nch_mask) {
 		idx = ffs(sts0 & sts0_nch_mask) - 11;
-		snprintf(str, 512, "NCH%u_DIE%u_HDSHARED_DERR", idx, die);
-		dev_err(hdev->dev, "Received %s event\n", str);
+		dev_err(hdev->dev, "Received NCH_DERR[%u] interrupt in D%u_CPU_INT_AGG_SHARED\n",
+			idx, die);
 
 		if (shared_handle_and_clear[SHARED_NCH_EVENT])
 			shared_handle_and_clear[SHARED_NCH_EVENT](hdev, die,
@@ -5437,8 +5432,8 @@ static void gaudi3_shared_derr_event_info(struct hl_device *hdev, u32 die)
 	/* Handle PMMU */
 	if (sts0 & sts0_pmmu_mask) {
 		idx = 0;
-		snprintf(str, 512, "PMMU%u_DIE%u_HDSHARED_DERR", idx, die);
-		dev_err(hdev->dev, "Received %s event\n", str);
+		dev_err(hdev->dev, "Received PMMU_DERR[%u] interrupt in D%u_CPU_INT_AGG_SHARED\n",
+			idx, die);
 
 		if (shared_handle_and_clear[SHARED_PMMU_EVENT])
 			shared_handle_and_clear[SHARED_PMMU_EVENT](hdev, die,
@@ -5451,8 +5446,8 @@ static void gaudi3_shared_derr_event_info(struct hl_device *hdev, u32 die)
 	/* Handle PDMA */
 	if (sts0 & sts0_pdma_mask) {
 		idx = 0;
-		snprintf(str, 512, "PDMA%u_DIE%u_HDSHARED_DERR", idx, die);
-		dev_err(hdev->dev, "Received %s event\n", str);
+		dev_err(hdev->dev, "Received PDMA_DERR[%u] interrupt in D%u_CPU_INT_AGG_SHARED\n",
+			idx, die);
 
 		if (shared_handle_and_clear[SHARED_PDMA_EVENT])
 			shared_handle_and_clear[SHARED_PDMA_EVENT](hdev, die,
@@ -5465,8 +5460,8 @@ static void gaudi3_shared_derr_event_info(struct hl_device *hdev, u32 die)
 	/* Handle PARC */
 	if (sts0 & sts0_parc_mask) {
 		idx = 0;
-		snprintf(str, 512, "PARC%u_DIE%u_HDSHARED_DERR", idx, die);
-		dev_err(hdev->dev, "Received %s event\n", str);
+		dev_err(hdev->dev, "Received PARC_DERR[%u] interrupt in D%u_CPU_INT_AGG_SHARED\n",
+			idx, die);
 
 		if (shared_handle_and_clear[SHARED_PARC_EVENT])
 			shared_handle_and_clear[SHARED_PARC_EVENT](hdev, die,
@@ -5479,8 +5474,8 @@ static void gaudi3_shared_derr_event_info(struct hl_device *hdev, u32 die)
 	/* Handle D2D */
 	if (sts0 & sts0_d2d_mask) {
 		idx = ffs(sts0 & sts0_d2d_mask) - 17;
-		snprintf(str, 512, "D2D%u_DIE%u_HDSHARED_DERR", idx, die);
-		dev_err(hdev->dev, "Received %s event\n", str);
+		dev_err(hdev->dev, "Received D2D_DERR[%u] interrupt in D%u_CPU_INT_AGG_SHARED\n",
+			idx, die);
 
 		if (shared_handle_and_clear[SHARED_D2D_EVENT])
 			shared_handle_and_clear[SHARED_D2D_EVENT](hdev, die,
@@ -5493,8 +5488,8 @@ static void gaudi3_shared_derr_event_info(struct hl_device *hdev, u32 die)
 	/* Handle RTR */
 	if (sts0 & sts0_rtr_mask) {
 		idx = ffs(sts0 & sts0_rtr_mask) - 19;
-		snprintf(str, 512, "RTR%u_DIE%u_HDSHARED_DERR", idx, die);
-		dev_err(hdev->dev, "Received %s event\n", str);
+		dev_err(hdev->dev, "Received RTR_DERR[%u] interrupt in D%u_CPU_INT_AGG_SHARED\n",
+			idx, die);
 
 		if (shared_handle_and_clear[SHARED_RTR_EVENT])
 			shared_handle_and_clear[SHARED_RTR_EVENT](hdev, die,
