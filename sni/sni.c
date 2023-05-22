@@ -627,12 +627,6 @@ static int hl_sni_aux_data_init(struct hl_device *hdev)
 
 	aux_data->gaudi2_setup_type = hdev->gaudi2_setup_type;
 
-	/* TODO: SW-123246: add SNI debugfs instead of these */
-	aux_data->dentry = hdev->hl_debugfs.root;
-#if !IS_ENABLED(CONFIG_DRM_ACCEL)
-	aux_data->accel_dentry = hdev->hl_debugfs.accel_root;
-#endif
-
 	rc = hl_sni_get_asic_type(hdev, &aux_data->asic_type);
 	if (rc) {
 		dev_err(hdev->dev, "failed to set eth aux data asic type\n");
