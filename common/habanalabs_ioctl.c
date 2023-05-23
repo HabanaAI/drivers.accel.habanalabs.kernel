@@ -1109,6 +1109,28 @@ static int fw_err_info(struct hl_fpriv *hpriv, struct hl_info_args *args)
 	return rc ? -EFAULT : 0;
 }
 
+static int engine_err_info(struct hl_fpriv *hpriv, struct hl_info_args *args)
+{
+	void __user *user_buf = (void __user *) (uintptr_t) args->return_pointer;
+	struct hl_device *hdev = hpriv->hdev;
+	u32 user_buf_size = args->return_size;
+	struct engine_err_info *info;
+	int rc;
+
+	if (!user_buf)
+		return -EINVAL;
+
+	info = &hdev->captured_err_info.engine_err;
+	if (!info->event_info_available)
+		return 0;
+
+	if (user_buf_size < sizeof(struct hl_info_engine_err_event))
+		return -ENOMEM;
+
+	rc = copy_to_user(user_buf, &info->event, sizeof(struct hl_info_engine_err_event));
+	return rc ? -EFAULT : 0;
+}
+
 static int module_params_info(struct hl_device *hdev, struct hl_info_args *args)
 {
 	struct hl_info_module_params *module_params;
@@ -1296,6 +1318,9 @@ static int _hl_info_ioctl(struct hl_fpriv *hpriv, void *data,
 
 	case HL_INFO_FW_ERR_EVENT:
 		return fw_err_info(hpriv, args);
+
+	case HL_INFO_USER_ENGINE_ERR_EVENT:
+		return engine_err_info(hpriv, args);
 
 	case HL_INFO_DRAM_USAGE:
 		return dram_usage_info(hpriv, args);
