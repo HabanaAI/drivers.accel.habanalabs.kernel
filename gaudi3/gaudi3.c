@@ -7334,7 +7334,8 @@ void gaudi3_sync_irqs(struct hl_device *hdev)
 {
 	struct asic_fixed_properties *prop = &hdev->asic_prop;
 	struct gaudi3_device *gaudi3 = hdev->asic_specific;
-	int i, intr_id, irq;
+	u32 i, intr_id;
+	int irq;
 
 	if (!(gaudi3->hw_cap_initialized & HW_CAP_MSIX))
 		return;
@@ -7360,6 +7361,13 @@ void gaudi3_sync_irqs(struct hl_device *hdev)
 
 	irq = hl_irq_vector(hdev, GAUDI3_IRQ_NUM_UNEXPECTED_ERROR);
 	synchronize_irq(irq);
+
+	for (i = 0, intr_id = GAUDI3_IRQ_NUM_ETR_FIRST;
+			i < hdev->asic_prop.etr_buf_number;
+			++i, ++intr_id) {
+		irq = hl_irq_vector(hdev, intr_id);
+		synchronize_irq(irq);
+	}
 
 	irq = hl_irq_vector(hdev, GAUDI3_IRQ_NUM_EVENT_QUEUE);
 	synchronize_irq(irq);
