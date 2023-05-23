@@ -72,12 +72,6 @@
  */
 #define mmD0_PIF_DUMMY_LBW_BLK_BASE		0xC41C000ull
 
-struct hl_pldm_eqe_work {
-	struct work_struct	eq_work;
-	struct hl_device	*hdev;
-	u32			sw_irq;
-};
-
 struct tlb_init_data {
 	u32 cntrl_page_size;
 };
@@ -5561,14 +5555,16 @@ static void gaudi3_handle_cpu_aggr(struct hl_device *hdev, u32 intr_aggr_irq, u3
 	};
 }
 
-static void _hl_pldm_irq_handler(struct work_struct *work)
+irqreturn_t hl_pldm_irq_handler(int irq, void *arg)
 {
-	struct hl_pldm_eqe_work *eqe_work = container_of(work, struct hl_pldm_eqe_work, eq_work);
-	struct hl_device *hdev = eqe_work->hdev;
+	struct hl_device *hdev = arg;
 	u32 intr_aggr_irq, die;
 	bool is_psoc;
 
-	/* D0 CPU HDCORE0: IRQs 0..3
+	/*
+	 * Aggregator      Relative IRQ
+	 * ==========      ============
+	 * D0 CPU HDCORE0: IRQs 0..3
 	 * ...
 	 * D0 CPU HDCORE3: IRQs 12..15
 	 * D0 CPU SHARED:  IRQs 16..19
@@ -5580,7 +5576,7 @@ static void _hl_pldm_irq_handler(struct work_struct *work)
 	 * D1 CPU SHARED:  IRQs 70..73
 	 * D1 PSOC:        IRQs 74..107
 	 */
-	intr_aggr_irq = eqe_work->sw_irq - GAUDI3_PLDM_IRQ_FIRST;
+	intr_aggr_irq = irq - hl_irq_vector(hdev, GAUDI3_PLDM_IRQ_FIRST);
 	die = (intr_aggr_irq >= INTR_AGGR_NUM_OF_MSIX_VECTORS_PER_DIE) ? 1 : 0;
 	is_psoc = (intr_aggr_irq - die * INTR_AGGR_NUM_OF_MSIX_VECTORS_PER_DIE) >=
 			CPU_INTR_AGGR_NUM_OF_MSIX_VECTORS;
@@ -5589,23 +5585,6 @@ static void _hl_pldm_irq_handler(struct work_struct *work)
 		gaudi3_handle_psoc_aggr(hdev, intr_aggr_irq, die);
 	else
 		gaudi3_handle_cpu_aggr(hdev, intr_aggr_irq, die);
-
-	kfree(eqe_work);
-}
-
-irqreturn_t hl_pldm_irq_handler(int irq, void *arg)
-{
-	struct hl_device *hdev = arg;
-	u32 sw_irq = irq - (hdev->pdev->irq + 1);
-	struct hl_pldm_eqe_work *handle_eqe_work;
-
-	handle_eqe_work = kmalloc(sizeof(*handle_eqe_work), GFP_ATOMIC);
-	if (handle_eqe_work) {
-		INIT_WORK(&handle_eqe_work->eq_work, _hl_pldm_irq_handler);
-		handle_eqe_work->hdev = hdev;
-		handle_eqe_work->sw_irq = sw_irq;
-		queue_work(hdev->eq_wq, &handle_eqe_work->eq_work);
-	}
 
 	return IRQ_HANDLED;
 }

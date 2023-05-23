@@ -7177,11 +7177,56 @@ void gaudi3_eq_disable_msix(struct hl_device *hdev)
 	free_irq(irq, &hdev->event_queue);
 }
 
+static int gaudi3_pldm_enable_msix(struct hl_device *hdev)
+{
+	u32 i, irq_cnt;
+	int irq, rc;
+
+	if (!hdev->pldm)
+		return 0;
+
+	for (i = GAUDI3_PLDM_IRQ_FIRST, irq_cnt = 0 ; i <= GAUDI3_PLDM_IRQ_LAST ; ++i, ++irq_cnt) {
+		irq = hl_irq_vector(hdev, i);
+		if (irq < 0) {
+			rc = irq;
+			goto free_irqs;
+		}
+
+		rc = request_threaded_irq(irq, NULL, hl_pldm_irq_handler, IRQF_ONESHOT,
+						gaudi3_irq_name(i), hdev);
+		if (rc)
+			goto free_irqs;
+	}
+
+	return 0;
+
+free_irqs:
+	for (i = GAUDI3_PLDM_IRQ_FIRST ; i < GAUDI3_PLDM_IRQ_FIRST + irq_cnt ; ++i) {
+		irq = hl_irq_vector(hdev, i);
+		free_irq(irq, hdev);
+	}
+
+	return rc;
+}
+
+static void gaudi3_pldm_disable_msix(struct hl_device *hdev)
+{
+	int irq;
+	u32 i;
+
+	if (!hdev->pldm)
+		return;
+
+	for (i = GAUDI3_PLDM_IRQ_FIRST ; i <= GAUDI3_PLDM_IRQ_LAST ; ++i) {
+		irq = hl_irq_vector(hdev, i);
+		free_irq(irq, hdev);
+	}
+}
+
 int gaudi3_enable_msix(struct hl_device *hdev)
 {
 	struct gaudi3_device *gaudi3 = hdev->asic_specific;
-	irq_handler_t irq_handler;
-	int rc, i, irq;
+	int rc;
 
 	if (gaudi3->hw_cap_initialized & HW_CAP_MSIX)
 		return 0;
@@ -7219,27 +7264,10 @@ int gaudi3_enable_msix(struct hl_device *hdev)
 		goto free_etr_irqs;
 	}
 
-	if (hdev->pldm) {
-		u32 pldm_irq_cnt;
-
-		for (i = GAUDI3_PLDM_IRQ_FIRST, pldm_irq_cnt = 0;
-				i <= GAUDI3_PLDM_IRQ_LAST ; i++, pldm_irq_cnt++) {
-			irq = hl_irq_vector(hdev, i);
-
-			irq_handler = hl_pldm_irq_handler;
-
-			rc = request_irq(irq, irq_handler, 0, gaudi3_irq_name(i), hdev);
-			if (rc) {
-				dev_err(hdev->dev, "Failed to request IRQ %d", irq);
-				for (i = GAUDI3_PLDM_IRQ_FIRST;
-						i < GAUDI3_PLDM_IRQ_FIRST + pldm_irq_cnt;
-						i++) {
-					irq = hl_irq_vector(hdev, i);
-					free_irq(irq, hdev);
-				}
-				goto free_eq_irqs;
-			}
-		}
+	rc = gaudi3_pldm_enable_msix(hdev);
+	if (rc) {
+		dev_err(hdev->dev, "MSI-X: Failed to enable PLDM interrupts - %d\n", rc);
+		goto free_eq_irqs;
 	}
 
 	gaudi3->hw_cap_initialized |= HW_CAP_MSIX;
@@ -7347,7 +7375,6 @@ void gaudi3_sync_irqs(struct hl_device *hdev)
 void gaudi3_disable_msix(struct hl_device *hdev)
 {
 	struct gaudi3_device *gaudi3 = hdev->asic_specific;
-	int i, irq;
 
 	if (!(gaudi3->hw_cap_initialized & HW_CAP_MSIX))
 		return;
@@ -7362,12 +7389,7 @@ void gaudi3_disable_msix(struct hl_device *hdev)
 
 	gaudi3_eq_disable_msix(hdev);
 
-	if (hdev->pldm) {
-		for (i = GAUDI3_PLDM_IRQ_FIRST ; i <= GAUDI3_PLDM_IRQ_LAST ; i++) {
-			irq = hl_irq_vector(hdev, i);
-			free_irq(irq, hdev);
-		}
-	}
+	gaudi3_pldm_disable_msix(hdev);
 
 	hl_free_irq_vectors(hdev);
 
