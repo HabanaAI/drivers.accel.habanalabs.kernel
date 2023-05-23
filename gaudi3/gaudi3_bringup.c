@@ -2771,10 +2771,7 @@ void gaudi3_enable_interrupt_aggr_msgs(struct hl_device *hdev)
 	if (!hdev->pldm || !hdev->enable_intr_aggr)
 		return;
 
-	/*
-	 * Enable interrupt aggregators messages for all aggregators in CPU
-	 * and PSOC blocks.
-	 */
+	/* Enable interrupt messages for all aggregators in CPU and PSOC blocks */
 	for (die = 0 ; die < props->num_of_dies ; ++die) {
 		/* Both die0 and die1 aggregators should write to die0 PCIE_MSIX.
 		 * Due to a H/W bug (H9-5161), there is a bit flip in bit[23] of the configured
@@ -2919,6 +2916,62 @@ void gaudi3_enable_interrupt_aggr_msgs(struct hl_device *hdev)
 											offset, 0);
 			WREG32(mmD0_PARC_MSG2WIRE_SH_HD_BASE + mmMSG2WIRE_SH_HD_MASK_0 + offset, 0);
 			WREG32(mmD0_PARC_MSG2WIRE_SH_HD_BASE + mmMSG2WIRE_SH_HD_MASK_1 + offset, 0);
+		}
+	}
+}
+
+void gaudi3_disable_interrupt_aggr_msgs(struct hl_device *hdev)
+{
+	struct asic_fixed_properties *props = &hdev->asic_prop;
+	u32 offset, die, intr_agg;
+
+	if (!hdev->pldm || !hdev->enable_intr_aggr)
+		return;
+
+	/* Disable interrupt messages for all aggregators in CPU and PSOC blocks */
+	for (die = 0 ; die < props->num_of_dies ; ++die) {
+		/* CPU HDCORE aggregators */
+		for (intr_agg = 0 ; intr_agg < CPU_INTR_AGGR_NUM_OF_HDCORE_AGGR ; ++intr_agg) {
+			offset = die * DIE_OFFSET + intr_agg * INTR_AGG_BLOCK_OFFSET;
+
+			/* REI DERR */
+			WREG32(mmD0_CPU_INT_AGG_HDCORE0_REI_DERR_INT_MSG_BASE +
+					mmINT_AGG_HDCORE_REI_DERR_INT_MSG_MSG_CFG + offset, 0x0);
+			/* REI SERR */
+			WREG32(mmD0_CPU_INT_AGG_HDCORE0_REI_SERR_INT_MSG_BASE +
+					mmINT_AGG_HDCORE_REI_SERR_INT_MSG_MSG_CFG + offset, 0x0);
+			/* SEI */
+			WREG32(mmD0_CPU_INT_AGG_HDCORE0_SEI_INT_MSG_BASE +
+					mmINT_AGG_HDCORE_SEI_INT_MSG_MSG_CFG + offset, 0x0);
+			/* SPI ECO */
+			WREG32(mmD0_CPU_INT_AGG_HDCORE0_SPI_ECO_INT_MSG_BASE +
+					mmINT_AGG_HDCORE_SPI_ECO_INT_MSG_MSG_CFG + offset, 0x0);
+		}
+
+		/* CPU SHARED aggregator */
+		offset = die * DIE_OFFSET;
+
+		/* REI DERR */
+		WREG32(mmD0_CPU_INT_AGG_SHARED_REI_DERR_INT_MSG_BASE +
+				mmINT_AGG_SHARED_REI_DERR_INT_MSG_MSG_CFG + offset, 0x0);
+		/* REI SERR */
+		WREG32(mmD0_CPU_INT_AGG_SHARED_REI_SERR_INT_MSG_BASE +
+				mmINT_AGG_SHARED_REI_SERR_INT_MSG_MSG_CFG + offset, 0x0);
+		/* SEI */
+		WREG32(mmD0_CPU_INT_AGG_SHARED_SEI_INT_MSG_BASE +
+				mmINT_AGG_SHARED_SEI_INT_MSG_MSG_CFG + offset, 0x0);
+		/* SPI ECO */
+		WREG32(mmD0_CPU_INT_AGG_SHARED_SPI_ECO_INT_MSG_BASE +
+				mmINT_AGG_SHARED_SPI_ECO_INT_MSG_MSG_CFG + offset, 0x0);
+
+		/* PSOC aggregators */
+		if (hdev->fw_components == (FW_TYPE_PREBOOT_CPU | FW_TYPE_BOOT_CPU))
+			continue;
+
+		for (intr_agg = 0 ; intr_agg < PSOC_INTR_AGGR_NUM_OF_AGGR_BLOCKS ; ++intr_agg) {
+			offset = die * DIE_OFFSET + intr_agg * PARC_INTR_BLOCK_OFFSET;
+			WREG32(mmD0_PARC_INT_AGGR_UART_COMB_BASE +
+					mmINT_AGG_PSOC_UART_COMB_MSG_CFG + offset, 0x0);
 		}
 	}
 }

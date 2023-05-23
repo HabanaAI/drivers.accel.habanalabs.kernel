@@ -9034,6 +9034,8 @@ static void gaudi3_halt_engines(struct hl_device *hdev, bool hard_reset, bool fw
 	/* Verify that there are no on-the-fly AXI transactions after halting the engines */
 	gaudi3_verify_compute_mstr_if_dbg_counters(hdev);
 
+	gaudi3_disable_interrupt_aggr_msgs(hdev);
+
 skip_engines:
 	if (hard_reset) {
 		hl_sni_stop(hdev);

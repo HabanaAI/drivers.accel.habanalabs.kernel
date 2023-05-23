@@ -741,6 +741,7 @@ void gaudi3_fabric_serialization_init_fw_config(struct hl_device *hdev);
 void gaudi3_fabric_serialization_fini_fw_config(struct hl_device *hdev);
 void gaudi3_execute_reset_no_fw(struct hl_device *hdev, bool hard_reset);
 void gaudi3_enable_interrupt_aggr_msgs(struct hl_device *hdev);
+void gaudi3_disable_interrupt_aggr_msgs(struct hl_device *hdev);
 irqreturn_t hl_pldm_irq_handler(int irq, void *arg);
 void gaudi3_pdma_print_debug_info(struct hl_device *hdev, u32 ch_idx);
 void gaudi3_halt_engines_fw_config(struct hl_device *hdev);
