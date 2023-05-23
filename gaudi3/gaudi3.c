@@ -69,7 +69,7 @@
  */
 
 #include "gaudi3P.h"
-#include "gaudi3_nic.h"
+#include "gaudi3_sni.h"
 #include "gaudi3_masks.h"
 #include "gaudi3_coresight_regs.h"
 #include "../include/gaudi3/gaudi3_special_blocks.h"
@@ -2193,7 +2193,7 @@ void gaudi3_iterate_nics(struct hl_device *hdev, struct iterate_module_ctx *ctx)
 	for (die = 0 ; die < prop->num_of_dies ; die++) {
 		for (inst = 0 ; inst < NIC_NUM_MACROS_PER_DIE ; inst++) {
 			nic_id = die * NIC_NUM_MACROS_PER_DIE + inst;
-			if (!(hdev->nic_ports_mask & gaudi3_nic_get_macro_ports_mask(hdev, nic_id)))
+			if (!(hdev->sni_ports_mask & gaudi3_sni_get_macro_ports_mask(hdev, nic_id)))
 				continue;
 
 			offset = die * NIC_DIE_OFFSET + inst * NIC_OFFSET;
@@ -3241,7 +3241,7 @@ int gaudi3_set_binning_masks(struct hl_device *hdev)
 int gaudi3_set_fixed_properties(struct hl_device *hdev)
 {
 	struct asic_fixed_properties *prop = &hdev->asic_prop;
-	struct hl_nic_properties *nic_prop = &prop->nic_props;
+	struct hl_sni_properties *sni_prop = &prop->sni_props;
 	struct hw_queue_properties *q_props;
 	u32 sram_start_offset;
 	int rc;
@@ -3473,19 +3473,19 @@ int gaudi3_set_fixed_properties(struct hl_device *hdev)
 	prop->reset_poll_timeout_us = hdev->pldm ? GAUDI3_PLDM_PREBOOT_RESET_POLL_TIMEOUT_USEC
 						: GAUDI3_RESET_POLL_TIMEOUT_USEC;
 
-	nic_prop->max_num_of_ports = NIC_NUMBER_OF_PORTS;
-	nic_prop->macro_cfg_size = NIC_OFFSET;
-	nic_prop->nic_drv_size = NIC_DRV_SIZE;
+	sni_prop->max_num_of_ports = NIC_NUMBER_OF_PORTS;
+	sni_prop->macro_cfg_size = NIC_OFFSET;
+	sni_prop->nic_drv_size = NIC_DRV_SIZE;
 	/* wq_base_size most likely to be overridden later */
-	nic_prop->wq_base_size = WQ_BASE_SIZE(0, nic_prop->nic_drv_size);
-	nic_prop->txs_base_size = TXS_BASE_SIZE;
-	nic_prop->tmr_base_size = TMR_BASE_SIZE;
-	nic_prop->req_qpc_base_size = REQ_QPC_BASE_SIZE;
-	nic_prop->res_qpc_base_size = RES_QPC_BASE_SIZE;
-	nic_prop->req_qpc_swl_base_size = REQ_QPC_SWL_BASE_SIZE;
-	nic_prop->status_packet_size = sizeof(struct cpucp_nic_status);
+	sni_prop->wq_base_size = WQ_BASE_SIZE(0, sni_prop->nic_drv_size);
+	sni_prop->txs_base_size = TXS_BASE_SIZE;
+	sni_prop->tmr_base_size = TMR_BASE_SIZE;
+	sni_prop->req_qpc_base_size = REQ_QPC_BASE_SIZE;
+	sni_prop->res_qpc_base_size = RES_QPC_BASE_SIZE;
+	sni_prop->req_qpc_swl_base_size = REQ_QPC_SWL_BASE_SIZE;
+	sni_prop->status_packet_size = sizeof(struct cpucp_nic_status);
 	/* SW-69799: TODO fetch nic clock frequency from F/W once available. */
-	nic_prop->clk = GAUDI3_NIC_CLK_FREQ / USEC_PER_SEC;
+	sni_prop->clk = GAUDI3_NIC_CLK_FREQ / USEC_PER_SEC;
 
 	return 0;
 
@@ -4493,7 +4493,7 @@ static bool gaudi3_special_blocks_skip_with_mask(struct hl_device *hdev,
 		if (instance_idx >= NIC_NUMBER_OF_MACROS)
 			return true;
 
-		if (hdev->nic_ports_mask & gaudi3_nic_get_macro_ports_mask(hdev, instance_idx))
+		if (hdev->sni_ports_mask & gaudi3_sni_get_macro_ports_mask(hdev, instance_idx))
 			return false;
 		break;
 	case GAUDI3_BLOCK_TYPE_PDMA:
@@ -4771,7 +4771,7 @@ static int gaudi3_cpucp_info_get(struct hl_device *hdev)
 	if (!(gaudi3->hw_cap_initialized & HW_CAP_CPU_Q)) {
 		/* Skip for hard or device release reset flow. No need to repopulate. */
 		if (!hdev->reset_info.in_reset) {
-			rc = gaudi3_nic_set_info(hdev, false);
+			rc = gaudi3_sni_set_info(hdev, false);
 			if (rc)
 				return rc;
 		}
@@ -4804,9 +4804,9 @@ static int gaudi3_cpucp_info_get(struct hl_device *hdev)
 	 * For ignore FW case, no need to repopulate.
 	 */
 	if (!hdev->ignore_fw_nic_info)
-		rc = gaudi3_nic_set_info(hdev, true);
+		rc = gaudi3_sni_set_info(hdev, true);
 	else if (!hdev->reset_info.in_reset)
-		rc = gaudi3_nic_set_info(hdev, false);
+		rc = gaudi3_sni_set_info(hdev, false);
 
 	return rc;
 }
@@ -5832,7 +5832,7 @@ void gaudi3_init_nic_qmans(struct hl_device *hdev)
 		.fn = gaudi3_init_nic_qman
 	};
 
-	if (!hdev->nic_ports_mask)
+	if (!hdev->sni_ports_mask)
 		return;
 
 	if ((gaudi3->hw_cap_nic_initialized & HW_CAP_NIC_MASK) == HW_CAP_NIC_MASK)
@@ -7513,14 +7513,14 @@ int gaudi3_set_dynamic_dram_properties(struct hl_device *hdev)
 	u64 hbm_nic_base_offset = 0, hbm_etr_offset = 0, hbm_user_base_offset,
 			etr_total_bufs_size;
 	struct asic_fixed_properties *prop = &hdev->asic_prop;
-	struct hl_nic_properties *nic_prop = &prop->nic_props;
+	struct hl_sni_properties *sni_prop = &prop->sni_props;
 
 	if (!hdev->dram_enable)
 		return 0;
 
 	hbm_nic_base_offset = roundup(le32_to_cpu(prop->cpucp_info.fw_hbm_region_size),
 			prop->dram_page_size);
-	hbm_etr_offset = roundup(hbm_nic_base_offset + nic_prop->nic_drv_size,
+	hbm_etr_offset = roundup(hbm_nic_base_offset + sni_prop->nic_drv_size,
 			prop->dram_page_size);
 	prop->etr_bufs_dram_phys_base = prop->dram_base_address + hbm_etr_offset;
 	prop->etr_buf_dram_size_aligned = roundup(prop->etr_buf_dram_size, prop->dram_page_size);
@@ -7535,23 +7535,23 @@ int gaudi3_set_dynamic_dram_properties(struct hl_device *hdev)
 	prop->dram_user_base_address = prop->dram_base_address +
 			roundup(hbm_user_base_offset, prop->dram_page_size);
 
-	nic_prop->nic_drv_addr = DRAM_PHYS_BASE + hbm_nic_base_offset;
-	nic_prop->nic_drv_base_addr = NIC_DRV_BASE_ADDR(nic_prop->nic_drv_addr);
-	nic_prop->nic_drv_end_addr = NIC_DRV_END_ADDR(nic_prop->nic_drv_addr,
-							nic_prop->nic_drv_size);
-	nic_prop->wq_base_addr = WQ_BASE_ADDR(nic_prop->nic_drv_addr);
-	nic_prop->txs_base_addr = TXS_BASE_ADDR(nic_prop->nic_drv_addr);
-	nic_prop->tmr_base_addr = TMR_BASE_ADDR(nic_prop->nic_drv_addr);
-	nic_prop->req_qpc_base_addr = REQ_QPC_BASE_ADDR(nic_prop->nic_drv_addr);
-	nic_prop->res_qpc_base_addr = RES_QPC_BASE_ADDR(nic_prop->nic_drv_addr);
-	nic_prop->req_qpc_swl_base_addr = REQ_QPC_SWL_BASE_ADDR(nic_prop->nic_drv_addr);
-	nic_prop->wq_base_size = WQ_BASE_SIZE(nic_prop->nic_drv_addr, nic_prop->nic_drv_size);
+	sni_prop->nic_drv_addr = DRAM_PHYS_BASE + hbm_nic_base_offset;
+	sni_prop->nic_drv_base_addr = NIC_DRV_BASE_ADDR(sni_prop->nic_drv_addr);
+	sni_prop->nic_drv_end_addr = NIC_DRV_END_ADDR(sni_prop->nic_drv_addr,
+							sni_prop->nic_drv_size);
+	sni_prop->wq_base_addr = WQ_BASE_ADDR(sni_prop->nic_drv_addr);
+	sni_prop->txs_base_addr = TXS_BASE_ADDR(sni_prop->nic_drv_addr);
+	sni_prop->tmr_base_addr = TMR_BASE_ADDR(sni_prop->nic_drv_addr);
+	sni_prop->req_qpc_base_addr = REQ_QPC_BASE_ADDR(sni_prop->nic_drv_addr);
+	sni_prop->res_qpc_base_addr = RES_QPC_BASE_ADDR(sni_prop->nic_drv_addr);
+	sni_prop->req_qpc_swl_base_addr = REQ_QPC_SWL_BASE_ADDR(sni_prop->nic_drv_addr);
+	sni_prop->wq_base_size = WQ_BASE_SIZE(sni_prop->nic_drv_addr, sni_prop->nic_drv_size);
 
-	if ((nic_prop->nic_drv_end_addr - nic_prop->nic_drv_addr) > nic_prop->nic_drv_size) {
+	if ((sni_prop->nic_drv_end_addr - sni_prop->nic_drv_addr) > sni_prop->nic_drv_size) {
 		dev_err(hdev->dev,
 				"NIC DRAM memory allocation overflow (reserved %llu, allocated %llu)\n",
-				nic_prop->nic_drv_size,
-				nic_prop->nic_drv_end_addr - nic_prop->nic_drv_addr);
+				sni_prop->nic_drv_size,
+				sni_prop->nic_drv_end_addr - sni_prop->nic_drv_addr);
 		return -ENOMEM;
 	}
 
@@ -7631,7 +7631,7 @@ static int gaudi3_hw_init(struct hl_device *hdev)
 
 	gaudi3_init_scrambler(hdev);
 
-	gaudi3_nic_quiescence(hdev);
+	gaudi3_sni_quiescence(hdev);
 
 	gaudi3_init_msix_gw_table(hdev);
 
@@ -7985,7 +7985,7 @@ static int __user_mapped_nic_blocks_init(struct hl_device *hdev, int block_idx,
 		umr_block_id = i % n_umr_blocks;
 
 		nic_id = die_id * NIC_NUM_MACROS_PER_DIE + die_nic_id;
-		if (!(hdev->nic_ports_mask & gaudi3_nic_get_macro_ports_mask(hdev, nic_id))) {
+		if (!(hdev->sni_ports_mask & gaudi3_sni_get_macro_ports_mask(hdev, nic_id))) {
 			i += n_umr_blocks;
 			continue;
 		}
@@ -8099,7 +8099,7 @@ static bool gaudi3_is_engine_enabled(struct hl_device *hdev, u32 eng_id)
 		fallthrough;
 	case GAUDI3_DIE0_ENGINE_ID_NIC_0 ... GAUDI3_DIE0_ENGINE_ID_NIC_5:
 		nic_id = eng_id - GAUDI3_DIE0_ENGINE_ID_NIC_0;
-		return !!(hdev->nic_ports_mask & gaudi3_nic_get_macro_ports_mask(hdev, nic_id));
+		return !!(hdev->sni_ports_mask & gaudi3_sni_get_macro_ports_mask(hdev, nic_id));
 
 	case GAUDI3_DIE0_ENGINE_ID_PDMA_0_CH_0 ... GAUDI3_DIE1_ENGINE_ID_PDMA_1_CH_5:
 		return !!(hdev->pdma_ch_mask & BIT_ULL(eng_id - GAUDI3_DIE0_ENGINE_ID_PDMA_0_CH_0));
@@ -8999,7 +8999,7 @@ static void gaudi3_halt_engines(struct hl_device *hdev, bool hard_reset, bool fw
 	 * before we stop the CPU as the NIC might use it e.g. get/set EEPROM data.
 	 */
 	if (hard_reset)
-		hl_nic_hard_reset_prepare(hdev);
+		hl_sni_hard_reset_prepare(hdev);
 
 	if (fw_reset)
 		goto skip_engines;
@@ -9036,14 +9036,14 @@ static void gaudi3_halt_engines(struct hl_device *hdev, bool hard_reset, bool fw
 
 skip_engines:
 	if (hard_reset) {
-		hl_nic_stop(hdev);
+		hl_sni_stop(hdev);
 		gaudi3_verify_nic_mstr_if_dbg_counters(hdev);
 		gaudi3_disable_msix(hdev);
 		return;
 	}
 
 	gaudi3_sync_irqs(hdev);
-	hl_nic_synchronize_irqs(hdev);
+	hl_sni_synchronize_irqs(hdev);
 }
 
 static int gaudi3_suspend(struct hl_device *hdev)
@@ -10853,7 +10853,7 @@ static void gaudi3_get_nic_qmans_idle_status(struct hl_device *hdev,
 		.data = idle_data
 	};
 
-	if (idle_data->e && hdev->nic_ports_mask)
+	if (idle_data->e && hdev->sni_ports_mask)
 		hl_engine_data_sprintf(idle_data->e, header);
 
 	gaudi3_iterate_nics(hdev, &iter_ctx);
@@ -11116,11 +11116,11 @@ int gaudi3_send_cpu_message(struct hl_device *hdev, u32 *msg, u16 len,
 	return hl_fw_send_cpu_message(hdev, GAUDI3_QUEUE_ID_CPU_PQ, msg, len, timeout, result);
 }
 
-static int gaudi3_nic_init(struct hl_device *hdev)
+static int gaudi3_sni_init(struct hl_device *hdev)
 {
 	int rc;
 
-	rc = hl_nic_init(hdev);
+	rc = hl_sni_init(hdev);
 	if (rc)
 		return rc;
 
@@ -11134,7 +11134,7 @@ int gaudi3_ctx_init(struct hl_ctx *ctx)
 	if (ctx->asid == HL_KERNEL_ASID_ID)
 		return 0;
 
-	rc = hl_nic_ctx_init(ctx);
+	rc = hl_sni_ctx_init(ctx);
 	if (rc)
 		return rc;
 
@@ -11150,7 +11150,7 @@ void gaudi3_ctx_fini(struct hl_ctx *ctx)
 	if (ctx->asid == HL_KERNEL_ASID_ID)
 		return;
 
-	hl_nic_ctx_fini(ctx);
+	hl_sni_ctx_fini(ctx);
 
 	/* Assuming that, next, an FD will be released, and a soft-reset will be followed */
 	gaudi3_etr_buf_store_reset_db(ctx->hdev);
@@ -12246,7 +12246,7 @@ static u32 gaudi3_handle_nic_spi(struct hl_device *hdev, u32 macro_index, u16 da
 {
 	struct gaudi3_device *gaudi3 = hdev->asic_specific;
 	struct gaudi3_sni_aux_ops *aux_ops = &gaudi3->sni_aux_ops;
-	struct hl_aux_dev *aux_dev = &hdev->nic.sni_aux_dev;
+	struct hl_aux_dev *aux_dev = &hdev->sni.sni_aux_dev;
 	int rc;
 
 	rc = gaudi3_validate_eqe_data_size(hdev, data_size, sizeof(*nic_spi_data));
@@ -12254,7 +12254,7 @@ static u32 gaudi3_handle_nic_spi(struct hl_device *hdev, u32 macro_index, u16 da
 		return 0;
 
 	if (nic_spi_data->spi_type == NIC_SPI_BMON_SPMU)
-		return gaudi3_nic_handle_bmon_spmu_event(hdev, macro_index);
+		return gaudi3_sni_handle_bmon_spmu_event(hdev, macro_index);
 	else if (aux_ops->spi_event_handler)
 		/* NIC_SPI_SW_ERROR */
 		return aux_ops->spi_event_handler(aux_dev, macro_index);
@@ -12290,7 +12290,7 @@ static u32 gaudi3_handle_nic_status_event(struct hl_device *hdev,
 	for (port = 0 ; port < NIC_NUMBER_OF_PORTS ; port++) {
 		if (!(mask & BIT(port)))
 			continue;
-		rc = hl_nic_send_status(hdev, port, cmd, period);
+		rc = hl_sni_send_status(hdev, port, cmd, period);
 		if (rc)
 			return rc;
 	}
@@ -12425,7 +12425,7 @@ static u32 gaudi3_handle_sei_event(struct hl_device *hdev,
 {
 	struct gaudi3_device *gaudi3 = hdev->asic_specific;
 	struct gaudi3_sni_aux_ops *aux_ops = &gaudi3->sni_aux_ops;
-	struct hl_aux_dev *aux_dev = &hdev->nic.sni_aux_dev;
+	struct hl_aux_dev *aux_dev = &hdev->sni.sni_aux_dev;
 	u16 data_size = le16_to_cpu(eq_dynamic_entry->hdr.size);
 	enum hl_agg_component_type agg_component_type;
 	u32 die, hdcore = 0, instance, err_cnt = 0;
@@ -12674,9 +12674,9 @@ static const struct hl_asic_funcs gaudi3_funcs = {
 	.get_eeprom_data = NULL,
 	.get_monitor_dump = gaudi3_get_monitor_dump,
 	.send_cpu_message = gaudi3_send_cpu_message,
-	.nic_init = gaudi3_nic_init,
-	.nic_fini = hl_nic_fini,
-	.nic_control = hl_nic_control,
+	.sni_init = gaudi3_sni_init,
+	.sni_fini = hl_sni_fini,
+	.sni_control = hl_sni_control,
 	.pci_bars_map = gaudi3_pci_bars_map,
 	.init_iatu = gaudi3_init_iatu,
 	.rreg = hl_rreg,
@@ -12706,7 +12706,7 @@ static const struct hl_asic_funcs gaudi3_funcs = {
 	.get_sob_addr = &gaudi3_get_sob_addr,
 	.set_pci_memory_regions = gaudi3_set_pci_memory_regions,
 	.get_stream_master_qid_arr = gaudi3_get_stream_master_qid_arr,
-	.nic_funcs = &gaudi3_nic_funcs,
+	.sni_funcs = &gaudi3_sni_funcs,
 	.check_if_razwi_happened = gaudi3_check_if_razwi_happened,
 	.alloc_irq_vectors = gaudi3_alloc_irq_vectors,
 	.free_irq_vectors = gaudi3_free_irq_vectors,

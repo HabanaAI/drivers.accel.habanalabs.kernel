@@ -5667,21 +5667,19 @@ static void greco_hw_queues_unlock(struct hl_device *hdev)
 	spin_unlock(&greco->hw_queues_lock);
 }
 
-int greco_nic_init(struct hl_device *hdev)
+int greco_sni_init(struct hl_device *hdev)
 {
 	return 0;
 }
 
-void greco_nic_fini(struct hl_device *hdev)
+void greco_sni_fini(struct hl_device *hdev)
 {
 
 }
 
-int greco_nic_control(struct hl_device *hdev, u32 op, void *input, void *output,
-			struct hl_ctx *ctx)
+int greco_sni_control(struct hl_device *hdev, u32 op, void *input, void *output, struct hl_ctx *ctx)
 {
-	dev_err_ratelimited(hdev->dev,
-			"NIC operations cannot be performed on GRECO\n");
+	dev_err_ratelimited(hdev->dev, "SNI operations cannot be performed on GRECO\n");
 	return -ENXIO;
 }
 
@@ -8046,9 +8044,9 @@ static const struct hl_asic_funcs greco_funcs = {
 	.get_eeprom_data = greco_get_eeprom_data,
 	.get_monitor_dump = greco_get_monitor_dump,
 	.send_cpu_message = greco_send_cpu_message,
-	.nic_init = greco_nic_init,
-	.nic_fini = greco_nic_fini,
-	.nic_control = greco_nic_control,
+	.sni_init = greco_sni_init,
+	.sni_fini = greco_sni_fini,
+	.sni_control = greco_sni_control,
 	.pci_bars_map = greco_pci_bars_map,
 	.init_iatu = greco_init_iatu,
 	.rreg = hl_rreg,

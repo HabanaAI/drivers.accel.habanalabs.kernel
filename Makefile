@@ -13,8 +13,8 @@ obj-$(CONFIG_DRM_ACCEL_HABANALABS) := habanalabs.o
 include $(src)/common/Makefile
 habanalabs-y += $(HL_COMMON_FILES)
 
-include $(src)/nic/Makefile
-habanalabs-y += $(HL_NIC_FILES)
+include $(src)/sni/Makefile
+habanalabs-y += $(HL_SNI_FILES)
 
 include $(src)/gaudi3/Makefile
 habanalabs-y += $(HL_GAUDI3_FILES)

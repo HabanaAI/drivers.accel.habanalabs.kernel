@@ -529,10 +529,10 @@ int greco_send_heartbeat(struct hl_device *hdev);
 int greco_send_cpu_message(struct hl_device *hdev, u32 *msg, u16 len,
 				u32 timeout, u64 *result);
 
-int greco_nic_init(struct hl_device *hdev);
-void greco_nic_fini(struct hl_device *hdev);
-int greco_nic_control(struct hl_device *hdev, u32 op, void *input,
-			void *output, struct hl_ctx *ctx);
+int greco_sni_init(struct hl_device *hdev);
+void greco_sni_fini(struct hl_device *hdev);
+int greco_sni_control(struct hl_device *hdev, u32 op, void *input, void *output,
+			struct hl_ctx *ctx);
 
 int greco_context_switch(struct hl_device *hdev, u32 asid);
 void greco_restore_phase_topology(struct hl_device *hdev);

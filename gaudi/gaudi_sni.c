@@ -5,30 +5,30 @@
  * All Rights Reserved.
  */
 
-#include "gaudi_nic.h"
+#include "gaudi_sni.h"
 #include "../include/hw_ip/nic/nic_general.h"
 
-void gaudi_nic_handle_qp_err(struct hl_device *hdev, u16 event_type)
+void gaudi_sni_handle_qp_err(struct hl_device *hdev, u16 event_type)
 {
 	struct gaudi_device *gaudi = hdev->asic_specific;
 	struct gaudi_sni_aux_ops *gaudi_aux_ops;
-	struct hl_nic *nic = &hdev->nic;
+	struct hl_sni *sni = &hdev->sni;
 	struct hl_aux_dev *aux_dev;
 
-	aux_dev = &nic->sni_aux_dev;
+	aux_dev = &sni->sni_aux_dev;
 	gaudi_aux_ops = &gaudi->sni_aux_ops;
 
 	gaudi_aux_ops->handle_qp_err(aux_dev, event_type - GAUDI_EVENT_NIC0_QP0);
 }
 
-static bool gaudi_nic_get_hw_cap(struct hl_device *hdev)
+static bool gaudi_sni_get_hw_cap(struct hl_device *hdev)
 {
 	struct gaudi_device *gaudi = hdev->asic_specific;
 
 	return (gaudi->hw_cap_initialized & HW_CAP_NIC_DRV);
 }
 
-static void gaudi_nic_set_hw_cap(struct hl_device *hdev, bool enable)
+static void gaudi_sni_set_hw_cap(struct hl_device *hdev, bool enable)
 {
 	struct gaudi_device *gaudi = hdev->asic_specific;
 
@@ -38,24 +38,24 @@ static void gaudi_nic_set_hw_cap(struct hl_device *hdev, bool enable)
 		gaudi->hw_cap_initialized &= ~HW_CAP_NIC_DRV;
 }
 
-static int gaudi_nic_pre_core_init(struct hl_device *hdev)
+static int gaudi_sni_pre_core_init(struct hl_device *hdev)
 {
 	struct cpucp_nic_info *nic_info = &hdev->asic_prop.cpucp_nic_info;
-	struct hl_nic_properties *nic_prop = &hdev->asic_prop.nic_props;
+	struct hl_sni_properties *sni_prop = &hdev->asic_prop.sni_props;
 	struct cpucp_info *cpucp_info = &hdev->asic_prop.cpucp_info;
 	struct cpucp_mac_addr *mac_arr = nic_info->mac_addrs;
 	struct gaudi_device *gaudi = hdev->asic_specific;
-	struct hl_nic *nic = &hdev->nic;
+	struct hl_sni *sni = &hdev->sni;
 	u64 nic_dram_alloc_size;
 	u32 card_location;
 	u8 mac[ETH_ALEN];
 	int i, rc;
 
-	nic_dram_alloc_size = nic_prop->nic_drv_end_addr - nic_prop->nic_drv_base_addr;
-	if (nic_dram_alloc_size > nic_prop->nic_drv_size) {
+	nic_dram_alloc_size = sni_prop->nic_drv_end_addr - sni_prop->nic_drv_base_addr;
+	if (nic_dram_alloc_size > sni_prop->nic_drv_size) {
 		dev_err(hdev->dev, "DRAM allocation for NIC (%lluMB) shouldn't exceed %lluMB\n",
 			div_u64(nic_dram_alloc_size, SZ_1M),
-			div_u64(nic_prop->nic_drv_size, SZ_1M));
+			div_u64(sni_prop->nic_drv_size, SZ_1M));
 		return -ENOMEM;
 	}
 
@@ -101,7 +101,7 @@ static int gaudi_nic_pre_core_init(struct hl_device *hdev)
 		}
 
 		for (i = 0 ; i < NIC_NUMBER_OF_PORTS ; i++) {
-			if (!(hdev->nic_ports_mask & BIT(i)))
+			if (!(hdev->sni_ports_mask & BIT(i)))
 				continue;
 
 			mac_addr = mac_arr[i].mac_addr;
@@ -115,13 +115,13 @@ static int gaudi_nic_pre_core_init(struct hl_device *hdev)
 		}
 
 		if (!hdev->ignore_fw_nic_info || !hdev->pdev) {
-			hdev->nic_ports_mask &= le64_to_cpu(nic_info->link_mask[0]);
-			hdev->nic_ports_ext_mask &= le64_to_cpu(nic_info->link_ext_mask[0]);
-			hdev->nic_auto_neg_mask &= le64_to_cpu(nic_info->auto_neg_mask[0]);
+			hdev->sni_ports_mask &= le64_to_cpu(nic_info->link_mask[0]);
+			hdev->sni_ports_ext_mask &= le64_to_cpu(nic_info->link_ext_mask[0]);
+			hdev->sni_auto_neg_mask &= le64_to_cpu(nic_info->auto_neg_mask[0]);
 		}
 
-		nic->card_location = le32_to_cpu(cpucp_info->card_location);
-		nic->use_fw_serdes_info = true;
+		sni->card_location = le32_to_cpu(cpucp_info->card_location);
+		sni->use_fw_serdes_info = true;
 	} else {
 		/*
 		 * No CPU, hence set the MAC addresses manually.
@@ -138,49 +138,49 @@ static int gaudi_nic_pre_core_init(struct hl_device *hdev)
 
 		cpucp_info->card_location = cpu_to_le32((card_location >> 22) & 0x7);
 
-		nic->card_location = card_location;
+		sni->card_location = card_location;
 
 		/* TODO: remove when Autoneg is supported towards the switch */
-		if ((hdev->card_type == cpucp_card_type_pci) && (hdev->nic_auto_neg_mask)) {
+		if ((hdev->card_type == cpucp_card_type_pci) && (hdev->sni_auto_neg_mask)) {
 			dev_info(hdev->dev, "No Autoneg in PCI card\n");
-			hdev->nic_auto_neg_mask = 0;
+			hdev->sni_auto_neg_mask = 0;
 		}
 	}
 
 	/* no need to proceed if all ports are disabled */
-	if (!hdev->nic_ports_mask)
+	if (!hdev->sni_ports_mask)
 		return 0;
 
 	/* PCI card is usually connected directly to a switch so set all ports as external */
 	if (hdev->card_type == cpucp_card_type_pci) {
-		hdev->nic_ports_ext_mask = hdev->nic_ports_mask;
-		hdev->nic_auto_neg_mask &= ~hdev->nic_ports_ext_mask;
+		hdev->sni_ports_ext_mask = hdev->sni_ports_mask;
+		hdev->sni_auto_neg_mask &= ~hdev->sni_ports_ext_mask;
 	}
 
 	return 0;
 }
 
-static int gaudi_nic_map_device_va(struct hl_aux_dev *aux_dev, struct hl_mem_in *args, u64 *va)
+static int gaudi_sni_map_device_va(struct hl_aux_dev *aux_dev, struct hl_mem_in *args, u64 *va)
 {
-	struct hl_nic *nic = container_of(aux_dev, struct hl_nic, sni_aux_dev);
-	struct hl_device *hdev = container_of(nic, struct hl_device, nic);
+	struct hl_sni *sni = container_of(aux_dev, struct hl_sni, sni_aux_dev);
+	struct hl_device *hdev = container_of(sni, struct hl_device, sni);
 
 	return map_device_va(hdev->kernel_ctx, args, va);
 }
 
-static int gaudi_nic_unmap_device_va(struct hl_aux_dev *aux_dev, struct hl_mem_in *args)
+static int gaudi_sni_unmap_device_va(struct hl_aux_dev *aux_dev, struct hl_mem_in *args)
 {
-	struct hl_nic *nic = container_of(aux_dev, struct hl_nic, sni_aux_dev);
-	struct hl_device *hdev = container_of(nic, struct hl_device, nic);
+	struct hl_sni *sni = container_of(aux_dev, struct hl_sni, sni_aux_dev);
+	struct hl_device *hdev = container_of(sni, struct hl_device, sni);
 
 	return unmap_device_va(hdev->kernel_ctx, args, false);
 }
 
-static int gaudi_nic_read_all_mac_cnts(struct hl_aux_dev *aux_dev, u32 port, u64 *mac_cnts,
+static int gaudi_sni_read_all_mac_cnts(struct hl_aux_dev *aux_dev, u32 port, u64 *mac_cnts,
 					u32 size)
 {
-	struct hl_nic *nic = container_of(aux_dev, struct hl_nic, sni_aux_dev);
-	struct hl_device *hdev = container_of(nic, struct hl_device, nic);
+	struct hl_sni *sni = container_of(aux_dev, struct hl_sni, sni_aux_dev);
+	struct hl_device *hdev = container_of(sni, struct hl_device, sni);
 	struct cpucp_packet pkt = {};
 	dma_addr_t buf_dma_addr;
 	void *buf_cpu_addr;
@@ -210,11 +210,11 @@ static int gaudi_nic_read_all_mac_cnts(struct hl_aux_dev *aux_dev, u32 port, u64
 	return rc;
 }
 
-static int gaudi_nic_read_xpcs91_regs(struct hl_aux_dev *aux_dev, u32 port, u64 fw_tuning_mask,
+static int gaudi_sni_read_xpcs91_regs(struct hl_aux_dev *aux_dev, u32 port, u64 fw_tuning_mask,
 					u32 *regs)
 {
-	struct hl_nic *nic = container_of(aux_dev, struct hl_nic, sni_aux_dev);
-	struct hl_device *hdev = container_of(nic, struct hl_device, nic);
+	struct hl_sni *sni = container_of(aux_dev, struct hl_sni, sni_aux_dev);
+	struct hl_device *hdev = container_of(sni, struct hl_device, sni);
 	bool fw_nic_stat_ext_en;
 	int rc;
 
@@ -294,10 +294,10 @@ static int gaudi_nic_read_xpcs91_regs(struct hl_aux_dev *aux_dev, u32 port, u64 
 	return 0;
 }
 
-static u32 gaudi_nic_get_fault_counters(struct hl_aux_dev *aux_dev, u32 port, u64 fw_tuning_mask)
+static u32 gaudi_sni_get_fault_counters(struct hl_aux_dev *aux_dev, u32 port, u64 fw_tuning_mask)
 {
-	struct hl_nic *nic = container_of(aux_dev, struct hl_nic, sni_aux_dev);
-	struct hl_device *hdev = container_of(nic, struct hl_device, nic);
+	struct hl_sni *sni = container_of(aux_dev, struct hl_sni, sni_aux_dev);
+	struct hl_device *hdev = container_of(sni, struct hl_device, sni);
 	struct cpucp_packet pkt;
 	u64 result = 0;
 	int rc;
@@ -321,10 +321,10 @@ static u32 gaudi_nic_get_fault_counters(struct hl_aux_dev *aux_dev, u32 port, u6
 	return (u32) result;
 }
 
-static int gaudi_nic_config_port_mac_ch(struct hl_aux_dev *aux_dev, u32 port, u32 speed)
+static int gaudi_sni_config_port_mac_ch(struct hl_aux_dev *aux_dev, u32 port, u32 speed)
 {
-	struct hl_nic *nic = container_of(aux_dev, struct hl_nic, sni_aux_dev);
-	struct hl_device *hdev = container_of(nic, struct hl_device, nic);
+	struct hl_sni *sni = container_of(aux_dev, struct hl_sni, sni_aux_dev);
+	struct hl_device *hdev = container_of(sni, struct hl_device, sni);
 	struct cpucp_packet pkt;
 	int rc;
 
@@ -344,10 +344,10 @@ static int gaudi_nic_config_port_mac_ch(struct hl_aux_dev *aux_dev, u32 port, u3
 	return 0;
 }
 
-static int gaudi_nic_set_pfc(struct hl_aux_dev *aux_dev, u32 port, u64 fw_tuning_mask, bool enable)
+static int gaudi_sni_set_pfc(struct hl_aux_dev *aux_dev, u32 port, u64 fw_tuning_mask, bool enable)
 {
-	struct hl_nic *nic = container_of(aux_dev, struct hl_nic, sni_aux_dev);
-	struct hl_device *hdev = container_of(nic, struct hl_device, nic);
+	struct hl_sni *sni = container_of(aux_dev, struct hl_sni, sni_aux_dev);
+	struct hl_device *hdev = container_of(sni, struct hl_device, sni);
 	struct cpucp_packet pkt;
 	u32 val;
 	int rc;
@@ -372,10 +372,10 @@ static int gaudi_nic_set_pfc(struct hl_aux_dev *aux_dev, u32 port, u64 fw_tuning
 	return 0;
 }
 
-static int gaudi_nic_set_lpbk(struct hl_aux_dev *aux_dev, u32 port, u64 fw_tuning_mask, bool enable)
+static int gaudi_sni_set_lpbk(struct hl_aux_dev *aux_dev, u32 port, u64 fw_tuning_mask, bool enable)
 {
-	struct hl_nic *nic = container_of(aux_dev, struct hl_nic, sni_aux_dev);
-	struct hl_device *hdev = container_of(nic, struct hl_device, nic);
+	struct hl_sni *sni = container_of(aux_dev, struct hl_sni, sni_aux_dev);
+	struct hl_device *hdev = container_of(sni, struct hl_device, sni);
 	struct cpucp_packet pkt;
 	u32 val;
 	int rc;
@@ -400,10 +400,10 @@ static int gaudi_nic_set_lpbk(struct hl_aux_dev *aux_dev, u32 port, u64 fw_tunin
 	return 0;
 }
 
-static int gaudi_nic_read_mac_cnt(struct hl_aux_dev *aux_dev, u32 port, int offset, bool is_rx)
+static int gaudi_sni_read_mac_cnt(struct hl_aux_dev *aux_dev, u32 port, int offset, bool is_rx)
 {
-	struct hl_nic *nic = container_of(aux_dev, struct hl_nic, sni_aux_dev);
-	struct hl_device *hdev = container_of(nic, struct hl_device, nic);
+	struct hl_sni *sni = container_of(aux_dev, struct hl_sni, sni_aux_dev);
+	struct hl_device *hdev = container_of(sni, struct hl_device, sni);
 	struct cpucp_packet pkt;
 	u64 result = 0;
 	u32 val;
@@ -431,10 +431,10 @@ static int gaudi_nic_read_mac_cnt(struct hl_aux_dev *aux_dev, u32 port, int offs
 	return result;
 }
 
-static void gaudi_nic_reset_mac_stats(struct hl_aux_dev *aux_dev, u32 port)
+static void gaudi_sni_reset_mac_stats(struct hl_aux_dev *aux_dev, u32 port)
 {
-	struct hl_nic *nic = container_of(aux_dev, struct hl_nic, sni_aux_dev);
-	struct hl_device *hdev = container_of(nic, struct hl_device, nic);
+	struct hl_sni *sni = container_of(aux_dev, struct hl_sni, sni_aux_dev);
+	struct hl_device *hdev = container_of(sni, struct hl_device, sni);
 	struct cpucp_packet pkt;
 	int rc;
 
@@ -450,19 +450,19 @@ static void gaudi_nic_reset_mac_stats(struct hl_aux_dev *aux_dev, u32 port)
 			rc);
 }
 
-static void gaudi_nic_set_sni_data(struct hl_device *hdev)
+static void gaudi_sni_set_sni_data(struct hl_device *hdev)
 {
 	struct asic_fixed_properties *prop = &hdev->asic_prop;
 	struct gaudi_device *gaudi = hdev->asic_specific;
 	struct gaudi_sni_aux_ops *gaudi_aux_ops;
 	struct gaudi_sni_aux_data *gaudi_aux_data;
-	struct hl_nic *nic = &hdev->nic;
+	struct hl_sni *sni = &hdev->sni;
 	struct hl_sni_aux_ops *aux_ops;
 	struct hl_sni_aux_data *aux_data;
 	struct hl_aux_dev *aux_dev;
 	u32 secured_sts;
 
-	aux_dev = &nic->sni_aux_dev;
+	aux_dev = &sni->sni_aux_dev;
 	aux_data = aux_dev->aux_data;
 	gaudi_aux_data = &gaudi->sni_aux_data;
 	aux_data->asic_specific = gaudi_aux_data;
@@ -482,34 +482,34 @@ static void gaudi_nic_set_sni_data(struct hl_device *hdev)
 	gaudi_aux_data->stat_ext_secured_read =
 					!!(secured_sts & CPU_BOOT_DEV_STS0_FW_NIC_STAT_EXT_EN);
 
-	gaudi_aux_ops->map_device_va = gaudi_nic_map_device_va;
-	gaudi_aux_ops->unmap_device_va = gaudi_nic_unmap_device_va;
-	gaudi_aux_ops->read_all_mac_cnts = gaudi_nic_read_all_mac_cnts;
-	gaudi_aux_ops->read_xpcs91_regs = gaudi_nic_read_xpcs91_regs;
-	gaudi_aux_ops->get_fault_counters = gaudi_nic_get_fault_counters;
-	gaudi_aux_ops->config_port_mac_ch = gaudi_nic_config_port_mac_ch;
-	gaudi_aux_ops->set_pfc = gaudi_nic_set_pfc;
-	gaudi_aux_ops->set_lpbk = gaudi_nic_set_lpbk;
-	gaudi_aux_ops->read_mac_cnt = gaudi_nic_read_mac_cnt;
-	gaudi_aux_ops->reset_mac_stats = gaudi_nic_reset_mac_stats;
+	gaudi_aux_ops->map_device_va = gaudi_sni_map_device_va;
+	gaudi_aux_ops->unmap_device_va = gaudi_sni_unmap_device_va;
+	gaudi_aux_ops->read_all_mac_cnts = gaudi_sni_read_all_mac_cnts;
+	gaudi_aux_ops->read_xpcs91_regs = gaudi_sni_read_xpcs91_regs;
+	gaudi_aux_ops->get_fault_counters = gaudi_sni_get_fault_counters;
+	gaudi_aux_ops->config_port_mac_ch = gaudi_sni_config_port_mac_ch;
+	gaudi_aux_ops->set_pfc = gaudi_sni_set_pfc;
+	gaudi_aux_ops->set_lpbk = gaudi_sni_set_lpbk;
+	gaudi_aux_ops->read_mac_cnt = gaudi_sni_read_mac_cnt;
+	gaudi_aux_ops->reset_mac_stats = gaudi_sni_reset_mac_stats;
 }
 
-static void gaudi_fw_nic_status(struct hl_device *hdev, u32 port)
+static void gaudi_sni_post_send_status(struct hl_device *hdev, u32 port)
 {
 	hl_fw_unmask_irq(hdev, GAUDI_EVENT_STATUS_NIC0_ENG0 + port);
 }
 
-static struct hl_nic_port_funcs gaudi_nic_port_funcs = {
-	.spmu_get_stats_info = gaudi_nic_spmu_get_stats_info,
-	.spmu_config = gaudi_nic_spmu_config,
-	.spmu_sample = gaudi_nic_spmu_sample,
-	.fw_nic_status = gaudi_fw_nic_status,
+static struct hl_sni_port_funcs gaudi_sni_port_funcs = {
+	.spmu_get_stats_info = gaudi_sni_spmu_get_stats_info,
+	.spmu_config = gaudi_sni_spmu_config,
+	.spmu_sample = gaudi_sni_spmu_sample,
+	.post_send_status = gaudi_sni_post_send_status,
 };
 
-struct hl_nic_funcs gaudi_nic_funcs = {
-	.get_hw_cap = gaudi_nic_get_hw_cap,
-	.set_hw_cap = gaudi_nic_set_hw_cap,
-	.pre_core_init = gaudi_nic_pre_core_init,
-	.set_sni_data = gaudi_nic_set_sni_data,
-	.port_funcs = &gaudi_nic_port_funcs,
+struct hl_sni_funcs gaudi_sni_funcs = {
+	.get_hw_cap = gaudi_sni_get_hw_cap,
+	.set_hw_cap = gaudi_sni_set_hw_cap,
+	.pre_core_init = gaudi_sni_pre_core_init,
+	.set_sni_data = gaudi_sni_set_sni_data,
+	.port_funcs = &gaudi_sni_port_funcs,
 };

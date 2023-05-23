@@ -6,7 +6,7 @@
  */
 
 #include "gaudi3P.h"
-#include "gaudi3_nic.h"
+#include "gaudi3_sni.h"
 #include "gaudi3_masks.h"
 
 #include <linux/bitrev.h>
@@ -1605,7 +1605,7 @@ static void gaudi3_set_nic_isolation(struct hl_device *hdev, bool isolate)
 	 */
 	nic_iso = 0;
 	for (i = 0 ; i < NIC_NUM_MACROS_PER_DIE ; i++) {
-		if (!(hdev->nic_ports_mask & gaudi3_nic_get_macro_ports_mask(hdev, i)))
+		if (!(hdev->sni_ports_mask & gaudi3_sni_get_macro_ports_mask(hdev, i)))
 			nic_iso |= BIT(i);
 	}
 	WREG32(mmD0_PSOC_BOOT_CONF_BASE + mmPSOC_BOOT_CONF_NIC_ISO, nic_iso);
@@ -1618,7 +1618,7 @@ static void gaudi3_set_nic_isolation(struct hl_device *hdev, bool isolate)
 	 */
 	nic_iso = 0;
 	for (i = 0 ; i < NIC_NUM_MACROS_PER_DIE ; i++) {
-		if (!(hdev->nic_ports_mask & gaudi3_nic_get_macro_ports_mask(hdev,
+		if (!(hdev->sni_ports_mask & gaudi3_sni_get_macro_ports_mask(hdev,
 								NIC_NUM_MACROS_PER_DIE + i)))
 			nic_iso |= BIT(i);
 	}
@@ -2161,7 +2161,7 @@ static void gaudi3_init_nic_qmans_fw_config(struct hl_device *hdev)
 		.fn = gaudi3_init_nic_qman_fw_config
 	};
 
-	if (!hdev->nic_ports_mask)
+	if (!hdev->sni_ports_mask)
 		return;
 
 	if ((gaudi3->hw_cap_nic_initialized & HW_CAP_NIC_MASK) == HW_CAP_NIC_MASK)
@@ -2655,7 +2655,7 @@ void gaudi3_hw_init_fw_config(struct hl_device *hdev)
 	 * it is used for PLDM and ASIC bringup regardless of FW presence. As long
 	 * as security is not enabled.
 	 */
-	gaudi3_nic_ecos_override(hdev);
+	gaudi3_sni_ecos_override(hdev);
 
 	/*
 	 * TODO (SW-108260) (SW-139644): Temporary allow those configs for SIM_GAUDI3_ARC
@@ -2695,9 +2695,9 @@ void gaudi3_hw_init_fw_config(struct hl_device *hdev)
 	gaudi3_ac_program_all(hdev);
 	gaudi3_enable_ptw_bypass(hdev);
 	gaudi3_init_qos(hdev);
-	gaudi3_nic_restore_dynamic_cfg_soft_reset_fw(hdev);
+	gaudi3_sni_restore_dynamic_cfg_soft_reset_fw(hdev);
 
-	gaudi3_nic_macros_fw_config(hdev);
+	gaudi3_sni_macros_fw_config(hdev);
 
 	if (hdev->cache_enable)
 		gaudi3_init_cache(hdev);

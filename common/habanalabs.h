@@ -8,7 +8,7 @@
 #ifndef HABANALABSP_H_
 #define HABANALABSP_H_
 
-#include "../nic/nic.h"
+#include "../sni/sni.h"
 #include "../include/common/cpucp_if.h"
 #include "../include/common/qman_if.h"
 #include "../include/hw_ip/mmu/mmu_general.h"
@@ -30,6 +30,7 @@
 #include <linux/rwsem.h>
 #include <linux/if_vlan.h>
 #include <linux/eventfd.h>
+
 #ifdef _HAS_BITFIELD_H
 #include <linux/bitfield.h>
 #endif
@@ -73,7 +74,7 @@ struct hl_fpriv;
 #define HL_MMAP_TYPE_SHIFT		(59 - PAGE_SHIFT)
 #define HL_MMAP_TYPE_MASK		(0x1full << HL_MMAP_TYPE_SHIFT)
 #define HL_MMAP_TYPE_TS_BUFF		(0x10ull << HL_MMAP_TYPE_SHIFT)
-#define HL_MMAP_TYPE_NIC_MEM		(0x8ull << HL_MMAP_TYPE_SHIFT)
+#define HL_MMAP_TYPE_SNI_MEM		(0x8ull << HL_MMAP_TYPE_SHIFT)
 #define HL_MMAP_TYPE_BLOCK		(0x4ull << HL_MMAP_TYPE_SHIFT)
 #define HL_MMAP_TYPE_CB			(0x2ull << HL_MMAP_TYPE_SHIFT)
 #define HL_MMAP_TYPE_NIC_CQ		(0x1ull << HL_MMAP_TYPE_SHIFT)
@@ -642,7 +643,7 @@ struct hl_mem_block_info {
  * @skip_special_blocks_cfg: special blocks skip configs.
  * @skip_pb_blocks_cfg: protection bits blocks skip configs.
  * @pb_blocks_cfg: holds privileged/secured PB blocks configs.
- * @nic_props: NIC properties.
+ * @sni_props: SNI driver properties.
  * @cpucp_info: received various information from CPU-CP regarding the H/W, e.g.
  *		available sensors.
  * @cpucp_nic_info: received various information from CPU-CP regarding the NIC
@@ -829,7 +830,7 @@ struct asic_fixed_properties {
 	struct hl_skip_blocks_cfg	skip_special_blocks_cfg;
 	struct hl_skip_blocks_cfg	skip_pb_blocks_cfg;
 	struct hl_special_blocks_cfg	pb_blocks_cfg;
-	struct hl_nic_properties	nic_props;
+	struct hl_sni_properties	sni_props;
 	struct cpucp_info		cpucp_info;
 	struct cpucp_nic_info		cpucp_nic_info;
 	char				uboot_ver[VERSION_MAX_LEN];
@@ -1711,11 +1712,11 @@ struct engines_data {
  *                    then the timeout is the default timeout for the specific
  *                    ASIC
  * @get_hw_state: retrieve the H/W state
- * @nic_init: init the NIC H/W and I/F. This should be called in the final satge
+ * @sni_init: init the SNI H/W and I/F. This should be called in the final satge
  *            of the init flow, as we must not have anything that might fail
- *            during its initialization after the NIC init.
- * @nic_fini: perform NIC cleanup.
- * @nic_control: Perform NIC related operations.
+ *            during its initialization after the SNI init.
+ * @sni_fini: perform SNI cleanup.
+ * @sni_control: Perform SNI related operations.
  * @pci_bars_map: Map PCI BARs.
  * @init_iatu: Initialize the iATU unit inside the PCI controller.
  * @rreg: Read a register. Needed for simulator support.
@@ -1763,7 +1764,7 @@ struct engines_data {
  * @get_sob_addr: get SOB base address offset.
  * @set_pci_memory_regions: setting properties of PCI memory regions
  * @get_stream_master_qid_arr: get pointer to stream masters QID array
- * @nic_funcs: ASIC specific NIC functions.
+ * @sni_funcs: ASIC specific SNI functions.
  * @check_if_razwi_happened: check if there was a razwi due to RR violation.
  * @alloc_irq_vectors: allocate multiple IRQs for a device
  * @free_irq_vectors: free previously allocated IRQs for a device
@@ -1867,10 +1868,10 @@ struct hl_asic_funcs {
 	int (*get_monitor_dump)(struct hl_device *hdev, void *data);
 	int (*send_cpu_message)(struct hl_device *hdev, u32 *msg,
 				u16 len, u32 timeout, u64 *result);
-	int (*nic_init)(struct hl_device *hdev);
-	void (*nic_fini)(struct hl_device *hdev);
-	int (*nic_control)(struct hl_device *hdev, u32 op, void *input,
-				void *output, struct hl_ctx *ctx);
+	int (*sni_init)(struct hl_device *hdev);
+	void (*sni_fini)(struct hl_device *hdev);
+	int (*sni_control)(struct hl_device *hdev, u32 op, void *input, void *output,
+				struct hl_ctx *ctx);
 	int (*pci_bars_map)(struct hl_device *hdev);
 	int (*init_iatu)(struct hl_device *hdev);
 	u32 (*rreg)(struct hl_device *hdev, u32 reg);
@@ -1917,7 +1918,7 @@ struct hl_asic_funcs {
 	u32 (*get_sob_addr)(struct hl_device *hdev, u32 sob_id);
 	void (*set_pci_memory_regions)(struct hl_device *hdev);
 	u32* (*get_stream_master_qid_arr)(void);
-	struct hl_nic_funcs *nic_funcs;
+	struct hl_sni_funcs *sni_funcs;
 	void (*check_if_razwi_happened)(struct hl_device *hdev);
 	int (*alloc_irq_vectors)(struct hl_device *hdev, unsigned int min_vecs,
 					unsigned int max_vecs, unsigned int flags);
@@ -3573,7 +3574,7 @@ struct hl_etr_buf_store {
  * @asic_prop: ASIC specific immutable properties.
  * @asic_funcs: ASIC specific functions.
  * @asic_specific: ASIC specific information to use only from ASIC files.
- * @nic: NIC common structure.
+ * @sni: SNI common structure.
  * @vm: virtual memory manager for MMU.
  * @hwmon_dev: H/W monitor device.
  * @hl_chip_info: ASIC's sensors information.
@@ -3591,7 +3592,7 @@ struct hl_etr_buf_store {
  *              when a user opens the control device
  * @fpriv_list_lock: protects the fpriv_list
  * @fpriv_ctrl_list_lock: protects the fpriv_ctrl_list
- * @nic_hw_access_lock: protects the HW access from NIC flows.
+ * @sni_hw_access_lock: protects the HW access from SNI flows.
  * @aggregated_cs_counters: aggregated cs counters among all contexts
  * @mmu_priv: device-specific MMU data.
  * @mmu_func: device-related MMU functions.
@@ -3641,9 +3642,9 @@ struct hl_etr_buf_store {
  *                drams are binned-out
  * @tpc_binning: contains mask of tpc engines that is received from the f/w which indicates which
  *               tpc engines are binned-out
- * @nic_ports_mask: contains mask of the nic ports that are enabled, as received from the f/w. This
+ * @sni_ports_mask: contains mask of the SNI ports that are enabled, as received from the f/w. This
  *                  field can contain different values based on the server type
- * @nic_ports_ext_mask: contains mask of the nic ports that are external (used for scale-out), as
+ * @sni_ports_ext_mask: contains mask of the SNI ports that are external (used for scale-out), as
  *                      received from the f/w. This field can contain different values based on the
  *                      server type.
  * @dmabuf_export_cnt: number of dma-buf exporting.
@@ -3779,7 +3780,7 @@ struct hl_device {
 	struct asic_fixed_properties	asic_prop;
 	const struct hl_asic_funcs	*asic_funcs;
 	void				*asic_specific;
-	struct hl_nic			nic;
+	struct hl_sni			sni;
 	struct hl_vm			vm;
 	struct device			*hwmon_dev;
 	struct hwmon_chip_info		*hl_chip_info;
@@ -3798,7 +3799,7 @@ struct hl_device {
 	struct list_head		fpriv_ctrl_list;
 	struct mutex			fpriv_list_lock;
 	struct mutex			fpriv_ctrl_list_lock;
-	struct mutex			nic_hw_access_lock;
+	struct mutex			sni_hw_access_lock;
 
 	struct hl_cs_counters_atomic	aggregated_cs_counters;
 
@@ -3848,8 +3849,8 @@ struct hl_device {
 	u64				fw_comms_poll_interval_usec;
 	u64				dram_binning;
 	u64				tpc_binning;
-	u64				nic_ports_mask;
-	u64				nic_ports_ext_mask;
+	u64				sni_ports_mask;
+	u64				sni_ports_ext_mask;
 	atomic_t			dmabuf_export_cnt;
 	enum cpucp_card_types		card_type;
 	u32				major;
@@ -3910,7 +3911,7 @@ struct hl_device {
 	u8				heartbeat;
 
 	/* Parameters for bring-up (not to be upstreamed) */
-	u64				nic_auto_neg_mask;
+	u64				sni_auto_neg_mask;
 	u64				tpc_mask;
 	u64				mme_binning;
 	u64				pdma_ch_mask;
@@ -3934,7 +3935,7 @@ struct hl_device {
 	u8				hbm_ecc_enable;
 	u8				compatibility_mode;
 	u8				bringup_flags_enable;
-	u8				nic_load_fw;
+	u8				sni_load_fw;
 	u8				rl_enable;
 	u8				sram_binning;
 	u8				ifh;
@@ -3943,15 +3944,15 @@ struct hl_device {
 	u8				pll_async_if_enable;
 	u8				bootfit_relocatable;
 	u8				ignore_fw_nic_info;
-	u8				nic_lanes_per_port;
-	u8				skip_nic_phy_init;
+	u8				sni_lanes_per_port;
+	u8				skip_sni_phy_init;
 	u8				reset_if_device_not_idle;
 	u8				half_nominal_pll_mode;
 	u8				scrub_arc_dccm;
 	u8				skip_cluster_config;
 	u8				fw_cfg_skip;
 	u8				bmu_enable;
-	u8				nic_eth_on_internal;
+	u8				sni_eth_on_internal;
 	u8				config_qman_arc_for_stub_mme;
 	u8				debug_rreg;
 	u8				debug_wreg;

@@ -6538,17 +6538,17 @@ int gaudi3_coresight_init(struct hl_device *hdev)
 		/* Set NIC disable components */
 
 		half_size = CS_DBG_NIC_ID_SIZE >> 1;
-		enabled_mask = hdev->nic_ports_mask;
+		enabled_mask = hdev->sni_ports_mask;
 
 		/*
 		 * if PORT_LANES_2 - we have 2 bits in port mask per nic
 		 */
-		if (hdev->nic_lanes_per_port == PORT_LANES_2) {
+		if (hdev->sni_lanes_per_port == PORT_LANES_2) {
 			enabled_mask = 0x0;
 			tmp_mask_index = 0;
 
-			while (hdev->nic_ports_mask >> (tmp_mask_index << 1)) {
-				if ((hdev->nic_ports_mask >> (tmp_mask_index << 1)) & 0x3)
+			while (hdev->sni_ports_mask >> (tmp_mask_index << 1)) {
+				if ((hdev->sni_ports_mask >> (tmp_mask_index << 1)) & 0x3)
 					enabled_mask |= 1ULL << tmp_mask_index;
 				tmp_mask_index += 1;
 			}
@@ -6756,7 +6756,7 @@ int gaudi3_coresight_init(struct hl_device *hdev)
 	return 0;
 }
 
-void gaudi3_nic_spmu_get_stats_info(struct hl_device *hdev, u32 port, struct hl_en_stat **stats,
+void gaudi3_sni_spmu_get_stats_info(struct hl_device *hdev, u32 port, struct hl_sni_stat **stats,
 					u32 *n_stats)
 {
 	if (!hdev->supports_coresight) {
@@ -6766,7 +6766,7 @@ void gaudi3_nic_spmu_get_stats_info(struct hl_device *hdev, u32 port, struct hl_
 	/* TODO: SW-63320: add SPMU support */
 }
 
-int gaudi3_nic_spmu_config(struct hl_device *hdev, u32 port, u32 num_event_types, u32 event_types[],
+int gaudi3_sni_spmu_config(struct hl_device *hdev, u32 port, u32 num_event_types, u32 event_types[],
 				bool enable)
 {
 	if (!hdev->supports_coresight)
@@ -6776,7 +6776,7 @@ int gaudi3_nic_spmu_config(struct hl_device *hdev, u32 port, u32 num_event_types
 	return 0;
 }
 
-int gaudi3_nic_spmu_sample(struct hl_device *hdev, u32 port, u32 num_out_data, u64 out_data[])
+int gaudi3_sni_spmu_sample(struct hl_device *hdev, u32 port, u32 num_out_data, u64 out_data[])
 {
 	if (!hdev->supports_coresight)
 		return 0;
@@ -6785,7 +6785,7 @@ int gaudi3_nic_spmu_sample(struct hl_device *hdev, u32 port, u32 num_out_data, u
 	return 0;
 }
 
-int gaudi3_nic_ack_spmu_bmon_interrupt(struct hl_device *hdev, int nic_macro_idx)
+int gaudi3_sni_ack_spmu_bmon_interrupt(struct hl_device *hdev, int nic_macro_idx)
 {
 	struct component_config_offsets *cs_cfg;
 	u32 pmcntenclr, pmintenclr;

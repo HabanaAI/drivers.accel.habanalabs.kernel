@@ -23,14 +23,14 @@
 #define PMCCNTSR_L			0x618	/* Cycle Counter Snapshot */
 #define PMCCNTSR_H			0x61c	/* Cycle Counter Snapshot */
 
-static struct hl_en_stat gaudi_nic0_spmu_stats[] = {
+static struct hl_sni_stat gaudi_nic0_spmu_stats[] = {
 	{"bad_format", 1},
 	{"requester_psn_out_of_range", 6},
 	{"responder_duplicate_psn", 9},
 	{"responder_out_of_sequence_psn", 10}
 };
 
-static struct hl_en_stat gaudi_nic1_spmu_stats[] = {
+static struct hl_sni_stat gaudi_nic1_spmu_stats[] = {
 	{"bad_format", 13},
 	{"requester_psn_out_of_range", 18},
 	{"responder_duplicate_psn", 21},
@@ -787,7 +787,7 @@ static int gaudi_config_bmon(struct hl_device *hdev,
 	return 0;
 }
 
-static bool gaudi_reg_is_nic_spmu(enum gaudi_debug_spmu_regs_index reg_idx)
+static bool gaudi_reg_is_sni_spmu(enum gaudi_debug_spmu_regs_index reg_idx)
 {
 	switch (reg_idx) {
 	case GAUDI_SPMU_NIC0_0:
@@ -829,7 +829,7 @@ static int gaudi_config_spmu(struct hl_device *hdev,
 	 * NIC spmus are now configured by driver at init
 	 * and not accessible to user in dbg mode
 	 */
-	if (hdev->in_debug && gaudi_reg_is_nic_spmu(params->reg_idx)) {
+	if (hdev->in_debug && gaudi_reg_is_sni_spmu(params->reg_idx)) {
 		dev_err(hdev->dev, "Rejecting user debug configuration for NIC spmu\n");
 		return -EFAULT;
 	}
@@ -938,7 +938,7 @@ static int gaudi_sample_spmu(struct hl_device *hdev,
 	return 0;
 }
 
-void gaudi_nic_spmu_get_stats_info(struct hl_device *hdev, u32 port, struct hl_en_stat **stats,
+void gaudi_sni_spmu_get_stats_info(struct hl_device *hdev, u32 port, struct hl_sni_stat **stats,
 					u32 *n_stats)
 {
 	if (!hdev->supports_coresight) {
@@ -955,7 +955,7 @@ void gaudi_nic_spmu_get_stats_info(struct hl_device *hdev, u32 port, struct hl_e
 	}
 }
 
-int gaudi_nic_spmu_config(struct hl_device *hdev, u32 port, u32 num_event_types, u32 event_types[],
+int gaudi_sni_spmu_config(struct hl_device *hdev, u32 port, u32 num_event_types, u32 event_types[],
 				bool enable)
 {
 	struct hl_debug_params_spmu spmu;
@@ -967,7 +967,7 @@ int gaudi_nic_spmu_config(struct hl_device *hdev, u32 port, u32 num_event_types,
 		return 0;
 
 	/* validate nic port */
-	if  (!gaudi_reg_is_nic_spmu(GAUDI_SPMU_NIC0_0 + port)) {
+	if  (!gaudi_reg_is_sni_spmu(GAUDI_SPMU_NIC0_0 + port)) {
 		dev_err(hdev->dev, "Invalid nic port %u\n", port);
 		return -EINVAL;
 	}
@@ -989,16 +989,16 @@ int gaudi_nic_spmu_config(struct hl_device *hdev, u32 port, u32 num_event_types,
 	return gaudi_config_spmu(hdev, &params);
 }
 
-int gaudi_nic_spmu_sample(struct hl_device *hdev, u32 port, u32 num_out_data, u64 out_data[])
+int gaudi_sni_spmu_sample(struct hl_device *hdev, u32 port, u32 num_out_data, u64 out_data[])
 {
 	struct hl_debug_params params;
 
 	if (!hdev->supports_coresight)
 		return 0;
 
-	/* validate nic port */
-	if  (!gaudi_reg_is_nic_spmu(GAUDI_SPMU_NIC0_0 + port)) {
-		dev_err(hdev->dev, "Invalid nic port %u\n", port);
+	/* validate SNI port */
+	if  (!gaudi_reg_is_sni_spmu(GAUDI_SPMU_NIC0_0 + port)) {
+		dev_err(hdev->dev, "Invalid SNI port %u\n", port);
 		return -EINVAL;
 	}
 

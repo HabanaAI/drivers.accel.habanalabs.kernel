@@ -9,7 +9,7 @@
 
 #include "gaudi2P.h"
 #include "gaudi2_masks.h"
-#include "gaudi2_nic.h"
+#include "gaudi2_sni.h"
 #include "../common/simulator.h"
 #include "../include/common/simulator.h"
 #include "../include/hw_ip/mmu/mmu_general.h"
@@ -276,7 +276,7 @@ static int gaudi2_simulator_gen_int_ioctl(struct hl_simulator_device *edev, void
 	u32 relative_idx;
 
 	gaudi2 = hdev->asic_specific;
-	aux_dev = &hdev->nic.sni_aux_dev;
+	aux_dev = &hdev->sni.sni_aux_dev;
 	gaudi2_aux_ops = &gaudi2->sni_aux_ops;
 
 	if (args->id >= GAUDI2_MSIX_ENTRIES) {
@@ -934,7 +934,7 @@ static int gaudi2_sim_set_fixed_properties(struct hl_device *hdev)
 {
 	struct hl_simulator_device *edev = gaudi2_simulator_dev_table[hdev->id];
 	struct asic_fixed_properties *prop = &hdev->asic_prop;
-	struct hl_nic_properties *nic_prop = &prop->nic_props;
+	struct hl_sni_properties *sni_prop = &prop->sni_props;
 	u64 hbm_user_base_offset, nic_drv_addr = 0;
 	u64 nic_drv_size = GAUDI2_SIM_NIC_DRV_SIZE;
 	int rc;
@@ -963,17 +963,17 @@ static int gaudi2_sim_set_fixed_properties(struct hl_device *hdev)
 	prop->cb_pool_cb_size = SIM_CB_POOL_CB_SIZE;
 
 	nic_drv_addr = GAUDI2_SIM_NIC_DRV_ADDR;
-	nic_prop->nic_drv_addr = nic_drv_addr;
-	nic_prop->nic_drv_base_addr = NIC_DRV_BASE_ADDR(nic_drv_addr);
-	nic_prop->nic_drv_end_addr = NIC_DRV_END_ADDR(nic_drv_addr, nic_drv_size);
-	nic_prop->wq_base_addr = WQ_BASE_ADDR(nic_drv_addr);
-	nic_prop->txs_base_addr = TXS_BASE_ADDR(nic_drv_addr);
-	nic_prop->tmr_base_addr = TMR_BASE_ADDR(nic_drv_addr);
-	nic_prop->req_qpc_base_addr = REQ_QPC_BASE_ADDR(nic_drv_addr);
-	nic_prop->res_qpc_base_addr = RES_QPC_BASE_ADDR(nic_drv_addr);
+	sni_prop->nic_drv_addr = nic_drv_addr;
+	sni_prop->nic_drv_base_addr = NIC_DRV_BASE_ADDR(nic_drv_addr);
+	sni_prop->nic_drv_end_addr = NIC_DRV_END_ADDR(nic_drv_addr, nic_drv_size);
+	sni_prop->wq_base_addr = WQ_BASE_ADDR(nic_drv_addr);
+	sni_prop->txs_base_addr = TXS_BASE_ADDR(nic_drv_addr);
+	sni_prop->tmr_base_addr = TMR_BASE_ADDR(nic_drv_addr);
+	sni_prop->req_qpc_base_addr = REQ_QPC_BASE_ADDR(nic_drv_addr);
+	sni_prop->res_qpc_base_addr = RES_QPC_BASE_ADDR(nic_drv_addr);
 
-	nic_prop->nic_drv_size = nic_drv_size;
-	nic_prop->wq_base_size = WQ_BASE_SIZE(nic_drv_addr, nic_drv_size);
+	sni_prop->nic_drv_size = nic_drv_size;
+	sni_prop->wq_base_size = WQ_BASE_SIZE(nic_drv_addr, nic_drv_size);
 
 	return 0;
 }
@@ -1058,12 +1058,12 @@ static int gaudi2_sim_cpucp_info_get(struct hl_device *hdev)
 			 */
 			if (!hdev->ignore_fw_nic_info) {
 				gaudi2_sim_get_nic_info(hdev);
-				hdev->nic_ports_ext_mask &= le64_to_cpu(nic_info->link_ext_mask[0]);
-				hdev->nic_ports_mask &= le64_to_cpu(nic_info->link_mask[0]);
-				hdev->nic_auto_neg_mask &= le64_to_cpu(nic_info->auto_neg_mask[0]);
+				hdev->sni_ports_ext_mask &= le64_to_cpu(nic_info->link_ext_mask[0]);
+				hdev->sni_ports_mask &= le64_to_cpu(nic_info->link_mask[0]);
+				hdev->sni_auto_neg_mask &= le64_to_cpu(nic_info->auto_neg_mask[0]);
 			}
 
-			rc = gaudi2_nic_set_info(hdev, false);
+			rc = gaudi2_sni_set_info(hdev, false);
 			if (rc)
 				return rc;
 		}
@@ -1120,7 +1120,7 @@ static int gaudi2_sim_cpucp_info_get(struct hl_device *hdev)
 			hdev->card_type = le32_to_cpu(hdev->asic_prop.cpucp_info.card_type);
 
 		/* For NIC do not populate from FW. */
-		rc = gaudi2_nic_set_info(hdev, false);
+		rc = gaudi2_sni_set_info(hdev, false);
 	}
 
 	return rc;
@@ -1232,7 +1232,7 @@ static void gaudi2_sim_halt_engines(struct hl_device *hdev, bool hard_reset, boo
 	 * might use it e.g. get/set EEPROM data.
 	 */
 	if (hard_reset)
-		hl_nic_hard_reset_prepare(hdev);
+		hl_sni_hard_reset_prepare(hdev);
 
 	gaudi2_stop_dma_qmans(hdev);
 	gaudi2_stop_mme_qmans(hdev);
@@ -1262,9 +1262,9 @@ static void gaudi2_sim_halt_engines(struct hl_device *hdev, bool hard_reset, boo
 	gaudi2_disable_nic_qmans(hdev);
 
 	if (hard_reset)
-		hl_nic_stop(hdev);
+		hl_sni_stop(hdev);
 	else
-		gaudi2_nic_compute_reset_prepare(hdev);
+		gaudi2_sni_compute_reset_prepare(hdev);
 
 	if (hard_reset)
 		gaudi2_sim_notify_reset(hdev);
@@ -1316,7 +1316,7 @@ static int gaudi2_sim_hw_init(struct hl_device *hdev)
 		return rc;
 	}
 
-	gaudi2_nic_quiescence(hdev);
+	gaudi2_sni_quiescence(hdev);
 
 	/* Set all privileged registers instead of FW */
 	rc = gaudi2_sim_fw_config(hdev);
@@ -1343,7 +1343,7 @@ static int gaudi2_sim_hw_init(struct hl_device *hdev)
 	gaudi2_init_tpc(hdev);
 	gaudi2_init_rotator(hdev);
 	gaudi2_init_dec(hdev);
-	gaudi2_init_nic(hdev);
+	gaudi2_init_sni(hdev);
 
 	rc = gaudi2_init_security(hdev);
 	if (rc)
@@ -1425,7 +1425,7 @@ static int gaudi2_sim_hw_fini(struct hl_device *hdev, bool hard_reset, bool fw_r
 		/*
 		 * Clear NIC capability mask in order for driver to re-configure
 		 * NIC QMANs. NIC ports will not be re-configured during soft
-		 * reset as we call gaudi2_nic_init only during hard reset
+		 * reset as we call gaudi2_sni_init only during hard reset
 		 */
 		gaudi2->nic_hw_cap_initialized &= ~(HW_CAP_NIC_MASK);
 
@@ -1764,9 +1764,9 @@ static const struct hl_asic_funcs gaudi2_sim_funcs = {
 	.get_eeprom_data = gaudi2_sim_get_eeprom_data,
 	.get_monitor_dump = gaudi2_get_monitor_dump,
 	.send_cpu_message = gaudi2_send_cpu_message,
-	.nic_init = hl_nic_init,
-	.nic_fini = hl_nic_fini,
-	.nic_control = hl_nic_control,
+	.sni_init = hl_sni_init,
+	.sni_fini = hl_sni_fini,
+	.sni_control = hl_sni_control,
 	.pci_bars_map = NULL,
 	.init_iatu = NULL,
 	.rreg = gaudi2_sim_rreg,
@@ -1804,7 +1804,7 @@ static const struct hl_asic_funcs gaudi2_sim_funcs = {
 	.get_stream_master_qid_arr = gaudi2_get_stream_master_qid_arr,
 	.scheduler_submit_buf = gaudi2_scheduler_submit_buf,
 	.mmu_get_real_page_size = gaudi2_mmu_get_real_page_size,
-	.nic_funcs = &gaudi2_nic_funcs,
+	.sni_funcs = &gaudi2_sni_funcs,
 	.access_dev_mem = gaudi2_sim_access_dev_mem,
 	.set_dram_bar_base = NULL,
 	.init_firmware_preload_params = NULL,

@@ -5,7 +5,7 @@
  * All Rights Reserved.
  */
 
-#include "gaudi3_nic.h"
+#include "gaudi3_sni.h"
 
 /* mmNIC_TXE_SPECIAL_GLBL_SPARE_0 */
 #define NIC_TXE_SPECIAL_GLBL_SPARE_0_ECO_5216_BURST_SIZE_S 0
@@ -61,12 +61,12 @@
 #define NIC_QPC_SPECIAL_GLBL_SPARE_0_ECO_5490_DISABLE_S 2
 #define NIC_QPC_SPECIAL_GLBL_SPARE_0_ECO_5490_DISABLE_M 0x4
 
-static void gaudi3_nic_config_hw_mac_fw(struct hl_device *hdev, u32 port)
+static void gaudi3_sni_config_hw_mac_fw(struct hl_device *hdev, u32 port)
 {
 	NIC_WREG32(mmD0_NIC0_MAC_AUX_BASE + mmPRT_MAC_AUX_MAC_CFG_SEC, 0);
 }
 
-static void gaudi3_nic_config_hw_rxe_fw(struct hl_device *hdev, u32 port)
+static void gaudi3_sni_config_hw_rxe_fw(struct hl_device *hdev, u32 port)
 {
 	uint32_t rxe_qpc_checks_mask;
 	int i;
@@ -191,7 +191,7 @@ static void gaudi3_nic_config_hw_rxe_fw(struct hl_device *hdev, u32 port)
 			NIC_RXE_SPECIAL_GLBL_SPARE_0_BACK_PRESSURE_TH_M);
 }
 
-static void gaudi3_nic_config_hw_qpc_fw(struct hl_device *hdev, u32 port)
+static void gaudi3_sni_config_hw_qpc_fw(struct hl_device *hdev, u32 port)
 {
 	NIC_WREG32(mmD0_NIC0_QPC_BASE + mmNIC_QPC_AXI_PROT, 0);
 
@@ -272,7 +272,7 @@ static void gaudi3_nic_config_hw_qpc_fw(struct hl_device *hdev, u32 port)
 			QPC_REQ_BURST_SIZE, NIC_TXE_SPECIAL_GLBL_SPARE_0_ECO_5216_BURST_SIZE_M);
 }
 
-static void gaudi3_nic_config_hw_txe_fw(struct hl_device *hdev, u32 port)
+static void gaudi3_sni_config_hw_txe_fw(struct hl_device *hdev, u32 port)
 {
 	/* SW-33416: For rendezvous read request if WQE size is 0,
 	 * TX gets stuck. So enable WQE check in HW to check for WQE size == 0
@@ -368,7 +368,7 @@ static void gaudi3_nic_config_hw_txe_fw(struct hl_device *hdev, u32 port)
 			NIC_TXE_SPECIAL_GLBL_SPARE_0_ECO_5457_ENABLE_M);
 }
 
-static void gaudi3_nic_set_rx_drop_eco_fw(struct hl_device *hdev, u32 port)
+static void gaudi3_sni_set_rx_drop_eco_fw(struct hl_device *hdev, u32 port)
 {
 	u32 txe_val, txb_disable_eco, rxb_disable_eco;
 	bool qpc_res_rkey_check_en;
@@ -403,24 +403,24 @@ static void gaudi3_nic_set_rx_drop_eco_fw(struct hl_device *hdev, u32 port)
 			NIC_RXE_QPC_CHECKS_EN_QPC_RES_RKEY_INV_M);
 }
 
-static void gaudi3_nic_hw_macro_config_fw(struct hl_device *hdev, int macro_idx)
+static void gaudi3_sni_hw_macro_config_fw(struct hl_device *hdev, int macro_idx)
 {
 	u32 port;
 
-	port = gaudi3_nic_get_first_port(hdev, macro_idx);
+	port = gaudi3_sni_get_first_port(hdev, macro_idx);
 
-	gaudi3_nic_config_hw_mac_fw(hdev, port);
+	gaudi3_sni_config_hw_mac_fw(hdev, port);
 
-	gaudi3_nic_config_hw_rxe_fw(hdev, port);
+	gaudi3_sni_config_hw_rxe_fw(hdev, port);
 
-	gaudi3_nic_config_hw_qpc_fw(hdev, port);
+	gaudi3_sni_config_hw_qpc_fw(hdev, port);
 
-	gaudi3_nic_config_hw_txe_fw(hdev, port);
+	gaudi3_sni_config_hw_txe_fw(hdev, port);
 
-	gaudi3_nic_set_rx_drop_eco_fw(hdev, port);
+	gaudi3_sni_set_rx_drop_eco_fw(hdev, port);
 }
 
-void gaudi3_nic_macros_fw_config(struct hl_device *hdev)
+void gaudi3_sni_macros_fw_config(struct hl_device *hdev)
 {
 	int i;
 
@@ -433,23 +433,23 @@ void gaudi3_nic_macros_fw_config(struct hl_device *hdev)
 		 * In 200Gbps mode we need to check also the second port in the macro. Only if both
 		 * of the ports are disabled, we should skip this macro.
 		 */
-		if (!gaudi3_nic_is_macro_enabled(hdev, i))
+		if (!gaudi3_sni_is_macro_enabled(hdev, i))
 			continue;
 
-		gaudi3_nic_hw_macro_config_fw(hdev, i);
+		gaudi3_sni_hw_macro_config_fw(hdev, i);
 	}
 }
 
-void gaudi3_nic_restore_dynamic_cfg_soft_reset_fw(struct hl_device *hdev)
+void gaudi3_sni_restore_dynamic_cfg_soft_reset_fw(struct hl_device *hdev)
 {
 	u32 port;
 	int i;
 
 
 	for (i = 0 ; i < NIC_NUMBER_OF_MACROS ; i++) {
-		port = gaudi3_nic_get_first_port(hdev, i);
+		port = gaudi3_sni_get_first_port(hdev, i);
 		/* It's not allowed to configure a macro that its port or ports are disabled. */
-		if (!gaudi3_nic_is_macro_enabled(hdev, i))
+		if (!gaudi3_sni_is_macro_enabled(hdev, i))
 			continue;
 
 		NIC_RMWREG32(mmD0_NIC0_RXE_BASE + mmNIC_RXE_WQE_CHECKS_EN, 0,
@@ -457,9 +457,9 @@ void gaudi3_nic_restore_dynamic_cfg_soft_reset_fw(struct hl_device *hdev)
 	}
 }
 
-static void gaudi3_nic_set_qpc_doorbells_eco_pldm(struct hl_device *hdev, int macro_idx)
+static void gaudi3_sni_set_qpc_doorbells_eco_pldm(struct hl_device *hdev, int macro_idx)
 {
-	u32 port = gaudi3_nic_get_first_port(hdev, macro_idx);
+	u32 port = gaudi3_sni_get_first_port(hdev, macro_idx);
 
 	/* H9-4960 register is active low == 0 is enabled. It is enabled by default. */
 	NIC_RMWREG32(mmD0_NIC0_QPC_SPECIAL_BASE + mmNIC_QPC_SPECIAL_GLBL_SPARE_0,
@@ -467,9 +467,9 @@ static void gaudi3_nic_set_qpc_doorbells_eco_pldm(struct hl_device *hdev, int ma
 			NIC_QPC_SPECIAL_GLBL_SPARE_0_ECO_4960_DISABLE_M);
 }
 
-static void gaudi3_nic_set_cc_message_drops_eco_pldm(struct hl_device *hdev, int macro_idx)
+static void gaudi3_sni_set_cc_message_drops_eco_pldm(struct hl_device *hdev, int macro_idx)
 {
-	u32 port = gaudi3_nic_get_first_port(hdev, macro_idx);
+	u32 port = gaudi3_sni_get_first_port(hdev, macro_idx);
 
 	/* H9-5456 register is active low == 0 is enabled. It is enabled by default. */
 	NIC_RMWREG32(mmD0_NIC0_QPC_SPECIAL_BASE + mmNIC_QPC_SPECIAL_GLBL_SPARE_0,
@@ -477,9 +477,9 @@ static void gaudi3_nic_set_cc_message_drops_eco_pldm(struct hl_device *hdev, int
 			NIC_QPC_SPECIAL_GLBL_SPARE_0_ECO_5456_DISABLE_M);
 }
 
-static void gaudi3_nic_set_remote_pi_update_eco_pldm(struct hl_device *hdev, int macro_idx)
+static void gaudi3_sni_set_remote_pi_update_eco_pldm(struct hl_device *hdev, int macro_idx)
 {
-	u32 port = gaudi3_nic_get_first_port(hdev, macro_idx);
+	u32 port = gaudi3_sni_get_first_port(hdev, macro_idx);
 
 	/* H9-5490 register is active low == 0 is enabled. It is enabled by default. */
 	NIC_RMWREG32(mmD0_NIC0_QPC_SPECIAL_BASE + mmNIC_QPC_SPECIAL_GLBL_SPARE_0,
@@ -487,9 +487,9 @@ static void gaudi3_nic_set_remote_pi_update_eco_pldm(struct hl_device *hdev, int
 			NIC_QPC_SPECIAL_GLBL_SPARE_0_ECO_5490_DISABLE_M);
 }
 
-static void gaudi3_nic_set_sal_override_eco_pldm(struct hl_device *hdev, int macro_idx)
+static void gaudi3_sni_set_sal_override_eco_pldm(struct hl_device *hdev, int macro_idx)
 {
-	u32 port = gaudi3_nic_get_first_port(hdev, macro_idx);
+	u32 port = gaudi3_sni_get_first_port(hdev, macro_idx);
 
 	/* H9-5499 is by default enabled in HW, this function disables it upon request */
 	if (hdev->nic_enable_h9_sal_override_eco)
@@ -499,9 +499,9 @@ static void gaudi3_nic_set_sal_override_eco_pldm(struct hl_device *hdev, int mac
 			NIC_RXE_SPECIAL_GLBL_SPARE_0_ECO_5499_DISABLE_M);
 }
 
-static void gaudi3_nic_set_txe_buff_alloc_eco_pldm(struct hl_device *hdev, int macro_idx)
+static void gaudi3_sni_set_txe_buff_alloc_eco_pldm(struct hl_device *hdev, int macro_idx)
 {
-	u32 port = gaudi3_nic_get_first_port(hdev, macro_idx);
+	u32 port = gaudi3_sni_get_first_port(hdev, macro_idx);
 
 	/* H9-5471 register is active low == 0 is enabled. It is enabled by default. */
 	NIC_RMWREG32(mmD0_NIC0_TXE_SPECIAL_BASE + mmNIC_TXE_SPECIAL_GLBL_SPARE_0,
@@ -509,9 +509,9 @@ static void gaudi3_nic_set_txe_buff_alloc_eco_pldm(struct hl_device *hdev, int m
 			NIC_TXE_SPECIAL_GLBL_SPARE_0_ECO_5471_DISABLE_M);
 }
 
-static void gaudi3_nic_set_single_qp_perf_eco_pldm(struct hl_device *hdev, int macro_idx)
+static void gaudi3_sni_set_single_qp_perf_eco_pldm(struct hl_device *hdev, int macro_idx)
 {
-	u32 port = gaudi3_nic_get_first_port(hdev, macro_idx);
+	u32 port = gaudi3_sni_get_first_port(hdev, macro_idx);
 
 	/* H9-5216 register is active low == 0 is enabled. It is enabled by default.
 	 * The configuration of the burst size for that ECO resides in QPC configuration function.
@@ -521,7 +521,7 @@ static void gaudi3_nic_set_single_qp_perf_eco_pldm(struct hl_device *hdev, int m
 			NIC_TXE_SPECIAL_GLBL_SPARE_0_ECO_5216_DISABLE_M);
 }
 
-void gaudi3_nic_ecos_override(struct hl_device *hdev)
+void gaudi3_sni_ecos_override(struct hl_device *hdev)
 {
 	int i;
 
@@ -537,23 +537,23 @@ void gaudi3_nic_ecos_override(struct hl_device *hdev)
 		 * In 200Gbps mode we need to check also the second port in the macro. Only if both
 		 * of the ports are disabled, we should skip this macro.
 		 */
-		if (!gaudi3_nic_is_macro_enabled(hdev, i))
+		if (!gaudi3_sni_is_macro_enabled(hdev, i))
 			continue;
 
 		/* ECO BFE flag configuration flow - used for debug on PLDM
 		 * regardless if there is FW or no
 		 */
 
-		gaudi3_nic_set_qpc_doorbells_eco_pldm(hdev, i);
+		gaudi3_sni_set_qpc_doorbells_eco_pldm(hdev, i);
 
-		gaudi3_nic_set_cc_message_drops_eco_pldm(hdev, i);
+		gaudi3_sni_set_cc_message_drops_eco_pldm(hdev, i);
 
-		gaudi3_nic_set_remote_pi_update_eco_pldm(hdev, i);
+		gaudi3_sni_set_remote_pi_update_eco_pldm(hdev, i);
 
-		gaudi3_nic_set_sal_override_eco_pldm(hdev, i);
+		gaudi3_sni_set_sal_override_eco_pldm(hdev, i);
 
-		gaudi3_nic_set_txe_buff_alloc_eco_pldm(hdev, i);
+		gaudi3_sni_set_txe_buff_alloc_eco_pldm(hdev, i);
 
-		gaudi3_nic_set_single_qp_perf_eco_pldm(hdev, i);
+		gaudi3_sni_set_single_qp_perf_eco_pldm(hdev, i);
 	}
 }

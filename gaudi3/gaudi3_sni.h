@@ -5,8 +5,8 @@
  *
  */
 
-#ifndef GAUDI3_NIC_H_
-#define GAUDI3_NIC_H_
+#ifndef GAUDI3_SNI_H_
+#define GAUDI3_SNI_H_
 
 #include "gaudi3P.h"
 #include "../include/gaudi3/asic_reg/gaudi3_regs.h"
@@ -155,10 +155,10 @@ static_assert((NIC_MAX_CONN_ID + 1) <= NIC_HW_MAX_QP_NUM);
 #define GAUDI3_HLS3_EXTERN_PORTS_MASK_200G_48TB GAUDI3_PORTS_MASK_200G
 #define GAUDI3_HLS3_EXTERN_PORTS_MASK_400G_48TB GAUDI3_PORTS_MASK_400G
 
-u64 gaudi3_nic_get_macro_ports_mask(struct hl_device *hdev, int macro_idx);
+u64 gaudi3_sni_get_macro_ports_mask(struct hl_device *hdev, int macro_idx);
 int get_resource_offset(struct hl_device *hdev, u32 port, int num_of_resources);
 int get_resource_count(struct hl_device *hdev, int num_of_resources);
-u32 gaudi3_nic_handle_bmon_spmu_event(struct hl_device *hdev, u32 macro_index);
-int gaudi3_nic_set_info(struct hl_device *hdev, bool get_from_fw);
+u32 gaudi3_sni_handle_bmon_spmu_event(struct hl_device *hdev, u32 macro_index);
+int gaudi3_sni_set_info(struct hl_device *hdev, bool get_from_fw);
 
-#endif /* GAUDI3_NIC_H_ */
+#endif /* GAUDI3_SNI_H_ */

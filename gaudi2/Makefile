@@ -5,6 +5,6 @@ HL_GAUDI2_FILES := gaudi2/gaudi2.o gaudi2/gaudi2_security.o \
 		gaudi2/gaudi2_coresight.o
 
 # Doesn't go upstream
-HL_GAUDI2_FILES += gaudi2/gaudi2_simulator.o gaudi2/gaudi2_nic.o \
+HL_GAUDI2_FILES += gaudi2/gaudi2_simulator.o gaudi2/gaudi2_sni.o \
 		gaudi2/gaudi2_bringup.o gaudi2/gaudi2_hbm_bringup.o \
-		gaudi2/gaudi2_nic_bringup.o
+		gaudi2/gaudi2_sni_bringup.o

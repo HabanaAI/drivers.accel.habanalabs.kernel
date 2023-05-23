@@ -2988,7 +2988,7 @@ static u64 gaudi2_nic_ports_to_macros(struct hl_device *hdev)
 
 	/* create the list of enabled nics from the list of enabled ports */
 	for (i = 0 ; i < NIC_NUMBER_OF_PORTS ; i += num_ports_in_macro)
-		if (hdev->nic_ports_mask &
+		if (hdev->sni_ports_mask &
 				GENMASK_ULL(i + num_ports_in_macro - 1, i))
 			mask |= BIT_ULL(i / num_ports_in_macro);
 
@@ -6079,7 +6079,7 @@ static void gaudi2_init_qm_axuser_overrides(struct hl_device *hdev)
 	 */
 	for (m = 0 ; m < NIC_NUMBER_OF_MACROS ; m++)
 		for (q = 0 ; q < NIC_NUMBER_OF_QM_PER_MACRO ; q++) {
-			if (!(hdev->nic_ports_mask &
+			if (!(hdev->sni_ports_mask &
 				BIT(m * NIC_NUMBER_OF_QM_PER_MACRO + q)))
 				continue;
 
@@ -6659,14 +6659,14 @@ static void gaudi2_init_nic_fw_config(struct hl_device *hdev)
 {
 	u32 i, reg_base, queue_id;
 
-	if (!hdev->nic_ports_mask)
+	if (!hdev->sni_ports_mask)
 		return;
 
 	queue_id = GAUDI2_QUEUE_ID_NIC_0_0;
 
 	for (i = 0; i < NIC_NUMBER_OF_ENGINES;
 		i++, queue_id += NUM_OF_PQ_PER_QMAN) {
-		if (!(hdev->nic_ports_mask & BIT(i)))
+		if (!(hdev->sni_ports_mask & BIT(i)))
 			continue;
 
 		reg_base = gaudi2_qm_blocks_bases[queue_id];
@@ -6829,9 +6829,9 @@ int gaudi2_init_golden_registers(struct hl_device *hdev)
 	gaudi2_init_sm_axuser_overrides(hdev);
 	gaudi2_hmmu_stlb_thr_init(hdev);
 	gaudi2_init_range_registers_fw_config(hdev);
-	gaudi2_nic_restore_dynamic_cfg_soft_reset_fw(hdev);
+	gaudi2_sni_restore_dynamic_cfg_soft_reset_fw(hdev);
 
-	gaudi2_nic_blocks_fw_config(hdev);
+	gaudi2_sni_blocks_fw_config(hdev);
 
 	return 0;
 }

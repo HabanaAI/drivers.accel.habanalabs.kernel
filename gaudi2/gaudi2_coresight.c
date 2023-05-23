@@ -61,14 +61,14 @@ struct component_config_offsets {
 	u32 bmon_ids[MAX_BMONS_PER_UNIT];
 };
 
-static struct hl_en_stat gaudi2_nic0_spmu_stats[] = {
+static struct hl_sni_stat gaudi2_nic0_spmu_stats[] = {
 	{"spmu_req_out_of_range_psn", 17},
 	{"spmu_req_unset_psn", 18},
 	{"spmu_res_duplicate_psn", 20},
 	{"spmu_res_out_of_sequence_psn", 21}
 };
 
-static struct hl_en_stat gaudi2_nic1_spmu_stats[] = {
+static struct hl_sni_stat gaudi2_nic1_spmu_stats[] = {
 	{"spmu_req_out_of_range_psn", 5},
 	{"spmu_req_unset_psn", 6},
 	{"spmu_res_duplicate_psn", 8},
@@ -2591,7 +2591,7 @@ static int gaudi2_sample_spmu(struct hl_device *hdev, struct hl_debug_params *pa
 	return 0;
 }
 
-void gaudi2_nic_spmu_get_stats_info(struct hl_device *hdev, u32 port, struct hl_en_stat **stats,
+void gaudi2_sni_spmu_get_stats_info(struct hl_device *hdev, u32 port, struct hl_sni_stat **stats,
 					u32 *n_stats)
 {
 	if (!hdev->supports_coresight) {
@@ -2608,7 +2608,7 @@ void gaudi2_nic_spmu_get_stats_info(struct hl_device *hdev, u32 port, struct hl_
 	}
 }
 
-int gaudi2_nic_spmu_config(struct hl_device *hdev, u32 port, u32 num_event_types, u32 event_types[],
+int gaudi2_sni_spmu_config(struct hl_device *hdev, u32 port, u32 num_event_types, u32 event_types[],
 				bool enable)
 {
 	struct hl_debug_params_spmu spmu;
@@ -2642,7 +2642,7 @@ int gaudi2_nic_spmu_config(struct hl_device *hdev, u32 port, u32 num_event_types
 	return gaudi2_config_spmu(hdev, &params);
 }
 
-int gaudi2_nic_spmu_sample(struct hl_device *hdev, u32 port, u32 num_out_data, u64 out_data[])
+int gaudi2_sni_spmu_sample(struct hl_device *hdev, u32 port, u32 num_out_data, u64 out_data[])
 {
 	struct hl_debug_params params;
 

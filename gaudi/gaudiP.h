@@ -431,7 +431,7 @@ struct gaudi_device {
 	u8 compat_mode;
 };
 
-extern struct hl_nic_funcs gaudi_nic_funcs;
+extern struct hl_sni_funcs gaudi_sni_funcs;
 
 void gaudi_init_security(struct hl_device *hdev);
 void gaudi_ack_protection_bits_errors(struct hl_device *hdev);
@@ -590,13 +590,13 @@ int gaudi_set_dram_properties(struct hl_device *hdev);
 void gaudi_set_priv_assertions(struct hl_device *hdev, bool enable);
 int gaudi_set_binning_masks(struct hl_device *hdev);
 
-/* NIC functions */
-void gaudi_nic_handle_qp_err(struct hl_device *hdev, u16 event_type);
-void gaudi_nic_spmu_get_stats_info(struct hl_device *hdev, u32 port, struct hl_en_stat **stats,
+/* SNI functions */
+void gaudi_sni_handle_qp_err(struct hl_device *hdev, u16 event_type);
+void gaudi_sni_spmu_get_stats_info(struct hl_device *hdev, u32 port, struct hl_sni_stat **stats,
 					u32 *n_stats);
-int gaudi_nic_spmu_config(struct hl_device *hdev, u32 port, u32 num_event_types, u32 event_types[],
+int gaudi_sni_spmu_config(struct hl_device *hdev, u32 port, u32 num_event_types, u32 event_types[],
 				bool enable);
-int gaudi_nic_spmu_sample(struct hl_device *hdev, u32 port, u32 num_out_data, u64 out_data[]);
+int gaudi_sni_spmu_sample(struct hl_device *hdev, u32 port, u32 num_out_data, u64 out_data[]);
 
 /* Bringup functions */
 void gaudi_init_pll(struct hl_device *hdev);

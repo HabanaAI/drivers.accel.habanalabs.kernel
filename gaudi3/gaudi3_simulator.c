@@ -9,7 +9,7 @@
 
 #include "gaudi3P.h"
 #include "gaudi3_masks.h"
-#include "gaudi3_nic.h"
+#include "gaudi3_sni.h"
 #include "../common/simulator.h"
 #include "include/common/simulator.h"
 #include "include/common/pci_ids.h"
@@ -931,7 +931,7 @@ static void gaudi3_sim_get_nic_info(struct hl_device *hdev)
 	struct cpucp_nic_info *nic_info = &hdev->asic_prop.cpucp_nic_info;
 
 	/* Assume HLS3 connections */
-	if (hdev->nic_lanes_per_port == PORT_LANES_2) {
+	if (hdev->sni_lanes_per_port == PORT_LANES_2) {
 		nic_info->link_ext_mask[0] = cpu_to_le64(GAUDI3_HLS3_EXTERN_PORTS_MASK_200G_48TB);
 		nic_info->link_mask[0] = cpu_to_le64(GAUDI3_PORTS_MASK_200G);
 	} else {
@@ -958,12 +958,12 @@ static int gaudi3_sim_cpucp_info_get(struct hl_device *hdev)
 			 */
 			if (!hdev->ignore_fw_nic_info) {
 				gaudi3_sim_get_nic_info(hdev);
-				hdev->nic_ports_ext_mask &= le64_to_cpu(nic_info->link_ext_mask[0]);
-				hdev->nic_ports_mask &= le64_to_cpu(nic_info->link_mask[0]);
-				hdev->nic_auto_neg_mask &= le64_to_cpu(nic_info->auto_neg_mask[0]);
+				hdev->sni_ports_ext_mask &= le64_to_cpu(nic_info->link_ext_mask[0]);
+				hdev->sni_ports_mask &= le64_to_cpu(nic_info->link_mask[0]);
+				hdev->sni_auto_neg_mask &= le64_to_cpu(nic_info->auto_neg_mask[0]);
 			}
 
-			rc = gaudi3_nic_set_info(hdev, false);
+			rc = gaudi3_sni_set_info(hdev, false);
 			if (rc)
 				return rc;
 		}
@@ -1025,7 +1025,7 @@ static int gaudi3_sim_cpucp_info_get(struct hl_device *hdev)
 			hdev->card_type = le32_to_cpu(hdev->asic_prop.cpucp_info.card_type);
 
 		/* For NIC do not populate from FW. */
-		rc = gaudi3_nic_set_info(hdev, false);
+		rc = gaudi3_sni_set_info(hdev, false);
 	}
 
 	return 0;
@@ -1153,7 +1153,7 @@ static void gaudi3_sim_halt_engines(struct hl_device *hdev, bool hard_reset, boo
 	 * before we stop the CPU as the NIC might use it e.g. get/set EEPROM data.
 	 */
 	if (hard_reset)
-		hl_nic_hard_reset_prepare(hdev);
+		hl_sni_hard_reset_prepare(hdev);
 
 	gaudi3_stop_edma_qmans(hdev);
 	gaudi3_stop_tpc_qmans(hdev);
@@ -1177,13 +1177,13 @@ static void gaudi3_sim_halt_engines(struct hl_device *hdev, bool hard_reset, boo
 	gaudi3_disable_nic_qmans(hdev);
 
 	if (hard_reset) {
-		hl_nic_stop(hdev);
+		hl_sni_stop(hdev);
 		gaudi3_disable_msix(hdev);
 		return;
 	}
 
 	gaudi3_sync_irqs(hdev);
-	hl_nic_synchronize_irqs(hdev);
+	hl_sni_synchronize_irqs(hdev);
 }
 
 static int gaudi3_sim_fw_config(struct hl_device *hdev)
@@ -1684,9 +1684,9 @@ static const struct hl_asic_funcs gaudi3_sim_funcs = {
 	.get_eeprom_data = gaudi3_sim_get_eeprom_data,
 	.get_monitor_dump = gaudi3_get_monitor_dump,
 	.send_cpu_message = gaudi3_send_cpu_message,
-	.nic_init = hl_nic_init,
-	.nic_fini = hl_nic_fini,
-	.nic_control = hl_nic_control,
+	.sni_init = hl_sni_init,
+	.sni_fini = hl_sni_fini,
+	.sni_control = hl_sni_control,
 	.pci_bars_map = NULL,
 	.init_iatu = NULL,
 	.rreg = gaudi3_sim_rreg,
@@ -1713,7 +1713,7 @@ static const struct hl_asic_funcs gaudi3_sim_funcs = {
 	.get_sob_addr = &gaudi3_get_sob_addr,
 	.set_pci_memory_regions = gaudi3_set_pci_memory_regions,
 	.get_stream_master_qid_arr = gaudi3_get_stream_master_qid_arr,
-	.nic_funcs = &gaudi3_nic_funcs,
+	.sni_funcs = &gaudi3_sni_funcs,
 	.alloc_irq_vectors = gaudi3_sim_alloc_irq_vectors,
 	.free_irq_vectors = gaudi3_sim_free_irq_vectors,
 	.irq_vector = gaudi3_sim_irq_vector,

@@ -149,7 +149,7 @@
 #define NIC_NUMBER_OF_MACROS		(NIC_NUM_MACROS_PER_DIE * NIC_NUM_OF_DIES)
 #define NIC_NUMBER_OF_ENGINES		NIC_NUMBER_OF_MACROS
 #define NIC_MAX_NUM_OF_LANES		(NIC_MAX_NUM_OF_MACROS * NIC_MAC_LANES)
-#define NIC_PORTS_PER_MACRO		(NIC_MAC_LANES / hdev->nic_lanes_per_port)
+#define NIC_PORTS_PER_MACRO		(NIC_MAC_LANES / hdev->sni_lanes_per_port)
 #define NIC_NUM_PORTS_PER_DIE		(NIC_NUM_MACROS_PER_DIE * NIC_PORTS_PER_MACRO)
 #define NIC_NUMBER_OF_PORTS		(NIC_NUM_PORTS_PER_DIE * NIC_NUM_OF_DIES)
 #define NIC_CQS_NUM			2 /* For Raw and RDMA */
@@ -216,9 +216,6 @@ static_assert(IS_POWER_OF_2(ETR_BUF_SIZE));
 
 #define NIC_DRV_SIZE		0x20000000				/* 512MB */
 
-/* 4 entries of 32 bit each i.e. 16 bytes */
-#define GAUDI3_RAW_EQE_SIZE	16
-
 #define MMU_PAGE_TABLES_SIZE	0x0C000000				/* 192MB */
 
 #define MAX_FAULTY_HBMS		1
@@ -227,9 +224,6 @@ extern const char *gaudi3_engine_id_str[];
 
 #define GAUDI3_ENG_ID_TO_STR(initiator) ((initiator) >= GAUDI3_ENGINE_ID_SIZE ? "not found" :	\
 						gaudi3_engine_id_str[initiator])
-
-/* make sure generic event buffer is always larger than h/w specific buffer */
-static_assert(GAUDI3_RAW_EQE_SIZE <= sizeof(struct hl_nic_eqe));
 
 enum gaudi3_reserved_sob_id {
 	GAUDI3_RESERVED_SOB_HMMU_MAINT_JOB_0,
@@ -558,7 +552,7 @@ enum gaudi3_block_types {
 	GAUDI3_BLOCK_TYPE_MAX
 };
 
-extern struct hl_nic_funcs gaudi3_nic_funcs;
+extern struct hl_sni_funcs gaudi3_sni_funcs;
 
 /* Gaudi3 declarations for simulator */
 int gaudi3_scrub_device_dram(struct hl_device *hdev, u64 val);
@@ -690,14 +684,14 @@ void gaudi3_fw_security_emulation_fini(struct hl_device *hdev, bool asic_dirty);
 void gaudi3_clear_hw_cap(struct hl_device *hdev, bool hard_reset);
 int gaudi3_hw_fini(struct hl_device *hdev, bool hard_reset, bool fw_reset);
 
-void gaudi3_nic_quiescence(struct hl_device *hdev);
+void gaudi3_sni_quiescence(struct hl_device *hdev);
 
-void gaudi3_nic_spmu_get_stats_info(struct hl_device *hdev, u32 port, struct hl_en_stat **stats,
+void gaudi3_sni_spmu_get_stats_info(struct hl_device *hdev, u32 port, struct hl_sni_stat **stats,
 					u32 *n_stats);
-int gaudi3_nic_spmu_config(struct hl_device *hdev, u32 port, u32 num_event_types, u32 event_types[],
+int gaudi3_sni_spmu_config(struct hl_device *hdev, u32 port, u32 num_event_types, u32 event_types[],
 				bool enable);
-int gaudi3_nic_spmu_sample(struct hl_device *hdev, u32 port, u32 num_out_data, u64 out_data[]);
-int gaudi3_nic_ack_spmu_bmon_interrupt(struct hl_device *hdev, int nic_macro_idx);
+int gaudi3_sni_spmu_sample(struct hl_device *hdev, u32 port, u32 num_out_data, u64 out_data[]);
+int gaudi3_sni_ack_spmu_bmon_interrupt(struct hl_device *hdev, int nic_macro_idx);
 int gaudi3_scheduler_submit_buf(struct hl_device *hdev, u32 cpu_id, u32 queue_id, void *buf,
 					u32 len);
 bool gaudi3_is_valid_dram_page_size(u32 page_size);
@@ -710,8 +704,8 @@ int gaudi3_init_cpu_queues(struct hl_device *hdev, u32 cpu_timeout);
 int gaudi3_test_cpu_queue(struct hl_device *hdev);
 void gaudi3_send_hard_reset_cmd(struct hl_device *hdev);
 u32 gaudi3_handle_eqe(struct hl_device *hdev, struct hl_eq_dynamic_entry *eq_dynamic_entry);
-bool gaudi3_nic_is_macro_enabled(struct hl_device *hdev, int macro_idx);
-u32 gaudi3_nic_get_first_port(struct hl_device *hdev, int macro_idx);
+bool gaudi3_sni_is_macro_enabled(struct hl_device *hdev, int macro_idx);
+u32 gaudi3_sni_get_first_port(struct hl_device *hdev, int macro_idx);
 int gaudi3_alloc_irq_vectors(struct hl_device *hdev, unsigned int min_vecs,
 			unsigned int max_vecs, unsigned int flags);
 void gaudi3_free_irq_vectors(struct hl_device *hdev);
@@ -751,7 +745,7 @@ irqreturn_t hl_pldm_irq_handler(int irq, void *arg);
 void gaudi3_pdma_print_debug_info(struct hl_device *hdev, u32 ch_idx);
 void gaudi3_halt_engines_fw_config(struct hl_device *hdev);
 void gaudi3_set_isolation(struct hl_device *hdev, bool isolate_engines, bool isolate_hbm);
-void gaudi3_nic_ecos_override(struct hl_device *hdev);
+void gaudi3_sni_ecos_override(struct hl_device *hdev);
 
 /* Functions exported for FPGA support */
 int gaudi3_early_fini(struct hl_device *hdev);
@@ -784,8 +778,8 @@ int gaudi3_set_engines(struct hl_device *hdev, u32 *engine_ids,
 int gaudi3_irq_vector(struct hl_device *hdev, unsigned int nr);
 
 /* Bringup functions (w/o F/W support) */
-void gaudi3_nic_macros_fw_config(struct hl_device *hdev);
 u32 gaudi3_handle_axi_drain(struct hl_device *hdev, bool *pci_link_error);
-void gaudi3_nic_restore_dynamic_cfg_soft_reset_fw(struct hl_device *hdev);
+void gaudi3_sni_macros_fw_config(struct hl_device *hdev);
+void gaudi3_sni_restore_dynamic_cfg_soft_reset_fw(struct hl_device *hdev);
 
 #endif /* GAUDI3P_H_ */

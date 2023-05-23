@@ -254,9 +254,9 @@ u64 goya_get_device_time(struct hl_device *hdev);
 int goya_set_frequency(struct hl_device *hdev, enum hl_pll_frequency freq);
 
 /* Functions exported because of simulator */
-int goya_nic_init(struct hl_device *hdev);
-void goya_nic_fini(struct hl_device *hdev);
-int goya_nic_control(struct hl_device *hdev, u32 op, void *input, void *output,
+int goya_sni_init(struct hl_device *hdev);
+void goya_sni_fini(struct hl_device *hdev);
+int goya_sni_control(struct hl_device *hdev, u32 op, void *input, void *output,
 			struct hl_ctx *ctx);
 int goya_ctx_init(struct hl_ctx *ctx);
 void goya_ctx_fini(struct hl_ctx *ctx);
