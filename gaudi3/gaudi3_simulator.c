@@ -1209,6 +1209,9 @@ static void gaudi3_sim_set_isolation(struct hl_device *hdev, bool isolate_engine
 {
 	struct hl_simulator_device *edev = gaudi3_simulator_dev_table[hdev->id];
 
+	/* This redundant call is necessary because isolation depends on ASIC masks */
+	hdev->asic_funcs->set_binning_masks(hdev);
+
 	hl_sim_set_priv_assertions(edev, false);
 	gaudi3_set_isolation(hdev, isolate_engines, isolate_nic_and_hbm);
 	hl_sim_set_priv_assertions(edev, true);
@@ -1220,8 +1223,16 @@ static int gaudi3_sim_hw_init(struct hl_device *hdev)
 	struct hl_simulator_device *edev = gaudi3_simulator_dev_table[hdev->id];
 	int rc;
 
-	/* Some blocks are isolated by default so must be called before hl_init_pb_security() */
+	/* Some blocks are isolated by default, so de-isolation must happen early enough,
+	 * before privileged security is enabled on simulator.
+	 */
 	gaudi3_sim_set_isolation(hdev, false, false);
+
+	rc = hl_init_pb_security(hdev, true);
+	if (rc) {
+		dev_err(hdev->dev, "Configuring privileged PBs failed!\n");
+		return rc;
+	}
 
 	gaudi3_lbw_dup_init(hdev);
 
@@ -1229,12 +1240,6 @@ static int gaudi3_sim_hw_init(struct hl_device *hdev)
 	rc = gaudi3_sim_fw_config(hdev);
 	if (rc)
 		return rc;
-
-	rc = hl_init_pb_security(hdev, true);
-	if (rc) {
-		dev_err(hdev->dev, "Configuring privileged PBs failed!\n");
-		return rc;
-	}
 
 	rc = gaudi3_init_cpu(hdev);
 	if (rc) {
