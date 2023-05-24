@@ -4596,6 +4596,10 @@ static bool gaudi3_special_blocks_skip_with_mask(struct hl_device *hdev,
 		break;
 	}
 
+	/* TODO - remove once SW-146097 is resolved */
+	if (!hdev->pdev)
+		return true;
+
 	/* Some sub/blocks are inconsistently-stubbed/disabled on PLDM images */
 	if (hdev->pldm)
 		return true;
