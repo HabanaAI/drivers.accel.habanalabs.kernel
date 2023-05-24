@@ -1094,6 +1094,13 @@ int hl_sni_get_port_statistics(struct hl_device *hdev, u32 port,
 	return -EFAULT;
 }
 
+#ifdef _HAS_AUX_BUS_H
+int hl_sni_check_ib_driver(struct hl_device *hdev)
+{
+	/* With Aux bus support, IB driver need not be loaded beforehand */
+	return 0;
+}
+#else
 int hl_sni_check_ib_driver(struct hl_device *hdev)
 {
 #ifdef HL_LOAD_IB
@@ -1111,3 +1118,4 @@ int hl_sni_check_ib_driver(struct hl_device *hdev)
 	return 0;
 #endif
 }
+#endif
