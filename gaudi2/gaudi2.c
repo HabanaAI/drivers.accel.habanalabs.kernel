@@ -3119,6 +3119,10 @@ static int gaudi2_early_init(struct hl_device *hdev)
 	resource_size_t pci_bar_size;
 	int rc;
 
+	rc = hl_sni_check_ib_driver(hdev);
+	if (rc)
+		return rc;
+
 	rc = gaudi2_set_fixed_properties(hdev);
 	if (rc)
 		return rc;

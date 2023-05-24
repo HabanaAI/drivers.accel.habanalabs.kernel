@@ -113,6 +113,10 @@ static int gaudi3_fpga_early_init(struct hl_device *hdev)
 	struct pci_dev *pdev = hdev->pdev;
 	int rc;
 
+	rc = hl_sni_check_ib_driver(hdev);
+	if (rc)
+		return rc;
+
 	rc = gaudi3_fpga_set_fixed_properties(hdev);
 	if (rc)
 		return rc;
