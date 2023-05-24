@@ -6750,12 +6750,12 @@ static int gaudi2_hw_fini(struct hl_device *hdev, bool hard_reset, bool fw_reset
 		/*
 		 * As we have to support also work with preboot only (which does not supports
 		 * soft reset) we have to make sure that security is disabled before letting driver
-		 * do the reset. user shall control the BFE flags to avoid asking soft reset in
-		 * secured device with preboot only.
+		 * do the reset.
 		 */
-		driver_performs_reset = (hdev->force_driver_reset & FORCE_DRIVER_RESET_SOFT) ||
+		driver_performs_reset = (hdev->pldm) ||
 					((hdev->fw_components == FW_TYPE_PREBOOT_CPU) &&
-							!hdev->asic_prop.fw_security_enabled);
+					(!hdev->asic_prop.fw_security_enabled));
+
 		rc = gaudi2_execute_soft_reset(hdev, driver_performs_reset, poll_timeout_us);
 		if (rc)
 			return rc;

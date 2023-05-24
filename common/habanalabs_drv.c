@@ -119,7 +119,6 @@ static ulong bfe_dram_binning;
 static uint bfe_edma_binning;
 static uint bfe_decoder_binning = 0x200; /* 10th decoder is binned by default */
 static int bfe_reset_on_preboot_fail = 1;
-static int bfe_force_driver_reset = FORCE_DRIVER_RESET_NONE;
 static int bfe_force_driver_clock_gating;
 static int bfe_pll_async_if_enable;
 static int bfe_bootfit_relocatable;
@@ -375,10 +374,6 @@ MODULE_PARM_DESC(bfe_edma_binning,
 module_param(bfe_reset_on_preboot_fail, int, 0444);
 MODULE_PARM_DESC(bfe_reset_on_preboot_fail,
 	"Reset on preboot version read fail (0 = no, 1 = yes, default yes)");
-
-module_param(bfe_force_driver_reset, int, 0444);
-MODULE_PARM_DESC(bfe_force_driver_reset,
-	"Force the driver to do soft/hard-reset even if F/W should do it (values in enum hl_force_driver_reset, default FORCE_DRIVER_RESET_NONE)");
 
 module_param(bfe_force_driver_clock_gating, int, 0444);
 MODULE_PARM_DESC(bfe_force_driver_clock_gating,
@@ -1257,7 +1252,6 @@ static void set_driver_behavior_per_device(struct hl_device *hdev)
 	hdev->sni_load_fw = 0;
 	hdev->sram_binning = 0;
 	hdev->compatibility_mode = 0;
-	hdev->force_driver_reset = FORCE_DRIVER_RESET_NONE;
 	hdev->force_driver_clock_gating = 0;
 	hdev->pll_async_if_enable = 0;
 	hdev->bootfit_relocatable = 0;
@@ -1361,7 +1355,6 @@ static void copy_bfe_params_to_device(struct hl_device *hdev)
 	hdev->edma_binning = bfe_edma_binning;
 	hdev->usr_hbm_pll_freq = bfe_hbm_pll_freq;
 	hdev->reset_on_preboot_fail = bfe_reset_on_preboot_fail;
-	hdev->force_driver_reset = bfe_force_driver_reset;
 	hdev->force_driver_clock_gating = bfe_force_driver_clock_gating;
 	hdev->pll_async_if_enable = bfe_pll_async_if_enable;
 	hdev->bootfit_relocatable = bfe_bootfit_relocatable;
@@ -1568,15 +1561,6 @@ static int fixup_device_params(struct hl_device *hdev)
 	/* ports ext and autoneg masks are subsets of device ports_pask */
 	hdev->sni_ports_ext_mask = nic_ports_ext_mask & hdev->sni_ports_mask;
 	hdev->sni_auto_neg_mask = nic_auto_neg_mask & hdev->sni_ports_mask;
-
-	/*
-	 * if security is enabled we cannot force driver reset.
-	 * in PLDM we'll work only with driver resets due to long latency
-	 */
-	if (hdev->asic_prop.fw_security_enabled)
-		hdev->force_driver_reset = FORCE_DRIVER_RESET_NONE;
-	else if (hdev->pldm)
-		hdev->force_driver_reset = FORCE_DRIVER_RESET_ALL;
 
 	if (hdev->ifh) {
 		hdev->heartbeat = 0;

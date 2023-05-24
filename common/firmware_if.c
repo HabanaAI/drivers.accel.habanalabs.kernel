@@ -1745,10 +1745,8 @@ static void hl_fw_preboot_update_state(struct hl_device *hdev)
 	 * 3. FW application - a. Fetch fw application security status
 	 *                     b. Check whether hard reset is done by fw app
 	 */
-	if (hdev->force_driver_reset & FORCE_DRIVER_RESET_HARD)
-		prop->hard_reset_done_by_fw = false;
-	else
-		prop->hard_reset_done_by_fw =
+
+	prop->hard_reset_done_by_fw =
 				!!(cpu_boot_dev_sts0 & CPU_BOOT_DEV_STS0_FW_HARD_RST_EN);
 
 	prop->fw_security_enabled = !!(cpu_boot_dev_sts0 & CPU_BOOT_DEV_STS0_SECURITY_EN);
@@ -2493,10 +2491,7 @@ static void hl_fw_boot_fit_update_state(struct hl_device *hdev,
 		prop->fw_bootfit_cpu_boot_dev_sts0 =
 				RREG32(cpu_boot_dev_sts0_reg);
 
-		if (hdev->force_driver_reset & FORCE_DRIVER_RESET_HARD)
-			prop->hard_reset_done_by_fw = false;
-		else
-			prop->hard_reset_done_by_fw =
+		prop->hard_reset_done_by_fw =
 					!!(prop->fw_bootfit_cpu_boot_dev_sts0 &
 							CPU_BOOT_DEV_STS0_FW_HARD_RST_EN);
 
@@ -2717,10 +2712,7 @@ static void hl_fw_linux_update_state(struct hl_device *hdev,
 	if (prop->fw_cpu_boot_dev_sts0_valid) {
 		prop->fw_app_cpu_boot_dev_sts0 = RREG32(cpu_boot_dev_sts0_reg);
 
-		if (hdev->force_driver_reset & FORCE_DRIVER_RESET_HARD)
-			prop->hard_reset_done_by_fw = false;
-		else
-			prop->hard_reset_done_by_fw =
+		prop->hard_reset_done_by_fw =
 					!!(prop->fw_app_cpu_boot_dev_sts0 &
 							CPU_BOOT_DEV_STS0_FW_HARD_RST_EN);
 

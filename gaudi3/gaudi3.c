@@ -7876,6 +7876,10 @@ int gaudi3_hw_fini(struct hl_device *hdev, bool hard_reset, bool fw_reset)
 	reset_sleep_ms = hard_reset ? hdev->asic_prop.hard_reset_sleep_ms
 			: hdev->asic_prop.soft_reset_sleep_ms;
 
+	/* TODO: set reset flag even if fw support reset. Remove this after SW-146664 is solved */
+	if (hdev->pldm)
+		hdev->asic_prop.hard_reset_done_by_fw = false;
+
 	if (fw_reset) {
 		dev_dbg(hdev->dev, "Firmware performs self HARD reset\n");
 		goto wait_reset_done;

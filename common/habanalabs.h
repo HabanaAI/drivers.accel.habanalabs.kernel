@@ -416,21 +416,6 @@ enum hl_axi_drain_mode {
 };
 
 /**
- * enum hl_force_driver_reset_mode - force driver reset mode
- * @FORCE_DRIVER_RESET_NONE: Do not force driver reset
- * @FORCE_DRIVER_RESET_SOFT: Force driver soft-reset
- * @FORCE_DRIVER_RESET_HARD: Force driver hard-reset
- * @FORCE_DRIVER_RESET_ALL: Force driver soft/hard-reset
- */
-enum hl_force_driver_reset {
-	FORCE_DRIVER_RESET_NONE = 0x1,
-	FORCE_DRIVER_RESET_SOFT = 0x2,
-	FORCE_DRIVER_RESET_HARD = 0x4,
-	FORCE_DRIVER_RESET_ALL =
-		(FORCE_DRIVER_RESET_SOFT | FORCE_DRIVER_RESET_HARD)
-};
-
-/**
  * enum hl_queue_type - Supported QUEUE types.
  * @QUEUE_TYPE_NA: queue is not available.
  * @QUEUE_TYPE_EXT: external queue which is a DMA channel that may access the
@@ -3956,7 +3941,6 @@ struct hl_device {
 	u8				rl_enable;
 	u8				sram_binning;
 	u8				ifh;
-	u8				force_driver_reset;
 	u8				force_driver_clock_gating;
 	u8				pll_async_if_enable;
 	u8				bootfit_relocatable;
