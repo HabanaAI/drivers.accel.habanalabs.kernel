@@ -206,7 +206,7 @@ static int hw_ip_info(struct hl_device *hdev, struct hl_info_args *args)
 	hw_ip.server_type = prop->server_type;
 
 	hw_ip.nic_ports_mask = hdev->sni_ports_mask;
-	hw_ip.nic_ports_external_mask = hdev->sni_ports_ext_mask;
+	hw_ip.nic_ports_external_mask = hdev->sni.eth_ports_mask;
 	hw_ip.security_enabled = prop->fw_security_enabled;
 	hw_ip.mme_enabled_mask = hdev->mme_mask;
 	hw_ip.odp_supported = hl_is_odp_supported(hdev);
