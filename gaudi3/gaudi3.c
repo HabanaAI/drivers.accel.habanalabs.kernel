@@ -2581,60 +2581,46 @@ static enum gaudi3_engine_id gaudi3_axid_mapping(struct hl_device *hdev, u64 axi
 	case 0x0F0:
 		if (die == 0 && axid17_19 == 0x7)
 			return GAUDI3_DIE0_ENGINE_ID_ETR_PSOC;
+		/* Each NIC has two ports (data and control) we treat them as one */
+		if (axid17_19 <= 0x1)
+			return GAUDI3_DIE0_ENGINE_ID_NIC_0;
+		else if (axid17_19 <= 0x3)
+			return GAUDI3_DIE0_ENGINE_ID_NIC_1;
 		break;
 	case 0xF00:
 		if (die == 1 && axid17_19 == 0x7)
 			return GAUDI3_DIE1_ENGINE_ID_ETR_PSOC;
-		break;
-	/* TODO: SW-137040 cases 0x100 and 0xEF0 collide with NIC table */
-	case 0x100:
-		if (die == 0)
-			return GAUDI3_DIE0_ENGINE_ID_ETR_NIC;
-		break;
-	case 0xEF0:
-		if (die == 1)
-			return GAUDI3_DIE1_ENGINE_ID_ETR_NIC;
-		break;
-	default:
-		break;
-	}
-
-	/* TODO: SW-137040 the NIC table is not so clear */
-	switch (main_id) {
-	case 0x0F0:
-		if (axid17_19 == 0x0 || axid17_19 == 0x1)
-			return GAUDI3_DIE0_ENGINE_ID_NIC_0;
-		else if (axid17_19 == 0x2 || axid17_19 == 0x3)
-			return GAUDI3_DIE0_ENGINE_ID_NIC_1;
-		break;
-	case 0xF00:
-		if (axid17_19 == 0x0 || axid17_19 == 0x1)
+		if (axid17_19 <= 0x1)
 			return GAUDI3_DIE1_ENGINE_ID_NIC_0;
-		else if (axid17_19 == 0x2 || axid17_19 == 0x3)
+		else if (axid17_19 <= 0x3)
 			return GAUDI3_DIE1_ENGINE_ID_NIC_1;
 		break;
 	case 0x100:
-		if (axid17_19 == 0x0 || axid17_19 == 0x1)
+		if (die == 0 && axid17_19 == 0x7)
+			return GAUDI3_DIE0_ENGINE_ID_ETR_NIC;
+		if (axid17_19 <= 0x1)
 			return GAUDI3_DIE0_ENGINE_ID_NIC_2;
-		else if (axid17_19 == 0x2 || axid17_19 == 0x3)
+		else if (axid17_19 <= 0x3)
 			return GAUDI3_DIE0_ENGINE_ID_NIC_3;
 		break;
 	case 0xEF0:
-		if (axid17_19 == 0x0 || axid17_19 == 0x1)
+		if (die == 1 && axid17_19 == 0x7)
+			return GAUDI3_DIE1_ENGINE_ID_ETR_NIC;
+		if (axid17_19 <= 0x1)
 			return GAUDI3_DIE1_ENGINE_ID_NIC_2;
-		else if (axid17_19 == 0x2 || axid17_19 == 0x3)
+		else if (axid17_19 <= 0x3)
 			return GAUDI3_DIE1_ENGINE_ID_NIC_3;
 		break;
 	case 0x101:
-		if (axid17_19 == 0x0 || axid17_19 == 0x1)
+		if (axid17_19 <= 0x1)
 			return GAUDI3_DIE0_ENGINE_ID_NIC_4;
-		else if (axid17_19 == 0x2 || axid17_19 == 0x3)
+		else if (axid17_19 <= 0x3)
 			return GAUDI3_DIE0_ENGINE_ID_NIC_5;
 		break;
 	case 0xEF1:
-		if (axid17_19 == 0x0 || axid17_19 == 0x1)
+		if (axid17_19 <= 0x1)
 			return GAUDI3_DIE1_ENGINE_ID_NIC_4;
-		else if (axid17_19 == 0x2 || axid17_19 == 0x3)
+		else if (axid17_19 <= 0x3)
 			return GAUDI3_DIE1_ENGINE_ID_NIC_5;
 		break;
 	default:
