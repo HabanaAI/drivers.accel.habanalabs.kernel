@@ -40,41 +40,32 @@ static_assert(IS_POWER_OF_2(NIC_RAW_ELEM_SIZE));
 static_assert((NIC_MAX_CONN_ID + 1) <= NIC_HW_MAX_QP_NUM);
 
 /* The '*_SIZE' defines are per NIC port */
-/* TODO: change to gaudi3 values */
-#define REQ_QPC_BASE_SIZE	(NIC_MAX_QP_NUM * \
+#define REQ_QPC_TOTAL_PORT_SIZE	(NIC_MAX_QP_NUM * \
 					(sizeof(struct gaudi3_qpc_requester) - \
 					sizeof(struct gaudi3_qpc_swl_requester)))
-#define REQ_QPC_SWL_BASE_SIZE	(NIC_MAX_QP_NUM * sizeof(struct gaudi3_qpc_swl_requester))
-#define RES_QPC_BASE_SIZE	(NIC_MAX_QP_NUM * sizeof(struct gaudi3_qpc_responder))
+#define REQ_QPC_SWL_TOTAL_PORT_SIZE	(NIC_MAX_QP_NUM * sizeof(struct gaudi3_qpc_swl_requester))
+#define RES_QPC_TOTAL_PORT_SIZE	(NIC_MAX_QP_NUM * sizeof(struct gaudi3_qpc_responder))
 
-#define TMR_ENTRY_SIZE		4
-#define TMR_BASE_SIZE		(TMR_FSM_SIZE + TMR_FREE_SIZE + TMR_FIFO_SIZE)
+#define TMR_ENT_SIZE		4
+#define TMR_GRANULARITY		256
 #define TMR_FSM_SIZE		ALIGN(NIC_MAX_QP_NUM, DEVICE_CACHE_LINE_SIZE)
-#define TMR_FREE_SIZE		ALIGN(TMR_FREE_NUM_ENTRIES * TMR_ENTRY_SIZE, DEVICE_CACHE_LINE_SIZE)
-#define TMR_FIFO_SIZE		ALIGN((NIC_MAX_QP_NUM * TMR_ENTRY_SIZE), DEVICE_CACHE_LINE_SIZE)
-
+#define TMR_FIFO_SIZE		ALIGN((NIC_MAX_QP_NUM * TMR_ENT_SIZE) + \
+					NIC_CACHE_LINE_SIZE * TMR_GRANULARITY, \
+					DEVICE_CACHE_LINE_SIZE)
 #define TMR_FREE_NUM_ENTRIES	(TMR_FIFO_SIZE / NIC_CACHE_LINE_SIZE)
-
-#define TXS_BASE_SIZE		(TXS_FREE_SIZE + TXS_FIFO_SIZE)
-#define TXS_FREE_SIZE		ALIGN(TXS_FREE_NUM_ENTRIES * 4, \
+#define TMR_FREE_SIZE		ALIGN(TMR_FREE_NUM_ENTRIES * TMR_ENT_SIZE, \
 					DEVICE_CACHE_LINE_SIZE)
-#define TXS_FIFO_SIZE		ALIGN((NIC_MAX_QP_NUM * 4 * 2) + \
-					DEVICE_CACHE_LINE_SIZE * \
-					TXS_GRANULARITY, \
-					DEVICE_CACHE_LINE_SIZE)
+#define TMR_TOTAL_MACRO_SIZE	(TMR_FSM_SIZE + TMR_FREE_SIZE + TMR_FIFO_SIZE)
 
-#define TXS_FREE_OFFS		0
-#define TXS_FIFO_OFFS		(TXS_FREE_OFFS + TXS_FREE_SIZE)
-
-#define TXS_FREE_NUM_ENTRIES	(TXS_FIFO_SIZE / NIC_CACHE_LINE_SIZE)
+#define TXS_ENT_SIZE		4
 #define TXS_GRANULARITY		256
-#define TXS_NUM_PORTS		NIC_MAC_LANES
-#define TXS_SCHEDQ		256
-#define TXS_NUM_EVICTED_SCHEDQS	16
-/* for code clarity, squash the 15 reserved Qs into evicted-lpbk definition */
-#define TXS_NUM_EVICTED_LPBK_SCHEDQS	16
-#define TXS_NUM_SCHEDQS		\
-		(TXS_SCHEDQ - TXS_NUM_EVICTED_SCHEDQS - TXS_NUM_EVICTED_LPBK_SCHEDQS)
+#define TXS_FIFO_SIZE		ALIGN((NIC_MAX_QP_NUM * TXS_ENT_SIZE) + \
+					NIC_CACHE_LINE_SIZE * TXS_GRANULARITY, \
+					DEVICE_CACHE_LINE_SIZE)
+#define TXS_FREE_NUM_ENTRIES	(TXS_FIFO_SIZE / NIC_CACHE_LINE_SIZE)
+#define TXS_FREE_SIZE		ALIGN(TXS_FREE_NUM_ENTRIES * TXS_ENT_SIZE, \
+					DEVICE_CACHE_LINE_SIZE)
+#define TXS_TOTAL_PORT_SIZE	(TXS_FREE_SIZE + TXS_FIFO_SIZE)
 
 #define SECTION_ALIGN_SIZE		0x100000ull
 #define NIC_DRV_BASE_ADDR(nic_drv_addr)	ALIGN(nic_drv_addr, SECTION_ALIGN_SIZE)
@@ -86,24 +77,27 @@ static_assert((NIC_MAX_CONN_ID + 1) <= NIC_HW_MAX_QP_NUM);
 #define REQ_QPC_BASE_ADDR		NIC_DRV_BASE_ADDR
 
 #define RES_QPC_BASE_ADDR(nic_drv_addr)	(REQ_QPC_BASE_ADDR(nic_drv_addr) + \
-						ALIGN(NIC_NUMBER_OF_ENGINES * REQ_QPC_BASE_SIZE, \
-							SECTION_ALIGN_SIZE))
+						ALIGN(NIC_NUMBER_OF_ENGINES * \
+							REQ_QPC_TOTAL_PORT_SIZE, \
+						SECTION_ALIGN_SIZE))
 
 #define REQ_QPC_SWL_BASE_ADDR(nic_drv_addr) \
 					(RES_QPC_BASE_ADDR(nic_drv_addr) + \
-						ALIGN(NIC_NUMBER_OF_ENGINES * RES_QPC_BASE_SIZE, \
-							SECTION_ALIGN_SIZE))
+						ALIGN(NIC_NUMBER_OF_ENGINES * \
+							RES_QPC_TOTAL_PORT_SIZE, \
+						SECTION_ALIGN_SIZE))
 
 #define TMR_BASE_ADDR(nic_drv_addr)	(REQ_QPC_SWL_BASE_ADDR(nic_drv_addr) + \
 						ALIGN(NIC_NUMBER_OF_ENGINES * \
-							REQ_QPC_SWL_BASE_SIZE, SECTION_ALIGN_SIZE))
+							REQ_QPC_SWL_TOTAL_PORT_SIZE, \
+						SECTION_ALIGN_SIZE))
 
 #define TXS_BASE_ADDR(nic_drv_addr)	(TMR_BASE_ADDR(nic_drv_addr) + \
-						ALIGN(NIC_NUMBER_OF_MACROS * TMR_BASE_SIZE, \
+						ALIGN(NIC_NUMBER_OF_MACROS * TMR_TOTAL_MACRO_SIZE, \
 							SECTION_ALIGN_SIZE))
 
 #define WQ_BASE_ADDR(nic_drv_addr)	(TXS_BASE_ADDR(nic_drv_addr) + \
-						ALIGN(NIC_NUMBER_OF_ENGINES * TXS_BASE_SIZE, \
+						ALIGN(NIC_NUMBER_OF_ENGINES * TXS_TOTAL_PORT_SIZE, \
 							SECTION_ALIGN_SIZE))
 
 /* Unlike the other NIC related sizes, this size is shared between all the engines */

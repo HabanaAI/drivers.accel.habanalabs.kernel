@@ -3480,11 +3480,11 @@ int gaudi3_set_fixed_properties(struct hl_device *hdev)
 	sni_prop->nic_drv_size = NIC_DRV_SIZE;
 	/* wq_base_size most likely to be overridden later */
 	sni_prop->wq_base_size = WQ_BASE_SIZE(0, sni_prop->nic_drv_size);
-	sni_prop->txs_base_size = TXS_BASE_SIZE;
-	sni_prop->tmr_base_size = TMR_BASE_SIZE;
-	sni_prop->req_qpc_base_size = REQ_QPC_BASE_SIZE;
-	sni_prop->res_qpc_base_size = RES_QPC_BASE_SIZE;
-	sni_prop->req_qpc_swl_base_size = REQ_QPC_SWL_BASE_SIZE;
+	sni_prop->txs_base_size = TXS_TOTAL_PORT_SIZE;
+	sni_prop->tmr_base_size = TMR_TOTAL_MACRO_SIZE;
+	sni_prop->req_qpc_base_size = REQ_QPC_TOTAL_PORT_SIZE;
+	sni_prop->res_qpc_base_size = RES_QPC_TOTAL_PORT_SIZE;
+	sni_prop->req_qpc_swl_base_size = REQ_QPC_SWL_TOTAL_PORT_SIZE;
 	sni_prop->status_packet_size = sizeof(struct cpucp_nic_status);
 	/* SW-69799: TODO fetch nic clock frequency from F/W once available. */
 	sni_prop->clk = GAUDI3_NIC_CLK_FREQ / USEC_PER_SEC;
