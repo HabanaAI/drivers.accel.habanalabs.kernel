@@ -4501,7 +4501,8 @@ static bool gaudi3_special_blocks_skip_with_mask(struct hl_device *hdev,
 
 		if (hdev->sni_ports_mask & gaudi3_sni_get_macro_ports_mask(hdev, instance_idx))
 			return false;
-		break;
+
+		return true;
 	case GAUDI3_BLOCK_TYPE_PDMA:
 		max_instances = NUM_OF_PDMA_CH;
 		if (instance_idx >= max_instances) {
@@ -4524,7 +4525,8 @@ static bool gaudi3_special_blocks_skip_with_mask(struct hl_device *hdev,
 					(0x3FULL << (prop->pdma_grp_ch_max * instance_idx)))
 				return false;
 		}
-		break;
+
+		return true;
 	case GAUDI3_BLOCK_TYPE_TPC:
 		max_instances = MAX_NUM_OF_DIES * NUM_OF_HDCORES_PER_DIE *
 				NUM_OF_TPC_PER_HDCORE;
@@ -4536,7 +4538,8 @@ static bool gaudi3_special_blocks_skip_with_mask(struct hl_device *hdev,
 
 		if ((prop->tpc_enabled_mask & BIT(instance_idx)))
 			return false;
-		break;
+
+		return true;
 	case GAUDI3_BLOCK_TYPE_MME:
 	case GAUDI3_BLOCK_TYPE_EU_BIST:
 		/* If an MME instance is enabled, we assume that so do all of its sub-blocks */
@@ -4552,7 +4555,8 @@ static bool gaudi3_special_blocks_skip_with_mask(struct hl_device *hdev,
 
 		if (hdev->mme_mask & BIT(instance_idx))
 			return false;
-		break;
+
+		return true;
 	case GAUDI3_BLOCK_TYPE_DEC:
 		max_instances = MAX_NUM_OF_DIES * NUM_OF_HDCORES_PER_DIE *
 				NUM_OF_DECODER_PER_HDCORE;
@@ -4564,7 +4568,8 @@ static bool gaudi3_special_blocks_skip_with_mask(struct hl_device *hdev,
 
 		if (prop->decoder_enabled_mask & BIT(instance_idx))
 			return false;
-		break;
+
+		return true;
 	case GAUDI3_BLOCK_TYPE_ROT:
 		max_instances = MAX_NUM_OF_DIES * NUM_OF_HDCORES_PER_DIE *
 				NUM_OF_ROTATOR_PER_HDCORE;
@@ -4576,7 +4581,8 @@ static bool gaudi3_special_blocks_skip_with_mask(struct hl_device *hdev,
 
 		if (prop->rotator_enabled_mask & BIT(instance_idx))
 			return false;
-		break;
+
+		return true;
 	case GAUDI3_BLOCK_TYPE_EDMA:
 		max_instances = MAX_NUM_OF_DIES * NUM_OF_HDCORES_PER_DIE *
 				NUM_OF_EDMA_PER_HDCORE;
@@ -4588,7 +4594,8 @@ static bool gaudi3_special_blocks_skip_with_mask(struct hl_device *hdev,
 
 		if (prop->edma_enabled_mask & BIT(instance_idx))
 			return false;
-		break;
+
+		return true;
 	default:
 		/* TODO - uncomment once SW-104756 is resolved, and all block-types
 		 * are fully handled here:
@@ -4597,10 +4604,6 @@ static bool gaudi3_special_blocks_skip_with_mask(struct hl_device *hdev,
 		 */
 		break;
 	}
-
-	/* TODO - remove once SW-146097 is resolved */
-	if (!hdev->pdev)
-		return true;
 
 	/* Some sub/blocks are inconsistently-stubbed/disabled on PLDM images */
 	if (hdev->pldm)
