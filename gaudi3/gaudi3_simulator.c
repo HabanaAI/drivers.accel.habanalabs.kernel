@@ -1461,9 +1461,6 @@ static dma_addr_t gaudi3_sim_dma_map_single(struct hl_device *hdev, void *addr,
 {
 	dma_addr_t pa;
 
-#if HL_NIC_DEBUG
-	dev_dbg(hdev->dev, "Mapping single DMA address\n");
-#endif
 	pa = virt_to_phys(addr);
 	return pa;
 }

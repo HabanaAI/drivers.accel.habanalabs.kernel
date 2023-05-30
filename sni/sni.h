@@ -21,8 +21,6 @@
 struct hl_device;
 struct hl_ctx;
 
-#define HL_NIC_DEBUG			0
-
 #define NIC_MAC_LANE_0			0U
 #define NIC_MAC_LANE_1			1U
 #define NIC_MAC_LANE_2			2U
