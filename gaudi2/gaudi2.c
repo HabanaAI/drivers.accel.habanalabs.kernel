@@ -72,7 +72,6 @@ MODULE_FIRMWARE(GAUDI2_LINUX_FW_FILE);
 #define GAUDI2_NUM_OF_TPC_INTR_CAUSE		31
 #define GAUDI2_NUM_OF_DEC_ERR_CAUSE		25
 #define GAUDI2_NUM_OF_MME_ERR_CAUSE		16
-#define GAUDI2_NUM_OF_MME_SBTE_ERR_CAUSE	5
 #define GAUDI2_NUM_OF_MME_WAP_ERR_CAUSE		7
 #define GAUDI2_NUM_OF_DMA_CORE_INTR_CAUSE	8
 #define GAUDI2_NUM_OF_MMU_SPI_SEI_CAUSE		19
@@ -921,14 +920,6 @@ static const char * const guadi2_mme_error_cause[GAUDI2_NUM_OF_MME_ERR_CAUSE] = 
 	"sbte_prtn_intr_2",
 	"sbte_prtn_intr_3",
 	"sbte_prtn_intr_4",
-};
-
-static const char * const guadi2_mme_sbte_error_cause[GAUDI2_NUM_OF_MME_SBTE_ERR_CAUSE] = {
-	"i0",
-	"i1",
-	"i2",
-	"i3",
-	"i4",
 };
 
 static const char * const guadi2_mme_wap_error_cause[GAUDI2_NUM_OF_MME_WAP_ERR_CAUSE] = {
@@ -9348,21 +9339,16 @@ static int gaudi2_handle_mme_err(struct hl_device *hdev, u8 mme_index, u16 event
 	return error_count;
 }
 
-static int gaudi2_handle_mme_sbte_err(struct hl_device *hdev, u16 event_type,
-					u64 intr_cause_data)
+static int gaudi2_handle_mme_sbte_err(struct hl_device *hdev, u16 event_type)
 {
-	int i, error_count = 0;
-
-	for (i = 0 ; i < GAUDI2_NUM_OF_MME_SBTE_ERR_CAUSE ; i++)
-		if (intr_cause_data & BIT(i)) {
-			gaudi2_print_event(hdev, event_type, true,
-				"err cause: %s", guadi2_mme_sbte_error_cause[i]);
-			error_count++;
-		}
-
+	/*
+	 * We have a single error cause here but the report mechanism is
+	 * buggy. Hence there is no good reason to fetch the cause so we
+	 * just check for glbl_errors and exit.
+	 */
 	hl_check_for_glbl_errors(hdev);
 
-	return error_count;
+	return GAUDI2_NA_EVENT_CAUSE;
 }
 
 static int gaudi2_handle_mme_wap_err(struct hl_device *hdev, u8 mme_index, u16 event_type,
@@ -10439,9 +10425,7 @@ void gaudi2_handle_eqe(struct hl_device *hdev, struct hl_eq_entry *eq_entry)
 	case GAUDI2_EVENT_MME1_SBTE0_AXI_ERR_RSP ... GAUDI2_EVENT_MME1_SBTE4_AXI_ERR_RSP:
 	case GAUDI2_EVENT_MME2_SBTE0_AXI_ERR_RSP ... GAUDI2_EVENT_MME2_SBTE4_AXI_ERR_RSP:
 	case GAUDI2_EVENT_MME3_SBTE0_AXI_ERR_RSP ... GAUDI2_EVENT_MME3_SBTE4_AXI_ERR_RSP:
-		/* Use FW's error cause data as a SW W/A, due to HW bug: HL-3110 */
-		error_count = gaudi2_handle_mme_sbte_err(hdev, event_type,
-						le64_to_cpu(eq_entry->intr_cause.intr_cause_data));
+		error_count = gaudi2_handle_mme_sbte_err(hdev, event_type);
 		event_mask |= HL_NOTIFIER_EVENT_USER_ENGINE_ERR;
 		break;
 	case GAUDI2_EVENT_VM0_ALARM_A ... GAUDI2_EVENT_VM3_ALARM_B:
