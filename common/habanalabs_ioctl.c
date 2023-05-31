@@ -1481,7 +1481,8 @@ static int sni_control(struct hl_fpriv *hpriv, struct hl_nic_args *args)
 		/* SW-52983: overcome CI failing us on err message issued due to
 		 * temporary lack of connections caused by the graceful QP release
 		 */
-		if ((rc == -ENOSPC) && (args->op == HL_NIC_OP_ALLOC_CONN))
+		if ((rc == -EBUSY) &&
+			(args->op == HL_NIC_OP_ALLOC_CONN || args->op == HL_NIC_OP_ALLOC_COLL_CONN))
 			dev_dbg_ratelimited(hdev->dev,
 					"Need to retry NIC control operation %d (RC %d)\n",
 					args->op, rc);
