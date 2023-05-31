@@ -3392,16 +3392,12 @@ static void handle_and_clear_pcie_events(struct hl_device *hdev, u32 die,
 		unmask_event_in_aggr = true;
 		break;
 	case ERR_GRP_SEI:
-		eq_dynamic_entry.pcie_sei_data.sei_type = idx;
-		if (eq_dynamic_entry.pcie_sei_data.sei_type == PCIE_SEI_AXI_RESP_ERR) {
-			/* Clear on read */
-			intr_cause = RREG32(mmD0_PCIE_WRAP_BASE + mmPCIE_WRAP_PCIE_SEI_INTR_STATUS);
-			eq_dynamic_entry.pcie_sei_data.intr_cause.intr_cause_data =
-									cpu_to_le64(intr_cause);
-		} else {
-			/* PCIE_SEI_BUS_MSTR_EN_CLR: clear PCIE_BUS_MSTR_EN_CLR interrupt */
-			WREG32(mmD0_PCIE_AUX_BASE + mmPCIE_AUX_BUS_MSTR_EN_CLR_INTR, 0x1);
-		}
+		eq_dynamic_entry.pcie_sei_data.sei_type = PCIE_SEI_AXI_RESP_ERR;
+
+		/* Clear on read */
+		intr_cause = RREG32(mmD0_PCIE_WRAP_BASE + mmPCIE_WRAP_PCIE_SEI_INTR_STATUS);
+		eq_dynamic_entry.pcie_sei_data.intr_cause.intr_cause_data =
+								cpu_to_le64(intr_cause);
 		eq_dynamic_entry.hdr.size = cpu_to_le16(sizeof(struct hl_eq_pcie_sei_data));
 		unmask_event_in_aggr = true;
 		break;
@@ -4882,7 +4878,7 @@ static void gaudi3_shared_sei_event_info(struct hl_device *hdev, u32 die)
 {
 	u32 offset, sts0, sts1, sts2, idx,
 		sts0_cpu_mask = GENMASK(2, 0),
-		sts0_pcie_mask = GENMASK(4, 3),
+		sts0_pcie_mask = BIT(3),
 		sts0_nic_mask = GENMASK(10, 5),
 		sts0_nch_mask = GENMASK(12, 11),
 		sts0_pmmu_mask = BIT(14),
@@ -4927,7 +4923,7 @@ static void gaudi3_shared_sei_event_info(struct hl_device *hdev, u32 die)
 
 	/* Handle PCIE */
 	if (sts0 & sts0_pcie_mask) {
-		idx = ffs(sts0 & sts0_pcie_mask) - 4;
+		idx = 0;
 		dev_err(hdev->dev, "Received PCIE_SEI[%u] interrupt in D%u_CPU_INT_AGG_SHARED\n",
 			idx, die);
 
