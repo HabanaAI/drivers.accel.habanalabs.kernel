@@ -9,8 +9,6 @@
 
 #include <uapi/drm/habanalabs_accel.h>
 #include "habanalabs.h"
-#include "../include/common/simulator.h"
-#include "../include/hw_ip/pci/pci_general.h"
 
 #include <linux/fs.h>
 #include <linux/kernel.h>
