@@ -982,10 +982,6 @@ static int device_early_init(struct hl_device *hdev)
 		goya_sim_set_asic_funcs(hdev);
 		strscpy(hdev->asic_name, "GOYA SIM", sizeof(hdev->asic_name));
 		break;
-	case ASIC_GRECO_SIM:
-		greco_sim_set_asic_funcs(hdev);
-		strscpy(hdev->asic_name, "GRECO SIM", sizeof(hdev->asic_name));
-		break;
 	case ASIC_GAUDI_SIM:
 		gaudi_sim_set_asic_funcs(hdev);
 		strscpy(hdev->asic_name, "GAUDI_SIM", sizeof(hdev->asic_name));
@@ -1020,10 +1016,6 @@ static int device_early_init(struct hl_device *hdev)
 	case ASIC_GOYA:
 		goya_set_asic_funcs(hdev);
 		strscpy(hdev->asic_name, "GOYA", sizeof(hdev->asic_name));
-		break;
-	case ASIC_GRECO:
-		greco_set_asic_funcs(hdev);
-		strscpy(hdev->asic_name, "GRECO", sizeof(hdev->asic_name));
 		break;
 	case ASIC_GAUDI:
 		gaudi_set_asic_funcs(hdev);

@@ -937,9 +937,6 @@ static void hl_sim_destroy_devices(struct hl_sim_mode_device *sdev)
 		case ASIC_GOYA_SIM:
 			goya_simulator_stop(minor);
 			break;
-		case ASIC_GRECO_SIM:
-			greco_simulator_stop(minor);
-			break;
 		case ASIC_GAUDI_SIM:
 		case ASIC_GAUDI_HL2000M_SIM:
 			gaudi_simulator_stop(minor);

@@ -148,7 +148,6 @@ static int bfe_debug_rreg = 1;
 static int bfe_debug_wreg = 1;
 static ulong bfe_sched_arc_mask = 0xFFFF;
 static int bfe_enable_odp = 1;
-static int bfe_use_8_bit_hops = 1;
 static int bfe_cache_enable;
 static int bfe_enable_intr_aggr;
 static int bfe_halt_eng_upon_fw_events;
@@ -441,10 +440,6 @@ module_param(bfe_enable_odp, int, 0444);
 MODULE_PARM_DESC(bfe_enable_odp,
 	"Flag to enable or disable ODP hardware support (0 - ODP disabled, 1 - ODP enabled, default 1)");
 
-module_param(bfe_use_8_bit_hops, int, 0444);
-MODULE_PARM_DESC(bfe_use_8_bit_hops,
-	"Flag to enable or disable 8 bit hops for DRAM (0 - disabled, 1 - enabled, default 1)");
-
 module_param(bfe_cache_enable, int, 0444);
 MODULE_PARM_DESC(bfe_cache_enable,
 	"Enable cache mode instead of sram, relevant for Gaudi3 or later (0 = no, 1 = yes, default no)");
@@ -544,9 +539,6 @@ MODULE_PARM_DESC(bfe_glbl_errors_read_enable,
 
 #define PCI_IDS_GOYA			0x0001
 
-#define PCI_IDS_GRECO			0x0020	/* Deprecated, to be removed */
-#define PCI_IDS_GRECO_ADDIN		0x0030
-
 #define PCI_IDS_GAUDI			0x1000
 #define PCI_IDS_GAUDI_SEC		0x1010
 
@@ -637,10 +629,6 @@ static enum hl_asic_type get_asic_type(struct hl_device *hdev)
 	switch (pdev->device) {
 	case PCI_IDS_GOYA:
 		asic_type = ASIC_GOYA;
-		break;
-	case PCI_IDS_GRECO:
-	case PCI_IDS_GRECO_ADDIN:
-		asic_type = ASIC_GRECO;
 		break;
 	case PCI_IDS_GAUDI:
 		asic_type = ASIC_GAUDI;
@@ -937,32 +925,6 @@ static void set_driver_behavior_per_device(struct hl_device *hdev)
 		return;
 
 	switch (hdev->asic_type) {
-	case ASIC_GRECO:
-		hdev->dram_enable = 1;
-		hdev->fw_components = FW_TYPE_ALL_TYPES;
-		hdev->security_enable = 1;
-		hdev->tpc_mask = 0x3FF;
-		hdev->mme_mask = 0x3;
-		hdev->pdma_ch_mask = 0x0;
-		hdev->hard_reset_on_fw_events = 1;
-		hdev->decoder_mask = 0x3FF;
-		hdev->dram_binning = 0x0;
-		hdev->edma_binning = 0x0;
-		hdev->tpc_binning = 0x0;
-		hdev->decoder_binning = 0x0;
-		hdev->scrub_arc_dccm = 0;
-		hdev->axi_drain = AXI_DRAIN_SKIP;
-		hdev->fw_communication_enable = 1;
-		hdev->sched_arc_mask = 0;
-		hdev->rotator_mask = 0x3;
-		hdev->use_8_bit_hops = 1;
-		hdev->priv_security_enable = 0;
-		hdev->cache_enable = 0;
-		hdev->rotator_binning = 0;
-		hdev->hbm_compression_enable = 0;
-		hdev->heartbeat_reset_enable = 1;
-		break;
-
 	case ASIC_GAUDI2_SIM:
 	case ASIC_GAUDI2B_SIM:
 		hdev->dram_enable = 1;
@@ -983,7 +945,6 @@ static void set_driver_behavior_per_device(struct hl_device *hdev)
 		hdev->fw_communication_enable = 1;
 		hdev->sched_arc_mask = 0x3F;
 		hdev->rotator_mask = 0x3;
-		hdev->use_8_bit_hops = 0;
 		hdev->priv_security_enable = 1;
 		hdev->cache_enable = 0;
 		hdev->rotator_binning = 0;
@@ -1011,7 +972,6 @@ static void set_driver_behavior_per_device(struct hl_device *hdev)
 		hdev->fw_communication_enable = 1;
 		hdev->sched_arc_mask = 0x3F;
 		hdev->rotator_mask = 0x3;
-		hdev->use_8_bit_hops = 0;
 		hdev->priv_security_enable = 1;
 		hdev->cache_enable = 0;
 		hdev->rotator_binning = 0;
@@ -1039,7 +999,6 @@ static void set_driver_behavior_per_device(struct hl_device *hdev)
 		hdev->fw_communication_enable = 1;
 		hdev->sched_arc_mask = 0x3F;
 		hdev->rotator_mask = 0x3;
-		hdev->use_8_bit_hops = 0;
 		hdev->priv_security_enable = 0;
 		hdev->cache_enable = 0;
 		hdev->rotator_binning = 0;
@@ -1066,7 +1025,6 @@ static void set_driver_behavior_per_device(struct hl_device *hdev)
 		hdev->fw_communication_enable = 0;
 		hdev->sched_arc_mask = 0xFFFF;
 		hdev->rotator_mask = 0x0;
-		hdev->use_8_bit_hops = 0;
 		hdev->priv_security_enable = 0;
 		hdev->cache_enable = 1;
 		hdev->ptw_bypass_enable = 1;
@@ -1094,7 +1052,6 @@ static void set_driver_behavior_per_device(struct hl_device *hdev)
 		hdev->fw_communication_enable = 0;
 		hdev->sched_arc_mask = 0xFFFF;
 		hdev->rotator_mask = 0xFF;
-		hdev->use_8_bit_hops = 0;
 		hdev->priv_security_enable = 1;
 		hdev->cache_enable = 1;
 		hdev->rotator_binning = 0;
@@ -1121,7 +1078,6 @@ static void set_driver_behavior_per_device(struct hl_device *hdev)
 		hdev->fw_communication_enable = 1;
 		hdev->sched_arc_mask = 0xFFFF;
 		hdev->rotator_mask = 0xFF;
-		hdev->use_8_bit_hops = 0;
 		hdev->priv_security_enable = 1;
 		hdev->cache_enable = 1;
 		hdev->rotator_binning = 0;
@@ -1148,7 +1104,6 @@ static void set_driver_behavior_per_device(struct hl_device *hdev)
 		hdev->fw_communication_enable = 0;
 		hdev->sched_arc_mask = 0xFF;
 		hdev->rotator_mask = 0xF;
-		hdev->use_8_bit_hops = 0;
 		hdev->priv_security_enable = 0;
 		hdev->cache_enable = 1;
 		hdev->rotator_binning = 0;
@@ -1175,7 +1130,6 @@ static void set_driver_behavior_per_device(struct hl_device *hdev)
 		hdev->fw_communication_enable = 1;
 		hdev->sched_arc_mask = 0xFF;
 		hdev->rotator_mask = 0xF;
-		hdev->use_8_bit_hops = 0;
 		hdev->priv_security_enable = 0;
 		hdev->cache_enable = 1;
 		hdev->rotator_binning = 0;
@@ -1202,7 +1156,6 @@ static void set_driver_behavior_per_device(struct hl_device *hdev)
 		hdev->fw_communication_enable = 1;
 		hdev->sched_arc_mask = 0;
 		hdev->rotator_mask = 0x0;
-		hdev->use_8_bit_hops = 0;
 		hdev->priv_security_enable = 0;
 		hdev->cache_enable = 0;
 		hdev->rotator_binning = 0;
@@ -1229,7 +1182,6 @@ static void set_driver_behavior_per_device(struct hl_device *hdev)
 		hdev->fw_communication_enable = 1;
 		hdev->sched_arc_mask = 0;
 		hdev->rotator_mask = 0x3;
-		hdev->use_8_bit_hops = 0;
 		hdev->priv_security_enable = 1;
 		hdev->cache_enable = 0;
 		hdev->rotator_binning = 0;
@@ -1368,7 +1320,6 @@ static void copy_bfe_params_to_device(struct hl_device *hdev)
 	hdev->debug_rreg = bfe_debug_rreg;
 	hdev->debug_wreg = bfe_debug_wreg;
 	hdev->odp_enabled = bfe_enable_odp;
-	hdev->use_8_bit_hops = bfe_use_8_bit_hops;
 	hdev->cache_enable = bfe_cache_enable;
 	hdev->enable_intr_aggr = bfe_enable_intr_aggr;
 	hdev->halt_eng_upon_fw_events = bfe_halt_eng_upon_fw_events;
@@ -1410,7 +1361,6 @@ static void fixup_fw_components_param(struct hl_device *hdev)
 {
 	switch (hdev->asic_type) {
 	case ASIC_GOYA_SIM:
-	case ASIC_GRECO_SIM:
 	case ASIC_GAUDI_SIM:
 	case ASIC_GAUDI_HL2000M_SIM:
 	case ASIC_GAUDI2_SIM:

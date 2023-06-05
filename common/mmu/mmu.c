@@ -636,8 +636,6 @@ int hl_mmu_get_tlb_info(struct hl_ctx *ctx, u64 virt_addr,
 
 int hl_mmu_if_set_funcs(struct hl_device *hdev)
 {
-	struct asic_fixed_properties *prop = &hdev->asic_prop;
-
 	if (hdev->mmu_disable)
 		return 0;
 
@@ -651,13 +649,6 @@ int hl_mmu_if_set_funcs(struct hl_device *hdev)
 	case ASIC_GAUDI_HL2000M:
 	case ASIC_GAUDI_HL2000M_SEC:
 		hl_mmu_v1_set_funcs(hdev, &hdev->mmu_func[MMU_DR_PGT]);
-		break;
-	case ASIC_GRECO_SIM:
-	case ASIC_GRECO:
-		hl_mmu_v2_set_funcs(hdev, &hdev->mmu_func[MMU_DR_PGT]);
-		if (prop->pmmu.host_resident)
-			hl_mmu_v2_hr_set_funcs(hdev,
-						&hdev->mmu_func[MMU_HR_PGT]);
 		break;
 	case ASIC_GAUDI2_SIM:
 	case ASIC_GAUDI2B_SIM:

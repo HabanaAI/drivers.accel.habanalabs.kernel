@@ -1366,7 +1366,6 @@ struct hl_dec {
  * enum hl_asic_type - supported ASIC types.
  * @ASIC_INVALID: Invalid ASIC type.
  * @ASIC_GOYA_SIM: Goya device simulator.
- * @ASIC_GRECO_SIM: Greco device simulator.
  * @ASIC_GAUDI_SIM: Gaudi device simulator.
  * @ASIC_GAUDI_HL2000M_SIM: Gaudi HL2000M device simulator.
  * @ASIC_GAUDI2_SIM: Gaudi2 device simulator.
@@ -1379,7 +1378,6 @@ struct hl_dec {
  * @ASIC_GAUDI3_SIM_SINGLE_DIE_ARC: Single die gaudi3 device simulator with arc support.
  * @ASIC_LAST_SIM: last ASIC type simulator.
  * @ASIC_GOYA: Goya device (HL-1000).
- * @ASIC_GRECO: Greco device (HL-1100).
  * @ASIC_GAUDI: Gaudi device (HL-2000).
  * @ASIC_GAUDI_SEC: Gaudi secured device (HL-2000).
  * @ASIC_GAUDI_HL2000M: Gaudi device (HL-2000M).
@@ -1393,7 +1391,6 @@ struct hl_dec {
 enum hl_asic_type {
 	ASIC_INVALID,
 	ASIC_GOYA_SIM,
-	ASIC_GRECO_SIM,
 	ASIC_GAUDI_SIM,
 	ASIC_GAUDI_HL2000M_SIM,
 	ASIC_GAUDI2_SIM,
@@ -1406,7 +1403,6 @@ enum hl_asic_type {
 	ASIC_GAUDI3_SIM_SINGLE_DIE_ARC,
 	ASIC_LAST_SIM,
 	ASIC_GOYA,
-	ASIC_GRECO,
 	ASIC_GAUDI,
 	ASIC_GAUDI_SEC,
 	ASIC_GAUDI_HL2000M,
@@ -3963,7 +3959,6 @@ struct hl_device {
 	u8				gaudi2_setup_type;
 	u8				clock_gating_enabled;
 	u8				odp_enabled;
-	u8				use_8_bit_hops;
 	u8				cache_enable;
 	u8				enable_intr_aggr;
 	u8				halt_eng_upon_fw_events;
@@ -4288,7 +4283,6 @@ void hl_multi_cs_completion_init(struct hl_device *hdev);
 u32 hl_get_active_cs_num(struct hl_device *hdev);
 
 void goya_set_asic_funcs(struct hl_device *hdev);
-void greco_set_asic_funcs(struct hl_device *hdev);
 void gaudi_set_asic_funcs(struct hl_device *hdev);
 void gaudi2_set_asic_funcs(struct hl_device *hdev);
 void gaudi3_set_asic_funcs(struct hl_device *hdev);
@@ -4775,7 +4769,6 @@ int hl_sim_access_dev_mem(struct hl_device *hdev, struct hl_simulator_device *ed
 		enum debugfs_access_type acc_type);
 
 void goya_sim_set_asic_funcs(struct hl_device *hdev);
-void greco_sim_set_asic_funcs(struct hl_device *hdev);
 void gaudi_sim_set_asic_funcs(struct hl_device *hdev);
 void gaudi2_sim_set_asic_funcs(struct hl_device *hdev);
 void gaudi3_sim_set_asic_funcs(struct hl_device *hdev);
@@ -4795,9 +4788,6 @@ struct simulator_start_args {
 
 int goya_simulator_start(struct simulator_start_args *args);
 void goya_simulator_stop(u32 minor);
-
-int greco_simulator_start(struct simulator_start_args *args);
-void greco_simulator_stop(u32 minor);
 
 int gaudi_simulator_start(struct simulator_start_args *args);
 void gaudi_simulator_stop(u32 minor);

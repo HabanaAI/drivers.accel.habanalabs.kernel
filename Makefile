@@ -22,9 +22,6 @@ habanalabs-y += $(HL_GAUDI3_FILES)
 include $(src)/gaudi2/Makefile
 habanalabs-y += $(HL_GAUDI2_FILES)
 
-include $(src)/greco/Makefile
-habanalabs-y += $(HL_GRECO_FILES)
-
 include $(src)/gaudi/Makefile
 habanalabs-y += $(HL_GAUDI_FILES)
 
@@ -88,7 +85,6 @@ clean:
 	rm -f common/*.ur-safe
 	rm -f goya/*.ur-safe
 	rm -f gaudi/*.ur-safe
-	rm -f greco/*.ur-safe
 	rm -f gaudi2/*.ur-safe
 	rm -f gaudi3/*.ur-safe
 
