@@ -477,28 +477,28 @@
 		0xf000000 }
 
 #define GAUDI3_SEC_PROTBITS_DATA128 { \
-		 0xfc0fc, 0xf000000 }
-
-#define GAUDI3_SEC_PROTBITS_DATA129 { \
 		 0xfc0fc, 0xfc0fc, 0xff0fffff, 0x701, 0xf000000 }
 
-#define GAUDI3_SEC_PROTBITS_DATA130 { \
+#define GAUDI3_SEC_PROTBITS_DATA129 { \
 		 0xfc0fc, 0xf000000 }
 
-#define GAUDI3_SEC_PROTBITS_DATA131 { \
+#define GAUDI3_SEC_PROTBITS_DATA130 { \
 		 0x3, 0xf000000 }
 
-#define GAUDI3_SEC_PROTBITS_DATA132 { \
+#define GAUDI3_SEC_PROTBITS_DATA131 { \
 		 0xfc000000, 0xfc0, 0x1fffff, 0x7fff, 0x1fffff, 0xf000000 }
 
-#define GAUDI3_SEC_PROTBITS_DATA133 { \
+#define GAUDI3_SEC_PROTBITS_DATA132 { \
 		 0xfc000000, 0xfc0, 0x1fffff, 0x7fff, 0xf000000 }
 
-#define GAUDI3_SEC_PROTBITS_DATA134 { \
+#define GAUDI3_SEC_PROTBITS_DATA133 { \
 		 0xfc0fc, 0xf000000 }
 
-#define GAUDI3_SEC_PROTBITS_DATA135 { \
+#define GAUDI3_SEC_PROTBITS_DATA134 { \
 		 0xfc0fc, 0xfc0fc, 0xf000000 }
+
+#define GAUDI3_SEC_PROTBITS_DATA135 { \
+		0xf000000 }
 
 #define GAUDI3_SEC_PROTBITS_DATA136 { \
 		0xf000000 }
@@ -510,178 +510,175 @@
 		0xf000000 }
 
 #define GAUDI3_SEC_PROTBITS_DATA139 { \
-		0xf000000 }
-
-#define GAUDI3_SEC_PROTBITS_DATA140 { \
 		 0xffffcfc0, 0xffff7fff, 0xffff, 0x3f000003, 0xf3cfffff, 0x1b80f, \
 		0x1b80ff0f, 0x770000ff, 0xf8fff700, 0x70001fff, \
 		0x3ffffff, 0x31f007e, 0xfdffb9f, 0xf000000 }
 
-#define GAUDI3_SEC_PROTBITS_DATA141 { \
+#define GAUDI3_SEC_PROTBITS_DATA140 { \
 		 0xfffff040, 0x2fff3f, 0x1000000, 0xfc0fc, 0x1fffff, 0x1fffff, \
 		0xf000000 }
 
-#define GAUDI3_SEC_PROTBITS_DATA142 { \
+#define GAUDI3_SEC_PROTBITS_DATA141 { \
 		 0x1fff, 0xfffff800, 0xffffff03, 0xff87ffbf, 0xfffffffe, 0xfc0fc, \
 		0xf000000 }
 
-#define GAUDI3_SEC_PROTBITS_DATA143 { \
+#define GAUDI3_SEC_PROTBITS_DATA142 { \
 		 0xf000ff, 0xf000ff, 0xf000ff, 0xf000ff, 0xf000000 }
 
-#define GAUDI3_SEC_PROTBITS_DATA144 { \
+#define GAUDI3_SEC_PROTBITS_DATA143 { \
 		 0xffff, 0xf000000 }
 
-#define GAUDI3_SEC_PROTBITS_DATA145 { \
+#define GAUDI3_SEC_PROTBITS_DATA144 { \
 		 0xfc000000, 0xfc0, 0xffff000, 0x1fffff, 0x7fff, 0x1fffff, \
 		0xf000000 }
 
-#define GAUDI3_SEC_PROTBITS_DATA146 { \
+#define GAUDI3_SEC_PROTBITS_DATA145 { \
 		 0xfff1fff1, 0x7f71fff1, 0x1ff, 0xffffff, 0x3fffff, 0xf000000 }
 
-#define GAUDI3_SEC_PROTBITS_DATA147 { \
+#define GAUDI3_SEC_PROTBITS_DATA146 { \
 		 0xfff3, 0x1f1f1f1f, 0x1, 0xffffff71, 0xffff, 0x3fff3fff, 0x1, \
 		0xf000000 }
 
-#define GAUDI3_SEC_PROTBITS_DATA148 { \
+#define GAUDI3_SEC_PROTBITS_DATA147 { \
 		 0xff, 0xf000000 }
 
-#define GAUDI3_SEC_PROTBITS_DATA149 { \
+#define GAUDI3_SEC_PROTBITS_DATA148 { \
 		 0x1f1f1f1f, 0x1, 0xf000000 }
+
+#define GAUDI3_SEC_PROTBITS_DATA149 { \
+		0xf000000 }
 
 #define GAUDI3_SEC_PROTBITS_DATA150 { \
 		0xf000000 }
 
 #define GAUDI3_SEC_PROTBITS_DATA151 { \
-		0xf000000 }
-
-#define GAUDI3_SEC_PROTBITS_DATA152 { \
 		 0xfc000000, 0xfc0, 0x1fffff, 0x7fff, 0x1fffff, 0xf000000 }
 
-#define GAUDI3_SEC_PROTBITS_DATA153 { \
+#define GAUDI3_SEC_PROTBITS_DATA152 { \
 		0xf000000 }
 
-#define GAUDI3_SEC_PROTBITS_DATA154 { \
+#define GAUDI3_SEC_PROTBITS_DATA153 { \
 		 0xffffcfc0, 0xffff7fff, 0xffff, 0x3f000003, 0xf3cfffff, 0x1b80f, \
 		0x1b80ff0f, 0x770000ff, 0xf8fff700, 0x70001fff, \
 		0x3ffffff, 0x31f007e, 0xfdffb9f, 0xf000000 }
 
-#define GAUDI3_SEC_PROTBITS_DATA155 { \
+#define GAUDI3_SEC_PROTBITS_DATA154 { \
 		 0xfffff040, 0x2fff3f, 0x1000000, 0xfc0fc, 0x1fffff, 0x1fffff, \
 		0xf000000 }
 
-#define GAUDI3_SEC_PROTBITS_DATA156 { \
+#define GAUDI3_SEC_PROTBITS_DATA155 { \
 		 0x3f, 0x1, 0xdfffffff, 0x3fffff, 0xfffffffc, 0x3f, 0xf000000 }
 
-#define GAUDI3_SEC_PROTBITS_DATA157 { \
+#define GAUDI3_SEC_PROTBITS_DATA156 { \
 		 0x3f, 0x3f, 0x3f, 0x3f, 0xf000000 }
 
-#define GAUDI3_SEC_PROTBITS_DATA158 { \
+#define GAUDI3_SEC_PROTBITS_DATA157 { \
 		 0x7ee0f, 0xbf387330, 0xb7, 0xff, 0xff, 0xff, 0xff, 0xf000000 }
 
-#define GAUDI3_SEC_PROTBITS_DATA159 { \
+#define GAUDI3_SEC_PROTBITS_DATA158 { \
 		 0xfc000000, 0xfc0, 0x1fffff, 0x7fff, 0x1fffff, 0xf000000 }
 
-#define GAUDI3_SEC_PROTBITS_DATA160 { \
+#define GAUDI3_SEC_PROTBITS_DATA159 { \
 		 0x7ffbffcf, 0xf000000 }
 
-#define GAUDI3_SEC_PROTBITS_DATA161 { \
+#define GAUDI3_SEC_PROTBITS_DATA160 { \
 		 0xfc000000, 0xfc0, 0x1fffff, 0x7fff, 0xf000000 }
 
-#define GAUDI3_SEC_PROTBITS_DATA162 { \
+#define GAUDI3_SEC_PROTBITS_DATA161 { \
 		 0xfffff, 0xf000000 }
 
-#define GAUDI3_SEC_PROTBITS_DATA163 { \
+#define GAUDI3_SEC_PROTBITS_DATA162 { \
 		 0xfc000000, 0xfc0, 0x1fffff, 0x7fff, 0xf000000 }
 
-#define GAUDI3_SEC_PROTBITS_DATA164 { \
+#define GAUDI3_SEC_PROTBITS_DATA163 { \
 		 0x17, 0x13, 0x1, 0xffff, 0xffff, 0x1, 0x37ff, 0xf000000 }
 
-#define GAUDI3_SEC_PROTBITS_DATA165 { \
+#define GAUDI3_SEC_PROTBITS_DATA164 { \
 		 0x7f, 0xf000000 }
 
-#define GAUDI3_SEC_PROTBITS_DATA166 { \
+#define GAUDI3_SEC_PROTBITS_DATA165 { \
 		 0x1f, 0xf000000 }
 
-#define GAUDI3_SEC_PROTBITS_DATA167 { \
+#define GAUDI3_SEC_PROTBITS_DATA166 { \
 		 0xfc0fc, 0xfc0fc, 0xfc0fc, 0xfc0fc, 0xfc0fc, 0xf000000 }
 
-#define GAUDI3_SEC_PROTBITS_DATA168 { \
+#define GAUDI3_SEC_PROTBITS_DATA167 { \
 		0xf000000 }
 
-#define GAUDI3_SEC_PROTBITS_DATA169 { \
+#define GAUDI3_SEC_PROTBITS_DATA168 { \
 		 0xfc000000, 0xfc0, 0x1fffff, 0x7fff, 0x1fffff, 0xf000000 }
 
-#define GAUDI3_SEC_PROTBITS_DATA170 { \
+#define GAUDI3_SEC_PROTBITS_DATA169 { \
 		 0xfff1fff1, 0x7f71fff1, 0x1ff, 0xffffff, 0x3fffff, 0xf000000 }
 
-#define GAUDI3_SEC_PROTBITS_DATA171 { \
+#define GAUDI3_SEC_PROTBITS_DATA170 { \
 		 0xfff3, 0x1f1f1f1f, 0x1, 0xffffff71, 0xffff, 0x3fff3fff, 0x1, \
 		0xf000000 }
 
-#define GAUDI3_SEC_PROTBITS_DATA172 { \
+#define GAUDI3_SEC_PROTBITS_DATA171 { \
 		 0xff, 0xf000000 }
 
-#define GAUDI3_SEC_PROTBITS_DATA173 { \
+#define GAUDI3_SEC_PROTBITS_DATA172 { \
 		 0x1f1f1f1f, 0x1, 0xf000000 }
 
-#define GAUDI3_SEC_PROTBITS_DATA174 { \
+#define GAUDI3_SEC_PROTBITS_DATA173 { \
 		 0xff100, 0x77, 0x7777, 0x7777, 0xf000000 }
 
-#define GAUDI3_SEC_PROTBITS_DATA175 { \
+#define GAUDI3_SEC_PROTBITS_DATA174 { \
 		 0xfffffff7, 0x1fff, 0xf000000 }
 
-#define GAUDI3_SEC_PROTBITS_DATA176 { \
+#define GAUDI3_SEC_PROTBITS_DATA175 { \
 		 0xf026f7, 0x1ff1fff3, 0x37117107, 0x1, 0xfff73737, 0x3, 0x3f, \
 		0xbf33ff, 0x7f0073d0, 0x1, 0x1ff7ff7, 0x711f1f1b, \
 		0x1, 0x77f, 0xf1, 0xf000000 }
 
-#define GAUDI3_SEC_PROTBITS_DATA177 { \
+#define GAUDI3_SEC_PROTBITS_DATA176 { \
 		 0xffff, 0x55555557, 0x55555555, 0x3ff00, 0x7ffff17, 0x1ff, \
 		0xf000000 }
 
-#define GAUDI3_SEC_PROTBITS_DATA178 { \
+#define GAUDI3_SEC_PROTBITS_DATA177 { \
 		 0x1fffff, 0xf000000 }
 
-#define GAUDI3_SEC_PROTBITS_DATA179 { \
+#define GAUDI3_SEC_PROTBITS_DATA178 { \
 		 0xffffcfc0, 0xffff7fff, 0xffff, 0x3f000003, 0xf3cfffff, 0x1b80f, \
 		0x1b80ff0f, 0x770000ff, 0xf8fff700, 0x70001fff, \
 		0x3ffffff, 0x31f007e, 0xfdffb9f, 0xf000000 }
 
-#define GAUDI3_SEC_PROTBITS_DATA180 { \
+#define GAUDI3_SEC_PROTBITS_DATA179 { \
 		 0x77777711, 0x77000000, 0xff78f, 0xff000000, 0xffff, 0xb, \
 		0xf000000 }
 
-#define GAUDI3_SEC_PROTBITS_DATA181 { \
+#define GAUDI3_SEC_PROTBITS_DATA180 { \
 		 0xfc000000, 0xfc0, 0x1fffff, 0x7fff, 0x1fffff, 0xf000000 }
 
-#define GAUDI3_SEC_PROTBITS_DATA182 { \
+#define GAUDI3_SEC_PROTBITS_DATA181 { \
 		 0x7, 0xffff, 0x2, 0x1ffff, 0xff, 0xf000000 }
 
-#define GAUDI3_SEC_PROTBITS_DATA183 { \
+#define GAUDI3_SEC_PROTBITS_DATA182 { \
 		 0x2dfe0, 0x311000d2, 0xfffffffe, 0x1, 0xfffffffe, 0x1, 0xfffffffe, \
 		0x1, 0xfffffffe, 0x1, 0xfffffffe, 0x1, 0xfffffffe, \
 		0x1, 0xfffffffe, 0x1, 0xfffffffe, 0x11, 0xfffffffe, \
 		0x1, 0xfffffffe, 0x1, 0x301e, 0xe, 0xf000000 }
 
-#define GAUDI3_SEC_PROTBITS_DATA184 { \
+#define GAUDI3_SEC_PROTBITS_DATA183 { \
 		 0xfc0fc, 0xf000000 }
 
-#define GAUDI3_SEC_PROTBITS_DATA185 { \
+#define GAUDI3_SEC_PROTBITS_DATA184 { \
 		 0xfff7fe3f, 0xfcfffff, 0xfc, 0xfc00000, 0xfc, 0xfc00000, 0xfc, \
 		0xf000000 }
 
-#define GAUDI3_SEC_PROTBITS_DATA186 { \
+#define GAUDI3_SEC_PROTBITS_DATA185 { \
 		 0xfff30000, 0xfc000000, 0xfc0, 0x1fffff, 0x7fff, 0x1fffff, \
 		0xf000000 }
 
-#define GAUDI3_SEC_PROTBITS_DATA187 { \
+#define GAUDI3_SEC_PROTBITS_DATA186 { \
 		 0xffff, 0x55555557, 0x55555555, 0x3ff00, 0x7ffff17, 0x1ff, \
 		0xf000000 }
 
-#define GAUDI3_SEC_PROTBITS_DATA188 { \
+#define GAUDI3_SEC_PROTBITS_DATA187 { \
 		 0x1fffff, 0xf000000 }
 
-#define GAUDI3_SEC_PROTBITS_DATA189 { \
+#define GAUDI3_SEC_PROTBITS_DATA188 { \
 		 0x3377, 0x1f777f, 0xf000000 }
 
 
@@ -874,8 +871,7 @@ static const uint32_t gaudi3_sec_protbits_data184[] = GAUDI3_SEC_PROTBITS_DATA18
 static const uint32_t gaudi3_sec_protbits_data185[] = GAUDI3_SEC_PROTBITS_DATA185; \
 static const uint32_t gaudi3_sec_protbits_data186[] = GAUDI3_SEC_PROTBITS_DATA186; \
 static const uint32_t gaudi3_sec_protbits_data187[] = GAUDI3_SEC_PROTBITS_DATA187; \
-static const uint32_t gaudi3_sec_protbits_data188[] = GAUDI3_SEC_PROTBITS_DATA188; \
-static const uint32_t gaudi3_sec_protbits_data189[] = GAUDI3_SEC_PROTBITS_DATA189
+static const uint32_t gaudi3_sec_protbits_data188[] = GAUDI3_SEC_PROTBITS_DATA188
 
 #define GAUDI3_SEC_PROTBITS_CFG { \
 	{{ GAUDI3_BLOCK_TYPE_TPC, 0xf0040000, 8, 8, 0, 0x1000000, 0x200000, 0x0 }, \
@@ -1646,377 +1642,371 @@ static const uint32_t gaudi3_sec_protbits_data189[] = GAUDI3_SEC_PROTBITS_DATA18
 	  .data = gaudi3_sec_protbits_data127, \
 	  .data_size = ARRAY_SIZE(gaudi3_sec_protbits_data127) \
 	}, \
-	{{ GAUDI3_BLOCK_TYPE_NIC, 0xfd025000, 2, 6, 0, 0x400000, 0x80000, 0x0 }, \
-	  .prot_map = 0x80000000, \
-	  .data_map = 0x40000001, \
-	  .data = gaudi3_sec_protbits_data128, \
-	  .data_size = ARRAY_SIZE(gaudi3_sec_protbits_data128) \
-	}, \
 	{{ GAUDI3_BLOCK_TYPE_NIC, 0xfd026000, 2, 6, 0, 0x400000, 0x80000, 0x0 }, \
 	  .prot_map = 0x8003d000, \
 	  .data_map = 0x40042c00, \
-	  .data = gaudi3_sec_protbits_data129, \
-	  .data_size = ARRAY_SIZE(gaudi3_sec_protbits_data129) \
+	  .data = gaudi3_sec_protbits_data128, \
+	  .data_size = ARRAY_SIZE(gaudi3_sec_protbits_data128) \
 	}, \
 	{{ GAUDI3_BLOCK_TYPE_NIC, 0xfd027000, 2, 6, 0, 0x400000, 0x80000, 0x0 }, \
 	  .prot_map = 0x80000000, \
 	  .data_map = 0x40400000, \
-	  .data = gaudi3_sec_protbits_data130, \
-	  .data_size = ARRAY_SIZE(gaudi3_sec_protbits_data130) \
+	  .data = gaudi3_sec_protbits_data129, \
+	  .data_size = ARRAY_SIZE(gaudi3_sec_protbits_data129) \
 	}, \
 	{{ GAUDI3_BLOCK_TYPE_NIC, 0xfd028000, 2, 6, 16, 0x400000, 0x80000, 0x1000 }, \
 	  .prot_map = 0x80000000, \
 	  .data_map = 0x40000001, \
-	  .data = gaudi3_sec_protbits_data131, \
-	  .data_size = ARRAY_SIZE(gaudi3_sec_protbits_data131) \
+	  .data = gaudi3_sec_protbits_data130, \
+	  .data_size = ARRAY_SIZE(gaudi3_sec_protbits_data130) \
 	}, \
 	{{ GAUDI3_BLOCK_TYPE_NIC, 0xfd038000, 2, 6, 0, 0x400000, 0x80000, 0x0 }, \
 	  .prot_map = 0x80000000, \
 	  .data_map = 0x5c000c00, \
-	  .data = gaudi3_sec_protbits_data132, \
-	  .data_size = ARRAY_SIZE(gaudi3_sec_protbits_data132) \
+	  .data = gaudi3_sec_protbits_data131, \
+	  .data_size = ARRAY_SIZE(gaudi3_sec_protbits_data131) \
 	}, \
 	{{ GAUDI3_BLOCK_TYPE_NIC, 0xfd039000, 2, 6, 0, 0x400000, 0x80000, 0x0 }, \
 	  .prot_map = 0x80000000, \
 	  .data_map = 0x4c000c00, \
-	  .data = gaudi3_sec_protbits_data133, \
-	  .data_size = ARRAY_SIZE(gaudi3_sec_protbits_data133) \
+	  .data = gaudi3_sec_protbits_data132, \
+	  .data_size = ARRAY_SIZE(gaudi3_sec_protbits_data132) \
 	}, \
 	{{ GAUDI3_BLOCK_TYPE_NIC, 0xfd03a000, 2, 6, 0, 0x400000, 0x80000, 0x0 }, \
 	  .prot_map = 0x80000000, \
 	  .data_map = 0x41000000, \
-	  .data = gaudi3_sec_protbits_data134, \
-	  .data_size = ARRAY_SIZE(gaudi3_sec_protbits_data134) \
+	  .data = gaudi3_sec_protbits_data133, \
+	  .data_size = ARRAY_SIZE(gaudi3_sec_protbits_data133) \
 	}, \
 	{{ GAUDI3_BLOCK_TYPE_NIC, 0xfd03b000, 2, 6, 0, 0x400000, 0x80000, 0x0 }, \
 	  .prot_map = 0x80000000, \
 	  .data_map = 0x40c00000, \
+	  .data = gaudi3_sec_protbits_data134, \
+	  .data_size = ARRAY_SIZE(gaudi3_sec_protbits_data134) \
+	}, \
+	{{ GAUDI3_BLOCK_TYPE_NIC, 0xfd03c000, 2, 6, 0, 0x400000, 0x80000, 0x0 }, \
+	  .prot_map = 0x80000000, \
+	  .data_map = 0x40000000, \
 	  .data = gaudi3_sec_protbits_data135, \
 	  .data_size = ARRAY_SIZE(gaudi3_sec_protbits_data135) \
 	}, \
-	{{ GAUDI3_BLOCK_TYPE_NIC, 0xfd03c000, 2, 6, 0, 0x400000, 0x80000, 0x0 }, \
+	{{ GAUDI3_BLOCK_TYPE_NIC, 0xfd03e000, 2, 6, 0, 0x400000, 0x80000, 0x0 }, \
 	  .prot_map = 0x80000000, \
 	  .data_map = 0x40000000, \
 	  .data = gaudi3_sec_protbits_data136, \
 	  .data_size = ARRAY_SIZE(gaudi3_sec_protbits_data136) \
 	}, \
-	{{ GAUDI3_BLOCK_TYPE_NIC, 0xfd03e000, 2, 6, 0, 0x400000, 0x80000, 0x0 }, \
+	{{ GAUDI3_BLOCK_TYPE_NIC, 0xfd03f000, 2, 6, 0, 0x400000, 0x80000, 0x0 }, \
 	  .prot_map = 0x80000000, \
 	  .data_map = 0x40000000, \
 	  .data = gaudi3_sec_protbits_data137, \
 	  .data_size = ARRAY_SIZE(gaudi3_sec_protbits_data137) \
 	}, \
-	{{ GAUDI3_BLOCK_TYPE_NIC, 0xfd03f000, 2, 6, 0, 0x400000, 0x80000, 0x0 }, \
+	{{ GAUDI3_BLOCK_TYPE_NIC, 0xfd040000, 2, 6, 0, 0x400000, 0x80000, 0x0 }, \
 	  .prot_map = 0x80000000, \
 	  .data_map = 0x40000000, \
 	  .data = gaudi3_sec_protbits_data138, \
 	  .data_size = ARRAY_SIZE(gaudi3_sec_protbits_data138) \
 	}, \
-	{{ GAUDI3_BLOCK_TYPE_NIC, 0xfd040000, 2, 6, 0, 0x400000, 0x80000, 0x0 }, \
-	  .prot_map = 0x80000000, \
-	  .data_map = 0x40000000, \
-	  .data = gaudi3_sec_protbits_data139, \
-	  .data_size = ARRAY_SIZE(gaudi3_sec_protbits_data139) \
-	}, \
 	{{ GAUDI3_BLOCK_TYPE_TPC, 0xfe008000, 8, 8, 0, 0x400000, 0x10000, 0x0 }, \
 	  .prot_map = 0x80004600, \
 	  .data_map = 0x4005b9fc, \
-	  .data = gaudi3_sec_protbits_data140, \
-	  .data_size = ARRAY_SIZE(gaudi3_sec_protbits_data140) \
+	  .data = gaudi3_sec_protbits_data139, \
+	  .data_size = ARRAY_SIZE(gaudi3_sec_protbits_data139) \
 	}, \
 	{{ GAUDI3_BLOCK_TYPE_TPC, 0xfe009000, 8, 8, 0, 0x400000, 0x10000, 0x0 }, \
 	  .prot_map = 0x800c0002, \
 	  .data_map = 0x4380000d, \
-	  .data = gaudi3_sec_protbits_data141, \
-	  .data_size = ARRAY_SIZE(gaudi3_sec_protbits_data141) \
+	  .data = gaudi3_sec_protbits_data140, \
+	  .data_size = ARRAY_SIZE(gaudi3_sec_protbits_data140) \
 	}, \
 	{{ GAUDI3_BLOCK_TYPE_TPC, 0xfe00a000, 8, 8, 0, 0x400000, 0x10000, 0x0 }, \
 	  .prot_map = 0x8207ffff, \
 	  .data_map = 0x5d880000, \
-	  .data = gaudi3_sec_protbits_data142, \
-	  .data_size = ARRAY_SIZE(gaudi3_sec_protbits_data142) \
+	  .data = gaudi3_sec_protbits_data141, \
+	  .data_size = ARRAY_SIZE(gaudi3_sec_protbits_data141) \
 	}, \
 	{{ GAUDI3_BLOCK_TYPE_TPC, 0xfe00b000, 8, 8, 0, 0x400000, 0x10000, 0x0 }, \
 	  .prot_map = 0x80007777, \
 	  .data_map = 0x40008888, \
-	  .data = gaudi3_sec_protbits_data143, \
-	  .data_size = ARRAY_SIZE(gaudi3_sec_protbits_data143) \
+	  .data = gaudi3_sec_protbits_data142, \
+	  .data_size = ARRAY_SIZE(gaudi3_sec_protbits_data142) \
 	}, \
 	{{ GAUDI3_BLOCK_TYPE_TPC, 0xfe00c000, 8, 8, 0, 0x400000, 0x10000, 0x0 }, \
 	  .prot_map = 0x800001ff, \
 	  .data_map = 0x40000200, \
-	  .data = gaudi3_sec_protbits_data144, \
-	  .data_size = ARRAY_SIZE(gaudi3_sec_protbits_data144) \
+	  .data = gaudi3_sec_protbits_data143, \
+	  .data_size = ARRAY_SIZE(gaudi3_sec_protbits_data143) \
 	}, \
 	{{ GAUDI3_BLOCK_TYPE_TPC, 0xfe00d000, 8, 8, 0, 0x400000, 0x10000, 0x0 }, \
 	  .prot_map = 0x80000000, \
 	  .data_map = 0x5c010c00, \
-	  .data = gaudi3_sec_protbits_data145, \
-	  .data_size = ARRAY_SIZE(gaudi3_sec_protbits_data145) \
+	  .data = gaudi3_sec_protbits_data144, \
+	  .data_size = ARRAY_SIZE(gaudi3_sec_protbits_data144) \
 	}, \
 	{{ GAUDI3_BLOCK_TYPE_RTR, 0xfe0a0000, 8, 0, 0, 0x400000, 0x0, 0x0 }, \
 	  .prot_map = 0x8000f330, \
 	  .data_map = 0x40010443, \
-	  .data = gaudi3_sec_protbits_data146, \
-	  .data_size = ARRAY_SIZE(gaudi3_sec_protbits_data146) \
+	  .data = gaudi3_sec_protbits_data145, \
+	  .data_size = ARRAY_SIZE(gaudi3_sec_protbits_data145) \
 	}, \
 	{{ GAUDI3_BLOCK_TYPE_RTR, 0xfe0a1000, 8, 4, 0, 0x400000, 0x1000, 0x0 }, \
 	  .prot_map = 0x80000200, \
 	  .data_map = 0x40003531, \
-	  .data = gaudi3_sec_protbits_data147, \
-	  .data_size = ARRAY_SIZE(gaudi3_sec_protbits_data147) \
+	  .data = gaudi3_sec_protbits_data146, \
+	  .data_size = ARRAY_SIZE(gaudi3_sec_protbits_data146) \
 	}, \
 	{{ GAUDI3_BLOCK_TYPE_RTR, 0xfe0a5000, 8, 0, 0, 0x400000, 0x0, 0x0 }, \
 	  .prot_map = 0x83ffffff, \
 	  .data_map = 0x44000000, \
-	  .data = gaudi3_sec_protbits_data148, \
-	  .data_size = ARRAY_SIZE(gaudi3_sec_protbits_data148) \
+	  .data = gaudi3_sec_protbits_data147, \
+	  .data_size = ARRAY_SIZE(gaudi3_sec_protbits_data147) \
 	}, \
 	{{ GAUDI3_BLOCK_TYPE_RTR, 0xfe0a6000, 8, 0, 0, 0x400000, 0x0, 0x0 }, \
 	  .prot_map = 0x80000000, \
 	  .data_map = 0x40000030, \
+	  .data = gaudi3_sec_protbits_data148, \
+	  .data_size = ARRAY_SIZE(gaudi3_sec_protbits_data148) \
+	}, \
+	{{ GAUDI3_BLOCK_TYPE_STLB, 0xfe0b0000, 8, 0, 0, 0x400000, 0x0, 0x0 }, \
+	  .prot_map = 0x80000000, \
+	  .data_map = 0x40000000, \
 	  .data = gaudi3_sec_protbits_data149, \
 	  .data_size = ARRAY_SIZE(gaudi3_sec_protbits_data149) \
 	}, \
-	{{ GAUDI3_BLOCK_TYPE_STLB, 0xfe0b0000, 8, 0, 0, 0x400000, 0x0, 0x0 }, \
+	{{ GAUDI3_BLOCK_TYPE_HIF, 0xfe0b1000, 8, 0, 0, 0x400000, 0x0, 0x0 }, \
 	  .prot_map = 0x80000000, \
 	  .data_map = 0x40000000, \
 	  .data = gaudi3_sec_protbits_data150, \
 	  .data_size = ARRAY_SIZE(gaudi3_sec_protbits_data150) \
 	}, \
-	{{ GAUDI3_BLOCK_TYPE_HIF, 0xfe0b1000, 8, 0, 0, 0x400000, 0x0, 0x0 }, \
-	  .prot_map = 0x80000000, \
-	  .data_map = 0x40000000, \
-	  .data = gaudi3_sec_protbits_data151, \
-	  .data_size = ARRAY_SIZE(gaudi3_sec_protbits_data151) \
-	}, \
 	{{ GAUDI3_BLOCK_TYPE_STLB, 0xfe0b2000, 8, 0, 0, 0x400000, 0x0, 0x0 }, \
 	  .prot_map = 0x80000000, \
 	  .data_map = 0x5c000c00, \
-	  .data = gaudi3_sec_protbits_data152, \
-	  .data_size = ARRAY_SIZE(gaudi3_sec_protbits_data152) \
+	  .data = gaudi3_sec_protbits_data151, \
+	  .data_size = ARRAY_SIZE(gaudi3_sec_protbits_data151) \
 	}, \
 	{{ GAUDI3_BLOCK_TYPE_STLB, 0xfe0b3000, 8, 0, 0, 0x400000, 0x0, 0x0 }, \
 	  .prot_map = 0x80000000, \
 	  .data_map = 0x40000000, \
-	  .data = gaudi3_sec_protbits_data153, \
-	  .data_size = ARRAY_SIZE(gaudi3_sec_protbits_data153) \
+	  .data = gaudi3_sec_protbits_data152, \
+	  .data_size = ARRAY_SIZE(gaudi3_sec_protbits_data152) \
 	}, \
 	{{ GAUDI3_BLOCK_TYPE_MME, 0xfe0c8000, 8, 0, 0, 0x400000, 0x0, 0x0 }, \
 	  .prot_map = 0x80004600, \
 	  .data_map = 0x4005b9fc, \
-	  .data = gaudi3_sec_protbits_data154, \
-	  .data_size = ARRAY_SIZE(gaudi3_sec_protbits_data154) \
+	  .data = gaudi3_sec_protbits_data153, \
+	  .data_size = ARRAY_SIZE(gaudi3_sec_protbits_data153) \
 	}, \
 	{{ GAUDI3_BLOCK_TYPE_MME, 0xfe0c9000, 8, 0, 0, 0x400000, 0x0, 0x0 }, \
 	  .prot_map = 0x800c0002, \
 	  .data_map = 0x4380000d, \
-	  .data = gaudi3_sec_protbits_data155, \
-	  .data_size = ARRAY_SIZE(gaudi3_sec_protbits_data155) \
+	  .data = gaudi3_sec_protbits_data154, \
+	  .data_size = ARRAY_SIZE(gaudi3_sec_protbits_data154) \
 	}, \
 	{{ GAUDI3_BLOCK_TYPE_MME, 0xfe0d0000, 8, 0, 0, 0x400000, 0x0, 0x0 }, \
 	  .prot_map = 0x801e021f, \
 	  .data_map = 0x40210560, \
-	  .data = gaudi3_sec_protbits_data156, \
-	  .data_size = ARRAY_SIZE(gaudi3_sec_protbits_data156) \
+	  .data = gaudi3_sec_protbits_data155, \
+	  .data_size = ARRAY_SIZE(gaudi3_sec_protbits_data155) \
 	}, \
 	{{ GAUDI3_BLOCK_TYPE_MME, 0xfe0d1000, 8, 0, 0, 0x400000, 0x0, 0x0 }, \
 	  .prot_map = 0x807df7df, \
 	  .data_map = 0x40820820, \
-	  .data = gaudi3_sec_protbits_data157, \
-	  .data_size = ARRAY_SIZE(gaudi3_sec_protbits_data157) \
+	  .data = gaudi3_sec_protbits_data156, \
+	  .data_size = ARRAY_SIZE(gaudi3_sec_protbits_data156) \
 	}, \
 	{{ GAUDI3_BLOCK_TYPE_EU_BIST, 0xfe0d2000, 8, 2, 0, 0x400000, 0x1000, 0x0 }, \
 	  .prot_map = 0x80000000, \
 	  .data_map = 0x4000055d, \
-	  .data = gaudi3_sec_protbits_data158, \
-	  .data_size = ARRAY_SIZE(gaudi3_sec_protbits_data158) \
+	  .data = gaudi3_sec_protbits_data157, \
+	  .data_size = ARRAY_SIZE(gaudi3_sec_protbits_data157) \
 	}, \
 	{{ GAUDI3_BLOCK_TYPE_MME, 0xfe0d4000, 8, 0, 0, 0x400000, 0x0, 0x0 }, \
 	  .prot_map = 0x80000000, \
 	  .data_map = 0x5c000c00, \
-	  .data = gaudi3_sec_protbits_data159, \
-	  .data_size = ARRAY_SIZE(gaudi3_sec_protbits_data159) \
+	  .data = gaudi3_sec_protbits_data158, \
+	  .data_size = ARRAY_SIZE(gaudi3_sec_protbits_data158) \
 	}, \
 	{{ GAUDI3_BLOCK_TYPE_MME, 0xfe0d5000, 8, 2, 0, 0x400000, 0x8000, 0x0 }, \
 	  .prot_map = 0x80000000, \
 	  .data_map = 0x40000001, \
-	  .data = gaudi3_sec_protbits_data160, \
-	  .data_size = ARRAY_SIZE(gaudi3_sec_protbits_data160) \
+	  .data = gaudi3_sec_protbits_data159, \
+	  .data_size = ARRAY_SIZE(gaudi3_sec_protbits_data159) \
 	}, \
 	{{ GAUDI3_BLOCK_TYPE_MME, 0xfe0d6000, 8, 2, 0, 0x400000, 0x8000, 0x0 }, \
 	  .prot_map = 0x80000000, \
 	  .data_map = 0x4c000c00, \
-	  .data = gaudi3_sec_protbits_data161, \
-	  .data_size = ARRAY_SIZE(gaudi3_sec_protbits_data161) \
+	  .data = gaudi3_sec_protbits_data160, \
+	  .data_size = ARRAY_SIZE(gaudi3_sec_protbits_data160) \
 	}, \
 	{{ GAUDI3_BLOCK_TYPE_MME, 0xfe0e0000, 8, 2, 4, 0x400000, 0x8000, 0x2000 }, \
 	  .prot_map = 0x80000000, \
 	  .data_map = 0x40000001, \
-	  .data = gaudi3_sec_protbits_data162, \
-	  .data_size = ARRAY_SIZE(gaudi3_sec_protbits_data162) \
+	  .data = gaudi3_sec_protbits_data161, \
+	  .data_size = ARRAY_SIZE(gaudi3_sec_protbits_data161) \
 	}, \
 	{{ GAUDI3_BLOCK_TYPE_MME, 0xfe0e1000, 8, 2, 4, 0x400000, 0x8000, 0x2000 }, \
 	  .prot_map = 0x80000000, \
 	  .data_map = 0x4c000c00, \
-	  .data = gaudi3_sec_protbits_data163, \
-	  .data_size = ARRAY_SIZE(gaudi3_sec_protbits_data163) \
+	  .data = gaudi3_sec_protbits_data162, \
+	  .data_size = ARRAY_SIZE(gaudi3_sec_protbits_data162) \
 	}, \
 	{{ GAUDI3_BLOCK_TYPE_MME, 0xfe0f1000, 8, 0, 0, 0x400000, 0x0, 0x0 }, \
 	  .prot_map = 0x80000000, \
 	  .data_map = 0x40010157, \
-	  .data = gaudi3_sec_protbits_data164, \
-	  .data_size = ARRAY_SIZE(gaudi3_sec_protbits_data164) \
+	  .data = gaudi3_sec_protbits_data163, \
+	  .data_size = ARRAY_SIZE(gaudi3_sec_protbits_data163) \
 	}, \
 	{{ GAUDI3_BLOCK_TYPE_MME, 0xfe0f2000, 8, 0, 0, 0x400000, 0x0, 0x0 }, \
 	  .prot_map = 0x80000000, \
 	  .data_map = 0x40000001, \
-	  .data = gaudi3_sec_protbits_data165, \
-	  .data_size = ARRAY_SIZE(gaudi3_sec_protbits_data165) \
+	  .data = gaudi3_sec_protbits_data164, \
+	  .data_size = ARRAY_SIZE(gaudi3_sec_protbits_data164) \
 	}, \
 	{{ GAUDI3_BLOCK_TYPE_MME, 0xfe0f3000, 8, 0, 0, 0x400000, 0x0, 0x0 }, \
 	  .prot_map = 0x800c0c0c, \
 	  .data_map = 0x40000001, \
-	  .data = gaudi3_sec_protbits_data166, \
-	  .data_size = ARRAY_SIZE(gaudi3_sec_protbits_data166) \
+	  .data = gaudi3_sec_protbits_data165, \
+	  .data_size = ARRAY_SIZE(gaudi3_sec_protbits_data165) \
 	}, \
 	{{ GAUDI3_BLOCK_TYPE_DEC, 0xfe123000, 8, 2, 0, 0x400000, 0x10000, 0x0 }, \
 	  .prot_map = 0x80000000, \
 	  .data_map = 0x41550000, \
-	  .data = gaudi3_sec_protbits_data167, \
-	  .data_size = ARRAY_SIZE(gaudi3_sec_protbits_data167) \
+	  .data = gaudi3_sec_protbits_data166, \
+	  .data_size = ARRAY_SIZE(gaudi3_sec_protbits_data166) \
 	}, \
 	{{ GAUDI3_BLOCK_TYPE_DEC, 0xfe124000, 8, 2, 0, 0x400000, 0x10000, 0x0 }, \
 	  .prot_map = 0x80000000, \
 	  .data_map = 0x40000000, \
-	  .data = gaudi3_sec_protbits_data168, \
-	  .data_size = ARRAY_SIZE(gaudi3_sec_protbits_data168) \
+	  .data = gaudi3_sec_protbits_data167, \
+	  .data_size = ARRAY_SIZE(gaudi3_sec_protbits_data167) \
 	}, \
 	{{ GAUDI3_BLOCK_TYPE_DEC, 0xfe125000, 8, 2, 0, 0x400000, 0x10000, 0x0 }, \
 	  .prot_map = 0x80000000, \
 	  .data_map = 0x5c000c00, \
-	  .data = gaudi3_sec_protbits_data169, \
-	  .data_size = ARRAY_SIZE(gaudi3_sec_protbits_data169) \
+	  .data = gaudi3_sec_protbits_data168, \
+	  .data_size = ARRAY_SIZE(gaudi3_sec_protbits_data168) \
 	}, \
 	{{ GAUDI3_BLOCK_TYPE_RTR, 0xfe180000, 8, 8, 0, 0x400000, 0x10000, 0x0 }, \
 	  .prot_map = 0x8000f330, \
 	  .data_map = 0x40010443, \
-	  .data = gaudi3_sec_protbits_data170, \
-	  .data_size = ARRAY_SIZE(gaudi3_sec_protbits_data170) \
+	  .data = gaudi3_sec_protbits_data169, \
+	  .data_size = ARRAY_SIZE(gaudi3_sec_protbits_data169) \
 	}, \
 	{{ GAUDI3_BLOCK_TYPE_RTR, 0xfe181000, 8, 8, 2, 0x400000, 0x10000, 0x1000 }, \
 	  .prot_map = 0x80000200, \
 	  .data_map = 0x40003531, \
-	  .data = gaudi3_sec_protbits_data171, \
-	  .data_size = ARRAY_SIZE(gaudi3_sec_protbits_data171) \
+	  .data = gaudi3_sec_protbits_data170, \
+	  .data_size = ARRAY_SIZE(gaudi3_sec_protbits_data170) \
 	}, \
 	{{ GAUDI3_BLOCK_TYPE_RTR, 0xfe183000, 8, 8, 0, 0x400000, 0x10000, 0x0 }, \
 	  .prot_map = 0x83ffffff, \
 	  .data_map = 0x44000000, \
-	  .data = gaudi3_sec_protbits_data172, \
-	  .data_size = ARRAY_SIZE(gaudi3_sec_protbits_data172) \
+	  .data = gaudi3_sec_protbits_data171, \
+	  .data_size = ARRAY_SIZE(gaudi3_sec_protbits_data171) \
 	}, \
 	{{ GAUDI3_BLOCK_TYPE_RTR, 0xfe184000, 8, 8, 0, 0x400000, 0x10000, 0x0 }, \
 	  .prot_map = 0x80000000, \
 	  .data_map = 0x40000030, \
-	  .data = gaudi3_sec_protbits_data173, \
-	  .data_size = ARRAY_SIZE(gaudi3_sec_protbits_data173) \
+	  .data = gaudi3_sec_protbits_data172, \
+	  .data_size = ARRAY_SIZE(gaudi3_sec_protbits_data172) \
 	}, \
 	{{ GAUDI3_BLOCK_TYPE_RTR, 0xfe185000, 8, 8, 0, 0x400000, 0x10000, 0x0 }, \
 	  .prot_map = 0x80000001, \
 	  .data_map = 0x40000056, \
-	  .data = gaudi3_sec_protbits_data174, \
-	  .data_size = ARRAY_SIZE(gaudi3_sec_protbits_data174) \
+	  .data = gaudi3_sec_protbits_data173, \
+	  .data_size = ARRAY_SIZE(gaudi3_sec_protbits_data173) \
 	}, \
 	{{ GAUDI3_BLOCK_TYPE_RTR, 0xfe186000, 8, 8, 0, 0x400000, 0x10000, 0x0 }, \
 	  .prot_map = 0x80000000, \
 	  .data_map = 0x40000003, \
-	  .data = gaudi3_sec_protbits_data175, \
-	  .data_size = ARRAY_SIZE(gaudi3_sec_protbits_data175) \
+	  .data = gaudi3_sec_protbits_data174, \
+	  .data_size = ARRAY_SIZE(gaudi3_sec_protbits_data174) \
 	}, \
 	{{ GAUDI3_BLOCK_TYPE_RTR, 0xfe280000, 8, 8, 0, 0x400000, 0x10000, 0x0 }, \
 	  .prot_map = 0x80000008, \
 	  .data_map = 0x401775f5, \
-	  .data = gaudi3_sec_protbits_data176, \
-	  .data_size = ARRAY_SIZE(gaudi3_sec_protbits_data176) \
+	  .data = gaudi3_sec_protbits_data175, \
+	  .data_size = ARRAY_SIZE(gaudi3_sec_protbits_data175) \
 	}, \
 	{{ GAUDI3_BLOCK_TYPE_ARC_FARM, 0xfe304000, 8, 2, 0, 0x400000, 0x20000, 0x0 }, \
 	  .prot_map = 0x80c1ffff, \
 	  .data_map = 0x56320000, \
-	  .data = gaudi3_sec_protbits_data177, \
-	  .data_size = ARRAY_SIZE(gaudi3_sec_protbits_data177) \
+	  .data = gaudi3_sec_protbits_data176, \
+	  .data_size = ARRAY_SIZE(gaudi3_sec_protbits_data176) \
 	}, \
 	{{ GAUDI3_BLOCK_TYPE_ARC_FARM, 0xfe305000, 8, 2, 0, 0x400000, 0x20000, 0x0 }, \
 	  .prot_map = 0x80000000, \
 	  .data_map = 0x50000000, \
-	  .data = gaudi3_sec_protbits_data178, \
-	  .data_size = ARRAY_SIZE(gaudi3_sec_protbits_data178) \
+	  .data = gaudi3_sec_protbits_data177, \
+	  .data_size = ARRAY_SIZE(gaudi3_sec_protbits_data177) \
 	}, \
 	{{ GAUDI3_BLOCK_TYPE_ARC_FARM, 0xfe308000, 8, 2, 0, 0x400000, 0x20000, 0x0 }, \
 	  .prot_map = 0x80004600, \
 	  .data_map = 0x4005b9fc, \
-	  .data = gaudi3_sec_protbits_data179, \
-	  .data_size = ARRAY_SIZE(gaudi3_sec_protbits_data179) \
+	  .data = gaudi3_sec_protbits_data178, \
+	  .data_size = ARRAY_SIZE(gaudi3_sec_protbits_data178) \
 	}, \
 	{{ GAUDI3_BLOCK_TYPE_ARC_FARM, 0xfe30b000, 8, 0, 0, 0x400000, 0x0, 0x0 }, \
 	  .prot_map = 0x80000000, \
 	  .data_map = 0x4000033c, \
-	  .data = gaudi3_sec_protbits_data180, \
-	  .data_size = ARRAY_SIZE(gaudi3_sec_protbits_data180) \
+	  .data = gaudi3_sec_protbits_data179, \
+	  .data_size = ARRAY_SIZE(gaudi3_sec_protbits_data179) \
 	}, \
 	{{ GAUDI3_BLOCK_TYPE_ARC_FARM, 0xfe30c000, 8, 0, 0, 0x400000, 0x0, 0x0 }, \
 	  .prot_map = 0x80000000, \
 	  .data_map = 0x5c000c00, \
-	  .data = gaudi3_sec_protbits_data181, \
-	  .data_size = ARRAY_SIZE(gaudi3_sec_protbits_data181) \
+	  .data = gaudi3_sec_protbits_data180, \
+	  .data_size = ARRAY_SIZE(gaudi3_sec_protbits_data180) \
 	}, \
 	{{ GAUDI3_BLOCK_TYPE_ARC_FARM, 0xfe30d000, 8, 2, 0, 0x400000, 0x20000, 0x0 }, \
 	  .prot_map = 0x800c74d0, \
 	  .data_map = 0x40018904, \
-	  .data = gaudi3_sec_protbits_data182, \
-	  .data_size = ARRAY_SIZE(gaudi3_sec_protbits_data182) \
+	  .data = gaudi3_sec_protbits_data181, \
+	  .data_size = ARRAY_SIZE(gaudi3_sec_protbits_data181) \
 	}, \
 	{{ GAUDI3_BLOCK_TYPE_ARC_FARM, 0xfe30e000, 8, 2, 0, 0x400000, 0x20000, 0x0 }, \
 	  .prot_map = 0x80000000, \
 	  .data_map = 0x45fffff5, \
-	  .data = gaudi3_sec_protbits_data183, \
-	  .data_size = ARRAY_SIZE(gaudi3_sec_protbits_data183) \
+	  .data = gaudi3_sec_protbits_data182, \
+	  .data_size = ARRAY_SIZE(gaudi3_sec_protbits_data182) \
 	}, \
 	{{ GAUDI3_BLOCK_TYPE_ARC_FARM, 0xfe30f000, 8, 2, 0, 0x400000, 0x20000, 0x0 }, \
 	  .prot_map = 0x80000000, \
 	  .data_map = 0x40000001, \
-	  .data = gaudi3_sec_protbits_data184, \
-	  .data_size = ARRAY_SIZE(gaudi3_sec_protbits_data184) \
+	  .data = gaudi3_sec_protbits_data183, \
+	  .data_size = ARRAY_SIZE(gaudi3_sec_protbits_data183) \
 	}, \
 	{{ GAUDI3_BLOCK_TYPE_SYNC_MNGR, 0xfe3a0000, 8, 0, 0, 0x400000, 0x0, 0x0 }, \
 	  .prot_map = 0x8003fffe, \
 	  .data_map = 0x40fc0001, \
-	  .data = gaudi3_sec_protbits_data185, \
-	  .data_size = ARRAY_SIZE(gaudi3_sec_protbits_data185) \
+	  .data = gaudi3_sec_protbits_data184, \
+	  .data_size = ARRAY_SIZE(gaudi3_sec_protbits_data184) \
 	}, \
 	{{ GAUDI3_BLOCK_TYPE_SYNC_MNGR, 0xfe3a1000, 8, 0, 0, 0x400000, 0x0, 0x0 }, \
 	  .prot_map = 0x80000000, \
 	  .data_map = 0x5c000e00, \
-	  .data = gaudi3_sec_protbits_data186, \
-	  .data_size = ARRAY_SIZE(gaudi3_sec_protbits_data186) \
+	  .data = gaudi3_sec_protbits_data185, \
+	  .data_size = ARRAY_SIZE(gaudi3_sec_protbits_data185) \
 	}, \
 	{{ GAUDI3_BLOCK_TYPE_SYNC_MNGR, 0xfe3b4000, 8, 0, 0, 0x400000, 0x0, 0x0 }, \
 	  .prot_map = 0x80c1ffff, \
 	  .data_map = 0x56320000, \
-	  .data = gaudi3_sec_protbits_data187, \
-	  .data_size = ARRAY_SIZE(gaudi3_sec_protbits_data187) \
+	  .data = gaudi3_sec_protbits_data186, \
+	  .data_size = ARRAY_SIZE(gaudi3_sec_protbits_data186) \
 	}, \
 	{{ GAUDI3_BLOCK_TYPE_SYNC_MNGR, 0xfe3b5000, 8, 0, 0, 0x400000, 0x0, 0x0 }, \
 	  .prot_map = 0x80000000, \
 	  .data_map = 0x50000000, \
-	  .data = gaudi3_sec_protbits_data188, \
-	  .data_size = ARRAY_SIZE(gaudi3_sec_protbits_data188) \
+	  .data = gaudi3_sec_protbits_data187, \
+	  .data_size = ARRAY_SIZE(gaudi3_sec_protbits_data187) \
 	}, \
 	{{ GAUDI3_BLOCK_TYPE_SYNC_MNGR, 0xfe3c0000, 8, 0, 0, 0x400000, 0x0, 0x0 }, \
 	  .prot_map = 0x80000000, \
 	  .data_map = 0x40000005, \
-	  .data = gaudi3_sec_protbits_data189, \
-	  .data_size = ARRAY_SIZE(gaudi3_sec_protbits_data189) \
+	  .data = gaudi3_sec_protbits_data188, \
+	  .data_size = ARRAY_SIZE(gaudi3_sec_protbits_data188) \
 	}, \
 }
 
