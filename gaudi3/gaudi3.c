@@ -4255,6 +4255,22 @@ static int gaudi3_fetch_psoc_frequency(struct hl_device *hdev)
 	return 0;
 }
 
+static int gaudi3_fetch_nic_frequency(struct hl_device *hdev)
+{
+	u16 pll_freq_arr[HL_PLL_NUM_OUTPUTS] = {0};
+	int rc;
+
+	rc = gaudi3_fetch_frequency(hdev, HL_GAUDI3_NIC_PLL, pll_freq_arr);
+	if (rc)
+		return rc;
+
+	/* DIV1 - nic_clk */
+	if (pll_freq_arr[1] != 0)
+		hdev->asic_prop.sni_props.clk = pll_freq_arr[1];
+
+	return 0;
+}
+
 static int gaudi3_early_init(struct hl_device *hdev)
 {
 	struct asic_fixed_properties *prop = &hdev->asic_prop;
@@ -4381,6 +4397,12 @@ int gaudi3_late_init(struct hl_device *hdev)
 	rc = gaudi3_fetch_psoc_frequency(hdev);
 	if (rc) {
 		dev_err(hdev->dev, "Failed to fetch psoc frequency\n");
+		return rc;
+	}
+
+	rc = gaudi3_fetch_nic_frequency(hdev);
+	if (rc) {
+		dev_err(hdev->dev, "Failed to fetch NIC frequency\n");
 		return rc;
 	}
 
