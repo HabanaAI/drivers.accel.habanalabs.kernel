@@ -12510,7 +12510,7 @@ static u32 gaudi3_handle_nic_status_event(struct hl_device *hdev,
 	return 0;
 }
 
-static u32 gaudi3_handle_msg_event(struct hl_device *hdev,
+static int gaudi3_handle_msg_event(struct hl_device *hdev,
 				struct hl_eq_dynamic_entry *eq_dynamic_entry, u64 *event_mask)
 {
 	u16 event_type;
@@ -12741,7 +12741,7 @@ static u32 gaudi3_handle_spi_event(struct hl_device *hdev,
 	return err_cnt;
 }
 
-static u32 gaudi3_handle_hw_event(struct hl_device *hdev,
+static int gaudi3_handle_hw_event(struct hl_device *hdev,
 				struct hl_eq_dynamic_entry *eq_dynamic_entry, u64 *event_mask)
 {
 	enum hl_agg_grp_type agg_grp_type = eq_dynamic_entry->agg_hdr.int_grp_type;
@@ -12753,7 +12753,7 @@ static u32 gaudi3_handle_hw_event(struct hl_device *hdev,
 
 	rc = gaudi3_validate_eq_agg_header(hdev, &eq_dynamic_entry->agg_hdr);
 	if (rc)
-		return 0;
+		return rc;
 
 	switch (agg_grp_type) {
 	case INT_GRP_TYPE_DERR:
@@ -12771,30 +12771,33 @@ static u32 gaudi3_handle_hw_event(struct hl_device *hdev,
 
 	hl_fw_unmask_irq(hdev, event_id);
 
-	return err_cnt;
+	if (!err_cnt) {
+		dev_err(hdev->dev, "No error cause\n");
+		return -EIO;
+	}
+
+	return 0;
 }
 
-u32 gaudi3_handle_eqe(struct hl_device *hdev, struct hl_eq_dynamic_entry *eq_dynamic_entry)
+int gaudi3_handle_eqe(struct hl_device *hdev, struct hl_eq_dynamic_entry *eq_dynamic_entry)
 {
-	u32 ctl, error_count;
 	u64 event_mask = 0;
 	bool is_hw_event;
+	u32 ctl;
+	int rc;
 
 	ctl = le32_to_cpu(eq_dynamic_entry->hdr.ctl);
 	is_hw_event = !!FIELD_GET(EQ_CTL_EVENT_MODE_MASK, ctl);
 
 	if (is_hw_event)
-		error_count = gaudi3_handle_hw_event(hdev, eq_dynamic_entry, &event_mask);
+		rc = gaudi3_handle_hw_event(hdev, eq_dynamic_entry, &event_mask);
 	else
-		error_count = gaudi3_handle_msg_event(hdev, eq_dynamic_entry, &event_mask);
+		rc = gaudi3_handle_msg_event(hdev, eq_dynamic_entry, &event_mask);
 
 	if (event_mask)
 		hl_notifier_event_send_all(hdev, event_mask);
 
-	if (!error_count)
-		dev_err(hdev->dev, "No error cause\n");
-
-	return error_count;
+	return rc;
 }
 
 int gaudi3_send_device_activity(struct hl_device *hdev, bool open)

@@ -3247,6 +3247,7 @@ static void handle_and_clear_cs_events(struct hl_device *hdev, u32 die, u32 hdco
 	struct hl_eq_dynamic_entry eq_dynamic_entry = {};
 	u32 offset, intr_cause_data, intr_cause_reg;
 	struct eq_agg_header_params params = {};
+	int rc;
 
 	offset = (die * NUM_OF_HDCORES_PER_DIE + hdcore) * HDCORE_OFFSET + instance * CSLICE_OFFSET;
 
@@ -3283,7 +3284,8 @@ static void handle_and_clear_cs_events(struct hl_device *hdev, u32 die, u32 hdco
 	params.instance = instance;
 	prepare_eq_dynamic_entry_agg_header(&eq_dynamic_entry, &params);
 
-	if (!gaudi3_handle_eqe(hdev, &eq_dynamic_entry))
+	rc = gaudi3_handle_eqe(hdev, &eq_dynamic_entry);
+	if (rc)
 		return;
 
 	if (need_clear)
@@ -3308,6 +3310,7 @@ static void handle_and_clear_hbm_events(struct hl_device *hdev, u32 die, u32 hdc
 	struct eq_agg_header_params params = {};
 	bool unmask_event_in_aggr = false;
 	u32 offset;
+	int rc;
 
 	switch (type) {
 	case ERR_GRP_DERR:
@@ -3333,7 +3336,8 @@ static void handle_and_clear_hbm_events(struct hl_device *hdev, u32 die, u32 hdc
 	params.instance = 0;
 	prepare_eq_dynamic_entry_agg_header(&eq_dynamic_entry, &params);
 
-	if (!gaudi3_handle_eqe(hdev, &eq_dynamic_entry))
+	rc = gaudi3_handle_eqe(hdev, &eq_dynamic_entry);
+	if (rc)
 		return;
 
 	if (unmask_event_in_aggr)
@@ -3452,6 +3456,7 @@ static void handle_and_clear_pcie_events(struct hl_device *hdev, u32 die,
 	struct eq_agg_header_params params = {};
 	u32 intr_cause = 0x0, err_idx = 0, err_msk;
 	bool unmask_event_in_aggr = false;
+	int rc;
 
 	if (die == 1) {
 		dev_err(hdev->dev, "PCIE events from DIE1 are not supported\n");
@@ -3503,7 +3508,8 @@ static void handle_and_clear_pcie_events(struct hl_device *hdev, u32 die,
 	params.instance = 0;
 	prepare_eq_dynamic_entry_agg_header(&eq_dynamic_entry, &params);
 
-	if (!gaudi3_handle_eqe(hdev, &eq_dynamic_entry))
+	rc = gaudi3_handle_eqe(hdev, &eq_dynamic_entry);
+	if (rc)
 		return;
 
 	if (type == ERR_GRP_SEI &&
@@ -3545,6 +3551,7 @@ static void handle_and_clear_psoc_events(struct hl_device *hdev, u32 die,
 	struct hl_eq_dynamic_entry eq_dynamic_entry = {};
 	struct eq_agg_header_params params = {};
 	bool unmask_event_in_aggr = false;
+	int rc;
 
 	switch (type) {
 	case ERR_GRP_SEI:
@@ -3561,7 +3568,8 @@ static void handle_and_clear_psoc_events(struct hl_device *hdev, u32 die,
 	params.instance = 0;
 	prepare_eq_dynamic_entry_agg_header(&eq_dynamic_entry, &params);
 
-	if (!gaudi3_handle_eqe(hdev, &eq_dynamic_entry))
+	rc = gaudi3_handle_eqe(hdev, &eq_dynamic_entry);
+	if (rc)
 		return;
 
 	if (unmask_event_in_aggr)
@@ -3582,6 +3590,7 @@ static void handle_and_clear_pmmu_events(struct hl_device *hdev, u32 die,
 	struct eq_agg_header_params params = {};
 	bool unmask_event_in_aggr = false;
 	u32 offset;
+	int rc;
 
 	switch (type) {
 	case ERR_GRP_DERR:
@@ -3608,7 +3617,8 @@ static void handle_and_clear_pmmu_events(struct hl_device *hdev, u32 die,
 	params.instance = 0;
 	prepare_eq_dynamic_entry_agg_header(&eq_dynamic_entry, &params);
 
-	if (!gaudi3_handle_eqe(hdev, &eq_dynamic_entry))
+	rc = gaudi3_handle_eqe(hdev, &eq_dynamic_entry);
+	if (rc)
 		return;
 
 	if (unmask_event_in_aggr)
@@ -3652,7 +3662,7 @@ static void handle_and_clear_tpc_events(struct hl_device *hdev, u32 die, u32 hdc
 	bool unmask_event_in_aggr = false;
 	struct hl_eq_tpc_data *tpc_data;
 	u64 intr_cause;
-	int th;
+	int th, rc;
 
 	offset = (die * NUM_OF_HDCORES_PER_DIE + hdcore) * HDCORE_OFFSET +
 			instance * HDCORE_TPC_OFFSET;
@@ -3722,7 +3732,8 @@ static void handle_and_clear_tpc_events(struct hl_device *hdev, u32 die, u32 hdc
 	params.instance = instance;
 	prepare_eq_dynamic_entry_agg_header(&eq_dynamic_entry, &params);
 
-	if (!gaudi3_handle_eqe(hdev, &eq_dynamic_entry))
+	rc = gaudi3_handle_eqe(hdev, &eq_dynamic_entry);
+	if (rc)
 		return;
 
 	if (unmask_event_in_aggr)
@@ -3895,6 +3906,7 @@ static void handle_and_clear_mme_events(struct hl_device *hdev, u32 die, u32 hdc
 	struct eq_agg_header_params params = {};
 	struct hl_eq_mme_spi_data *spi_data;
 	bool unmask_event_in_aggr = false;
+	int rc;
 
 	offset = (die * NUM_OF_HDCORES_PER_DIE + hdcore) * HDCORE_OFFSET;
 
@@ -3952,7 +3964,8 @@ static void handle_and_clear_mme_events(struct hl_device *hdev, u32 die, u32 hdc
 	params.instance = 0;
 	prepare_eq_dynamic_entry_agg_header(&eq_dynamic_entry, &params);
 
-	if (!gaudi3_handle_eqe(hdev, &eq_dynamic_entry))
+	rc = gaudi3_handle_eqe(hdev, &eq_dynamic_entry);
+	if (rc)
 		return;
 
 	if (unmask_event_in_aggr)
@@ -3972,6 +3985,7 @@ static void handle_and_clear_stlb_events(struct hl_device *hdev, u32 die, u32 hd
 	struct eq_agg_header_params params = {};
 	bool unmask_event_in_aggr = false;
 	u32 offset;
+	int rc;
 
 	offset = (die * NUM_OF_HDCORES_PER_DIE + hdcore) * HDCORE_OFFSET;
 
@@ -3999,7 +4013,8 @@ static void handle_and_clear_stlb_events(struct hl_device *hdev, u32 die, u32 hd
 	params.instance = 0;
 	prepare_eq_dynamic_entry_agg_header(&eq_dynamic_entry, &params);
 
-	if (!gaudi3_handle_eqe(hdev, &eq_dynamic_entry))
+	rc = gaudi3_handle_eqe(hdev, &eq_dynamic_entry);
+	if (rc)
 		return;
 
 	if (unmask_event_in_aggr)
@@ -4020,6 +4035,7 @@ static void handle_and_clear_pdma_events(struct hl_device *hdev, u32 die,
 	struct eq_agg_header_params params = {};
 	bool unmask_event_in_aggr = false;
 	u32 offset;
+	int rc;
 
 	switch (type) {
 	case ERR_GRP_DERR:
@@ -4046,7 +4062,8 @@ static void handle_and_clear_pdma_events(struct hl_device *hdev, u32 die,
 	params.instance = 0;
 	prepare_eq_dynamic_entry_agg_header(&eq_dynamic_entry, &params);
 
-	if (!gaudi3_handle_eqe(hdev, &eq_dynamic_entry))
+	rc = gaudi3_handle_eqe(hdev, &eq_dynamic_entry);
+	if (rc)
 		return;
 
 	if (unmask_event_in_aggr)
@@ -4067,6 +4084,7 @@ static void handle_and_clear_arc_farm_events(struct hl_device *hdev, u32 die, u3
 	struct eq_agg_header_params params = {};
 	bool unmask_event_in_aggr = false;
 	u32 offset, err_msk;
+	int rc;
 
 	offset = (die * NUM_OF_HDCORES_PER_DIE + hdcore) * HDCORE_OFFSET;
 
@@ -4093,7 +4111,8 @@ static void handle_and_clear_arc_farm_events(struct hl_device *hdev, u32 die, u3
 	params.instance = 0;
 	prepare_eq_dynamic_entry_agg_header(&eq_dynamic_entry, &params);
 
-	if (!gaudi3_handle_eqe(hdev, &eq_dynamic_entry))
+	rc = gaudi3_handle_eqe(hdev, &eq_dynamic_entry);
+	if (rc)
 		return;
 
 	/* Clear event */
@@ -4130,6 +4149,7 @@ static void handle_and_clear_decoder_events(struct hl_device *hdev, u32 die, u32
 	struct hl_eq_dynamic_entry eq_dynamic_entry = {};
 	struct eq_agg_header_params params = {};
 	bool unmask_event_in_aggr = false;
+	int rc;
 
 	offset = (die * NUM_OF_HDCORES_PER_DIE + hdcore) * HDCORE_OFFSET +
 			instance * HDCORE_DECODER_OFFSET;
@@ -4177,7 +4197,8 @@ static void handle_and_clear_decoder_events(struct hl_device *hdev, u32 die, u32
 	params.instance = instance;
 	prepare_eq_dynamic_entry_agg_header(&eq_dynamic_entry, &params);
 
-	if (!gaudi3_handle_eqe(hdev, &eq_dynamic_entry))
+	rc = gaudi3_handle_eqe(hdev, &eq_dynamic_entry);
+	if (rc)
 		return;
 
 	if (unmask_event_in_aggr)
@@ -4202,6 +4223,7 @@ static void handle_and_clear_edma_events(struct hl_device *hdev, u32 die, u32 hd
 	struct hl_eq_edma_chn_data *edma_chn_data;
 	struct eq_agg_header_params params = {};
 	bool unmask_event_in_aggr = false;
+	int rc;
 
 	/* There are EDMA blocks only in HD 1/3/4/6 */
 	if ((die == 0 && (hdcore == 0 || hdcore == 2)) ||
@@ -4268,7 +4290,8 @@ static void handle_and_clear_edma_events(struct hl_device *hdev, u32 die, u32 hd
 	params.instance = 0;
 	prepare_eq_dynamic_entry_agg_header(&eq_dynamic_entry, &params);
 
-	if (!gaudi3_handle_eqe(hdev, &eq_dynamic_entry))
+	rc = gaudi3_handle_eqe(hdev, &eq_dynamic_entry);
+	if (rc)
 		return;
 
 	if (unmask_event_in_aggr)
@@ -4296,6 +4319,7 @@ static void handle_and_clear_nic_events(struct hl_device *hdev, u32 die,
 	struct eq_agg_header_params params = {};
 	bool unmask_event_in_aggr = false;
 	u32 instance, offset;
+	int rc;
 
 	switch (type) {
 	case ERR_GRP_DERR:
@@ -4328,7 +4352,8 @@ static void handle_and_clear_nic_events(struct hl_device *hdev, u32 die,
 	params.instance = instance;
 	prepare_eq_dynamic_entry_agg_header(&eq_dynamic_entry, &params);
 
-	if (!gaudi3_handle_eqe(hdev, &eq_dynamic_entry))
+	rc = gaudi3_handle_eqe(hdev, &eq_dynamic_entry);
+	if (rc)
 		return;
 
 	if (unmask_event_in_aggr)

@@ -704,7 +704,7 @@ int gaudi3_init_cpu(struct hl_device *hdev);
 int gaudi3_init_cpu_queues(struct hl_device *hdev, u32 cpu_timeout);
 int gaudi3_test_cpu_queue(struct hl_device *hdev);
 void gaudi3_send_hard_reset_cmd(struct hl_device *hdev);
-u32 gaudi3_handle_eqe(struct hl_device *hdev, struct hl_eq_dynamic_entry *eq_dynamic_entry);
+int gaudi3_handle_eqe(struct hl_device *hdev, struct hl_eq_dynamic_entry *eq_dynamic_entry);
 bool gaudi3_cn_is_macro_enabled(struct hl_device *hdev, int macro_idx);
 u32 gaudi3_cn_get_first_port(struct hl_device *hdev, int macro_idx);
 int gaudi3_alloc_irq_vectors(struct hl_device *hdev, unsigned int min_vecs,
