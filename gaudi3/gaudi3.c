@@ -159,6 +159,29 @@ MODULE_FIRMWARE(GAUDI3_BOOT_FIT_FILE);
 
 #define HL_STR(e) #e
 
+/*
+ * H9-5547: for Scheduler users (DEC, SM and ARC_FRM) a new AXI ID
+ * is allocated to the transaction. So we can't rely on ID[13:12] bits to
+ * detect the exact initiator for the page fault. So print the list of possibilities.
+ */
+
+#define HL_STR_DEC_SM_ARC(hd) "GAUDI3_HDCORE" #hd "_ENGINE_ID_DEC_0/"	\
+				"GAUDI3_HDCORE" #hd "_ENGINE_ID_DEC_1/"	\
+				"GAUDI3_HDCORE" #hd "_ENGINE_ID_SM/"	\
+				"GAUDI3_HDCORE" #hd "_ENGINE_ID_ARCF_0/"\
+				"GAUDI3_HDCORE" #hd "_ENGINE_ID_ARCF_1"
+
+const char *gaud3_engine_id_dec_sm_arc_str[] = {
+	HL_STR_DEC_SM_ARC(0),
+	HL_STR_DEC_SM_ARC(1),
+	HL_STR_DEC_SM_ARC(2),
+	HL_STR_DEC_SM_ARC(3),
+	HL_STR_DEC_SM_ARC(4),
+	HL_STR_DEC_SM_ARC(5),
+	HL_STR_DEC_SM_ARC(6),
+	HL_STR_DEC_SM_ARC(7),
+};
+
 const char *gaudi3_engine_id_str[] = {
 	HL_STR(GAUDI3_HDCORE0_ENGINE_ID_DEC_0),
 	HL_STR(GAUDI3_HDCORE0_ENGINE_ID_DEC_1),
@@ -2615,8 +2638,6 @@ static const char *gaudi3_axid_mapping(struct hl_device *hdev, u64 axid,
 			axid17 = FIELD_GET(BIT_ULL(17), axid),
 			axid14 = FIELD_GET(BIT_ULL(14), axid),
 			axid18 = FIELD_GET(BIT_ULL(18), axid),
-			axid12_13 = FIELD_GET(GENMASK_ULL(13, 12), axid),
-			axid10_13 = FIELD_GET(GENMASK_ULL(13, 10), axid),
 			axid17_19 = FIELD_GET(GENMASK(19, 17), axid);
 	int hd = gaudi3_axid_hd_to_hd(hd_val);
 	/*
@@ -2804,17 +2825,7 @@ static const char *gaudi3_axid_mapping(struct hl_device *hdev, u64 axid,
 	/* 24-30th row in table */
 	case 0xE3:
 	case 0x13:
-		if (axid12_13 == 0x2)
-			*initiator = GAUDI3_HDCORE0_ENGINE_ID_DEC_0 + (2 * hd);
-		else if (axid12_13 == 0x3)
-			*initiator = GAUDI3_HDCORE0_ENGINE_ID_DEC_1 + (2 * hd);
-		else if (axid12_13 == 0x0)
-			*initiator = GAUDI3_HDCORE0_ENGINE_ID_SM + hd;
-		else if (axid10_13 == 0x4)
-			*initiator = GAUDI3_HDCORE0_ENGINE_ID_ARCF_0 + (2 * hd);
-		else if (axid10_13 == 0x5)
-			*initiator = GAUDI3_HDCORE0_ENGINE_ID_ARCF_1 + (2 * hd);
-		break;
+		return gaud3_engine_id_dec_sm_arc_str[hd];
 	}
 
 	switch (main_id) {
