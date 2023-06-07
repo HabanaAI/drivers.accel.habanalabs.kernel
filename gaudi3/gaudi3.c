@@ -361,6 +361,32 @@ const char *gaudi3_engine_id_str[] = {
 
 #define IS_PDMA_1_ON_DIE1(initiator)	IS_PDMA_0_ON_DIE1((initiator) - NUM_OF_PDMA_CH_PER_GRP)
 
+static const char *pmmu_page_fault_initiator_str(enum gaudi3_engine_id initiator)
+{
+	/*
+	 * if PMMU page fault came from the PDMA/EDMA, we currently can't know
+	 * which PDMA/EDMA and channel it was (see discussion on H9-5258, SW-105646)
+	 * so drop the PDMA/EDMA number and channel.
+	 */
+	if (initiator == GAUDI3_HDCORE1_ENGINE_ID_EDMA_0 ||
+	    initiator == GAUDI3_HDCORE1_ENGINE_ID_EDMA_1)
+		return "GAUDI3_HDCORE1_ENGINE_ID_EDMA";
+	if (initiator == GAUDI3_HDCORE3_ENGINE_ID_EDMA_0 ||
+	    initiator == GAUDI3_HDCORE3_ENGINE_ID_EDMA_1)
+		return "GAUDI3_HDCORE3_ENGINE_ID_EDMA";
+	if (initiator == GAUDI3_HDCORE4_ENGINE_ID_EDMA_0 ||
+	    initiator == GAUDI3_HDCORE4_ENGINE_ID_EDMA_1)
+		return "GAUDI3_HDCORE4_ENGINE_ID_EDMA";
+	if (initiator == GAUDI3_HDCORE6_ENGINE_ID_EDMA_0 ||
+	    initiator == GAUDI3_HDCORE6_ENGINE_ID_EDMA_1)
+		return "GAUDI3_HDCORE6_ENGINE_ID_EDMA";
+	if (IS_PDMA_0_ON_DIE0(initiator) || IS_PDMA_1_ON_DIE0(initiator))
+		return "GAUDI3_DIE0_ENGINE_ID_PDMA";
+	if (IS_PDMA_0_ON_DIE1(initiator) || IS_PDMA_1_ON_DIE1(initiator))
+		return "GAUDI3_DIE1_ENGINE_ID_PDMA";
+	return GAUDI3_ENG_ID_TO_STR(initiator);
+}
+
 static struct hl_special_block_info gaudi3_special_blocks[] = GAUDI3_SPECIAL_BLOCKS;
 
 GAUDI3_SEC_PROTBITS_DATA;
@@ -2579,8 +2605,9 @@ static int gaudi3_axid_hd_to_hd(u32 hd_val)
 /*
  * @main_id: 12 bits: AXID[35:24]
  */
-static enum gaudi3_engine_id gaudi3_axid_mapping(struct hl_device *hdev, u64 axid,
-							u32 die, bool is_read)
+static const char *gaudi3_axid_mapping(struct hl_device *hdev, u64 axid,
+							u32 die, bool is_read,
+							enum gaudi3_engine_id *initiator)
 {
 	u32 main_id = FIELD_GET(GENMASK_ULL(35, 24), axid);
 	u32 hd_val = FIELD_GET(GENMASK(11, 8), main_id),
@@ -2599,56 +2626,73 @@ static enum gaudi3_engine_id gaudi3_axid_mapping(struct hl_device *hdev, u64 axi
 	bool is_hd0145 = hd == 0 || hd == 1 || hd == 4 || hd == 5;
 	enum gaudi3_engine_id eng_id;
 
+	*initiator = GAUDI3_ENGINE_ID_SIZE;
 	if (hd == -1) {
 		dev_err(hdev->dev, "bad hd_val: %u\n", hd_val);
-		return  GAUDI3_ENGINE_ID_SIZE;
+		goto out;
 	}
 
 	/* first row in table */
 	switch (id) {
 	case 0x20:
-		return GAUDI3_HDCORE0_ENGINE_ID_TPC_0 + (8 * hd);
+		*initiator = GAUDI3_HDCORE0_ENGINE_ID_TPC_0 + (8 * hd);
+		goto out;
 	case 0x81:
 		if (is_hd0145)
-			return GAUDI3_HDCORE0_ENGINE_ID_MME_0 + hd;
-		return GAUDI3_HDCORE0_ENGINE_ID_TPC_0 + (8 * hd);
+			*initiator = GAUDI3_HDCORE0_ENGINE_ID_MME_0 + hd;
+		else
+			*initiator = GAUDI3_HDCORE0_ENGINE_ID_TPC_0 + (8 * hd);
+		goto out;
 	/* second row in table */
 	case 0x21:
-		return GAUDI3_HDCORE0_ENGINE_ID_TPC_1 + (8 * hd);
+		*initiator = GAUDI3_HDCORE0_ENGINE_ID_TPC_1 + (8 * hd);
+		goto out;
 	case 0x80:
 		if (is_hd0145)
-			return GAUDI3_HDCORE0_ENGINE_ID_MME_0 + hd;
-		return GAUDI3_HDCORE0_ENGINE_ID_TPC_1 + (8 * hd);
+			*initiator = GAUDI3_HDCORE0_ENGINE_ID_MME_0 + hd;
+		else
+			*initiator = GAUDI3_HDCORE0_ENGINE_ID_TPC_1 + (8 * hd);
+		goto out;
 	/* third row in table */
 	case 0x30:
 	case 0x91:
-		return GAUDI3_HDCORE0_ENGINE_ID_TPC_2 + (8 * hd);
+		*initiator = GAUDI3_HDCORE0_ENGINE_ID_TPC_2 + (8 * hd);
+		goto out;
 	/* 4th row in table */
 	case 0x31:
 	case 0x90:
-		return GAUDI3_HDCORE0_ENGINE_ID_TPC_3 + (8 * hd);
+		*initiator = GAUDI3_HDCORE0_ENGINE_ID_TPC_3 + (8 * hd);
+		goto out;
 	/* 5th row in table */
 	case 0x60:
 	case 0xC1:
-		return GAUDI3_HDCORE0_ENGINE_ID_TPC_4 + (8 * hd);
+		*initiator = GAUDI3_HDCORE0_ENGINE_ID_TPC_4 + (8 * hd);
+		goto out;
 	/* 6th row in table */
 	case 0x61:
 	case 0xC0:
-		return GAUDI3_HDCORE0_ENGINE_ID_TPC_5 + (8 * hd);
+		*initiator = GAUDI3_HDCORE0_ENGINE_ID_TPC_5 + (8 * hd);
+		goto out;
 	/* 7th row in table */
 	case 0xD1:
-		return GAUDI3_HDCORE0_ENGINE_ID_TPC_6 + (8 * hd);
+		*initiator = GAUDI3_HDCORE0_ENGINE_ID_TPC_6 + (8 * hd);
+		goto out;
 	case 0x70:
 		if (is_hd0145)
-			return GAUDI3_HDCORE0_ENGINE_ID_TPC_7 + (8 * hd);
-		return GAUDI3_HDCORE0_ENGINE_ID_MME_0 + hd;
+			*initiator = GAUDI3_HDCORE0_ENGINE_ID_TPC_7 + (8 * hd);
+		else
+			*initiator = GAUDI3_HDCORE0_ENGINE_ID_MME_0 + hd;
+		goto out;
 	/* 8th row in table */
 	case 0xD0:
-		return GAUDI3_HDCORE0_ENGINE_ID_TPC_7 + (8 * hd);
+		*initiator = GAUDI3_HDCORE0_ENGINE_ID_TPC_7 + (8 * hd);
+		goto out;
 	case 0x71:
 		if (is_hd0145)
-			return GAUDI3_HDCORE0_ENGINE_ID_TPC_7 + (8 * hd);
-		return GAUDI3_HDCORE0_ENGINE_ID_MME_0 + hd;
+			*initiator = GAUDI3_HDCORE0_ENGINE_ID_TPC_7 + (8 * hd);
+		else
+			*initiator = GAUDI3_HDCORE0_ENGINE_ID_MME_0 + hd;
+		goto out;
 	/* 9th row in table */
 	case 0x02:
 	case 0xF2:
@@ -2666,8 +2710,9 @@ static enum gaudi3_engine_id gaudi3_axid_mapping(struct hl_device *hdev, u64 axi
 				spare_bit = ffs(binned_tpc) - 1;
 				sp_hd = (i * 2) + spare_bit / 8;
 				spare_tpc = spare_bit % 8;
-				return GAUDI3_HDCORE0_ENGINE_ID_TPC_0 +
+				*initiator = GAUDI3_HDCORE0_ENGINE_ID_TPC_0 +
 					(sp_hd * NUM_OF_HDCORES_PER_DIE * num_dies) + spare_tpc;
+				goto out;
 			}
 		}
 		break;
@@ -2689,7 +2734,8 @@ static enum gaudi3_engine_id gaudi3_axid_mapping(struct hl_device *hdev, u64 axi
 	/* 15th row in table */
 	case 0x11:
 	case 0xE1:
-		return GAUDI3_HDCORE0_ENGINE_ID_MME_0 + hd;
+		*initiator = GAUDI3_HDCORE0_ENGINE_ID_MME_0 + hd;
+		goto out;
 	/* rows 16-19 already covered */
 
 	/* 20th row in table */
@@ -2706,70 +2752,79 @@ static enum gaudi3_engine_id gaudi3_axid_mapping(struct hl_device *hdev, u64 axi
 
 		if (is_read) {
 			if (axid14 == 1)
-				return eng_id;
+				*initiator = eng_id;
 			else
-				return eng_id + 1;
+				*initiator = eng_id + 1;
 		} else {
 			if (axid17 == 1)
-				return eng_id;
+				*initiator = eng_id;
 			else
-				return eng_id + 1;
+				*initiator = eng_id + 1;
 		}
-		break;
+		goto out;
 	/* 21th row in table */
 	case 0x01:
 		if (hd_val == 0x6) {
 			if (axid17 == 0)
-				return GAUDI3_HDCORE1_ENGINE_ID_ROT_0;
-			return GAUDI3_HDCORE1_ENGINE_ID_ROT_1;
+				*initiator = GAUDI3_HDCORE1_ENGINE_ID_ROT_0;
+			else
+				*initiator = GAUDI3_HDCORE1_ENGINE_ID_ROT_1;
+			goto out;
 		}
 		if (hd_val == 0x8) {
 			if (axid17 == 0)
-				return GAUDI3_HDCORE1_ENGINE_ID_ROT_0;
-			return GAUDI3_HDCORE4_ENGINE_ID_ROT_1;
+				*initiator = GAUDI3_HDCORE1_ENGINE_ID_ROT_0;
+			else
+				*initiator = GAUDI3_HDCORE4_ENGINE_ID_ROT_1;
+			goto out;
 		}
 		break;
 	case 0xF1:
 		if (hd_val == 0x7) {
 			if (axid17 == 0)
-				return GAUDI3_HDCORE3_ENGINE_ID_ROT_0;
-			return GAUDI3_HDCORE3_ENGINE_ID_ROT_1;
+				*initiator = GAUDI3_HDCORE3_ENGINE_ID_ROT_0;
+			else
+				*initiator = GAUDI3_HDCORE3_ENGINE_ID_ROT_1;
+			goto out;
 		}
 		if (hd_val == 0x9) {
 			if (axid17 == 0)
-				return GAUDI3_HDCORE6_ENGINE_ID_ROT_0;
-			return GAUDI3_HDCORE6_ENGINE_ID_ROT_1;
+				*initiator = GAUDI3_HDCORE6_ENGINE_ID_ROT_0;
+			else
+				*initiator = GAUDI3_HDCORE6_ENGINE_ID_ROT_1;
+			goto out;
 		}
 		break;
 	/* 22th row in table - already covered */
 	/* 23th row in table */
 	case 0x03:
 	case 0xF3:
-		return GAUDI3_HDCORE0_ENGINE_ID_STLB + hd;
+		*initiator = GAUDI3_HDCORE0_ENGINE_ID_STLB + hd;
+		goto out;
 	/* 24-30th row in table */
 	case 0xE3:
 	case 0x13:
 		if (axid12_13 == 0x2)
-			return GAUDI3_HDCORE0_ENGINE_ID_DEC_0 + (2 * hd);
+			*initiator = GAUDI3_HDCORE0_ENGINE_ID_DEC_0 + (2 * hd);
 		else if (axid12_13 == 0x3)
-			return GAUDI3_HDCORE0_ENGINE_ID_DEC_1 + (2 * hd);
+			*initiator = GAUDI3_HDCORE0_ENGINE_ID_DEC_1 + (2 * hd);
 		else if (axid12_13 == 0x0)
-			return GAUDI3_HDCORE0_ENGINE_ID_SM + hd;
+			*initiator = GAUDI3_HDCORE0_ENGINE_ID_SM + hd;
 		else if (axid10_13 == 0x4)
-			return GAUDI3_HDCORE0_ENGINE_ID_ARCF_0 + (2 * hd);
+			*initiator = GAUDI3_HDCORE0_ENGINE_ID_ARCF_0 + (2 * hd);
 		else if (axid10_13 == 0x5)
-			return GAUDI3_HDCORE0_ENGINE_ID_ARCF_1 + (2 * hd);
+			*initiator = GAUDI3_HDCORE0_ENGINE_ID_ARCF_1 + (2 * hd);
 		break;
 	}
 
 	switch (main_id) {
 	case 0x0F2:
 		if (die == 0)
-			return GAUDI3_DIE0_ENGINE_ID_PCIE;
+			*initiator = GAUDI3_DIE0_ENGINE_ID_PCIE;
 		break;
 	case 0xF02:
 		if (die == 1)
-			return GAUDI3_DIE1_ENGINE_ID_PCIE;
+			*initiator = GAUDI3_DIE1_ENGINE_ID_PCIE;
 		break;
 	case 0x0F1:
 	case 0xF01:
@@ -2783,92 +2838,66 @@ static enum gaudi3_engine_id gaudi3_axid_mapping(struct hl_device *hdev, u64 axi
 		/* decide which pdma inside the die */
 		if (is_read) {
 			if (axid17 == 1)
-				return eng_id;
+				*initiator = eng_id;
 			else
-				return eng_id + NUM_OF_PDMA_CH_PER_GRP;
+				*initiator = eng_id + NUM_OF_PDMA_CH_PER_GRP;
 		} else {
 			if (axid18 == 1)
-				return eng_id;
+				*initiator = eng_id;
 			else
-				return eng_id + NUM_OF_PDMA_CH_PER_GRP;
+				*initiator = eng_id + NUM_OF_PDMA_CH_PER_GRP;
 		}
 		break;
 	case 0x0F0:
 		if (die == 0 && axid17_19 == 0x7)
-			return GAUDI3_DIE0_ENGINE_ID_ETR_PSOC;
+			*initiator = GAUDI3_DIE0_ENGINE_ID_ETR_PSOC;
 		/* Each NIC has two ports (data and control) we treat them as one */
-		if (axid17_19 <= 0x1)
-			return GAUDI3_DIE0_ENGINE_ID_NIC_0;
+		else if (axid17_19 <= 0x1)
+			*initiator = GAUDI3_DIE0_ENGINE_ID_NIC_0;
 		else if (axid17_19 <= 0x3)
-			return GAUDI3_DIE0_ENGINE_ID_NIC_1;
+			*initiator = GAUDI3_DIE0_ENGINE_ID_NIC_1;
 		break;
 	case 0xF00:
 		if (die == 1 && axid17_19 == 0x7)
-			return GAUDI3_DIE1_ENGINE_ID_ETR_PSOC;
-		if (axid17_19 <= 0x1)
-			return GAUDI3_DIE1_ENGINE_ID_NIC_0;
+			*initiator = GAUDI3_DIE1_ENGINE_ID_ETR_PSOC;
+		else if (axid17_19 <= 0x1)
+			*initiator = GAUDI3_DIE1_ENGINE_ID_NIC_0;
 		else if (axid17_19 <= 0x3)
-			return GAUDI3_DIE1_ENGINE_ID_NIC_1;
+			*initiator = GAUDI3_DIE1_ENGINE_ID_NIC_1;
 		break;
 	case 0x100:
 		if (die == 0 && axid17_19 == 0x7)
-			return GAUDI3_DIE0_ENGINE_ID_ETR_NIC;
-		if (axid17_19 <= 0x1)
-			return GAUDI3_DIE0_ENGINE_ID_NIC_2;
+			*initiator = GAUDI3_DIE0_ENGINE_ID_ETR_NIC;
+		else if (axid17_19 <= 0x1)
+			*initiator = GAUDI3_DIE0_ENGINE_ID_NIC_2;
 		else if (axid17_19 <= 0x3)
-			return GAUDI3_DIE0_ENGINE_ID_NIC_3;
+			*initiator = GAUDI3_DIE0_ENGINE_ID_NIC_3;
 		break;
 	case 0xEF0:
 		if (die == 1 && axid17_19 == 0x7)
-			return GAUDI3_DIE1_ENGINE_ID_ETR_NIC;
-		if (axid17_19 <= 0x1)
-			return GAUDI3_DIE1_ENGINE_ID_NIC_2;
+			*initiator = GAUDI3_DIE1_ENGINE_ID_ETR_NIC;
+		else if (axid17_19 <= 0x1)
+			*initiator = GAUDI3_DIE1_ENGINE_ID_NIC_2;
 		else if (axid17_19 <= 0x3)
-			return GAUDI3_DIE1_ENGINE_ID_NIC_3;
+			*initiator = GAUDI3_DIE1_ENGINE_ID_NIC_3;
 		break;
 	case 0x101:
 		if (axid17_19 <= 0x1)
-			return GAUDI3_DIE0_ENGINE_ID_NIC_4;
+			*initiator = GAUDI3_DIE0_ENGINE_ID_NIC_4;
 		else if (axid17_19 <= 0x3)
-			return GAUDI3_DIE0_ENGINE_ID_NIC_5;
+			*initiator = GAUDI3_DIE0_ENGINE_ID_NIC_5;
 		break;
 	case 0xEF1:
 		if (axid17_19 <= 0x1)
-			return GAUDI3_DIE1_ENGINE_ID_NIC_4;
+			*initiator = GAUDI3_DIE1_ENGINE_ID_NIC_4;
 		else if (axid17_19 <= 0x3)
-			return GAUDI3_DIE1_ENGINE_ID_NIC_5;
+			*initiator = GAUDI3_DIE1_ENGINE_ID_NIC_5;
 		break;
 	default:
 		break;
 	}
-
-	return GAUDI3_ENGINE_ID_SIZE;
-}
-
-/*
- * if PMMU page fault came from the PDMA/EDMA, we currently can't know
- * which PDMA/EDMA and channel it was (see discussion on H9-5258, SW-105646)
- * so drop the PDMA/EDMA number and channel.
- */
-static inline const char *pmmu_page_fault_initiator_str(enum gaudi3_engine_id initiator)
-{
-	if (initiator == GAUDI3_HDCORE1_ENGINE_ID_EDMA_0 ||
-	    initiator == GAUDI3_HDCORE1_ENGINE_ID_EDMA_1)
-		return "GAUDI3_HDCORE1_ENGINE_ID_EDMA";
-	if (initiator == GAUDI3_HDCORE3_ENGINE_ID_EDMA_0 ||
-	    initiator == GAUDI3_HDCORE3_ENGINE_ID_EDMA_1)
-		return "GAUDI3_HDCORE3_ENGINE_ID_EDMA";
-	if (initiator == GAUDI3_HDCORE4_ENGINE_ID_EDMA_0 ||
-	    initiator == GAUDI3_HDCORE4_ENGINE_ID_EDMA_1)
-		return "GAUDI3_HDCORE4_ENGINE_ID_EDMA";
-	if (initiator == GAUDI3_HDCORE6_ENGINE_ID_EDMA_0 ||
-	    initiator == GAUDI3_HDCORE6_ENGINE_ID_EDMA_1)
-		return "GAUDI3_HDCORE6_ENGINE_ID_EDMA";
-	if (IS_PDMA_0_ON_DIE0(initiator) || IS_PDMA_1_ON_DIE0(initiator))
-		return "GAUDI3_DIE0_ENGINE_ID_PDMA";
-	if (IS_PDMA_0_ON_DIE1(initiator) || IS_PDMA_1_ON_DIE1(initiator))
-		return "GAUDI3_DIE1_ENGINE_ID_PDMA";
-	return GAUDI3_ENG_ID_TO_STR(initiator);
+out:
+	return pmmu_page_fault_initiator_str(*initiator);
 }
 
 static u32 handle_pmmu_events(struct hl_device *hdev, u32 die, u64 *event_mask)
@@ -2922,8 +2951,7 @@ static u32 handle_pmmu_events(struct hl_device *hdev, u32 die, u64 *event_mask)
 			 * distinguish the different PDMA/EDMA. But we ignore this anyway by
 			 * calling 'pmmu_page_fault_initiator_str'
 			 */
-			initiator = gaudi3_axid_mapping(hdev, axi_id, die, is_read);
-			initiator_str = pmmu_page_fault_initiator_str(initiator);
+			initiator_str = gaudi3_axid_mapping(hdev, axi_id, die, is_read, &initiator);
 
 			/*
 			 * The PDMA access the va aligned to 128 bytes and then do the offset
@@ -2958,8 +2986,7 @@ static u32 handle_pmmu_events(struct hl_device *hdev, u32 die, u64 *event_mask)
 
 			WREG32(mmD0_PMMU_HBW_MMU_BASE + mmMMU_SPI_STATUS + offset,
 					acc_err_spi_sts_mask);
-			initiator = gaudi3_axid_mapping(hdev, axi_id, die, is_read);
-			initiator_str = pmmu_page_fault_initiator_str(initiator);
+			initiator_str = gaudi3_axid_mapping(hdev, axi_id, die, is_read, &initiator);
 			dev_err(hdev->dev, "access error: va=0x%llx axi id=0x%16llx initiator=%s",
 				va, axi_id, initiator_str);
 			err_cnt++;
@@ -2986,6 +3013,7 @@ static void gaudi3_dtlb_fault_desc(struct hl_device *hdev, int hdcore, int inst,
 	u64 dtlb_addr47_20, axi_id1, axi_id2, axi_id, va;
 	enum gaudi3_engine_id initiator = GAUDI3_ENGINE_ID_SIZE;
 	u32 fault_type = RREG32(mmDTLB_FLT_SYNDROM1 + offset);
+	const char *initiator_str;
 	bool is_read;
 
 	if (fault_type) {
@@ -2996,7 +3024,7 @@ static void gaudi3_dtlb_fault_desc(struct hl_device *hdev, int hdcore, int inst,
 		axi_id1 = RREG32(mmDTLB_FLT_SYNDROM3 + offset);
 		axi_id2 = RREG32(mmDTLB_FLT_SYNDROM4 + offset);
 		axi_id = (axi_id2 << 32) | axi_id1;
-		initiator = gaudi3_axid_mapping(hdev, axi_id, desc->die, is_read);
+		initiator_str = gaudi3_axid_mapping(hdev, axi_id, desc->die, is_read, &initiator);
 
 		/*
 		 * Fix known HW issue that physical and logical PDMA0/1 are swapped
@@ -3014,7 +3042,7 @@ static void gaudi3_dtlb_fault_desc(struct hl_device *hdev, int hdcore, int inst,
 						desc->str_size - desc->str_len,
 						"%s page fault dtlb-id: %u, va: 0x%.16llx, initiator=%s",
 						is_read ? "read" : "write",
-						inst, va, GAUDI3_ENG_ID_TO_STR(initiator));
+						inst, va, initiator_str);
 		WREG32(mmDTLB_FLT_SYNDROM_CLR + offset,
 			FIELD_PREP(DTLB_FLT_SYNDROM_CLR_FLT_CLR_M, 0x1));
 	}
