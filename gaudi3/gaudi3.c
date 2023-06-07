@@ -141,14 +141,11 @@ MODULE_FIRMWARE(GAUDI3_BOOT_FIT_FILE);
 
 #define RAZWI_LBW_OFFSET	0x0300007FE0000000ull
 
-#define VCMD_SW_IRQ_HW_ERR_MASK		VSI_CMD_SWREG17_SW_IRQ_TIMEOUT_M
-#define VCMD_SW_IRQ_CMD_ERR_MASK	VSI_CMD_SWREG17_SW_IRQ_CMDERR_M
-#define VCMD_SW_IRQ_USER_ENG_ERR_MASK	(VSI_CMD_SWREG17_SW_IRQ_ENDCMD_M | \
-						VSI_CMD_SWREG17_SW_IRQ_BUSERR_M | \
-						VSI_CMD_SWREG17_SW_IRQ_ABORT_M)
-#define VCMD_SW_IRQ_MASK		(VCMD_SW_IRQ_HW_ERR_MASK | \
-						VCMD_SW_IRQ_CMD_ERR_MASK | \
-						VCMD_SW_IRQ_USER_ENG_ERR_MASK)
+#define VCMD_SW_IRQ_MASK	(VSI_CMD_SWREG17_SW_IRQ_ENDCMD_M | \
+					VSI_CMD_SWREG17_SW_IRQ_BUSERR_M | \
+					VSI_CMD_SWREG17_SW_IRQ_TIMEOUT_M | \
+					VSI_CMD_SWREG17_SW_IRQ_CMDERR_M | \
+					VSI_CMD_SWREG17_SW_IRQ_ABORT_M)
 
 #define GAUDI3_PDMA_TEST_VAL 0x12345600UL
 
@@ -12443,12 +12440,17 @@ static u32 gaudi3_handle_decoder_spi(struct hl_device *hdev, u16 data_size,
 	err_cnt = gaudi3_err_cause_iterator(hdev, irq_status, gaudi3_decoder_spi_intr_cause, "DEC",
 						"SPI");
 
-	if (irq_status & VCMD_SW_IRQ_HW_ERR_MASK)
-		*event_mask |= HL_NOTIFIER_EVENT_GENERAL_HW_ERR;
-	if (irq_status & VCMD_SW_IRQ_CMD_ERR_MASK)
+	if (irq_status & VSI_CMD_SWREG17_SW_IRQ_CMDERR_M)
 		*event_mask |= HL_NOTIFIER_EVENT_UNDEFINED_OPCODE;
-	if (irq_status & VCMD_SW_IRQ_USER_ENG_ERR_MASK)
-		*event_mask |= HL_NOTIFIER_EVENT_USER_ENGINE_ERR;
+
+	/*
+	 * VCMD timeout interrupt is not caused directly by user, and therefore considered as a
+	 * GENERAL_HW_ERR.
+	 */
+	if (irq_status & VSI_CMD_SWREG17_SW_IRQ_TIMEOUT_M) {
+		*event_mask &= ~HL_NOTIFIER_EVENT_USER_ENGINE_ERR;
+		*event_mask |= HL_NOTIFIER_EVENT_GENERAL_HW_ERR;
+	}
 
 	return err_cnt;
 }
@@ -12561,6 +12563,49 @@ static void gaudi3_print_hw_event_info(struct hl_device *hdev, struct hl_agg_eq_
 			gaudi3_get_interrupt_grp_name(agg_hdr->int_grp_type));
 }
 
+static void gaudi3_set_event_mask(struct hl_agg_eq_header *agg_hdr, u64 *event_mask)
+{
+	enum hl_agg_component_type agg_component_type = agg_hdr->int_comp_type;
+	enum hl_agg_grp_type agg_grp_type = agg_hdr->int_grp_type;
+
+	if (agg_grp_type == INT_GRP_TYPE_DERR) {
+		*event_mask = HL_NOTIFIER_EVENT_CRITICL_HW_ERR;
+		return;
+	}
+
+	switch (agg_component_type) {
+	case INT_COMP_TYPE_ARC_FARM:
+	case INT_COMP_TYPE_DEC:
+	case INT_COMP_TYPE_EDMA:
+	case INT_COMP_TYPE_EDUP:
+	case INT_COMP_TYPE_MME:
+	case INT_COMP_TYPE_NIC:
+	case INT_COMP_TYPE_PDMA:
+	case INT_COMP_TYPE_ROT:
+	case INT_COMP_TYPE_SOB:
+	case INT_COMP_TYPE_TPC:
+		*event_mask = HL_NOTIFIER_EVENT_USER_ENGINE_ERR;
+		break;
+	case INT_COMP_TYPE_MC:
+		*event_mask = HL_NOTIFIER_EVENT_CRITICL_HW_ERR;
+		break;
+	case INT_COMP_TYPE_CPU:
+	case INT_COMP_TYPE_PARC:
+		*event_mask = HL_NOTIFIER_EVENT_CRITICL_FW_ERR;
+		break;
+	case INT_COMP_TYPE_PMMU:
+	case INT_COMP_TYPE_STLB:
+		if (agg_grp_type == INT_GRP_TYPE_SPI)
+			*event_mask = HL_NOTIFIER_EVENT_USER_ENGINE_ERR;
+		else
+			*event_mask = HL_NOTIFIER_EVENT_GENERAL_HW_ERR;
+		break;
+	default:
+		*event_mask = HL_NOTIFIER_EVENT_GENERAL_HW_ERR;
+		break;
+	}
+}
+
 static u32 gaudi3_handle_derr_event(struct hl_device *hdev,
 				struct hl_eq_dynamic_entry *eq_dynamic_entry, u64 *event_mask)
 {
@@ -12591,8 +12636,7 @@ static u32 gaudi3_handle_cs_sei_err(struct hl_device *hdev, u16 data_size,
 	return gaudi3_err_cause_iterator(hdev, err_msk, gaudi3_cs_sei_err_cause, "CS", "SEI");
 }
 
-static int gaudi3_validate_eq_agg_header(struct hl_device *hdev,
-						struct hl_agg_eq_header *agg_hdr)
+static int gaudi3_validate_eq_agg_header(struct hl_device *hdev, struct hl_agg_eq_header *agg_hdr)
 {
 	struct asic_fixed_properties *prop = &hdev->asic_prop;
 
@@ -12744,16 +12788,23 @@ static u32 gaudi3_handle_spi_event(struct hl_device *hdev,
 static int gaudi3_handle_hw_event(struct hl_device *hdev,
 				struct hl_eq_dynamic_entry *eq_dynamic_entry, u64 *event_mask)
 {
-	enum hl_agg_grp_type agg_grp_type = eq_dynamic_entry->agg_hdr.int_grp_type;
 	u16 event_id = le16_to_cpu(eq_dynamic_entry->agg_hdr.event_id);
+	struct hl_agg_eq_header *agg_hdr = &eq_dynamic_entry->agg_hdr;
+	enum hl_agg_grp_type agg_grp_type = agg_hdr->int_grp_type;
 	u32 err_cnt = 0;
 	int rc;
 
-	gaudi3_print_hw_event_info(hdev, &eq_dynamic_entry->agg_hdr);
+	gaudi3_print_hw_event_info(hdev, agg_hdr);
 
-	rc = gaudi3_validate_eq_agg_header(hdev, &eq_dynamic_entry->agg_hdr);
+	rc = gaudi3_validate_eq_agg_header(hdev, agg_hdr);
 	if (rc)
 		return rc;
+
+	/*
+	 * Set an initial notifier event mask value per event/component types.
+	 * A specific event handler can update it afterwards if needed.
+	 */
+	gaudi3_set_event_mask(agg_hdr, event_mask);
 
 	switch (agg_grp_type) {
 	case INT_GRP_TYPE_DERR:
