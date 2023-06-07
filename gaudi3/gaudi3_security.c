@@ -135,7 +135,90 @@ struct dtlb_rr_cfg_data {
 
 /* configuration table for LBW "secured short" range type */
 static struct rr_range rr_lbw_sec_short_ranges[] = {
-	/* TODO SW-93357: Config NIC RR */
+	{
+		.min = mmD0_NIC0_MAC_PCS_PCS0_BASE & RR_LBW_SHORT_ADDR_MASK_SHORT,
+		.max = (mmD0_NIC0_MAC_CH_MAC_CH0_BASE + HL_BLOCK_SIZE) &
+				RR_LBW_SHORT_ADDR_MASK_SHORT,
+		.rd = true,
+		.wr = true
+	},
+	{
+		.min = mmD0_NIC1_MAC_PCS_PCS0_BASE & RR_LBW_SHORT_ADDR_MASK_SHORT,
+		.max = (mmD0_NIC1_MAC_CH_MAC_CH0_BASE + HL_BLOCK_SIZE) &
+				RR_LBW_SHORT_ADDR_MASK_SHORT,
+		.rd = true,
+		.wr = true
+	},
+	{
+		.min = mmD0_NIC2_MAC_PCS_PCS0_BASE & RR_LBW_SHORT_ADDR_MASK_SHORT,
+		.max = (mmD0_NIC2_MAC_CH_MAC_CH0_BASE + HL_BLOCK_SIZE) &
+				RR_LBW_SHORT_ADDR_MASK_SHORT,
+		.rd = true,
+		.wr = true
+	},
+	{
+		.min = mmD0_NIC3_MAC_PCS_PCS0_BASE & RR_LBW_SHORT_ADDR_MASK_SHORT,
+		.max = (mmD0_NIC3_MAC_CH_MAC_CH0_BASE + HL_BLOCK_SIZE) &
+				RR_LBW_SHORT_ADDR_MASK_SHORT,
+		.rd = true,
+		.wr = true
+	},
+	{
+		.min = mmD0_NIC4_MAC_PCS_PCS0_BASE & RR_LBW_SHORT_ADDR_MASK_SHORT,
+		.max = (mmD0_NIC4_MAC_CH_MAC_CH0_BASE + HL_BLOCK_SIZE) &
+				RR_LBW_SHORT_ADDR_MASK_SHORT,
+		.rd = true,
+		.wr = true
+	},
+	{
+		.min = mmD0_NIC5_MAC_PCS_PCS0_BASE & RR_LBW_SHORT_ADDR_MASK_SHORT,
+		.max = (mmD0_NIC5_MAC_CH_MAC_CH0_BASE + HL_BLOCK_SIZE) &
+				RR_LBW_SHORT_ADDR_MASK_SHORT,
+		.rd = true,
+		.wr = true
+	},
+	{
+		.min = mmD1_NIC0_MAC_PCS_PCS0_BASE & RR_LBW_SHORT_ADDR_MASK_SHORT,
+		.max = (mmD1_NIC0_MAC_CH_MAC_CH0_BASE + HL_BLOCK_SIZE) &
+				RR_LBW_SHORT_ADDR_MASK_SHORT,
+		.rd = true,
+		.wr = true
+	},
+	{
+		.min = mmD1_NIC1_MAC_PCS_PCS0_BASE & RR_LBW_SHORT_ADDR_MASK_SHORT,
+		.max = (mmD1_NIC1_MAC_CH_MAC_CH0_BASE + HL_BLOCK_SIZE) &
+				RR_LBW_SHORT_ADDR_MASK_SHORT,
+		.rd = true,
+		.wr = true
+	},
+	{
+		.min = mmD1_NIC2_MAC_PCS_PCS0_BASE & RR_LBW_SHORT_ADDR_MASK_SHORT,
+		.max = (mmD1_NIC2_MAC_CH_MAC_CH0_BASE + HL_BLOCK_SIZE) &
+				RR_LBW_SHORT_ADDR_MASK_SHORT,
+		.rd = true,
+		.wr = true
+	},
+	{
+		.min = mmD1_NIC3_MAC_PCS_PCS0_BASE & RR_LBW_SHORT_ADDR_MASK_SHORT,
+		.max = (mmD1_NIC3_MAC_CH_MAC_CH0_BASE + HL_BLOCK_SIZE) &
+				RR_LBW_SHORT_ADDR_MASK_SHORT,
+		.rd = true,
+		.wr = true
+	},
+	{
+		.min = mmD1_NIC4_MAC_PCS_PCS0_BASE & RR_LBW_SHORT_ADDR_MASK_SHORT,
+		.max = (mmD1_NIC4_MAC_CH_MAC_CH0_BASE + HL_BLOCK_SIZE) &
+				RR_LBW_SHORT_ADDR_MASK_SHORT,
+		.rd = true,
+		.wr = true
+	},
+	{
+		.min = mmD1_NIC5_MAC_PCS_PCS0_BASE & RR_LBW_SHORT_ADDR_MASK_SHORT,
+		.max = (mmD1_NIC5_MAC_CH_MAC_CH0_BASE + HL_BLOCK_SIZE) &
+				RR_LBW_SHORT_ADDR_MASK_SHORT,
+		.rd = true,
+		.wr = true
+	},
 };
 
 /* configuration table for LBW "secured" range type */
