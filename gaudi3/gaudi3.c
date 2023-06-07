@@ -4512,12 +4512,6 @@ static bool gaudi3_special_blocks_skip_with_mask(struct hl_device *hdev,
 			return true;
 		}
 
-		/*
-		 * TODO: remove this one H9-5534 is resolved.
-		 */
-		if (hdev->pldm)
-			return true;
-
 		if (instance_idx >= NIC_NUMBER_OF_MACROS)
 			return true;
 
