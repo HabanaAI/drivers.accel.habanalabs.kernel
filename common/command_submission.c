@@ -3251,7 +3251,7 @@ static int validate_and_get_ts_record(struct device *dev,
 	return 0;
 }
 
-static int unregister_timestamp_node_ioctl(struct hl_device *hdev, struct hl_ctx *ctx,
+static int unregister_timestamp_node(struct hl_device *hdev, struct hl_ctx *ctx,
 			struct hl_mem_mgr *mmg, u64 ts_handle, u64 ts_offset,
 			struct hl_user_interrupt *interrupt)
 {
@@ -3332,7 +3332,7 @@ static int ts_get_and_handle_kernel_record(struct hl_device *hdev, struct hl_ctx
 		 */
 		spin_unlock(&data->interrupt->wait_list_lock);
 
-		unregister_timestamp_node_ioctl(hdev, ctx, data->mmg, data->ts_handle,
+		unregister_timestamp_node(hdev, ctx, data->mmg, data->ts_handle,
 				data->ts_offset, req_offset_record->ts_reg_info.interrupt);
 
 		spin_lock(&data->interrupt->wait_list_lock);
@@ -3683,15 +3683,10 @@ static int hl_interrupt_wait_ioctl(struct hl_fpriv *hpriv, void *data)
 	 * might request to move ts node to another interrupt list, and in such case we're
 	 * not protected.
 	 */
-	if ((args->in.flags & HL_WAIT_CS_FLAGS_UNREGISTER_INTERRUPT) ||
-		(args->in.flags & HL_WAIT_CS_FLAGS_REGISTER_INTERRUPT))
+	if (args->in.flags & HL_WAIT_CS_FLAGS_REGISTER_INTERRUPT)
 		mutex_lock(&hpriv->ctx->ts_reg_lock);
 
-	if (args->in.flags & HL_WAIT_CS_FLAGS_UNREGISTER_INTERRUPT) {
-		rc = unregister_timestamp_node_ioctl(hdev, hpriv->ctx, &hpriv->mem_mgr,
-				args->in.timestamp_handle, args->in.timestamp_offset,
-				interrupt);
-	} else if (args->in.flags & HL_WAIT_CS_FLAGS_INTERRUPT_KERNEL_CQ) {
+	if (args->in.flags & HL_WAIT_CS_FLAGS_INTERRUPT_KERNEL_CQ) {
 		struct wait_interrupt_data wait_intr_data = {0};
 
 		wait_intr_data.interrupt = interrupt;
@@ -3713,8 +3708,7 @@ static int hl_interrupt_wait_ioctl(struct hl_fpriv *hpriv, void *data)
 				&timestamp);
 	}
 
-	if ((args->in.flags & HL_WAIT_CS_FLAGS_UNREGISTER_INTERRUPT) ||
-		(args->in.flags & HL_WAIT_CS_FLAGS_REGISTER_INTERRUPT))
+	if (args->in.flags & HL_WAIT_CS_FLAGS_REGISTER_INTERRUPT)
 		mutex_unlock(&hpriv->ctx->ts_reg_lock);
 
 	if (rc)
