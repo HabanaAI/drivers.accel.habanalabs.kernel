@@ -392,7 +392,7 @@ static const struct range gaudi3_iterator_skip_pb_blocks_ranges[] = {
 		{mmD0_SPDMA0_CH0_B_BASE, mmD0_SPDMA0_CH0_B_BASE}
 };
 
-const u32 gaudi3_arc_blocks_bases[NUM_ACTIVE_ARCS] = {
+const u32 gaudi3_arc_blocks_bases[CPU_ID_MAX] = {
 	[CPU_ID_SCHED_ARC0] = mmHD0_ARC_FARM_ARC0_AUX_BASE,
 	[CPU_ID_SCHED_ARC1] = mmHD0_ARC_FARM_ARC1_AUX_BASE,
 	[CPU_ID_SCHED_ARC2] = mmHD1_ARC_FARM_ARC0_AUX_BASE,
@@ -501,9 +501,21 @@ const u32 gaudi3_arc_blocks_bases[NUM_ACTIVE_ARCS] = {
 	[CPU_ID_ROT_QMAN_ARC5] = mmHD4_ROT1_QM_ARC_AUX_BASE,
 	[CPU_ID_ROT_QMAN_ARC6] = mmHD6_ROT0_QM_ARC_AUX_BASE,
 	[CPU_ID_ROT_QMAN_ARC7] = mmHD6_ROT1_QM_ARC_AUX_BASE,
+	[CPU_ID_NIC_QMAN_ARC0] = mmD0_NIC0_ARC_AUX_BASE,
+	[CPU_ID_NIC_QMAN_ARC1] = mmD0_NIC1_ARC_AUX_BASE,
+	[CPU_ID_NIC_QMAN_ARC2] = mmD0_NIC2_ARC_AUX_BASE,
+	[CPU_ID_NIC_QMAN_ARC3] = mmD0_NIC3_ARC_AUX_BASE,
+	[CPU_ID_NIC_QMAN_ARC4] = mmD0_NIC4_ARC_AUX_BASE,
+	[CPU_ID_NIC_QMAN_ARC5] = mmD0_NIC5_ARC_AUX_BASE,
+	[CPU_ID_NIC_QMAN_ARC6] = mmD1_NIC0_ARC_AUX_BASE,
+	[CPU_ID_NIC_QMAN_ARC7] = mmD1_NIC1_ARC_AUX_BASE,
+	[CPU_ID_NIC_QMAN_ARC8] = mmD1_NIC2_ARC_AUX_BASE,
+	[CPU_ID_NIC_QMAN_ARC9] = mmD1_NIC3_ARC_AUX_BASE,
+	[CPU_ID_NIC_QMAN_ARC10] = mmD1_NIC4_ARC_AUX_BASE,
+	[CPU_ID_NIC_QMAN_ARC11] = mmD1_NIC5_ARC_AUX_BASE,
 };
 
-static const u32 gaudi3_arc_dccm_bases[NUM_ACTIVE_ARCS] = {
+static const u32 gaudi3_arc_dccm_bases[CPU_ID_MAX] = {
 	[CPU_ID_SCHED_ARC0] = mmHD0_ARC_FARM_ARC0_DCCM0_BASE,
 	[CPU_ID_SCHED_ARC1] = mmHD0_ARC_FARM_ARC1_DCCM0_BASE,
 	[CPU_ID_SCHED_ARC2] = mmHD1_ARC_FARM_ARC0_DCCM0_BASE,
@@ -612,6 +624,18 @@ static const u32 gaudi3_arc_dccm_bases[NUM_ACTIVE_ARCS] = {
 	[CPU_ID_ROT_QMAN_ARC5] = mmHD4_ROT1_QM_ARC_DCCM_BASE,
 	[CPU_ID_ROT_QMAN_ARC6] = mmHD6_ROT0_QM_ARC_DCCM_BASE,
 	[CPU_ID_ROT_QMAN_ARC7] = mmHD6_ROT1_QM_ARC_DCCM_BASE,
+	[CPU_ID_NIC_QMAN_ARC0] = mmD0_NIC0_QM_DCCM_BASE,
+	[CPU_ID_NIC_QMAN_ARC1] = mmD0_NIC1_QM_DCCM_BASE,
+	[CPU_ID_NIC_QMAN_ARC2] = mmD0_NIC2_QM_DCCM_BASE,
+	[CPU_ID_NIC_QMAN_ARC3] = mmD0_NIC3_QM_DCCM_BASE,
+	[CPU_ID_NIC_QMAN_ARC4] = mmD0_NIC4_QM_DCCM_BASE,
+	[CPU_ID_NIC_QMAN_ARC5] = mmD0_NIC5_QM_DCCM_BASE,
+	[CPU_ID_NIC_QMAN_ARC6] = mmD1_NIC0_QM_DCCM_BASE,
+	[CPU_ID_NIC_QMAN_ARC7] = mmD1_NIC1_QM_DCCM_BASE,
+	[CPU_ID_NIC_QMAN_ARC8] = mmD1_NIC2_QM_DCCM_BASE,
+	[CPU_ID_NIC_QMAN_ARC9] = mmD1_NIC3_QM_DCCM_BASE,
+	[CPU_ID_NIC_QMAN_ARC10] = mmD1_NIC4_QM_DCCM_BASE,
+	[CPU_ID_NIC_QMAN_ARC11] = mmD1_NIC5_QM_DCCM_BASE,
 };
 
 static const u32 gaudi3_qm_blocks_bases[GAUDI3_ENGINE_ID_SIZE] = {
@@ -699,6 +723,18 @@ static const u32 gaudi3_qm_blocks_bases[GAUDI3_ENGINE_ID_SIZE] = {
 	[GAUDI3_HDCORE2_ENGINE_ID_TPC_8] = mmHD2_TPC8_QM_BASE,
 	[GAUDI3_HDCORE5_ENGINE_ID_TPC_8] = mmHD5_TPC8_QM_BASE,
 	[GAUDI3_HDCORE7_ENGINE_ID_TPC_8] = mmHD7_TPC8_QM_BASE,
+	[GAUDI3_DIE0_ENGINE_ID_NIC_0] = mmD0_NIC0_QM_BASE,
+	[GAUDI3_DIE0_ENGINE_ID_NIC_1] = mmD0_NIC1_QM_BASE,
+	[GAUDI3_DIE0_ENGINE_ID_NIC_2] = mmD0_NIC2_QM_BASE,
+	[GAUDI3_DIE0_ENGINE_ID_NIC_3] = mmD0_NIC3_QM_BASE,
+	[GAUDI3_DIE0_ENGINE_ID_NIC_4] = mmD0_NIC4_QM_BASE,
+	[GAUDI3_DIE0_ENGINE_ID_NIC_5] = mmD0_NIC5_QM_BASE,
+	[GAUDI3_DIE1_ENGINE_ID_NIC_0] = mmD1_NIC0_QM_BASE,
+	[GAUDI3_DIE1_ENGINE_ID_NIC_1] = mmD1_NIC1_QM_BASE,
+	[GAUDI3_DIE1_ENGINE_ID_NIC_2] = mmD1_NIC2_QM_BASE,
+	[GAUDI3_DIE1_ENGINE_ID_NIC_3] = mmD1_NIC3_QM_BASE,
+	[GAUDI3_DIE1_ENGINE_ID_NIC_4] = mmD1_NIC4_QM_BASE,
+	[GAUDI3_DIE1_ENGINE_ID_NIC_5] = mmD1_NIC5_QM_BASE,
 	[GAUDI3_HDCORE1_ENGINE_ID_ROT_0] = mmHD1_ROT0_QM_BASE,
 	[GAUDI3_HDCORE1_ENGINE_ID_ROT_1] = mmHD1_ROT1_QM_BASE,
 	[GAUDI3_HDCORE3_ENGINE_ID_ROT_0] = mmHD3_ROT0_QM_BASE,
@@ -915,7 +951,7 @@ struct gaudi3_mstr_if_dbg_block_operation {
 	u32 dbg_lbw_base_addr;
 };
 
-static const u32 gaudi3_arc_to_engine_id[NUM_ACTIVE_ARCS] = {
+static const u32 gaudi3_arc_to_engine_id[CPU_ID_MAX] = {
 	[CPU_ID_EDMA_QMAN_ARC0] = GAUDI3_HDCORE1_ENGINE_ID_EDMA_0,
 	[CPU_ID_EDMA_QMAN_ARC1] = GAUDI3_HDCORE1_ENGINE_ID_EDMA_1,
 	[CPU_ID_EDMA_QMAN_ARC2] = GAUDI3_HDCORE3_ENGINE_ID_EDMA_0,
@@ -1008,6 +1044,18 @@ static const u32 gaudi3_arc_to_engine_id[NUM_ACTIVE_ARCS] = {
 	[CPU_ID_ROT_QMAN_ARC5] = GAUDI3_HDCORE4_ENGINE_ID_ROT_1,
 	[CPU_ID_ROT_QMAN_ARC6] = GAUDI3_HDCORE6_ENGINE_ID_ROT_0,
 	[CPU_ID_ROT_QMAN_ARC7] = GAUDI3_HDCORE6_ENGINE_ID_ROT_1,
+	[CPU_ID_NIC_QMAN_ARC0] = GAUDI3_DIE0_ENGINE_ID_NIC_0,
+	[CPU_ID_NIC_QMAN_ARC1] = GAUDI3_DIE0_ENGINE_ID_NIC_1,
+	[CPU_ID_NIC_QMAN_ARC2] = GAUDI3_DIE0_ENGINE_ID_NIC_2,
+	[CPU_ID_NIC_QMAN_ARC3] = GAUDI3_DIE0_ENGINE_ID_NIC_3,
+	[CPU_ID_NIC_QMAN_ARC4] = GAUDI3_DIE0_ENGINE_ID_NIC_4,
+	[CPU_ID_NIC_QMAN_ARC5] = GAUDI3_DIE0_ENGINE_ID_NIC_5,
+	[CPU_ID_NIC_QMAN_ARC6] = GAUDI3_DIE1_ENGINE_ID_NIC_0,
+	[CPU_ID_NIC_QMAN_ARC7] = GAUDI3_DIE1_ENGINE_ID_NIC_1,
+	[CPU_ID_NIC_QMAN_ARC8] = GAUDI3_DIE1_ENGINE_ID_NIC_2,
+	[CPU_ID_NIC_QMAN_ARC9] = GAUDI3_DIE1_ENGINE_ID_NIC_3,
+	[CPU_ID_NIC_QMAN_ARC10] = GAUDI3_DIE1_ENGINE_ID_NIC_4,
+	[CPU_ID_NIC_QMAN_ARC11] = GAUDI3_DIE1_ENGINE_ID_NIC_5,
 };
 
 #define MMU_RANGE_INV_VA_LSB_SHIFT		12
@@ -3263,7 +3311,7 @@ int gaudi3_set_fixed_properties(struct hl_device *hdev)
 	prop->host_end_address = prop->host_base_address + HOST_PHYS_SIZE_0;
 
 	prop->max_num_of_engines = GAUDI3_ENGINE_ID_SIZE;
-	prop->num_engine_cores = NUM_ACTIVE_ARCS;
+	prop->num_engine_cores = CPU_ID_MAX;
 	prop->cfg_size = CFG_BAR_SIZE;
 	prop->max_asid = MAX_ASID;
 
@@ -4021,6 +4069,9 @@ static bool gaudi3_is_arc_initialized(struct hl_device *hdev, u64 arc_id)
 	case CPU_ID_TPC_QMAN_ARC0...CPU_ID_TPC_QMAN_ARC63:
 		return !!(gaudi3->active_tpc_arc & BIT_ULL(arc_id - CPU_ID_TPC_QMAN_ARC0));
 
+	case CPU_ID_NIC_QMAN_ARC0...CPU_ID_NIC_QMAN_ARC11:
+		return !!(gaudi3->active_nic_arc & BIT_ULL(arc_id - CPU_ID_NIC_QMAN_ARC0));
+
 	default:
 		return false;
 	}
@@ -4049,7 +4100,7 @@ static int gaudi3_scrub_arcs_dccm(struct hl_device *hdev)
 	reg_base = gaudi3_pdma_grp_blocks_bases[0];
 	gaudi3_config_pdma_ch_bw_access(hdev, reg_base, true);
 
-	for (arc_id = CPU_ID_SCHED_ARC0 ; arc_id < NUM_ACTIVE_ARCS ; arc_id++) {
+	for (arc_id = CPU_ID_SCHED_ARC0 ; arc_id < CPU_ID_MAX ; arc_id++) {
 		if (gaudi3_is_arc_initialized(hdev, arc_id)) {
 			rc = gaudi3_scrub_arc_dccm(hdev, arc_id);
 			if (rc)
@@ -5792,6 +5843,39 @@ void gaudi3_init_decoder(struct hl_device *hdev)
 	dev_dbg(hdev->dev, "Initializing DECs\n");
 
 	gaudi3_iterate_decoders(hdev, &iter_ctx);
+}
+
+static void gaudi3_init_nic_qman(struct hl_device *hdev, int die, int inst, u32 offset,
+					struct iterate_module_ctx *ctx)
+{
+	struct gaudi3_device *gaudi3 = hdev->asic_specific;
+	u32 nic_id, qm_reg_base, engine_id;
+
+	nic_id = die * NIC_NUM_MACROS_PER_DIE + inst;
+
+	qm_reg_base = mmD0_NIC0_QM_BASE + offset;
+	engine_id = GAUDI3_DIE0_ENGINE_ID_NIC_0 + nic_id;
+	gaudi3_init_qman(hdev, qm_reg_base, engine_id);
+
+	gaudi3->hw_cap_nic_initialized |= BIT_ULL(HW_CAP_NIC_SHIFT + nic_id);
+}
+
+void gaudi3_init_nic_qmans(struct hl_device *hdev)
+{
+	struct gaudi3_device *gaudi3 = hdev->asic_specific;
+	struct iterate_module_ctx iter_ctx = {
+		.fn = gaudi3_init_nic_qman
+	};
+
+	if (!hdev->sni_ports_mask)
+		return;
+
+	if ((gaudi3->hw_cap_nic_initialized & HW_CAP_NIC_MASK) == HW_CAP_NIC_MASK)
+		return;
+
+	dev_dbg(hdev->dev, "Initializing NIC QMs\n");
+
+	gaudi3_iterate_nics(hdev, &iter_ctx);
 }
 
 static void gaudi3_enable_timestamp(struct hl_device *hdev)
@@ -7659,6 +7743,7 @@ static int gaudi3_hw_init(struct hl_device *hdev)
 	gaudi3_init_mme(hdev);
 	gaudi3_init_rotator(hdev);
 	gaudi3_init_decoder(hdev);
+	gaudi3_init_nic_qmans(hdev);
 	gaudi3_enable_timestamp(hdev);
 
 	gaudi3_init_mstr_if(hdev);
@@ -7915,7 +8000,7 @@ static int gaudi3_user_mapped_arc_blocks_init(struct hl_device *hdev, int block_
 		block_idx++;
 	}
 
-	for (i = CPU_ID_TPC_QMAN_ARC0 ; i <  NUM_ACTIVE_ARCS ; i++) {
+	for (i = CPU_ID_TPC_QMAN_ARC0 ; i < CPU_ID_MAX ; i++) {
 		if (!gaudi3_is_arc_initialized(hdev, i))
 			continue;
 
@@ -8061,6 +8146,7 @@ void gaudi3_user_mapped_blocks_init(struct hl_device *hdev)
 static bool gaudi3_is_engine_enabled(struct hl_device *hdev, u32 eng_id)
 {
 	struct asic_fixed_properties *prop = &hdev->asic_prop;
+	u32 nic_id;
 
 	switch (eng_id) {
 	case GAUDI3_HDCORE0_ENGINE_ID_DEC_0 ... GAUDI3_HDCORE7_ENGINE_ID_DEC_1:
@@ -8081,9 +8167,12 @@ static bool gaudi3_is_engine_enabled(struct hl_device *hdev, u32 eng_id)
 		return false;
 
 	case GAUDI3_DIE1_ENGINE_ID_NIC_0 ... GAUDI3_DIE1_ENGINE_ID_NIC_5:
+		if (prop->num_of_dies == 1)
+			return false;
+		fallthrough;
 	case GAUDI3_DIE0_ENGINE_ID_NIC_0 ... GAUDI3_DIE0_ENGINE_ID_NIC_5:
-		/* we do not support NIC QMANs nor ARCs */
-		return false;
+		nic_id = eng_id - GAUDI3_DIE0_ENGINE_ID_NIC_0;
+		return !!(hdev->sni_ports_mask & gaudi3_sni_get_macro_ports_mask(hdev, nic_id));
 
 	case GAUDI3_DIE0_ENGINE_ID_PDMA_0_CH_0 ... GAUDI3_DIE1_ENGINE_ID_PDMA_1_CH_5:
 		return !!(hdev->pdma_ch_mask & BIT_ULL(eng_id - GAUDI3_DIE0_ENGINE_ID_PDMA_0_CH_0));
@@ -8185,6 +8274,14 @@ static void gaudi3_decoder_mmu_prepare(struct hl_device *hdev, int hdcore, int i
 					asid);
 }
 
+static void gaudi3_nic_qmans_mmu_prepare(struct hl_device *hdev, int die, int inst, u32 offset,
+						struct iterate_module_ctx *ctx)
+{
+	u32 asid = (uintptr_t) ctx->data;
+
+	gaudi3_axuser_hbw_asid_set(hdev, mmD0_NIC0_QM_AXUSER_HBW_BASE + offset, asid);
+}
+
 static void gaudi3_mmu_hdcore_prepare(struct hl_device *hdev, int hdcore_id, u32 asid)
 {
 	u64 hdcore_offset = hdcore_id * HDCORE_OFFSET;
@@ -8230,7 +8327,7 @@ static void gaudi3_arc_mmu_prepare_all(struct hl_device *hdev, u32 asid)
 {
 	int i;
 
-	for (i = CPU_ID_SCHED_ARC0 ; i < NUM_ACTIVE_ARCS ; i++)
+	for (i = CPU_ID_SCHED_ARC0 ; i < CPU_ID_MAX ; i++)
 		gaudi3_arc_mmu_prepare(hdev, i, asid);
 }
 
@@ -8277,6 +8374,9 @@ static void gaudi3_mmu_prepare(struct hl_device *hdev, u32 asid)
 	iter_ctx.fn = gaudi3_decoder_mmu_prepare;
 	gaudi3_iterate_decoders(hdev, &iter_ctx);
 
+	iter_ctx.fn = gaudi3_nic_qmans_mmu_prepare;
+	gaudi3_iterate_nics(hdev, &iter_ctx);
+
 	for (i = 0 ; i < hdev->asic_prop.num_of_hdcores ; i++)
 		gaudi3_mmu_hdcore_prepare(hdev, i, asid);
 }
@@ -8296,6 +8396,10 @@ static void gaudi3_clr_arc_id_cap(struct hl_device *hdev, u64 arc_id)
 
 	case CPU_ID_TPC_QMAN_ARC0...CPU_ID_TPC_QMAN_ARC63:
 		gaudi3->active_tpc_arc &= ~(BIT_ULL(arc_id - CPU_ID_TPC_QMAN_ARC0));
+		break;
+
+	case CPU_ID_NIC_QMAN_ARC0...CPU_ID_NIC_QMAN_ARC11:
+		gaudi3->active_nic_arc &= ~(BIT_ULL(arc_id - CPU_ID_NIC_QMAN_ARC0));
 		break;
 
 	default:
@@ -8320,6 +8424,10 @@ static void gaudi3_set_arc_id_cap(struct hl_device *hdev, u64 arc_id)
 		gaudi3->active_tpc_arc |= BIT_ULL(arc_id - CPU_ID_TPC_QMAN_ARC0);
 		break;
 
+	case CPU_ID_NIC_QMAN_ARC0...CPU_ID_NIC_QMAN_ARC11:
+		gaudi3->active_nic_arc |= BIT_ULL(arc_id - CPU_ID_NIC_QMAN_ARC0);
+		break;
+
 	default:
 		return;
 	}
@@ -8342,7 +8450,7 @@ static void gaudi3_halt_arc_cores(struct hl_device *hdev)
 	if (!gaudi3)
 		return;
 
-	for (arc_id = CPU_ID_SCHED_ARC0 ; arc_id < NUM_ACTIVE_ARCS ; arc_id++) {
+	for (arc_id = CPU_ID_SCHED_ARC0 ; arc_id < CPU_ID_MAX ; arc_id++) {
 		if (gaudi3_is_arc_initialized(hdev, arc_id))
 			gaudi3_halt_arc_core(hdev, arc_id);
 	}
@@ -8412,7 +8520,7 @@ void gaudi3_clear_arcs_hw_cap(struct hl_device *hdev)
 {
 	u16 arc_id;
 
-	for (arc_id = CPU_ID_SCHED_ARC0 ; arc_id < NUM_ACTIVE_ARCS ; arc_id++) {
+	for (arc_id = CPU_ID_SCHED_ARC0 ; arc_id < CPU_ID_MAX ; arc_id++) {
 		if (gaudi3_is_arc_initialized(hdev, arc_id))
 			gaudi3_clr_arc_id_cap(hdev, arc_id);
 	}
@@ -8426,7 +8534,7 @@ void gaudi3_reset_arcs(struct hl_device *hdev)
 	if (!gaudi3)
 		return;
 
-	for (arc_id = CPU_ID_SCHED_ARC0 ; arc_id < NUM_ACTIVE_ARCS ; arc_id++) {
+	for (arc_id = CPU_ID_SCHED_ARC0 ; arc_id < CPU_ID_MAX ; arc_id++) {
 		if (gaudi3_is_arc_initialized(hdev, arc_id))
 			gaudi3_reset_arc(hdev, arc_id);
 	}
@@ -8448,7 +8556,7 @@ void gaudi3_init_arcs(struct hl_device *hdev)
 		gaudi3_set_arc_id_cap(hdev, i);
 	}
 
-	for (i = CPU_ID_TPC_QMAN_ARC0 ; i < NUM_ACTIVE_ARCS ; i++) {
+	for (i = CPU_ID_TPC_QMAN_ARC0 ; i < CPU_ID_MAX ; i++) {
 		if (!gaudi3_is_engine_enabled(hdev, gaudi3_arc_to_engine_id[i]))
 			continue;
 
@@ -8529,6 +8637,21 @@ void gaudi3_stop_rotator_qmans(struct hl_device *hdev)
 		return;
 
 	gaudi3_iterate_rotators(hdev, &iter_ctx);
+}
+
+void gaudi3_stop_nic_qmans(struct hl_device *hdev)
+{
+	struct gaudi3_device *gaudi3 = hdev->asic_specific;
+	u32 first_qm_reg_base = mmD0_NIC0_QM_BASE;
+	struct iterate_module_ctx iter_ctx = {
+		.fn = gaudi3_stop_qman,
+		.data = &first_qm_reg_base
+	};
+
+	if (!(gaudi3->hw_cap_nic_initialized & HW_CAP_NIC_MASK))
+		return;
+
+	gaudi3_iterate_nics(hdev, &iter_ctx);
 }
 
 static void gaudi3_stall_edma_engine(struct hl_device *hdev, int hdcore, int inst, u32 offset,
@@ -8702,6 +8825,21 @@ void gaudi3_disable_rotator_qmans(struct hl_device *hdev)
 		return;
 
 	gaudi3_iterate_rotators(hdev, &iter_ctx);
+}
+
+void gaudi3_disable_nic_qmans(struct hl_device *hdev)
+{
+	struct gaudi3_device *gaudi3 = hdev->asic_specific;
+	u32 first_qm_reg_base = mmD0_NIC0_QM_BASE;
+	struct iterate_module_ctx iter_ctx = {
+		.fn = gaudi3_disable_qman,
+		.data = &first_qm_reg_base
+	};
+
+	if (!(gaudi3->hw_cap_nic_initialized & HW_CAP_NIC_MASK))
+		return;
+
+	gaudi3_iterate_nics(hdev, &iter_ctx);
 }
 
 static void gaudi3_stop_decoder_engine(struct hl_device *hdev, int hdcore, int inst, u32 offset,
@@ -8943,6 +9081,7 @@ static void gaudi3_halt_engines(struct hl_device *hdev, bool hard_reset, bool fw
 	gaudi3_stop_tpc_qmans(hdev);
 	gaudi3_stop_mme_qmans(hdev);
 	gaudi3_stop_rotator_qmans(hdev);
+	gaudi3_stop_nic_qmans(hdev);
 
 	msleep(wait_timeout_ms);
 
@@ -8961,6 +9100,7 @@ static void gaudi3_halt_engines(struct hl_device *hdev, bool hard_reset, bool fw
 	gaudi3_disable_tpc_qmans(hdev);
 	gaudi3_disable_mme_qmans(hdev);
 	gaudi3_disable_rotator_qmans(hdev);
+	gaudi3_disable_nic_qmans(hdev);
 
 	gaudi3_disable_timestamp(hdev);
 
@@ -10753,6 +10893,47 @@ static void gaudi3_get_decoder_idle_status(struct hl_device *hdev,
 	gaudi3_iterate_decoders(hdev, &iter_ctx);
 }
 
+static void gaudi3_is_nic_qman_idle(struct hl_device *hdev, int die, int inst, u32 offset,
+					struct iterate_module_ctx *ctx)
+{
+	u32 reg_base, qm_glbl_sts0, qm_glbl_sts1, qm_cgm_sts;
+	const char *format = "%-5d%-8d%-9s%#-14x%#-14x%#x\n";
+	struct gaudi3_idle_data *idle_data = ctx->data;
+	bool is_idle = true;
+	long eng_id;
+
+	reg_base = mmD0_NIC0_QM_BASE + offset;
+	if (!gaudi3_is_qman_idle(hdev, reg_base, &qm_glbl_sts0, &qm_glbl_sts1, &qm_cgm_sts))
+		is_idle = false;
+
+	if (idle_data->mask && !is_idle) {
+		eng_id = GAUDI3_DIE0_ENGINE_ID_NIC_0 + die * NIC_NUM_MACROS_PER_DIE + inst;
+		__set_bit(eng_id, idle_data->mask);
+	}
+
+	if (idle_data->e)
+		hl_engine_data_sprintf(idle_data->e, format, die, inst, is_idle ? "Y" : "N",
+					qm_glbl_sts0, qm_glbl_sts1, qm_cgm_sts);
+
+	*idle_data->is_idle &= is_idle;
+}
+
+static void gaudi3_get_nic_qmans_idle_status(struct hl_device *hdev,
+						struct gaudi3_idle_data *idle_data)
+{
+	const char *header = "\nDIE  NIC_QM  is_idle  QM_GLBL_STS0  QM_GLBL_STS1  QM_CGM_STS\n"
+				"---  ------  -------  ------------  ------------  ----------\n";
+	struct iterate_module_ctx iter_ctx = {
+		.fn = gaudi3_is_nic_qman_idle,
+		.data = idle_data
+	};
+
+	if (idle_data->e && hdev->sni_ports_mask)
+		hl_engine_data_sprintf(idle_data->e, header);
+
+	gaudi3_iterate_nics(hdev, &iter_ctx);
+}
+
 static void gaudi3_is_arc_farm_dup_idle(struct hl_device *hdev, int hdcore, int inst, u32 offset,
 					struct gaudi3_idle_data *idle_data)
 {
@@ -10818,6 +10999,7 @@ bool gaudi3_is_device_idle(struct hl_device *hdev, u64 *mask_arr, u8 mask_len,
 	gaudi3_get_mme_idle_status(hdev, &idle_data);
 	gaudi3_get_rotator_idle_status(hdev, &idle_data);
 	gaudi3_get_decoder_idle_status(hdev, &idle_data);
+	gaudi3_get_nic_qmans_idle_status(hdev, &idle_data);
 	gaudi3_get_arc_farm_dup_idle_status(hdev, &idle_data);
 
 	return is_idle;

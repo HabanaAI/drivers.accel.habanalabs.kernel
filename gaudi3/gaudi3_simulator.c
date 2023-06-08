@@ -1198,6 +1198,7 @@ static void gaudi3_sim_halt_engines(struct hl_device *hdev, bool hard_reset, boo
 	gaudi3_stop_tpc_qmans(hdev);
 	gaudi3_stop_mme_qmans(hdev);
 	gaudi3_stop_rotator_qmans(hdev);
+	gaudi3_stop_nic_qmans(hdev);
 
 	gaudi3_halt_arcs(hdev);
 	gaudi3_halt_pdma(hdev);
@@ -1212,6 +1213,7 @@ static void gaudi3_sim_halt_engines(struct hl_device *hdev, bool hard_reset, boo
 	gaudi3_disable_tpc_qmans(hdev);
 	gaudi3_disable_mme_qmans(hdev);
 	gaudi3_disable_rotator_qmans(hdev);
+	gaudi3_disable_nic_qmans(hdev);
 
 	if (hard_reset) {
 		hl_sni_stop(hdev);
@@ -1336,6 +1338,7 @@ static int gaudi3_sim_hw_init(struct hl_device *hdev)
 	gaudi3_init_mme(hdev);
 	gaudi3_init_rotator(hdev);
 	gaudi3_init_decoder(hdev);
+	gaudi3_init_nic_qmans(hdev);
 
 	rc = gaudi3_init_security(hdev);
 	if (rc)
