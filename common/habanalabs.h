@@ -4574,6 +4574,7 @@ void hl_debugfs_set_state_dump(struct hl_device *hdev, char *data,
 
 #else
 
+#if !IS_ENABLED(CONFIG_DRM_ACCEL)
 static inline void __init hl_debugfs_init(void)
 {
 }
@@ -4581,6 +4582,7 @@ static inline void __init hl_debugfs_init(void)
 static inline void hl_debugfs_fini(void)
 {
 }
+#endif /* !IS_ENABLED(CONFIG_DRM_ACCEL) */
 
 static inline int hl_debugfs_device_init(struct hl_device *hdev)
 {
@@ -4595,9 +4597,11 @@ static inline void hl_debugfs_add_device(struct hl_device *hdev)
 {
 }
 
+#if !IS_ENABLED(CONFIG_DRM_ACCEL)
 static inline void hl_debugfs_remove_device(struct hl_device *hdev)
 {
 }
+#endif
 
 static inline void hl_debugfs_add_file(struct hl_fpriv *hpriv)
 {
