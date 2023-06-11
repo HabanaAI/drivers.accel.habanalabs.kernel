@@ -12517,7 +12517,8 @@ static u32 gaudi3_handle_nic_status_event(struct hl_device *hdev,
 }
 
 static int gaudi3_handle_msg_event(struct hl_device *hdev,
-				struct hl_eq_dynamic_entry *eq_dynamic_entry, u64 *event_mask)
+				struct hl_eq_dynamic_entry *eq_dynamic_entry, u32 *reset_flags,
+				u64 *event_mask)
 {
 	u16 event_type;
 	u32 ctl;
@@ -12567,14 +12568,21 @@ static void gaudi3_print_hw_event_info(struct hl_device *hdev, struct hl_agg_eq_
 			gaudi3_get_interrupt_grp_name(agg_hdr->int_grp_type));
 }
 
-static void gaudi3_set_event_mask(struct hl_agg_eq_header *agg_hdr, u64 *event_mask)
+static void gaudi3_set_reset_flags_and_event_mask(struct hl_device *hdev,
+							struct hl_agg_eq_header *agg_hdr,
+							u32 *reset_flags, u64 *event_mask)
 {
 	enum hl_agg_component_type agg_component_type = agg_hdr->int_comp_type;
+	bool fw_reset = false, hard_reset = false, compute_reset = false;
 	enum hl_agg_grp_type agg_grp_type = agg_hdr->int_grp_type;
 
 	if (agg_grp_type == INT_GRP_TYPE_DERR) {
 		*event_mask = HL_NOTIFIER_EVENT_CRITICL_HW_ERR;
-		return;
+		if (hdev->asic_prop.fw_security_enabled)
+			fw_reset = true;
+		else
+			hard_reset = true;
+		goto out;
 	}
 
 	switch (agg_component_type) {
@@ -12589,24 +12597,45 @@ static void gaudi3_set_event_mask(struct hl_agg_eq_header *agg_hdr, u64 *event_m
 	case INT_COMP_TYPE_SOB:
 	case INT_COMP_TYPE_TPC:
 		*event_mask = HL_NOTIFIER_EVENT_USER_ENGINE_ERR;
+		compute_reset = true;
 		break;
 	case INT_COMP_TYPE_MC:
 		*event_mask = HL_NOTIFIER_EVENT_CRITICL_HW_ERR;
+		hard_reset = true;
 		break;
 	case INT_COMP_TYPE_CPU:
 	case INT_COMP_TYPE_PARC:
 		*event_mask = HL_NOTIFIER_EVENT_CRITICL_FW_ERR;
+		hard_reset = true;
 		break;
 	case INT_COMP_TYPE_PMMU:
 	case INT_COMP_TYPE_STLB:
-		if (agg_grp_type == INT_GRP_TYPE_SPI)
+		if (agg_grp_type == INT_GRP_TYPE_SPI) {
 			*event_mask = HL_NOTIFIER_EVENT_USER_ENGINE_ERR;
-		else
+			/* device reset is not required */
+		} else {
 			*event_mask = HL_NOTIFIER_EVENT_GENERAL_HW_ERR;
+			hard_reset = true;
+		}
 		break;
 	default:
 		*event_mask = HL_NOTIFIER_EVENT_GENERAL_HW_ERR;
+		hard_reset = true;
 		break;
+	}
+
+out:
+	if (compute_reset) {
+		*reset_flags = HL_DRV_RESET_DELAY;
+		*event_mask |= HL_NOTIFIER_EVENT_DEVICE_RESET;
+	} else if (hard_reset) {
+		*reset_flags = HL_DRV_RESET_HARD | HL_DRV_RESET_FW_FATAL_ERR | HL_DRV_RESET_DELAY;
+		*event_mask |= HL_NOTIFIER_EVENT_DEVICE_RESET;
+	} else if (fw_reset) {
+		*reset_flags = HL_DRV_RESET_HARD | HL_DRV_RESET_FW_FATAL_ERR |
+				HL_DRV_RESET_BYPASS_REQ_TO_FW;
+		*event_mask |= HL_NOTIFIER_EVENT_DEVICE_RESET |
+				HL_NOTIFIER_EVENT_DEVICE_UNAVAILABLE;
 	}
 }
 
@@ -12791,9 +12820,9 @@ static u32 gaudi3_handle_spi_event(struct hl_device *hdev,
 }
 
 static int gaudi3_handle_hw_event(struct hl_device *hdev,
-				struct hl_eq_dynamic_entry *eq_dynamic_entry, u64 *event_mask)
+				struct hl_eq_dynamic_entry *eq_dynamic_entry,
+				u32 *reset_flags, u64 *event_mask)
 {
-	u16 event_id = le16_to_cpu(eq_dynamic_entry->agg_hdr.event_id);
 	struct hl_agg_eq_header *agg_hdr = &eq_dynamic_entry->agg_hdr;
 	enum hl_agg_grp_type agg_grp_type = agg_hdr->int_grp_type;
 	u32 err_cnt = 0;
@@ -12806,10 +12835,10 @@ static int gaudi3_handle_hw_event(struct hl_device *hdev,
 		return rc;
 
 	/*
-	 * Set an initial notifier event mask value per event/component types.
-	 * A specific event handler can update it afterwards if needed.
+	 * Set initial values of reset flags and notifier event mask per event/component types.
+	 * A specific event handler can update them afterwards if needed.
 	 */
-	gaudi3_set_event_mask(agg_hdr, event_mask);
+	gaudi3_set_reset_flags_and_event_mask(hdev, agg_hdr, reset_flags, event_mask);
 
 	switch (agg_grp_type) {
 	case INT_GRP_TYPE_DERR:
@@ -12825,8 +12854,6 @@ static int gaudi3_handle_hw_event(struct hl_device *hdev,
 		break;
 	}
 
-	hl_fw_unmask_irq(hdev, event_id);
-
 	if (!err_cnt) {
 		dev_err(hdev->dev, "No error cause\n");
 		return -EIO;
@@ -12835,23 +12862,45 @@ static int gaudi3_handle_hw_event(struct hl_device *hdev,
 	return 0;
 }
 
+static void gaudi3_notifier_events_and_device_reset(struct hl_device *hdev, u32 reset_flags,
+							u64 event_mask, u16 event_id)
+{
+	bool skip_reset_on_fw_events = (!hdev->hard_reset_on_fw_events &&
+						!(reset_flags & HL_DRV_RESET_BYPASS_REQ_TO_FW));
+
+	if (!reset_flags || skip_reset_on_fw_events)
+		goto skip_device_reset;
+
+	hl_device_cond_reset(hdev, reset_flags, event_mask);
+
+	return;
+
+skip_device_reset:
+	if (event_mask)
+		hl_notifier_event_send_all(hdev, event_mask);
+	if (event_id != U16_MAX)
+		hl_fw_unmask_irq(hdev, event_id);
+}
+
 int gaudi3_handle_eqe(struct hl_device *hdev, struct hl_eq_dynamic_entry *eq_dynamic_entry)
 {
+	u32 ctl, reset_flags = 0;
+	u16 event_id = U16_MAX;
 	u64 event_mask = 0;
 	bool is_hw_event;
-	u32 ctl;
 	int rc;
 
 	ctl = le32_to_cpu(eq_dynamic_entry->hdr.ctl);
 	is_hw_event = !!FIELD_GET(EQ_CTL_EVENT_MODE_MASK, ctl);
 
-	if (is_hw_event)
-		rc = gaudi3_handle_hw_event(hdev, eq_dynamic_entry, &event_mask);
-	else
-		rc = gaudi3_handle_msg_event(hdev, eq_dynamic_entry, &event_mask);
+	if (is_hw_event) {
+		event_id = le16_to_cpu(eq_dynamic_entry->agg_hdr.event_id);
+		rc = gaudi3_handle_hw_event(hdev, eq_dynamic_entry, &reset_flags, &event_mask);
+	} else {
+		rc = gaudi3_handle_msg_event(hdev, eq_dynamic_entry, &reset_flags, &event_mask);
+	}
 
-	if (event_mask)
-		hl_notifier_event_send_all(hdev, event_mask);
+	gaudi3_notifier_events_and_device_reset(hdev, reset_flags, event_mask, event_id);
 
 	return rc;
 }
