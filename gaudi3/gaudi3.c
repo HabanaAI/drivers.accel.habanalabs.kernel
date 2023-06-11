@@ -3508,7 +3508,6 @@ int gaudi3_set_fixed_properties(struct hl_device *hdev)
 	sni_prop->res_qpc_base_size = RES_QPC_TOTAL_PORT_SIZE;
 	sni_prop->req_qpc_swl_base_size = REQ_QPC_SWL_TOTAL_PORT_SIZE;
 	sni_prop->status_packet_size = sizeof(struct cpucp_nic_status);
-	/* SW-69799: TODO fetch nic clock frequency from F/W once available. */
 	sni_prop->clk = GAUDI3_NIC_CLK_FREQ / USEC_PER_SEC;
 
 	return 0;
