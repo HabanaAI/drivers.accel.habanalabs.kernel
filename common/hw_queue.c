@@ -315,13 +315,6 @@ static void ext_queue_schedule_job(struct hl_cs_job *job)
 						job->contains_dma_pkt);
 
 	q->shadow_queue[hl_pi_2_offset(q->pi)] = job;
-
-	if (hdev->ifh) {
-		u32 *cq_kernel_addr = (u32 *) cq->kernel_address;
-
-		cq_kernel_addr[cq->pi] = le32_to_cpu(cq_pkt.data);
-	}
-
 	cq->pi = hl_cq_inc_ptr(cq->pi);
 
 submit_bd:
@@ -798,19 +791,6 @@ unroll_cq_resv:
 	}
 
 out:
-
-	if ((cs->submitted) && (hdev->ifh))
-		list_for_each_entry_safe(job, tmp, &cs->job_list, cs_node) {
-			struct hl_cq *cq;
-
-			if (job->queue_type != QUEUE_TYPE_EXT)
-				continue;
-
-			q = &hdev->kernel_queues[job->hw_queue_id];
-			cq = &hdev->completion_queue[q->cq_id];
-			hl_irq_handler_cq(cq->hw_queue_id, cq);
-		}
-
 	hdev->asic_funcs->hw_queues_unlock(hdev);
 
 	return rc;

@@ -4994,9 +4994,6 @@ void gaudi_ring_doorbell(struct hl_device *hdev, u32 hw_queue_id, u32 pi)
 
 	db_value = pi;
 
-	if ((hdev->ifh) && (hdev->init_done))
-		return;
-
 	/* ring the doorbell */
 	WREG32(db_reg_offset, db_value);
 
@@ -6063,9 +6060,6 @@ static int gaudi_memset_device_memory(struct hl_device *hdev, u64 addr,
 	u32 cb_size, ctl, err_cause;
 	struct hl_cb *cb;
 	int rc;
-
-	if (hdev->ifh)
-		return 0;
 
 	cb = hl_cb_kernel_create(hdev, PAGE_SIZE, false);
 	if (!cb)

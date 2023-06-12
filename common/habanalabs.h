@@ -3955,7 +3955,6 @@ struct hl_device {
 	u8				sni_load_fw;
 	u8				rl_enable;
 	u8				sram_binning;
-	u8				ifh;
 	u8				force_driver_clock_gating;
 	u8				pll_async_if_enable;
 	u8				bootfit_relocatable;

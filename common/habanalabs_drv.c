@@ -54,8 +54,6 @@ DEFINE_IDR(hl_devs_idr);
 DEFINE_MUTEX(hl_devs_idr_lock);
 #endif
 
-static int ifh;
-
 struct hl_pci_link_monitor {
 	struct completion comp;
 	struct task_struct *thread;
@@ -245,10 +243,6 @@ MODULE_PARM_DESC(ignore_eeprom_errors,
 module_param(pldm, int, 0444);
 MODULE_PARM_DESC(pldm,
 	"Palladium (0 = no, 1 = yes, default no)");
-
-module_param(ifh, int, 0444);
-MODULE_PARM_DESC(ifh,
-	"Infinitely Fast Hardware (0 = no, 1 = yes, default no)");
 
 module_param(bringup_flags_enable, int, 0444);
 MODULE_PARM_DESC(bringup_flags_enable,
@@ -1241,7 +1235,6 @@ static void copy_kernel_module_params_to_device(struct hl_device *hdev)
 {
 	hdev->asic_prop.fw_security_enabled = is_asic_secured(hdev->asic_type);
 
-	hdev->ifh = ifh;
 	hdev->major = hl_major;
 	hdev->accel_major = hl_accel_get_major();
 	hdev->hclass = hl_class;
@@ -1511,11 +1504,6 @@ static int fixup_device_params(struct hl_device *hdev)
 	/* ports ext and autoneg masks are subsets of device ports_pask */
 	hdev->sni_ports_ext_mask = nic_ports_ext_mask & hdev->sni_ports_mask;
 	hdev->sni_auto_neg_mask = nic_auto_neg_mask & hdev->sni_ports_mask;
-
-	if (hdev->ifh) {
-		hdev->heartbeat = 0;
-		hdev->sni_ports_mask = 0;
-	}
 
 	fixup_device_params_per_asic(hdev, tmp_timeout);
 
