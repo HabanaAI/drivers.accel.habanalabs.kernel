@@ -315,6 +315,7 @@ static void ext_queue_schedule_job(struct hl_cs_job *job)
 						job->contains_dma_pkt);
 
 	q->shadow_queue[hl_pi_2_offset(q->pi)] = job;
+
 	cq->pi = hl_cq_inc_ptr(cq->pi);
 
 submit_bd:
