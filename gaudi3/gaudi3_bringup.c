@@ -2713,8 +2713,7 @@ static void gaudi3_init_credits(struct hl_device *hdev)
  */
 void gaudi3_fabric_serialization_fini_fw_config(struct hl_device *hdev)
 {
-	/* TODO (SW-108260): Temporary allow those configs for SIM_GAUDI3_ARC */
-	if ((hdev->fw_components & FW_TYPE_BOOT_CPU) && (hdev->asic_type != ASIC_GAUDI3_SIM_ARC))
+	if (hdev->fw_components & FW_TYPE_BOOT_CPU)
 		return;
 
 	/* Disable Early Write (B)Response (Enable immediate fake mesh response) */
@@ -2743,8 +2742,7 @@ void gaudi3_fabric_serialization_fini_fw_config(struct hl_device *hdev)
  */
 void gaudi3_fabric_serialization_init_fw_config(struct hl_device *hdev)
 {
-	/* TODO (SW-108260): Temporary allow those configs for SIM_GAUDI3_ARC */
-	if ((hdev->fw_components & FW_TYPE_BOOT_CPU) && (hdev->asic_type != ASIC_GAUDI3_SIM_ARC))
+	if (hdev->fw_components & FW_TYPE_BOOT_CPU)
 		return;
 
 	/* Enable Early Write (B)Response (Enable immediate fake mesh response) */
@@ -2783,12 +2781,7 @@ void gaudi3_hw_init_fw_config(struct hl_device *hdev)
 	 */
 	gaudi3_cn_ecos_override(hdev);
 
-	/*
-	 * TODO (SW-108260) (SW-139644): Temporary allow those configs for SIM_GAUDI3_ARC
-	 * & GAUDI3 PLDM.
-	 */
-	if ((hdev->fw_components & FW_TYPE_BOOT_CPU) &&
-		((hdev->asic_type != ASIC_GAUDI3_SIM_ARC) && (!hdev->pldm)))
+	if (hdev->fw_components & FW_TYPE_BOOT_CPU)
 		return;
 
 	hdev->asic_funcs->set_binning_masks(hdev);
