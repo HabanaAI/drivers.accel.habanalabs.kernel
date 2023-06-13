@@ -876,7 +876,7 @@ enum __ethtool_link_mode_bit_indices_400000 {
 #endif
 
 #ifndef _HAS_RDMA_DRIVER_HLIB
-#define RDMA_DRIVER_HLIB	19
+#define RDMA_DRIVER_HLIB	21
 #endif
 
 #ifndef _HAS_IB_PORT_PHYS_STATE
