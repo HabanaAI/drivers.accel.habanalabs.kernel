@@ -1414,9 +1414,13 @@ static void fixup_device_params_per_asic(struct hl_device *hdev, int timeout)
 	case ASIC_GAUDI3_SIM:
 	case ASIC_GAUDI3_SIM_ARC:
 	case ASIC_GAUDI3:
-		/* DRAM cannot be used if SRAM is enabled */
+		/* DRAM cannot be used if SRAM is enabled
+		 * Cache cannot be used if DRAM is disabled
+		 */
 		if (!hdev->cache_enable)
 			hdev->dram_enable = 0;
+		else if (!hdev->dram_enable)
+			hdev->cache_enable = 0;
 
 		if (single_die_asic || hdev->force_h9_single_die) {
 			if (hdev->glbl_errors_read_enable) {
