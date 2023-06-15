@@ -1033,8 +1033,19 @@ int gaudi3_set_cache_mode(struct hl_device *hdev)
 	return 0;
 }
 
-static void gaudi3_sram_init_cslice(struct hl_device *hdev, int block, int inst,
-						u32 offset, struct iterate_module_ctx *ctx)
+static void gaudi3_set_cslice_sei_mask(struct hl_device *hdev, int block, int inst, u32 offset,
+					struct iterate_module_ctx *ctx)
+{
+	u32 mask = CACHE_MAIN_SEI_MASK_REG_FAR_HOST_REDUC_NUM_ERR_M |
+			CACHE_MAIN_SEI_MASK_REG_CLOSE_HOST_REDUC_NUM_ERR_M |
+			CACHE_MAIN_SEI_MASK_REG_AAB_REDUC_NUM_ERR_M |
+			CACHE_MAIN_SEI_MASK_REG_DN_CONV_NUM_ERR_M;
+
+	WREG32(offset + mmCACHE_MAIN_SEI_MASK_REG, mask);
+}
+
+static void gaudi3_enable_sram_mode(struct hl_device *hdev, int block, int inst, u32 offset,
+					struct iterate_module_ctx *ctx)
 {
 	u32 val = RREG32(offset + mmCACHE_MAIN_CNTRL_MAIN);
 
@@ -1047,22 +1058,18 @@ static void gaudi3_sram_init_cslice(struct hl_device *hdev, int block, int inst,
 	WREG32(offset + mmCACHE_MAIN_CNTRL_MAIN, val);
 }
 
-static void gaudi3_sram_init(struct hl_device *hdev)
+static void gaudi3_init_cslice(struct hl_device *hdev)
 {
 	struct gaudi3_device *gaudi3 = hdev->asic_specific;
-	struct iterate_module_ctx ctx = {
-		.fn = gaudi3_sram_init_cslice,
-	};
+	struct iterate_module_ctx ctx = {};
 
-	if (hdev->cache_enable)
+	if (gaudi3->hw_cap_initialized & HW_CAP_CSLICE)
 		return;
 
-	if (gaudi3->hw_cap_initialized & HW_CAP_SRAM)
-		return;
-
+	ctx.fn  = hdev->cache_enable ? gaudi3_set_cslice_sei_mask : gaudi3_enable_sram_mode;
 	gaudi3_iterate_cache_slices(hdev, &ctx);
 
-	gaudi3->hw_cap_initialized |= HW_CAP_SRAM;
+	gaudi3->hw_cap_initialized |= HW_CAP_CSLICE;
 }
 
 static void gaudi3_reset_config(struct hl_device *hdev)
@@ -2788,7 +2795,7 @@ void gaudi3_hw_init_fw_config(struct hl_device *hdev)
 
 	gaudi3_print_sol_config_version(hdev);
 	gaudi3_reset_config(hdev);
-	gaudi3_sram_init(hdev);
+	gaudi3_init_cslice(hdev);
 	gaudi3_init_credits(hdev);
 	gaudi3_set_isolation(hdev, false, false);
 	gaudi3_init_cbc_fw_config(hdev);

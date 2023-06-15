@@ -7879,7 +7879,7 @@ void gaudi3_clear_hw_cap(struct hl_device *hdev, bool hard_reset)
 						HW_CAP_SCRAMBLER_MASK | HW_CAP_CPU |
 						HW_CAP_CPU_Q | HW_CAP_D2D | HW_CAP_CREDITS_MASK |
 						HW_CAP_QOS_MASK | HW_CAP_CACHE_MASK |
-						HW_CAP_SET_CACHE_MODE_MASK | HW_CAP_SRAM);
+						HW_CAP_SET_CACHE_MODE_MASK | HW_CAP_CSLICE);
 }
 
 static int gaudi3_wait_reset(struct hl_device *hdev, u32 reset_poll_timeout_us,
