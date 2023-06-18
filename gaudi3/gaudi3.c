@@ -4167,7 +4167,6 @@ static void gaudi3_init_pdma_ch_blk_b(struct hl_device *hdev, u32 reg_base, u8 c
 		FIELD_PREP(PDMA_CH_B_PQM_CH_HBW_AXCACHE_WR_M, AXCACHE_DO_NOT_SKIP_CACHE);
 	WREG32(reg_base + PDMA_CH_B_OFFSET + mmPDMA_CH_B_PQM_CH_HBW_AXCACHE, axcache);
 
-	gaudi3->hw_cap_pdma_initialized |= BIT(ch_id);
 }
 
 static void gaudi3_pdma_mmu_prepare(struct hl_device *hdev, u32 asid)
