@@ -1,11 +1,5 @@
 # SPDX-License-Identifier: GPL-2.0-only
 
-ifdef OFED_PATH
-IB_PATH=$(OFED_PATH)
-else
-IB_PATH="."
-endif
-
 ifneq ($(shell grep "u64_to_user_ptr" include/linux/kernel.h > /dev/null 2>&1 && echo 1),)
 	ccflags-y += -D_HAS_U64_TO_USERPTR
 endif
@@ -355,90 +349,6 @@ ifneq ($(shell grep -w "kernel_write" include/linux/fs.h | grep ", loff_t \*" > 
 	ccflags-y += -D_HAS_KERNEL_WRITE_WITH_PTR
 endif
 
-ifneq ($(shell grep "200000baseKR4_Full_BIT" include/uapi/linux/ethtool.h > /dev/null 2>&1 && echo 1),)
-	ccflags-y += -D_HAS_200G_KSETTINGS
-endif
-
-ifneq ($(shell grep "400000baseKR4_Full_BIT" include/uapi/linux/ethtool.h $(IB_PATH)/include/linux/ethtool.h > /dev/null 2>&1 && echo 1),)
-	ccflags-y += -D_HAS_400G_KSETTINGS
-endif
-
-ifneq ($(shell grep "ib_alloc_device(drv_struct, member)" $(IB_PATH)/include/rdma/ib_verbs.h > /dev/null 2>&1 && echo 1),)
-	ccflags-y += -D_HAS_SAFE_IB_ALLOC_DEVICE
-endif
-
-ifneq ($(shell grep -A1 "int ib_register_device" $(IB_PATH)/include/rdma/ib_verbs.h | grep dma_device > /dev/null 2>&1 && echo 1),)
-	ccflags-y += -D_HAS_DMA_IB_REGISTER_DEVICE
-endif
-
-ifneq ($(shell grep "get_port_immutable" $(IB_PATH)/include/rdma/ib_verbs.h | grep u32 > /dev/null 2>&1 && echo 1),)
-	ccflags-y += -D_HAS_EX_RDMA_PORTS
-endif
-
-ifneq ($(shell grep "DECLARE_RDMA_OBJ_SIZE(ib_qp)" $(IB_PATH)/include/rdma/ib_verbs.h > /dev/null 2>&1 && echo 1),)
-	ccflags-y += -D_HAS_IB_QP_SIZE
-endif
-
-ifneq ($(shell grep "DECLARE_RDMA_OBJ_SIZE(ib_cq)" $(IB_PATH)/include/rdma/ib_verbs.h > /dev/null 2>&1 && echo 1),)
-	ccflags-y += -D_HAS_IB_CQ_SIZE
-endif
-
-ifneq ($(shell grep "rdma_ah_init_attr" $(IB_PATH)/include/rdma/ib_verbs.h > /dev/null 2>&1 && echo 1),)
-	ccflags-y += -D_HAS_AH_INIT_ATTR
-endif
-
-ifneq ($(shell grep "int (\*create_qp)" $(IB_PATH)/include/rdma/ib_verbs.h > /dev/null 2>&1 && echo 1),)
-	ccflags-y += -D_HAS_INT_CREATE_QP
-endif
-
-ifneq ($(shell grep "int (\*dealloc_pd)" $(IB_PATH)/include/rdma/ib_verbs.h > /dev/null 2>&1 && echo 1),)
-	ccflags-y += -D_HAS_INT_DEALLOC_PD
-endif
-
-ifneq ($(shell grep "int (\*destroy_ah)" $(IB_PATH)/include/rdma/ib_verbs.h > /dev/null 2>&1 && echo 1),)
-	ccflags-y += -D_HAS_INT_DESTROY_AH
-endif
-
-ifneq ($(shell grep "int (\*create_cq)" $(IB_PATH)/include/rdma/ib_verbs.h > /dev/null 2>&1 && echo 1),)
-	ccflags-y += -D_HAS_INT_CREATE_CQ
-endif
-
-ifneq ($(shell grep "int (\*destroy_cq)" $(IB_PATH)/include/rdma/ib_verbs.h > /dev/null 2>&1 && echo 1),)
-	ccflags-y += -D_HAS_INT_DESTROY_CQ
-endif
-
-ifneq ($(shell grep "reg_user_mr_dmabuf" $(IB_PATH)/include/rdma/ib_verbs.h > /dev/null 2>&1 && echo 1),)
-	ccflags-y += -D_HAS_REG_USER_MR_DMABUF
-endif
-
-ifneq ($(shell grep "uverbs_ex_cmd_mask" $(IB_PATH)/include/rdma/ib_verbs.h > /dev/null 2>&1 && echo 1),)
-	ccflags-y += -D_HAS_EX_CMD_MASK
-endif
-
-ifneq ($(shell grep "RDMA_DRIVER_HLIB" $(IB_PATH)/include/uapi/rdma/ib_user_ioctl_verbs.h > /dev/null 2>&1 && echo 1),)
-	ccflags-y += -D_HAS_RDMA_DRIVER_HLIB
-endif
-
-ifneq ($(shell grep "ibdev_printk" $(IB_PATH)/include/rdma/ib_verbs.h > /dev/null 2>&1 && echo 1),)
-	ccflags-y += -D_HAS_IBDEV_PRINT
-endif
-
-ifneq ($(shell grep "reg_user_mr" $(IB_PATH)/include/rdma/ib_verbs.h | grep attr > /dev/null 2>&1 && echo 1),)
-	ccflags-y += -D_HAS_REG_MR_ATTR
-endif
-
-ifneq ($(shell grep -A1 "struct ib_device_ops {" $(IB_PATH)/include/rdma/ib_verbs.h | grep owner > /dev/null 2>&1 && echo 1),)
-	ccflags-y += -D_HAS_DEVICE_OPS_INFO
-endif
-
-ifneq ($(shell grep "enum ib_port_phys_state" $(IB_PATH)/include/rdma/ib_verbs.h > /dev/null 2>&1 && echo 1),)
-	ccflags-y += -D_HAS_IB_PORT_PHYS_STATE
-endif
-
-ifneq ($(shell grep "void (\*mmap_free)" $(IB_PATH)/include/rdma/ib_verbs.h > /dev/null 2>&1 && echo 1),)
-	ccflags-y += -D_HAS_MMAP_FREE
-endif
-
 ifneq ($(shell grep "check_add_overflow" include/linux/overflow.h > /dev/null 2>&1 && echo 1),)
 	ccflags-y += -D_HAS_CHECK_ADD_OVERFLOW
 endif
@@ -451,56 +361,12 @@ ifneq ($(shell grep -w -A 3 "get_coalesce" include/linux/ethtool.h | grep "struc
 	ccflags-y += -D_HAS_ETHTOOL_COALESCE_EXT_PARAMS
 endif
 
-ifneq ($(shell grep -w "uverbs_copy_to_struct_or_zero" $(IB_PATH)/Module.symvers > /dev/null 2>&1 && echo 1),)
-	ccflags-y += -D_HAS_UVERBS_COPY_TO_STRUCT_OR_ZERO
-endif
-
-ifneq ($(shell grep "unsigned int txqueue" include/linux/netdevice.h > /dev/null 2>&1 && echo 1),)
-	ccflags-y += -D_HAS_NDO_TX_TIMEOUT_TXQUEUE
-endif
-
-ifneq ($(shell grep "void (\*ndo_get_stats64)" include/linux/netdevice.h > /dev/null 2>&1 && echo 1),)
-	ccflags-y += -D_HAS_VOID_NDO_GET_STATS64
-endif
-
 ifneq ($(shell ls include/drm/drm_accel.h > /dev/null 2>&1 && echo 1),)
 	ccflags-y += -D_HAS_DRM_ACCEL_H
 endif
 
-ifdef OFED_PATH
-	ccflags-y += -D_HAS_IB_DEV_DBG
-endif
-
-ifneq ($(shell grep "netif_napi_add" -A4 include/linux/netdevice.h | grep '@weight' > /dev/null 2>&1 && echo 1),)
-	ccflags-y += -D_HAS_NAPI_ADD_WEIGHT
-endif
-
-ifneq ($(shell grep -w "IB_SPEED_NDR" $(IB_PATH)/include/rdma/ib_verbs.h > /dev/null 2>&1 && echo 1),)
-	ccflags-y += -D_HAS_IB_SPEED_NDR
-endif
-
 ifneq ($(shell (grep -A10 "struct class {" include/linux/device.h include/linux/device/class.h | grep "devnode" | grep "const struct device") > /dev/null 2>&1 && echo 1),)
 	ccflags-y += -D_HAS_DEVNODE_WITH_CONST_DEVICE
-endif
-
-ifneq ($(shell grep -w "alloc_hw_device_stats" $(IB_PATH)/include/rdma/ib_verbs.h > /dev/null 2>&1 && echo 1),)
-	ccflags-y += -D_HAS_IB_DEVICE_STATS
-endif
-
-ifneq ($(shell grep -w "struct rdma_stat_desc" $(IB_PATH)/include/rdma/ib_verbs.h > /dev/null 2>&1 && echo 1),)
-	ccflags-y += -D_HAS_STRUCT_RDMA_STAT_DESC
-endif
-
-ifneq ($(shell grep -w "fill_res_qp_entry" $(IB_PATH)/include/rdma/ib_verbs.h > /dev/null 2>&1 && echo 1),)
-	ccflags-y += -D_HAS_RES_QP_ENTRY
-endif
-
-ifneq ($(shell grep -w "rdma_nl_put_driver_string" $(IB_PATH)/include/rdma/restrack.h > /dev/null 2>&1 && echo 1),)
-	ccflags-y += -D_HAS_RES_RDMA_NL_PUT_DRIVER_STRING
-endif
-
-ifneq ($(shell grep "enum rdma_nldev_print_type" $(IB_PATH)/include/uapi/rdma/rdma_netlink.h > /dev/null 2>&1 && echo 1),)
-	ccflags-y += -D_HAS_ENUM_RDMA_NLDEV_PRINT_TYPE
 endif
 
 ifneq ($(shell ls include/linux/sched/clock.h > /dev/null 2>&1 && echo 1),)
@@ -509,10 +375,6 @@ endif
 
 ifneq ($(shell grep "vm_flags_set" include/linux/mm.h > /dev/null 2>&1 && echo 1),)
 	ccflags-y += -D_HAS_VM_FLAGS_SET
-endif
-
-ifneq ($(shell grep "eth_hw_addr_set" include/linux/etherdevice.h > /dev/null 2>&1 && echo 1),)
-	ccflags-y += -D_HAS_ETH_HW_ADDR_SET
 endif
 
 ifneq ($(shell grep "struct xarray\|RH_KABI_RENAME(radix_tree_root, xarray)" include/linux/xarray.h > /dev/null 2>&1 && echo 1),)

@@ -19,9 +19,6 @@
 #include <linux/dma-mapping.h>
 #include <linux/poll.h>
 #include <linux/etherdevice.h>
-#ifndef _HAS_RES_RDMA_NL_PUT_DRIVER_STRING
-#include <linux/skbuff.h>
-#endif
 #ifdef _HAS_GEN_POOL_CHUNK_WITH_ATOMIC_LONG
 #include <linux/genalloc.h>
 #endif
@@ -146,10 +143,8 @@ static inline void lo_hi_writeq(__u64 val, volatile void __iomem *addr)
 #endif /* !writeq */
 
 #ifndef _LOWER_32_BITS_USES_MASK
-
 #undef lower_32_bits
 #define lower_32_bits(n) ((u32)((n) & 0xffffffff))
-
 #endif
 
 #ifndef _HAS_DMA_POOL_ZALLOC
@@ -702,26 +697,6 @@ static inline u64 ktime_get_raw_ns(void)
 	 (~0ULL >> (BITS_PER_LONG_LONG - 1 - (h))))
 #endif /* !_HAS_OVERFLOW_PROT_IN_GENMASK */
 
-#ifndef SPEED_25000
-#define SPEED_25000		25000
-#endif
-
-#ifndef SPEED_50000
-#define SPEED_50000		50000
-#endif
-
-#ifndef SPEED_100000
-#define SPEED_100000		100000
-#endif
-
-#ifndef SPEED_200000
-#define SPEED_200000		200000
-#endif
-
-#ifndef SPEED_400000
-#define SPEED_400000		400000
-#endif
-
 #ifndef _HAS_STATIC_ASSERT
 #define static_assert(expr, ...) __static_assert(expr, ##__VA_ARGS__, #expr)
 #define __static_assert(expr, msg, ...) _Static_assert(expr, msg)
@@ -861,36 +836,6 @@ static inline u32 get_random_u32(void)
 }
 #endif
 
-#ifndef _HAS_200G_KSETTINGS
-enum __ethtool_link_mode_bit_indices_200000 {
-	ETHTOOL_LINK_MODE_200000baseKR4_Full_BIT	 = 62,
-	ETHTOOL_LINK_MODE_200000baseCR4_Full_BIT	 = 66,
-};
-#endif
-
-#ifndef _HAS_400G_KSETTINGS
-enum __ethtool_link_mode_bit_indices_400000 {
-	ETHTOOL_LINK_MODE_400000baseKR4_Full_BIT	 = 85,
-	ETHTOOL_LINK_MODE_400000baseCR4_Full_BIT	 = 89,
-};
-#endif
-
-#ifndef _HAS_RDMA_DRIVER_HLIB
-#define RDMA_DRIVER_HLIB	21
-#endif
-
-#ifndef _HAS_IB_PORT_PHYS_STATE
-enum ib_port_phys_state {
-	IB_PORT_PHYS_STATE_SLEEP = 1,
-	IB_PORT_PHYS_STATE_POLLING = 2,
-	IB_PORT_PHYS_STATE_DISABLED = 3,
-	IB_PORT_PHYS_STATE_PORT_CONFIGURATION_TRAINING = 4,
-	IB_PORT_PHYS_STATE_LINK_UP = 5,
-	IB_PORT_PHYS_STATE_LINK_ERROR_RECOVERY = 6,
-	IB_PORT_PHYS_STATE_PHY_TEST = 7,
-};
-#endif
-
 #ifndef _HAS_CHECK_ADD_OVERFLOW
 #define check_add_overflow(a, b, d) ({		\
 	typeof(a) __a = (a);			\
@@ -902,14 +847,6 @@ enum ib_port_phys_state {
 })
 #endif
 
-#ifndef _HAS_IB_SPEED_NDR
-#define IB_SPEED_NDR	128
-#endif
-
-#ifndef _HAS_RES_RDMA_NL_PUT_DRIVER_STRING
-int rdma_nl_put_driver_string(struct sk_buff *msg, const char *name, const char *str);
-#endif
-
 #ifndef _HAS_MEMSET32
 void *memset32(uint32_t *s, uint32_t v, size_t count);
 #endif
@@ -918,13 +855,6 @@ void *memset32(uint32_t *s, uint32_t v, size_t count);
 static inline void vm_flags_set(struct vm_area_struct *vma, vm_flags_t flags)
 {
 	vma->vm_flags |= flags;
-}
-#endif
-
-#ifndef _HAS_ETH_HW_ADDR_SET
-static inline void eth_hw_addr_set(struct net_device *dev, const u8 *addr)
-{
-	ether_addr_copy(dev->dev_addr, addr);
 }
 #endif
 
