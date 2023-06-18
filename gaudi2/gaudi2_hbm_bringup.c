@@ -20,7 +20,6 @@
 #define MC_CHANNELS_NUM				(4)
 #define HBM_MC_NUM				(2)
 #define HBM_PC_NUM				(16)
-/* TODO: use calculation from headers */
 #define PHY_CFG_BASE				(0x5040000)
 #define PHY_CHIPLET_SHIFT			(18)
 #define PHY_CHIPLET_MASK			(0x3c0000)

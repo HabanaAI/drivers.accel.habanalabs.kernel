@@ -205,7 +205,6 @@ static void gaudi2_sni_config_hw_rxe_no_fw(struct hl_device *hdev, u32 port)
 	if (hdev->fw_components & FW_TYPE_BOOT_CPU)
 		return;
 
-	/* TODO: HB_OVRD_LO zero 11 LSBs */
 	NIC_WREG32(mmNIC0_RXE0_LBW_BASE_LO, lower_32_bits(CFG_BASE & U32_MAX));
 	NIC_WREG32(mmNIC0_RXE0_LBW_BASE_HI, upper_32_bits(CFG_BASE) & 0x3FFFF);
 
