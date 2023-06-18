@@ -9452,7 +9452,7 @@ static void gaudi3_split_job_between_all_pdma_channels(struct hl_device *hdev, v
 	struct gaudi3_pdma_job_params curr_job;
 	struct gaudi3_pdma_job_params *job_params = data;
 	struct gaudi3_device *gaudi3 = hdev->asic_specific;
-	u8 num_of_pdma = hdev->asic_prop.pdma_ch_max;
+	u8 num_of_pdma = hweight_long(gaudi3->hw_cap_pdma_initialized);
 	int i;
 
 	memset(&curr_job, 0, sizeof(struct gaudi3_pdma_job_params));
@@ -9460,7 +9460,7 @@ static void gaudi3_split_job_between_all_pdma_channels(struct hl_device *hdev, v
 	curr_job.size = job_params->size / num_of_pdma;
 	curr_job.is_memset = job_params->is_memset;
 
-	for (i = 0 ; i < num_of_pdma ; i++) {
+	for (i = 0 ; i < hdev->asic_prop.pdma_ch_max ; i++) {
 		if (!(gaudi3->hw_cap_pdma_initialized & BIT(i)))
 			continue;
 
