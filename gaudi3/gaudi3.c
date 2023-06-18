@@ -9447,6 +9447,19 @@ void gaudi3_pdma_print_debug_info(struct hl_device *hdev, u32 ch_idx)
 	gaudi3_pdma_print_grp_status(hdev, ch_idx);
 }
 
+static void gaudi3_pdma_print_debug_info_all_ch(struct hl_device *hdev)
+{
+	struct gaudi3_device *gaudi3 = hdev->asic_specific;
+	int i;
+
+	for (i = 0 ; i < hdev->asic_prop.pdma_ch_max ; i++) {
+		if (!(gaudi3->hw_cap_pdma_initialized & BIT(i)))
+			continue;
+
+		gaudi3_pdma_print_debug_info(hdev, i);
+	}
+}
+
 static void gaudi3_split_job_between_all_pdma_channels(struct hl_device *hdev, void *data)
 {
 	struct gaudi3_pdma_job_params curr_job;
@@ -9792,6 +9805,8 @@ static int gaudi3_test_pdma_access(struct hl_device *hdev)
 	gaudi3_test_pdma_clear_ctrl_regs(hdev);
 
 exit:
+	if (rc)
+		gaudi3_pdma_print_debug_info_all_ch(hdev);
 	ret = gaudi3_test_pdma_job_fini(hdev, &test_params);
 	return rc ? rc : ret;
 }
