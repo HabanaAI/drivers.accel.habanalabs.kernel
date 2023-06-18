@@ -10079,6 +10079,7 @@ int gaudi3_test_cpu_queue(struct hl_device *hdev)
 
 int gaudi3_test_queues(struct hl_device *hdev)
 {
+	struct gaudi3_device *gaudi3 = hdev->asic_specific;
 	int rc;
 
 	/* TODO: used for debug, so can be removed once H9-5315 is resolved.
@@ -10087,7 +10088,8 @@ int gaudi3_test_queues(struct hl_device *hdev)
 	 */
 	WREG32(mmD0_NRTR0_CRDT_RRTR_OB_CRDT_BASE + mmNRTR_CRDT_RRTR_OB_CRDT_CRDT_EN, 0x2);
 
-	dev_dbg(hdev->dev, "Testing PDMA access on %u channels\n", hdev->asic_prop.pdma_ch_max);
+	dev_dbg(hdev->dev, "Testing PDMA access on %lu channels\n",
+						hweight_long(gaudi3->hw_cap_pdma_initialized));
 
 	rc = gaudi3_test_pdma_access(hdev);
 	if (rc)
