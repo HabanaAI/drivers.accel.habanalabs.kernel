@@ -37,11 +37,6 @@ ccflags-y += $(HL_CFLAGS) -Werror
 habanalabs-y += common/simulator.o common/habanalabs_compat.o \
 		common/importer_drv.o common/habanalabs_compat_accel.o
 
-ifdef OFED_PATH
-LINUXINCLUDE := -I$(OFED_PATH)/include $(LINUXINCLUDE)
-KBUILD_EXTRA_SYMBOLS := $(OFED_PATH)/Module.symvers
-endif
-
 LINUXINCLUDE := -I$(src)/../../../include -I$(src) $(LINUXINCLUDE)
 
 # include the SNI driver symbols
