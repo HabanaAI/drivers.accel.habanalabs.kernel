@@ -39,11 +39,6 @@ habanalabs-y += common/simulator.o common/habanalabs_compat.o \
 
 LINUXINCLUDE := -I$(src)/../../../include -I$(src) $(LINUXINCLUDE)
 
-# include the SNI driver symbols
-KBUILD_EXTRA_SYMBOLS += $(src)/../../net/ethernet/habanalabs/sni/Module.symvers
-
-export KBUILD_EXTRA_SYMBOLS
-
 else
 # normal makefile
 

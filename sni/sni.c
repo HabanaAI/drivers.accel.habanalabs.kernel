@@ -763,6 +763,7 @@ static void hl_sni_aux_drv_fini(struct hl_device *hdev)
 #else
 static int hl_sni_aux_drv_init(struct hl_device *hdev)
 {
+	int (*probe)(struct hl_aux_dev *aux_dev);
 	struct hl_sni *sni = &hdev->sni;
 	int rc;
 
@@ -772,11 +773,16 @@ static int hl_sni_aux_drv_init(struct hl_device *hdev)
 		return rc;
 	}
 
-	rc = hl_sni_probe(&hdev->sni.sni_aux_dev);
-	if (rc) {
-		dev_err(hdev->dev, "SNI probe failed\n");
+	probe = symbol_get(hl_sni_probe);
+	if (!probe) {
+		dev_err(hdev->dev, "hl_sni_probe symbol wasn't found. Is %s module loaded?\n",
+			HL_SNI_NAME);
+		rc = -ENODEV;
 		goto probe_fail;
 	}
+
+	rc = probe(&hdev->sni.sni_aux_dev);
+	symbol_put(hl_sni_probe);
 
 	sni->is_sni_aux_dev_initialized = true;
 
@@ -790,12 +796,22 @@ probe_fail:
 
 static void hl_sni_aux_drv_fini(struct hl_device *hdev)
 {
+	void (*remove)(struct hl_aux_dev *aux_dev);
 	struct hl_sni *sni = &hdev->sni;
 
 	if (!sni->is_sni_aux_dev_initialized)
 		return;
 
-	hl_sni_remove(&hdev->sni.sni_aux_dev);
+	remove = symbol_get(hl_sni_remove);
+	if (!remove) {
+		dev_err(hdev->dev, "hl_sni_remove symbol wasn't found. Is %s module loaded?\n",
+			HL_SNI_NAME);
+		return;
+	}
+
+	remove(&hdev->sni.sni_aux_dev);
+	symbol_put(hl_sni_remove);
+
 	hl_sni_aux_data_fini(hdev);
 }
 #endif
