@@ -761,6 +761,7 @@ struct hl_mem_block_info {
  * @hard_reset_sleep_ms: sleep time in ms for hard reset
  * @soft_reset_sleep_ms: sleep time in mms for soft reset
  * @reset_poll_timeout_us: timeout in us for poll reset indication
+ * @reserved_fw_mem_size: size in MB of dram memory reserved for FW.
  * @collective_first_sob: first sync object available for collective use
  * @collective_first_mon: first monitor available for collective use
  * @sync_stream_first_sob: first sync object available for sync stream use
@@ -814,6 +815,7 @@ struct hl_mem_block_info {
  * @supports_odp: true is ODP is supported, otherwise false.
  * @supports_advanced_cpucp_rc: true if new cpucp opcodes are supported.
  * @supports_engine_modes: true if changing engines/engine_cores modes is supported.
+ * @support_dynamic_resereved_fw_size: true if we support dynamic reserved size for fw.
  */
 struct asic_fixed_properties {
 	struct hw_queue_properties	*hw_queues_props;
@@ -918,6 +920,7 @@ struct asic_fixed_properties {
 	u32				hard_reset_sleep_ms;
 	u32				soft_reset_sleep_ms;
 	u32				reset_poll_timeout_us;
+	u32				reserved_fw_mem_size;
 	u16				collective_first_sob;
 	u16				collective_first_mon;
 	u16				sync_stream_first_sob;
@@ -958,6 +961,7 @@ struct asic_fixed_properties {
 	u8				supports_odp;
 	u8				supports_advanced_cpucp_rc;
 	u8				supports_engine_modes;
+	u8				support_dynamic_resereved_fw_size;
 };
 
 /**
