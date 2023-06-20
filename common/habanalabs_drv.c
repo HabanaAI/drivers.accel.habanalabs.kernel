@@ -26,7 +26,6 @@
 #include <drm/drm_accel.h>
 #endif
 #include <drm/drm_drv.h>
-#include <drm/drm_ioctl.h>
 
 #define CREATE_TRACE_POINTS
 #include <trace/events/habanalabs.h>
@@ -562,22 +561,12 @@ static const struct pci_device_id ids[] = {
 MODULE_DEVICE_TABLE(pci, ids);
 
 #if IS_ENABLED(CONFIG_DRM_ACCEL)
-static const struct drm_ioctl_desc hl_drm_ioctls[] = {
-	DRM_IOCTL_DEF_DRV(HL_INFO, hl_info_ioctl, 0),
-	DRM_IOCTL_DEF_DRV(HL_CB, hl_cb_ioctl, 0),
-	DRM_IOCTL_DEF_DRV(HL_CS, hl_cs_ioctl, 0),
-	DRM_IOCTL_DEF_DRV(HL_WAIT_CS, hl_wait_ioctl, 0),
-	DRM_IOCTL_DEF_DRV(HL_MEMORY, hl_mem_ioctl, 0),
-	DRM_IOCTL_DEF_DRV(HL_DEBUG, hl_debug_ioctl, 0),
-	DRM_IOCTL_DEF_DRV(HL_NIC, hl_nic_ioctl, 0)
-};
-
 static const struct file_operations hl_fops = {
 	.owner = THIS_MODULE,
 	.open = accel_open,
 	.release = drm_release,
-	.unlocked_ioctl = drm_ioctl,
-	.compat_ioctl = drm_compat_ioctl,
+	.unlocked_ioctl = hl_ioctl,
+	.compat_ioctl = hl_ioctl,
 	.llseek = noop_llseek,
 	.mmap = hl_mmap
 };
@@ -594,9 +583,7 @@ static const struct drm_driver hl_driver = {
 
 	.fops = &hl_fops,
 	.open = hl_device_open,
-	.postclose = hl_device_release,
-	.ioctls = hl_drm_ioctls,
-	.num_ioctls = ARRAY_SIZE(hl_drm_ioctls)
+	.postclose = hl_device_release
 };
 #endif /* IS_ENABLED(CONFIG_DRM_ACCEL) */
 
