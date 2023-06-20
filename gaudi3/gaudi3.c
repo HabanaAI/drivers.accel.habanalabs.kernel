@@ -3486,6 +3486,7 @@ int gaudi3_set_fixed_properties(struct hl_device *hdev)
 
 	prop->max_dec = NUMBER_OF_DEC;
 	prop->supports_odp = true;
+	prop->support_dynamic_resereved_fw_size = true;
 
 	prop->hbw_flush_reg = mmD0_PCIE_WRAP_SPECIAL_BASE + mmPCIE_WRAP_SPECIAL_GLBL_SPARE_0;
 	prop->hard_reset_sleep_ms = hdev->pldm ? GAUDI3_PLDM_DUAL_DIE_HARD_RESET_WAIT_MSEC
@@ -7602,8 +7603,7 @@ int gaudi3_set_dynamic_dram_properties(struct hl_device *hdev)
 	if (!hdev->dram_enable)
 		return 0;
 
-	hbm_nic_base_offset = roundup(le32_to_cpu(prop->cpucp_info.fw_hbm_region_size),
-			prop->dram_page_size);
+	hbm_nic_base_offset = roundup(prop->reserved_fw_mem_size, prop->dram_page_size);
 	hbm_etr_offset = roundup(hbm_nic_base_offset + cn_prop->nic_drv_size,
 			prop->dram_page_size);
 	prop->etr_bufs_dram_phys_base = prop->dram_base_address + hbm_etr_offset;
