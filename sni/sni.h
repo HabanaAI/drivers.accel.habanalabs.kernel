@@ -9,7 +9,7 @@
 #define SNI_H_
 
 #include <uapi/drm/habanalabs_accel.h>
-#include <linux/habanalabs/sni.h>
+#include <linux/net/intel/sni.h>
 
 #include <linux/kfifo.h>
 #include <linux/hashtable.h>
