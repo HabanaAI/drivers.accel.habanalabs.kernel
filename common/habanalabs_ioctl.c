@@ -1687,7 +1687,10 @@ long hl_ioctl(struct file *filep, unsigned int cmd, unsigned long arg)
 		return -ENODEV;
 	}
 
-	if (nr >= HL_COMMAND_START && nr < HL_COMMAND_END) {
+	/* TODO: remove _OLD when removing old IOCTL defines (SW-114047) */
+	if (nr >= HL_COMMAND_START_OLD && nr < HL_COMMAND_END_OLD) {
+		ioctl = &hl_ioctls[nr - 1];
+	} else if (nr >= HL_COMMAND_START && nr < HL_COMMAND_END) {
 		ioctl = &hl_ioctls[nr - HL_COMMAND_START];
 	} else {
 		char task_comm[TASK_COMM_LEN];
@@ -1713,7 +1716,10 @@ long hl_ioctl_control(struct file *filep, unsigned int cmd, unsigned long arg)
 		return -ENODEV;
 	}
 
-	if (nr == _IOC_NR(DRM_IOCTL_HL_INFO)) {
+	/* TODO: remove _IOC_NR(HL_IOCTL_INFO) when removing old IOCTL defines (SW-114047) */
+	if (nr == _IOC_NR(HL_IOCTL_INFO)) {
+		ioctl = &hl_ioctls_control[nr - 1];
+	} else if (nr == _IOC_NR(DRM_IOCTL_HL_INFO)) {
 		ioctl = &hl_ioctls_control[nr - HL_COMMAND_START];
 	} else {
 		char task_comm[TASK_COMM_LEN];
