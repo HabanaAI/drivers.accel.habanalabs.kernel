@@ -6,7 +6,7 @@
  */
 
 #include "gaudiP.h"
-#include "gaudi_sni.h"
+#include "gaudi_cn.h"
 #include "../include/hw_ip/mmu/mmu_general.h"
 #include "../include/hw_ip/mmu/mmu_v1_1.h"
 #include "../include/gaudi/gaudi_masks.h"
@@ -531,7 +531,7 @@ static inline void set_default_power_values(struct hl_device *hdev)
 int gaudi_set_fixed_properties(struct hl_device *hdev)
 {
 	struct asic_fixed_properties *prop = &hdev->asic_prop;
-	struct hl_sni_properties *sni_prop = &prop->sni_props;
+	struct hl_cn_properties *cn_prop = &prop->cn_props;
 	u32 num_sync_stream_queues = 0;
 	int i;
 
@@ -707,25 +707,25 @@ int gaudi_set_fixed_properties(struct hl_device *hdev)
 	prop->fuse_data_0_reg = mmPSOC_EFUSE_DATA_0;
 	prop->fuse_words_per_bank = FUSE_WORDS_PER_BANK;
 
-	sni_prop->max_num_of_ports = NIC_NUMBER_OF_PORTS;
-	sni_prop->macro_cfg_size = mmNIC1_QM0_GLBL_CFG0 - mmNIC0_QM0_GLBL_CFG0;
-	sni_prop->nic_drv_addr = NIC_DRV_ADDR;
-	sni_prop->nic_drv_size = NIC_DRV_SIZE;
-	sni_prop->nic_drv_base_addr = NIC_DRV_BASE_ADDR;
-	sni_prop->nic_drv_end_addr = NIC_DRV_END_ADDR;
-	sni_prop->sb_base_addr = SB_BASE_ADDR;
-	sni_prop->sb_base_size = SB_BASE_SIZE;
-	sni_prop->swq_base_addr = SWQ_BASE_ADDR;
-	sni_prop->swq_base_size = SWQ_BASE_SIZE;
-	sni_prop->txs_base_addr = TXS_BASE_ADDR;
-	sni_prop->txs_base_size = TXS_BASE_SIZE;
-	sni_prop->tmr_base_addr = TMR_BASE_ADDR;
-	sni_prop->tmr_base_size = TMR_BASE_SIZE;
-	sni_prop->req_qpc_base_addr = REQ_QPC_BASE_ADDR;
-	sni_prop->req_qpc_base_size = REQ_QPC_BASE_SIZE;
-	sni_prop->res_qpc_base_addr = RES_QPC_BASE_ADDR;
-	sni_prop->res_qpc_base_size = RES_QPC_BASE_SIZE;
-	sni_prop->status_packet_size = NIC_STATUS_PACKET_SIZE;
+	cn_prop->max_num_of_ports = NIC_NUMBER_OF_PORTS;
+	cn_prop->macro_cfg_size = mmNIC1_QM0_GLBL_CFG0 - mmNIC0_QM0_GLBL_CFG0;
+	cn_prop->nic_drv_addr = NIC_DRV_ADDR;
+	cn_prop->nic_drv_size = NIC_DRV_SIZE;
+	cn_prop->nic_drv_base_addr = NIC_DRV_BASE_ADDR;
+	cn_prop->nic_drv_end_addr = NIC_DRV_END_ADDR;
+	cn_prop->sb_base_addr = SB_BASE_ADDR;
+	cn_prop->sb_base_size = SB_BASE_SIZE;
+	cn_prop->swq_base_addr = SWQ_BASE_ADDR;
+	cn_prop->swq_base_size = SWQ_BASE_SIZE;
+	cn_prop->txs_base_addr = TXS_BASE_ADDR;
+	cn_prop->txs_base_size = TXS_BASE_SIZE;
+	cn_prop->tmr_base_addr = TMR_BASE_ADDR;
+	cn_prop->tmr_base_size = TMR_BASE_SIZE;
+	cn_prop->req_qpc_base_addr = REQ_QPC_BASE_ADDR;
+	cn_prop->req_qpc_base_size = REQ_QPC_BASE_SIZE;
+	cn_prop->res_qpc_base_addr = RES_QPC_BASE_ADDR;
+	cn_prop->res_qpc_base_size = RES_QPC_BASE_SIZE;
+	cn_prop->status_packet_size = NIC_STATUS_PACKET_SIZE;
 
 	return 0;
 }
@@ -1127,15 +1127,15 @@ out:
 	return rc;
 }
 
-static int gaudi_sni_clear_mem(struct hl_device *hdev)
+static int gaudi_cn_clear_mem(struct hl_device *hdev)
 {
-	struct hl_sni_properties *sni_prop = &hdev->asic_prop.sni_props;
+	struct hl_cn_properties *cn_prop = &hdev->asic_prop.cn_props;
 
-	if (!hdev->sni_ports_mask)
+	if (!hdev->cn_ports_mask)
 		return 0;
 
-	return gaudi_memset_device_memory(hdev, sni_prop->nic_drv_addr,
-		sni_prop->nic_drv_size, 0);
+	return gaudi_memset_device_memory(hdev, cn_prop->nic_drv_addr,
+		cn_prop->nic_drv_size, 0);
 }
 
 static void gaudi_collective_map_sobs(struct hl_device *hdev, u32 stream)
@@ -1700,10 +1700,10 @@ int gaudi_late_init(struct hl_device *hdev)
 	}
 
 	if ((hdev->card_type == cpucp_card_type_pci) &&
-			(hdev->sni_ports_mask & 0x3)) {
+			(hdev->cn_ports_mask & 0x3)) {
 		dev_info(hdev->dev,
 			"PCI card detected, only 8 ports are enabled\n");
-		hdev->sni_ports_mask &= ~0x3;
+		hdev->cn_ports_mask &= ~0x3;
 
 		/* Stop and disable unused NIC QMANs */
 		WREG32(mmNIC0_QM0_GLBL_CFG1, NIC0_QM0_GLBL_CFG1_PQF_STOP_MASK |
@@ -1749,9 +1749,9 @@ int gaudi_late_init(struct hl_device *hdev)
 		goto disable_pci_access;
 	}
 
-	rc = gaudi_sni_clear_mem(hdev);
+	rc = gaudi_cn_clear_mem(hdev);
 	if (rc) {
-		dev_err(hdev->dev, "Failed to clear SNI memory\n");
+		dev_err(hdev->dev, "Failed to clear CN memory\n");
 		goto disable_pci_access;
 	}
 
@@ -2066,8 +2066,8 @@ irqreturn_t gaudi_irq_handler_single(int irq, void *arg)
 {
 	struct hl_device *hdev = arg;
 	struct gaudi_device *gaudi = hdev->asic_specific;
-	struct gaudi_sni_aux_ops *aux_ops = &gaudi->sni_aux_ops;
-	struct hl_aux_dev *aux_dev = &hdev->sni.sni_aux_dev;
+	struct gaudi_cn_aux_ops *aux_ops = &gaudi->cn_aux_ops;
+	struct hl_aux_dev *aux_dev = &hdev->cn.cn_aux_dev;
 	int i;
 
 	if (hdev->disabled)
@@ -2081,7 +2081,7 @@ irqreturn_t gaudi_irq_handler_single(int irq, void *arg)
 	 */
 	if (unlikely(aux_ops->rx_irq_handler))
 		for (i = 0 ; i < NIC_NUMBER_OF_PORTS ; i++)
-			if (hdev->sni_ports_mask & BIT(i))
+			if (hdev->cn_ports_mask & BIT(i))
 				aux_ops->rx_irq_handler(aux_dev, i);
 
 	if (unlikely(aux_ops->cq_irq_handler))
@@ -3665,7 +3665,7 @@ void gaudi_init_nic_qmans(struct hl_device *hdev)
 			mmNIC1_QM0_GLBL_CFG0 - mmNIC0_QM0_GLBL_CFG0;
 	int i, nic_id, internal_q_index;
 
-	if (!hdev->sni_ports_mask)
+	if (!hdev->cn_ports_mask)
 		return;
 
 	if (gaudi->hw_cap_initialized & HW_CAP_NIC_MASK)
@@ -3674,7 +3674,7 @@ void gaudi_init_nic_qmans(struct hl_device *hdev)
 	dev_dbg(hdev->dev, "Initializing NIC QMANs\n");
 
 	for (nic_id = 0 ; nic_id < NIC_NUMBER_OF_ENGINES ; nic_id++) {
-		if (!(hdev->sni_ports_mask & (1 << nic_id))) {
+		if (!(hdev->cn_ports_mask & (1 << nic_id))) {
 			nic_offset += nic_delta_between_qmans;
 			if (nic_id & 1) {
 				nic_offset -= (nic_delta_between_qmans * 2);
@@ -4036,7 +4036,7 @@ static void gaudi_halt_engines(struct hl_device *hdev, bool hard_reset, bool fw_
 	 * H/W. This must be done before we stop the CPU as the NIC
 	 * might use it e.g. get/set EEPROM data.
 	 */
-	hl_sni_hard_reset_prepare(hdev);
+	hl_cn_hard_reset_prepare(hdev);
 
 	if (fw_reset)
 		goto skip_engines;
@@ -4066,7 +4066,7 @@ static void gaudi_halt_engines(struct hl_device *hdev, bool hard_reset, bool fw_
 
 skip_engines:
 	/* NIC stop must be called before MSI is disabled */
-	hl_sni_stop(hdev);
+	hl_cn_stop(hdev);
 	gaudi_disable_msi(hdev);
 }
 
@@ -8322,7 +8322,7 @@ void gaudi_handle_eqe(struct hl_device *hdev, struct hl_eq_entry *eq_entry)
 
 	case GAUDI_EVENT_STATUS_NIC0_ENG0 ... GAUDI_EVENT_STATUS_NIC4_ENG1:
 		/* the unmask packet will be sent after sending the status */
-		hl_sni_send_status(hdev, event_type - GAUDI_EVENT_STATUS_NIC0_ENG0, 0, 0);
+		hl_cn_send_status(hdev, event_type - GAUDI_EVENT_STATUS_NIC0_ENG0, 0, 0);
 		break;
 
 	case GAUDI_EVENT_FIX_POWER_ENV_S ... GAUDI_EVENT_FIX_THERMAL_ENV_E:
@@ -8340,7 +8340,7 @@ void gaudi_handle_eqe(struct hl_device *hdev, struct hl_eq_entry *eq_entry)
 	case GAUDI_EVENT_NIC3_QP1:
 	case GAUDI_EVENT_NIC4_QP0:
 	case GAUDI_EVENT_NIC4_QP1:
-		gaudi_sni_handle_qp_err(hdev, event_type);
+		gaudi_cn_handle_qp_err(hdev, event_type);
 		hl_fw_unmask_irq(hdev, event_type);
 		event_mask |= HL_NOTIFIER_EVENT_USER_ENGINE_ERR;
 		break;
@@ -8927,7 +8927,7 @@ int gaudi_ctx_init(struct hl_ctx *ctx)
 	if (ctx->asid == HL_KERNEL_ASID_ID)
 		return 0;
 
-	rc = hl_sni_ctx_init(ctx);
+	rc = hl_cn_ctx_init(ctx);
 	if (rc)
 		return rc;
 
@@ -8949,7 +8949,7 @@ void gaudi_ctx_fini(struct hl_ctx *ctx)
 
 	gaudi_internal_cb_pool_fini(ctx->hdev, ctx);
 
-	hl_sni_ctx_fini(ctx);
+	hl_cn_ctx_fini(ctx);
 }
 
 int gaudi_pre_schedule_cs(struct hl_cs *cs)
@@ -9367,7 +9367,7 @@ static void gaudi_update_nic_qmans_state(struct hl_device *hdev)
 		 * NIC is disabled
 		 */
 		if ((gaudi->hw_cap_initialized & nic_mask) &&
-				(!(hdev->sni_ports_mask & BIT(nic_id)))) {
+				(!(hdev->cn_ports_mask & BIT(nic_id)))) {
 
 			/* Stop and disable the NIC QMAN */
 			WREG32(mmNIC0_QM0_GLBL_CFG1 + nic_offset,
@@ -9396,11 +9396,11 @@ static void gaudi_update_nic_qmans_state(struct hl_device *hdev)
 	gaudi_collective_mstr_sob_mask_set(gaudi);
 }
 
-static int gaudi_sni_init(struct hl_device *hdev)
+static int gaudi_cn_init(struct hl_device *hdev)
 {
 	int rc;
 
-	rc = hl_sni_init(hdev);
+	rc = hl_cn_init(hdev);
 	if (rc)
 		return rc;
 
@@ -9808,9 +9808,9 @@ static const struct hl_asic_funcs gaudi_funcs = {
 	.get_eeprom_data = gaudi_get_eeprom_data,
 	.get_monitor_dump = gaudi_get_monitor_dump,
 	.send_cpu_message = gaudi_send_cpu_message,
-	.sni_init = gaudi_sni_init,
-	.sni_fini = hl_sni_fini,
-	.sni_control = hl_sni_control,
+	.cn_init = gaudi_cn_init,
+	.cn_fini = hl_cn_fini,
+	.cn_control = hl_cn_control,
 	.irq_vector = gaudi_irq_vector,
 	.pci_bars_map = gaudi_pci_bars_map,
 	.init_iatu = gaudi_init_iatu,
@@ -9849,7 +9849,7 @@ static const struct hl_asic_funcs gaudi_funcs = {
 	.get_sob_addr = gaudi_get_sob_addr,
 	.set_pci_memory_regions = gaudi_set_pci_memory_regions,
 	.get_stream_master_qid_arr = gaudi_get_stream_master_qid_arr,
-	.sni_funcs = &gaudi_sni_funcs,
+	.cn_funcs = &gaudi_cn_funcs,
 	.check_if_razwi_happened = gaudi_check_if_razwi_happened,
 	.scheduler_submit_buf = gaudi_scheduler_submit_buf,
 	.no_fw_monitor = gaudi_no_fw_monitor,

@@ -5269,19 +5269,19 @@ static void goya_cpu_init_scrambler_dram(struct hl_device *hdev)
 
 }
 
-int goya_sni_init(struct hl_device *hdev)
+int goya_cn_init(struct hl_device *hdev)
 {
 	return 0;
 }
 
-void goya_sni_fini(struct hl_device *hdev)
+void goya_cn_fini(struct hl_device *hdev)
 {
 
 }
 
-int goya_sni_control(struct hl_device *hdev, u32 op, void *input, void *output, struct hl_ctx *ctx)
+int goya_cn_control(struct hl_device *hdev, u32 op, void *input, void *output, struct hl_ctx *ctx)
 {
-	dev_err_ratelimited(hdev->dev, "SNI operations cannot be performed on Goya\n");
+	dev_err_ratelimited(hdev->dev, "CN operations cannot be performed on Goya\n");
 	return -ENXIO;
 }
 
@@ -5559,9 +5559,9 @@ static const struct hl_asic_funcs goya_funcs = {
 	.get_eeprom_data = goya_get_eeprom_data,
 	.get_monitor_dump = goya_get_monitor_dump,
 	.send_cpu_message = goya_send_cpu_message,
-	.sni_init = goya_sni_init,
-	.sni_fini = goya_sni_fini,
-	.sni_control = goya_sni_control,
+	.cn_init = goya_cn_init,
+	.cn_fini = goya_cn_fini,
+	.cn_control = goya_cn_control,
 	.pci_bars_map = goya_pci_bars_map,
 	.init_iatu = goya_init_iatu,
 	.rreg = hl_rreg,

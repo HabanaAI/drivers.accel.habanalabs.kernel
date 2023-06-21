@@ -5,71 +5,71 @@
  * All Rights Reserved.
  */
 
-#include "gaudi2_sni.h"
+#include "gaudi2_cn.h"
 #include "../include/gaudi2/asic_reg/gaudi2_regs.h"
 #include "../include/gaudi2/gaudi2_async_ids_map_extended.h"
 #include "../include/hw_ip/nic/nic_general.h"
 
-static bool gaudi2_sni_get_hw_cap(struct hl_device *hdev);
+static bool gaudi2_cn_get_hw_cap(struct hl_device *hdev);
 
-static_assert(MAX_PORTS_PER_NIC == HL_SNI_CPUCP_MAX_PORTS_PER_NIC);
+static_assert(MAX_PORTS_PER_NIC == HL_CN_CPUCP_MAX_PORTS_PER_NIC);
 
-static void gaudi2_sni_convert_intr_cause(struct hl_sni_eq_intr_cause *to,
+static void gaudi2_cn_convert_intr_cause(struct hl_cn_eq_intr_cause *to,
 						struct hl_eq_nic_intr_cause *from)
 {
 	int i;
 
 	to->intr_type = le32_to_cpu(from->intr_type);
 
-	for (i = 0 ; i < HL_SNI_CPUCP_MAX_PORTS_PER_NIC ; i++)
+	for (i = 0 ; i < HL_CN_CPUCP_MAX_PORTS_PER_NIC ; i++)
 		to->intr_cause[i].intr_cause_data =
 						le64_to_cpu(from->intr_cause[i].intr_cause_data);
 }
 
-int gaudi2_sni_handle_sw_error_event(struct hl_device *hdev, u16 event_type, u8 macro_index,
+int gaudi2_cn_handle_sw_error_event(struct hl_device *hdev, u16 event_type, u8 macro_index,
 					struct hl_eq_nic_intr_cause *nic_intr_cause)
 {
-	struct hl_aux_dev *aux_dev = &hdev->sni.sni_aux_dev;
+	struct hl_aux_dev *aux_dev = &hdev->cn.cn_aux_dev;
 	struct gaudi2_device *gaudi2 = hdev->asic_specific;
-	struct gaudi2_sni_aux_ops *aux_ops = &gaudi2->sni_aux_ops;
-	struct hl_sni_eq_intr_cause sni_intr_cause = {};
+	struct gaudi2_cn_aux_ops *aux_ops = &gaudi2->cn_aux_ops;
+	struct hl_cn_eq_intr_cause cn_intr_cause = {};
 	u32 error_count = 0;
 
 	if (aux_ops->sw_err_event_handler) {
-		gaudi2_sni_convert_intr_cause(&sni_intr_cause, nic_intr_cause);
+		gaudi2_cn_convert_intr_cause(&cn_intr_cause, nic_intr_cause);
 		error_count = aux_ops->sw_err_event_handler(aux_dev, event_type, macro_index,
-								&sni_intr_cause);
+								&cn_intr_cause);
 	}
 
 	return error_count;
 }
 
-int gaudi2_sni_handle_axi_error_response_event(struct hl_device *hdev, u16 event_type,
+int gaudi2_cn_handle_axi_error_response_event(struct hl_device *hdev, u16 event_type,
 					u8 macro_index, struct hl_eq_nic_intr_cause *nic_intr_cause)
 {
-	struct hl_aux_dev *aux_dev = &hdev->sni.sni_aux_dev;
+	struct hl_aux_dev *aux_dev = &hdev->cn.cn_aux_dev;
 	struct gaudi2_device *gaudi2 = hdev->asic_specific;
-	struct gaudi2_sni_aux_ops *aux_ops = &gaudi2->sni_aux_ops;
-	struct hl_sni_eq_intr_cause sni_intr_cause = {};
+	struct gaudi2_cn_aux_ops *aux_ops = &gaudi2->cn_aux_ops;
+	struct hl_cn_eq_intr_cause cn_intr_cause = {};
 	u32 error_count = 0;
 
 	if (aux_ops->axi_error_response_event_handler) {
-		gaudi2_sni_convert_intr_cause(&sni_intr_cause, nic_intr_cause);
+		gaudi2_cn_convert_intr_cause(&cn_intr_cause, nic_intr_cause);
 		error_count = aux_ops->axi_error_response_event_handler(aux_dev, event_type,
-								macro_index, &sni_intr_cause);
+								macro_index, &cn_intr_cause);
 	}
 
 	return error_count;
 }
 
 /**
- * gaudi2_sni_disable_interrupts() - Disable interrupts of all ports.
- * Gaudi2 SNI interrupts are enabled by default, need to disable them ASAP
+ * gaudi2_cn_disable_interrupts() - Disable interrupts of all ports.
+ * Gaudi2 CN interrupts are enabled by default, need to disable them ASAP
  * before ports init and after hard reset.
  *
  * @hdev: habanalabs device structure.
  */
-void gaudi2_sni_disable_interrupts(struct hl_device *hdev)
+void gaudi2_cn_disable_interrupts(struct hl_device *hdev)
 {
 	u32 port;
 
@@ -80,7 +80,7 @@ void gaudi2_sni_disable_interrupts(struct hl_device *hdev)
 		gaudi2_disable_nic_interrupts_cpu_if(hdev);
 
 	/* Disable interrupts of all NICs */
-	if (hdev->sni_ports_mask) {
+	if (hdev->cn_ports_mask) {
 		/* we only need the port number for NIC_WREG32 */
 		for (port = 0 ; port < NIC_NUMBER_OF_PORTS ; port++) {
 			NIC_WREG32(mmNIC0_QPC0_EVENT_QUE_CFG, 0);
@@ -107,7 +107,7 @@ void gaudi2_sni_disable_interrupts(struct hl_device *hdev)
 }
 
 /**
- * gaudi2_sni_quiescence() - make sure that NIC does not generate events nor
+ * gaudi2_cn_quiescence() - make sure that NIC does not generate events nor
  *                           receives traffic.
  * Gaudi2 default values at power-up and after hard-reset are interrupts enabled
  * and Rx enabled, we need to disable them until driver configuration is
@@ -115,31 +115,31 @@ void gaudi2_sni_disable_interrupts(struct hl_device *hdev)
  *
  * @hdev: habanalabs device structure.
  */
-void gaudi2_sni_quiescence(struct hl_device *hdev)
+void gaudi2_cn_quiescence(struct hl_device *hdev)
 {
 	/*
 	 * Do not quiescence the ports during device release
 	 * reset aka soft reset flow.
 	 */
-	if (gaudi2_sni_get_hw_cap(hdev))
+	if (gaudi2_cn_get_hw_cap(hdev))
 		return;
 
 	dev_dbg(hdev->dev, "Quiescence the NICs\n");
 
-	gaudi2_sni_disable_interrupts(hdev);
+	gaudi2_cn_disable_interrupts(hdev);
 
 	/* quiescence phy before configuring to prevent any packet entering nic */
-	gaudi2_sni_quiescence_phy_no_fw(hdev);
+	gaudi2_cn_quiescence_phy_no_fw(hdev);
 }
 
-static bool gaudi2_sni_get_hw_cap(struct hl_device *hdev)
+static bool gaudi2_cn_get_hw_cap(struct hl_device *hdev)
 {
 	struct gaudi2_device *gaudi2 = hdev->asic_specific;
 
 	return (gaudi2->hw_cap_initialized & HW_CAP_NIC_DRV);
 }
 
-static void gaudi2_sni_set_hw_cap(struct hl_device *hdev, bool enable)
+static void gaudi2_cn_set_hw_cap(struct hl_device *hdev, bool enable)
 {
 	struct gaudi2_device *gaudi2 = hdev->asic_specific;
 
@@ -149,12 +149,12 @@ static void gaudi2_sni_set_hw_cap(struct hl_device *hdev, bool enable)
 		gaudi2->hw_cap_initialized &= ~HW_CAP_NIC_DRV;
 }
 
-int gaudi2_sni_set_info(struct hl_device *hdev, bool get_from_fw)
+int gaudi2_cn_set_info(struct hl_device *hdev, bool get_from_fw)
 {
 	struct cpucp_nic_info *nic_info = &hdev->asic_prop.cpucp_nic_info;
 	struct cpucp_info *cpucp_info = &hdev->asic_prop.cpucp_info;
 	struct cpucp_mac_addr *mac_arr = nic_info->mac_addrs;
-	struct hl_sni *sni = &hdev->sni;
+	struct hl_cn *cn = &hdev->cn;
 	u32 card_location, serdes_type = MAX_NUM_SERDES_TYPE;
 	u8 mac[ETH_ALEN], *mac_addr;
 	int rc, i;
@@ -175,9 +175,9 @@ int gaudi2_sni_set_info(struct hl_device *hdev, bool get_from_fw)
 			dev_dbg(hdev->dev,
 				"skipping NIC FW ports info on gaudi2B device with an overridden pci revision id\n");
 		} else {
-			hdev->sni_ports_mask &= le64_to_cpu(nic_info->link_mask[0]);
-			hdev->sni_ports_ext_mask &= le64_to_cpu(nic_info->link_ext_mask[0]);
-			hdev->sni_auto_neg_mask &= le64_to_cpu(nic_info->auto_neg_mask[0]);
+			hdev->cn_ports_mask &= le64_to_cpu(nic_info->link_mask[0]);
+			hdev->cn_ports_ext_mask &= le64_to_cpu(nic_info->link_ext_mask[0]);
+			hdev->cn_auto_neg_mask &= le64_to_cpu(nic_info->auto_neg_mask[0]);
 		}
 
 		serdes_type = le16_to_cpu(nic_info->serdes_type);
@@ -194,7 +194,7 @@ int gaudi2_sni_set_info(struct hl_device *hdev, bool get_from_fw)
 
 		/* check for invalid MAC addresses from F/W (bad OUI) */
 		for (i = 0 ; i < NIC_NUMBER_OF_PORTS ; i++) {
-			if (!(hdev->sni_ports_mask & BIT(i)))
+			if (!(hdev->cn_ports_mask & BIT(i)))
 				continue;
 
 			mac_addr = mac_arr[i].mac_addr;
@@ -214,14 +214,14 @@ int gaudi2_sni_set_info(struct hl_device *hdev, bool get_from_fw)
 			}
 		}
 
-		sni->card_location = le32_to_cpu(cpucp_info->card_location);
-		sni->use_fw_serdes_info = hdev->gaudi2_setup_type == GAUDI2_SETUP_TYPE_HLS2;
+		cn->card_location = le32_to_cpu(cpucp_info->card_location);
+		cn->use_fw_serdes_info = hdev->gaudi2_setup_type == GAUDI2_SETUP_TYPE_HLS2;
 	} else {
 		/* No F/W, hence need to set the MACs manually (randomize) */
 		get_random_bytes(&mac[3], 2);
 
 		for (i = 0 ; i < NIC_NUMBER_OF_PORTS ; i++) {
-			if (!(hdev->sni_ports_mask & BIT(i)))
+			if (!(hdev->cn_ports_mask & BIT(i)))
 				continue;
 
 			mac[ETH_ALEN - 1] = i;
@@ -241,7 +241,7 @@ int gaudi2_sni_set_info(struct hl_device *hdev, bool get_from_fw)
 			card_location &= PSOC_GLOBAL_CONF_BOOT_STRAP_PINS_H_I2C_SLV_ADDR_MASK;
 			card_location >>= PSOC_GLOBAL_CONF_BOOT_STRAP_PINS_H_I2C_SLV_ADDR_SHIFT;
 			cpucp_info->card_location = cpu_to_le32(card_location);
-			sni->card_location = card_location;
+			cn->card_location = card_location;
 			serdes_type &= PSOC_GLOBAL_CONF_BOOT_STRAP_PINS_H_RERERVED_STRAP_MASK;
 			serdes_type >>= PSOC_GLOBAL_CONF_BOOT_STRAP_PINS_H_RERERVED_STRAP_SHIFT;
 		} else {
@@ -267,35 +267,35 @@ int gaudi2_sni_set_info(struct hl_device *hdev, bool get_from_fw)
 	if (hdev->card_type == cpucp_card_type_pci ||
 			hdev->gaudi2_setup_type != GAUDI2_SETUP_TYPE_HLS2) {
 		if (hdev->asic_type != ASIC_GAUDI2B)
-			hdev->sni_ports_ext_mask = hdev->sni_ports_mask;
+			hdev->cn_ports_ext_mask = hdev->cn_ports_mask;
 
-		hdev->sni_auto_neg_mask &= ~hdev->sni_ports_ext_mask;
+		hdev->cn_auto_neg_mask &= ~hdev->cn_ports_ext_mask;
 	}
 
 	/* Disable ANLT on NIC 0 ports (due to lane swapping) */
-	hdev->sni_auto_neg_mask &= ~0x3;
+	hdev->cn_auto_neg_mask &= ~0x3;
 
 	return 0;
 }
 
-static int gaudi2_sni_pre_core_init(struct hl_device *hdev)
+static int gaudi2_cn_pre_core_init(struct hl_device *hdev)
 {
 	return 0;
 }
 
-static bool gaudi2_sni_can_unset_asid_cfg(struct hl_aux_dev *aux_dev)
+static bool gaudi2_cn_can_unset_asid_cfg(struct hl_aux_dev *aux_dev)
 {
-	struct hl_sni *sni = container_of(aux_dev, struct hl_sni, sni_aux_dev);
-	struct hl_device *hdev = container_of(sni, struct hl_device, sni);
+	struct hl_cn *cn = container_of(aux_dev, struct hl_cn, cn_aux_dev);
+	struct hl_device *hdev = container_of(cn, struct hl_device, cn);
 
 	/* For FW below 1.8 there is no option to unset the ASID. */
 	return !gaudi2_is_fw_ver_below_1_8(hdev);
 }
 
-static int gaudi2_sni_reset_mac_tx(struct hl_aux_dev *aux_dev, u32 port)
+static int gaudi2_cn_reset_mac_tx(struct hl_aux_dev *aux_dev, u32 port)
 {
-	struct hl_sni *sni = container_of(aux_dev, struct hl_sni, sni_aux_dev);
-	struct hl_device *hdev = container_of(sni, struct hl_device, sni);
+	struct hl_cn *cn = container_of(aux_dev, struct hl_cn, cn_aux_dev);
+	struct hl_device *hdev = container_of(cn, struct hl_device, cn);
 	struct cpucp_packet pkt;
 	int rc;
 
@@ -306,35 +306,35 @@ static int gaudi2_sni_reset_mac_tx(struct hl_aux_dev *aux_dev, u32 port)
 	rc = hdev->asic_funcs->send_cpu_message(hdev, (u32 *) &pkt, sizeof(pkt), 0, NULL);
 	if (rc) {
 		dev_err(hdev->dev, "Card %u Port %u: Failed to reset MAC Tx, rc %d\n",
-			sni->card_location, port, rc);
+			cn->card_location, port, rc);
 		return rc;
 	}
 
 	return 0;
 }
 
-static char *gaudi2_sni_get_event_name(struct hl_aux_dev *aux_dev, u16 event_type)
+static char *gaudi2_cn_get_event_name(struct hl_aux_dev *aux_dev, u16 event_type)
 {
 	return gaudi2_irq_map_table[event_type].valid ? gaudi2_irq_map_table[event_type].name :
 			"N/A Event";
 }
 
-static void gaudi2_sni_set_sni_data(struct hl_device *hdev)
+static void gaudi2_cn_set_cn_data(struct hl_device *hdev)
 {
 	struct gaudi2_device *gaudi2 = hdev->asic_specific;
-	struct gaudi2_sni_aux_data *gaudi2_aux_data;
-	struct gaudi2_sni_aux_ops *gaudi2_aux_ops;
-	struct hl_sni_aux_data *aux_data;
-	struct hl_sni_aux_ops *aux_ops;
-	struct hl_sni *sni = &hdev->sni;
+	struct gaudi2_cn_aux_data *gaudi2_aux_data;
+	struct gaudi2_cn_aux_ops *gaudi2_aux_ops;
+	struct hl_cn_aux_data *aux_data;
+	struct hl_cn_aux_ops *aux_ops;
+	struct hl_cn *cn = &hdev->cn;
 	struct hl_aux_dev *aux_dev;
 
-	aux_dev = &sni->sni_aux_dev;
+	aux_dev = &cn->cn_aux_dev;
 	aux_data = aux_dev->aux_data;
-	gaudi2_aux_data = &gaudi2->sni_aux_data;
+	gaudi2_aux_data = &gaudi2->cn_aux_data;
 	aux_data->asic_specific = gaudi2_aux_data;
 	aux_ops = aux_dev->aux_ops;
-	gaudi2_aux_ops = &gaudi2->sni_aux_ops;
+	gaudi2_aux_ops = &gaudi2->cn_aux_ops;
 	aux_ops->asic_ops = gaudi2_aux_ops;
 
 	gaudi2_aux_data->cfg_base = CFG_BASE;
@@ -344,41 +344,41 @@ static void gaudi2_sni_set_sni_data(struct hl_device *hdev)
 	gaudi2_aux_data->sob_id_base = GAUDI2_RESERVED_SOB_NIC_PORT_FIRST;
 	gaudi2_aux_data->sob_inc_cfg_val = GAUDI2_SOB_INCREMENT_BY_ONE;
 
-	/* sni2accel */
-	gaudi2_aux_ops->can_unset_asid_cfg = gaudi2_sni_can_unset_asid_cfg;
-	gaudi2_aux_ops->reset_mac_tx = gaudi2_sni_reset_mac_tx;
-	gaudi2_aux_ops->get_event_name = gaudi2_sni_get_event_name;
+	/* cn2accel */
+	gaudi2_aux_ops->can_unset_asid_cfg = gaudi2_cn_can_unset_asid_cfg;
+	gaudi2_aux_ops->reset_mac_tx = gaudi2_cn_reset_mac_tx;
+	gaudi2_aux_ops->get_event_name = gaudi2_cn_get_event_name;
 }
 
-void gaudi2_sni_compute_reset_prepare(struct hl_device *hdev)
+void gaudi2_cn_compute_reset_prepare(struct hl_device *hdev)
 {
 	struct gaudi2_device *gaudi2 = hdev->asic_specific;
-	struct gaudi2_sni_aux_ops *gaudi2_aux_ops;
-	struct hl_sni *sni = &hdev->sni;
+	struct gaudi2_cn_aux_ops *gaudi2_aux_ops;
+	struct hl_cn *cn = &hdev->cn;
 	struct hl_aux_dev *aux_dev;
 
-	aux_dev = &sni->sni_aux_dev;
-	gaudi2_aux_ops = &gaudi2->sni_aux_ops;
+	aux_dev = &cn->cn_aux_dev;
+	gaudi2_aux_ops = &gaudi2->cn_aux_ops;
 
 	if (gaudi2_aux_ops->reset_prepare)
 		gaudi2_aux_ops->reset_prepare(aux_dev);
 }
 
-void gaudi2_sni_compute_reset_late_init(struct hl_device *hdev)
+void gaudi2_cn_compute_reset_late_init(struct hl_device *hdev)
 {
 	struct gaudi2_device *gaudi2 = hdev->asic_specific;
-	struct gaudi2_sni_aux_ops *gaudi2_aux_ops;
-	struct hl_sni *sni = &hdev->sni;
+	struct gaudi2_cn_aux_ops *gaudi2_aux_ops;
+	struct hl_cn *cn = &hdev->cn;
 	struct hl_aux_dev *aux_dev;
 
-	aux_dev = &sni->sni_aux_dev;
-	gaudi2_aux_ops = &gaudi2->sni_aux_ops;
+	aux_dev = &cn->cn_aux_dev;
+	gaudi2_aux_ops = &gaudi2->cn_aux_ops;
 
 	if (gaudi2_aux_ops->reset_late_init)
 		gaudi2_aux_ops->reset_late_init(aux_dev);
 }
 
-static int gaudi2_sni_send_cpucp_packet(struct hl_device *hdev, u32 port,
+static int gaudi2_cn_send_cpucp_packet(struct hl_device *hdev, u32 port,
 					enum cpucp_packet_id packet_id, int val)
 {
 	struct cpucp_packet pkt;
@@ -398,23 +398,23 @@ static int gaudi2_sni_send_cpucp_packet(struct hl_device *hdev, u32 port,
 	return rc;
 }
 
-static void gaudi2_sni_post_send_status(struct hl_device *hdev, u32 port)
+static void gaudi2_cn_post_send_status(struct hl_device *hdev, u32 port)
 {
 	hl_fw_unmask_irq(hdev, GAUDI2_EVENT_CPU0_STATUS_NIC0_ENG0 + port);
 }
 
-static struct hl_sni_port_funcs gaudi2_sni_port_funcs = {
-	.spmu_get_stats_info = gaudi2_sni_spmu_get_stats_info,
-	.spmu_config = gaudi2_sni_spmu_config,
-	.spmu_sample = gaudi2_sni_spmu_sample,
-	.send_cpucp_packet = gaudi2_sni_send_cpucp_packet,
-	.post_send_status = gaudi2_sni_post_send_status,
+static struct hl_cn_port_funcs gaudi2_cn_port_funcs = {
+	.spmu_get_stats_info = gaudi2_cn_spmu_get_stats_info,
+	.spmu_config = gaudi2_cn_spmu_config,
+	.spmu_sample = gaudi2_cn_spmu_sample,
+	.send_cpucp_packet = gaudi2_cn_send_cpucp_packet,
+	.post_send_status = gaudi2_cn_post_send_status,
 };
 
-struct hl_sni_funcs gaudi2_sni_funcs = {
-	.get_hw_cap = gaudi2_sni_get_hw_cap,
-	.set_hw_cap = gaudi2_sni_set_hw_cap,
-	.pre_core_init = gaudi2_sni_pre_core_init,
-	.set_sni_data = gaudi2_sni_set_sni_data,
-	.port_funcs = &gaudi2_sni_port_funcs,
+struct hl_cn_funcs gaudi2_cn_funcs = {
+	.get_hw_cap = gaudi2_cn_get_hw_cap,
+	.set_hw_cap = gaudi2_cn_set_hw_cap,
+	.pre_core_init = gaudi2_cn_pre_core_init,
+	.set_cn_data = gaudi2_cn_set_cn_data,
+	.port_funcs = &gaudi2_cn_port_funcs,
 };

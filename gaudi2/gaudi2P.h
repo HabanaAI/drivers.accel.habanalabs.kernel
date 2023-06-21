@@ -551,8 +551,8 @@ struct gaudi2_queues_test_info {
  * @events_stat: array that holds histogram of all received events.
  * @events_stat_aggregate: same as events_stat but doesn't get cleared on reset.
  * @num_of_valid_hw_events: used to hold the number of valid H/W events.
- * @sni_aux_ops: functions for core <-> accel drivers communication.
- * @sni_aux_data: data to be used by the core driver.
+ * @cn_aux_ops: functions for core <-> accel drivers communication.
+ * @cn_aux_data: data to be used by the core driver.
  * @hbm_cfg: HBM subsystem settings
  * @hw_queues_lock_mutex: used by simulator instead of hw_queues_lock.
  * @queues_test_info: information used by the driver when testing the HW queues.
@@ -585,8 +585,8 @@ struct gaudi2_device {
 	u32				num_of_valid_hw_events;
 
 	/* NIC fields */
-	struct gaudi2_sni_aux_ops	sni_aux_ops;
-	struct gaudi2_sni_aux_data	sni_aux_data;
+	struct gaudi2_cn_aux_ops	cn_aux_ops;
+	struct gaudi2_cn_aux_data	cn_aux_data;
 
 	/* HBM fields */
 	enum gaudi2_hbm_freqs		hbm_pll_freq;
@@ -634,7 +634,7 @@ enum gaudi2_block_types {
 	GAUDI2_BLOCK_TYPE_MAX
 };
 
-extern struct hl_sni_funcs gaudi2_sni_funcs;
+extern struct hl_cn_funcs gaudi2_cn_funcs;
 extern const u32 gaudi2_dma_core_blocks_bases[DMA_CORE_ID_SIZE];
 extern const u32 gaudi2_qm_blocks_bases[GAUDI2_QUEUE_ID_SIZE];
 extern const u32 gaudi2_mme_acc_blocks_bases[MME_ID_SIZE];
@@ -660,16 +660,16 @@ void gaudi2_ack_protection_bits_errors(struct hl_device *hdev);
 int gaudi2_send_device_activity(struct hl_device *hdev, bool open);
 
 /* Functions exported for NIC */
-void gaudi2_init_sni(struct hl_device *hdev);
-void gaudi2_sni_spmu_get_stats_info(struct hl_device *hdev, u32 port, struct hl_sni_stat **stats,
+void gaudi2_init_cn(struct hl_device *hdev);
+void gaudi2_cn_spmu_get_stats_info(struct hl_device *hdev, u32 port, struct hl_cn_stat **stats,
 					u32 *n_stats);
-int gaudi2_sni_spmu_config(struct hl_device *hdev, u32 port, u32 num_event_types, u32 event_types[],
+int gaudi2_cn_spmu_config(struct hl_device *hdev, u32 port, u32 num_event_types, u32 event_types[],
 				bool enable);
-int gaudi2_sni_spmu_sample(struct hl_device *hdev, u32 port, u32 num_out_data, u64 out_data[]);
-void gaudi2_sni_disable_interrupts(struct hl_device *hdev);
-void gaudi2_sni_quiescence(struct hl_device *hdev);
-void gaudi2_sni_compute_reset_prepare(struct hl_device *hdev);
-void gaudi2_sni_compute_reset_late_init(struct hl_device *hdev);
+int gaudi2_cn_spmu_sample(struct hl_device *hdev, u32 port, u32 num_out_data, u64 out_data[]);
+void gaudi2_cn_disable_interrupts(struct hl_device *hdev);
+void gaudi2_cn_quiescence(struct hl_device *hdev);
+void gaudi2_cn_compute_reset_prepare(struct hl_device *hdev);
+void gaudi2_cn_compute_reset_late_init(struct hl_device *hdev);
 
 /* Functions exported for bring-up support */
 int gaudi2_init_pll(struct hl_device *hdev);
@@ -833,8 +833,8 @@ int gaudi2_set_engines(struct hl_device *hdev, u32 *engine_ids,
 int gaudi2_is_fw_ver_below_1_8(struct hl_device *hdev);
 
 /* Bringup functions (w/o F/W support) */
-void gaudi2_sni_quiescence_phy_no_fw(struct hl_device *hdev);
-void gaudi2_sni_blocks_fw_config(struct hl_device *hdev);
-void gaudi2_sni_restore_dynamic_cfg_soft_reset_fw(struct hl_device *hdev);
+void gaudi2_cn_quiescence_phy_no_fw(struct hl_device *hdev);
+void gaudi2_cn_blocks_fw_config(struct hl_device *hdev);
+void gaudi2_cn_restore_dynamic_cfg_soft_reset_fw(struct hl_device *hdev);
 
 #endif /* GAUDI2P_H_ */

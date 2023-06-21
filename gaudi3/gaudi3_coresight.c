@@ -5,7 +5,7 @@
  * All Rights Reserved.
  */
 #include "gaudi3_coresight_regs.h"
-#include "gaudi3_sni.h"
+#include "gaudi3_cn.h"
 #include <uapi/drm/habanalabs_accel.h>
 
 #define CORESIGHT_TIMEOUT_USEC		100000		/* 100 ms */
@@ -39,14 +39,14 @@ struct component_config_offsets {
 	u32 bmon_ids[MAX_BMONS_PER_UNIT];
 };
 
-static struct hl_sni_stat gaudi3_sni_spmu_stats[] = {
+static struct hl_cn_stat gaudi3_cn_spmu_stats[] = {
 	{"spmu_req_out_of_range_psn", 5},
 	{"spmu_req_unset_psn", 6},
 	{"spmu_res_duplicate_psn", 10},
 	{"spmu_res_out_of_sequence_psn", 11}
 };
 
-static size_t gaudi3_sni_spmu_stats_len = ARRAY_SIZE(gaudi3_sni_spmu_stats);
+static size_t gaudi3_cn_spmu_stats_len = ARRAY_SIZE(gaudi3_cn_spmu_stats);
 
 static u64 debug_funnel_regs[GAUDI3_FUNNEL_LAST + 1] = {
 	[GAUDI3_FUNNEL_HD0_TPC0_CS_DBG] = mmHD0_TPC0_CS_DBG_FUNNEL_BASE,
@@ -6555,17 +6555,17 @@ int gaudi3_coresight_init(struct hl_device *hdev)
 		/* Set NIC disable components */
 
 		half_size = CS_DBG_NIC_ID_SIZE >> 1;
-		enabled_mask = hdev->sni_ports_mask;
+		enabled_mask = hdev->cn_ports_mask;
 
 		/*
 		 * if PORT_LANES_2 - we have 2 bits in port mask per nic
 		 */
-		if (hdev->sni_lanes_per_port == PORT_LANES_2) {
+		if (hdev->cn_lanes_per_port == PORT_LANES_2) {
 			enabled_mask = 0x0;
 			tmp_mask_index = 0;
 
-			while (hdev->sni_ports_mask >> (tmp_mask_index << 1)) {
-				if ((hdev->sni_ports_mask >> (tmp_mask_index << 1)) & 0x3)
+			while (hdev->cn_ports_mask >> (tmp_mask_index << 1)) {
+				if ((hdev->cn_ports_mask >> (tmp_mask_index << 1)) & 0x3)
 					enabled_mask |= 1ULL << tmp_mask_index;
 				tmp_mask_index += 1;
 			}
@@ -6816,7 +6816,7 @@ static int gaudi3_sample_spmu(struct hl_device *hdev, struct hl_debug_params *pa
 	return 0;
 }
 
-void gaudi3_sni_spmu_get_stats_info(struct hl_device *hdev, u32 port, struct hl_sni_stat **stats,
+void gaudi3_cn_spmu_get_stats_info(struct hl_device *hdev, u32 port, struct hl_cn_stat **stats,
 					u32 *n_stats)
 {
 	if (!hdev->supports_coresight) {
@@ -6824,11 +6824,11 @@ void gaudi3_sni_spmu_get_stats_info(struct hl_device *hdev, u32 port, struct hl_
 		return;
 	}
 
-	*n_stats = gaudi3_sni_spmu_stats_len;
-	*stats = gaudi3_sni_spmu_stats;
+	*n_stats = gaudi3_cn_spmu_stats_len;
+	*stats = gaudi3_cn_spmu_stats;
 }
 
-int gaudi3_sni_spmu_config(struct hl_device *hdev, u32 port, u32 num_event_types, u32 event_types[],
+int gaudi3_cn_spmu_config(struct hl_device *hdev, u32 port, u32 num_event_types, u32 event_types[],
 				bool enable)
 {
 	struct hl_debug_params_spmu spmu;
@@ -6842,8 +6842,8 @@ int gaudi3_sni_spmu_config(struct hl_device *hdev, u32 port, u32 num_event_types
 	/* For odd ports in 200G mode, if SPMU is already configured for even port, then return,
 	 * since SPMU base regs are per macro.
 	 */
-	if (hdev->sni_lanes_per_port == PORT_LANES_2 && (port & 1) &&
-	    (hdev->sni_ports_mask & BIT(port - 1)))
+	if (hdev->cn_lanes_per_port == PORT_LANES_2 && (port & 1) &&
+	    (hdev->cn_ports_mask & BIT(port - 1)))
 		return 0;
 
 	/* validate nic port */
@@ -6871,7 +6871,7 @@ int gaudi3_sni_spmu_config(struct hl_device *hdev, u32 port, u32 num_event_types
 	return gaudi3_config_spmu(hdev, &params);
 }
 
-int gaudi3_sni_spmu_sample(struct hl_device *hdev, u32 port, u32 num_out_data, u64 out_data[])
+int gaudi3_cn_spmu_sample(struct hl_device *hdev, u32 port, u32 num_out_data, u64 out_data[])
 {
 	struct hl_debug_params params;
 
@@ -6892,7 +6892,7 @@ int gaudi3_sni_spmu_sample(struct hl_device *hdev, u32 port, u32 num_out_data, u
 	return gaudi3_sample_spmu(hdev, &params);
 }
 
-int gaudi3_sni_ack_spmu_bmon_interrupt(struct hl_device *hdev, int nic_macro_idx)
+int gaudi3_cn_ack_spmu_bmon_interrupt(struct hl_device *hdev, int nic_macro_idx)
 {
 	struct component_config_offsets *cs_cfg;
 	u32 pmcntenclr, pmintenclr;

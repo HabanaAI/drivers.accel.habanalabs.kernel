@@ -2,5 +2,5 @@
 HL_GAUDI_FILES := gaudi/gaudi.o gaudi/gaudi_security.o \
 	gaudi/gaudi_coresight.o
 
-HL_GAUDI_FILES += gaudi/gaudi_sni.o gaudi/gaudi_bringup.o \
+HL_GAUDI_FILES += gaudi/gaudi_cn.o gaudi/gaudi_bringup.o \
 	gaudi/gaudi_simulator.o gaudi/gaudi_security_emulation.o

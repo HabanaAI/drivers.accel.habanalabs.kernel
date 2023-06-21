@@ -5,8 +5,8 @@
  *
  */
 
-#ifndef GAUDI_SNI_H_
-#define GAUDI_SNI_H_
+#ifndef GAUDI_CN_H_
+#define GAUDI_CN_H_
 
 #include "gaudiP.h"
 #include "../include/gaudi/asic_reg/gaudi_regs.h"
@@ -112,4 +112,4 @@ static_assert(NIC_MAX_QP_NUM <= NIC_HW_MAX_QP_NUM);
 #define NIC_WREG32(reg, val)	WREG32(NIC_CFG_BASE(port) + (reg), (val))
 #define NIC_RMWREG32(reg, val, mask)	RMWREG32(NIC_CFG_BASE(port) + (reg), (val), (mask))
 
-#endif /* GAUDI_SNI_H_ */
+#endif /* GAUDI_CN_H_ */

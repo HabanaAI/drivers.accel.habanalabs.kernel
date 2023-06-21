@@ -113,7 +113,7 @@ static int gaudi3_fpga_early_init(struct hl_device *hdev)
 	struct pci_dev *pdev = hdev->pdev;
 	int rc;
 
-	rc = hl_sni_check_ib_driver(hdev);
+	rc = hl_cn_check_ib_driver(hdev);
 	if (rc)
 		return rc;
 
@@ -500,9 +500,9 @@ static const struct hl_asic_funcs gaudi3_fpga_funcs = {
 	.get_eeprom_data = NULL,
 	.get_monitor_dump = gaudi3_get_monitor_dump,
 	.send_cpu_message = gaudi3_fpga_send_cpu_message,
-	.sni_init = hl_sni_init,
-	.sni_fini = hl_sni_fini,
-	.sni_control = hl_sni_control,
+	.cn_init = hl_cn_init,
+	.cn_fini = hl_cn_fini,
+	.cn_control = hl_cn_control,
 	.pci_bars_map = gaudi3_fpga_pci_bars_map,
 	.init_iatu = gaudi3_fpga_init_iatu,
 	.rreg = hl_rreg,
@@ -541,7 +541,7 @@ static const struct hl_asic_funcs gaudi3_fpga_funcs = {
 	.get_sob_addr = &gaudi3_get_sob_addr,
 	.set_pci_memory_regions = gaudi3_fpga_set_pci_memory_regions,
 	.get_stream_master_qid_arr = gaudi3_get_stream_master_qid_arr,
-	.sni_funcs = &gaudi3_sni_funcs,
+	.cn_funcs = &gaudi3_cn_funcs,
 	.access_dev_mem = hl_access_dev_mem,
 	.set_dram_bar_base = gaudi3_fpga_set_hbm_bar_base,
 	.send_device_activity = gaudi3_send_device_activity,

@@ -367,8 +367,8 @@ struct gaudi_internal_qman_info {
 /**
  * struct gaudi_device - ASIC specific manage structure.
  * @cpucp_info_get: get information on device from CPU-CP.
- * @sni_aux_ops: functions for sni <-> accel drivers communication.
- * @sni_aux_data: data to be used by the sni driver.
+ * @cn_aux_ops: functions for cn <-> accel drivers communication.
+ * @cn_aux_data: data to be used by the cn driver.
  * @hw_queues_lock: protects the H/W queues from concurrent access.
  * @hw_queues_lock_mutex: used by simulator instead of hw_queues_lock.
  * @internal_qmans: Internal QMANs information. The array size is larger than
@@ -388,8 +388,8 @@ struct gaudi_internal_qman_info {
  */
 struct gaudi_device {
 	int (*cpucp_info_get)(struct hl_device *hdev);
-	struct gaudi_sni_aux_ops sni_aux_ops;
-	struct gaudi_sni_aux_data sni_aux_data;
+	struct gaudi_cn_aux_ops cn_aux_ops;
+	struct gaudi_cn_aux_data cn_aux_data;
 
 	/* TODO: remove hw_queues_lock after moving to scheduler code */
 	spinlock_t hw_queues_lock;
@@ -431,7 +431,7 @@ struct gaudi_device {
 	u8 compat_mode;
 };
 
-extern struct hl_sni_funcs gaudi_sni_funcs;
+extern struct hl_cn_funcs gaudi_cn_funcs;
 
 void gaudi_init_security(struct hl_device *hdev);
 void gaudi_ack_protection_bits_errors(struct hl_device *hdev);
@@ -590,13 +590,13 @@ int gaudi_set_dram_properties(struct hl_device *hdev);
 void gaudi_set_priv_assertions(struct hl_device *hdev, bool enable);
 int gaudi_set_binning_masks(struct hl_device *hdev);
 
-/* SNI functions */
-void gaudi_sni_handle_qp_err(struct hl_device *hdev, u16 event_type);
-void gaudi_sni_spmu_get_stats_info(struct hl_device *hdev, u32 port, struct hl_sni_stat **stats,
+/* CN functions */
+void gaudi_cn_handle_qp_err(struct hl_device *hdev, u16 event_type);
+void gaudi_cn_spmu_get_stats_info(struct hl_device *hdev, u32 port, struct hl_cn_stat **stats,
 					u32 *n_stats);
-int gaudi_sni_spmu_config(struct hl_device *hdev, u32 port, u32 num_event_types, u32 event_types[],
+int gaudi_cn_spmu_config(struct hl_device *hdev, u32 port, u32 num_event_types, u32 event_types[],
 				bool enable);
-int gaudi_sni_spmu_sample(struct hl_device *hdev, u32 port, u32 num_out_data, u64 out_data[]);
+int gaudi_cn_spmu_sample(struct hl_device *hdev, u32 port, u32 num_out_data, u64 out_data[]);
 
 /* Bringup functions */
 void gaudi_init_pll(struct hl_device *hdev);

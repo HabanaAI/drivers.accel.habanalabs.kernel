@@ -8,7 +8,7 @@
 #define pr_fmt(fmt)			"habanalabs: " fmt
 
 #include "gaudiP.h"
-#include "gaudi_sni.h"
+#include "gaudi_cn.h"
 #include "include/common/simulator.h"
 #include "include/gaudi/gaudi_fw_if.h"
 #include "include/hw_ip/mmu/mmu_general.h"
@@ -872,7 +872,7 @@ static int gaudi_sim_set_fixed_properties(struct hl_device *hdev)
 {
 	struct hl_simulator_device *edev = gaudi_simulator_dev_table[hdev->id];
 	struct asic_fixed_properties *prop = &hdev->asic_prop;
-	struct hl_sni_properties *sni_prop = &prop->sni_props;
+	struct hl_cn_properties *cn_prop = &prop->cn_props;
 	int rc;
 
 	rc = gaudi_set_fixed_properties(hdev);
@@ -893,17 +893,17 @@ static int gaudi_sim_set_fixed_properties(struct hl_device *hdev)
 	prop->cb_pool_cb_cnt = GAUDI_SIM_CB_POOL_CB_CNT;
 	prop->cb_pool_cb_size = GAUDI_SIM_CB_POOL_CB_SIZE;
 
-	sni_prop->nic_drv_addr = GAUDI_SIM_NIC_DRV_ADDR;
-	sni_prop->nic_drv_size = GAUDI_SIM_NIC_DRV_SIZE;
-	sni_prop->nic_drv_base_addr = GAUDI_SIM_NIC_DRV_BASE_ADDR;
-	sni_prop->nic_drv_end_addr = GAUDI_SIM_NIC_DRV_END_ADDR;
+	cn_prop->nic_drv_addr = GAUDI_SIM_NIC_DRV_ADDR;
+	cn_prop->nic_drv_size = GAUDI_SIM_NIC_DRV_SIZE;
+	cn_prop->nic_drv_base_addr = GAUDI_SIM_NIC_DRV_BASE_ADDR;
+	cn_prop->nic_drv_end_addr = GAUDI_SIM_NIC_DRV_END_ADDR;
 
-	sni_prop->sb_base_addr = GAUDI_SIM_SB_BASE_ADDR;
-	sni_prop->swq_base_addr = GAUDI_SIM_SWQ_BASE_ADDR;
-	sni_prop->txs_base_addr = GAUDI_SIM_TXS_BASE_ADDR;
-	sni_prop->tmr_base_addr = GAUDI_SIM_TMR_BASE_ADDR;
-	sni_prop->req_qpc_base_addr = GAUDI_SIM_REQ_QPC_BASE_ADDR;
-	sni_prop->res_qpc_base_addr = GAUDI_SIM_RES_QPC_BASE_ADDR;
+	cn_prop->sb_base_addr = GAUDI_SIM_SB_BASE_ADDR;
+	cn_prop->swq_base_addr = GAUDI_SIM_SWQ_BASE_ADDR;
+	cn_prop->txs_base_addr = GAUDI_SIM_TXS_BASE_ADDR;
+	cn_prop->tmr_base_addr = GAUDI_SIM_TMR_BASE_ADDR;
+	cn_prop->req_qpc_base_addr = GAUDI_SIM_REQ_QPC_BASE_ADDR;
+	cn_prop->res_qpc_base_addr = GAUDI_SIM_RES_QPC_BASE_ADDR;
 
 	return 0;
 }
@@ -1143,7 +1143,7 @@ static void gaudi_sim_halt_engines(struct hl_device *hdev, bool hard_reset, bool
 	 * H/W. This must be done before we stop the CPU as the NIC
 	 * might use it e.g. get/set EEPROM data.
 	 */
-	hl_sni_hard_reset_prepare(hdev);
+	hl_cn_hard_reset_prepare(hdev);
 
 	gaudi_stop_nic_qmans(hdev);
 	gaudi_stop_mme_qmans(hdev);
@@ -1162,7 +1162,7 @@ static void gaudi_sim_halt_engines(struct hl_device *hdev, bool hard_reset, bool
 	gaudi_disable_hbm_dma_qmans(hdev);
 	gaudi_disable_pci_dma_qmans(hdev);
 
-	hl_sni_stop(hdev);
+	hl_cn_stop(hdev);
 
 	gaudi_sim_notify_reset(hdev);
 
@@ -1584,9 +1584,9 @@ static const struct hl_asic_funcs gaudi_sim_funcs = {
 	.get_eeprom_data = gaudi_sim_get_eeprom_data,
 	.get_monitor_dump = gaudi_get_monitor_dump,
 	.send_cpu_message = gaudi_send_cpu_message,
-	.sni_init = hl_sni_init,
-	.sni_fini = hl_sni_fini,
-	.sni_control = hl_sni_control,
+	.cn_init = hl_cn_init,
+	.cn_fini = hl_cn_fini,
+	.cn_control = hl_cn_control,
 	.pci_bars_map = NULL,
 	.init_iatu = NULL,
 	.rreg = gaudi_sim_rreg,
@@ -1623,7 +1623,7 @@ static const struct hl_asic_funcs gaudi_sim_funcs = {
 	.set_pci_memory_regions = gaudi_set_pci_memory_regions,
 	.get_stream_master_qid_arr = gaudi_get_stream_master_qid_arr,
 	.mmu_get_real_page_size = hl_mmu_get_real_page_size,
-	.sni_funcs = &gaudi_sni_funcs,
+	.cn_funcs = &gaudi_cn_funcs,
 	.access_dev_mem = gaudi_sim_access_dev_mem,
 	.set_dram_bar_base = NULL,
 	.init_firmware_preload_params = NULL,

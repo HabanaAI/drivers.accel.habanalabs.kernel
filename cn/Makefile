@@ -1,3 +1,3 @@
 # SPDX-License-Identifier: GPL-2.0-only
-HL_SNI_FILES := sni/sni.o
+HL_CN_FILES := cn/cn.o
 

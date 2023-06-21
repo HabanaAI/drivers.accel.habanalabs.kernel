@@ -6,7 +6,7 @@
  */
 
 #include "gaudi3P.h"
-#include "gaudi3_sni.h"
+#include "gaudi3_cn.h"
 #include "../include/gaudi3/asic_reg/gaudi3_regs.h"
 
 /*

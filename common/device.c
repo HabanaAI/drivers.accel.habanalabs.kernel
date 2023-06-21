@@ -683,8 +683,8 @@ int __hl_mmap(struct hl_fpriv *hpriv, struct vm_area_struct *vma)
 		vma->vm_pgoff = HL_MMAP_OFFSET_VALUE_GET(vm_pgoff);
 		return hl_hw_block_mmap(hpriv, vma);
 
-	case HL_MMAP_TYPE_SNI_MEM:
-		return hl_sni_mmap(hdev, hpriv->ctx->asid, vma);
+	case HL_MMAP_TYPE_CN_MEM:
+		return hl_cn_mmap(hdev, hpriv->ctx->asid, vma);
 
 	case HL_MMAP_TYPE_CB:
 	case HL_MMAP_TYPE_TS_BUFF:
@@ -1163,7 +1163,7 @@ static int device_early_init(struct hl_device *hdev)
 	INIT_LIST_HEAD(&hdev->fpriv_ctrl_list);
 	mutex_init(&hdev->fpriv_list_lock);
 	mutex_init(&hdev->fpriv_ctrl_list_lock);
-	mutex_init(&hdev->sni_hw_access_lock);
+	mutex_init(&hdev->cn_hw_access_lock);
 	mutex_init(&hdev->clk_throttling.lock);
 
 	return 0;
@@ -1208,7 +1208,7 @@ static void device_early_fini(struct hl_device *hdev)
 	mutex_destroy(&hdev->debug_lock);
 	mutex_destroy(&hdev->send_cpu_message_lock);
 
-	mutex_destroy(&hdev->sni_hw_access_lock);
+	mutex_destroy(&hdev->cn_hw_access_lock);
 	mutex_destroy(&hdev->fpriv_list_lock);
 	mutex_destroy(&hdev->fpriv_ctrl_list_lock);
 
@@ -1452,9 +1452,9 @@ static void take_release_locks(struct hl_device *hdev)
 	mutex_lock(&hdev->fpriv_ctrl_list_lock);
 	mutex_unlock(&hdev->fpriv_ctrl_list_lock);
 
-	/* Flush SNI flows */
-	mutex_lock(&hdev->sni_hw_access_lock);
-	mutex_unlock(&hdev->sni_hw_access_lock);
+	/* Flush CN flows */
+	mutex_lock(&hdev->cn_hw_access_lock);
+	mutex_unlock(&hdev->cn_hw_access_lock);
 }
 
 static void hl_release_pending_etr_buf_store_threads(struct hl_device *hdev)
@@ -2096,9 +2096,9 @@ kill_processes:
 			goto out_err;
 		}
 
-		rc = hdev->asic_funcs->sni_init(hdev);
+		rc = hdev->asic_funcs->cn_init(hdev);
 		if (rc) {
-			dev_err(hdev->dev, "Failed to init SNI driver\n");
+			dev_err(hdev->dev, "Failed to init CN driver\n");
 			goto out_err;
 		}
 
@@ -2779,9 +2779,9 @@ int hl_device_init(struct hl_device *hdev)
 	}
 
 	/* must be called after sysfs init for the auxiliary bus */
-	rc = hdev->asic_funcs->sni_init(hdev);
+	rc = hdev->asic_funcs->cn_init(hdev);
 	if (rc) {
-		dev_err(hdev->dev, "Failed to init SNI driver\n");
+		dev_err(hdev->dev, "Failed to init CN driver\n");
 		rc = 0;
 		goto out_disabled;
 	}
@@ -2983,8 +2983,8 @@ void hl_device_fini(struct hl_device *hdev)
 
 	hl_cb_pool_fini(hdev);
 
-	/* SNI uses the kernel context for MMU mappings, therefore must be cleaned before it */
-	hdev->asic_funcs->sni_fini(hdev);
+	/* CN uses the kernel context for MMU mappings, therefore must be cleaned before it */
+	hdev->asic_funcs->cn_fini(hdev);
 
 	/* Reset the H/W. It will be in idle state after this returns */
 	rc = hdev->asic_funcs->hw_fini(hdev, true, false);

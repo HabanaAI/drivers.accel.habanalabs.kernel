@@ -203,8 +203,8 @@ static int hw_ip_info(struct hl_device *hdev, struct hl_info_args *args)
 	hw_ip.pdma_user_owned_ch_mask = prop->pdma_user_owned_ch_mask;
 	hw_ip.server_type = prop->server_type;
 
-	hw_ip.nic_ports_mask = hdev->sni_ports_mask;
-	hw_ip.nic_ports_external_mask = hdev->sni.eth_ports_mask;
+	hw_ip.nic_ports_mask = hdev->cn_ports_mask;
+	hw_ip.nic_ports_external_mask = hdev->cn.eth_ports_mask;
 	hw_ip.security_enabled = prop->fw_security_enabled;
 	hw_ip.mme_enabled_mask = hdev->mme_mask;
 	hw_ip.odp_supported = hl_is_odp_supported(hdev);
@@ -722,7 +722,7 @@ static int open_stats_info(struct hl_fpriv *hpriv, struct hl_info_args *args)
 		min((size_t) max_size, sizeof(open_stats_info))) ? -EFAULT : 0;
 }
 
-static int sni_link_state_info(struct hl_fpriv *hpriv, struct hl_info_args *args)
+static int cn_link_state_info(struct hl_fpriv *hpriv, struct hl_info_args *args)
 {
 	struct hl_device *hdev = hpriv->hdev;
 	u32 max_size = args->return_size;
@@ -734,7 +734,7 @@ static int sni_link_state_info(struct hl_fpriv *hpriv, struct hl_info_args *args
 	if ((!max_size) || (!out))
 		return -EINVAL;
 
-	rc = hl_sni_get_port_state(hdev, args->habana_link_id, &up);
+	rc = hl_cn_get_port_state(hdev, args->habana_link_id, &up);
 	if (rc)
 		return rc;
 
@@ -744,13 +744,13 @@ static int sni_link_state_info(struct hl_fpriv *hpriv, struct hl_info_args *args
 		min_t(size_t, max_size, sizeof(link_state_info))) ? -EFAULT : 0;
 }
 
-static int sni_statistics(struct hl_fpriv *hpriv, struct hl_info_args *args)
+static int cn_statistics(struct hl_fpriv *hpriv, struct hl_info_args *args)
 {
 	struct hl_device *hdev = hpriv->hdev;
 	u32 max_size = args->return_size;
 	struct hl_info_habana_link_counters stat = {0};
 	void __user *out = (void __user *) (uintptr_t) args->return_pointer;
-	struct hl_sni_port_statistics core_stats = {0};
+	struct hl_cn_port_statistics core_stats = {0};
 	int rc;
 
 	if ((!max_size) || (!out))
@@ -763,7 +763,7 @@ static int sni_statistics(struct hl_fpriv *hpriv, struct hl_info_args *args)
 	core_stats.str_buf_ptr = stat.str_buf_ptr;
 	core_stats.val_buf_ptr = stat.val_buf_ptr;
 
-	rc = hl_sni_get_port_statistics(hdev, args->habana_link_id, &core_stats);
+	rc = hl_cn_get_port_statistics(hdev, args->habana_link_id, &core_stats);
 	if (rc)
 		return rc;
 
@@ -1157,8 +1157,8 @@ static int module_params_info(struct hl_device *hdev, struct hl_info_args *args)
 	}
 	module_params->mme_enable = hdev->mme_mask ? true : false;
 	module_params->tpc_mask = hdev->tpc_mask;
-	module_params->nic_ports_mask = hdev->sni_ports_mask;
-	module_params->nic_lanes_per_port = hdev->sni_lanes_per_port;
+	module_params->nic_ports_mask = hdev->cn_ports_mask;
+	module_params->nic_lanes_per_port = hdev->cn_lanes_per_port;
 	module_params->dram_enable = hdev->dram_enable;
 	module_params->cpu_enable = !!hdev->fw_components;
 	module_params->reset_pcilink = hdev->reset_pcilink;
@@ -1364,10 +1364,10 @@ static int _hl_info_ioctl(struct hl_fpriv *hpriv, void *data,
 		return power_info(hpriv, args);
 
 	case HL_INFO_HABANA_LINK_STATE:
-		return sni_link_state_info(hpriv, args);
+		return cn_link_state_info(hpriv, args);
 
 	case HL_INFO_HABANA_LINK_COUNTERS:
-		return sni_statistics(hpriv, args);
+		return cn_statistics(hpriv, args);
 
 	case HL_INFO_DRAM_REPLACED_ROWS:
 		return dram_replaced_rows_info(hpriv, args);
@@ -1472,7 +1472,7 @@ static int hl_debug_ioctl(struct hl_fpriv *hpriv, void *data)
 	return rc;
 }
 
-static int sni_control(struct hl_fpriv *hpriv, struct hl_nic_args *args)
+static int cn_control(struct hl_fpriv *hpriv, struct hl_nic_args *args)
 {
 	struct hl_device *hdev = hpriv->hdev;
 	void *input = NULL, *output = NULL;
@@ -1501,7 +1501,7 @@ static int sni_control(struct hl_fpriv *hpriv, struct hl_nic_args *args)
 		}
 	}
 
-	rc = hdev->asic_funcs->sni_control(hdev, args->op, input, output, hpriv->ctx);
+	rc = hdev->asic_funcs->cn_control(hdev, args->op, input, output, hpriv->ctx);
 	if (rc) {
 		/* SW-52983: overcome CI failing us on err message issued due to
 		 * temporary lack of connections caused by the graceful QP release
@@ -1580,7 +1580,7 @@ static int hl_nic_ioctl(struct hl_fpriv *hpriv, void *data)
 			min(args->input_size, hl_nic_input_size[args->op]);
 		args->output_size =
 			min(args->output_size, hl_nic_output_size[args->op]);
-		rc = sni_control(hpriv, args);
+		rc = cn_control(hpriv, args);
 		break;
 	default:
 		dev_dbg(hdev->dev, "Invalid request %d\n", args->op);

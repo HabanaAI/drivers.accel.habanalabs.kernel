@@ -5,7 +5,7 @@
  * All Rights Reserved.
  */
 
-#include "gaudi2_sni.h"
+#include "gaudi2_cn.h"
 
 static void set_txe_checkers(struct hl_device *hdev, u32 port)
 {
@@ -158,7 +158,7 @@ static void set_rxe_checkers(struct hl_device *hdev, u32 port)
 			NIC0_RXE0_PKT_SIZE_CHECK_RAW_MIN_MASK);
 }
 
-static void gaudi2_sni_set_correct_address_for_errors(struct hl_device *hdev)
+static void gaudi2_cn_set_correct_address_for_errors(struct hl_device *hdev)
 {
 	int port;
 
@@ -175,7 +175,7 @@ static void gaudi2_sni_set_correct_address_for_errors(struct hl_device *hdev)
 			NIC_WREG32(mmNIC0_TXS0_ASYNC_NICD_APB_SPLIT_ADDR3, 0x39000);
 }
 
-static void gaudi2_sni_config_hw_txs_no_fw(struct hl_device *hdev, u32 port)
+static void gaudi2_cn_config_hw_txs_no_fw(struct hl_device *hdev, u32 port)
 {
 	if (hdev->fw_components & FW_TYPE_BOOT_CPU)
 		return;
@@ -183,7 +183,7 @@ static void gaudi2_sni_config_hw_txs_no_fw(struct hl_device *hdev, u32 port)
 	NIC_WREG32(mmNIC0_TXS0_FORCE_HIT_EN, 0);
 }
 
-static void gaudi2_sni_config_hw_txe_no_fw(struct hl_device *hdev, u32 port)
+static void gaudi2_cn_config_hw_txe_no_fw(struct hl_device *hdev, u32 port)
 {
 	if (hdev->fw_components & FW_TYPE_BOOT_CPU)
 		return;
@@ -200,7 +200,7 @@ static void gaudi2_sni_config_hw_txe_no_fw(struct hl_device *hdev, u32 port)
 	set_txe_checkers(hdev, port);
 }
 
-static void gaudi2_sni_config_hw_rxe_no_fw(struct hl_device *hdev, u32 port)
+static void gaudi2_cn_config_hw_rxe_no_fw(struct hl_device *hdev, u32 port)
 {
 	if (hdev->fw_components & FW_TYPE_BOOT_CPU)
 		return;
@@ -217,7 +217,7 @@ static void gaudi2_sni_config_hw_rxe_no_fw(struct hl_device *hdev, u32 port)
 	set_rxe_checkers(hdev, port);
 }
 
-static void gaudi2_sni_config_hw_qpc_no_fw(struct hl_device *hdev, u32 port)
+static void gaudi2_cn_config_hw_qpc_no_fw(struct hl_device *hdev, u32 port)
 {
 	if (hdev->fw_components & FW_TYPE_BOOT_CPU)
 		return;
@@ -246,7 +246,7 @@ static void gaudi2_sni_config_hw_qpc_no_fw(struct hl_device *hdev, u32 port)
 		(0x2 << NIC0_QPC0_DOORBELL_SECURITY_PRIVILEGE_SHIFT));
 }
 
-static void gaudi2_sni_config_hw_tmr_no_fw(struct hl_device *hdev, u32 port)
+static void gaudi2_cn_config_hw_tmr_no_fw(struct hl_device *hdev, u32 port)
 {
 	if (hdev->fw_components & FW_TYPE_BOOT_CPU)
 		return;
@@ -254,7 +254,7 @@ static void gaudi2_sni_config_hw_tmr_no_fw(struct hl_device *hdev, u32 port)
 	NIC_MACRO_WREG32(mmNIC0_TMR_TMR_FORCE_HIT_EN, 0);
 }
 
-static void gaudi2_sni_config_hw_eq_no_fw(struct hl_device *hdev, u32 port)
+static void gaudi2_cn_config_hw_eq_no_fw(struct hl_device *hdev, u32 port)
 {
 	if (hdev->fw_components & FW_TYPE_BOOT_CPU)
 		return;
@@ -266,7 +266,7 @@ static void gaudi2_sni_config_hw_eq_no_fw(struct hl_device *hdev, u32 port)
 	NIC_RMWREG32(mmNIC0_QPC0_LBW_PROT, 0, NIC0_QPC0_LBW_PROT_INTERRUPT_MASK);
 }
 
-void gaudi2_sni_quiescence_phy_no_fw(struct hl_device *hdev)
+void gaudi2_cn_quiescence_phy_no_fw(struct hl_device *hdev)
 {
 	u32 port, force_link_down = 1 << NIC0_PHY_PHY_RX_CFG_SW_PHY_READY_OVERRIDE_SHIFT;
 	int i, num_ports_in_macro = NIC_NUMBER_OF_PORTS / NIC_NUMBER_OF_MACROS;
@@ -277,7 +277,7 @@ void gaudi2_sni_quiescence_phy_no_fw(struct hl_device *hdev)
 	/* if any NIC is present and running on PLDM or simulator,
 	 * prevent traffic from entering the device.
 	 */
-	if ((hdev->pldm || !hdev->pdev) && hdev->sni_ports_mask) {
+	if ((hdev->pldm || !hdev->pdev) && hdev->cn_ports_mask) {
 
 		/* This is a privilege register that is modified prior golden register modification,
 		 * hence we should disable assertion on simulator to allow us modifying it.
@@ -304,37 +304,37 @@ void gaudi2_sni_quiescence_phy_no_fw(struct hl_device *hdev)
 	}
 }
 
-static void gaudi2_sni_hw_macro_config_no_fw(struct hl_device *hdev, u8 macro_idx)
+static void gaudi2_cn_hw_macro_config_no_fw(struct hl_device *hdev, u8 macro_idx)
 {
 	int port = macro_idx << 1; /* the index of the first port in the macro */
 
 	/* TMR Configuration */
-	gaudi2_sni_config_hw_tmr_no_fw(hdev, port);
+	gaudi2_cn_config_hw_tmr_no_fw(hdev, port);
 }
 
-static bool gaudi2_sni_is_macro_enabled(struct hl_device *hdev, u8 macro_idx)
+static bool gaudi2_cn_is_macro_enabled(struct hl_device *hdev, u8 macro_idx)
 {
 	u32 port1, port2;
 
 	port1 = macro_idx << 1; /* the index of the first port in the macro */
 	port2 = port1 + 1;
 
-	return (hdev->sni_ports_mask & BIT(port1)) || (hdev->sni_ports_mask & BIT(port2));
+	return (hdev->cn_ports_mask & BIT(port1)) || (hdev->cn_ports_mask & BIT(port2));
 }
 
-static void gaudi2_sni_macros_hw_config_no_fw(struct hl_device *hdev)
+static void gaudi2_cn_macros_hw_config_no_fw(struct hl_device *hdev)
 {
 	int i;
 
 	for (i = 0 ; i < NIC_NUMBER_OF_MACROS ; i++) {
-		if (!gaudi2_sni_is_macro_enabled(hdev, i))
+		if (!gaudi2_cn_is_macro_enabled(hdev, i))
 			continue;
 
-		gaudi2_sni_hw_macro_config_no_fw(hdev, i);
+		gaudi2_cn_hw_macro_config_no_fw(hdev, i);
 	}
 }
 
-static void gaudi2_sni_ports_config_no_fw(struct hl_device *hdev)
+static void gaudi2_cn_ports_config_no_fw(struct hl_device *hdev)
 {
 	int port;
 
@@ -343,48 +343,48 @@ static void gaudi2_sni_ports_config_no_fw(struct hl_device *hdev)
 		 * arrive only on the odd port in the macro. Therefore, need to initialize
 		 * all EQs of all ports regardless of their enablement.
 		 */
-		gaudi2_sni_config_hw_eq_no_fw(hdev, port);
+		gaudi2_cn_config_hw_eq_no_fw(hdev, port);
 
 		/* Don't initialize disabled ports */
-		if (!(hdev->sni_ports_mask & BIT(port)))
+		if (!(hdev->cn_ports_mask & BIT(port)))
 			continue;
 
 		/* TXS Configuration */
-		gaudi2_sni_config_hw_txs_no_fw(hdev, port);
+		gaudi2_cn_config_hw_txs_no_fw(hdev, port);
 
 		/* TXE Configuration */
-		gaudi2_sni_config_hw_txe_no_fw(hdev, port);
+		gaudi2_cn_config_hw_txe_no_fw(hdev, port);
 
 		/* QPC Configuration */
-		gaudi2_sni_config_hw_qpc_no_fw(hdev, port);
+		gaudi2_cn_config_hw_qpc_no_fw(hdev, port);
 
 		/* RXE Configuration */
-		gaudi2_sni_config_hw_rxe_no_fw(hdev, port);
+		gaudi2_cn_config_hw_rxe_no_fw(hdev, port);
 	}
 }
 
-void gaudi2_sni_blocks_fw_config(struct hl_device *hdev)
+void gaudi2_cn_blocks_fw_config(struct hl_device *hdev)
 {
-	if (!hdev->sni_ports_mask)
+	if (!hdev->cn_ports_mask)
 		return;
 
 	if (hdev->reset_info.in_compute_reset)
 		return;
 
-	gaudi2_sni_macros_hw_config_no_fw(hdev);
+	gaudi2_cn_macros_hw_config_no_fw(hdev);
 
-	gaudi2_sni_ports_config_no_fw(hdev);
+	gaudi2_cn_ports_config_no_fw(hdev);
 
-	gaudi2_sni_set_correct_address_for_errors(hdev);
+	gaudi2_cn_set_correct_address_for_errors(hdev);
 }
 
-void gaudi2_sni_restore_dynamic_cfg_soft_reset_fw(struct hl_device *hdev)
+void gaudi2_cn_restore_dynamic_cfg_soft_reset_fw(struct hl_device *hdev)
 {
 	int port;
 
 	for (port = 0 ; port < NIC_NUMBER_OF_PORTS ; port++) {
 		/* Don't initialize disabled ports */
-		if (!(hdev->sni_ports_mask & BIT(port)))
+		if (!(hdev->cn_ports_mask & BIT(port)))
 			continue;
 
 		NIC_RMWREG32(mmNIC0_RXE0_RXE_CHECKS, 1,

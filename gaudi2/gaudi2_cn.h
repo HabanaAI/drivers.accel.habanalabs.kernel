@@ -5,8 +5,8 @@
  *
  */
 
-#ifndef GAUDI2_SNI_H_
-#define GAUDI2_SNI_H_
+#ifndef GAUDI2_CN_H_
+#define GAUDI2_CN_H_
 
 #include "gaudi2P.h"
 #include "../include/gaudi2/asic_reg/gaudi2_regs.h"
@@ -113,10 +113,10 @@ static_assert(NIC_MAX_QP_NUM <= NIC_HW_MAX_QP_NUM);
 
 #define GAUDI2_HLS2_EXTERN_PORTS_MASK 0xC00100
 
-int gaudi2_sni_set_info(struct hl_device *hdev, bool get_from_fw);
-int gaudi2_sni_handle_sw_error_event(struct hl_device *hdev, u16 event_type, u8 macro_index,
+int gaudi2_cn_set_info(struct hl_device *hdev, bool get_from_fw);
+int gaudi2_cn_handle_sw_error_event(struct hl_device *hdev, u16 event_type, u8 macro_index,
 					struct hl_eq_nic_intr_cause *nic_intr_cause);
-int gaudi2_sni_handle_axi_error_response_event(struct hl_device *hdev, u16 event_type,
+int gaudi2_cn_handle_axi_error_response_event(struct hl_device *hdev, u16 event_type,
 				u8 macro_index, struct hl_eq_nic_intr_cause *nic_intr_cause);
 
-#endif /* GAUDI2_SNI_H_ */
+#endif /* GAUDI2_CN_H_ */
