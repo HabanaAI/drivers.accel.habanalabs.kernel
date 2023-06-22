@@ -1221,6 +1221,13 @@ static int gaudi2_sim_sw_init(struct hl_device *hdev)
 	if (rc)
 		goto special_blocks_free;
 
+	/*
+	 * Init the engine core interrupt register, because it won't be set in case of simulator w/o
+	 * F/W, while gaudi2_init_protection_bits() expects that it would be a scratchpad register.
+	 */
+	hdev->fw_loader.dynamic_loader.comm_desc.cpu_dyn_regs.eng_arc_irq_ctrl =
+						cpu_to_le32(mmPSOC_GLOBAL_CONF_SCRATCHPAD_15);
+
 	return 0;
 
 special_blocks_free:
