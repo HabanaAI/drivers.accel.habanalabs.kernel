@@ -1385,10 +1385,6 @@ static int gaudi2_sim_hw_init(struct hl_device *hdev)
 	gaudi2_init_dec(hdev);
 	gaudi2_init_sni(hdev);
 
-	rc = gaudi2_init_security(hdev);
-	if (rc)
-		return rc;
-
 	gaudi2->dram_bar_cur_addr = DRAM_PHYS_BASE;
 
 	edev->reset = false;
