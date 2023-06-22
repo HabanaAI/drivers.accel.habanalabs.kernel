@@ -238,11 +238,8 @@ ifneq ($(shell grep "peer2peer" include/linux/dma-buf.h > /dev/null 2>&1 && echo
 	ccflags-y += -D_HAS_PEER2PEER
 endif
 
-# TODO SW-114896: remove once AMZN kernel includes AUX_BUS
-ifneq ($(shell uname -r | grep -v amzn > /dev/null 2>&1 && echo 1),)
-	ifneq ($(shell grep "struct auxiliary_device_id" include/linux/mod_devicetable.h > /dev/null 2>&1 && echo 1),)
-		ccflags-y += -D_HAS_AUX_BUS_H
-	endif
+ifneq ($(shell grep "struct auxiliary_device_id" include/linux/mod_devicetable.h > /dev/null 2>&1 && echo 1),)
+	ccflags-y += -D_HAS_AUX_BUS_H
 endif
 
 ifneq ($(shell grep "MODULE_IMPORT_NS" include/linux/module.h > /dev/null 2>&1 && echo 1),)
