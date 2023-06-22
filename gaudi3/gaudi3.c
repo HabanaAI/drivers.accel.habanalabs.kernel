@@ -2240,20 +2240,36 @@ void gaudi3_iterate_nics(struct hl_device *hdev, struct iterate_module_ctx *ctx)
 	}
 }
 
-static void gaudi3_iterate_dtlbs_of_stlb(struct hl_device *hdev, struct iterate_module_ctx *ctx,
+static void iterate_hdcore_rrtrs(struct hl_device *hdev, struct iterate_module_ctx *ctx,
 						u8 hdcore)
 {
-	u8 die, dtlb, dtlb_unit_id = 0;
-	u32 offset, nrtr_base;
-	int rtr;
+	u8 dtlb_unit_id = 0;
+	u32 offset;
+	int rrtr;
 
-	for (rtr = 0 ; rtr < NUM_OF_RRTR_PER_HDCORE ; rtr++) {
+	for (rrtr = 0 ; rrtr < NUM_OF_RRTR_PER_HDCORE ; rrtr++) {
 		/* each RRTR has single DTLB so no need to iterate over DTLBs */
 		offset = mmHD0_RRTR0_DTLB_BASE + (hdcore * HDCORE_OFFSET) +
-								(rtr * RRTR_OFFSET);
+								(rrtr * RRTR_OFFSET);
 		ctx->fn(hdev, hdcore, dtlb_unit_id, offset, ctx);
 		dtlb_unit_id++;
 	}
+}
+
+static void gaudi3_iterate_dtlbs_of_stlb(struct hl_device *hdev, struct iterate_module_ctx *ctx,
+						u8 hdcore, bool nrtr_only)
+{
+	u8 die, dtlb, dtlb_unit_id = 0;
+	u32 offset, nrtr_base;
+
+	if (!nrtr_only)
+		iterate_hdcore_rrtrs(hdev, ctx, hdcore);
+
+	/*
+	 * HDCORE RRTRs are assigned the IDs 0 to (NUM_OF_RRTR_PER_HDCORE - 1)
+	 * so next ID should be NUM_OF_RRTR_PER_HDCORE
+	 */
+	dtlb_unit_id = NUM_OF_RRTR_PER_HDCORE;
 
 	if (!(hdcore == 0 || hdcore == 2 || hdcore == 5 || hdcore == 7))
 		return;
@@ -2271,7 +2287,8 @@ static void gaudi3_iterate_dtlbs_of_stlb(struct hl_device *hdev, struct iterate_
 	}
 }
 
-void gaudi3_iterate_dtlbs(struct hl_device *hdev, struct iterate_module_ctx *ctx)
+static void gaudi3_iterate_dtlbs_common(struct hl_device *hdev, struct iterate_module_ctx *ctx,
+					bool nrtr_only)
 {
 	struct asic_fixed_properties *prop = &hdev->asic_prop;
 	u8 hdcore, die;
@@ -2282,7 +2299,7 @@ void gaudi3_iterate_dtlbs(struct hl_device *hdev, struct iterate_module_ctx *ctx
 	 * STLBs
 	 */
 	for (hdcore = 0; hdcore < prop->num_of_hdcores; hdcore++)
-		gaudi3_iterate_dtlbs_of_stlb(hdev, ctx, hdcore);
+		gaudi3_iterate_dtlbs_of_stlb(hdev, ctx, hdcore, nrtr_only);
 
 	/*
 	 * The two PCIE DTLBs (one for each die) are not connected to any STLB.
@@ -2294,6 +2311,16 @@ void gaudi3_iterate_dtlbs(struct hl_device *hdev, struct iterate_module_ctx *ctx
 		offset = mmD0_NRTR0_DTLB_PCI_BASE + (die * DIE_OFFSET);
 		ctx->fn(hdev, die, 0xF, offset, ctx);
 	}
+}
+
+void gaudi3_iterate_dtlbs(struct hl_device *hdev, struct iterate_module_ctx *ctx)
+{
+	gaudi3_iterate_dtlbs_common(hdev, ctx, false);
+}
+
+void gaudi3_iterate_nrtr_dtlbs(struct hl_device *hdev, struct iterate_module_ctx *ctx)
+{
+	gaudi3_iterate_dtlbs_common(hdev, ctx, true);
 }
 
 void gaudi3_iterate_rtr_ctrls(struct hl_device *hdev, struct iterate_module_ctx *ctx)
@@ -2851,7 +2878,7 @@ static u32 hmmu_event_get_dtlb_desc(struct hl_device *hdev, u32 hdcore, u32 die,
 		.data = &desc,
 	};
 
-	gaudi3_iterate_dtlbs_of_stlb(hdev, &ctx, hdcore);
+	gaudi3_iterate_dtlbs_of_stlb(hdev, &ctx, hdcore, false);
 	if (!desc.str_len) {
 		snprintf(str, size, "DTLB causing the fault not found");
 		return 0;

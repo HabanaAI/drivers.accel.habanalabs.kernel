@@ -670,6 +670,7 @@ void gaudi3_iterate_rotators(struct hl_device *hdev, struct iterate_module_ctx *
 void gaudi3_iterate_decoders(struct hl_device *hdev, struct iterate_module_ctx *ctx);
 void gaudi3_iterate_nics(struct hl_device *hdev, struct iterate_module_ctx *ctx);
 void gaudi3_iterate_dtlbs(struct hl_device *hdev, struct iterate_module_ctx *ctx);
+void gaudi3_iterate_nrtr_dtlbs(struct hl_device *hdev, struct iterate_module_ctx *ctx);
 void gaudi3_iterate_rtr_ctrls(struct hl_device *hdev, struct iterate_module_ctx *ctx);
 void gaudi3_iterate_cache_slices(struct hl_device *hdev, struct iterate_module_ctx *ctx);
 void gaudi3_iterate_rrtrs(struct hl_device *hdev, struct iterate_module_ctx *ctx);
