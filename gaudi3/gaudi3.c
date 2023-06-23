@@ -11821,67 +11821,169 @@ static void gaudi3_razwi_handler(struct hl_device *hdev,  enum razwi_initiztor r
 	}
 }
 
-static void gaudi3_sei_razwi_handler(struct hl_device *hdev,  enum hl_agg_component_type component,
-					u8 die, u8 hdcore, u8 initiator_idx, u64 *event_mask)
+static u32 hdcore_type_to_hdcore(u32 die, enum hl_agg_hdcore_type hdcore_type)
 {
-	u16 eng_id;
+	return (hdcore_type <= INT_HDCORE3) ? die * NUM_OF_HDCORES_PER_DIE + hdcore_type : 0;
+}
 
-	switch (component) {
+static u16 eq_agg_header_to_engine_id(struct hl_agg_eq_header *agg_hdr)
+{
+	u32 die = agg_hdr->die_id, hdcore = hdcore_type_to_hdcore(die, agg_hdr->hdcore_type),
+			instance = agg_hdr->comp_instance;
+	enum hl_agg_component_type agg_component_type = agg_hdr->int_comp_type;
+	u16 engine_id = U16_MAX;
+
+	switch (agg_component_type) {
+	case INT_COMP_TYPE_ARC_FARM:
+		/*
+		 * TODO:
+		 * The ARC_FARM interrupts are for the 2 ARC blocks per hdcore.
+		 * Need to get the actual ARC based on the interrupt data, instead of arbitrarily
+		 * selecting the first one (SW-121023).
+		 */
+		engine_id = GAUDI3_HDCORE0_ENGINE_ID_ARCF_0 + hdcore * NUM_ARC_SCHED_PER_HDCORE;
+		break;
+
+	case INT_COMP_TYPE_DEC:
+		engine_id = GAUDI3_HDCORE0_ENGINE_ID_DEC_0 + hdcore * NUM_OF_DECODER_PER_HDCORE +
+				instance;
+		break;
+
+	case INT_COMP_TYPE_EDMA:
+		/*
+		 * There are EDMA blocks only in HD 1/3/4/6, so need to divide hdcore by 2 to get
+		 * the suitable engine id ([0] = HD1, [1] = HD3, [2] = HD4, [3] = HD6).
+		 *
+		 * TODO:
+		 * The EDMA interrupts are for the 2 EDMA blocks per hdcore.
+		 * Need to set the actual EDMA based on the interrupt data, instead of
+		 * arbitrarily selecting the first one (SW-121023).
+		 */
+		engine_id = GAUDI3_HDCORE1_ENGINE_ID_EDMA_0 +
+				(hdcore / 2) * NUM_OF_EDMA_PER_HDCORE + instance;
+		break;
+
+	case INT_COMP_TYPE_EDUP:
+		/*
+		 * TODO:
+		 * There is currently no engine IDs for the ARC_DUP_ENG blocks, so use for now the
+		 * corresponding ARC_FARM engine ID.
+		 * Modify when dedicated ARC_DUP_ENG engines IDs are added (SW-121023).
+		 */
+		engine_id = GAUDI3_HDCORE0_ENGINE_ID_ARCF_0 + hdcore * NUM_ARC_SCHED_PER_HDCORE;
+		break;
+
+	case INT_COMP_TYPE_MME:
+		engine_id = GAUDI3_HDCORE0_ENGINE_ID_MME_0 + hdcore;
+		break;
+
+	case INT_COMP_TYPE_NIC:
+		engine_id = GAUDI3_DIE0_ENGINE_ID_NIC_0 + die * NIC_NUM_MACROS_PER_DIE + instance;
+		break;
+
+	case INT_COMP_TYPE_PDMA:
+		/*
+		 * TODO:
+		 * The PDMA interrupts are for the 2 PDMA blocks per die.
+		 * Need to get the actual PDMA based on the interrupt data, instead of arbitrarily
+		 * selecting the first one (SW-121023).
+		 */
+		engine_id = GAUDI3_DIE0_ENGINE_ID_PDMA_0_CH_0 + die * NUM_OF_PDMA_CH_PER_DIE;
+		break;
+
+	case INT_COMP_TYPE_ROT:
+		/*
+		 * There are ROT blocks only in HD 1/3/4/6, so need to divide hdcore by 2 to get
+		 * the suitable engine id ([0] = HD1, [1] = HD3, [2] = HD4, [3] = HD6).
+		 */
+		engine_id = GAUDI3_HDCORE1_ENGINE_ID_ROT_0 +
+				(hdcore / 2) * NUM_OF_ROTATOR_PER_HDCORE + instance;
+		break;
+
+	case INT_COMP_TYPE_SOB:
+		engine_id = GAUDI3_HDCORE0_ENGINE_ID_SM + hdcore;
+		break;
+
+	case INT_COMP_TYPE_TPC:
+		if (instance < NUM_OF_TPC_PER_HDCORE)
+			engine_id = GAUDI3_HDCORE0_ENGINE_ID_TPC_0 +
+					(hdcore * NUM_OF_TPC_PER_HDCORE) + instance;
+		else
+			/*
+			 * There are redundant TPC blocks only in HD 0/2/5/7, so need to divide
+			 * hdcore by 2 to get the suitable engine id
+			 * ([0] = HD0, [1] = HD2, [2] = HD5, [3] = HD7).
+			 */
+			engine_id = GAUDI3_HDCORE0_ENGINE_ID_TPC_8 + (hdcore / 2);
+		break;
+
+	default:
+		break;
+	}
+
+	return engine_id;
+}
+
+static void gaudi3_sei_razwi_handler(struct hl_device *hdev, struct hl_agg_eq_header *agg_hdr,
+					u64 *event_mask)
+{
+	u8 die = agg_hdr->die_id, hdcore = (u8) hdcore_type_to_hdcore(die, agg_hdr->hdcore_type),
+			initiator_idx = agg_hdr->comp_instance;
+	enum hl_agg_component_type agg_component_type = agg_hdr->int_comp_type;
+	u16 eng_id = eq_agg_header_to_engine_id(agg_hdr);
+
+	switch (agg_component_type) {
 	case INT_COMP_TYPE_PCIE:
 		/* No need to handle razwi */
 		break;
 
 	case INT_COMP_TYPE_ARC_FARM:
-		/* The ARC_FARM SEI interrupt is for the 2 ARCs per hdcore so need to check both */
-		eng_id = GAUDI3_HDCORE0_ENGINE_ID_ARCF_0 + hdcore * NUM_ARC_SCHED_PER_HDCORE;
+		/*
+		 * TODO:
+		 * The ARC_FARM SEI interrupt is for the 2 ARC blocks per hdcore.
+		 * Need to check the actual ARC based on the interrupt data, instead of checking
+		 * both (SW-121023).
+		 */
 		gaudi3_razwi_handler(hdev, RAZWI_ARC_FARM, die, hdcore, 0, eng_id, event_mask);
 		gaudi3_razwi_handler(hdev, RAZWI_ARC_FARM, die, hdcore, 1, eng_id + 1, event_mask);
 		break;
 
 	case INT_COMP_TYPE_DEC:
-		eng_id = GAUDI3_HDCORE0_ENGINE_ID_DEC_0 + hdcore * NUM_OF_DECODER_PER_HDCORE +
-				initiator_idx;
 		gaudi3_razwi_handler(hdev, RAZWI_DEC, die, hdcore, initiator_idx, eng_id,
 					event_mask);
 		break;
 
 	case INT_COMP_TYPE_EDMA:
 		/*
-		 * The EDMA SEI interrupt is for the 2 EDMAs per hdcore so need to check both.
-		 * There are EDMA blocks only in HD 1/3/4/6 so need divide hdcore by 2 to get the
-		 * suitable engine id ([0] = HD1, [1] = HD3, [2] = HD4, [3] = HD6).
+		 * TODO:
+		 * The EDMA SEI interrupt is for the 2 EDMA blocks per hdcore.
+		 * Need to check the actual EDMA based on the interrupt data, instead of checking
+		 * both (SW-121023).
 		 */
-		eng_id = GAUDI3_HDCORE1_ENGINE_ID_EDMA_0 + (hdcore / 2) * NUM_OF_EDMA_PER_HDCORE;
 		gaudi3_razwi_handler(hdev, RAZWI_EDMA, die, hdcore, 0, eng_id, event_mask);
 		gaudi3_razwi_handler(hdev, RAZWI_EDMA, die, hdcore, 1, eng_id + 1, event_mask);
 		break;
 
 	case INT_COMP_TYPE_PDMA:
-		eng_id = GAUDI3_DIE0_ENGINE_ID_PDMA_0_CH_0 + die * NUM_OF_PDMA_CH_PER_DIE;
+		/*
+		 * TODO:
+		 * The PDMA SEI interrupt is for the 2 PDMA blocks per die.
+		 * Need to check the actual PDMA based on the interrupt data, instead of checking
+		 * both (SW-121023).
+		 */
 		gaudi3_razwi_handler(hdev, RAZWI_PDMA, die, hdcore, 0, eng_id, event_mask);
-		eng_id = GAUDI3_DIE0_ENGINE_ID_PDMA_1_CH_0 + die * NUM_OF_PDMA_CH_PER_DIE;
-		gaudi3_razwi_handler(hdev, RAZWI_PDMA, die, hdcore, 1, eng_id, event_mask);
+		gaudi3_razwi_handler(hdev, RAZWI_PDMA, die, hdcore, 1,
+					eng_id + NUM_OF_PDMA_CH_PER_GRP, event_mask);
 		break;
 
 	case INT_COMP_TYPE_TPC:
-		/* non redundant tpc */
-		if (initiator_idx < NUM_OF_TPC_PER_HDCORE) {
-			eng_id = GAUDI3_HDCORE0_ENGINE_ID_TPC_0 +
-						(hdcore * NUM_OF_TPC_PER_HDCORE) + initiator_idx;
-			gaudi3_razwi_handler(hdev, RAZWI_TPC, die, hdcore, initiator_idx, eng_id,
-							event_mask);
-		} else {
-			/* maps hdcore 0, 2, 5, 7 to 0, 1, 2, 3 */
-			static u8 const hdcore_idx_map[] = {0, 255, 1, 255, 255, 2, 255, 3};
-
-			eng_id = GAUDI3_HDCORE0_ENGINE_ID_TPC_8 + hdcore_idx_map[hdcore];
-			gaudi3_razwi_handler(hdev,  RAZWI_TPC, die, hdcore, NUM_OF_TPC_PER_HDCORE,
-						eng_id, event_mask);
-		}
+		gaudi3_razwi_handler(hdev, RAZWI_TPC, die, hdcore, initiator_idx, eng_id,
+					event_mask);
 		break;
 
 	default:
-		dev_err(hdev->dev, "Component type %u doesn't have razwi handler\n", component);
+		dev_err(hdev->dev, "Component type %u doesn't have razwi handler\n",
+			agg_component_type);
 		break;
 	}
 }
@@ -12680,17 +12782,16 @@ static int gaudi3_validate_eq_agg_header(struct hl_device *hdev, struct hl_agg_e
 static u32 gaudi3_handle_sei_event(struct hl_device *hdev,
 				struct hl_eq_dynamic_entry *eq_dynamic_entry, u64 *event_mask)
 {
+	struct hl_agg_eq_header *agg_hdr = &eq_dynamic_entry->agg_hdr;
 	struct gaudi3_device *gaudi3 = hdev->asic_specific;
 	struct gaudi3_cn_aux_ops *aux_ops = &gaudi3->cn_aux_ops;
-	struct hl_aux_dev *aux_dev = &hdev->cn.cn_aux_dev;
 	u16 data_size = le16_to_cpu(eq_dynamic_entry->hdr.size);
+	struct hl_aux_dev *aux_dev = &hdev->cn.cn_aux_dev;
 	enum hl_agg_component_type agg_component_type;
-	u32 die, hdcore = 0, instance, err_cnt = 0;
+	u32 die, instance, err_cnt = 0;
 
 	agg_component_type = eq_dynamic_entry->agg_hdr.int_comp_type;
 	die = eq_dynamic_entry->agg_hdr.die_id;
-	if (eq_dynamic_entry->agg_hdr.hdcore_type <= INT_HDCORE3)
-		hdcore = die * NUM_OF_HDCORES_PER_DIE + eq_dynamic_entry->agg_hdr.hdcore_type;
 	instance = eq_dynamic_entry->agg_hdr.comp_instance;
 
 	switch (agg_component_type) {
@@ -12732,7 +12833,7 @@ static u32 gaudi3_handle_sei_event(struct hl_device *hdev,
 		break;
 	}
 
-	gaudi3_sei_razwi_handler(hdev, agg_component_type, die, hdcore, instance, event_mask);
+	gaudi3_sei_razwi_handler(hdev, agg_hdr, event_mask);
 
 	hl_check_for_glbl_errors(hdev);
 
@@ -12744,12 +12845,11 @@ static u32 gaudi3_handle_spi_event(struct hl_device *hdev,
 {
 	u16 data_size = le16_to_cpu(eq_dynamic_entry->hdr.size);
 	enum hl_agg_component_type agg_component_type;
-	u32 die, hdcore = 0, instance, err_cnt = 0;
+	u32 die, hdcore, instance, err_cnt = 0;
 
 	agg_component_type = eq_dynamic_entry->agg_hdr.int_comp_type;
 	die = eq_dynamic_entry->agg_hdr.die_id;
-	if (eq_dynamic_entry->agg_hdr.hdcore_type <= INT_HDCORE3)
-		hdcore = die * NUM_OF_HDCORES_PER_DIE + eq_dynamic_entry->agg_hdr.hdcore_type;
+	hdcore = hdcore_type_to_hdcore(die, eq_dynamic_entry->agg_hdr.hdcore_type);
 	instance = eq_dynamic_entry->agg_hdr.comp_instance;
 
 	switch (agg_component_type) {
@@ -12785,6 +12885,21 @@ static u32 gaudi3_handle_spi_event(struct hl_device *hdev,
 	hl_check_for_glbl_errors(hdev);
 
 	return err_cnt;
+}
+
+static void gaudi3_capture_engine_err(struct hl_device *hdev, struct hl_agg_eq_header *agg_hdr,
+					u64 event_mask, u32 err_cnt)
+{
+	u16 engine_id;
+
+	if (!(event_mask & HL_NOTIFIER_EVENT_USER_ENGINE_ERR))
+		return;
+
+	engine_id = eq_agg_header_to_engine_id(agg_hdr);
+	if (engine_id == U16_MAX)
+		return;
+
+	hl_capture_engine_err(hdev, engine_id, (u16) err_cnt);
 }
 
 static int gaudi3_handle_hw_event(struct hl_device *hdev,
@@ -12826,6 +12941,8 @@ static int gaudi3_handle_hw_event(struct hl_device *hdev,
 		dev_err(hdev->dev, "No error cause\n");
 		return -EIO;
 	}
+
+	gaudi3_capture_engine_err(hdev, agg_hdr, *event_mask, err_cnt);
 
 	return 0;
 }
