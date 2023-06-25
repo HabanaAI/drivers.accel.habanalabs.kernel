@@ -277,6 +277,15 @@ int gaudi2_cn_set_info(struct hl_device *hdev, bool get_from_fw)
 		cn->card_location = le32_to_cpu(cpucp_info->card_location);
 		cn->use_fw_serdes_info = hdev->gaudi2_setup_type == GAUDI2_SETUP_TYPE_HLS2;
 	} else {
+		/* SW-169172: For HLS3 setup, as a w/a get the card_location from F/W. */
+		if (hdev->gaudi2_setup_type == GAUDI2_SETUP_TYPE_HLS3) {
+			rc = hl_cn_cpucp_info_get(hdev);
+			if (rc)
+				return rc;
+
+			cn->card_location = le32_to_cpu(cpucp_info->card_location);
+		}
+
 		/* No F/W, hence need to set the MACs manually (randomize) */
 		get_random_bytes(&mac[3], 2);
 
@@ -318,7 +327,9 @@ int gaudi2_cn_set_info(struct hl_device *hdev, bool get_from_fw)
 		break;
 	default:
 		hdev->asic_prop.server_type = HL_SERVER_TYPE_UNKNOWN;
-		if (get_from_fw) {
+
+		/* SW-169172: For HLS3 setup don't fail device init on invalid serdes_type. */
+		if (get_from_fw && hdev->gaudi2_setup_type != GAUDI2_SETUP_TYPE_HLS3) {
 			dev_err(hdev->dev, "bad SerDes type %d\n", serdes_type);
 			return -EFAULT;
 		}
