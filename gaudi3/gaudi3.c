@@ -7775,6 +7775,12 @@ static int gaudi3_hw_init(struct hl_device *hdev)
 
 	gaudi3_init_scrambler(hdev);
 
+	/*
+	 * This function overrides some registers which are set also in gaudi3_init_scrambler
+	 * hence it must be called after it.
+	 */
+	gaudi3_dtlb_nrtr_eco_fixup(hdev);
+
 	gaudi3_cn_quiescence(hdev);
 
 	gaudi3_init_msix_gw_table(hdev);

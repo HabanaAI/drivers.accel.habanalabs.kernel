@@ -11,6 +11,7 @@
 #include "gaudi3_interrupt_map_bringup.h"
 
 #include <linux/bitrev.h>
+#include <linux/ethtool.h>
 
 #define GAUDI3_PLL_TIMEOUT_USEC		10000 /* 10ms */
 
@@ -5975,4 +5976,25 @@ void gaudi3_halt_engines_fw_config(struct hl_device *hdev)
 
 	gaudi3_disable_clock_gating(hdev);
 	gaudi3_stop_decoder_fw_config(hdev);
+}
+
+static void gaudi3_init_dtlb_nrtr_eco_fixup(struct hl_device *hdev,
+			int block, int inst, u32 offset, struct iterate_module_ctx *ctx)
+{
+	u32 val;
+
+	if (block == 0)
+		val = 0x32103210;
+	else
+		val = 0x76547654;
+
+	WREG32(offset + mmDTLB_HBM_PHY_MAP, val);
+}
+
+void gaudi3_dtlb_nrtr_eco_fixup(struct hl_device *hdev)
+{
+	struct iterate_module_ctx ctx = {};
+
+	ctx.fn = gaudi3_init_dtlb_nrtr_eco_fixup;
+	gaudi3_iterate_nrtr_dtlbs(hdev, &ctx);
 }

@@ -784,5 +784,6 @@ int gaudi3_irq_vector(struct hl_device *hdev, unsigned int nr);
 u32 gaudi3_handle_axi_drain(struct hl_device *hdev, bool *pci_link_error);
 void gaudi3_cn_macros_fw_config(struct hl_device *hdev);
 void gaudi3_cn_restore_dynamic_cfg_soft_reset_fw(struct hl_device *hdev);
+void gaudi3_dtlb_nrtr_eco_fixup(struct hl_device *hdev);
 
 #endif /* GAUDI3P_H_ */
