@@ -3153,6 +3153,27 @@ int gaudi3_set_dram_properties(struct hl_device *hdev)
 	return 0;
 }
 
+void gaudi3_set_dram_binning_masks(struct hl_device *hdev)
+{
+	struct asic_fixed_properties *prop = &hdev->asic_prop;
+	u32 max_hbms, hbm_full_mask;
+
+	max_hbms = NUM_HBM_PER_DIE * prop->num_of_dies;
+	hbm_full_mask = GENMASK(max_hbms, 0);
+
+	/* check if we should override default binning */
+	if (!hdev->dram_binning) {
+		prop->dram_binning_mask = 0;
+		prop->dram_enabled_mask = hbm_full_mask;
+		return;
+	}
+
+	/* Set DRAM binning constraints */
+	prop->faulty_dram_cluster_map |= hdev->dram_binning;
+	prop->dram_binning_mask = hdev->dram_binning;
+	prop->dram_enabled_mask = hbm_full_mask & ~BIT(max_hbms - 1);
+}
+
 int gaudi3_validate_set_tpc_binning(struct hl_device *hdev)
 {
 	u64 dcore_tpc_binning_mask, dcore_tpc_full_mask, tpc_full_mask;
@@ -3285,6 +3306,8 @@ int gaudi3_set_binning_masks(struct hl_device *hdev)
 	rc = gaudi3_validate_set_rotator_binning(hdev);
 	if (rc)
 		return rc;
+
+	gaudi3_set_dram_binning_masks(hdev);
 
 	return 0;
 }
@@ -4872,6 +4895,16 @@ static int gaudi3_cpucp_info_get(struct hl_device *hdev)
 
 	if (!strlen(prop->cpucp_info.card_name))
 		strncpy(prop->cpucp_info.card_name, GAUDI3_DEFAULT_CARD_NAME, CARD_NAME_MAX_LEN);
+
+	/* Overwrite binning masks with the actual binning values from F/W */
+	hdev->dram_binning = prop->cpucp_info.dram_binning_mask;
+	hdev->tpc_binning = le64_to_cpu(prop->cpucp_info.tpc_binning_mask);
+	hdev->decoder_binning = lower_32_bits(le64_to_cpu(prop->cpucp_info.decoder_binning_mask));
+	hdev->rotator_binning = le32_to_cpu(prop->cpucp_info.rot_binning_mask);
+
+	dev_dbg(hdev->dev, "Read binning masks: tpc: 0x%llx, dram: 0x%llx, dec: 0x%x, rot: 0x%x\n",
+			hdev->tpc_binning, hdev->dram_binning, hdev->decoder_binning,
+			hdev->rotator_binning);
 
 	rc = hdev->asic_funcs->set_binning_masks(hdev);
 	if (rc)

@@ -1810,6 +1810,8 @@ struct cpucp_security_info {
  * struct cpucp_info - Info from CpuCP that is necessary to the host's driver
  * @sensors: available sensors description.
  * @kernel_version: CpuCP linux kernel version.
+ * @rot_binning_mask: Rotator binning mask, 1 bit per Rotator instance
+ *                    (0 = functional 1 = binned)
  * @reserved: reserved field.
  * @card_type: card configuration type.
  * @card_location: in a server, each card has different connections topology
@@ -1854,7 +1856,7 @@ struct cpucp_security_info {
 struct cpucp_info {
 	struct cpucp_sensor sensors[CPUCP_MAX_SENSORS];
 	__u8 kernel_version[VERSION_MAX_LEN];
-	__le32 reserved;
+	__le32 rot_binning_mask;
 	__le32 card_type;
 	__le32 card_location;
 	__le32 cpld_version;

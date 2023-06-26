@@ -715,6 +715,7 @@ int gaudi3_special_blocks_iterator_config(struct hl_device *hdev);
 void gaudi3_special_blocks_iterator_free(struct hl_device *hdev);
 int gaudi3_set_dynamic_dram_properties(struct hl_device *hdev);
 int gaudi3_validate_set_tpc_binning(struct hl_device *hdev);
+void gaudi3_set_dram_binning_masks(struct hl_device *hdev);
 
 int gaudi3_test_qmans_msgs_alloc(struct hl_device *hdev);
 void gaudi3_test_qmans_msgs_free(struct hl_device *hdev);

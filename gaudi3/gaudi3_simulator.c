@@ -862,6 +862,8 @@ static int gaudi3_sim_set_binning_masks(struct hl_device *hdev)
 	if (rc)
 		return rc;
 
+	gaudi3_set_dram_binning_masks(hdev);
+
 	return 0;
 }
 
@@ -1026,6 +1028,20 @@ static int gaudi3_sim_cpucp_info_get(struct hl_device *hdev)
 
 	if (!strlen(prop->cpucp_info.card_name))
 		strncpy(prop->cpucp_info.card_name, GAUDI3_DEFAULT_CARD_NAME, CARD_NAME_MAX_LEN);
+
+	/* Overwrite binning masks with the actual binning values from F/W */
+	hdev->dram_binning = prop->cpucp_info.dram_binning_mask;
+	hdev->tpc_binning = le64_to_cpu(prop->cpucp_info.tpc_binning_mask);
+	hdev->decoder_binning = lower_32_bits(le64_to_cpu(prop->cpucp_info.decoder_binning_mask));
+	hdev->rotator_binning = le32_to_cpu(prop->cpucp_info.rot_binning_mask);
+
+	dev_dbg(hdev->dev, "Read binning masks: tpc: 0x%llx, dram: 0x%llx, dec: 0x%x, rot: 0x%x\n",
+			hdev->tpc_binning, hdev->dram_binning, hdev->decoder_binning,
+			hdev->rotator_binning);
+
+	rc = hdev->asic_funcs->set_binning_masks(hdev);
+	if (rc)
+		return rc;
 
 	/* Make sure we don't expose HWMON for simulator */
 	if (hdev->hl_chip_info->info) {
