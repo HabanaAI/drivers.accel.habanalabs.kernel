@@ -11470,19 +11470,18 @@ void gaudi3_init_firmware_loader(struct hl_device *hdev)
 
 	/* fill common fields */
 	fw_loader->boot_fit_img.image_name = GAUDI3_BOOT_FIT_FILE;
-	fw_loader->boot_fit_timeout = GAUDI3_BOOT_FIT_REQ_TIMEOUT_USEC;
-	//fw_loader->linux_img.image_name = ?;
-
 	fw_loader->skip_bmc = false;
 	fw_loader->sram_bar_id = SRAM_DRAM_BAR_ID;
 	fw_loader->dram_bar_id = SRAM_DRAM_BAR_ID;
 
 	if (hdev->pldm) {
+		fw_loader->boot_fit_timeout = GAUDI3_PLDM_FIT_CPU_TIMEOUT_USEC;
 		if (hdev->fw_components & (FW_TYPE_BOOT_CPU | FW_TYPE_PREBOOT_CPU))
 			fw_loader->cpu_timeout = GAUDI3_PLDM_FIT_CPU_TIMEOUT_USEC;
 		else
 			fw_loader->cpu_timeout = GAUDI3_PLDM_CPU_TIMEOUT_USEC;
 	} else {
+		fw_loader->boot_fit_timeout = GAUDI3_BOOT_FIT_REQ_TIMEOUT_USEC;
 		fw_loader->cpu_timeout = GAUDI3_CPU_TIMEOUT_USEC;
 	}
 
