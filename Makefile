@@ -77,5 +77,6 @@ clean:
 	rm -f gaudi/*.ur-safe
 	rm -f gaudi2/*.ur-safe
 	rm -f gaudi3/*.ur-safe
+	rm -f cn/*.ur-safe
 
 endif
