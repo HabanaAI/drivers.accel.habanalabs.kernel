@@ -24,10 +24,7 @@
 #include <linux/dma-buf.h>
 #include <linux/kfifo.h>
 #include <linux/pci.h>
-#include <linux/etherdevice.h>
-#include <linux/ethtool.h>
 #include <linux/rwsem.h>
-#include <linux/if_vlan.h>
 #include <linux/eventfd.h>
 #include <linux/platform_device.h>
 
