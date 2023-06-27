@@ -766,6 +766,7 @@ static int hl_cn_aux_drv_init(struct hl_device *hdev)
 {
 	int (*probe)(struct hl_aux_dev *aux_dev);
 	struct hl_cn *cn = &hdev->cn;
+	struct module *module;
 	int rc;
 
 	rc = hl_cn_aux_data_init(hdev);
@@ -774,10 +775,23 @@ static int hl_cn_aux_drv_init(struct hl_device *hdev)
 		return rc;
 	}
 
+	module = find_module(HL_CN_NAME);
+	if (!module) {
+		dev_err(hdev->dev, "Module %s was not found\n", HL_CN_NAME);
+		rc = -EIO;
+		goto module_fail;
+	}
+
+	/* don't allow module unloading */
+	if (!try_module_get(module)) {
+		dev_err(hdev->dev, "Failed to increment %s module refcount\n", HL_CN_NAME);
+		rc = -EIO;
+		goto module_fail;
+	}
+
 	probe = symbol_get(hl_cn_probe);
 	if (!probe) {
-		dev_err(hdev->dev, "hl_cn_probe symbol wasn't found. Is %s module loaded?\n",
-			HL_CN_NAME);
+		dev_err(hdev->dev, "hl_cn_probe symbol wasn't found\n");
 		rc = -ENODEV;
 		goto probe_fail;
 	}
@@ -790,6 +804,8 @@ static int hl_cn_aux_drv_init(struct hl_device *hdev)
 	return 0;
 
 probe_fail:
+	module_put(module);
+module_fail:
 	hl_cn_aux_data_fini(hdev);
 
 	return rc;
@@ -799,19 +815,26 @@ static void hl_cn_aux_drv_fini(struct hl_device *hdev)
 {
 	void (*remove)(struct hl_aux_dev *aux_dev);
 	struct hl_cn *cn = &hdev->cn;
+	struct module *module;
 
 	if (!cn->is_cn_aux_dev_initialized)
 		return;
 
+	module = find_module(HL_CN_NAME);
+	if (!module) {
+		dev_err(hdev->dev, "Module %s was not found\n", HL_CN_NAME);
+		return;
+	}
+
 	remove = symbol_get(hl_cn_remove);
 	if (!remove) {
-		dev_err(hdev->dev, "hl_cn_remove symbol wasn't found. Is %s module loaded?\n",
-			HL_CN_NAME);
+		dev_err(hdev->dev, "hl_cn_remove symbol wasn't found\n");
 		return;
 	}
 
 	remove(&hdev->cn.cn_aux_dev);
 	symbol_put(hl_cn_remove);
+	module_put(module);
 
 	hl_cn_aux_data_fini(hdev);
 }
