@@ -1662,3 +1662,12 @@ void *memset32(uint32_t *s, uint32_t v, size_t count)
 	return s;
 }
 #endif /* _HAS_MEMSET32 */
+
+#ifdef _HAS_CLASS_CREATE_WITH_MODULE
+struct class *hl_class_create(const char *name)
+{
+	static struct lock_class_key __key;
+
+	return __class_create(THIS_MODULE, name, &__key);
+}
+#endif

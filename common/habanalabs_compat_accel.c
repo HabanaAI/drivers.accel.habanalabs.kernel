@@ -32,7 +32,7 @@ static char *accel_devnode(struct device *dev, umode_t *mode)
 
 static int accel_sysfs_init(void)
 {
-	accel_class = class_create(THIS_MODULE, "accel");
+	accel_class = class_create("accel");
 	if (IS_ERR(accel_class))
 		return PTR_ERR(accel_class);
 

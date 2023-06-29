@@ -955,4 +955,10 @@ static inline bool xa_empty(struct xarray *xa)
 
 #endif /* !_HAS_XARRAY_LIB */
 
+#ifdef _HAS_CLASS_CREATE_WITH_MODULE
+#undef class_create
+#define class_create	hl_class_create
+struct class *hl_class_create(const char *name);
+#endif
+
 #endif /* HABANALABS_COMPAT_H_ */
