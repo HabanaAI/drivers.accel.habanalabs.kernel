@@ -13,39 +13,39 @@
 #include "../include/gaudi3/asic_reg/gaudi3_regs.h"
 
 #define N2R_CREDITS_VERSION		"0.5"
-#define R2C_CREDITS_VERSION		"0.5"
+#define R2C_CREDITS_VERSION		"0.7"
 #define SCRAMBLING_VERSION		"0.10"
-#define REGULATORS_VERSION		"0.9"
+#define REGULATORS_VERSION		"0.14"
 #define QOS_VERSION		"0.1"
-#define CACHE_VERSION		"0.3"
+#define CACHE_VERSION		"0.7"
 #define MC_VERSION		"0.2"
-#define SOL_CONFIG_VERSION		"1.7"
+#define SOL_CONFIG_VERSION		"1.18"
 
 static void gaudi3_init_n2r_credits_d2d(struct hl_device *hdev)
 {
 	WREG32(0xC000044, 0x15);
-	WREG32(0xC00D010, 0x0808);
-	WREG32(0xC00D014, 0x0808);
-	WREG32(0xC00D030, 0x1010);
-	WREG32(0xC00D034, 0x1018);
-	WREG32(0xC00D038, 0x1010);
-	WREG32(0xC00D03C, 0x1018);
-	WREG32(0xC00D040, 0x3236);
-	WREG32(0xC00D044, 0x3236);
-	WREG32(0xC00D048, 0x3236);
-	WREG32(0xC00D04C, 0x3236);
+	WREG32(0xC00D010, 0x808);
+	WREG32(0xC00D014, 0x808);
+	WREG32(0xC00D030, 0x4040);
+	WREG32(0xC00D034, 0x4040);
+	WREG32(0xC00D038, 0x8060);
+	WREG32(0xC00D03C, 0x8080);
+	WREG32(0xC00D040, 0x202);
+	WREG32(0xC00D044, 0x202);
+	WREG32(0xC00D048, 0x202);
+	WREG32(0xC00D04C, 0x202);
 	WREG32(0xC00D110, 0x2008);
-	WREG32(0xC00D114, 0x0808);
-	WREG32(0xC00D130, 0x0C08);
-	WREG32(0xC00D134, 0x080C);
-	WREG32(0xC00D138, 0x0808);
-	WREG32(0xC00D13C, 0x080C);
-	WREG32(0xC00D140, 0x1018);
-	WREG32(0xC00D144, 0x1018);
-	WREG32(0xC00D148, 0x1018);
-	WREG32(0xC00D14C, 0x1018);
+	WREG32(0xC00D114, 0x808);
+	WREG32(0xC00D130, 0xC0C);
+	WREG32(0xC00D134, 0xC0C);
+	WREG32(0xC00D138, 0xC0C);
+	WREG32(0xC00D13C, 0xC0C);
+	WREG32(0xC00D140, 0x202);
+	WREG32(0xC00D144, 0x202);
+	WREG32(0xC00D148, 0x202);
+	WREG32(0xC00D14C, 0x202);
 	WREG32(0xC00D210, 0x2C10);
-	WREG32(0xC00D214, 0x0808);
+	WREG32(0xC00D214, 0x808);
 	WREG32(0xC00D230, 0x1410);
 	WREG32(0xC00D234, 0x1410);
 	WREG32(0xC00D238, 0x1410);
@@ -55,46 +55,46 @@ static void gaudi3_init_n2r_credits_d2d(struct hl_device *hdev)
 	WREG32(0xC00D248, 0x1410);
 	WREG32(0xC00D24C, 0x1410);
 	WREG32(0xC00D310, 0x4010);
-	WREG32(0xC00D314, 0x0808);
-	WREG32(0xC00D330, 0x0C08);
-	WREG32(0xC00D334, 0x0C08);
-	WREG32(0xC00D338, 0x0C0C);
-	WREG32(0xC00D33C, 0x0C0C);
-	WREG32(0xC00D340, 0x1418);
-	WREG32(0xC00D344, 0x1418);
-	WREG32(0xC00D348, 0x1418);
-	WREG32(0xC00D34C, 0x1418);
+	WREG32(0xC00D314, 0x808);
+	WREG32(0xC00D330, 0x20C);
+	WREG32(0xC00D334, 0x20C);
+	WREG32(0xC00D338, 0x20C);
+	WREG32(0xC00D33C, 0x20C);
+	WREG32(0xC00D340, 0x202);
+	WREG32(0xC00D344, 0x202);
+	WREG32(0xC00D348, 0x202);
+	WREG32(0xC00D34C, 0x202);
 	WREG32(0xC00D410, 0x1010);
-	WREG32(0xC00D414, 0x0808);
-	WREG32(0xC00D510, 0x0E0E);
-	WREG32(0xC00D514, 0x0E0E);
-	WREG32(0xC00D518, 0x0E0E);
-	WREG32(0xC00D51C, 0x0E0E);
-	WREG32(0xC00D520, 0x0E0E);
-	WREG32(0xC00D524, 0x0E0E);
-	WREG32(0xC00D528, 0x0E0E);
-	WREG32(0xC00D52C, 0x0E0E);
+	WREG32(0xC00D414, 0x808);
+	WREG32(0xC00D510, 0xE0E);
+	WREG32(0xC00D514, 0xE0E);
+	WREG32(0xC00D518, 0xE0E);
+	WREG32(0xC00D51C, 0xE0E);
+	WREG32(0xC00D520, 0xE0E);
+	WREG32(0xC00D524, 0xE0E);
+	WREG32(0xC00D528, 0xE0E);
+	WREG32(0xC00D52C, 0xE0E);
 	WREG32(0xC020044, 0x15);
-	WREG32(0xC027010, 0x0808);
-	WREG32(0xC027014, 0x0808);
-	WREG32(0xC027030, 0x1010);
-	WREG32(0xC027034, 0x1018);
-	WREG32(0xC027038, 0x1010);
-	WREG32(0xC02703C, 0x1018);
-	WREG32(0xC027040, 0x3236);
-	WREG32(0xC027044, 0x3236);
-	WREG32(0xC027048, 0x3236);
-	WREG32(0xC02704C, 0x3236);
-	WREG32(0xC027110, 0x0808);
-	WREG32(0xC027114, 0x0808);
-	WREG32(0xC027130, 0x1010);
-	WREG32(0xC027134, 0x1018);
-	WREG32(0xC027138, 0x1010);
-	WREG32(0xC02713C, 0x1018);
-	WREG32(0xC027140, 0x3236);
-	WREG32(0xC027144, 0x3236);
-	WREG32(0xC027148, 0x3236);
-	WREG32(0xC02714C, 0x3236);
+	WREG32(0xC027010, 0x808);
+	WREG32(0xC027014, 0x808);
+	WREG32(0xC027030, 0x6050);
+	WREG32(0xC027034, 0x6060);
+	WREG32(0xC027038, 0x4040);
+	WREG32(0xC02703C, 0x4040);
+	WREG32(0xC027040, 0x202);
+	WREG32(0xC027044, 0x202);
+	WREG32(0xC027048, 0x202);
+	WREG32(0xC02704C, 0x202);
+	WREG32(0xC027110, 0x808);
+	WREG32(0xC027114, 0x808);
+	WREG32(0xC027130, 0x6050);
+	WREG32(0xC027134, 0x6060);
+	WREG32(0xC027138, 0x4040);
+	WREG32(0xC02713C, 0x4040);
+	WREG32(0xC027140, 0x202);
+	WREG32(0xC027144, 0x202);
+	WREG32(0xC027148, 0x202);
+	WREG32(0xC02714C, 0x202);
 	WREG32(0xC027210, 0x2C10);
 	WREG32(0xC027214, 0x1010);
 	WREG32(0xC027230, 0x1410);
@@ -106,38 +106,38 @@ static void gaudi3_init_n2r_credits_d2d(struct hl_device *hdev)
 	WREG32(0xC027248, 0x1410);
 	WREG32(0xC02724C, 0x1410);
 	WREG32(0xC027410, 0x1010);
-	WREG32(0xC027414, 0x0808);
-	WREG32(0xC027510, 0x0E0E);
-	WREG32(0xC027514, 0x0E0E);
-	WREG32(0xC027518, 0x0E0E);
-	WREG32(0xC02751C, 0x0E0E);
-	WREG32(0xC027520, 0x0E0E);
-	WREG32(0xC027524, 0x0E0E);
-	WREG32(0xC027528, 0x0E0E);
-	WREG32(0xC02752C, 0x0E0E);
+	WREG32(0xC027414, 0x808);
+	WREG32(0xC027510, 0xE0E);
+	WREG32(0xC027514, 0xE0E);
+	WREG32(0xC027518, 0xE0E);
+	WREG32(0xC02751C, 0xE0E);
+	WREG32(0xC027520, 0xE0E);
+	WREG32(0xC027524, 0xE0E);
+	WREG32(0xC027528, 0xE0E);
+	WREG32(0xC02752C, 0xE0E);
 	WREG32(0xC800044, 0x15);
-	WREG32(0xC80D010, 0x0808);
-	WREG32(0xC80D014, 0x0808);
-	WREG32(0xC80D030, 0x3236);
-	WREG32(0xC80D034, 0x3236);
-	WREG32(0xC80D038, 0x3236);
-	WREG32(0xC80D03C, 0x3236);
-	WREG32(0xC80D040, 0x1018);
-	WREG32(0xC80D044, 0x1010);
-	WREG32(0xC80D048, 0x1018);
-	WREG32(0xC80D04C, 0x1010);
-	WREG32(0xC80D110, 0x0808);
-	WREG32(0xC80D114, 0x0808);
-	WREG32(0xC80D130, 0x0404);
-	WREG32(0xC80D134, 0x0404);
-	WREG32(0xC80D138, 0x0404);
-	WREG32(0xC80D13C, 0x0404);
-	WREG32(0xC80D140, 0x0404);
-	WREG32(0xC80D144, 0x0404);
-	WREG32(0xC80D148, 0x0404);
-	WREG32(0xC80D14C, 0x0404);
+	WREG32(0xC80D010, 0x808);
+	WREG32(0xC80D014, 0x808);
+	WREG32(0xC80D030, 0x202);
+	WREG32(0xC80D034, 0x202);
+	WREG32(0xC80D038, 0x202);
+	WREG32(0xC80D03C, 0x202);
+	WREG32(0xC80D040, 0x8080);
+	WREG32(0xC80D044, 0x8060);
+	WREG32(0xC80D048, 0x4040);
+	WREG32(0xC80D04C, 0x4040);
+	WREG32(0xC80D110, 0x808);
+	WREG32(0xC80D114, 0x808);
+	WREG32(0xC80D130, 0x202);
+	WREG32(0xC80D134, 0x202);
+	WREG32(0xC80D138, 0x202);
+	WREG32(0xC80D13C, 0x202);
+	WREG32(0xC80D140, 0x404);
+	WREG32(0xC80D144, 0x404);
+	WREG32(0xC80D148, 0x404);
+	WREG32(0xC80D14C, 0x404);
 	WREG32(0xC80D210, 0x2C18);
-	WREG32(0xC80D214, 0x0808);
+	WREG32(0xC80D214, 0x808);
 	WREG32(0xC80D230, 0x1410);
 	WREG32(0xC80D234, 0x1410);
 	WREG32(0xC80D238, 0x1410);
@@ -146,49 +146,49 @@ static void gaudi3_init_n2r_credits_d2d(struct hl_device *hdev)
 	WREG32(0xC80D244, 0x1410);
 	WREG32(0xC80D248, 0x1410);
 	WREG32(0xC80D24C, 0x1410);
-	WREG32(0xC80D310, 0x0878);
-	WREG32(0xC80D314, 0x0808);
-	WREG32(0xC80D330, 0x1418);
-	WREG32(0xC80D334, 0x1418);
-	WREG32(0xC80D338, 0x1418);
-	WREG32(0xC80D33C, 0x1418);
-	WREG32(0xC80D340, 0x0C08);
-	WREG32(0xC80D344, 0x0C08);
-	WREG32(0xC80D348, 0x0C0C);
-	WREG32(0xC80D34C, 0x0C0C);
+	WREG32(0xC80D310, 0x878);
+	WREG32(0xC80D314, 0x808);
+	WREG32(0xC80D330, 0x202);
+	WREG32(0xC80D334, 0x202);
+	WREG32(0xC80D338, 0x202);
+	WREG32(0xC80D33C, 0x202);
+	WREG32(0xC80D340, 0xC02);
+	WREG32(0xC80D344, 0xC02);
+	WREG32(0xC80D348, 0xC02);
+	WREG32(0xC80D34C, 0xC02);
 	WREG32(0xC80D410, 0x4010);
-	WREG32(0xC80D414, 0x0808);
-	WREG32(0xC80D510, 0x0E0E);
-	WREG32(0xC80D514, 0x0E0E);
-	WREG32(0xC80D518, 0x0E0E);
-	WREG32(0xC80D51C, 0x0E0E);
-	WREG32(0xC80D520, 0x0E0E);
-	WREG32(0xC80D524, 0x0E0E);
-	WREG32(0xC80D528, 0x0E0E);
-	WREG32(0xC80D52C, 0x0E0E);
+	WREG32(0xC80D414, 0x808);
+	WREG32(0xC80D510, 0xE0E);
+	WREG32(0xC80D514, 0xE0E);
+	WREG32(0xC80D518, 0xE0E);
+	WREG32(0xC80D51C, 0xE0E);
+	WREG32(0xC80D520, 0xE0E);
+	WREG32(0xC80D524, 0xE0E);
+	WREG32(0xC80D528, 0xE0E);
+	WREG32(0xC80D52C, 0xE0E);
 	WREG32(0xC820044, 0x15);
-	WREG32(0xC827010, 0x0808);
-	WREG32(0xC827014, 0x0808);
-	WREG32(0xC827030, 0x3236);
-	WREG32(0xC827034, 0x3236);
-	WREG32(0xC827038, 0x3236);
-	WREG32(0xC82703C, 0x3236);
-	WREG32(0xC827040, 0x1018);
-	WREG32(0xC827044, 0x1010);
-	WREG32(0xC827048, 0x1018);
-	WREG32(0xC82704C, 0x1010);
-	WREG32(0xC827110, 0x0808);
-	WREG32(0xC827114, 0x0808);
-	WREG32(0xC827130, 0x3236);
-	WREG32(0xC827134, 0x3236);
-	WREG32(0xC827138, 0x3236);
-	WREG32(0xC82713C, 0x3236);
-	WREG32(0xC827140, 0x1018);
-	WREG32(0xC827144, 0x1010);
-	WREG32(0xC827148, 0x1018);
-	WREG32(0xC82714C, 0x1010);
+	WREG32(0xC827010, 0x808);
+	WREG32(0xC827014, 0x808);
+	WREG32(0xC827030, 0x202);
+	WREG32(0xC827034, 0x202);
+	WREG32(0xC827038, 0x202);
+	WREG32(0xC82703C, 0x202);
+	WREG32(0xC827040, 0x4040);
+	WREG32(0xC827044, 0x4040);
+	WREG32(0xC827048, 0x6060);
+	WREG32(0xC82704C, 0x6050);
+	WREG32(0xC827110, 0x808);
+	WREG32(0xC827114, 0x808);
+	WREG32(0xC827130, 0x202);
+	WREG32(0xC827134, 0x202);
+	WREG32(0xC827138, 0x202);
+	WREG32(0xC82713C, 0x202);
+	WREG32(0xC827140, 0x4040);
+	WREG32(0xC827144, 0x4040);
+	WREG32(0xC827148, 0x6060);
+	WREG32(0xC82714C, 0x6050);
 	WREG32(0xC827210, 0x2C18);
-	WREG32(0xC827214, 0x0808);
+	WREG32(0xC827214, 0x808);
 	WREG32(0xC827230, 0x1410);
 	WREG32(0xC827234, 0x1410);
 	WREG32(0xC827238, 0x1410);
@@ -198,18 +198,18 @@ static void gaudi3_init_n2r_credits_d2d(struct hl_device *hdev)
 	WREG32(0xC827248, 0x1410);
 	WREG32(0xC82724C, 0x1410);
 	WREG32(0xC827410, 0x4010);
-	WREG32(0xC827414, 0x0808);
-	WREG32(0xC827510, 0x0E0E);
-	WREG32(0xC827514, 0x0E0E);
-	WREG32(0xC827518, 0x0E0E);
-	WREG32(0xC82751C, 0x0E0E);
-	WREG32(0xC827520, 0x0E0E);
-	WREG32(0xC827524, 0x0E0E);
-	WREG32(0xC827528, 0x0E0E);
-	WREG32(0xC82752C, 0x0E0E);
+	WREG32(0xC827414, 0x808);
+	WREG32(0xC827510, 0xE0E);
+	WREG32(0xC827514, 0xE0E);
+	WREG32(0xC827518, 0xE0E);
+	WREG32(0xC82751C, 0xE0E);
+	WREG32(0xC827520, 0xE0E);
+	WREG32(0xC827524, 0xE0E);
+	WREG32(0xC827528, 0xE0E);
+	WREG32(0xC82752C, 0xE0E);
 	WREG32(0xC040030, 0x15);
 	WREG32(0xC045210, 0x2C10);
-	WREG32(0xC045214, 0x0808);
+	WREG32(0xC045214, 0x808);
 	WREG32(0xC045230, 0x1410);
 	WREG32(0xC045234, 0x1410);
 	WREG32(0xC045238, 0x1410);
@@ -219,18 +219,18 @@ static void gaudi3_init_n2r_credits_d2d(struct hl_device *hdev)
 	WREG32(0xC045248, 0x1410);
 	WREG32(0xC04524C, 0x1410);
 	WREG32(0xC045410, 0x4010);
-	WREG32(0xC045414, 0x0808);
-	WREG32(0xC045510, 0x0E0E);
-	WREG32(0xC045514, 0x0E0E);
-	WREG32(0xC045518, 0x0E0E);
-	WREG32(0xC04551C, 0x0E0E);
-	WREG32(0xC045520, 0x0E0E);
-	WREG32(0xC045524, 0x0E0E);
-	WREG32(0xC045528, 0x0E0E);
-	WREG32(0xC04552C, 0x0E0E);
+	WREG32(0xC045414, 0x808);
+	WREG32(0xC045510, 0xE0E);
+	WREG32(0xC045514, 0xE0E);
+	WREG32(0xC045518, 0xE0E);
+	WREG32(0xC04551C, 0xE0E);
+	WREG32(0xC045520, 0xE0E);
+	WREG32(0xC045524, 0xE0E);
+	WREG32(0xC045528, 0xE0E);
+	WREG32(0xC04552C, 0xE0E);
 	WREG32(0xC050030, 0x15);
 	WREG32(0xC055210, 0x2C10);
-	WREG32(0xC055214, 0x0808);
+	WREG32(0xC055214, 0x808);
 	WREG32(0xC055230, 0x1410);
 	WREG32(0xC055234, 0x1410);
 	WREG32(0xC055238, 0x1410);
@@ -240,18 +240,18 @@ static void gaudi3_init_n2r_credits_d2d(struct hl_device *hdev)
 	WREG32(0xC055248, 0x1410);
 	WREG32(0xC05524C, 0x1410);
 	WREG32(0xC055410, 0x4010);
-	WREG32(0xC055414, 0x0808);
-	WREG32(0xC055510, 0x0E0E);
-	WREG32(0xC055514, 0x0E0E);
-	WREG32(0xC055518, 0x0E0E);
-	WREG32(0xC05551C, 0x0E0E);
-	WREG32(0xC055520, 0x0E0E);
-	WREG32(0xC055524, 0x0E0E);
-	WREG32(0xC055528, 0x0E0E);
-	WREG32(0xC05552C, 0x0E0E);
+	WREG32(0xC055414, 0x808);
+	WREG32(0xC055510, 0xE0E);
+	WREG32(0xC055514, 0xE0E);
+	WREG32(0xC055518, 0xE0E);
+	WREG32(0xC05551C, 0xE0E);
+	WREG32(0xC055520, 0xE0E);
+	WREG32(0xC055524, 0xE0E);
+	WREG32(0xC055528, 0xE0E);
+	WREG32(0xC05552C, 0xE0E);
 	WREG32(0xC840030, 0x15);
 	WREG32(0xC845210, 0x2C18);
-	WREG32(0xC845214, 0x0808);
+	WREG32(0xC845214, 0x808);
 	WREG32(0xC845230, 0x1410);
 	WREG32(0xC845234, 0x1410);
 	WREG32(0xC845238, 0x1410);
@@ -261,18 +261,18 @@ static void gaudi3_init_n2r_credits_d2d(struct hl_device *hdev)
 	WREG32(0xC845248, 0x1410);
 	WREG32(0xC84524C, 0x1410);
 	WREG32(0xC845410, 0x5010);
-	WREG32(0xC845414, 0x0808);
-	WREG32(0xC845510, 0x0E0E);
-	WREG32(0xC845514, 0x0E0E);
-	WREG32(0xC845518, 0x0E0E);
-	WREG32(0xC84551C, 0x0E0E);
-	WREG32(0xC845520, 0x0E0E);
-	WREG32(0xC845524, 0x0E0E);
-	WREG32(0xC845528, 0x0E0E);
-	WREG32(0xC84552C, 0x0E0E);
+	WREG32(0xC845414, 0x808);
+	WREG32(0xC845510, 0xE0E);
+	WREG32(0xC845514, 0xE0E);
+	WREG32(0xC845518, 0xE0E);
+	WREG32(0xC84551C, 0xE0E);
+	WREG32(0xC845520, 0xE0E);
+	WREG32(0xC845524, 0xE0E);
+	WREG32(0xC845528, 0xE0E);
+	WREG32(0xC84552C, 0xE0E);
 	WREG32(0xC850030, 0x15);
 	WREG32(0xC855210, 0x2C18);
-	WREG32(0xC855214, 0x0808);
+	WREG32(0xC855214, 0x808);
 	WREG32(0xC855230, 0x1410);
 	WREG32(0xC855234, 0x1410);
 	WREG32(0xC855238, 0x1410);
@@ -282,102 +282,102 @@ static void gaudi3_init_n2r_credits_d2d(struct hl_device *hdev)
 	WREG32(0xC855248, 0x1410);
 	WREG32(0xC85524C, 0x1410);
 	WREG32(0xC855410, 0x5010);
-	WREG32(0xC855414, 0x0808);
-	WREG32(0xC855510, 0x0E0E);
-	WREG32(0xC855514, 0x0E0E);
-	WREG32(0xC855518, 0x0E0E);
-	WREG32(0xC85551C, 0x0E0E);
-	WREG32(0xC855520, 0x0E0E);
-	WREG32(0xC855524, 0x0E0E);
-	WREG32(0xC855528, 0x0E0E);
-	WREG32(0xC85552C, 0x0E0E);
+	WREG32(0xC855414, 0x808);
+	WREG32(0xC855510, 0xE0E);
+	WREG32(0xC855514, 0xE0E);
+	WREG32(0xC855518, 0xE0E);
+	WREG32(0xC85551C, 0xE0E);
+	WREG32(0xC855520, 0xE0E);
+	WREG32(0xC855524, 0xE0E);
+	WREG32(0xC855528, 0xE0E);
+	WREG32(0xC85552C, 0xE0E);
 }
 
 static void gaudi3_init_n2r_credits_single_die(struct hl_device *hdev)
 {
 	WREG32(0xC000044, 0x15);
-	WREG32(0xC00D010, 0x0808);
-	WREG32(0xC00D014, 0x0808);
+	WREG32(0xC00D010, 0x808);
+	WREG32(0xC00D014, 0x808);
 	WREG32(0xC00D030, 0x1010);
 	WREG32(0xC00D034, 0x2020);
 	WREG32(0xC00D038, 0x1010);
 	WREG32(0xC00D03C, 0x2020);
-	WREG32(0xC00D110, 0x0808);
-	WREG32(0xC00D130, 0x0C08);
+	WREG32(0xC00D110, 0x808);
+	WREG32(0xC00D130, 0xC08);
 	WREG32(0xC00D134, 0x2020);
 	WREG32(0xC00D138, 0x1010);
 	WREG32(0xC00D13C, 0x2020);
 	WREG32(0xC00D210, 0x1010);
-	WREG32(0xC00D230, 0x0202);
+	WREG32(0xC00D230, 0x202);
 	WREG32(0xC00D310, 0x4040);
 	WREG32(0xC00D330, 0x1010);
 	WREG32(0xC00D334, 0x1010);
 	WREG32(0xC00D338, 0x2020);
 	WREG32(0xC00D33C, 0x2020);
 	WREG32(0xC00D410, 0x1020);
-	WREG32(0xC00D510, 0x0E0E);
-	WREG32(0xC00D514, 0x0E0E);
-	WREG32(0xC00D518, 0x0E0E);
-	WREG32(0xC00D51C, 0x0E0E);
-	WREG32(0xC00D520, 0x0E0E);
-	WREG32(0xC00D524, 0x0E0E);
-	WREG32(0xC00D528, 0x0E0E);
-	WREG32(0xC00D52C, 0x0E0E);
+	WREG32(0xC00D510, 0xE0E);
+	WREG32(0xC00D514, 0xE0E);
+	WREG32(0xC00D518, 0xE0E);
+	WREG32(0xC00D51C, 0xE0E);
+	WREG32(0xC00D520, 0xE0E);
+	WREG32(0xC00D524, 0xE0E);
+	WREG32(0xC00D528, 0xE0E);
+	WREG32(0xC00D52C, 0xE0E);
 	WREG32(0xC020044, 0x15);
-	WREG32(0xC027010, 0x0808);
+	WREG32(0xC027010, 0x808);
 	WREG32(0xC027030, 0x1010);
 	WREG32(0xC027034, 0x2020);
 	WREG32(0xC027038, 0x1010);
 	WREG32(0xC02703C, 0x2020);
-	WREG32(0xC027110, 0x0808);
+	WREG32(0xC027110, 0x808);
 	WREG32(0xC027130, 0x1010);
 	WREG32(0xC027134, 0x2020);
 	WREG32(0xC027138, 0x1010);
 	WREG32(0xC02713C, 0x2020);
-	WREG32(0xC027210, 0x0808);
-	WREG32(0xC027230, 0x0202);
-	WREG32(0xC027234, 0x0202);
-	WREG32(0xC027238, 0x0202);
-	WREG32(0xC02723C, 0x0202);
+	WREG32(0xC027210, 0x808);
+	WREG32(0xC027230, 0x202);
+	WREG32(0xC027234, 0x202);
+	WREG32(0xC027238, 0x202);
+	WREG32(0xC02723C, 0x202);
 	WREG32(0xC027410, 0x1020);
-	WREG32(0xC027510, 0x0A0A);
-	WREG32(0xC027514, 0x0E0E);
-	WREG32(0xC027518, 0x0E0E);
-	WREG32(0xC02751C, 0x0E0E);
-	WREG32(0xC027520, 0x0E0E);
-	WREG32(0xC027524, 0x0E0E);
-	WREG32(0xC027528, 0x0E0E);
-	WREG32(0xC02752C, 0x0E0E);
+	WREG32(0xC027510, 0xA0A);
+	WREG32(0xC027514, 0xE0E);
+	WREG32(0xC027518, 0xE0E);
+	WREG32(0xC02751C, 0xE0E);
+	WREG32(0xC027520, 0xE0E);
+	WREG32(0xC027524, 0xE0E);
+	WREG32(0xC027528, 0xE0E);
+	WREG32(0xC02752C, 0xE0E);
 	WREG32(0xC040030, 0x15);
 	WREG32(0xC045210, 0x1010);
-	WREG32(0xC045230, 0x0202);
-	WREG32(0xC045234, 0x0202);
-	WREG32(0xC045238, 0x0202);
-	WREG32(0xC04523C, 0x0202);
+	WREG32(0xC045230, 0x202);
+	WREG32(0xC045234, 0x202);
+	WREG32(0xC045238, 0x202);
+	WREG32(0xC04523C, 0x202);
 	WREG32(0xC045410, 0x1010);
-	WREG32(0xC045510, 0x0E0E);
-	WREG32(0xC045514, 0x0E0E);
-	WREG32(0xC045518, 0x0E0E);
-	WREG32(0xC04551C, 0x0E0E);
-	WREG32(0xC045520, 0x0E0E);
-	WREG32(0xC045524, 0x0E0E);
-	WREG32(0xC045528, 0x0E0E);
-	WREG32(0xC04552C, 0x0E0E);
+	WREG32(0xC045510, 0xE0E);
+	WREG32(0xC045514, 0xE0E);
+	WREG32(0xC045518, 0xE0E);
+	WREG32(0xC04551C, 0xE0E);
+	WREG32(0xC045520, 0xE0E);
+	WREG32(0xC045524, 0xE0E);
+	WREG32(0xC045528, 0xE0E);
+	WREG32(0xC04552C, 0xE0E);
 	WREG32(0xC050030, 0x15);
 	WREG32(0xC055210, 0x1010);
-	WREG32(0xC055230, 0x0202);
-	WREG32(0xC055234, 0x0202);
-	WREG32(0xC055238, 0x0202);
-	WREG32(0xC05523C, 0x0202);
+	WREG32(0xC055230, 0x202);
+	WREG32(0xC055234, 0x202);
+	WREG32(0xC055238, 0x202);
+	WREG32(0xC05523C, 0x202);
 	WREG32(0xC055410, 0x1010);
-	WREG32(0xC055510, 0x0E0E);
-	WREG32(0xC055514, 0x0E0E);
-	WREG32(0xC055518, 0x0E0E);
-	WREG32(0xC05551C, 0x0E0E);
-	WREG32(0xC055520, 0x0E0E);
-	WREG32(0xC055524, 0x0E0E);
-	WREG32(0xC055528, 0x0E0E);
-	WREG32(0xC05552C, 0x0E0E);
+	WREG32(0xC055510, 0xE0E);
+	WREG32(0xC055514, 0xE0E);
+	WREG32(0xC055518, 0xE0E);
+	WREG32(0xC05551C, 0xE0E);
+	WREG32(0xC055520, 0xE0E);
+	WREG32(0xC055524, 0xE0E);
+	WREG32(0xC055528, 0xE0E);
+	WREG32(0xC05552C, 0xE0E);
 }
 
 static void gaudi3_init_r2c_credits_single_die_rif_edma_hd1_hd4_block(
@@ -1156,320 +1156,320 @@ static void gaudi3_init_r2c_credits_single_die_mme_b0(struct hl_device *hdev)
 {
 	gaudi3_init_r2c_credits_single_die_mme_b0_block(hdev, 0xE181000);
 	gaudi3_init_r2c_credits_single_die_mme_b0_block(hdev, 0xE581000);
-	gaudi3_init_r2c_credits_single_die_mme_b0_block(hdev, 0xE9F1000);
-	gaudi3_init_r2c_credits_single_die_mme_b0_block(hdev, 0xEDF1000);
+	gaudi3_init_r2c_credits_single_die_mme_b0_block(hdev, 0xE981000);
+	gaudi3_init_r2c_credits_single_die_mme_b0_block(hdev, 0xED81000);
 }
 
 static void gaudi3_init_r2c_credits_d2d_mme_b0(struct hl_device *hdev)
 {
 	gaudi3_init_r2c_credits_d2d_mme_b0_block(hdev, 0xE181000);
 	gaudi3_init_r2c_credits_d2d_mme_b0_block(hdev, 0xE581000);
-	gaudi3_init_r2c_credits_d2d_mme_b0_block(hdev, 0xE9F1000);
-	gaudi3_init_r2c_credits_d2d_mme_b0_block(hdev, 0xEDF1000);
+	gaudi3_init_r2c_credits_d2d_mme_b0_block(hdev, 0xE981000);
+	gaudi3_init_r2c_credits_d2d_mme_b0_block(hdev, 0xED81000);
 	gaudi3_init_r2c_credits_d2d_mme_b0_block(hdev, 0xF181000);
 	gaudi3_init_r2c_credits_d2d_mme_b0_block(hdev, 0xF581000);
-	gaudi3_init_r2c_credits_d2d_mme_b0_block(hdev, 0xF9F1000);
-	gaudi3_init_r2c_credits_d2d_mme_b0_block(hdev, 0xFDF1000);
+	gaudi3_init_r2c_credits_d2d_mme_b0_block(hdev, 0xF981000);
+	gaudi3_init_r2c_credits_d2d_mme_b0_block(hdev, 0xFD81000);
 }
 
 static void gaudi3_init_r2c_credits_single_die_mme_b1(struct hl_device *hdev)
 {
 	gaudi3_init_r2c_credits_single_die_mme_b1_block(hdev, 0xE182000);
 	gaudi3_init_r2c_credits_single_die_mme_b1_block(hdev, 0xE582000);
-	gaudi3_init_r2c_credits_single_die_mme_b1_block(hdev, 0xE9F2000);
-	gaudi3_init_r2c_credits_single_die_mme_b1_block(hdev, 0xEDF2000);
+	gaudi3_init_r2c_credits_single_die_mme_b1_block(hdev, 0xE982000);
+	gaudi3_init_r2c_credits_single_die_mme_b1_block(hdev, 0xED82000);
 }
 
 static void gaudi3_init_r2c_credits_d2d_mme_b1(struct hl_device *hdev)
 {
 	gaudi3_init_r2c_credits_d2d_mme_b1_block(hdev, 0xE182000);
 	gaudi3_init_r2c_credits_d2d_mme_b1_block(hdev, 0xE582000);
-	gaudi3_init_r2c_credits_d2d_mme_b1_block(hdev, 0xE9F2000);
-	gaudi3_init_r2c_credits_d2d_mme_b1_block(hdev, 0xEDF2000);
+	gaudi3_init_r2c_credits_d2d_mme_b1_block(hdev, 0xE982000);
+	gaudi3_init_r2c_credits_d2d_mme_b1_block(hdev, 0xED82000);
 	gaudi3_init_r2c_credits_d2d_mme_b1_block(hdev, 0xF182000);
 	gaudi3_init_r2c_credits_d2d_mme_b1_block(hdev, 0xF582000);
-	gaudi3_init_r2c_credits_d2d_mme_b1_block(hdev, 0xF9F2000);
-	gaudi3_init_r2c_credits_d2d_mme_b1_block(hdev, 0xFDF2000);
+	gaudi3_init_r2c_credits_d2d_mme_b1_block(hdev, 0xF982000);
+	gaudi3_init_r2c_credits_d2d_mme_b1_block(hdev, 0xFD82000);
 }
 
 static void gaudi3_init_r2c_credits_single_die_tpc0(struct hl_device *hdev)
 {
 	gaudi3_init_r2c_credits_single_die_tpc0_block(hdev, 0xE191000);
 	gaudi3_init_r2c_credits_single_die_tpc0_block(hdev, 0xE591000);
-	gaudi3_init_r2c_credits_single_die_tpc0_block(hdev, 0xE9E1000);
-	gaudi3_init_r2c_credits_single_die_tpc0_block(hdev, 0xEDE1000);
+	gaudi3_init_r2c_credits_single_die_tpc0_block(hdev, 0xE991000);
+	gaudi3_init_r2c_credits_single_die_tpc0_block(hdev, 0xED91000);
 }
 
 static void gaudi3_init_r2c_credits_d2d_tpc0(struct hl_device *hdev)
 {
 	gaudi3_init_r2c_credits_d2d_tpc0_block(hdev, 0xE191000);
 	gaudi3_init_r2c_credits_d2d_tpc0_block(hdev, 0xE591000);
-	gaudi3_init_r2c_credits_d2d_tpc0_block(hdev, 0xE9E1000);
-	gaudi3_init_r2c_credits_d2d_tpc0_block(hdev, 0xEDE1000);
+	gaudi3_init_r2c_credits_d2d_tpc0_block(hdev, 0xE991000);
+	gaudi3_init_r2c_credits_d2d_tpc0_block(hdev, 0xED91000);
 	gaudi3_init_r2c_credits_d2d_tpc0_block(hdev, 0xF191000);
 	gaudi3_init_r2c_credits_d2d_tpc0_block(hdev, 0xF591000);
-	gaudi3_init_r2c_credits_d2d_tpc0_block(hdev, 0xF9E1000);
-	gaudi3_init_r2c_credits_d2d_tpc0_block(hdev, 0xFDE1000);
+	gaudi3_init_r2c_credits_d2d_tpc0_block(hdev, 0xF991000);
+	gaudi3_init_r2c_credits_d2d_tpc0_block(hdev, 0xFD91000);
 }
 
 static void gaudi3_init_r2c_credits_single_die_tpc1(struct hl_device *hdev)
 {
 	gaudi3_init_r2c_credits_single_die_tpc1_block(hdev, 0xE192000);
 	gaudi3_init_r2c_credits_single_die_tpc1_block(hdev, 0xE592000);
-	gaudi3_init_r2c_credits_single_die_tpc1_block(hdev, 0xE9E2000);
-	gaudi3_init_r2c_credits_single_die_tpc1_block(hdev, 0xEDE2000);
+	gaudi3_init_r2c_credits_single_die_tpc1_block(hdev, 0xE992000);
+	gaudi3_init_r2c_credits_single_die_tpc1_block(hdev, 0xED92000);
 }
 
 static void gaudi3_init_r2c_credits_d2d_tpc1(struct hl_device *hdev)
 {
 	gaudi3_init_r2c_credits_d2d_tpc1_block(hdev, 0xE192000);
 	gaudi3_init_r2c_credits_d2d_tpc1_block(hdev, 0xE592000);
-	gaudi3_init_r2c_credits_d2d_tpc1_block(hdev, 0xE9E2000);
-	gaudi3_init_r2c_credits_d2d_tpc1_block(hdev, 0xEDE2000);
+	gaudi3_init_r2c_credits_d2d_tpc1_block(hdev, 0xE992000);
+	gaudi3_init_r2c_credits_d2d_tpc1_block(hdev, 0xED92000);
 	gaudi3_init_r2c_credits_d2d_tpc1_block(hdev, 0xF192000);
 	gaudi3_init_r2c_credits_d2d_tpc1_block(hdev, 0xF592000);
-	gaudi3_init_r2c_credits_d2d_tpc1_block(hdev, 0xF9E2000);
-	gaudi3_init_r2c_credits_d2d_tpc1_block(hdev, 0xFDE2000);
+	gaudi3_init_r2c_credits_d2d_tpc1_block(hdev, 0xF992000);
+	gaudi3_init_r2c_credits_d2d_tpc1_block(hdev, 0xFD92000);
 }
 
 static void gaudi3_init_r2c_credits_single_die_tpc2(struct hl_device *hdev)
 {
 	gaudi3_init_r2c_credits_single_die_tpc2_block(hdev, 0xE1A1000);
 	gaudi3_init_r2c_credits_single_die_tpc2_block(hdev, 0xE5A1000);
-	gaudi3_init_r2c_credits_single_die_tpc2_block(hdev, 0xE9D1000);
-	gaudi3_init_r2c_credits_single_die_tpc2_block(hdev, 0xEDD1000);
+	gaudi3_init_r2c_credits_single_die_tpc2_block(hdev, 0xE9A1000);
+	gaudi3_init_r2c_credits_single_die_tpc2_block(hdev, 0xEDA1000);
 }
 
 static void gaudi3_init_r2c_credits_d2d_tpc2(struct hl_device *hdev)
 {
 	gaudi3_init_r2c_credits_d2d_tpc2_block(hdev, 0xE1A1000);
 	gaudi3_init_r2c_credits_d2d_tpc2_block(hdev, 0xE5A1000);
-	gaudi3_init_r2c_credits_d2d_tpc2_block(hdev, 0xE9D1000);
-	gaudi3_init_r2c_credits_d2d_tpc2_block(hdev, 0xEDD1000);
+	gaudi3_init_r2c_credits_d2d_tpc2_block(hdev, 0xE9A1000);
+	gaudi3_init_r2c_credits_d2d_tpc2_block(hdev, 0xEDA1000);
 	gaudi3_init_r2c_credits_d2d_tpc2_block(hdev, 0xF1A1000);
 	gaudi3_init_r2c_credits_d2d_tpc2_block(hdev, 0xF5A1000);
-	gaudi3_init_r2c_credits_d2d_tpc2_block(hdev, 0xF9D1000);
-	gaudi3_init_r2c_credits_d2d_tpc2_block(hdev, 0xFDD1000);
+	gaudi3_init_r2c_credits_d2d_tpc2_block(hdev, 0xF9A1000);
+	gaudi3_init_r2c_credits_d2d_tpc2_block(hdev, 0xFDA1000);
 }
 
 static void gaudi3_init_r2c_credits_single_die_tpc3(struct hl_device *hdev)
 {
 	gaudi3_init_r2c_credits_single_die_tpc3_block(hdev, 0xE1A2000);
 	gaudi3_init_r2c_credits_single_die_tpc3_block(hdev, 0xE5A2000);
-	gaudi3_init_r2c_credits_single_die_tpc3_block(hdev, 0xE9D2000);
-	gaudi3_init_r2c_credits_single_die_tpc3_block(hdev, 0xEDD2000);
+	gaudi3_init_r2c_credits_single_die_tpc3_block(hdev, 0xE9A2000);
+	gaudi3_init_r2c_credits_single_die_tpc3_block(hdev, 0xEDA2000);
 }
 
 static void gaudi3_init_r2c_credits_d2d_tpc3(struct hl_device *hdev)
 {
 	gaudi3_init_r2c_credits_d2d_tpc3_block(hdev, 0xE1A2000);
 	gaudi3_init_r2c_credits_d2d_tpc3_block(hdev, 0xE5A2000);
-	gaudi3_init_r2c_credits_d2d_tpc3_block(hdev, 0xE9D2000);
-	gaudi3_init_r2c_credits_d2d_tpc3_block(hdev, 0xEDD2000);
+	gaudi3_init_r2c_credits_d2d_tpc3_block(hdev, 0xE9A2000);
+	gaudi3_init_r2c_credits_d2d_tpc3_block(hdev, 0xEDA2000);
 	gaudi3_init_r2c_credits_d2d_tpc3_block(hdev, 0xF1A2000);
 	gaudi3_init_r2c_credits_d2d_tpc3_block(hdev, 0xF5A2000);
-	gaudi3_init_r2c_credits_d2d_tpc3_block(hdev, 0xF9D2000);
-	gaudi3_init_r2c_credits_d2d_tpc3_block(hdev, 0xFDD2000);
+	gaudi3_init_r2c_credits_d2d_tpc3_block(hdev, 0xF9A2000);
+	gaudi3_init_r2c_credits_d2d_tpc3_block(hdev, 0xFDA2000);
 }
 
 static void gaudi3_init_r2c_credits_single_die_mme_a0(struct hl_device *hdev)
 {
 	gaudi3_init_r2c_credits_single_die_mme_a0_block(hdev, 0xE1B1000);
 	gaudi3_init_r2c_credits_single_die_mme_a0_block(hdev, 0xE5B1000);
-	gaudi3_init_r2c_credits_single_die_mme_a0_block(hdev, 0xE9C1000);
-	gaudi3_init_r2c_credits_single_die_mme_a0_block(hdev, 0xEDC1000);
+	gaudi3_init_r2c_credits_single_die_mme_a0_block(hdev, 0xE9B2000);
+	gaudi3_init_r2c_credits_single_die_mme_a0_block(hdev, 0xEDB2000);
 }
 
 static void gaudi3_init_r2c_credits_d2d_mme_a0(struct hl_device *hdev)
 {
 	gaudi3_init_r2c_credits_d2d_mme_a0_block(hdev, 0xE1B1000);
 	gaudi3_init_r2c_credits_d2d_mme_a0_block(hdev, 0xE5B1000);
-	gaudi3_init_r2c_credits_d2d_mme_a0_block(hdev, 0xE9C1000);
-	gaudi3_init_r2c_credits_d2d_mme_a0_block(hdev, 0xEDC1000);
+	gaudi3_init_r2c_credits_d2d_mme_a0_block(hdev, 0xE9B2000);
+	gaudi3_init_r2c_credits_d2d_mme_a0_block(hdev, 0xEDB2000);
 	gaudi3_init_r2c_credits_d2d_mme_a0_block(hdev, 0xF1B1000);
 	gaudi3_init_r2c_credits_d2d_mme_a0_block(hdev, 0xF5B1000);
-	gaudi3_init_r2c_credits_d2d_mme_a0_block(hdev, 0xF9C1000);
-	gaudi3_init_r2c_credits_d2d_mme_a0_block(hdev, 0xFDC1000);
+	gaudi3_init_r2c_credits_d2d_mme_a0_block(hdev, 0xF9B2000);
+	gaudi3_init_r2c_credits_d2d_mme_a0_block(hdev, 0xFDB2000);
 }
 
 static void gaudi3_init_r2c_credits_single_die_mme_a1_c0(struct hl_device *hdev)
 {
 	gaudi3_init_r2c_credits_single_die_mme_a1_c0_block(hdev, 0xE1B2000);
 	gaudi3_init_r2c_credits_single_die_mme_a1_c0_block(hdev, 0xE5B2000);
-	gaudi3_init_r2c_credits_single_die_mme_a1_c0_block(hdev, 0xE9C2000);
-	gaudi3_init_r2c_credits_single_die_mme_a1_c0_block(hdev, 0xEDC2000);
+	gaudi3_init_r2c_credits_single_die_mme_a1_c0_block(hdev, 0xE9B1000);
+	gaudi3_init_r2c_credits_single_die_mme_a1_c0_block(hdev, 0xEDB1000);
 }
 
 static void gaudi3_init_r2c_credits_d2d_mme_a1_c0(struct hl_device *hdev)
 {
 	gaudi3_init_r2c_credits_d2d_mme_a1_c0_block(hdev, 0xE1B2000);
 	gaudi3_init_r2c_credits_d2d_mme_a1_c0_block(hdev, 0xE5B2000);
-	gaudi3_init_r2c_credits_d2d_mme_a1_c0_block(hdev, 0xE9C2000);
-	gaudi3_init_r2c_credits_d2d_mme_a1_c0_block(hdev, 0xEDC2000);
+	gaudi3_init_r2c_credits_d2d_mme_a1_c0_block(hdev, 0xE9B1000);
+	gaudi3_init_r2c_credits_d2d_mme_a1_c0_block(hdev, 0xEDB1000);
 	gaudi3_init_r2c_credits_d2d_mme_a1_c0_block(hdev, 0xF1B2000);
 	gaudi3_init_r2c_credits_d2d_mme_a1_c0_block(hdev, 0xF5B2000);
-	gaudi3_init_r2c_credits_d2d_mme_a1_c0_block(hdev, 0xF9C2000);
-	gaudi3_init_r2c_credits_d2d_mme_a1_c0_block(hdev, 0xFDC2000);
+	gaudi3_init_r2c_credits_d2d_mme_a1_c0_block(hdev, 0xF9B1000);
+	gaudi3_init_r2c_credits_d2d_mme_a1_c0_block(hdev, 0xFDB1000);
 }
 
 static void gaudi3_init_r2c_credits_single_die_mme_a2_c1_qman_wr(struct hl_device *hdev)
 {
 	gaudi3_init_r2c_credits_single_die_mme_a2_c1_qman_wr_block(hdev, 0xE1C1000);
 	gaudi3_init_r2c_credits_single_die_mme_a2_c1_qman_wr_block(hdev, 0xE5C1000);
-	gaudi3_init_r2c_credits_single_die_mme_a2_c1_qman_wr_block(hdev, 0xE9B1000);
-	gaudi3_init_r2c_credits_single_die_mme_a2_c1_qman_wr_block(hdev, 0xEDB1000);
+	gaudi3_init_r2c_credits_single_die_mme_a2_c1_qman_wr_block(hdev, 0xE9C2000);
+	gaudi3_init_r2c_credits_single_die_mme_a2_c1_qman_wr_block(hdev, 0xEDC2000);
 }
 
 static void gaudi3_init_r2c_credits_d2d_mme_a2_c1_qman_wr(struct hl_device *hdev)
 {
 	gaudi3_init_r2c_credits_d2d_mme_a2_c1_qman_wr_block(hdev, 0xE1C1000);
 	gaudi3_init_r2c_credits_d2d_mme_a2_c1_qman_wr_block(hdev, 0xE5C1000);
-	gaudi3_init_r2c_credits_d2d_mme_a2_c1_qman_wr_block(hdev, 0xE9B1000);
-	gaudi3_init_r2c_credits_d2d_mme_a2_c1_qman_wr_block(hdev, 0xEDB1000);
+	gaudi3_init_r2c_credits_d2d_mme_a2_c1_qman_wr_block(hdev, 0xE9C2000);
+	gaudi3_init_r2c_credits_d2d_mme_a2_c1_qman_wr_block(hdev, 0xEDC2000);
 	gaudi3_init_r2c_credits_d2d_mme_a2_c1_qman_wr_block(hdev, 0xF1C1000);
 	gaudi3_init_r2c_credits_d2d_mme_a2_c1_qman_wr_block(hdev, 0xF5C1000);
-	gaudi3_init_r2c_credits_d2d_mme_a2_c1_qman_wr_block(hdev, 0xF9B1000);
-	gaudi3_init_r2c_credits_d2d_mme_a2_c1_qman_wr_block(hdev, 0xFDB1000);
+	gaudi3_init_r2c_credits_d2d_mme_a2_c1_qman_wr_block(hdev, 0xF9C2000);
+	gaudi3_init_r2c_credits_d2d_mme_a2_c1_qman_wr_block(hdev, 0xFDC2000);
 }
 
 static void gaudi3_init_r2c_credits_single_die_mme_a3_qman_rd(struct hl_device *hdev)
 {
 	gaudi3_init_r2c_credits_single_die_mme_a3_qman_rd_block(hdev, 0xE1C2000);
 	gaudi3_init_r2c_credits_single_die_mme_a3_qman_rd_block(hdev, 0xE5C2000);
-	gaudi3_init_r2c_credits_single_die_mme_a3_qman_rd_block(hdev, 0xE9B2000);
-	gaudi3_init_r2c_credits_single_die_mme_a3_qman_rd_block(hdev, 0xEDB2000);
+	gaudi3_init_r2c_credits_single_die_mme_a3_qman_rd_block(hdev, 0xE9C1000);
+	gaudi3_init_r2c_credits_single_die_mme_a3_qman_rd_block(hdev, 0xEDC1000);
 }
 
 static void gaudi3_init_r2c_credits_d2d_mme_a3_qman_rd(struct hl_device *hdev)
 {
 	gaudi3_init_r2c_credits_d2d_mme_a3_qman_rd_block(hdev, 0xE1C2000);
 	gaudi3_init_r2c_credits_d2d_mme_a3_qman_rd_block(hdev, 0xE5C2000);
-	gaudi3_init_r2c_credits_d2d_mme_a3_qman_rd_block(hdev, 0xE9B2000);
-	gaudi3_init_r2c_credits_d2d_mme_a3_qman_rd_block(hdev, 0xEDB2000);
+	gaudi3_init_r2c_credits_d2d_mme_a3_qman_rd_block(hdev, 0xE9C1000);
+	gaudi3_init_r2c_credits_d2d_mme_a3_qman_rd_block(hdev, 0xEDC1000);
 	gaudi3_init_r2c_credits_d2d_mme_a3_qman_rd_block(hdev, 0xF1C2000);
 	gaudi3_init_r2c_credits_d2d_mme_a3_qman_rd_block(hdev, 0xF5C2000);
-	gaudi3_init_r2c_credits_d2d_mme_a3_qman_rd_block(hdev, 0xF9B2000);
-	gaudi3_init_r2c_credits_d2d_mme_a3_qman_rd_block(hdev, 0xFDB2000);
+	gaudi3_init_r2c_credits_d2d_mme_a3_qman_rd_block(hdev, 0xF9C1000);
+	gaudi3_init_r2c_credits_d2d_mme_a3_qman_rd_block(hdev, 0xFDC1000);
 }
 
 static void gaudi3_init_r2c_credits_single_die_tpc4(struct hl_device *hdev)
 {
 	gaudi3_init_r2c_credits_single_die_tpc4_block(hdev, 0xE1D1000);
 	gaudi3_init_r2c_credits_single_die_tpc4_block(hdev, 0xE5D1000);
-	gaudi3_init_r2c_credits_single_die_tpc4_block(hdev, 0xE9A1000);
-	gaudi3_init_r2c_credits_single_die_tpc4_block(hdev, 0xEDA1000);
+	gaudi3_init_r2c_credits_single_die_tpc4_block(hdev, 0xE9D1000);
+	gaudi3_init_r2c_credits_single_die_tpc4_block(hdev, 0xEDD1000);
 }
 
 static void gaudi3_init_r2c_credits_d2d_tpc4(struct hl_device *hdev)
 {
 	gaudi3_init_r2c_credits_d2d_tpc4_block(hdev, 0xE1D1000);
 	gaudi3_init_r2c_credits_d2d_tpc4_block(hdev, 0xE5D1000);
-	gaudi3_init_r2c_credits_d2d_tpc4_block(hdev, 0xE9A1000);
-	gaudi3_init_r2c_credits_d2d_tpc4_block(hdev, 0xEDA1000);
+	gaudi3_init_r2c_credits_d2d_tpc4_block(hdev, 0xE9D1000);
+	gaudi3_init_r2c_credits_d2d_tpc4_block(hdev, 0xEDD1000);
 	gaudi3_init_r2c_credits_d2d_tpc4_block(hdev, 0xF1D1000);
 	gaudi3_init_r2c_credits_d2d_tpc4_block(hdev, 0xF5D1000);
-	gaudi3_init_r2c_credits_d2d_tpc4_block(hdev, 0xF9A1000);
-	gaudi3_init_r2c_credits_d2d_tpc4_block(hdev, 0xFDA1000);
+	gaudi3_init_r2c_credits_d2d_tpc4_block(hdev, 0xF9D1000);
+	gaudi3_init_r2c_credits_d2d_tpc4_block(hdev, 0xFDD1000);
 }
 
 static void gaudi3_init_r2c_credits_single_die_tpc5(struct hl_device *hdev)
 {
 	gaudi3_init_r2c_credits_single_die_tpc5_block(hdev, 0xE1D2000);
 	gaudi3_init_r2c_credits_single_die_tpc5_block(hdev, 0xE5D2000);
-	gaudi3_init_r2c_credits_single_die_tpc5_block(hdev, 0xE9A2000);
-	gaudi3_init_r2c_credits_single_die_tpc5_block(hdev, 0xEDA2000);
+	gaudi3_init_r2c_credits_single_die_tpc5_block(hdev, 0xE9D2000);
+	gaudi3_init_r2c_credits_single_die_tpc5_block(hdev, 0xEDD2000);
 }
 
 static void gaudi3_init_r2c_credits_d2d_tpc5(struct hl_device *hdev)
 {
 	gaudi3_init_r2c_credits_d2d_tpc5_block(hdev, 0xE1D2000);
 	gaudi3_init_r2c_credits_d2d_tpc5_block(hdev, 0xE5D2000);
-	gaudi3_init_r2c_credits_d2d_tpc5_block(hdev, 0xE9A2000);
-	gaudi3_init_r2c_credits_d2d_tpc5_block(hdev, 0xEDA2000);
+	gaudi3_init_r2c_credits_d2d_tpc5_block(hdev, 0xE9D2000);
+	gaudi3_init_r2c_credits_d2d_tpc5_block(hdev, 0xEDD2000);
 	gaudi3_init_r2c_credits_d2d_tpc5_block(hdev, 0xF1D2000);
 	gaudi3_init_r2c_credits_d2d_tpc5_block(hdev, 0xF5D2000);
-	gaudi3_init_r2c_credits_d2d_tpc5_block(hdev, 0xF9A2000);
-	gaudi3_init_r2c_credits_d2d_tpc5_block(hdev, 0xFDA2000);
+	gaudi3_init_r2c_credits_d2d_tpc5_block(hdev, 0xF9D2000);
+	gaudi3_init_r2c_credits_d2d_tpc5_block(hdev, 0xFDD2000);
 }
 
 static void gaudi3_init_r2c_credits_single_die_tpc6(struct hl_device *hdev)
 {
 	gaudi3_init_r2c_credits_single_die_tpc6_block(hdev, 0xE1E1000);
 	gaudi3_init_r2c_credits_single_die_tpc6_block(hdev, 0xE5E1000);
-	gaudi3_init_r2c_credits_single_die_tpc6_block(hdev, 0xE991000);
-	gaudi3_init_r2c_credits_single_die_tpc6_block(hdev, 0xED91000);
+	gaudi3_init_r2c_credits_single_die_tpc6_block(hdev, 0xE9E1000);
+	gaudi3_init_r2c_credits_single_die_tpc6_block(hdev, 0xEDE1000);
 }
 
 static void gaudi3_init_r2c_credits_d2d_tpc6(struct hl_device *hdev)
 {
 	gaudi3_init_r2c_credits_d2d_tpc6_block(hdev, 0xE1E1000);
 	gaudi3_init_r2c_credits_d2d_tpc6_block(hdev, 0xE5E1000);
-	gaudi3_init_r2c_credits_d2d_tpc6_block(hdev, 0xE991000);
-	gaudi3_init_r2c_credits_d2d_tpc6_block(hdev, 0xED91000);
+	gaudi3_init_r2c_credits_d2d_tpc6_block(hdev, 0xE9E1000);
+	gaudi3_init_r2c_credits_d2d_tpc6_block(hdev, 0xEDE1000);
 	gaudi3_init_r2c_credits_d2d_tpc6_block(hdev, 0xF1E1000);
 	gaudi3_init_r2c_credits_d2d_tpc6_block(hdev, 0xF5E1000);
-	gaudi3_init_r2c_credits_d2d_tpc6_block(hdev, 0xF991000);
-	gaudi3_init_r2c_credits_d2d_tpc6_block(hdev, 0xFD91000);
+	gaudi3_init_r2c_credits_d2d_tpc6_block(hdev, 0xF9E1000);
+	gaudi3_init_r2c_credits_d2d_tpc6_block(hdev, 0xFDE1000);
 }
 
 static void gaudi3_init_r2c_credits_single_die_tpc7(struct hl_device *hdev)
 {
 	gaudi3_init_r2c_credits_single_die_tpc7_block(hdev, 0xE1E2000);
 	gaudi3_init_r2c_credits_single_die_tpc7_block(hdev, 0xE5E2000);
-	gaudi3_init_r2c_credits_single_die_tpc7_block(hdev, 0xE992000);
-	gaudi3_init_r2c_credits_single_die_tpc7_block(hdev, 0xED92000);
+	gaudi3_init_r2c_credits_single_die_tpc7_block(hdev, 0xE9E2000);
+	gaudi3_init_r2c_credits_single_die_tpc7_block(hdev, 0xEDE2000);
 }
 
 static void gaudi3_init_r2c_credits_d2d_tpc7(struct hl_device *hdev)
 {
 	gaudi3_init_r2c_credits_d2d_tpc7_block(hdev, 0xE1E2000);
 	gaudi3_init_r2c_credits_d2d_tpc7_block(hdev, 0xE5E2000);
-	gaudi3_init_r2c_credits_d2d_tpc7_block(hdev, 0xE992000);
-	gaudi3_init_r2c_credits_d2d_tpc7_block(hdev, 0xED92000);
+	gaudi3_init_r2c_credits_d2d_tpc7_block(hdev, 0xE9E2000);
+	gaudi3_init_r2c_credits_d2d_tpc7_block(hdev, 0xEDE2000);
 	gaudi3_init_r2c_credits_d2d_tpc7_block(hdev, 0xF1E2000);
 	gaudi3_init_r2c_credits_d2d_tpc7_block(hdev, 0xF5E2000);
-	gaudi3_init_r2c_credits_d2d_tpc7_block(hdev, 0xF992000);
-	gaudi3_init_r2c_credits_d2d_tpc7_block(hdev, 0xFD92000);
+	gaudi3_init_r2c_credits_d2d_tpc7_block(hdev, 0xF9E2000);
+	gaudi3_init_r2c_credits_d2d_tpc7_block(hdev, 0xFDE2000);
 }
 
 static void gaudi3_init_r2c_credits_single_die_mme_b2(struct hl_device *hdev)
 {
 	gaudi3_init_r2c_credits_single_die_mme_b2_block(hdev, 0xE1F1000);
 	gaudi3_init_r2c_credits_single_die_mme_b2_block(hdev, 0xE5F1000);
-	gaudi3_init_r2c_credits_single_die_mme_b2_block(hdev, 0xE981000);
-	gaudi3_init_r2c_credits_single_die_mme_b2_block(hdev, 0xED81000);
+	gaudi3_init_r2c_credits_single_die_mme_b2_block(hdev, 0xE9F1000);
+	gaudi3_init_r2c_credits_single_die_mme_b2_block(hdev, 0xEDF1000);
 }
 
 static void gaudi3_init_r2c_credits_d2d_mme_b2(struct hl_device *hdev)
 {
 	gaudi3_init_r2c_credits_d2d_mme_b2_block(hdev, 0xE1F1000);
 	gaudi3_init_r2c_credits_d2d_mme_b2_block(hdev, 0xE5F1000);
-	gaudi3_init_r2c_credits_d2d_mme_b2_block(hdev, 0xE981000);
-	gaudi3_init_r2c_credits_d2d_mme_b2_block(hdev, 0xED81000);
+	gaudi3_init_r2c_credits_d2d_mme_b2_block(hdev, 0xE9F1000);
+	gaudi3_init_r2c_credits_d2d_mme_b2_block(hdev, 0xEDF1000);
 	gaudi3_init_r2c_credits_d2d_mme_b2_block(hdev, 0xF1F1000);
 	gaudi3_init_r2c_credits_d2d_mme_b2_block(hdev, 0xF5F1000);
-	gaudi3_init_r2c_credits_d2d_mme_b2_block(hdev, 0xF981000);
-	gaudi3_init_r2c_credits_d2d_mme_b2_block(hdev, 0xFD81000);
+	gaudi3_init_r2c_credits_d2d_mme_b2_block(hdev, 0xF9F1000);
+	gaudi3_init_r2c_credits_d2d_mme_b2_block(hdev, 0xFDF1000);
 }
 
 static void gaudi3_init_r2c_credits_single_die_mme_b3(struct hl_device *hdev)
 {
 	gaudi3_init_r2c_credits_single_die_mme_b3_block(hdev, 0xE1F2000);
 	gaudi3_init_r2c_credits_single_die_mme_b3_block(hdev, 0xE5F2000);
-	gaudi3_init_r2c_credits_single_die_mme_b3_block(hdev, 0xE982000);
-	gaudi3_init_r2c_credits_single_die_mme_b3_block(hdev, 0xED82000);
+	gaudi3_init_r2c_credits_single_die_mme_b3_block(hdev, 0xE9F2000);
+	gaudi3_init_r2c_credits_single_die_mme_b3_block(hdev, 0xEDF2000);
 }
 
 static void gaudi3_init_r2c_credits_d2d_mme_b3(struct hl_device *hdev)
 {
 	gaudi3_init_r2c_credits_d2d_mme_b3_block(hdev, 0xE1F2000);
 	gaudi3_init_r2c_credits_d2d_mme_b3_block(hdev, 0xE5F2000);
-	gaudi3_init_r2c_credits_d2d_mme_b3_block(hdev, 0xE982000);
-	gaudi3_init_r2c_credits_d2d_mme_b3_block(hdev, 0xED82000);
+	gaudi3_init_r2c_credits_d2d_mme_b3_block(hdev, 0xE9F2000);
+	gaudi3_init_r2c_credits_d2d_mme_b3_block(hdev, 0xEDF2000);
 	gaudi3_init_r2c_credits_d2d_mme_b3_block(hdev, 0xF1F2000);
 	gaudi3_init_r2c_credits_d2d_mme_b3_block(hdev, 0xF5F2000);
-	gaudi3_init_r2c_credits_d2d_mme_b3_block(hdev, 0xF982000);
-	gaudi3_init_r2c_credits_d2d_mme_b3_block(hdev, 0xFD82000);
+	gaudi3_init_r2c_credits_d2d_mme_b3_block(hdev, 0xF9F2000);
+	gaudi3_init_r2c_credits_d2d_mme_b3_block(hdev, 0xFDF2000);
 }
 
 static void gaudi3_init_r2c_credits_single_die(struct hl_device *hdev)
@@ -2001,6 +2001,7 @@ static void gaudi3_init_regulators_single_die_tpc_block(struct hl_device *hdev,
 	WREG32(offset + 0xA20, 0x1040508);
 	WREG32(offset + 0xA24, 0x1040508);
 	WREG32(offset + 0xB40, 0x11);
+	WREG32(offset + 0xB64, 0x8080);
 	WREG32(offset + 0xB88, 0x70208);
 	WREG32(offset + 0xB8C, 0x70308);
 	WREG32(offset + 0xB90, 0x60308);
@@ -2024,9 +2025,9 @@ static void gaudi3_init_regulators_single_die_tpc_block(struct hl_device *hdev,
 	WREG32(offset + 0x840, 0xF0208);
 	WREG32(offset + 0x844, 0x60208);
 	WREG32(offset + 0x848, 0x60308);
-	WREG32(offset + 0x84C, 0x90308);
+	WREG32(offset + 0x84C, 0x180208);
 	WREG32(offset + 0x850, 0x90208);
-	WREG32(offset + 0x854, 0x170208);
+	WREG32(offset + 0x854, 0x180208);
 	WREG32(offset + 0x858, 0xF0208);
 	WREG32(offset + 0x85C, 0x60208);
 	WREG32(offset + 0x860, 0x60308);
@@ -2045,6 +2046,7 @@ static void gaudi3_init_regulators_d2d_8_hbm_tpc_block(struct hl_device *hdev,
 	WREG32(offset + 0xA20, 0x1040508);
 	WREG32(offset + 0xA24, 0x1040508);
 	WREG32(offset + 0xB40, 0x11);
+	WREG32(offset + 0xB64, 0x8080);
 	WREG32(offset + 0xB88, 0x70208);
 	WREG32(offset + 0xB8C, 0x70308);
 	WREG32(offset + 0xB90, 0x60308);
@@ -2062,15 +2064,15 @@ static void gaudi3_init_regulators_d2d_8_hbm_tpc_block(struct hl_device *hdev,
 	WREG32(offset + 0xBC8, 0x90908);
 	WREG32(offset + 0xBD0, 0x70108);
 	WREG32(offset + 0xBD4, 0x60208);
-	WREG32(offset + 0xBD8, 0x60308);
+	WREG32(offset + 0xBD8, 0x80308);
 	WREG32(offset + 0xBDC, 0x40308);
 	WREG32(offset + 0xBE0, 0x40408);
 	WREG32(offset + 0x840, 0xF0208);
 	WREG32(offset + 0x844, 0x60208);
 	WREG32(offset + 0x848, 0x60308);
-	WREG32(offset + 0x84C, 0x90308);
+	WREG32(offset + 0x84C, 0x180208);
 	WREG32(offset + 0x850, 0x90208);
-	WREG32(offset + 0x854, 0x170208);
+	WREG32(offset + 0x854, 0x180208);
 	WREG32(offset + 0x858, 0xF0208);
 	WREG32(offset + 0x85C, 0x60208);
 	WREG32(offset + 0x860, 0x60308);
@@ -2088,18 +2090,54 @@ static void gaudi3_init_regulators_d2d_7_hbm_tpc_block(struct hl_device *hdev,
 	WREG32(offset + 0xA04, 0x190);
 	WREG32(offset + 0xA20, 0x1040508);
 	WREG32(offset + 0xA24, 0x1040508);
-	WREG32(offset + 0xB40, 0x11);
 }
 
 static void gaudi3_init_regulators_single_die_mme_block(struct hl_device *hdev,
 			int block, int inst, u32 offset, struct iterate_module_ctx *ctx)
 {
 	offset -= 0x560;
-	WREG32(offset + 0xA00, 0x190);
-	WREG32(offset + 0xA04, 0x320);
+	WREG32(offset + 0xA00, 0x1F4);
+	WREG32(offset + 0xA04, 0x3E8);
 	WREG32(offset + 0xA20, 0x1040508);
 	WREG32(offset + 0xA24, 0x1040508);
+	WREG32(offset + 0xA40, 0x10);
+	WREG32(offset + 0xA44, 0x1100);
+	WREG32(offset + 0xA48, 0xF0300);
+	WREG32(offset + 0xA4C, 0xF0300);
+	WREG32(offset + 0xA60, 0x10000);
+	WREG32(offset + 0xA64, 0x10000);
+	WREG32(offset + 0xA68, 0x10000);
+	WREG32(offset + 0xA6C, 0x10000);
+	WREG32(offset + 0xA70, 0x10000);
+	WREG32(offset + 0xA74, 0x10000);
+	WREG32(offset + 0xA78, 0x10000);
+	WREG32(offset + 0xA7C, 0x10000);
+	WREG32(offset + 0xA80, 0x0);
+	WREG32(offset + 0xA84, 0x650065);
+	WREG32(offset + 0xA88, 0x7E007E);
+	WREG32(offset + 0xA8C, 0x970097);
+	WREG32(offset + 0xA90, 0xB000B0);
+	WREG32(offset + 0xA94, 0xC900C9);
+	WREG32(offset + 0xA98, 0xE200E2);
+	WREG32(offset + 0xA9C, 0xFB00FB);
+	WREG32(offset + 0xAA0, 0x640064);
+	WREG32(offset + 0xAA4, 0x7D007D);
+	WREG32(offset + 0xAA8, 0x960096);
+	WREG32(offset + 0xAAC, 0xAF00AF);
+	WREG32(offset + 0xAB0, 0xC800C8);
+	WREG32(offset + 0xAB4, 0xE100E1);
+	WREG32(offset + 0xAB8, 0xFA00FA);
+	WREG32(offset + 0xABC, 0xFFFFFFFF);
+	WREG32(offset + 0xB00, 0x1900190);
+	WREG32(offset + 0xB04, 0x1F401F4);
+	WREG32(offset + 0xB08, 0x2580258);
+	WREG32(offset + 0xB0C, 0x2BC02BC);
+	WREG32(offset + 0xB10, 0x3200320);
+	WREG32(offset + 0xB14, 0x3840384);
+	WREG32(offset + 0xB18, 0x3E803E8);
+	WREG32(offset + 0xB1C, 0x44C044C);
 	WREG32(offset + 0xB40, 0x11);
+	WREG32(offset + 0xB64, 0x8080);
 	WREG32(offset + 0xB88, 0x40508);
 	WREG32(offset + 0xB8C, 0x40508);
 	WREG32(offset + 0xB90, 0x40508);
@@ -2111,8 +2149,8 @@ static void gaudi3_init_regulators_single_die_mme_block(struct hl_device *hdev,
 	WREG32(offset + 0xBAC, 0x40408);
 	WREG32(offset + 0xBB0, 0x40508);
 	WREG32(offset + 0xBB8, 0x50308);
-	WREG32(offset + 0xBBC, 0x40308);
-	WREG32(offset + 0xBC0, 0x30308);
+	WREG32(offset + 0xBBC, 0x60508);
+	WREG32(offset + 0xBC0, 0x40508);
 	WREG32(offset + 0xBC4, 0x40508);
 	WREG32(offset + 0xBC8, 0x40508);
 	WREG32(offset + 0xBD0, 0x70208);
@@ -2122,19 +2160,56 @@ static void gaudi3_init_regulators_single_die_mme_block(struct hl_device *hdev,
 	WREG32(offset + 0xBE0, 0x40508);
 	WREG32(offset + 0xC00, 0x11010);
 	WREG32(offset + 0xF60, 0x84E95E95);
-	WREG32(offset + 0xF64, 0x11E011D);
-	WREG32(offset + 0xF68, 0x95FA6FA6);
+	WREG32(offset + 0xF64, 0x115011D);
+	WREG32(offset + 0xF68, 0x43FA6FA6);
 }
 
 static void gaudi3_init_regulators_d2d_8_hbm_mme_block(struct hl_device *hdev,
 			int block, int inst, u32 offset, struct iterate_module_ctx *ctx)
 {
 	offset -= 0x560;
-	WREG32(offset + 0xA00, 0x190);
-	WREG32(offset + 0xA04, 0x320);
+	WREG32(offset + 0xA00, 0x1F4);
+	WREG32(offset + 0xA04, 0x3E8);
 	WREG32(offset + 0xA20, 0x1040508);
 	WREG32(offset + 0xA24, 0x1040508);
+	WREG32(offset + 0xA40, 0x10);
+	WREG32(offset + 0xA44, 0x1100);
+	WREG32(offset + 0xA48, 0xF0300);
+	WREG32(offset + 0xA4C, 0xF0300);
+	WREG32(offset + 0xA60, 0x10000);
+	WREG32(offset + 0xA64, 0x10000);
+	WREG32(offset + 0xA68, 0x10000);
+	WREG32(offset + 0xA6C, 0x10000);
+	WREG32(offset + 0xA70, 0x10000);
+	WREG32(offset + 0xA74, 0x10000);
+	WREG32(offset + 0xA78, 0x10000);
+	WREG32(offset + 0xA7C, 0x10000);
+	WREG32(offset + 0xA80, 0x0);
+	WREG32(offset + 0xA84, 0x650065);
+	WREG32(offset + 0xA88, 0x7E007E);
+	WREG32(offset + 0xA8C, 0x970097);
+	WREG32(offset + 0xA90, 0xB000B0);
+	WREG32(offset + 0xA94, 0xC900C9);
+	WREG32(offset + 0xA98, 0xE200E2);
+	WREG32(offset + 0xA9C, 0xFB00FB);
+	WREG32(offset + 0xAA0, 0x640064);
+	WREG32(offset + 0xAA4, 0x7D007D);
+	WREG32(offset + 0xAA8, 0x960096);
+	WREG32(offset + 0xAAC, 0xAF00AF);
+	WREG32(offset + 0xAB0, 0xC800C8);
+	WREG32(offset + 0xAB4, 0xE100E1);
+	WREG32(offset + 0xAB8, 0xFA00FA);
+	WREG32(offset + 0xABC, 0xFFFFFFFF);
+	WREG32(offset + 0xB00, 0x1900190);
+	WREG32(offset + 0xB04, 0x1F401F4);
+	WREG32(offset + 0xB08, 0x2580258);
+	WREG32(offset + 0xB0C, 0x2BC02BC);
+	WREG32(offset + 0xB10, 0x3200320);
+	WREG32(offset + 0xB14, 0x3840384);
+	WREG32(offset + 0xB18, 0x3E803E8);
+	WREG32(offset + 0xB1C, 0x44C044C);
 	WREG32(offset + 0xB40, 0x11);
+	WREG32(offset + 0xB64, 0x8080);
 	WREG32(offset + 0xB88, 0x40508);
 	WREG32(offset + 0xB8C, 0x40508);
 	WREG32(offset + 0xB90, 0x40508);
@@ -2146,29 +2221,30 @@ static void gaudi3_init_regulators_d2d_8_hbm_mme_block(struct hl_device *hdev,
 	WREG32(offset + 0xBAC, 0x40408);
 	WREG32(offset + 0xBB0, 0x40508);
 	WREG32(offset + 0xBB8, 0x50308);
-	WREG32(offset + 0xBBC, 0x40308);
-	WREG32(offset + 0xBC0, 0x30308);
+	WREG32(offset + 0xBBC, 0x60508);
+	WREG32(offset + 0xBC0, 0x40508);
 	WREG32(offset + 0xBC4, 0x40508);
 	WREG32(offset + 0xBC8, 0x40508);
 	WREG32(offset + 0xBD0, 0x70208);
 	WREG32(offset + 0xBD4, 0x60308);
 	WREG32(offset + 0xBD8, 0x50308);
-	WREG32(offset + 0xBDC, 0x40508);
+	WREG32(offset + 0xBDC, 0x40408);
 	WREG32(offset + 0xBE0, 0x40508);
 	WREG32(offset + 0xC00, 0x11010);
 	WREG32(offset + 0xF60, 0x84E95E95);
-	WREG32(offset + 0xF64, 0x11E011D);
-	WREG32(offset + 0xF68, 0x95FA6FA6);
+	WREG32(offset + 0xF64, 0x115011D);
+	WREG32(offset + 0xF68, 0x43FA6FA6);
 }
 
 static void gaudi3_init_regulators_d2d_7_hbm_mme_block(struct hl_device *hdev,
 			int block, int inst, u32 offset, struct iterate_module_ctx *ctx)
 {
 	offset -= 0x560;
-	WREG32(offset + 0xA00, 0x190);
-	WREG32(offset + 0xA04, 0x320);
+	WREG32(offset + 0xA00, 0x1F4);
+	WREG32(offset + 0xA04, 0x3E8);
 	WREG32(offset + 0xA20, 0x1040508);
 	WREG32(offset + 0xA24, 0x1040508);
+	WREG32(offset + 0xB64, 0x8080);
 }
 
 static void gaudi3_init_regulators_single_die_nic_cntrl_block(struct hl_device *hdev,
@@ -2199,24 +2275,24 @@ static void gaudi3_init_regulators_single_die_nic_data_block(struct hl_device *h
 			int block, int inst, u32 offset, struct iterate_module_ctx *ctx)
 {
 	offset += 0xD039000;
-	WREG32(offset + 0xA20, 0x1131308);
-	WREG32(offset + 0xA24, 0x1131308);
+	WREG32(offset + 0xA20, 0x1090808);
+	WREG32(offset + 0xA24, 0x1090808);
 }
 
 static void gaudi3_init_regulators_d2d_8_hbm_nic_data_block(struct hl_device *hdev,
 			int block, int inst, u32 offset, struct iterate_module_ctx *ctx)
 {
 	offset += 0xD039000;
-	WREG32(offset + 0xA20, 0x1131308);
-	WREG32(offset + 0xA24, 0x1131308);
+	WREG32(offset + 0xA20, 0x1090808);
+	WREG32(offset + 0xA24, 0x1090808);
 }
 
 static void gaudi3_init_regulators_d2d_7_hbm_nic_data_block(struct hl_device *hdev,
 			int block, int inst, u32 offset, struct iterate_module_ctx *ctx)
 {
 	offset += 0xD039000;
-	WREG32(offset + 0xA20, 0x1131308);
-	WREG32(offset + 0xA24, 0x1131308);
+	WREG32(offset + 0xA20, 0x1090808);
+	WREG32(offset + 0xA24, 0x1090808);
 }
 
 static void gaudi3_init_regulators_single_die_pdma_block(struct hl_device *hdev,
@@ -2248,9 +2324,31 @@ static void gaudi3_init_regulators_single_die_sedma_master_if_block(struct hl_de
 {
 	offset += 0xE50E000;
 	WREG32(offset + 0xA00, 0x320);
-	WREG32(offset + 0xA04, 0x4B0);
+	WREG32(offset + 0xA04, 0x578);
 	WREG32(offset + 0xA20, 0x1040508);
 	WREG32(offset + 0xA24, 0x1040508);
+	WREG32(offset + 0xB40, 0x11);
+	WREG32(offset + 0xB64, 0x8080);
+	WREG32(offset + 0xB88, 0x40508);
+	WREG32(offset + 0xB8C, 0x40508);
+	WREG32(offset + 0xB90, 0x40508);
+	WREG32(offset + 0xB94, 0x40508);
+	WREG32(offset + 0xB98, 0x40508);
+	WREG32(offset + 0xBA0, 0x50308);
+	WREG32(offset + 0xBA4, 0x50308);
+	WREG32(offset + 0xBA8, 0x30308);
+	WREG32(offset + 0xBAC, 0x40408);
+	WREG32(offset + 0xBB0, 0x40508);
+	WREG32(offset + 0xBB8, 0x40508);
+	WREG32(offset + 0xBBC, 0x40508);
+	WREG32(offset + 0xBC0, 0x40508);
+	WREG32(offset + 0xBC4, 0x40508);
+	WREG32(offset + 0xBC8, 0x40508);
+	WREG32(offset + 0xBD0, 0x70408);
+	WREG32(offset + 0xBD4, 0x70608);
+	WREG32(offset + 0xBD8, 0x40408);
+	WREG32(offset + 0xBDC, 0x40408);
+	WREG32(offset + 0xBE0, 0x40508);
 	WREG32(offset + 0xC00, 0x11010);
 }
 
@@ -2259,9 +2357,31 @@ static void gaudi3_init_regulators_d2d_8_hbm_sedma_master_if_block(struct hl_dev
 {
 	offset += 0xE50E000;
 	WREG32(offset + 0xA00, 0x320);
-	WREG32(offset + 0xA04, 0x4B0);
+	WREG32(offset + 0xA04, 0x578);
 	WREG32(offset + 0xA20, 0x1040508);
 	WREG32(offset + 0xA24, 0x1040508);
+	WREG32(offset + 0xB40, 0x11);
+	WREG32(offset + 0xB64, 0x8080);
+	WREG32(offset + 0xB88, 0x40508);
+	WREG32(offset + 0xB8C, 0x40508);
+	WREG32(offset + 0xB90, 0x40508);
+	WREG32(offset + 0xB94, 0x40508);
+	WREG32(offset + 0xB98, 0x40508);
+	WREG32(offset + 0xBA0, 0x50308);
+	WREG32(offset + 0xBA4, 0x50308);
+	WREG32(offset + 0xBA8, 0x30308);
+	WREG32(offset + 0xBAC, 0x40408);
+	WREG32(offset + 0xBB0, 0x40508);
+	WREG32(offset + 0xBB8, 0x40508);
+	WREG32(offset + 0xBBC, 0x40508);
+	WREG32(offset + 0xBC0, 0x40508);
+	WREG32(offset + 0xBC4, 0x40508);
+	WREG32(offset + 0xBC8, 0x40508);
+	WREG32(offset + 0xBD0, 0x70408);
+	WREG32(offset + 0xBD4, 0x70608);
+	WREG32(offset + 0xBD8, 0x40408);
+	WREG32(offset + 0xBDC, 0x40408);
+	WREG32(offset + 0xBE0, 0x40508);
 	WREG32(offset + 0xC00, 0x11010);
 }
 
@@ -2273,6 +2393,7 @@ static void gaudi3_init_regulators_d2d_7_hbm_sedma_master_if_block(struct hl_dev
 	WREG32(offset + 0xA04, 0x4B0);
 	WREG32(offset + 0xA20, 0x1040508);
 	WREG32(offset + 0xA24, 0x1040508);
+	WREG32(offset + 0xB64, 0x8080);
 }
 
 static void gaudi3_init_regulators_single_die_sedma_cmn_block(struct hl_device *hdev,
@@ -2776,10 +2897,20 @@ static void gaudi3_init_cache_single_die_cache_block(struct hl_device *hdev,
 	WREG32(offset + 0x234, 0x120C0801);
 	WREG32(offset + 0x238, 0x12030801);
 	WREG32(offset + 0x240, 0x280010);
+	WREG32(offset + 0x344, 0x241C10);
+	WREG32(offset + 0x348, 0x3C342C);
+	WREG32(offset + 0x354, 0x10305);
+	WREG32(offset + 0x378, 0x3C3018);
+	WREG32(offset + 0x37C, 0x504C48);
+	WREG32(offset + 0x384, 0x10305);
 	WREG32(offset + 0x620, 0x30420);
+	WREG32(offset + 0x704, 0x93FF);
+	WREG32(offset + 0x710, 0x57F);
+	WREG32(offset + 0x714, 0x57F);
 	WREG32(offset + 0x72C, 0xF6);
 	WREG32(offset + 0x80C, 0x18181011);
 	WREG32(offset + 0x860, 0x401);
+	WREG32(offset + 0x878, 0x444430);
 }
 
 static void gaudi3_init_cache_d2d_8_hbm_cache_block(struct hl_device *hdev,
@@ -2793,11 +2924,20 @@ static void gaudi3_init_cache_d2d_8_hbm_cache_block(struct hl_device *hdev,
 	WREG32(offset + 0x234, 0x120C0801);
 	WREG32(offset + 0x238, 0x12030801);
 	WREG32(offset + 0x240, 0x280010);
+	WREG32(offset + 0x344, 0x241C10);
+	WREG32(offset + 0x348, 0x3C342C);
+	WREG32(offset + 0x354, 0x10305);
+	WREG32(offset + 0x378, 0x3C3018);
+	WREG32(offset + 0x37C, 0x504C48);
+	WREG32(offset + 0x384, 0x10305);
 	WREG32(offset + 0x620, 0x30420);
 	WREG32(offset + 0x704, 0x93FF);
+	WREG32(offset + 0x710, 0x57F);
+	WREG32(offset + 0x714, 0x57F);
 	WREG32(offset + 0x72C, 0xF6);
 	WREG32(offset + 0x80C, 0x18181011);
 	WREG32(offset + 0x860, 0x401);
+	WREG32(offset + 0x878, 0x444430);
 }
 
 static void gaudi3_init_cache_d2d_7_hbm_cache_block(struct hl_device *hdev,
@@ -2811,10 +2951,54 @@ static void gaudi3_init_cache_d2d_7_hbm_cache_block(struct hl_device *hdev,
 	WREG32(offset + 0x234, 0x120C0801);
 	WREG32(offset + 0x238, 0x12030801);
 	WREG32(offset + 0x240, 0x280010);
+	WREG32(offset + 0x344, 0x241C10);
+	WREG32(offset + 0x348, 0x3C342C);
+	WREG32(offset + 0x354, 0x10305);
+	WREG32(offset + 0x378, 0x3C3018);
+	WREG32(offset + 0x37C, 0x504C48);
+	WREG32(offset + 0x384, 0x10305);
 	WREG32(offset + 0x620, 0x30420);
+	WREG32(offset + 0x704, 0x93FF);
+	WREG32(offset + 0x710, 0x57F);
+	WREG32(offset + 0x714, 0x57F);
 	WREG32(offset + 0x72C, 0xF6);
 	WREG32(offset + 0x80C, 0x18181011);
 	WREG32(offset + 0x860, 0x401);
+	WREG32(offset + 0x878, 0x444430);
+}
+
+static void gaudi3_init_cache_single_die_hd0246_cache_block(
+			struct hl_device *hdev, u64 offset)
+{
+	WREG32(offset + 0x000, 0x4ADFE7D);
+}
+
+static void gaudi3_init_cache_d2d_8_hbm_hd0246_cache_block(
+			struct hl_device *hdev, u64 offset)
+{
+	WREG32(offset + 0x000, 0x4ADFE7D);
+}
+
+static void gaudi3_init_cache_d2d_7_hbm_hd0246_cache_block(
+			struct hl_device *hdev, u64 offset)
+{
+}
+
+static void gaudi3_init_cache_single_die_hd1357_cache_block(
+			struct hl_device *hdev, u64 offset)
+{
+	WREG32(offset + 0x000, 0x6ADFE7D);
+}
+
+static void gaudi3_init_cache_d2d_8_hbm_hd1357_cache_block(
+			struct hl_device *hdev, u64 offset)
+{
+	WREG32(offset + 0x000, 0x6ADFE7D);
+}
+
+static void gaudi3_init_cache_d2d_7_hbm_hd1357_cache_block(
+			struct hl_device *hdev, u64 offset)
+{
 }
 
 static void gaudi3_init_cache_single_die_cache(struct hl_device *hdev)
@@ -2841,19 +3025,209 @@ static void gaudi3_init_cache_d2d_7_hbm_cache(struct hl_device *hdev)
 	gaudi3_iterate_cache_slices(hdev, &ctx);
 }
 
+static void gaudi3_init_cache_single_die_hd0246_cache(struct hl_device *hdev)
+{
+	gaudi3_init_cache_single_die_hd0246_cache_block(hdev, 0xE280000);
+	gaudi3_init_cache_single_die_hd0246_cache_block(hdev, 0xE290000);
+	gaudi3_init_cache_single_die_hd0246_cache_block(hdev, 0xE2A0000);
+	gaudi3_init_cache_single_die_hd0246_cache_block(hdev, 0xE2B0000);
+	gaudi3_init_cache_single_die_hd0246_cache_block(hdev, 0xE2C0000);
+	gaudi3_init_cache_single_die_hd0246_cache_block(hdev, 0xE2D0000);
+	gaudi3_init_cache_single_die_hd0246_cache_block(hdev, 0xE2E0000);
+	gaudi3_init_cache_single_die_hd0246_cache_block(hdev, 0xE2F0000);
+	gaudi3_init_cache_single_die_hd0246_cache_block(hdev, 0xEA80000);
+	gaudi3_init_cache_single_die_hd0246_cache_block(hdev, 0xEA90000);
+	gaudi3_init_cache_single_die_hd0246_cache_block(hdev, 0xEAA0000);
+	gaudi3_init_cache_single_die_hd0246_cache_block(hdev, 0xEAB0000);
+	gaudi3_init_cache_single_die_hd0246_cache_block(hdev, 0xEAC0000);
+	gaudi3_init_cache_single_die_hd0246_cache_block(hdev, 0xEAD0000);
+	gaudi3_init_cache_single_die_hd0246_cache_block(hdev, 0xEAE0000);
+	gaudi3_init_cache_single_die_hd0246_cache_block(hdev, 0xEAF0000);
+}
+
+static void gaudi3_init_cache_d2d_8_hbm_hd0246_cache(struct hl_device *hdev)
+{
+	gaudi3_init_cache_d2d_8_hbm_hd0246_cache_block(hdev, 0xE280000);
+	gaudi3_init_cache_d2d_8_hbm_hd0246_cache_block(hdev, 0xE290000);
+	gaudi3_init_cache_d2d_8_hbm_hd0246_cache_block(hdev, 0xE2A0000);
+	gaudi3_init_cache_d2d_8_hbm_hd0246_cache_block(hdev, 0xE2B0000);
+	gaudi3_init_cache_d2d_8_hbm_hd0246_cache_block(hdev, 0xE2C0000);
+	gaudi3_init_cache_d2d_8_hbm_hd0246_cache_block(hdev, 0xE2D0000);
+	gaudi3_init_cache_d2d_8_hbm_hd0246_cache_block(hdev, 0xE2E0000);
+	gaudi3_init_cache_d2d_8_hbm_hd0246_cache_block(hdev, 0xE2F0000);
+	gaudi3_init_cache_d2d_8_hbm_hd0246_cache_block(hdev, 0xEA80000);
+	gaudi3_init_cache_d2d_8_hbm_hd0246_cache_block(hdev, 0xEA90000);
+	gaudi3_init_cache_d2d_8_hbm_hd0246_cache_block(hdev, 0xEAA0000);
+	gaudi3_init_cache_d2d_8_hbm_hd0246_cache_block(hdev, 0xEAB0000);
+	gaudi3_init_cache_d2d_8_hbm_hd0246_cache_block(hdev, 0xEAC0000);
+	gaudi3_init_cache_d2d_8_hbm_hd0246_cache_block(hdev, 0xEAD0000);
+	gaudi3_init_cache_d2d_8_hbm_hd0246_cache_block(hdev, 0xEAE0000);
+	gaudi3_init_cache_d2d_8_hbm_hd0246_cache_block(hdev, 0xEAF0000);
+	gaudi3_init_cache_d2d_8_hbm_hd0246_cache_block(hdev, 0xF280000);
+	gaudi3_init_cache_d2d_8_hbm_hd0246_cache_block(hdev, 0xF290000);
+	gaudi3_init_cache_d2d_8_hbm_hd0246_cache_block(hdev, 0xF2A0000);
+	gaudi3_init_cache_d2d_8_hbm_hd0246_cache_block(hdev, 0xF2B0000);
+	gaudi3_init_cache_d2d_8_hbm_hd0246_cache_block(hdev, 0xF2C0000);
+	gaudi3_init_cache_d2d_8_hbm_hd0246_cache_block(hdev, 0xF2D0000);
+	gaudi3_init_cache_d2d_8_hbm_hd0246_cache_block(hdev, 0xF2E0000);
+	gaudi3_init_cache_d2d_8_hbm_hd0246_cache_block(hdev, 0xF2F0000);
+	gaudi3_init_cache_d2d_8_hbm_hd0246_cache_block(hdev, 0xFA80000);
+	gaudi3_init_cache_d2d_8_hbm_hd0246_cache_block(hdev, 0xFA90000);
+	gaudi3_init_cache_d2d_8_hbm_hd0246_cache_block(hdev, 0xFAA0000);
+	gaudi3_init_cache_d2d_8_hbm_hd0246_cache_block(hdev, 0xFAB0000);
+	gaudi3_init_cache_d2d_8_hbm_hd0246_cache_block(hdev, 0xFAC0000);
+	gaudi3_init_cache_d2d_8_hbm_hd0246_cache_block(hdev, 0xFAD0000);
+	gaudi3_init_cache_d2d_8_hbm_hd0246_cache_block(hdev, 0xFAE0000);
+	gaudi3_init_cache_d2d_8_hbm_hd0246_cache_block(hdev, 0xFAF0000);
+}
+
+static void gaudi3_init_cache_d2d_7_hbm_hd0246_cache(struct hl_device *hdev)
+{
+	gaudi3_init_cache_d2d_7_hbm_hd0246_cache_block(hdev, 0xE280000);
+	gaudi3_init_cache_d2d_7_hbm_hd0246_cache_block(hdev, 0xE290000);
+	gaudi3_init_cache_d2d_7_hbm_hd0246_cache_block(hdev, 0xE2A0000);
+	gaudi3_init_cache_d2d_7_hbm_hd0246_cache_block(hdev, 0xE2B0000);
+	gaudi3_init_cache_d2d_7_hbm_hd0246_cache_block(hdev, 0xE2C0000);
+	gaudi3_init_cache_d2d_7_hbm_hd0246_cache_block(hdev, 0xE2D0000);
+	gaudi3_init_cache_d2d_7_hbm_hd0246_cache_block(hdev, 0xE2E0000);
+	gaudi3_init_cache_d2d_7_hbm_hd0246_cache_block(hdev, 0xE2F0000);
+	gaudi3_init_cache_d2d_7_hbm_hd0246_cache_block(hdev, 0xEA80000);
+	gaudi3_init_cache_d2d_7_hbm_hd0246_cache_block(hdev, 0xEA90000);
+	gaudi3_init_cache_d2d_7_hbm_hd0246_cache_block(hdev, 0xEAA0000);
+	gaudi3_init_cache_d2d_7_hbm_hd0246_cache_block(hdev, 0xEAB0000);
+	gaudi3_init_cache_d2d_7_hbm_hd0246_cache_block(hdev, 0xEAC0000);
+	gaudi3_init_cache_d2d_7_hbm_hd0246_cache_block(hdev, 0xEAD0000);
+	gaudi3_init_cache_d2d_7_hbm_hd0246_cache_block(hdev, 0xEAE0000);
+	gaudi3_init_cache_d2d_7_hbm_hd0246_cache_block(hdev, 0xEAF0000);
+	gaudi3_init_cache_d2d_7_hbm_hd0246_cache_block(hdev, 0xF280000);
+	gaudi3_init_cache_d2d_7_hbm_hd0246_cache_block(hdev, 0xF290000);
+	gaudi3_init_cache_d2d_7_hbm_hd0246_cache_block(hdev, 0xF2A0000);
+	gaudi3_init_cache_d2d_7_hbm_hd0246_cache_block(hdev, 0xF2B0000);
+	gaudi3_init_cache_d2d_7_hbm_hd0246_cache_block(hdev, 0xF2C0000);
+	gaudi3_init_cache_d2d_7_hbm_hd0246_cache_block(hdev, 0xF2D0000);
+	gaudi3_init_cache_d2d_7_hbm_hd0246_cache_block(hdev, 0xF2E0000);
+	gaudi3_init_cache_d2d_7_hbm_hd0246_cache_block(hdev, 0xF2F0000);
+	gaudi3_init_cache_d2d_7_hbm_hd0246_cache_block(hdev, 0xFA80000);
+	gaudi3_init_cache_d2d_7_hbm_hd0246_cache_block(hdev, 0xFA90000);
+	gaudi3_init_cache_d2d_7_hbm_hd0246_cache_block(hdev, 0xFAA0000);
+	gaudi3_init_cache_d2d_7_hbm_hd0246_cache_block(hdev, 0xFAB0000);
+	gaudi3_init_cache_d2d_7_hbm_hd0246_cache_block(hdev, 0xFAC0000);
+	gaudi3_init_cache_d2d_7_hbm_hd0246_cache_block(hdev, 0xFAD0000);
+	gaudi3_init_cache_d2d_7_hbm_hd0246_cache_block(hdev, 0xFAE0000);
+	gaudi3_init_cache_d2d_7_hbm_hd0246_cache_block(hdev, 0xFAF0000);
+}
+
+static void gaudi3_init_cache_single_die_hd1357_cache(struct hl_device *hdev)
+{
+	gaudi3_init_cache_single_die_hd1357_cache_block(hdev, 0xE680000);
+	gaudi3_init_cache_single_die_hd1357_cache_block(hdev, 0xE690000);
+	gaudi3_init_cache_single_die_hd1357_cache_block(hdev, 0xE6A0000);
+	gaudi3_init_cache_single_die_hd1357_cache_block(hdev, 0xE6B0000);
+	gaudi3_init_cache_single_die_hd1357_cache_block(hdev, 0xE6C0000);
+	gaudi3_init_cache_single_die_hd1357_cache_block(hdev, 0xE6D0000);
+	gaudi3_init_cache_single_die_hd1357_cache_block(hdev, 0xE6E0000);
+	gaudi3_init_cache_single_die_hd1357_cache_block(hdev, 0xE6F0000);
+	gaudi3_init_cache_single_die_hd1357_cache_block(hdev, 0xEE80000);
+	gaudi3_init_cache_single_die_hd1357_cache_block(hdev, 0xEE90000);
+	gaudi3_init_cache_single_die_hd1357_cache_block(hdev, 0xEEA0000);
+	gaudi3_init_cache_single_die_hd1357_cache_block(hdev, 0xEEB0000);
+	gaudi3_init_cache_single_die_hd1357_cache_block(hdev, 0xEEC0000);
+	gaudi3_init_cache_single_die_hd1357_cache_block(hdev, 0xEED0000);
+	gaudi3_init_cache_single_die_hd1357_cache_block(hdev, 0xEEE0000);
+	gaudi3_init_cache_single_die_hd1357_cache_block(hdev, 0xEEF0000);
+}
+
+static void gaudi3_init_cache_d2d_8_hbm_hd1357_cache(struct hl_device *hdev)
+{
+	gaudi3_init_cache_d2d_8_hbm_hd1357_cache_block(hdev, 0xE680000);
+	gaudi3_init_cache_d2d_8_hbm_hd1357_cache_block(hdev, 0xE690000);
+	gaudi3_init_cache_d2d_8_hbm_hd1357_cache_block(hdev, 0xE6A0000);
+	gaudi3_init_cache_d2d_8_hbm_hd1357_cache_block(hdev, 0xE6B0000);
+	gaudi3_init_cache_d2d_8_hbm_hd1357_cache_block(hdev, 0xE6C0000);
+	gaudi3_init_cache_d2d_8_hbm_hd1357_cache_block(hdev, 0xE6D0000);
+	gaudi3_init_cache_d2d_8_hbm_hd1357_cache_block(hdev, 0xE6E0000);
+	gaudi3_init_cache_d2d_8_hbm_hd1357_cache_block(hdev, 0xE6F0000);
+	gaudi3_init_cache_d2d_8_hbm_hd1357_cache_block(hdev, 0xEE80000);
+	gaudi3_init_cache_d2d_8_hbm_hd1357_cache_block(hdev, 0xEE90000);
+	gaudi3_init_cache_d2d_8_hbm_hd1357_cache_block(hdev, 0xEEA0000);
+	gaudi3_init_cache_d2d_8_hbm_hd1357_cache_block(hdev, 0xEEB0000);
+	gaudi3_init_cache_d2d_8_hbm_hd1357_cache_block(hdev, 0xEEC0000);
+	gaudi3_init_cache_d2d_8_hbm_hd1357_cache_block(hdev, 0xEED0000);
+	gaudi3_init_cache_d2d_8_hbm_hd1357_cache_block(hdev, 0xEEE0000);
+	gaudi3_init_cache_d2d_8_hbm_hd1357_cache_block(hdev, 0xEEF0000);
+	gaudi3_init_cache_d2d_8_hbm_hd1357_cache_block(hdev, 0xF680000);
+	gaudi3_init_cache_d2d_8_hbm_hd1357_cache_block(hdev, 0xF690000);
+	gaudi3_init_cache_d2d_8_hbm_hd1357_cache_block(hdev, 0xF6A0000);
+	gaudi3_init_cache_d2d_8_hbm_hd1357_cache_block(hdev, 0xF6B0000);
+	gaudi3_init_cache_d2d_8_hbm_hd1357_cache_block(hdev, 0xF6C0000);
+	gaudi3_init_cache_d2d_8_hbm_hd1357_cache_block(hdev, 0xF6D0000);
+	gaudi3_init_cache_d2d_8_hbm_hd1357_cache_block(hdev, 0xF6E0000);
+	gaudi3_init_cache_d2d_8_hbm_hd1357_cache_block(hdev, 0xF6F0000);
+	gaudi3_init_cache_d2d_8_hbm_hd1357_cache_block(hdev, 0xFE80000);
+	gaudi3_init_cache_d2d_8_hbm_hd1357_cache_block(hdev, 0xFE90000);
+	gaudi3_init_cache_d2d_8_hbm_hd1357_cache_block(hdev, 0xFEA0000);
+	gaudi3_init_cache_d2d_8_hbm_hd1357_cache_block(hdev, 0xFEB0000);
+	gaudi3_init_cache_d2d_8_hbm_hd1357_cache_block(hdev, 0xFEC0000);
+	gaudi3_init_cache_d2d_8_hbm_hd1357_cache_block(hdev, 0xFED0000);
+	gaudi3_init_cache_d2d_8_hbm_hd1357_cache_block(hdev, 0xFEE0000);
+	gaudi3_init_cache_d2d_8_hbm_hd1357_cache_block(hdev, 0xFEF0000);
+}
+
+static void gaudi3_init_cache_d2d_7_hbm_hd1357_cache(struct hl_device *hdev)
+{
+	gaudi3_init_cache_d2d_7_hbm_hd1357_cache_block(hdev, 0xE680000);
+	gaudi3_init_cache_d2d_7_hbm_hd1357_cache_block(hdev, 0xE690000);
+	gaudi3_init_cache_d2d_7_hbm_hd1357_cache_block(hdev, 0xE6A0000);
+	gaudi3_init_cache_d2d_7_hbm_hd1357_cache_block(hdev, 0xE6B0000);
+	gaudi3_init_cache_d2d_7_hbm_hd1357_cache_block(hdev, 0xE6C0000);
+	gaudi3_init_cache_d2d_7_hbm_hd1357_cache_block(hdev, 0xE6D0000);
+	gaudi3_init_cache_d2d_7_hbm_hd1357_cache_block(hdev, 0xE6E0000);
+	gaudi3_init_cache_d2d_7_hbm_hd1357_cache_block(hdev, 0xE6F0000);
+	gaudi3_init_cache_d2d_7_hbm_hd1357_cache_block(hdev, 0xEE80000);
+	gaudi3_init_cache_d2d_7_hbm_hd1357_cache_block(hdev, 0xEE90000);
+	gaudi3_init_cache_d2d_7_hbm_hd1357_cache_block(hdev, 0xEEA0000);
+	gaudi3_init_cache_d2d_7_hbm_hd1357_cache_block(hdev, 0xEEB0000);
+	gaudi3_init_cache_d2d_7_hbm_hd1357_cache_block(hdev, 0xEEC0000);
+	gaudi3_init_cache_d2d_7_hbm_hd1357_cache_block(hdev, 0xEED0000);
+	gaudi3_init_cache_d2d_7_hbm_hd1357_cache_block(hdev, 0xEEE0000);
+	gaudi3_init_cache_d2d_7_hbm_hd1357_cache_block(hdev, 0xEEF0000);
+	gaudi3_init_cache_d2d_7_hbm_hd1357_cache_block(hdev, 0xF680000);
+	gaudi3_init_cache_d2d_7_hbm_hd1357_cache_block(hdev, 0xF690000);
+	gaudi3_init_cache_d2d_7_hbm_hd1357_cache_block(hdev, 0xF6A0000);
+	gaudi3_init_cache_d2d_7_hbm_hd1357_cache_block(hdev, 0xF6B0000);
+	gaudi3_init_cache_d2d_7_hbm_hd1357_cache_block(hdev, 0xF6C0000);
+	gaudi3_init_cache_d2d_7_hbm_hd1357_cache_block(hdev, 0xF6D0000);
+	gaudi3_init_cache_d2d_7_hbm_hd1357_cache_block(hdev, 0xF6E0000);
+	gaudi3_init_cache_d2d_7_hbm_hd1357_cache_block(hdev, 0xF6F0000);
+	gaudi3_init_cache_d2d_7_hbm_hd1357_cache_block(hdev, 0xFE80000);
+	gaudi3_init_cache_d2d_7_hbm_hd1357_cache_block(hdev, 0xFE90000);
+	gaudi3_init_cache_d2d_7_hbm_hd1357_cache_block(hdev, 0xFEA0000);
+	gaudi3_init_cache_d2d_7_hbm_hd1357_cache_block(hdev, 0xFEB0000);
+	gaudi3_init_cache_d2d_7_hbm_hd1357_cache_block(hdev, 0xFEC0000);
+	gaudi3_init_cache_d2d_7_hbm_hd1357_cache_block(hdev, 0xFED0000);
+	gaudi3_init_cache_d2d_7_hbm_hd1357_cache_block(hdev, 0xFEE0000);
+	gaudi3_init_cache_d2d_7_hbm_hd1357_cache_block(hdev, 0xFEF0000);
+}
+
 static void gaudi3_init_cache_single_die(struct hl_device *hdev)
 {
 	gaudi3_init_cache_single_die_cache(hdev);
+	gaudi3_init_cache_single_die_hd0246_cache(hdev);
+	gaudi3_init_cache_single_die_hd1357_cache(hdev);
 }
 
 static void gaudi3_init_cache_d2d_8_hbm(struct hl_device *hdev)
 {
 	gaudi3_init_cache_d2d_8_hbm_cache(hdev);
+	gaudi3_init_cache_d2d_8_hbm_hd0246_cache(hdev);
+	gaudi3_init_cache_d2d_8_hbm_hd1357_cache(hdev);
 }
 
 static void gaudi3_init_cache_d2d_7_hbm(struct hl_device *hdev)
 {
 	gaudi3_init_cache_d2d_7_hbm_cache(hdev);
+	gaudi3_init_cache_d2d_7_hbm_hd0246_cache(hdev);
+	gaudi3_init_cache_d2d_7_hbm_hd1357_cache(hdev);
 }
 
 static void gaudi3_init_mc_single_die_mc_block(struct hl_device *hdev,
@@ -2952,7 +3326,8 @@ void gaudi3_init_scrambler(struct hl_device *hdev)
 	if ((gaudi3->hw_cap_initialized & HW_CAP_SCRAMBLER_MASK) == HW_CAP_SCRAMBLER_MASK)
 		return;
 
-	/* If we have FIT then preboot is still alive at this point and driver shouldn't
+	/*
+	 * If we have FIT then preboot is still alive at this point and driver shouldn't
 	 * do sram scrambling, FW will do those configs later on.
 	 */
 	if (hdev->fw_components & FW_TYPE_BOOT_CPU)
