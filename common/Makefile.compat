@@ -389,3 +389,7 @@ endif
 ifneq ($(shell grep "void \*memset32" include/linux/string.h > /dev/null 2>&1 && echo 1),)
 	ccflags-y += -D_HAS_MEMSET32
 endif
+
+ifneq ($(shell (grep -A100 "struct device {" include/linux/device.h | grep "const struct class") > /dev/null 2>&1 && echo 1),)
+	ccflags-y += -D_HAS_DEVICE_WITH_CONST_CLASS
+endif

@@ -747,7 +747,11 @@ static void device_release_func(struct device *dev)
  *
  * Initialize a cdev and a Linux device for habanalabs's device.
  */
+#ifdef _HAS_DEVICE_WITH_CONST_CLASS
+static int device_init_cdev(struct hl_device *hdev, const struct class *class,
+#else
 static int device_init_cdev(struct hl_device *hdev, struct class *class,
+#endif
 				int minor, const struct file_operations *fops,
 				char *name, struct cdev *cdev,
 				struct device **dev, int major)
@@ -772,7 +776,11 @@ static int device_init_cdev(struct hl_device *hdev, struct class *class,
 #if IS_ENABLED(CONFIG_DRM_ACCEL)
 static int cdev_sysfs_debugfs_add(struct hl_device *hdev)
 {
+#ifdef _HAS_DEVICE_WITH_CONST_CLASS
+	const struct class *accel_class = hdev->drm.accel->kdev->class;
+#else
 	struct class *accel_class = hdev->drm.accel->kdev->class;
+#endif
 	char name[32];
 	int rc;
 
