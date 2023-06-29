@@ -1125,7 +1125,7 @@ static int gaudi2_sim_cpucp_info_get(struct hl_device *hdev)
 
 	/* Make sure we don't expose HWMON for simulator */
 	if (hdev->hl_chip_info->info) {
-		const struct hwmon_channel_info **channel_info_arr;
+		const struct hwmon_channel_info * const *channel_info_arr;
 		int i = 0;
 
 		channel_info_arr = hdev->hl_chip_info->info;
