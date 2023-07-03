@@ -12097,29 +12097,6 @@ static u32 gaudi3_handle_pdma_sei_err(struct hl_device *hdev, u8 die)
 	return err_cnt;
 }
 
-static u32 gaudi3_handle_arc_farm_sei_err(struct hl_device *hdev, u32 hdcore)
-{
-	u32 err_cnt = 0, err_msk = RREG32(hdcore * HDCORE_OFFSET + mmHD0_ARC_FARM_ARC0_AUX_BASE +
-						mmQMAN_ARC_AUX_ARC_SEI_INTR_STS);
-
-	err_cnt = gaudi3_err_cause_iterator(hdev, err_msk, gaudi3_qm_arc_aux_sei_intr_cause,
-							"ARC0", "SEI");
-
-	err_msk = RREG32(hdcore * HDCORE_OFFSET + mmHD0_ARC_FARM_ARC1_AUX_BASE +
-				mmQMAN_ARC_AUX_ARC_SEI_INTR_STS);
-
-	err_cnt += gaudi3_err_cause_iterator(hdev, err_msk, gaudi3_qm_arc_aux_sei_intr_cause,
-							"ARC1", "SEI");
-
-	err_msk = RREG32(hdcore * HDCORE_OFFSET + mmHD0_ARC_FARM_FARM_BASE +
-				mmFARM_FARM_SEI_INTR_STS);
-
-	err_cnt += gaudi3_err_cause_iterator(hdev, err_msk, gaudi3_arc_farm_sei_err_cause,
-						"ARC_FARM", "SEI");
-
-	return err_cnt;
-}
-
 static int gaudi3_validate_eqe_data_size(struct hl_device *hdev, u16 actual_size, u16 expected_size)
 {
 	if (actual_size != expected_size) {
@@ -12129,6 +12106,31 @@ static int gaudi3_validate_eqe_data_size(struct hl_device *hdev, u16 actual_size
 	}
 
 	return 0;
+}
+
+static u32 gaudi3_handle_arc_farm_sei_err(struct hl_device *hdev, u16 data_size,
+					struct hl_eq_arcfarm_sei_data *arcfarm_sei_data)
+{
+	u32 err_cnt = 0;
+	int rc;
+
+	rc = gaudi3_validate_eqe_data_size(hdev, data_size, sizeof(*arcfarm_sei_data));
+	if (rc)
+		return 0;
+
+	err_cnt = gaudi3_err_cause_iterator(hdev,
+		lower_32_bits(le64_to_cpu(arcfarm_sei_data->arc0_wrapper_cause.intr_cause_data)),
+					gaudi3_qm_arc_aux_sei_intr_cause, "ARC0", "SEI");
+
+	err_cnt += gaudi3_err_cause_iterator(hdev,
+		lower_32_bits(le64_to_cpu(arcfarm_sei_data->arc1_wrapper_cause.intr_cause_data)),
+					gaudi3_qm_arc_aux_sei_intr_cause, "ARC1", "SEI");
+
+	err_cnt += gaudi3_err_cause_iterator(hdev,
+		lower_32_bits(le64_to_cpu(arcfarm_sei_data->internal_cause.intr_cause_data)),
+					gaudi3_arc_farm_sei_err_cause, "ARC_FARM", "SEI");
+
+	return err_cnt;
 }
 
 static u32 gaudi3_handle_decoder_sei_err(struct hl_device *hdev, u16 data_size,
@@ -12694,7 +12696,8 @@ static u32 gaudi3_handle_sei_event(struct hl_device *hdev,
 
 	switch (agg_component_type) {
 	case INT_COMP_TYPE_ARC_FARM:
-		err_cnt = gaudi3_handle_arc_farm_sei_err(hdev, hdcore);
+		err_cnt = gaudi3_handle_arc_farm_sei_err(hdev, data_size,
+							&eq_dynamic_entry->arcfarm_sei_data);
 		break;
 	case INT_COMP_TYPE_DEC:
 		err_cnt = gaudi3_handle_decoder_sei_err(hdev, data_size,

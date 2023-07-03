@@ -4081,6 +4081,7 @@ static void handle_and_clear_arc_farm_events(struct hl_device *hdev, u32 die, u3
 					u32 idx, u32 aggr_mask_reg, u32 events_mask)
 {
 	struct hl_eq_dynamic_entry eq_dynamic_entry = {};
+	struct hl_eq_arcfarm_sei_data *arcfarm_sei_data;
 	struct eq_agg_header_params params = {};
 	bool unmask_event_in_aggr = false;
 	u32 offset, err_msk;
@@ -4097,7 +4098,17 @@ static void handle_and_clear_arc_farm_events(struct hl_device *hdev, u32 die, u3
 		unmask_event_in_aggr = true;
 		break;
 	case ERR_GRP_SEI:
-		offset = (die * NUM_OF_HDCORES_PER_DIE + hdcore) * HDCORE_OFFSET;
+		eq_dynamic_entry.hdr.size = cpu_to_le16(sizeof(struct hl_eq_arcfarm_sei_data));
+		arcfarm_sei_data = &eq_dynamic_entry.arcfarm_sei_data;
+		arcfarm_sei_data->arc0_wrapper_cause.intr_cause_data =
+				cpu_to_le64(RREG32(mmHD0_ARC_FARM_ARC0_AUX_BASE +
+						offset + mmQMAN_ARC_AUX_ARC_SEI_INTR_STS));
+		arcfarm_sei_data->arc1_wrapper_cause.intr_cause_data =
+				cpu_to_le64(RREG32(mmHD0_ARC_FARM_ARC1_AUX_BASE +
+						offset + mmQMAN_ARC_AUX_ARC_SEI_INTR_STS));
+		arcfarm_sei_data->internal_cause.intr_cause_data =
+				cpu_to_le64(RREG32(mmHD0_ARC_FARM_FARM_BASE +
+						offset + mmFARM_FARM_SEI_INTR_STS));
 		unmask_event_in_aggr = true;
 		break;
 	default:
