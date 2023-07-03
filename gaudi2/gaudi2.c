@@ -8339,7 +8339,7 @@ static void gaudi2_print_event(struct hl_device *hdev, u16 event_type,
 }
 
 static bool gaudi2_handle_ecc_event(struct hl_device *hdev, u16 event_type,
-		struct hl_eq_ecc_data *ecc_data)
+		struct hl_eq_ecc_data *ecc_data, bool reset_bypass)
 {
 	u64 ecc_address = 0, ecc_syndrom = 0;
 	u8 memory_wrapper_idx = 0;
@@ -8349,8 +8349,9 @@ static bool gaudi2_handle_ecc_event(struct hl_device *hdev, u16 event_type,
 	memory_wrapper_idx = ecc_data->memory_wrapper_idx;
 
 	gaudi2_print_event(hdev, event_type, !ecc_data->is_critical,
-		"ECC error detected. address: %#llx. Syndrom: %#llx. block id %u. critical %u.",
-		ecc_address, ecc_syndrom, memory_wrapper_idx, ecc_data->is_critical);
+		"ECC error detected. address: %#llx. syndrom: %#llx. block id %u. critical %u.%s",
+		ecc_address, ecc_syndrom, memory_wrapper_idx, ecc_data->is_critical,
+		reset_bypass ? " - reset bypass" : "");
 
 	return !!ecc_data->is_critical;
 }
@@ -10365,19 +10366,18 @@ void gaudi2_handle_eqe(struct hl_device *hdev, struct hl_eq_entry *eq_entry)
 	case GAUDI2_EVENT_PCIE_CORE_SERR ... GAUDI2_EVENT_ARC0_ECC_DERR:
 		fallthrough;
 	case GAUDI2_EVENT_ROTATOR0_SERR ... GAUDI2_EVENT_ROTATOR1_DERR:
-		/* TODO: SW-150554 remove once false TPC DERR report is resolved */
-		if (!hl_is_fw_sw_ver_below(hdev, 1, 11) &&
-				(event_type >= GAUDI2_EVENT_TPC0_ECC_DERR &&
-				event_type <= GAUDI2_EVENT_TPC24_ECC_DERR)) {
+		/* TODO: SW-150554 remove once false DERR reports are resolved */
+		if (!hl_is_fw_sw_ver_below(hdev, 1, 11))
 			reset_bypass = true;
-		} else {
-			reset_flags |= HL_DRV_RESET_FW_FATAL_ERR;
+
+		if (!reset_bypass)
 			event_mask |= HL_NOTIFIER_EVENT_GENERAL_HW_ERR;
-			reset_required = gaudi2_handle_ecc_event(hdev, event_type,
-								&eq_entry->ecc_data);
-			is_critical = eq_entry->ecc_data.is_critical;
-			error_count++;
-		}
+
+		reset_flags |= HL_DRV_RESET_FW_FATAL_ERR;
+		reset_required = gaudi2_handle_ecc_event(hdev, event_type,
+							&eq_entry->ecc_data, reset_bypass);
+		is_critical = eq_entry->ecc_data.is_critical;
+		error_count++;
 
 		break;
 
