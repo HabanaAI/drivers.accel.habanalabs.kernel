@@ -11656,8 +11656,8 @@ static void gaudi3_check_for_tpc_razwi(struct hl_device *hdev, u8 hdcore, u8 ini
 
 	/* non redundant tpc */
 	if (initiator_idx < NUM_OF_TPC_PER_HDCORE)
-		return gaudi3_check_for_shared_razwi(hdev, &tpc_razwi_info[0], arr_size, hdcore,
-				initiator_idx, eng_id, event_mask);
+		return gaudi3_generic_check_for_hdcore_razwi(hdev, &tpc_razwi_info[0], arr_size,
+				hdcore, initiator_idx, eng_id, event_mask);
 
 	/* redundant tpc */
 	idx = hdcore_idx_map[hdcore];
