@@ -94,7 +94,9 @@ MODULE_FIRMWARE(GAUDI3_BOOT_FIT_FILE);
 #define GAUDI3_PLDM_PREBOOT_RESET_POLL_TIMEOUT_USEC	20000000	/* 20s */
 
 #define GAUDI3_MMU_CACHE_MAINT_TIMEOUT_USEC		(MMU_CONFIG_TIMEOUT_USEC * 1000)
-#define GAUDI3_PLDM_MMU_TIMEOUT_USEC			(MMU_CONFIG_TIMEOUT_USEC * 2000)
+
+/* TODO set GAUDI3_PLDM_MMU_TIMEOUT_USEC to 4sec once SW-148410 is resolved */
+#define GAUDI3_PLDM_MMU_TIMEOUT_USEC			(MMU_CONFIG_TIMEOUT_USEC * 8000)
 
 #define GAUDI3_PLDM_HALT_ENGINES_WAIT_MSEC		1000		/* 1s */
 #define GAUDI3_PLDM_RESET_WAIT_MSEC			1000		/* 1s */
@@ -3799,8 +3801,7 @@ static void gaudi3_trigger_job(struct hl_device *hdev, struct gaudi3_cq_mode_par
 	 * 3. Relevant initiators update the sync object
 	 * 4. This triggers the monitor
 	 * 5. Monitor writes to CQ
-	 * 6. Meanwhile driver is polling the host address (or, in PLDM, until H9-3138 is resolved
-	 *    poll the SOB directly)
+	 * 6. Meanwhile driver is polling the host address
 	 * Could be done using interrupts, however polling is more efficient.
 	 */
 
@@ -3872,9 +3873,10 @@ timeout:
 		return 0;
 
 	dev_err_ratelimited(hdev->dev,
-			    "CQ completion: timeout waiting for job (%s), SOB val: %#x\n",
+			"CQ completion: timeout waiting for job (%s), SOB val: %#x, q_id: 0x%x, poll_addr %p, pi: 0x%x, ci: 0x%x\n",
 			    cq_params->job_str,
-			    RREG32(mmHD0_SYNC_MNGR_OBJS_BASE + mmSOB_OBJS_SOB_OBJ_0_0 + sob_off));
+			    RREG32(mmHD0_SYNC_MNGR_OBJS_BASE + mmSOB_OBJS_SOB_OBJ_0_0 + sob_off),
+			    cq_params->cq_id, polling_addr, cq->pi, cq->ci);
 
 	return rc;
 }
