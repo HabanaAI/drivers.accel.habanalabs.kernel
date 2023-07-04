@@ -11628,8 +11628,8 @@ static void gaudi3_check_for_shared_razwi(struct hl_device *hdev, struct razwi_i
 						u16 info_arr_size, u8 die, u8 initiator_idx,
 						u16 eng_id, u64 *event_mask)
 {
-	u16 initiators_pre_die = info_arr_size / MAX_NUM_OF_DIES;
-	u16 idx = (die * initiators_pre_die) + initiator_idx;
+	u16 initiators_per_die = info_arr_size / MAX_NUM_OF_DIES;
+	u16 idx = (die * initiators_per_die) + initiator_idx;
 
 	gaudi3_check_for_razwi(hdev, &info[idx], eng_id, event_mask);
 }
