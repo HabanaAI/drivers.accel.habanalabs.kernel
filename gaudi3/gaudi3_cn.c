@@ -19,22 +19,6 @@ static bool is_200g_mode(struct hl_device *hdev)
 	return !is_400g_mode(hdev);
 }
 
-int get_resource_offset(struct hl_device *hdev, u32 port, int num_of_resources)
-{
-	/*
-	 * In 400G mode we have a single port per macro so all resources belong to that port and
-	 * hence offset 0 should be used.
-	 * In 200G mode we have two port per macro so the even port should use the lower half of the
-	 * resources (offset 0) and the odd port should use the upper half.
-	 */
-	return (is_400g_mode(hdev) || !(port & 1)) ? 0 : (num_of_resources / 2);
-}
-
-int get_resource_count(struct hl_device *hdev, int num_of_resources)
-{
-	return is_400g_mode(hdev) ? num_of_resources : (num_of_resources / 2);
-}
-
 /* get the index of the first port in the macro */
 u32 gaudi3_cn_get_first_port(struct hl_device *hdev, int macro_idx)
 {
