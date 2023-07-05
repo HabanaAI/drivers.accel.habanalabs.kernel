@@ -831,6 +831,8 @@ struct hl_cn_properties {
  * @supports_advanced_cpucp_rc: true if new cpucp opcodes are supported.
  * @supports_engine_modes: true if changing engines/engine_cores modes is supported.
  * @support_dynamic_resereved_fw_size: true if we support dynamic reserved size for fw.
+ * @support_special_blks_lookup: true if device support special blocks iterator used to retrieve
+ *				special block GLBL_PRIV registers.
  */
 struct asic_fixed_properties {
 	struct hw_queue_properties	*hw_queues_props;
@@ -980,6 +982,7 @@ struct asic_fixed_properties {
 	u8				supports_advanced_cpucp_rc;
 	u8				supports_engine_modes;
 	u8				support_dynamic_resereved_fw_size;
+	u8				support_special_blks_lookup;
 };
 
 /**
@@ -1790,6 +1793,7 @@ struct engines_data {
  * @set_priv_assertions: enable/disable privilege assertions.
  * @set_binning_masks: set binning/enable masks for all relevant components.
  * @memset_device_memory: set memory region in device memory with a value.
+ * @lookup_glbl_priv: check if special block supported and retrieve it's GLBL_PRIV values.
  */
 struct hl_asic_funcs {
 	int (*early_init)(struct hl_device *hdev);
@@ -1950,6 +1954,7 @@ struct hl_asic_funcs {
 	void (*set_priv_assertions)(struct hl_device *hdev, bool enable);
 	int (*set_binning_masks)(struct hl_device *hdev);
 	int (*memset_device_memory)(struct hl_device *hdev, u64 addr, u64 size, u64 val);
+	int (*lookup_glbl_priv)(struct hl_device *hdev, u64 blk_addr, u32 *glb_priv_data);
 };
 
 
