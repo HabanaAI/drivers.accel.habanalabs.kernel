@@ -780,6 +780,73 @@ void hl_check_for_glbl_errors(struct hl_device *hdev)
 			"Could not iterate special blocks, glbl error check failed\n");
 }
 
+static inline void fetch_glbl_priv_registers(struct hl_device *hdev,
+						u32 block_base_offset, u32 *glbl_priv_data)
+{
+	u32 i, reg_offset;
+
+	for (i = 0 ; i < (HL_PROT_BITS_REGS_NUM - 3) ; i++) {
+		reg_offset = block_base_offset + (i * 4) + HL_GLBL_PRIV_REG_OFFSET;
+		glbl_priv_data[i] = RREG32(reg_offset);
+
+		dev_dbg(hdev->dev, "read from addr 0x%x, data:0x%x\n",
+				reg_offset, glbl_priv_data[i]);
+	}
+}
+
+bool hl_fetch_glbl_priv_data(struct hl_device *hdev, u64 addr, u32 *glbl_priv_data)
+{
+	struct asic_fixed_properties *prop = &hdev->asic_prop;
+	u32 major, minor, sub_minor, blk_idx, num_blocks;
+	struct hl_special_block_info *block_info_arr;
+	u64 block_base_addr, block_base_offset;
+	bool rc = false;
+
+	block_info_arr = hdev->asic_prop.special_blocks;
+	if (!block_info_arr)
+		return false;
+
+	num_blocks = hdev->asic_prop.num_of_special_blocks;
+
+	hdev->asic_funcs->set_priv_assertions(hdev, false);
+
+	for (blk_idx = 0 ; blk_idx < num_blocks ; blk_idx++, block_info_arr++) {
+		for (major = 0 ; major < block_info_arr->major ; major++) {
+			minor = 0;
+			do {
+				sub_minor = 0;
+				do {
+					block_base_offset = hl_automated_get_block_base_addr(
+							hdev, block_info_arr, major,
+							minor, sub_minor);
+
+					block_base_addr = prop->cfg_base_address +
+									block_base_offset;
+
+					if (block_base_addr == addr) {
+						dev_dbg(hdev->dev, "addr 0x%llx found in PB iter\n",
+									addr);
+
+						fetch_glbl_priv_registers(hdev, block_base_offset,
+								glbl_priv_data);
+
+						rc = true;
+						goto exit;
+					}
+
+					sub_minor++;
+				} while (sub_minor < block_info_arr->sub_minor);
+
+				minor++;
+			} while (minor < block_info_arr->minor);
+		}
+	}
+exit:
+	hdev->asic_funcs->set_priv_assertions(hdev, true);
+
+	return rc;
+}
+
 int hl_iterate_special_blocks(struct hl_device *hdev, struct iterate_special_ctx *ctx)
 {
 	struct hl_special_blocks_cfg *special_blocks_cfg =

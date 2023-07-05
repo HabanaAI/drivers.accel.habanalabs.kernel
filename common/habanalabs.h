@@ -845,6 +845,8 @@ struct hl_cn_properties {
  * @supports_advanced_cpucp_rc: true if new cpucp opcodes are supported.
  * @supports_engine_modes: true if changing engines/engine_cores modes is supported.
  * @support_dynamic_resereved_fw_size: true if we support dynamic reserved size for fw.
+ * @support_glbl_priv_fetch: true if device support special blocks iterator used to retrieve
+ *				special block GLBL_PRIV registers.
  */
 struct asic_fixed_properties {
 	struct hw_queue_properties	*hw_queues_props;
@@ -994,6 +996,7 @@ struct asic_fixed_properties {
 	u8				supports_advanced_cpucp_rc;
 	u8				supports_engine_modes;
 	u8				support_dynamic_resereved_fw_size;
+	u8				support_glbl_priv_fetch;
 };
 
 /**

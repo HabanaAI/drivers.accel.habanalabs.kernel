@@ -2459,6 +2459,32 @@ static int hl_get_fetch_block_range(struct hl_device *hdev, u64 addr, u32 size, 
 }
 
 /*
+ * check_access_privileges - determines whether we should check access privileges or not.
+ * if yes then retrieve the glbl_priv_data to check the relevant bit for the register
+ * we're trying to access.
+ * @hdev: pointer to habanalabs device structure
+ * @addr: register address
+ * @glbl_priv_data: output array contain the global priv data for the block.
+ *
+ * Returns true if we should check privileges false otherwise.
+ */
+static inline bool check_access_privileges(struct hl_device *hdev, u64 addr, u32 *glbl_priv_data)
+{
+	struct asic_fixed_properties *prop = &hdev->asic_prop;
+	u64 blk_addr;
+
+	if (prop->support_glbl_priv_fetch) {
+		blk_addr = ALIGN_DOWN(addr, PAGE_SIZE);
+
+		dev_dbg(hdev->dev, "check access privileges: blk_addr: 0x%llx\n", blk_addr);
+
+		return !!hl_fetch_glbl_priv_data(hdev, blk_addr, glbl_priv_data);
+	}
+
+	return false;
+}
+
+/*
  * hl_read_memory_block - read memory block from device
  * @hdev: pointer to habanalabs device structure
  * @buf: input buffer to read into
@@ -2469,11 +2495,12 @@ static int hl_get_fetch_block_range(struct hl_device *hdev, u64 addr, u32 size, 
 int hl_read_memory_block(struct hl_device *hdev, u32 *buf, u64 start_addr, u32 size)
 {
 	u64 cfg_base_end = hdev->asic_prop.cfg_base_address + hdev->asic_prop.cfg_size;
+	u32 block_entry, glbl_priv_arr[32], priv_arr_idx, bit_num;
 	u64 cfg_base_start = hdev->asic_prop.cfg_base_address;
 	struct asic_fixed_properties *prop = &hdev->asic_prop;
 	struct pci_mem_region *dram_region;
+	bool check_access_priv = false;
 	u64 val, addr, phys_addr;
-	u32 block_entry;
 	int i, rc;
 
 	/* verify that address and size are a multiple of 4 */
@@ -2504,10 +2531,53 @@ int hl_read_memory_block(struct hl_device *hdev, u32 *buf, u64 start_addr, u32 s
 		} else {
 			for (i = 0 ; i < (size / sizeof(u32)) ; i++) {
 				addr =  start_addr + (i * sizeof(u32));
-				rc = hl_access_cfg_region(hdev, addr, &val, DEBUGFS_READ32);
-				if (rc)
-					return rc;
-				buf[i] = val;
+				/*
+				 * Retrieve the next block GLBL_PRIV registers from it's special
+				 * block if supported. since the data requested could excceed to the
+				 * next block, so if we're reading the first register or the
+				 * address we're trying now to access belongs to the next
+				 * block go and read the global priv array of the block.
+				 */
+				if (!i || (i && !(addr % HL_BLOCK_SIZE))) {
+					check_access_priv = check_access_privileges(hdev, addr,
+										glbl_priv_arr);
+				}
+
+				/* Check if register is privileged then skip accessing it */
+				if (check_access_priv) {
+					/*
+					 * Find GLBL_PRIV bit of the register
+					 * each GLBL_PRI register represent 32 registers inside the
+					 * block each register is 4 bytes, so 128 bytes.
+					 */
+					priv_arr_idx = (addr % HL_BLOCK_SIZE) / 128;
+					bit_num = ((addr % HL_BLOCK_SIZE) / sizeof(u32)) -
+							(priv_arr_idx * HL_PROT_BITS_REGS_NUM);
+
+					/* Note that the last 3 glbl_priv regs are the security
+					 * configs regs (0xE80-0x1000) and driver shouldn't allow
+					 * access to them as well.
+					 */
+					if (!(glbl_priv_arr[priv_arr_idx] & BIT(bit_num)) ||
+										priv_arr_idx > 28) {
+						buf[i] = 0x12345;
+						dev_dbg(hdev->dev,
+							"addr 0x%llx skipped, index: %u, priv bit: %u, priv_arr_idx: %u\n",
+								addr, i, bit_num, priv_arr_idx);
+						continue;
+					} else {
+						goto access_addr;
+					}
+				} else {
+access_addr:
+					rc = hl_access_cfg_region(hdev, addr, &val, DEBUGFS_READ32);
+					if (rc) {
+						dev_err(hdev->dev, "#2 hl_access_cfg_region failed addr 0x%llx\n",
+											addr);
+						return rc;
+					}
+					buf[i] = val;
+				}
 			}
 		}
 	} else { /* read from dram range */

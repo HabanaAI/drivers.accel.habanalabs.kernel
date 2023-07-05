@@ -170,5 +170,6 @@ struct iterate_special_ctx {
 int hl_iterate_special_blocks(struct hl_device *hdev, struct iterate_special_ctx *ctx);
 void hl_check_for_glbl_errors(struct hl_device *hdev);
 int hl_init_pb_security(struct hl_device *hdev, bool prot_lvl_priv);
+bool hl_fetch_glbl_priv_data(struct hl_device *hdev, u64 addr, u32 *glbl_priv_data);
 
 #endif /* SECURITY_H_ */
