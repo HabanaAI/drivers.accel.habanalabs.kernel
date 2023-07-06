@@ -14,6 +14,15 @@
 /* SPMU should also include overflow_idx and cycle_cnt_idx */
 #define SPMU_DATA_LEN				(SPMU_MAX_COUNTERS + 2)
 
+static struct hl_cn_stat gaudi3_cn_spmu_stats[] = {
+	{"spmu_req_out_of_range_psn", 5},
+	{"spmu_req_unset_psn", 6},
+	{"spmu_res_duplicate_psn", 10},
+	{"spmu_res_out_of_sequence_psn", 11}
+};
+
+static size_t gaudi3_cn_spmu_stats_len = ARRAY_SIZE(gaudi3_cn_spmu_stats);
+
 /* START OF AUTO_GENERATED_PART */
 
 #define COMPONENT_ID_INVALID ((u32)(-1))
@@ -38,15 +47,6 @@ struct component_config_offsets {
 	u32 bmon_count;
 	u32 bmon_ids[MAX_BMONS_PER_UNIT];
 };
-
-static struct hl_cn_stat gaudi3_cn_spmu_stats[] = {
-	{"spmu_req_out_of_range_psn", 5},
-	{"spmu_req_unset_psn", 6},
-	{"spmu_res_duplicate_psn", 10},
-	{"spmu_res_out_of_sequence_psn", 11}
-};
-
-static size_t gaudi3_cn_spmu_stats_len = ARRAY_SIZE(gaudi3_cn_spmu_stats);
 
 static u64 debug_funnel_regs[GAUDI3_FUNNEL_LAST + 1] = {
 	[GAUDI3_FUNNEL_HD0_TPC0_CS_DBG] = mmHD0_TPC0_CS_DBG_FUNNEL_BASE,
