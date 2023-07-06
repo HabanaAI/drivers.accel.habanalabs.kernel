@@ -1375,6 +1375,21 @@ static const char * const gaudi3_cs_sei_err_cause[] = {
 		"this is RTL bug",
 };
 
+static const char * const gaudi3_rotator_sei_cause[] = {
+	"qm_axi_err",
+	"qm_sw_err",
+	"qm_cp_sw_stop",
+	"reserved",
+	"lbw_msg_slverr",
+	"wbc_resp_intr",
+	"wch_ch0_slverr",
+	"wch_ch1_slverr",
+	"sb_resp_intr",
+	"grsb_slverr",
+	"mrsb_slverr",
+	"rsb_slverr"
+};
+
 static const char * const gaudi3_decoder_spi_intr_cause[] = {
 	"sw_irq_endcmd",
 	"sw_irq_buserr",
@@ -11981,6 +11996,11 @@ static void gaudi3_sei_razwi_handler(struct hl_device *hdev, struct hl_agg_eq_he
 					event_mask);
 		break;
 
+	case INT_COMP_TYPE_ROT:
+		gaudi3_razwi_handler(hdev, RAZWI_ROT, die, hdcore, initiator_idx, eng_id,
+					event_mask);
+		break;
+
 	default:
 		dev_err(hdev->dev, "Component type %u doesn't have razwi handler\n",
 			agg_component_type);
@@ -12484,6 +12504,25 @@ static u32 handle_tpc_sei_events(struct hl_device *hdev, u16 data_size,
 	return err_num;
 }
 
+static u32 gaudi3_handle_rotator_sei_err(struct hl_device *hdev, u16 data_size,
+						struct hl_eq_rot_sei_data *rot_sei_data)
+{
+	u32 err_msk, err_num;
+	int rc;
+
+	rc = gaudi3_validate_eqe_data_size(hdev, data_size, sizeof(*rot_sei_data));
+	if (rc)
+		return 0;
+
+	err_msk = lower_32_bits(le64_to_cpu(rot_sei_data->cause.intr_cause_data)) &
+			ROTATOR_MSS_SEI_CAUSE_MASK;
+	err_num = gaudi3_err_cause_iterator(hdev, err_msk, gaudi3_rotator_sei_cause, "ROT", "SEI");
+
+	err_num += gaudi3_handle_qm_sei_err(hdev, &rot_sei_data->qm_data, "ROT");
+
+	return err_num;
+}
+
 static u32 gaudi3_handle_pcie0_spi_err(struct hl_device *hdev, u16 data_size,
 					struct hl_eq_pcie_spi_data *pcie_spi_data)
 {
@@ -12828,6 +12867,10 @@ static u32 gaudi3_handle_sei_event(struct hl_device *hdev,
 	case INT_COMP_TYPE_MME:
 		err_cnt = gaudi3_handle_mme_sei_err(hdev, data_size,
 							&eq_dynamic_entry->mme_sei_data);
+		break;
+	case INT_COMP_TYPE_ROT:
+		err_cnt = gaudi3_handle_rotator_sei_err(hdev, data_size,
+							&eq_dynamic_entry->rot_sei_data);
 		break;
 	default:
 		break;

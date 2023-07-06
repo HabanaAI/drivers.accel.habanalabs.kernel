@@ -297,6 +297,9 @@ static void handle_and_clear_tpc_events(struct hl_device *hdev, u32 die, u32 hdc
 static void handle_and_clear_mme_events(struct hl_device *hdev, u32 die, u32 hdcore, u32 instance,
 					enum err_grp type, u32 sts, u32 sts_idx, u32 idx,
 					u32 aggr_mask_reg, u32 events_mask);
+static void handle_and_clear_rotator_events(struct hl_device *hdev, u32 die, u32 hdcore,
+					u32 instance, enum err_grp type, u32 sts, u32 sts_idx,
+					u32 idx, u32 aggr_mask_reg, u32 events_mask);
 static void handle_and_clear_stlb_events(struct hl_device *hdev, u32 die, u32 hdcore, u32 instance,
 					enum err_grp type, u32 sts, u32 sts_idx, u32 idx,
 					u32 aggr_mask_reg, u32 events_mask);
@@ -339,7 +342,7 @@ static const shared_aggr_handle_and_clear shared_handle_and_clear[] = {
 static const hdcore_aggr_handle_and_clear hdcore_handle_and_clear[] = {
 	handle_and_clear_tpc_events, /* HDCORE_TPC_EVENT */
 	handle_and_clear_mme_events, /* HDCORE_MME_EVENT */
-	NULL, /* HDCORE_ROT_EVENT */
+	handle_and_clear_rotator_events, /* HDCORE_ROT_EVENT */
 	handle_and_clear_cs_events, /* HDCORE_CS_EVENT */
 	handle_and_clear_stlb_events, /* HDCORE_STLB_EVENT */
 	handle_and_clear_hbm_events, /* HDCORE_HBM_EVENT */
@@ -3962,6 +3965,81 @@ static void handle_and_clear_mme_events(struct hl_device *hdev, u32 die, u32 hdc
 	params.die = die;
 	params.hdcore = hdcore;
 	params.instance = 0;
+	prepare_eq_dynamic_entry_agg_header(&eq_dynamic_entry, &params);
+
+	rc = gaudi3_handle_eqe(hdev, &eq_dynamic_entry);
+	if (rc)
+		return;
+
+	if (unmask_event_in_aggr)
+		WREG32_AND(aggr_mask_reg, events_mask);
+}
+
+static u32 rotator_special_regs_base[] = {
+	mmHD1_ROT0_BASE
+};
+
+/* HDCORE_ROT_EVENT */
+static void handle_and_clear_rotator_events(struct hl_device *hdev, u32 die, u32 hdcore,
+					u32 instance, enum err_grp type, u32 sts, u32 sts_idx,
+					u32 idx, u32 aggr_mask_reg, u32 events_mask)
+{
+	struct hl_eq_dynamic_entry eq_dynamic_entry = {};
+	struct hl_eq_rot_sei_data *rot_sei_data;
+	struct eq_agg_header_params params = {};
+	bool unmask_event_in_aggr = false;
+	u32 offset, cause;
+	int rc;
+
+	/* There are rotator blocks only in HD 1/3/4/6 */
+	if ((die == 0 && (hdcore == 0 || hdcore == 2)) ||
+			(die == 1 && (hdcore == 1 || hdcore == 3)))  {
+		dev_err(hdev->dev, "No rotator interrupts are expected for DIE%u_HD%u!\n",
+			die, hdcore);
+		return;
+	}
+
+	/* Subtract 1 from hdcore because the offset is relative to the first rotator in HD1 */
+	offset = (die * NUM_OF_HDCORES_PER_DIE + hdcore - 1) * HDCORE_OFFSET;
+
+	switch (type) {
+	case ERR_GRP_DERR:
+		handle_and_clear_derr_events(hdev, rotator_special_regs_base,
+						ARRAY_SIZE(rotator_special_regs_base), offset,
+						&eq_dynamic_entry.ecc_data);
+		eq_dynamic_entry.hdr.size = cpu_to_le16(sizeof(struct hl_eq_ecc_data));
+		unmask_event_in_aggr = true;
+		break;
+
+	case ERR_GRP_SEI:
+		eq_dynamic_entry.hdr.size = cpu_to_le16(sizeof(struct hl_eq_rot_sei_data));
+		rot_sei_data = &eq_dynamic_entry.rot_sei_data;
+		cause = RREG32(mmHD1_ROT0_BASE + offset + mmROTATOR_MSS_SEI_CAUSE) &
+				ROTATOR_MSS_SEI_CAUSE_MASK;
+		rot_sei_data->cause.intr_cause_data = cpu_to_le64(cause);
+
+		/* Clear interrupt (W1C) */
+		WREG32(mmHD1_ROT0_BASE + offset + mmROTATOR_MSS_SEI_CLEAR, cause);
+
+		handle_and_clear_qman_interrupts(hdev, mmHD1_ROT0_QM_BASE + offset,
+							mmHD1_ROT0_QM_ARC_AUX_BASE + offset,
+							&rot_sei_data->qm_data);
+
+		unmask_event_in_aggr = true;
+		break;
+
+	case ERR_GRP_SPI_ECO:
+		break;
+
+	default:
+		return;
+	}
+
+	params.component_type = INT_COMP_TYPE_ROT;
+	params.grp_type = type;
+	params.die = die;
+	params.hdcore = hdcore;
+	params.instance = instance;
 	prepare_eq_dynamic_entry_agg_header(&eq_dynamic_entry, &params);
 
 	rc = gaudi3_handle_eqe(hdev, &eq_dynamic_entry);
