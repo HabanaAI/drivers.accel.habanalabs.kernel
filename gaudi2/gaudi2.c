@@ -10346,7 +10346,6 @@ void gaudi2_handle_eqe(struct hl_device *hdev, struct hl_eq_entry *eq_entry)
 	struct gaudi2_device *gaudi2 = hdev->asic_specific;
 	bool reset_required = false, is_critical = false;
 	u32 index, ctl, reset_flags = 0, error_count = 0;
-	bool reset_bypass = false;
 	u64 event_mask = 0;
 	u16 event_type;
 
@@ -10366,20 +10365,11 @@ void gaudi2_handle_eqe(struct hl_device *hdev, struct hl_eq_entry *eq_entry)
 	case GAUDI2_EVENT_PCIE_CORE_SERR ... GAUDI2_EVENT_ARC0_ECC_DERR:
 		fallthrough;
 	case GAUDI2_EVENT_ROTATOR0_SERR ... GAUDI2_EVENT_ROTATOR1_DERR:
-		/* TODO: SW-150554 remove once false TPC DERR report is resolved */
-		if (!hl_is_fw_sw_ver_below(hdev, 1, 11) &&
-				(event_type >= GAUDI2_EVENT_TPC0_ECC_DERR &&
-				event_type <= GAUDI2_EVENT_TPC24_ECC_DERR)) {
-			reset_bypass = true;
-		} else {
-			reset_flags |= HL_DRV_RESET_FW_FATAL_ERR;
-			event_mask |= HL_NOTIFIER_EVENT_GENERAL_HW_ERR;
-			reset_required = gaudi2_handle_ecc_event(hdev, event_type,
-								&eq_entry->ecc_data);
-			is_critical = eq_entry->ecc_data.is_critical;
-			error_count++;
-		}
-
+		reset_flags |= HL_DRV_RESET_FW_FATAL_ERR;
+		event_mask |= HL_NOTIFIER_EVENT_GENERAL_HW_ERR;
+		reset_required = gaudi2_handle_ecc_event(hdev, event_type, &eq_entry->ecc_data);
+		is_critical = eq_entry->ecc_data.is_critical;
+		error_count++;
 		break;
 
 	case GAUDI2_EVENT_TPC0_QM ... GAUDI2_EVENT_PDMA1_QM:
@@ -10830,9 +10820,6 @@ void gaudi2_handle_eqe(struct hl_device *hdev, struct hl_eq_entry *eq_entry)
 		}
 	}
 
-	if (reset_bypass)
-		goto unmask_irq;
-
 	if (event_mask & HL_NOTIFIER_EVENT_USER_ENGINE_ERR)
 		hl_capture_engine_err(hdev, event_id_to_engine_id(hdev, event_type), error_count);
 
@@ -10859,7 +10846,6 @@ void gaudi2_handle_eqe(struct hl_device *hdev, struct hl_eq_entry *eq_entry)
 			hdev->asic_funcs->halt_engines(hdev, false, false);
 	}
 
-unmask_irq:
 	/* Send unmask irq only for interrupts not classified as MSG */
 	if (!gaudi2_irq_map_table[event_type].msg)
 		hl_fw_unmask_irq(hdev, event_type);
