@@ -12319,7 +12319,8 @@ static u32 gaudi3_handle_qm_sei_err(struct hl_device *hdev, struct hl_eq_qm_sei_
 	char buf[32];
 
 	snprintf(buf, sizeof(buf), "%s_QM", engine);
-	err_msk = lower_32_bits(le64_to_cpu(qm_sei_data->qm_cause.intr_cause_data));
+	err_msk = lower_32_bits(le64_to_cpu(qm_sei_data->qm_cause.intr_cause_data)) &
+			QMAN_GLBL_ERR_STS_MASK;
 	err_num = gaudi3_err_cause_iterator(hdev, err_msk, gaudi3_qm_err_cause, buf, "SEI");
 
 	snprintf(buf, sizeof(buf), "%s_QM_ARC_AUX", engine);
@@ -12346,8 +12347,8 @@ static u32 gaudi3_handle_edma_sei_err(struct hl_device *hdev, u16 data_size,
 		for (channel = 0 ; channel < NUM_OF_EDMA_CHANNELS ; ++channel) {
 			chn_data_idx = instance * NUM_OF_EDMA_PER_HDCORE + channel;
 			edma_chn_data = &edma_sei_data->chn_data[chn_data_idx];
-			err_mask = le32_to_cpu(edma_chn_data->err_sts);
-			err_mask &= ~EDMA_CHN_ERR_STATUS_VALID_M;
+			err_mask = le32_to_cpu(edma_chn_data->err_sts) &
+					EDMA_CHN_ERR_STATUS_ENG_MASK;
 			snprintf(buf, sizeof(buf), "EDMA%u_CH%u", instance, channel);
 			err_num_tmp = gaudi3_err_cause_iterator(hdev, err_mask,
 								gaudi3_edma_err_cause, buf, "SEI");

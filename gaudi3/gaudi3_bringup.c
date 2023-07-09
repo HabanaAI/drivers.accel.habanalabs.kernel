@@ -3763,7 +3763,7 @@ static void handle_and_clear_qman_interrupts(struct hl_device *hdev, u32 qm_reg_
 	sei_status = RREG32(qm_reg_base + mmQMAN_SEI_STATUS);
 
 	if (sei_status & QMAN_SEI_STATUS_QM_INT_M) {
-		glbl_err_sts = RREG32(qm_reg_base + mmQMAN_GLBL_ERR_STS);
+		glbl_err_sts = RREG32(qm_reg_base + mmQMAN_GLBL_ERR_STS) & QMAN_GLBL_ERR_STS_MASK;
 		qm_sei_data->qm_cause.intr_cause_data = cpu_to_le64(glbl_err_sts);
 	}
 
@@ -4544,7 +4544,8 @@ static void handle_and_clear_edma_events(struct hl_device *hdev, u32 die, u32 hd
 				channel_offset = channel * EDMA_CHANNEL_OFFSET;
 				chn_reg_base = mmHD1_SEDMA0_CH0_BASE + edma_offset + channel_offset;
 				edma_chn_data->err_sts =
-					cpu_to_le32(RREG32(chn_reg_base + mmEDMA_CHN_ERR_STATUS));
+					cpu_to_le32(RREG32(chn_reg_base + mmEDMA_CHN_ERR_STATUS) &
+							EDMA_CHN_ERR_STATUS_ENG_MASK);
 				edma_chn_data->ctx_id =
 					cpu_to_le16(RREG32(chn_reg_base + mmEDMA_CHN_ERR_CTX_ID));
 
