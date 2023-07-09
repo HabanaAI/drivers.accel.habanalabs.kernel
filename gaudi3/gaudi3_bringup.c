@@ -483,6 +483,128 @@ static const u32 gaudi3_sched_arc_af_blocks_bases[CPU_ID_SCHED_MAX] = {
 	[CPU_ID_SCHED_ARC15] = mmHD7_ARC_FARM_ARC1_AF_BASE
 };
 
+enum gaudi3_rotator_err_id {
+	RSB_RR_ERROR,
+	RSB_NUM_ERROR,
+	RSB_SLV_ERROR,
+	MRSB_RR_ERROR,
+	MRSB_NUM_ERROR,
+	MRSB_SLV_ERROR,
+	GRSB_RR_ERROR,
+	GRSB_NUM_ERROR,
+	GRSB_SLV_ERROR,
+	WCH_CH0_RR_ERROR,
+	WCH_CH0_PINF_ERROR,
+	WCH_CH0_NINF_ERROR,
+	WCH_CH0_NAN_ERROR,
+	WCH_CH0_SLV_ERROR,
+	WCH_CH1_RR_ERROR,
+	WCH_CH1_PINF_ERROR,
+	WCH_CH1_NINF_ERROR,
+	WCH_CH1_NAN_ERROR,
+	WCH_CH1_SLV_ERROR,
+	RINTERP_PINF_ERROR,
+	RINTERP_NINF_ERROR,
+	RINTERP_NAN_ERROR,
+	MINTERP_PINF_ERROR,
+	MINTERP_NINF_ERROR,
+	MINTERP_NAN_ERROR,
+	COORD_PINF_ERROR,
+	COORD_NINF_ERROR,
+	COORD_NAN_ERROR
+};
+
+static struct rotator_err_ctx_id_reg {
+	u32 offset;
+	u32 shift;
+	u32 mask;
+} gaudi3_rotator_err_ctx_id_regs[] = {
+	[RSB_RR_ERROR] = {mmROTATOR_RSB_ERR_CONTEXT_ID,
+				ROTATOR_RSB_ERR_CONTEXT_ID_RSB_S,
+				ROTATOR_RSB_ERR_CONTEXT_ID_RSB_M},
+	[RSB_NUM_ERROR] = {mmROTATOR_RSB_ERR_CONTEXT_ID,
+				ROTATOR_RSB_ERR_CONTEXT_ID_RSB_S,
+				ROTATOR_RSB_ERR_CONTEXT_ID_RSB_M},
+	[RSB_SLV_ERROR] = {mmROTATOR_RSB_ERR_CONTEXT_ID,
+				ROTATOR_RSB_ERR_CONTEXT_ID_RSB_S,
+				ROTATOR_RSB_ERR_CONTEXT_ID_RSB_M},
+	[MRSB_RR_ERROR] = {mmROTATOR_GRSB_MRSB_ERR_CONTEXT_ID,
+				ROTATOR_GRSB_MRSB_ERR_CONTEXT_ID_MRSB_S,
+				ROTATOR_GRSB_MRSB_ERR_CONTEXT_ID_MRSB_M},
+	[MRSB_NUM_ERROR] = {mmROTATOR_GRSB_MRSB_ERR_CONTEXT_ID,
+				ROTATOR_GRSB_MRSB_ERR_CONTEXT_ID_MRSB_S,
+				ROTATOR_GRSB_MRSB_ERR_CONTEXT_ID_MRSB_M},
+	[MRSB_SLV_ERROR] = {mmROTATOR_GRSB_MRSB_ERR_CONTEXT_ID,
+				ROTATOR_GRSB_MRSB_ERR_CONTEXT_ID_MRSB_S,
+				ROTATOR_GRSB_MRSB_ERR_CONTEXT_ID_MRSB_M},
+	[GRSB_RR_ERROR] = {mmROTATOR_GRSB_MRSB_ERR_CONTEXT_ID,
+				ROTATOR_GRSB_MRSB_ERR_CONTEXT_ID_GRSB_S,
+				ROTATOR_GRSB_MRSB_ERR_CONTEXT_ID_GRSB_M},
+	[GRSB_NUM_ERROR] = {mmROTATOR_GRSB_MRSB_ERR_CONTEXT_ID,
+				ROTATOR_GRSB_MRSB_ERR_CONTEXT_ID_GRSB_S,
+				ROTATOR_GRSB_MRSB_ERR_CONTEXT_ID_GRSB_M},
+	[GRSB_SLV_ERROR] = {mmROTATOR_GRSB_MRSB_ERR_CONTEXT_ID,
+				ROTATOR_GRSB_MRSB_ERR_CONTEXT_ID_GRSB_S,
+				ROTATOR_GRSB_MRSB_ERR_CONTEXT_ID_GRSB_M},
+	[WCH_CH0_RR_ERROR] = {mmROTATOR_WCH_ERR_CONTEXT_ID,
+				ROTATOR_WCH_ERR_CONTEXT_ID_CHANNEL0_S,
+				ROTATOR_WCH_ERR_CONTEXT_ID_CHANNEL0_M},
+	[WCH_CH0_PINF_ERROR] = {mmROTATOR_WCH_ERR_CONTEXT_ID,
+				ROTATOR_WCH_ERR_CONTEXT_ID_CHANNEL0_S,
+				ROTATOR_WCH_ERR_CONTEXT_ID_CHANNEL0_M},
+	[WCH_CH0_NINF_ERROR] = {mmROTATOR_WCH_ERR_CONTEXT_ID,
+				ROTATOR_WCH_ERR_CONTEXT_ID_CHANNEL0_S,
+				ROTATOR_WCH_ERR_CONTEXT_ID_CHANNEL0_M},
+	[WCH_CH0_NAN_ERROR] = {mmROTATOR_WCH_ERR_CONTEXT_ID,
+				ROTATOR_WCH_ERR_CONTEXT_ID_CHANNEL0_S,
+				ROTATOR_WCH_ERR_CONTEXT_ID_CHANNEL0_M},
+	[WCH_CH0_SLV_ERROR] = {mmROTATOR_WCH_ERR_CONTEXT_ID,
+				ROTATOR_WCH_ERR_CONTEXT_ID_CHANNEL0_S,
+				ROTATOR_WCH_ERR_CONTEXT_ID_CHANNEL0_M},
+	[WCH_CH1_RR_ERROR] = {mmROTATOR_WCH_ERR_CONTEXT_ID,
+				ROTATOR_WCH_ERR_CONTEXT_ID_CHANNEL1_S,
+				ROTATOR_WCH_ERR_CONTEXT_ID_CHANNEL1_M},
+	[WCH_CH1_PINF_ERROR] = {mmROTATOR_WCH_ERR_CONTEXT_ID,
+				ROTATOR_WCH_ERR_CONTEXT_ID_CHANNEL1_S,
+				ROTATOR_WCH_ERR_CONTEXT_ID_CHANNEL1_M},
+	[WCH_CH1_NINF_ERROR] = {mmROTATOR_WCH_ERR_CONTEXT_ID,
+				ROTATOR_WCH_ERR_CONTEXT_ID_CHANNEL1_S,
+				ROTATOR_WCH_ERR_CONTEXT_ID_CHANNEL1_M},
+	[WCH_CH1_NAN_ERROR] = {mmROTATOR_WCH_ERR_CONTEXT_ID,
+				ROTATOR_WCH_ERR_CONTEXT_ID_CHANNEL1_S,
+				ROTATOR_WCH_ERR_CONTEXT_ID_CHANNEL1_M},
+	[WCH_CH1_SLV_ERROR] = {mmROTATOR_WCH_ERR_CONTEXT_ID,
+				ROTATOR_WCH_ERR_CONTEXT_ID_CHANNEL1_S,
+				ROTATOR_WCH_ERR_CONTEXT_ID_CHANNEL1_M},
+	[RINTERP_PINF_ERROR] = {mmROTATOR_RINTERP_MINTERP_NUM_ERR_CONTEXT_ID,
+				ROTATOR_RINTERP_MINTERP_NUM_ERR_CONTEXT_ID_RINTERP_S,
+				ROTATOR_RINTERP_MINTERP_NUM_ERR_CONTEXT_ID_RINTERP_M},
+	[RINTERP_NINF_ERROR] = {mmROTATOR_RINTERP_MINTERP_NUM_ERR_CONTEXT_ID,
+				ROTATOR_RINTERP_MINTERP_NUM_ERR_CONTEXT_ID_RINTERP_S,
+				ROTATOR_RINTERP_MINTERP_NUM_ERR_CONTEXT_ID_RINTERP_M},
+	[RINTERP_NAN_ERROR] = {mmROTATOR_RINTERP_MINTERP_NUM_ERR_CONTEXT_ID,
+				ROTATOR_RINTERP_MINTERP_NUM_ERR_CONTEXT_ID_RINTERP_S,
+				ROTATOR_RINTERP_MINTERP_NUM_ERR_CONTEXT_ID_RINTERP_M},
+	[MINTERP_PINF_ERROR] = {mmROTATOR_RINTERP_MINTERP_NUM_ERR_CONTEXT_ID,
+				ROTATOR_RINTERP_MINTERP_NUM_ERR_CONTEXT_ID_MINTERP_S,
+				ROTATOR_RINTERP_MINTERP_NUM_ERR_CONTEXT_ID_MINTERP_M},
+	[MINTERP_NINF_ERROR] = {mmROTATOR_RINTERP_MINTERP_NUM_ERR_CONTEXT_ID,
+				ROTATOR_RINTERP_MINTERP_NUM_ERR_CONTEXT_ID_MINTERP_S,
+				ROTATOR_RINTERP_MINTERP_NUM_ERR_CONTEXT_ID_MINTERP_M},
+	[MINTERP_NAN_ERROR] = {mmROTATOR_RINTERP_MINTERP_NUM_ERR_CONTEXT_ID,
+				ROTATOR_RINTERP_MINTERP_NUM_ERR_CONTEXT_ID_MINTERP_S,
+				ROTATOR_RINTERP_MINTERP_NUM_ERR_CONTEXT_ID_MINTERP_M},
+	[COORD_PINF_ERROR] = {mmROTATOR_COORD_NUM_ERR_CONTEXT_ID,
+				ROTATOR_COORD_NUM_ERR_CONTEXT_ID_COORD_S,
+				ROTATOR_COORD_NUM_ERR_CONTEXT_ID_COORD_M},
+	[COORD_NINF_ERROR] = {mmROTATOR_COORD_NUM_ERR_CONTEXT_ID,
+				ROTATOR_COORD_NUM_ERR_CONTEXT_ID_COORD_S,
+				ROTATOR_COORD_NUM_ERR_CONTEXT_ID_COORD_M},
+	[COORD_NAN_ERROR] = {mmROTATOR_COORD_NUM_ERR_CONTEXT_ID,
+				ROTATOR_COORD_NUM_ERR_CONTEXT_ID_COORD_S,
+				ROTATOR_COORD_NUM_ERR_CONTEXT_ID_COORD_M}
+};
+
 /**
  * gaudi3_get_spi_gw_addr - convert address to SPI GW address
  *
@@ -3979,6 +4101,38 @@ static u32 rotator_special_regs_base[] = {
 	mmHD1_ROT0_BASE
 };
 
+static void __get_rotator_err_ctx_id(struct hl_device *hdev, u32 rotator_offset,
+					struct hl_eq_rot_spi_data *rot_spi_data,
+					enum gaudi3_rotator_err_id err_id)
+{
+	u32 reg_offset, reg_val, shift, mask, ctx_id;
+
+	WREG32(mmHD1_ROT0_BASE + rotator_offset + mmROTATOR_DBG_CONTEXT_ID_CONTROL, err_id);
+
+	reg_offset = gaudi3_rotator_err_ctx_id_regs[err_id].offset;
+	reg_val = RREG32(mmHD1_ROT0_BASE + rotator_offset + reg_offset);
+
+	shift = gaudi3_rotator_err_ctx_id_regs[err_id].shift;
+	mask = gaudi3_rotator_err_ctx_id_regs[err_id].mask;
+	ctx_id = (reg_val & mask) >> shift;
+	rot_spi_data->data.ctx_id[err_id] = cpu_to_le16(ctx_id);
+}
+
+static void get_rotator_err_ctx_id(struct hl_device *hdev, u32 rotator_offset,
+					struct hl_eq_rot_spi_data *rot_spi_data,
+					u32 err_status, u32 err_id_offset)
+{
+	u32 idx = 0;
+
+	while (err_status) {
+		if (err_status & 0x1)
+			__get_rotator_err_ctx_id(hdev, rotator_offset, rot_spi_data,
+							idx + err_id_offset);
+		++idx;
+		err_status >>= 1;
+	}
+}
+
 /* HDCORE_ROT_EVENT */
 static void handle_and_clear_rotator_events(struct hl_device *hdev, u32 die, u32 hdcore,
 					u32 instance, enum err_grp type, u32 sts, u32 sts_idx,
@@ -3986,9 +4140,10 @@ static void handle_and_clear_rotator_events(struct hl_device *hdev, u32 die, u32
 {
 	struct hl_eq_dynamic_entry eq_dynamic_entry = {};
 	struct hl_eq_rot_sei_data *rot_sei_data;
+	struct hl_eq_rot_spi_data *rot_spi_data;
 	struct eq_agg_header_params params = {};
 	bool unmask_event_in_aggr = false;
-	u32 offset, cause;
+	u32 offset, cause, err_status;
 	int rc;
 
 	/* There are rotator blocks only in HD 1/3/4/6 */
@@ -4029,6 +4184,49 @@ static void handle_and_clear_rotator_events(struct hl_device *hdev, u32 die, u32
 		break;
 
 	case ERR_GRP_SPI_ECO:
+		eq_dynamic_entry.hdr.size = cpu_to_le16(sizeof(struct hl_eq_rot_spi_data));
+		rot_spi_data = &eq_dynamic_entry.rot_spi_data;
+		cause = RREG32(mmHD1_ROT0_BASE + offset + mmROTATOR_MSS_SPI_CAUSE) &
+				ROTATOR_MSS_SPI_CAUSE_MASK;
+		rot_spi_data->data.intr_cause.intr_cause_data = cpu_to_le64(cause);
+
+		if (cause & ROTATOR_MSS_SPI_CAUSE_IP_NUM_MASK) {
+			err_status =
+				RREG32(mmHD1_ROT0_BASE + offset + mmROTATOR_IP_NUM_ERR_STATUS) &
+				ROTATOR_IP_NUM_ERR_STATUS_MASK;
+			rot_spi_data->data.ip_num_cause = cpu_to_le32(err_status);
+			get_rotator_err_ctx_id(hdev, offset, rot_spi_data, err_status,
+						RINTERP_PINF_ERROR);
+
+			/* Clear interrupt (W1C) */
+			WREG32(mmHD1_ROT0_BASE + offset + mmROTATOR_IP_NUM_ERR_STATUS, err_status);
+		}
+
+		if (cause & ROTATOR_MSS_SPI_CAUSE_RSB_MASK) {
+			err_status = RREG32(mmHD1_ROT0_BASE + offset + mmROTATOR_RSB_ERR_STATUS) &
+					ROTATOR_RSB_ERR_STATUS_MASK;
+			rot_spi_data->data.rsb_err_cause = cpu_to_le32(err_status);
+			get_rotator_err_ctx_id(hdev, offset, rot_spi_data, err_status,
+						RSB_RR_ERROR);
+
+			/* Clear interrupt (W1C) */
+			WREG32(mmHD1_ROT0_BASE + offset + mmROTATOR_RSB_ERR_STATUS, err_status);
+		}
+
+		if (cause & ROTATOR_MSS_SPI_CAUSE_WCH_MASK) {
+			err_status = RREG32(mmHD1_ROT0_BASE + offset + mmROTATOR_WCH_ERR_STATUS) &
+					ROTATOR_WCH_ERR_STATUS_MASK;
+			rot_spi_data->data.wch_err_cause = cpu_to_le32(err_status);
+			get_rotator_err_ctx_id(hdev, offset, rot_spi_data, err_status,
+						WCH_CH0_RR_ERROR);
+
+			/* Clear interrupt (W1C) */
+			WREG32(mmHD1_ROT0_BASE + offset + mmROTATOR_WCH_ERR_STATUS, err_status);
+		}
+
+		/* Clear interrupt (W1C) */
+		WREG32(mmHD1_ROT0_BASE + offset + mmROTATOR_MSS_SPI_CLEAR, cause);
+		unmask_event_in_aggr = true;
 		break;
 
 	default:

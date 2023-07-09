@@ -153,6 +153,10 @@ MODULE_FIRMWARE(GAUDI3_BOOT_FIT_FILE);
 
 #define GAUDI3_EQ_SIZE_IN_BYTES	(HL_EQ_LENGTH * HL_EQ_DYNAMIC_ENTRY_SIZE)
 
+#define GAUDI3_ROTATOR_SPI_RSB_ERR_ID_OFFSET		0
+#define GAUDI3_ROTATOR_SPI_WCH_ERR_ID_OFFSET		9
+#define GAUDI3_ROTATOR_SPI_IP_NUM_ERR_ID_OFFSET		19
+
 #define HL_STR(e) #e
 
 const char *gaudi3_engine_id_str[] = {
@@ -1388,6 +1392,55 @@ static const char * const gaudi3_rotator_sei_cause[] = {
 	"grsb_slverr",
 	"mrsb_slverr",
 	"rsb_slverr"
+};
+
+static const char * const gaudi3_rotator_spi_cause[] = {
+	"cs_dbg_block_intr",
+	"roth_coord_num_spi_r",
+	"roth_minterp_num_spi_r",
+	"roth_rinterp_num_spi_r",
+	"roth_grsb_num_rr_spi_r",
+	"roth_mrsb_num_rr_spi_r",
+	"roth_rsb_num_rr_spi_r",
+	"roth_wch_ch0_num_rr_spi_r",
+	"roth_wch_ch1_num_rr_spi_r"
+};
+
+static const char * const gaudi3_rotator_rsb_err_sts[] = {
+	"rsb_rr_error",
+	"rsb_num_error",
+	"rsb_slv_error",
+	"mrsb_rr_error",
+	"mrsb_num_error",
+	"mrsb_slv_error",
+	"grsb_rr_error",
+	"grsb_num_error",
+	"grsb_slv_error"
+};
+
+static const char * const gaudi3_rotator_wch_err_sts[] = {
+	"wch_ch0_rr_error",
+	"wch_ch0_pinf_error",
+	"wch_ch0_ninf_error",
+	"wch_ch0_nan_error",
+	"wch_ch0_slv_error",
+	"wch_ch1_rr_error",
+	"wch_ch1_pinf_error",
+	"wch_ch1_ninf_error",
+	"wch_ch1_nan_error",
+	"wch_ch1_slv_error"
+};
+
+static const char * const gaudi3_rotator_ip_numerical_err_sts[] = {
+	"rinterp_pinf_error",
+	"rinterp_ninf_error",
+	"rinterp_nan_error",
+	"minterp_pinf_error",
+	"minterp_ninf_error",
+	"minterp_nan_error",
+	"coord_pinf_error",
+	"coord_ninf_error",
+	"coord_nan_error"
 };
 
 static const char * const gaudi3_decoder_spi_intr_cause[] = {
@@ -12523,6 +12576,67 @@ static u32 gaudi3_handle_rotator_sei_err(struct hl_device *hdev, u16 data_size,
 	return err_num;
 }
 
+static void gaudi3_rotator_spi_err_sts_iterator(struct hl_device *hdev,
+						struct hl_eq_rot_spi_data *rot_spi_data,
+						u32 err_status, u32 err_id_offset,
+						const char * const *err_tbl)
+{
+	u32 idx = 0, err_id;
+
+	while (err_status) {
+		if (err_status & 0x1) {
+			err_id = idx + err_id_offset;
+			dev_err_ratelimited(hdev->dev, "ROT %s. ctx_id %u\n",
+						err_tbl[idx],
+						le16_to_cpu(rot_spi_data->data.ctx_id[err_id]));
+		}
+
+		++idx;
+		err_status >>= 1;
+	}
+}
+
+static u32 gaudi3_handle_rotator_spi_err(struct hl_device *hdev, u16 data_size,
+						struct hl_eq_rot_spi_data *rot_spi_data)
+{
+	u32 err_msk, err_num, err_status;
+	int rc;
+
+	rc = gaudi3_validate_eqe_data_size(hdev, data_size, sizeof(*rot_spi_data));
+	if (rc)
+		return 0;
+
+	err_msk = lower_32_bits(le64_to_cpu(rot_spi_data->data.intr_cause.intr_cause_data)) &
+			ROTATOR_MSS_SPI_CAUSE_MASK;
+	err_num = gaudi3_err_cause_iterator(hdev, err_msk, gaudi3_rotator_spi_cause, "ROT", "SPI");
+
+	if (err_msk & ROTATOR_MSS_SPI_CAUSE_IP_NUM_MASK) {
+		err_status = le32_to_cpu(rot_spi_data->data.ip_num_cause) &
+				ROTATOR_IP_NUM_ERR_STATUS_MASK;
+		gaudi3_rotator_spi_err_sts_iterator(hdev, rot_spi_data, err_status,
+							GAUDI3_ROTATOR_SPI_IP_NUM_ERR_ID_OFFSET,
+							gaudi3_rotator_ip_numerical_err_sts);
+	}
+
+	if (err_msk & ROTATOR_MSS_SPI_CAUSE_RSB_MASK) {
+		err_status = le32_to_cpu(rot_spi_data->data.rsb_err_cause) &
+				ROTATOR_RSB_ERR_STATUS_MASK;
+		gaudi3_rotator_spi_err_sts_iterator(hdev, rot_spi_data, err_status,
+							GAUDI3_ROTATOR_SPI_RSB_ERR_ID_OFFSET,
+							gaudi3_rotator_rsb_err_sts);
+	}
+
+	if (err_msk & ROTATOR_MSS_SPI_CAUSE_WCH_MASK) {
+		err_status = le32_to_cpu(rot_spi_data->data.wch_err_cause) &
+				ROTATOR_WCH_ERR_STATUS_MASK;
+		gaudi3_rotator_spi_err_sts_iterator(hdev, rot_spi_data, err_status,
+							GAUDI3_ROTATOR_SPI_WCH_ERR_ID_OFFSET,
+							gaudi3_rotator_wch_err_sts);
+	}
+
+	return err_num;
+}
+
 static u32 gaudi3_handle_pcie0_spi_err(struct hl_device *hdev, u16 data_size,
 					struct hl_eq_pcie_spi_data *pcie_spi_data)
 {
@@ -12920,6 +13034,10 @@ static u32 gaudi3_handle_spi_event(struct hl_device *hdev,
 	case INT_COMP_TYPE_MME:
 		err_cnt = gaudi3_handle_mme_spi_events(hdev, data_size,
 							&eq_dynamic_entry->mme_spi_data);
+		break;
+	case INT_COMP_TYPE_ROT:
+		err_cnt = gaudi3_handle_rotator_spi_err(hdev, data_size,
+							&eq_dynamic_entry->rot_spi_data);
 		break;
 	default:
 		break;
