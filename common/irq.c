@@ -475,33 +475,6 @@ skip_irq:
 }
 
 /**
- * hl_irq_handler_cs_cmplt - irq handler for CS completions
- *
- * @irq: IRQ number
- * @arg: hl_device and cs sequence.
- */
-irqreturn_t hl_irq_handler_cs_cmplt(int irq, void *arg)
-{
-	struct hl_cs_irq_info *cs_irq_info = arg;
-	struct hl_device *hdev = cs_irq_info->hdev;
-	ktime_t timestamp = ktime_get();
-
-	int relative_idx = cs_irq_info->relative_idx;
-
-	if (hdev->disabled) {
-		dev_dbg(hdev->dev,
-			"Device disabled but received IRQ %d for CS completion\n",
-			irq);
-		goto out;
-	}
-
-	cs_finish(hdev, relative_idx, timestamp);
-
-out:
-	return IRQ_HANDLED;
-}
-
-/**
  * hl_irq_handler_dec_abnrm - Decoder error interrupt handler
  * @irq: IRQ number
  * @arg: pointer to decoder structure.
