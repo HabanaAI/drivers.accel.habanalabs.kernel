@@ -1507,20 +1507,6 @@ static void gaudi3_sim_dma_pool_free(struct hl_device *hdev, void *vaddr,
 	gaudi3_sim_dma_free_coherent(hdev, PAGE_SIZE, vaddr, dma_addr);
 }
 
-static dma_addr_t gaudi3_sim_dma_map_single(struct hl_device *hdev, void *addr,
-			int len, enum dma_data_direction dir)
-{
-	dma_addr_t pa;
-
-	pa = virt_to_phys(addr);
-	return pa;
-}
-
-static void gaudi3_sim_dma_unmap_single(struct hl_device *hdev, dma_addr_t addr,
-			int len, enum dma_data_direction dir)
-{
-}
-
 static dma_addr_t gaudi3_sim_dma_map_page(struct hl_device *hdev, struct page *page,
 			int offset, int len, enum dma_data_direction dir)
 {
@@ -1713,8 +1699,6 @@ static const struct hl_asic_funcs gaudi3_sim_funcs = {
 	.asic_dma_pool_free = gaudi3_sim_dma_pool_free,
 	.cpu_accessible_dma_pool_alloc = gaudi3_cpu_accessible_dma_pool_alloc,
 	.cpu_accessible_dma_pool_free = gaudi3_cpu_accessible_dma_pool_free,
-	.asic_dma_map_single = gaudi3_sim_dma_map_single,
-	.asic_dma_unmap_single = gaudi3_sim_dma_unmap_single,
 	.asic_dma_unmap_page = gaudi3_sim_dma_unmap_page,
 	.asic_dma_map_page = gaudi3_sim_dma_map_page,
 	.hl_dma_unmap_sgtable = hl_sim_dma_unmap_sgtable,

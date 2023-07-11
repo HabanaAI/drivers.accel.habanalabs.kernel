@@ -173,22 +173,6 @@ static void hl_cn_device_reset(struct hl_aux_dev *aux_dev)
 	hl_device_reset(hdev, HL_DRV_RESET_HARD);
 }
 
-static dma_addr_t hl_cn_asic_dma_map_single(struct hl_aux_dev *aux_dev, void *addr, int len)
-{
-	struct hl_cn *cn = container_of(aux_dev, struct hl_cn, cn_aux_dev);
-	struct hl_device *hdev = container_of(cn, struct hl_device, cn);
-
-	return hdev->asic_funcs->asic_dma_map_single(hdev, addr, len, DMA_TO_DEVICE);
-}
-
-static void hl_cn_asic_dma_unmap_single(struct hl_aux_dev *aux_dev, dma_addr_t dma_addr, int len)
-{
-	struct hl_cn *cn = container_of(aux_dev, struct hl_cn, cn_aux_dev);
-	struct hl_device *hdev = container_of(cn, struct hl_device, cn);
-
-	hdev->asic_funcs->asic_dma_unmap_single(hdev, dma_addr, len, DMA_TO_DEVICE);
-}
-
 static void *hl_cn_dma_alloc_coherent(struct hl_aux_dev *aux_dev, size_t size,
 					dma_addr_t *dma_handle, gfp_t flag)
 {
@@ -646,8 +630,6 @@ static int hl_cn_aux_data_init(struct hl_device *hdev)
 	aux_ops->spmu_sample = hl_cn_spmu_sample;
 	aux_ops->send_cpucp_status = hl_cn_send_cpucp_status;
 	aux_ops->device_reset = hl_cn_device_reset;
-	aux_ops->asic_dma_map_single = hl_cn_asic_dma_map_single;
-	aux_ops->asic_dma_unmap_single = hl_cn_asic_dma_unmap_single;
 	aux_ops->dma_alloc_coherent = hl_cn_dma_alloc_coherent;
 	aux_ops->dma_free_coherent = hl_cn_dma_free_coherent;
 	aux_ops->dma_pool_zalloc = hl_cn_dma_pool_zalloc;

@@ -10231,25 +10231,6 @@ static dma_addr_t gaudi3_dma_map_page(struct hl_device *hdev, struct page *page,
 	return dma_addr;
 }
 
-
-static void gaudi3_dma_unmap_single(struct hl_device *hdev, dma_addr_t addr,
-			int len, enum dma_data_direction dir)
-{
-	dma_unmap_single(&hdev->pdev->dev, addr, len, dir);
-}
-
-static dma_addr_t gaudi3_dma_map_single(struct hl_device *hdev, void *addr,
-			int len, enum dma_data_direction dir)
-{
-	dma_addr_t dma_addr;
-
-	dma_addr = dma_map_single(&hdev->pdev->dev, addr, len, dir);
-	if (unlikely(dma_mapping_error(&hdev->pdev->dev, dma_addr)))
-		return 0;
-
-	return dma_addr;
-}
-
 void gaudi3_update_eq_ci(struct hl_device *hdev, u32 val)
 {
 	WREG32(mmD0_PARC_ARC1_CFG_BASE + mmARC_EQ_RD_OFFS, val);
@@ -12969,8 +12950,6 @@ static const struct hl_asic_funcs gaudi3_funcs = {
 	.asic_dma_pool_free = gaudi3_dma_pool_free,
 	.cpu_accessible_dma_pool_alloc = gaudi3_cpu_accessible_dma_pool_alloc,
 	.cpu_accessible_dma_pool_free = gaudi3_cpu_accessible_dma_pool_free,
-	.asic_dma_unmap_single = gaudi3_dma_unmap_single,
-	.asic_dma_map_single = gaudi3_dma_map_single,
 	.asic_dma_map_page = gaudi3_dma_map_page,
 	.asic_dma_unmap_page = gaudi3_dma_unmap_page,
 	.hl_dma_unmap_sgtable = hl_dma_unmap_sgtable,
