@@ -1066,21 +1066,9 @@ void hl_cs_rollback_all(struct hl_device *hdev, bool skip_wq_flush)
 	int i;
 	struct hl_cs *cs, *tmp;
 
-	/*
-	 * Note that the ts_free_obj_wq should be flushed always to avoid a race between the reset
-	 * flow and the workqueue state, in case the driver at some point didn't have available
-	 * node in free_nodes_pool to handle the objects free work. in such case some jobs might
-	 * be added later on to the workqueue and before the thread completed those jobs the
-	 * reset flow already free the ts buff from memory, then the workqueue thread will
-	 * cause panic.
-	 * This skip_wq_flush relevant only for the other workqueues jobs, since the context
-	 * refcount taken upon submission is put down only in the completion handling of
-	 * those workqueues while in timestamp case ts_free_obj_wq jobs put refcount to
-	 * buffers only not context.
-	 */
-	flush_workqueue(hdev->ts_free_obj_wq);
-
 	if (!skip_wq_flush) {
+		flush_workqueue(hdev->ts_free_obj_wq);
+
 		/* flush all completions before iterating over the CS mirror list in
 		 * order to avoid a race with the release functions
 		 */
