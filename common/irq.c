@@ -215,7 +215,7 @@ static void hl_ts_free_objects(struct work_struct *work)
 
 		hl_mmap_mem_buf_put(free_obj->buf);
 		hl_cb_put(free_obj->cq_cb);
-		atomic_set(&free_obj->in_use, 0);
+		kfree(free_obj);
 	}
 
 	kfree(free_list_head);
@@ -236,8 +236,6 @@ static int handle_registration_node(struct hl_device *hdev, struct hl_user_pendi
 						struct list_head **free_list, ktime_t now,
 						u32 interrupt_id)
 {
-	struct hl_ts_buff *ts_buff = (struct hl_ts_buff *) pend->ts_reg_info.buf->private;
-	u32 free_node_index = ts_buff->next_avail_free_node_idx;
 	struct timestamp_reg_free_node *free_node;
 	u64 timestamp;
 
@@ -250,15 +248,9 @@ static int handle_registration_node(struct hl_device *hdev, struct hl_user_pendi
 		INIT_LIST_HEAD(*free_list);
 	}
 
-	free_node = &ts_buff->free_nodes_pool[free_node_index];
-	if (atomic_read(&free_node->in_use)) {
-		dev_crit(hdev->dev, "Timestamp free node is still in use!\n");
+	free_node = kmalloc(sizeof(*free_node), GFP_ATOMIC);
+	if (!free_node)
 		return -ENOMEM;
-	} else {
-		atomic_set(&free_node->in_use, 1);
-	}
-
-	ts_buff->next_avail_free_node_idx = (++free_node_index) % ts_buff->free_nodes_length;
 
 	timestamp = ktime_to_ns(now);
 

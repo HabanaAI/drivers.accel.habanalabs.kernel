@@ -1020,20 +1020,14 @@ struct hl_cs_compl {
 
 /**
  * struct hl_ts_buff - describes a timestamp buffer.
- * @free_nodes_pool: pool of nodes to be used for free ts jobs.
  * @kernel_buff_address: Holds the internal buffer's kernel virtual address.
  * @user_buff_address: Holds the user buffer's kernel virtual address.
  * @kernel_buff_size: Holds the internal kernel buffer size.
- * @free_nodes_length: number of nodes in free_nodes_pool.
- * @next_avail_free_node_idx: index of the next free node in the pool.
  */
 struct hl_ts_buff {
-	struct timestamp_reg_free_node *free_nodes_pool;
-	void				*kernel_buff_address;
-	void				*user_buff_address;
-	u32				kernel_buff_size;
-	u32				free_nodes_length;
-	u32				next_avail_free_node_idx;
+	void			*kernel_buff_address;
+	void			*user_buff_address;
+	u32			kernel_buff_size;
 };
 
 struct hl_mmap_mem_buf;
@@ -1280,13 +1274,11 @@ struct hl_user_interrupt {
  * @free_objects_node: node in the list free_obj_jobs
  * @cq_cb: pointer to cq command buffer to be freed
  * @buf: pointer to timestamp buffer to be freed
- * @in_use: indicates whether the node still in use in workqueue thread.
  */
 struct timestamp_reg_free_node {
 	struct list_head	free_objects_node;
 	struct hl_cb		*cq_cb;
 	struct hl_mmap_mem_buf	*buf;
-	atomic_t		in_use;
 };
 
 /* struct timestamp_reg_work_obj - holds the timestamp registration free objects job
