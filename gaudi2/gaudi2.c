@@ -5672,9 +5672,6 @@ static void gaudi2_prepare_sm_for_virt_msix_db(struct hl_device *hdev)
 
 	/* NIC EQ interrupts */
 	for (port = 0 ; port < NIC_NUMBER_OF_PORTS ; ++port) {
-		if (!(hdev->cn_ports_mask & BIT(port)))
-			continue;
-
 		sob_id = GAUDI2_RESERVED_SOB_NIC_PORT_FIRST + port;
 		first_mon_id = GAUDI2_RESERVED_MON_NIC_PORT_FIRST + 3 * port;
 		interrupt_id = GAUDI2_IRQ_NUM_NIC_PORT_FIRST + port;
