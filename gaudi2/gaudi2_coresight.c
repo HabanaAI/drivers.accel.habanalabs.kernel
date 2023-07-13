@@ -2507,7 +2507,8 @@ static int gaudi2_config_spmu(struct hl_device *hdev, struct hl_debug_params *pa
 		 * set enabled events mask based on input->event_types_num
 		 */
 		event_mask = 0x80000000;
-		event_mask |= GENMASK(input->event_types_num, 0);
+		if (input->event_types_num)
+			event_mask |= GENMASK(input->event_types_num - 1, 0);
 
 		WREG32(base_reg + mmSPMU_PMCNTENSET_EL0_OFFSET, event_mask);
 	} else {
@@ -2717,6 +2718,47 @@ void gaudi2_halt_coresight(struct hl_device *hdev, struct hl_ctx *ctx)
 		dev_err(hdev->dev, "halt ETR failed, %d\n", rc);
 }
 
+/*
+ * TODO - remove once SW-151273 fixed
+ */
+static int enable_tpc_spmu_counters(struct hl_device *hdev)
+{
+	struct hl_debug_params_spmu input;
+	struct hl_debug_params params;
+	uint32_t tpc_spmu_idx;
+	int ret = 0;
+
+	memset(&params, 0x0, sizeof(params));
+	memset(&input, 0x0, sizeof(input));
+
+	/*
+	 * Enable TPC Counter 59 - VPU Address eceeded the local memory
+	 * counter can read from DCORE[x]_TPC[x]_EML_SPMU -> PMEVCNTR0_EL0
+	 */
+	input.event_types[0] = 59;
+	input.event_types_num = 1;
+	input.pmtrc_val = 0x100400;
+	input.trc_en_host_val = 0x0;
+	input.trc_ctrl_host_val = 0xC;
+
+	params.input = &input;
+	params.enable = true;
+
+	for (tpc_spmu_idx = GAUDI2_SPMU_DCORE0_TPC0_EML;
+		tpc_spmu_idx <= GAUDI2_SPMU_DCORE3_TPC5_EML;
+		tpc_spmu_idx++) {
+		params.reg_idx = tpc_spmu_idx;
+		ret = gaudi2_config_spmu(hdev, &params);
+		if (ret) {
+			dev_err(hdev->dev, "unable to program default spmu counters for TPC on init (spmu regidx - %u)\n",
+				tpc_spmu_idx);
+			return ret;
+		}
+	}
+
+	return 0;
+}
+
 
 static int gaudi2_coresight_set_disabled_components(struct hl_device *hdev, u32 unit_count,
 					u32 enabled_mask,
@@ -2805,6 +2847,15 @@ int gaudi2_coresight_init(struct hl_device *hdev)
 							tpc_binning_cfg_table);
 	if (ret) {
 		dev_err(hdev->dev, "Failed to set disabled cs_dbg units for tpc coresight\n");
+		return ret;
+	}
+
+	/*
+	 * TODO - remove once SW-151273 fixed
+	 */
+	ret = enable_tpc_spmu_counters(hdev);
+	if (ret) {
+		dev_err(hdev->dev, "Failed program spmu counter for tpcs\n");
 		return ret;
 	}
 
