@@ -614,7 +614,7 @@ int hl_importer_init(void)
 	idev->major = MAJOR(dev);
 	idev->minor = MINOR(dev);
 
-	idev->iclass = class_create(THIS_MODULE, HL_IMPORTER_NAME);
+	idev->iclass = class_create(HL_IMPORTER_NAME);
 	if (IS_ERR(idev->iclass)) {
 		pr_err("failed to allocate class\n");
 		rc = PTR_ERR(idev->iclass);
