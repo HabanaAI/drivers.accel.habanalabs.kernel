@@ -319,6 +319,16 @@ static char *gaudi2_cn_get_event_name(struct hl_aux_dev *aux_dev, u16 event_type
 			"N/A Event";
 }
 
+static int gaudi2_cn_poll_mem(struct hl_aux_dev *aux_dev, u32 *addr, u32 *val,
+				hl_cn_poll_cond_func func)
+{
+	struct hl_cn *cn = container_of(aux_dev, struct hl_cn, cn_aux_dev);
+	struct hl_device *hdev = container_of(cn, struct hl_device, cn);
+
+	return hl_poll_timeout_memory(hdev, addr, *val, func(*val, NULL), 10,
+					HL_DEVICE_TIMEOUT_USEC, true);
+}
+
 static void gaudi2_cn_set_cn_data(struct hl_device *hdev)
 {
 	struct gaudi2_device *gaudi2 = hdev->asic_specific;
@@ -348,6 +358,7 @@ static void gaudi2_cn_set_cn_data(struct hl_device *hdev)
 	gaudi2_aux_ops->can_unset_asid_cfg = gaudi2_cn_can_unset_asid_cfg;
 	gaudi2_aux_ops->reset_mac_tx = gaudi2_cn_reset_mac_tx;
 	gaudi2_aux_ops->get_event_name = gaudi2_cn_get_event_name;
+	gaudi2_aux_ops->poll_mem = gaudi2_cn_poll_mem;
 }
 
 void gaudi2_cn_compute_reset_prepare(struct hl_device *hdev)
