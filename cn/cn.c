@@ -469,16 +469,6 @@ static int hl_cn_poll_reg(struct hl_aux_dev *aux_dev, u32 reg, u64 timeout_us,
 	return hl_poll_timeout(hdev, reg, val, func(val, arg), 1000, timeout_us);
 }
 
-static int hl_cn_poll_mem(struct hl_aux_dev *aux_dev, u32 *addr, u32 *val,
-				hl_cn_poll_cond_func func)
-{
-	struct hl_cn *cn = container_of(aux_dev, struct hl_cn, cn_aux_dev);
-	struct hl_device *hdev = container_of(cn, struct hl_device, cn);
-
-	return hl_poll_timeout_memory(hdev, addr, *val, func(*val, NULL), 10,
-					HL_DEVICE_TIMEOUT_USEC, true);
-}
-
 static void hl_cn_get_cpucp_info(struct hl_aux_dev *aux_dev,
 					struct hl_cn_cpucp_info *hl_cn_cpucp_info)
 {
@@ -653,7 +643,6 @@ static int hl_cn_aux_data_init(struct hl_device *hdev)
 	aux_ops->get_compute_user_ctx = hl_cn_get_compute_user_ctx;
 	aux_ops->put_compute_user_ctx = hl_cn_put_compute_user_ctx;
 	aux_ops->poll_reg = hl_cn_poll_reg;
-	aux_ops->poll_mem = hl_cn_poll_mem;
 	aux_ops->get_cpucp_info = hl_cn_get_cpucp_info;
 
 	cn_funcs->set_cn_data(hdev);
