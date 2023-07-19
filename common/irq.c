@@ -271,7 +271,7 @@ static int handle_registration_node(struct hl_device *hdev, struct hl_user_pendi
 	dev_dbg(hdev->dev, "Irq handle: Timestamp record (%p) ts cb address (%p), interrupt_id: %u\n",
 			pend, pend->ts_reg_info.timestamp_kernel_addr, interrupt_id);
 
-	list_del(&pend->wait_list_node);
+	list_del(&pend->list_node);
 
 	/* Putting the refcount for ts_buff and cq_cb objects will be handled
 	 * in workqueue context, just add job to free_list.
@@ -286,12 +286,13 @@ static int handle_registration_node(struct hl_device *hdev, struct hl_user_pendi
 	return 0;
 }
 
-static void handle_user_interrupt(struct hl_device *hdev, struct hl_user_interrupt *intr)
+static void handle_user_interrupt_ts_list(struct hl_device *hdev, struct hl_user_interrupt *intr)
 {
 	struct hl_user_pending_interrupt *pend, *temp_pend;
 	struct list_head *ts_reg_free_list_head = NULL;
 	struct timestamp_reg_work_obj *job;
 	bool reg_node_handle_fail = false;
+	unsigned long flags;
 	int rc;
 
 	/* For registration nodes:
@@ -300,34 +301,27 @@ static void handle_user_interrupt(struct hl_device *hdev, struct hl_user_interru
 	 * or in irq handler context at all (since release functions are long and
 	 * might sleep), so we will need to handle that part in workqueue context.
 	 * To avoid handling kmalloc failure which compels us rolling back actions
-	 * and move nodes hanged on the free list back to the interrupt wait list
+	 * and move nodes hanged on the free list back to the interrupt ts list
 	 * we always alloc the job of the WQ at the beginning.
 	 */
 	job = kmalloc(sizeof(*job), GFP_ATOMIC);
 	if (!job)
 		return;
 
-	spin_lock(&intr->wait_list_lock);
-
-	list_for_each_entry_safe(pend, temp_pend, &intr->wait_list_head, wait_list_node) {
+	spin_lock_irqsave(&intr->ts_list_lock, flags);
+	list_for_each_entry_safe(pend, temp_pend, &intr->ts_list_head, list_node) {
 		if ((pend->cq_kernel_addr && *(pend->cq_kernel_addr) >= pend->cq_target_value) ||
 				!pend->cq_kernel_addr) {
-			if (pend->ts_reg_info.buf) {
-				if (!reg_node_handle_fail) {
-					rc = handle_registration_node(hdev, pend,
-							&ts_reg_free_list_head, intr->timestamp,
-							intr->interrupt_id);
-					if (rc)
-						reg_node_handle_fail = true;
-				}
-			} else {
-				/* Handle wait target value node */
-				pend->fence.timestamp = intr->timestamp;
-				complete_all(&pend->fence.completion);
+			if (!reg_node_handle_fail) {
+				rc = handle_registration_node(hdev, pend,
+						&ts_reg_free_list_head, intr->timestamp,
+						intr->interrupt_id);
+				if (rc)
+					reg_node_handle_fail = true;
 			}
 		}
 	}
-	spin_unlock(&intr->wait_list_lock);
+	spin_unlock_irqrestore(&intr->ts_list_lock, flags);
 
 	if (ts_reg_free_list_head) {
 		INIT_WORK(&job->free_obj, hl_ts_free_objects);
@@ -337,6 +331,23 @@ static void handle_user_interrupt(struct hl_device *hdev, struct hl_user_interru
 	} else {
 		kfree(job);
 	}
+}
+
+static void handle_user_interrupt_wait_list(struct hl_device *hdev, struct hl_user_interrupt *intr)
+{
+	struct hl_user_pending_interrupt *pend, *temp_pend;
+	unsigned long flags;
+
+	spin_lock_irqsave(&intr->wait_list_lock, flags);
+	list_for_each_entry_safe(pend, temp_pend, &intr->wait_list_head, list_node) {
+		if ((pend->cq_kernel_addr && *(pend->cq_kernel_addr) >= pend->cq_target_value) ||
+				!pend->cq_kernel_addr) {
+			/* Handle wait target value node */
+			pend->fence.timestamp = intr->timestamp;
+			complete_all(&pend->fence.completion);
+		}
+	}
+	spin_unlock_irqrestore(&intr->wait_list_lock, flags);
 }
 
 static void handle_tpc_interrupt(struct hl_device *hdev)
@@ -360,6 +371,41 @@ static void handle_unexpected_user_interrupt(struct hl_device *hdev)
 }
 
 /**
+ * hl_irq_user_interrupt_handler - irq handler for user interrupts.
+ *
+ * @irq: irq number
+ * @arg: pointer to user interrupt structure
+ */
+irqreturn_t hl_irq_user_interrupt_handler(int irq, void *arg)
+{
+	struct hl_user_interrupt *user_int = arg;
+	struct hl_device *hdev = user_int->hdev;
+
+	user_int->timestamp = ktime_get();
+	switch (user_int->type) {
+	case HL_USR_INTERRUPT_CQ:
+		/* First handle user waiters threads */
+		handle_user_interrupt_wait_list(hdev, &hdev->common_user_cq_interrupt);
+		handle_user_interrupt_wait_list(hdev, user_int);
+
+		/* Second handle user timestamp registrations */
+		handle_user_interrupt_ts_list(hdev,  &hdev->common_user_cq_interrupt);
+		handle_user_interrupt_ts_list(hdev, user_int);
+		break;
+	case HL_USR_INTERRUPT_DECODER:
+		handle_user_interrupt_wait_list(hdev, &hdev->common_decoder_interrupt);
+
+		/* Handle decoder interrupt registered on this specific irq */
+		handle_user_interrupt_wait_list(hdev, user_int);
+		break;
+	default:
+		break;
+	}
+
+	return IRQ_HANDLED;
+}
+
+/**
  * hl_irq_user_interrupt_thread_handler - irq thread handler for user interrupts.
  * This function is invoked by threaded irq mechanism
  *
@@ -374,18 +420,6 @@ irqreturn_t hl_irq_user_interrupt_thread_handler(int irq, void *arg)
 
 	user_int->timestamp = ktime_get();
 	switch (user_int->type) {
-	case HL_USR_INTERRUPT_CQ:
-		handle_user_interrupt(hdev, &hdev->common_user_cq_interrupt);
-
-		/* Handle user cq interrupt registered on this specific irq */
-		handle_user_interrupt(hdev, user_int);
-		break;
-	case HL_USR_INTERRUPT_DECODER:
-		handle_user_interrupt(hdev, &hdev->common_decoder_interrupt);
-
-		/* Handle decoder interrupt registered on this specific irq */
-		handle_user_interrupt(hdev, user_int);
-		break;
 	case HL_USR_INTERRUPT_TPC:
 		handle_tpc_interrupt(hdev);
 		break;
