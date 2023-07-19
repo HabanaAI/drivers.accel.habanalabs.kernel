@@ -1293,7 +1293,9 @@ struct hl_ts_free_jobs {
  * @ts_free_jobs_data: timestamp free jobs related data
  * @type: user interrupt type
  * @wait_list_head: head to the list of user threads pending on this interrupt
+ * @ts_list_head: head to the list of timestamp records
  * @wait_list_lock: protects wait_list_head
+ * @ts_list_lock: protects ts_list_head
  * @timestamp: last timestamp taken upon interrupt
  * @interrupt_id: msix interrupt id
  */
@@ -1302,7 +1304,9 @@ struct hl_user_interrupt {
 	struct hl_ts_free_jobs		ts_free_jobs_data;
 	enum hl_user_interrupt_type	type;
 	struct list_head		wait_list_head;
+	struct list_head		ts_list_head;
 	spinlock_t			wait_list_lock;
+	spinlock_t			ts_list_lock;
 	ktime_t				timestamp;
 	u32				interrupt_id;
 };
@@ -1359,7 +1363,7 @@ struct timestamp_reg_info {
  * struct hl_user_pending_interrupt - holds a context to a user thread
  *                                    pending on an interrupt
  * @ts_reg_info: holds the timestamps registration nodes info
- * @wait_list_node: node in the list of user threads pending on an interrupt
+ * @list_node: node in the list of user threads pending on an interrupt or timestamp
  * @fence: hl fence object for interrupt completion
  * @cq_target_value: CQ target value
  * @cq_kernel_addr: CQ kernel address, to be used in the cq interrupt
@@ -1367,7 +1371,7 @@ struct timestamp_reg_info {
  */
 struct hl_user_pending_interrupt {
 	struct timestamp_reg_info	ts_reg_info;
-	struct list_head		wait_list_node;
+	struct list_head		list_node;
 	struct hl_fence			fence;
 	u64				cq_target_value;
 	u64				*cq_kernel_addr;
@@ -3041,6 +3045,8 @@ void hl_wreg(struct hl_device *hdev, u32 reg, u32 val);
 	usr_intr.type = intr_type; \
 	INIT_LIST_HEAD(&usr_intr.wait_list_head); \
 	spin_lock_init(&usr_intr.wait_list_lock); \
+	INIT_LIST_HEAD(&usr_intr.ts_list_head); \
+	spin_lock_init(&usr_intr.ts_list_lock); \
 })
 
 struct hwmon_chip_info;
@@ -4249,6 +4255,7 @@ irqreturn_t hl_irq_handler_eq(int irq, void *arg);
 irqreturn_t hl_irq_handler_cs_cmplt(int irq, void *arg);
 irqreturn_t hl_irq_handler_dec_abnrm(int irq, void *arg);
 irqreturn_t hl_irq_handler_default(int irq, void *arg);
+irqreturn_t hl_irq_user_interrupt_handler(int irq, void *arg);
 irqreturn_t hl_irq_user_interrupt_thread_handler(int irq, void *arg);
 irqreturn_t hl_irq_eq_error_interrupt_thread_handler(int irq, void *arg);
 u32 hl_cq_inc_ptr(u32 ptr);
