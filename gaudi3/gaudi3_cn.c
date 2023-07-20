@@ -200,22 +200,6 @@ static int gaudi3_cn_pre_core_init(struct hl_device *hdev)
 	return 0;
 }
 
-static void gaudi3_cn_axuser_hbw_mmu_bp_set(struct hl_aux_dev *aux_dev, u32 axuser_hbw_reg_base)
-{
-	struct hl_cn *cn = container_of(aux_dev, struct hl_cn, cn_aux_dev);
-	struct hl_device *hdev = container_of(cn, struct hl_device, cn);
-
-	gaudi3_axuser_hbw_mmu_bp_set(hdev, axuser_hbw_reg_base, true);
-}
-
-static void gaudi3_cn_axuser_hbw_asid_set(struct hl_aux_dev *aux_dev, u32 axuser_hbw_reg_base)
-{
-	struct hl_cn *cn = container_of(aux_dev, struct hl_cn, cn_aux_dev);
-	struct hl_device *hdev = container_of(cn, struct hl_device, cn);
-
-	gaudi3_axuser_hbw_asid_set(hdev, axuser_hbw_reg_base, hdev->kernel_ctx->asid);
-}
-
 static int gaudi3_cn_irq_vector(struct hl_aux_dev *aux_dev, unsigned int nr)
 {
 	struct hl_cn *cn = container_of(aux_dev, struct hl_cn, cn_aux_dev);
@@ -249,8 +233,6 @@ static void gaudi3_cn_set_cn_data(struct hl_device *hdev)
 	gaudi3_aux_data->irq_num_port_base = GAUDI3_IRQ_NUM_NIC_PORT_FIRST;
 	gaudi3_aux_data->enable_h9_rx_drop_eco = hdev->nic_enable_h9_rx_drop_eco;
 
-	gaudi3_aux_ops->axuser_hbw_mmu_bp_set = gaudi3_cn_axuser_hbw_mmu_bp_set;
-	gaudi3_aux_ops->axuser_hbw_asid_set = gaudi3_cn_axuser_hbw_asid_set;
 	gaudi3_aux_ops->irq_vector = gaudi3_cn_irq_vector;
 }
 
