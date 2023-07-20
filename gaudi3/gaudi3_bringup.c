@@ -2122,8 +2122,7 @@ static void gaudi3_init_qman_fw_config(struct hl_device *hdev, u32 reg_base)
 
 static void gaudi3_init_edma_common(struct hl_device *hdev, u32 reg_base)
 {
-	WREG32(reg_base + mmEDMA_CMN_CFG1,
-			FIELD_PREP(EDMA_CMN_CFG1_STOP_ON_ERR_M, 0x1));
+	WREG32(reg_base + mmEDMA_CMN_CFG1, FIELD_PREP(EDMA_CMN_CFG1_STOP_ON_ERR_M, 0x1));
 }
 
 static void gaudi3_init_edma_eng_fw_config(struct hl_device *hdev, int hdcore, int inst, u32 offset,
