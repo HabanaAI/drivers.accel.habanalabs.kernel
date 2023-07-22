@@ -505,6 +505,16 @@ static void hl_cn_get_cpucp_info(struct hl_aux_dev *aux_dev,
 		sizeof(cpucp_nic_info->qsfp_eeprom));
 }
 
+static int hl_cn_send_cpu_message(struct hl_aux_dev *aux_dev, u32 *msg, u16 len, u32 timeout,
+					u64 *result)
+{
+	struct hl_cn *cn = container_of(aux_dev, struct hl_cn, cn_aux_dev);
+	struct hl_device *hdev = container_of(cn, struct hl_device, cn);
+
+	return hdev->asic_funcs->send_cpu_message(hdev, msg, len, timeout, result);
+}
+
+
 static int hl_cn_get_asic_type(struct hl_device *hdev, enum hl_cn_asic_type *asic_type)
 {
 	switch (hdev->asic_type) {
@@ -644,6 +654,7 @@ static int hl_cn_aux_data_init(struct hl_device *hdev)
 	aux_ops->put_compute_user_ctx = hl_cn_put_compute_user_ctx;
 	aux_ops->poll_reg = hl_cn_poll_reg;
 	aux_ops->get_cpucp_info = hl_cn_get_cpucp_info;
+	aux_ops->send_cpu_message = hl_cn_send_cpu_message;
 
 	cn_funcs->set_cn_data(hdev);
 
