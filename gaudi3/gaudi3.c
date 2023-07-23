@@ -9631,18 +9631,20 @@ static int gaudi3_scrub_device_memory(struct hl_device *hdev,
 				      const struct gaudi3_test_pdma_params *test_params,
 				      int ch_idx)
 {
-	u64 device_addr, device_data;
+	u64 device_addr, device_data = 0;
 	int i, rc;
 
 	device_addr = test_params->device_phys_addr + ch_idx * test_params->channel_transfer_size;
 
 	/* Scrub device memory before DMAing to it */
 	for (i = 0 ; i < test_params->channel_transfer_size ; i += sizeof(u32)) {
-		device_data = i * 0x11111111;
 
 		rc = hdev->asic_funcs->access_dev_mem(hdev, test_params->region_type,
 						      device_addr + i, &device_data,
 						      DEBUGFS_WRITE32);
+
+		device_data += 0x11111111;
+
 		if (rc) {
 			dev_crit(hdev->dev, "Failed to writel to dev_mem type %d, addr 0x%llx\n",
 				 test_params->region_type, device_addr + i);
