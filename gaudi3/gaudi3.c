@@ -12815,13 +12815,24 @@ static void gaudi3_set_reset_flags_and_event_mask(struct hl_device *hdev,
 	case INT_COMP_TYPE_EDMA:
 	case INT_COMP_TYPE_EDUP:
 	case INT_COMP_TYPE_MME:
-	case INT_COMP_TYPE_NIC:
 	case INT_COMP_TYPE_PDMA:
 	case INT_COMP_TYPE_ROT:
 	case INT_COMP_TYPE_SOB:
 	case INT_COMP_TYPE_TPC:
 		*event_mask = HL_NOTIFIER_EVENT_USER_ENGINE_ERR;
 		compute_reset = true;
+		break;
+	case INT_COMP_TYPE_NIC:
+		/*
+		 * TODO:
+		 * Some NIC SPI interrupts are considered as errors and some are not.
+		 * Need to add this distinction and the corresponding setting of event mask and
+		 * reset flags in the NIC SPI handler (SW-152688).
+		 */
+		if (agg_grp_type == INT_GRP_TYPE_SEI) {
+			*event_mask = HL_NOTIFIER_EVENT_USER_ENGINE_ERR;
+			hard_reset = true;
+		}
 		break;
 	case INT_COMP_TYPE_MC:
 		*event_mask = HL_NOTIFIER_EVENT_CRITICL_HW_ERR;
