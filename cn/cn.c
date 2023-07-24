@@ -491,6 +491,15 @@ static void hl_cn_cpu_accessible_dma_pool_free(struct hl_aux_dev *aux_dev, size_
 	hl_cpu_accessible_dma_pool_free(hdev,  size, vaddr);
 }
 
+static void hl_cn_post_send_status(struct hl_aux_dev *aux_dev, u32 port)
+{
+	struct hl_cn *cn = container_of(aux_dev, struct hl_cn, cn_aux_dev);
+	struct hl_device *hdev = container_of(cn, struct hl_device, cn);
+	struct hl_cn_port_funcs *port_funcs = hdev->asic_funcs->cn_funcs->port_funcs;
+
+	port_funcs->post_send_status(hdev, port);
+}
+
 static int hl_cn_get_asic_type(struct hl_device *hdev, enum hl_cn_asic_type *asic_type)
 {
 	switch (hdev->asic_type) {
@@ -632,6 +641,7 @@ static int hl_cn_aux_data_init(struct hl_device *hdev)
 	aux_ops->send_cpu_message = hl_cn_send_cpu_message;
 	aux_ops->cpu_accessible_dma_pool_alloc = hl_cn_cpu_accessible_dma_pool_alloc;
 	aux_ops->cpu_accessible_dma_pool_free = hl_cn_cpu_accessible_dma_pool_free;
+	aux_ops->post_send_status = hl_cn_post_send_status;
 
 	cn_funcs->set_cn_data(hdev);
 
