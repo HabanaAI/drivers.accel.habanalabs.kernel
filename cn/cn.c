@@ -247,47 +247,6 @@ static int hl_cn_get_hw_block_handle(struct hl_aux_dev *aux_dev, u64 address, u6
 	return hl_get_hw_block_handle(hdev, address, handle, NULL);
 }
 
-static int hl_cn_send_cpucp_packet(struct hl_aux_dev *aux_dev, u32 port, int pkt_id, int val)
-{
-	struct hl_cn *cn = container_of(aux_dev, struct hl_cn, cn_aux_dev);
-	struct hl_device *hdev = container_of(cn, struct hl_device, cn);
-	struct hl_cn_port_funcs *port_funcs = hdev->asic_funcs->cn_funcs->port_funcs;
-	enum cpucp_packet_id cpucp_pkt_id;
-	int cpucp_val;
-
-	switch (pkt_id) {
-	case HL_CN_CPUCP_PKT_WQE_ASID_SET:
-		cpucp_pkt_id = CPUCP_PACKET_NIC_WQE_ASID_SET;
-		cpucp_val = val;
-		break;
-	case HL_CN_CPUCP_PKT_WQE_ASID_UNSET:
-		cpucp_pkt_id = CPUCP_PACKET_NIC_WQE_ASID_UNSET;
-		cpucp_val = val;
-		break;
-	case HL_CN_CPUCP_PKT_SET_CHECKERS:
-		cpucp_pkt_id = CPUCP_PACKET_NIC_SET_CHECKERS;
-		cpucp_val = (val & ~NIC_CHECKERS_TYPE_MASK);
-
-		switch (val & NIC_CHECKERS_TYPE_MASK) {
-		case HL_CN_RX_WQE_IDX_MISMATCH:
-			cpucp_val |= RX_WQE_IDX_MISMATCH;
-			break;
-		case HL_CN_TX_WQE_IDX_MISMATCH:
-			cpucp_val |= TX_WQE_IDX_MISMATCH;
-			break;
-		default:
-			dev_err(hdev->dev, "unknown CPUCP checker type %d\n", val);
-			return -EINVAL;
-		}
-		break;
-	default:
-		dev_err(hdev->dev, "unknown CPUCP pkt type %d\n", pkt_id);
-		return -EINVAL;
-	}
-
-	return port_funcs->send_cpucp_packet(hdev, port, cpucp_pkt_id, cpucp_val);
-}
-
 static int hl_cn_dma_mmap(struct hl_aux_dev *aux_dev, struct vm_area_struct *vma, void *cpu_addr,
 				dma_addr_t dma_addr, size_t size)
 {
@@ -656,7 +615,6 @@ static int hl_cn_aux_data_init(struct hl_device *hdev)
 	aux_ops->reserve_va_block = hl_cn_reserve_va_block;
 	aux_ops->unreserve_va_block = hl_cn_unreserve_va_block;
 	aux_ops->get_hw_block_handle = hl_cn_get_hw_block_handle;
-	aux_ops->send_cpucp_packet = hl_cn_send_cpucp_packet;
 	aux_ops->dma_mmap = hl_cn_dma_mmap;
 	aux_ops->user_mmap = hl_cn_user_mmap;
 	aux_ops->dram_readb = hl_cn_dram_readb;

@@ -343,26 +343,6 @@ u32 gaudi3_cn_handle_bmon_spmu_event(struct hl_device *hdev, u32 macro_index)
 	return 1;
 }
 
-static int gaudi3_cn_send_cpucp_packet(struct hl_device *hdev, u32 port,
-					enum cpucp_packet_id packet_id, int val)
-{
-	struct cpucp_packet pkt;
-	int rc = 0;
-
-	memset(&pkt, 0, sizeof(pkt));
-	pkt.ctl = cpu_to_le32(packet_id << CPUCP_PKT_CTL_OPCODE_SHIFT);
-	pkt.value = cpu_to_le64(val);
-	pkt.macro_index = cpu_to_le32(is_400g_mode(hdev) ? port : (port >> 1));
-
-	rc = hdev->asic_funcs->send_cpu_message(hdev, (u32 *) &pkt, sizeof(pkt), 0, NULL);
-	if (rc)
-		dev_err(hdev->dev,
-			"Failed to send cpucp packet, port %d packet id %d, val %d, error %d\n",
-			port, packet_id, val, rc);
-
-	return rc;
-}
-
 static void gaudi3_cn_post_send_status(struct hl_device *hdev, u32 port)
 {
 	/* FW does not mask MSG interrupts, so unmask_irq is not needed */
@@ -372,7 +352,6 @@ static struct hl_cn_port_funcs gaudi3_cn_port_funcs = {
 	.spmu_get_stats_info = gaudi3_cn_spmu_get_stats_info,
 	.spmu_config = gaudi3_cn_spmu_config,
 	.spmu_sample = gaudi3_cn_spmu_sample,
-	.send_cpucp_packet = gaudi3_cn_send_cpucp_packet,
 	.post_send_status = gaudi3_cn_post_send_status,
 };
 

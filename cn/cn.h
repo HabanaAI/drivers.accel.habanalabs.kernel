@@ -64,7 +64,6 @@ struct hl_cn {
  * @spmu_get_stats_info: get SPMU statistics information.
  * @spmu_config: config the SPMU.
  * @spmu_sample: read the SPMU counters.
- * @send_cpucp_packet: Send cpucp packet to FW.
  * @post_send_status: ASIC-specific handler for post sending status packet to FW.
  */
 struct hl_cn_port_funcs {
@@ -73,8 +72,6 @@ struct hl_cn_port_funcs {
 	int (*spmu_config)(struct hl_device *hdev, u32 port, u32 num_event_types, u32 event_types[],
 				bool enable);
 	int (*spmu_sample)(struct hl_device *hdev, u32 port, u32 num_out_data, u64 out_data[]);
-	int (*send_cpucp_packet)(struct hl_device *hdev, u32 port, enum cpucp_packet_id packet_id,
-					int val);
 	void (*post_send_status)(struct hl_device *hdev, u32 port);
 };
 

@@ -367,26 +367,6 @@ void gaudi2_cn_compute_reset_late_init(struct hl_device *hdev)
 		gaudi2_aux_ops->reset_late_init(aux_dev);
 }
 
-static int gaudi2_cn_send_cpucp_packet(struct hl_device *hdev, u32 port,
-					enum cpucp_packet_id packet_id, int val)
-{
-	struct cpucp_packet pkt;
-	int rc = 0;
-
-	memset(&pkt, 0, sizeof(pkt));
-	pkt.ctl = cpu_to_le32(packet_id << CPUCP_PKT_CTL_OPCODE_SHIFT);
-	pkt.value = cpu_to_le64(val);
-	pkt.macro_index = cpu_to_le32(port);
-
-	rc = hdev->asic_funcs->send_cpu_message(hdev, (u32 *) &pkt, sizeof(pkt), 0, NULL);
-	if (rc)
-		dev_err(hdev->dev,
-			"Failed to send cpucp packet, port %d packet id %d, val %d, error %d\n",
-			port, packet_id, val, rc);
-
-	return rc;
-}
-
 static void gaudi2_cn_post_send_status(struct hl_device *hdev, u32 port)
 {
 	hl_fw_unmask_irq(hdev, GAUDI2_EVENT_CPU0_STATUS_NIC0_ENG0 + port);
@@ -396,7 +376,6 @@ static struct hl_cn_port_funcs gaudi2_cn_port_funcs = {
 	.spmu_get_stats_info = gaudi2_cn_spmu_get_stats_info,
 	.spmu_config = gaudi2_cn_spmu_config,
 	.spmu_sample = gaudi2_cn_spmu_sample,
-	.send_cpucp_packet = gaudi2_cn_send_cpucp_packet,
 	.post_send_status = gaudi2_cn_post_send_status,
 };
 
