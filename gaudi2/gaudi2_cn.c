@@ -292,27 +292,6 @@ static bool gaudi2_cn_can_unset_asid_cfg(struct hl_aux_dev *aux_dev)
 	return !gaudi2_is_fw_ver_below_1_8(hdev);
 }
 
-static int gaudi2_cn_reset_mac_tx(struct hl_aux_dev *aux_dev, u32 port)
-{
-	struct hl_cn *cn = container_of(aux_dev, struct hl_cn, cn_aux_dev);
-	struct hl_device *hdev = container_of(cn, struct hl_device, cn);
-	struct cpucp_packet pkt;
-	int rc;
-
-	memset(&pkt, 0, sizeof(pkt));
-	pkt.ctl = cpu_to_le32(CPUCP_PACKET_NIC_MAC_TX_RESET << CPUCP_PKT_CTL_OPCODE_SHIFT);
-	pkt.port_index = cpu_to_le32(port);
-
-	rc = hdev->asic_funcs->send_cpu_message(hdev, (u32 *) &pkt, sizeof(pkt), 0, NULL);
-	if (rc) {
-		dev_err(hdev->dev, "Card %u Port %u: Failed to reset MAC Tx, rc %d\n",
-			cn->card_location, port, rc);
-		return rc;
-	}
-
-	return 0;
-}
-
 static char *gaudi2_cn_get_event_name(struct hl_aux_dev *aux_dev, u16 event_type)
 {
 	return gaudi2_irq_map_table[event_type].valid ? gaudi2_irq_map_table[event_type].name :
@@ -356,7 +335,6 @@ static void gaudi2_cn_set_cn_data(struct hl_device *hdev)
 
 	/* cn2accel */
 	gaudi2_aux_ops->can_unset_asid_cfg = gaudi2_cn_can_unset_asid_cfg;
-	gaudi2_aux_ops->reset_mac_tx = gaudi2_cn_reset_mac_tx;
 	gaudi2_aux_ops->get_event_name = gaudi2_cn_get_event_name;
 	gaudi2_aux_ops->poll_mem = gaudi2_cn_poll_mem;
 }
