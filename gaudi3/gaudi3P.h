@@ -11,7 +11,7 @@
 #include <linux/net/intel/gaudi3.h>
 #include <uapi/drm/habanalabs_accel.h>
 #include "../common/habanalabs.h"
-#include "../include/common/hl_boot_if.h"
+#include <linux/habanalabs/hl_boot_if.h>
 #include "../include/gaudi3/gaudi3.h"
 #include "../include/gaudi3/gaudi3_packets.h"
 #include <linux/netdevice.h>

@@ -16,7 +16,7 @@
 #include <linux/ctype.h>
 
 #include "../common/habanalabs_compat.h"
-#include "../include/common/cpucp_if.h"
+#include <linux/habanalabs/cpucp_if.h>
 
 struct hl_device;
 struct hl_ctx;
