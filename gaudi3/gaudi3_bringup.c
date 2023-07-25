@@ -4043,9 +4043,11 @@ static void handle_and_clear_mme_events(struct hl_device *hdev, u32 die, u32 hdc
 		break;
 	case ERR_GRP_SEI:
 		handle_and_clear_mme_sei_events(hdev, idx, offset, &eq_dynamic_entry.mme_sei_data);
+		eq_dynamic_entry.hdr.size = cpu_to_le16(sizeof(struct hl_eq_mme_sei_data));
 		break;
 	case ERR_GRP_SPI_ECO:
 		spi_data = &eq_dynamic_entry.mme_spi_data;
+		eq_dynamic_entry.hdr.size = cpu_to_le16(sizeof(struct hl_eq_mme_spi_data));
 		/* the driver only cares about interrupts 12-14, which are mapped to 0-2 in 'idx' */
 		switch (idx + 12) {
 		case SPI_INTR_MME_QM_CS:
