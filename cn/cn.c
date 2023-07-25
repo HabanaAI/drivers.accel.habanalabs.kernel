@@ -11,36 +11,7 @@
 #include "../include/common/pci_ids.h"
 #include <linux/file.h>
 
-static void hl_cn_convert_cpucp_status(struct cpucp_nic_status *to,
-					struct hl_cn_cpucp_status *from)
-{
-	to->port = cpu_to_le32(from->port);
-	to->bad_format_cnt = cpu_to_le32(from->bad_format_cnt);
-	to->responder_out_of_sequence_psn_cnt =
-					cpu_to_le32(from->responder_out_of_sequence_psn_cnt);
-	to->high_ber_reinit = cpu_to_le32(from->high_ber_reinit);
-	to->correctable_err_cnt = cpu_to_le32(from->correctable_err_cnt);
-	to->uncorrectable_err_cnt = cpu_to_le32(from->uncorrectable_err_cnt);
-	to->retraining_cnt = cpu_to_le32(from->retraining_cnt);
-	to->up = from->up;
-	to->pcs_link = from->pcs_link;
-	to->phy_ready = from->phy_ready;
-	to->auto_neg = from->auto_neg;
-	to->timeout_retransmission_cnt = cpu_to_le32(from->timeout_retransmission_cnt);
-	to->high_ber_cnt = cpu_to_le32(from->high_ber_cnt);
-	to->pre_fec_ser.integer = cpu_to_le16(from->pre_fec_ser.integer);
-	to->pre_fec_ser.exp = cpu_to_le16(from->pre_fec_ser.exp);
-	to->post_fec_ser.integer = cpu_to_le16(from->post_fec_ser.integer);
-	to->post_fec_ser.exp = cpu_to_le16(from->post_fec_ser.exp);
-	to->bandwidth.integer = cpu_to_le16(from->bandwidth.integer);
-	to->bandwidth.frac = cpu_to_le16(from->bandwidth.frac);
-	to->lat.integer = cpu_to_le16(from->lat.integer);
-	to->lat.frac = cpu_to_le16(from->lat.frac);
-	to->port_toggle_cnt = cpu_to_le32(from->port_toggle_cnt);
-}
-
-static int __hl_cn_send_cpucp_status(struct hl_device *hdev, u32 port,
-					struct hl_cn_cpucp_status *cn_status)
+static int hl_cn_send_empty_status(struct hl_device *hdev, int port)
 {
 	struct hl_cn_funcs *cn_funcs = hdev->asic_funcs->cn_funcs;
 	struct cpucp_nic_status status = {};
@@ -71,7 +42,8 @@ static int __hl_cn_send_cpucp_status(struct hl_device *hdev, u32 port,
 		goto out;
 	}
 
-	hl_cn_convert_cpucp_status(&status, cn_status);
+	status.port = cpu_to_le32(port);
+	status.up = false;
 
 	pkt->length = cpu_to_le32(data_size / sizeof(u32));
 	memcpy(&pkt->data, &status, data_size);
@@ -88,16 +60,6 @@ out:
 	cn_funcs->port_funcs->post_send_status(hdev, port);
 
 	return rc;
-}
-
-static int hl_cn_send_empty_status(struct hl_device *hdev, int port)
-{
-	struct hl_cn_cpucp_status status = {};
-
-	status.port = port;
-	status.up = false;
-
-	return __hl_cn_send_cpucp_status(hdev, port, &status);
 }
 
 static bool hl_cn_device_operational(struct hl_aux_dev *aux_dev)
@@ -154,15 +116,6 @@ static int hl_cn_spmu_sample(struct hl_aux_dev *aux_dev, u32 port, u32 num_out_d
 	struct hl_cn_port_funcs *port_funcs = hdev->asic_funcs->cn_funcs->port_funcs;
 
 	return port_funcs->spmu_sample(hdev, port, num_out_data, out_data);
-}
-
-static int hl_cn_send_cpucp_status(struct hl_aux_dev *aux_dev, u32 port,
-					struct hl_cn_cpucp_status *cn_status)
-{
-	struct hl_cn *cn = container_of(aux_dev, struct hl_cn, cn_aux_dev);
-	struct hl_device *hdev = container_of(cn, struct hl_device, cn);
-
-	return __hl_cn_send_cpucp_status(hdev, port, cn_status);
 }
 
 static void hl_cn_device_reset(struct hl_aux_dev *aux_dev)
@@ -613,7 +566,6 @@ static int hl_cn_aux_data_init(struct hl_device *hdev)
 	aux_ops->spmu_get_stats_info = hl_cn_spmu_get_stats_info;
 	aux_ops->spmu_config = hl_cn_spmu_config;
 	aux_ops->spmu_sample = hl_cn_spmu_sample;
-	aux_ops->send_cpucp_status = hl_cn_send_cpucp_status;
 	aux_ops->device_reset = hl_cn_device_reset;
 	aux_ops->dma_alloc_coherent = hl_cn_dma_alloc_coherent;
 	aux_ops->dma_free_coherent = hl_cn_dma_free_coherent;
