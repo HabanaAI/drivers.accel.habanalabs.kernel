@@ -12824,7 +12824,8 @@ static void gaudi3_set_reset_flags_and_event_mask(struct hl_device *hdev,
 		break;
 	case INT_COMP_TYPE_NIC:
 		/* NIC SPI events are not errors. */
-		if (agg_grp_type == INT_GRP_TYPE_SEI) {
+		/* TODO: re-enable when NIC SEI interrupt after reset is cleared (SW-151293) */
+		if (0 && agg_grp_type == INT_GRP_TYPE_SEI) {
 			*event_mask = HL_NOTIFIER_EVENT_USER_ENGINE_ERR;
 			hard_reset = true;
 		}
