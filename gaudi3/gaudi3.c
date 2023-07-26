@@ -13122,6 +13122,8 @@ static void gaudi3_notifier_events_and_device_reset(struct hl_device *hdev, u32 
 	bool skip_reset_on_fw_events = (!hdev->hard_reset_on_fw_events &&
 						!(reset_flags & HL_DRV_RESET_BYPASS_REQ_TO_FW));
 
+	dev_dbg(hdev->dev, "reset_flags %#x, event_mask %#llx\n", reset_flags, event_mask);
+
 	if (!reset_flags || skip_reset_on_fw_events)
 		goto skip_device_reset;
 
