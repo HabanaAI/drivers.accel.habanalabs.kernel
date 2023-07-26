@@ -528,6 +528,31 @@ static inline void set_default_power_values(struct hl_device *hdev)
 	}
 }
 
+static void gaudi_cn_early_init_props(struct hl_device *hdev)
+{
+	struct asic_fixed_properties *prop = &hdev->asic_prop;
+	struct hl_cn_properties *cn_prop = &prop->cn_props;
+
+	cn_prop->max_num_of_ports = NIC_NUMBER_OF_PORTS;
+	cn_prop->macro_cfg_size = mmNIC1_QM0_GLBL_CFG0 - mmNIC0_QM0_GLBL_CFG0;
+	cn_prop->nic_drv_addr = NIC_DRV_ADDR;
+	cn_prop->nic_drv_size = NIC_DRV_SIZE;
+	cn_prop->nic_drv_base_addr = NIC_DRV_BASE_ADDR;
+	cn_prop->nic_drv_end_addr = NIC_DRV_END_ADDR;
+	cn_prop->sb_base_addr = SB_BASE_ADDR;
+	cn_prop->sb_base_size = SB_BASE_SIZE;
+	cn_prop->swq_base_addr = SWQ_BASE_ADDR;
+	cn_prop->swq_base_size = SWQ_BASE_SIZE;
+	cn_prop->txs_base_addr = TXS_BASE_ADDR;
+	cn_prop->txs_base_size = TXS_BASE_SIZE;
+	cn_prop->tmr_base_addr = TMR_BASE_ADDR;
+	cn_prop->tmr_base_size = TMR_BASE_SIZE;
+	cn_prop->req_qpc_base_addr = REQ_QPC_BASE_ADDR;
+	cn_prop->req_qpc_base_size = REQ_QPC_BASE_SIZE;
+	cn_prop->res_qpc_base_addr = RES_QPC_BASE_ADDR;
+	cn_prop->res_qpc_base_size = RES_QPC_BASE_SIZE;
+}
+
 int gaudi_set_fixed_properties(struct hl_device *hdev)
 {
 	struct asic_fixed_properties *prop = &hdev->asic_prop;
@@ -707,25 +732,12 @@ int gaudi_set_fixed_properties(struct hl_device *hdev)
 	prop->fuse_data_0_reg = mmPSOC_EFUSE_DATA_0;
 	prop->fuse_words_per_bank = FUSE_WORDS_PER_BANK;
 
-	cn_prop->max_num_of_ports = NIC_NUMBER_OF_PORTS;
-	cn_prop->macro_cfg_size = mmNIC1_QM0_GLBL_CFG0 - mmNIC0_QM0_GLBL_CFG0;
-	cn_prop->nic_drv_addr = NIC_DRV_ADDR;
-	cn_prop->nic_drv_size = NIC_DRV_SIZE;
-	cn_prop->nic_drv_base_addr = NIC_DRV_BASE_ADDR;
-	cn_prop->nic_drv_end_addr = NIC_DRV_END_ADDR;
-	cn_prop->sb_base_addr = SB_BASE_ADDR;
-	cn_prop->sb_base_size = SB_BASE_SIZE;
-	cn_prop->swq_base_addr = SWQ_BASE_ADDR;
-	cn_prop->swq_base_size = SWQ_BASE_SIZE;
-	cn_prop->txs_base_addr = TXS_BASE_ADDR;
-	cn_prop->txs_base_size = TXS_BASE_SIZE;
-	cn_prop->tmr_base_addr = TMR_BASE_ADDR;
-	cn_prop->tmr_base_size = TMR_BASE_SIZE;
-	cn_prop->req_qpc_base_addr = REQ_QPC_BASE_ADDR;
-	cn_prop->req_qpc_base_size = REQ_QPC_BASE_SIZE;
-	cn_prop->res_qpc_base_addr = RES_QPC_BASE_ADDR;
-	cn_prop->res_qpc_base_size = RES_QPC_BASE_SIZE;
+	prop->nic_drv_addr = NIC_DRV_ADDR;
+	prop->nic_drv_size = NIC_DRV_SIZE;
+	prop->macro_cfg_size = mmNIC1_QM0_GLBL_CFG0 - mmNIC0_QM0_GLBL_CFG0;
 	cn_prop->status_packet_size = NIC_STATUS_PACKET_SIZE;
+
+	gaudi_cn_early_init_props(hdev);
 
 	return 0;
 }

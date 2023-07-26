@@ -2332,11 +2332,42 @@ static int set_number_of_functional_hbms(struct hl_device *hdev)
 	return 0;
 }
 
-int gaudi2_set_dram_properties(struct hl_device *hdev)
+static void gaudi2_cn_early_init_props(struct hl_device *hdev)
 {
-	u64 hbm_drv_base_offset = 0, nic_drv_addr = 0, nic_drv_size;
 	struct asic_fixed_properties *prop = &hdev->asic_prop;
 	struct hl_cn_properties *cn_prop = &prop->cn_props;
+
+	cn_prop->max_num_of_ports = NIC_NUMBER_OF_PORTS;
+	cn_prop->macro_cfg_size = NIC_OFFSET;
+	cn_prop->txs_base_size = TXS_TOTAL_PORT_SIZE;
+	cn_prop->tmr_base_size = TMR_TOTAL_MACRO_SIZE;
+	cn_prop->req_qpc_base_size = REQ_QPC_TOTAL_PORT_SIZE;
+	cn_prop->res_qpc_base_size = RES_QPC_TOTAL_PORT_SIZE;
+	cn_prop->clk = GAUDI2_NIC_CLK_FREQ / USEC_PER_SEC;
+}
+
+static void gaudi2_cn_dram_props(struct hl_device *hdev)
+{
+	struct asic_fixed_properties *prop = &hdev->asic_prop;
+	struct hl_cn_properties *cn_prop = &prop->cn_props;
+
+	/* NIC props */
+	cn_prop->nic_drv_addr = prop->nic_drv_addr;
+	cn_prop->nic_drv_base_addr = NIC_DRV_BASE_ADDR(prop->nic_drv_addr);
+	cn_prop->nic_drv_end_addr = NIC_DRV_END_ADDR(prop->nic_drv_addr, prop->nic_drv_size);
+	cn_prop->wq_base_addr = WQ_BASE_ADDR(prop->nic_drv_addr);
+	cn_prop->txs_base_addr = TXS_BASE_ADDR(prop->nic_drv_addr);
+	cn_prop->tmr_base_addr = TMR_BASE_ADDR(prop->nic_drv_addr);
+	cn_prop->req_qpc_base_addr = REQ_QPC_BASE_ADDR(prop->nic_drv_addr);
+	cn_prop->res_qpc_base_addr = RES_QPC_BASE_ADDR(prop->nic_drv_addr);
+	cn_prop->nic_drv_size = prop->nic_drv_size;
+	cn_prop->wq_base_size = WQ_BASE_SIZE(prop->nic_drv_addr, prop->nic_drv_size);
+}
+
+int gaudi2_set_dram_properties(struct hl_device *hdev)
+{
+	struct asic_fixed_properties *prop = &hdev->asic_prop;
+	u64 hbm_drv_base_offset = 0;
 	u32 basic_hbm_page_size;
 	int rc;
 
@@ -2356,18 +2387,6 @@ int gaudi2_set_dram_properties(struct hl_device *hdev)
 	prop->dram_base_address = DRAM_PHYS_BASE;
 	prop->dram_end_address = prop->dram_base_address + prop->dram_size;
 	prop->dram_supports_virtual_memory = true;
-
-	/*
-	 * Driver can't share an (48MB) HBM page with the F/W in order to prevent FW to block
-	 * the driver part by range register, so it must start at the next (48MB) page
-	 */
-	hbm_drv_base_offset = roundup(CPU_FW_IMAGE_SIZE, basic_hbm_page_size);
-
-	/*
-	 * The NIC driver section size in the HBM needs to be the remaining size in the first dram
-	 * page after taking into account the F/W image size
-	 */
-	nic_drv_size = prop->dram_page_size - hbm_drv_base_offset;
 
 	prop->dram_user_base_address = DRAM_PHYS_BASE + prop->dram_page_size;
 	prop->dram_hints_align_mask = ~GAUDI2_HBM_MMU_SCRM_ADDRESS_MASK;
@@ -2398,18 +2417,21 @@ int gaudi2_set_dram_properties(struct hl_device *hdev)
 	prop->dmmu.end_addr = prop->dmmu.start_addr + prop->dram_page_size *
 			div_u64((VA_HBM_SPACE_END - prop->dmmu.start_addr), prop->dmmu.page_size);
 
-	/* NIC props */
-	nic_drv_addr = DRAM_PHYS_BASE + hbm_drv_base_offset;
-	cn_prop->nic_drv_addr = nic_drv_addr;
-	cn_prop->nic_drv_base_addr = NIC_DRV_BASE_ADDR(nic_drv_addr);
-	cn_prop->nic_drv_end_addr = NIC_DRV_END_ADDR(nic_drv_addr, nic_drv_size);
-	cn_prop->wq_base_addr = WQ_BASE_ADDR(nic_drv_addr);
-	cn_prop->txs_base_addr = TXS_BASE_ADDR(nic_drv_addr);
-	cn_prop->tmr_base_addr = TMR_BASE_ADDR(nic_drv_addr);
-	cn_prop->req_qpc_base_addr = REQ_QPC_BASE_ADDR(nic_drv_addr);
-	cn_prop->res_qpc_base_addr = RES_QPC_BASE_ADDR(nic_drv_addr);
-	cn_prop->nic_drv_size = nic_drv_size;
-	cn_prop->wq_base_size = WQ_BASE_SIZE(nic_drv_addr, nic_drv_size);
+	/*
+	 * Driver can't share an (48MB) HBM page with the F/W in order to prevent FW to block
+	 * the driver part by range register, so it must start at the next (48MB) page
+	 */
+	hbm_drv_base_offset = roundup(CPU_FW_IMAGE_SIZE, prop->num_functional_hbms * SZ_8M);
+
+	/*
+	 * The NIC driver section size in the HBM needs to be the remaining size in the first dram
+	 * page after taking into account the F/W image size
+	 */
+	prop->nic_drv_size = prop->dram_page_size - hbm_drv_base_offset;
+	prop->nic_drv_addr = DRAM_PHYS_BASE + hbm_drv_base_offset;
+	prop->clk = GAUDI2_NIC_CLK_FREQ / USEC_PER_SEC;
+
+	gaudi2_cn_dram_props(hdev);
 
 	return 0;
 }
@@ -2631,14 +2653,10 @@ int gaudi2_set_fixed_properties(struct hl_device *hdev)
 	prop->fuse_data_0_reg = mmPSOC_EFUSE_DATA_0;
 	prop->fuse_words_per_bank = FUSE_WORDS_PER_BANK;
 
-	cn_prop->max_num_of_ports = NIC_NUMBER_OF_PORTS;
-	cn_prop->macro_cfg_size = NIC_OFFSET;
-	cn_prop->txs_base_size = TXS_TOTAL_PORT_SIZE;
-	cn_prop->tmr_base_size = TMR_TOTAL_MACRO_SIZE;
-	cn_prop->req_qpc_base_size = REQ_QPC_TOTAL_PORT_SIZE;
-	cn_prop->res_qpc_base_size = RES_QPC_TOTAL_PORT_SIZE;
+	prop->macro_cfg_size = NIC_OFFSET;
 	cn_prop->status_packet_size = sizeof(struct cpucp_nic_status);
-	cn_prop->clk = GAUDI2_NIC_CLK_FREQ / USEC_PER_SEC;
+
+	gaudi2_cn_early_init_props(hdev);
 
 	return 0;
 
