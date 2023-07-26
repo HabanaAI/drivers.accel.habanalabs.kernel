@@ -5775,10 +5775,17 @@ static int gaudi3_config_etf(struct hl_device *hdev, struct hl_debug_params *par
 		if (!input)
 			return -EINVAL;
 
+		val = RREG32(base_reg + mmETF_1KB_RSZ) << 2;
+		if (val) {
+			val = ffs(val);
+			WREG32(base_reg + mmETF_1KB_PSCR, val);
+		} else {
+			WREG32(base_reg + mmETF_1KB_PSCR, 0x10);
+		}
+
 		WREG32(base_reg + mmETF_1KB_BUFWM, 0x3FFC);
 		WREG32(base_reg + mmETF_1KB_MODE, input->sink_mode);
 		WREG32(base_reg + mmETF_1KB_FFCR, 0x4001);
-		WREG32(base_reg + mmETF_1KB_PSCR, 0x10);
 		WREG32(base_reg + mmETF_1KB_CTL, 1);
 	} else {
 		WREG32(base_reg + mmETF_1KB_BUFWM, 0);
