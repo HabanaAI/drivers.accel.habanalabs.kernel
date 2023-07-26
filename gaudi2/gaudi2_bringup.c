@@ -5900,7 +5900,6 @@ void gaudi2_init_arc(struct hl_device *hdev, const u32 *arc_blocks, u32 cpu_id)
 	reg_val |= FIELD_PREP(ARC_FARM_ARC0_AUX_ARC_CBU_AWCACHE_OVR_AXI_WRITE_EN_MASK, 0x3);
 	WREG32(reg_base + ARC_ARC_CBU_AWCACHE_OVR_OFFSET, reg_val);
 	WREG32(reg_base + ARC_ARC_LBU_AWCACHE_OVR_OFFSET, reg_val);
-	WREG32(reg_base + ARC_CBU_EARLY_BRESP_EN_OFFSET, 0x1);
 	WREG32(reg_base + ARC_LBU_EARLY_BRESP_EN_OFFSET, 0x1);
 }
 

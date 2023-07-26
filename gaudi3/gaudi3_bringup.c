@@ -1968,8 +1968,7 @@ void gaudi3_init_arc(struct hl_device *hdev, u32 cpu_id)
 	reg_val |= FIELD_PREP(QMAN_ARC_AUX_ARC_CBU_AWCACHE_OVR_AXI_WRITE_EN_M, 0x3);
 	WREG32(reg_base + mmQMAN_ARC_AUX_ARC_CBU_AWCACHE_OVR, reg_val);
 	WREG32(reg_base + mmQMAN_ARC_AUX_ARC_LBU_AWCACHE_OVR, reg_val);
-	WREG32(reg_base + mmQMAN_ARC_AUX_CBU_EARLY_BRESP_EN, 0x1);
-	WREG32(reg_base + mmQMAN_ARC_AUX_LBU_EARLY_BRESP_EN, 0x1);
+	WREG32(reg_base + mmQMAN_ARC_AUX_CBU_EARLY_BRESP_EN, 0x0);
 
 	/* Initialize AxCACHE bits for scheduler ARCs */
 	if (cpu_id < CPU_ID_SCHED_MAX) {
