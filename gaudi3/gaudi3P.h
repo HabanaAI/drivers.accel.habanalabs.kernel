@@ -605,7 +605,8 @@ void gaudi3_set_pci_memory_regions(struct hl_device *hdev);
 u32 *gaudi3_get_stream_master_qid_arr(void);
 void gaudi3_init_arcs(struct hl_device *hdev);
 void gaudi3_lbw_dup_init(struct hl_device *hdev);
-void gaudi3_lbw_dup_group_push(struct hl_device *hdev, u32 dup_group_id, u32 offset, u32 data);
+void gaudi3_lbw_dup_group_push(struct hl_device *hdev, enum gaudi3_dup_group dup_group_id,
+				u32 offset, u32 data);
 int gaudi3_mmu_init(struct hl_device *hdev);
 void gaudi3_init_cbc(struct hl_device *hdev);
 void gaudi3_init_pdma(struct hl_device *hdev);
