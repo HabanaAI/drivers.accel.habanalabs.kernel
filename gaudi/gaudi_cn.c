@@ -40,10 +40,10 @@ static void gaudi_cn_set_hw_cap(struct hl_device *hdev, bool enable)
 
 static int gaudi_cn_pre_core_init(struct hl_device *hdev)
 {
-	struct cpucp_nic_info *nic_info = &hdev->asic_prop.cpucp_nic_info;
+	struct hl_cn_cpucp_info *cn_cpucp_info = &hdev->asic_prop.cn_cpucp_info;
 	struct hl_cn_properties *cn_prop = &hdev->asic_prop.cn_props;
 	struct cpucp_info *cpucp_info = &hdev->asic_prop.cpucp_info;
-	struct cpucp_mac_addr *mac_arr = nic_info->mac_addrs;
+	struct hl_cn_cpucp_mac_addr *mac_arr = cn_cpucp_info->mac_addrs;
 	struct gaudi_device *gaudi = hdev->asic_specific;
 	struct hl_cn *cn = &hdev->cn;
 	u64 nic_dram_alloc_size;
@@ -75,13 +75,13 @@ static int gaudi_cn_pre_core_init(struct hl_device *hdev)
 		u8 *mac_addr;
 
 		if (hdev->pdev) {
-			rc = hl_fw_cpucp_nic_info_get(hdev);
+			rc = hl_cn_cpucp_info_get(hdev);
 			if (rc)
 				return rc;
 		}
 
 		if (hdev->card_type == cpucp_card_type_pmc) {
-			switch (le16_to_cpu(nic_info->serdes_type)) {
+			switch (cn_cpucp_info->serdes_type) {
 			case TYPE_1_SERDES_TYPE:
 				hdev->asic_prop.server_type = HL_SERVER_GAUDI_TYPE1;
 				break;
@@ -115,9 +115,9 @@ static int gaudi_cn_pre_core_init(struct hl_device *hdev)
 		}
 
 		if (!hdev->ignore_fw_nic_info || !hdev->pdev) {
-			hdev->cn_ports_mask &= le64_to_cpu(nic_info->link_mask[0]);
-			hdev->cn_ports_ext_mask &= le64_to_cpu(nic_info->link_ext_mask[0]);
-			hdev->cn_auto_neg_mask &= le64_to_cpu(nic_info->auto_neg_mask[0]);
+			hdev->cn_ports_mask &= cn_cpucp_info->link_mask[0];
+			hdev->cn_ports_ext_mask &= cn_cpucp_info->link_ext_mask[0];
+			hdev->cn_auto_neg_mask &= cn_cpucp_info->auto_neg_mask[0];
 		}
 
 		cn->card_location = le32_to_cpu(cpucp_info->card_location);

@@ -106,6 +106,7 @@ int hl_cn_get_port_state(struct hl_device *hdev, u32 port, bool *up);
 int hl_cn_get_port_statistics(struct hl_device *hdev, u32 port,
 				struct hl_cn_port_statistics *out);
 int hl_cn_check_ib_driver(struct hl_device *hdev);
+int hl_cn_cpucp_info_get(struct hl_device *hdev);
 
 #ifndef _HAS_AUX_BUS_H
 extern int hl_cn_probe(struct hl_aux_dev *aux_dev);

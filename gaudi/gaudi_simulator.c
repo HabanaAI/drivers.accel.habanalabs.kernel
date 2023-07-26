@@ -962,13 +962,13 @@ static int gaudi_sim_early_fini(struct hl_device *hdev)
 
 static void gaudi_sim_get_nic_info(struct hl_device *hdev)
 {
-	struct cpucp_nic_info *nic_info = &hdev->asic_prop.cpucp_nic_info;
+	struct hl_cn_cpucp_info *cn_cpucp_info = &hdev->asic_prop.cn_cpucp_info;
 	struct cpucp_info *cpucp_info = &hdev->asic_prop.cpucp_info;
 	u32 i, card_location;
 	u8 mac[ETH_ALEN];
 
 	/* Assumes HLS1 connections and HLS1 SerDes. */
-	nic_info->serdes_type = cpu_to_le16(HLS1_SERDES_TYPE);
+	cn_cpucp_info->serdes_type = HLS1_SERDES_TYPE;
 
 	for (i = 0 ; i < 3 ; i++)
 		mac[i] = HABANALABS_MAC_OUI_1 >> (8 * (2 - i));
@@ -978,11 +978,11 @@ static void gaudi_sim_get_nic_info(struct hl_device *hdev)
 
 	for (i = 0 ; i < CPUCP_MAX_NICS ; i++) {
 		mac[ETH_ALEN - 1] = i;
-		memcpy(nic_info->mac_addrs[i].mac_addr, mac, ETH_ALEN);
+		memcpy(cn_cpucp_info->mac_addrs[i].mac_addr, mac, ETH_ALEN);
 	}
 
-	nic_info->link_mask[0] = cpu_to_le64(0x3FF);
-	nic_info->link_ext_mask[0] = cpu_to_le64(0x302);
+	cn_cpucp_info->link_mask[0] = 0x3FF;
+	cn_cpucp_info->link_ext_mask[0] = 0x302;
 
 	card_location = RREG32(mmPSOC_GLOBAL_CONF_BOOT_STRAP_PINS);
 	cpucp_info->card_location = cpu_to_le32((card_location >> 22) & 0x7);

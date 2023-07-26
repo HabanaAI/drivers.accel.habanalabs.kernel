@@ -386,17 +386,19 @@ static void hl_cn_get_cpucp_info(struct hl_aux_dev *aux_dev,
 {
 	struct hl_cn *cn = container_of(aux_dev, struct hl_cn, cn_aux_dev);
 	struct hl_device *hdev = container_of(cn, struct hl_device, cn);
-	struct cpucp_nic_info *cpucp_nic_info;
+	struct hl_cn_cpucp_info *cn_cpucp_info;
+
+	cn_cpucp_info = &hdev->asic_prop.cn_cpucp_info;
+
+	memcpy(hl_cn_cpucp_info, cn_cpucp_info, sizeof(*cn_cpucp_info));
+}
+
+static void hl_cn_cpucp_info_le_to_cpu(struct cpucp_nic_info *cpucp_nic_info,
+					struct hl_cn_cpucp_info *hl_cn_cpucp_info)
+{
 	int i;
 
-	BUILD_BUG_ON(CPUCP_MAX_NICS != HL_CN_CPUCP_MAX_NICS);
-	BUILD_BUG_ON(CPUCP_NIC_MASK_ARR_LEN != HL_CN_CPUCP_NIC_MASK_ARR_LEN);
-	BUILD_BUG_ON(CPUCP_NIC_POLARITY_ARR_LEN != HL_CN_CPUCP_NIC_POLARITY_ARR_LEN);
-	BUILD_BUG_ON(CPUCP_NIC_QSFP_EEPROM_MAX_LEN != HL_CN_CPUCP_NIC_QSFP_EEPROM_MAX_LEN);
-
-	cpucp_nic_info = &hdev->asic_prop.cpucp_nic_info;
-
-	for (i = 0 ; i < HL_CN_CPUCP_MAX_NICS ; i++) {
+	for (i = 0 ; i < CPUCP_MAX_NICS ; i++) {
 		memcpy(&hl_cn_cpucp_info->mac_addrs[i], &cpucp_nic_info->mac_addrs[i],
 			sizeof(cpucp_nic_info->mac_addrs[i]));
 		hl_cn_cpucp_info->tx_swap_map[i] = le16_to_cpu(cpucp_nic_info->tx_swap_map[i]);
@@ -408,10 +410,13 @@ static void hl_cn_get_cpucp_info(struct hl_aux_dev *aux_dev,
 		hl_cn_cpucp_info->auto_neg_mask[i] = le64_to_cpu(cpucp_nic_info->auto_neg_mask[i]);
 	}
 
-	for (i = 0 ; i < HL_CN_CPUCP_NIC_POLARITY_ARR_LEN ; i++) {
+	for (i = 0 ; i < CPUCP_NIC_POLARITY_ARR_LEN ; i++) {
 		hl_cn_cpucp_info->pol_tx_mask[i] = le64_to_cpu(cpucp_nic_info->pol_tx_mask[i]);
 		hl_cn_cpucp_info->pol_rx_mask[i] = le64_to_cpu(cpucp_nic_info->pol_rx_mask[i]);
 	}
+
+	hl_cn_cpucp_info->serdes_type = (enum cpucp_serdes_type)
+					le16_to_cpu(cpucp_nic_info->serdes_type);
 
 	memcpy(hl_cn_cpucp_info->qsfp_eeprom, cpucp_nic_info->qsfp_eeprom,
 		sizeof(cpucp_nic_info->qsfp_eeprom));
@@ -1078,3 +1083,40 @@ int hl_cn_check_ib_driver(struct hl_device *hdev)
 #endif
 }
 #endif
+
+int hl_cn_cpucp_info_get(struct hl_device *hdev)
+{
+	struct asic_fixed_properties *prop = &hdev->asic_prop;
+	struct cpucp_nic_info *cpucp_nic_info;
+	dma_addr_t cpucp_nic_info_dma_addr;
+	int rc;
+
+	cpucp_nic_info = hl_cpu_accessible_dma_pool_alloc(hdev,
+							sizeof(struct cpucp_nic_info),
+							&cpucp_nic_info_dma_addr);
+	if (!cpucp_nic_info) {
+		dev_err(hdev->dev,
+			"Failed to allocate DMA memory for CPU-CP NIC info packet\n");
+		return -ENOMEM;
+	}
+
+	memset(cpucp_nic_info, 0, sizeof(struct cpucp_nic_info));
+
+	/* Unfortunately, 0 is a valid type in this field from f/w perspective,
+	 * so to support older f/w where they don't return this field, put
+	 * here the max value so when converting serdes type to server type,
+	 * we will put the UNKNOWN value into the server type.
+	 */
+	cpucp_nic_info->serdes_type = cpu_to_le16(U16_MAX);
+
+	rc = hl_fw_cpucp_nic_info_get(hdev, cpucp_nic_info_dma_addr);
+	if (rc)
+		goto out;
+
+	hl_cn_cpucp_info_le_to_cpu(cpucp_nic_info, &prop->cn_cpucp_info);
+
+out:
+	hl_cpu_accessible_dma_pool_free(hdev, sizeof(struct cpucp_nic_info), cpucp_nic_info);
+
+	return 0;
+}

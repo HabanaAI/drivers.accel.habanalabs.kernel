@@ -1124,32 +1124,11 @@ out:
 	return rc;
 }
 
-int hl_fw_cpucp_nic_info_get(struct hl_device *hdev)
+int hl_fw_cpucp_nic_info_get(struct hl_device *hdev, dma_addr_t cpucp_nic_info_dma_addr)
 {
-	struct asic_fixed_properties *prop = &hdev->asic_prop;
-	struct cpucp_nic_info *cpucp_nic_info_cpu_addr;
-	dma_addr_t cpucp_nic_info_dma_addr;
 	struct cpucp_packet pkt = {};
 	u64 result;
 	int rc;
-
-	cpucp_nic_info_cpu_addr = hl_cpu_accessible_dma_pool_alloc(hdev,
-							sizeof(struct cpucp_nic_info),
-							&cpucp_nic_info_dma_addr);
-	if (!cpucp_nic_info_cpu_addr) {
-		dev_err(hdev->dev,
-			"Failed to allocate DMA memory for CPU-CP NIC info packet\n");
-		return -ENOMEM;
-	}
-
-	memset(cpucp_nic_info_cpu_addr, 0, sizeof(struct cpucp_nic_info));
-
-	/* Unfortunately, 0 is a valid type in this field from f/w perspective,
-	 * so to support older f/w where they don't return this field, put
-	 * here the max value so when converting serdes type to server type,
-	 * we will put the UNKNOWN value into the server type.
-	 */
-	cpucp_nic_info_cpu_addr->serdes_type = cpu_to_le16(U16_MAX);
 
 	pkt.ctl = cpu_to_le32(CPUCP_PACKET_NIC_INFO_GET <<
 				CPUCP_PKT_CTL_OPCODE_SHIFT);
@@ -1158,18 +1137,9 @@ int hl_fw_cpucp_nic_info_get(struct hl_device *hdev)
 
 	rc = hdev->asic_funcs->send_cpu_message(hdev, (u32 *) &pkt, sizeof(pkt),
 					HL_CPUCP_INFO_TIMEOUT_USEC, &result);
-	if (rc) {
+	if (rc)
 		dev_err(hdev->dev,
 			"Failed to handle CPU-CP NIC info pkt, error %d\n", rc);
-		goto out;
-	}
-
-	memcpy(&prop->cpucp_nic_info, cpucp_nic_info_cpu_addr,
-			sizeof(prop->cpucp_nic_info));
-
-out:
-	hl_cpu_accessible_dma_pool_free(hdev, sizeof(struct cpucp_nic_info),
-						cpucp_nic_info_cpu_addr);
 
 	return rc;
 }

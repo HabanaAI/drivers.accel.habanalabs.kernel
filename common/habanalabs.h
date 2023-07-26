@@ -823,9 +823,9 @@ struct asic_fixed_properties {
 	struct hl_skip_blocks_cfg	skip_special_blocks_cfg;
 	struct hl_skip_blocks_cfg	skip_pb_blocks_cfg;
 	struct hl_special_blocks_cfg	pb_blocks_cfg;
-	struct hl_cn_properties	cn_props;
+	struct hl_cn_properties		cn_props;
 	struct cpucp_info		cpucp_info;
-	struct cpucp_nic_info		cpucp_nic_info;
+	struct hl_cn_cpucp_info		cn_cpucp_info;
 	char				uboot_ver[VERSION_MAX_LEN];
 	char				preboot_ver[VERSION_MAX_LEN];
 	struct hl_mmu_properties	dmmu;
@@ -4408,7 +4408,7 @@ int hl_fw_cpucp_handshake(struct hl_device *hdev,
 				u32 boot_err1_reg);
 int hl_fw_get_eeprom_data(struct hl_device *hdev, void *data, size_t max_size);
 int hl_fw_get_monitor_dump(struct hl_device *hdev, void *data);
-int hl_fw_cpucp_nic_info_get(struct hl_device *hdev);
+int hl_fw_cpucp_nic_info_get(struct hl_device *hdev, dma_addr_t cpucp_nic_info_dma_addr);
 int hl_fw_cpucp_pci_counters_get(struct hl_device *hdev,
 		struct hl_info_pci_counters *counters);
 int hl_fw_cpucp_total_energy_get(struct hl_device *hdev,

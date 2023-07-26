@@ -151,9 +151,9 @@ static void gaudi2_cn_set_hw_cap(struct hl_device *hdev, bool enable)
 
 int gaudi2_cn_set_info(struct hl_device *hdev, bool get_from_fw)
 {
-	struct cpucp_nic_info *nic_info = &hdev->asic_prop.cpucp_nic_info;
+	struct hl_cn_cpucp_info *cn_cpucp_info = &hdev->asic_prop.cn_cpucp_info;
 	struct cpucp_info *cpucp_info = &hdev->asic_prop.cpucp_info;
-	struct cpucp_mac_addr *mac_arr = nic_info->mac_addrs;
+	struct hl_cn_cpucp_mac_addr *mac_arr = cn_cpucp_info->mac_addrs;
 	struct hl_cn *cn = &hdev->cn;
 	u32 card_location, serdes_type = MAX_NUM_SERDES_TYPE;
 	u8 mac[ETH_ALEN], *mac_addr;
@@ -164,7 +164,7 @@ int gaudi2_cn_set_info(struct hl_device *hdev, bool get_from_fw)
 		mac[i] = HABANALABS_MAC_OUI_1 >> (8 * (2 - i));
 
 	if (get_from_fw) {
-		rc = hl_fw_cpucp_nic_info_get(hdev);
+		rc = hl_cn_cpucp_info_get(hdev);
 		if (rc)
 			return rc;
 
@@ -175,12 +175,12 @@ int gaudi2_cn_set_info(struct hl_device *hdev, bool get_from_fw)
 			dev_dbg(hdev->dev,
 				"skipping NIC FW ports info on gaudi2B device with an overridden pci revision id\n");
 		} else {
-			hdev->cn_ports_mask &= le64_to_cpu(nic_info->link_mask[0]);
-			hdev->cn_ports_ext_mask &= le64_to_cpu(nic_info->link_ext_mask[0]);
-			hdev->cn_auto_neg_mask &= le64_to_cpu(nic_info->auto_neg_mask[0]);
+			hdev->cn_ports_mask &= cn_cpucp_info->link_mask[0];
+			hdev->cn_ports_ext_mask &= cn_cpucp_info->link_ext_mask[0];
+			hdev->cn_auto_neg_mask &= cn_cpucp_info->auto_neg_mask[0];
 		}
 
-		serdes_type = le16_to_cpu(nic_info->serdes_type);
+		serdes_type = cn_cpucp_info->serdes_type;
 
 		/* In case of invalid MAC from F/W, and if the user asked to ignore eeprom related
 		 * errors, the MAC addresses will be set manually according to the bus address and

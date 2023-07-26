@@ -969,15 +969,15 @@ static int gaudi3_sim_early_fini(struct hl_device *hdev)
 
 static void gaudi3_sim_get_nic_info(struct hl_device *hdev)
 {
-	struct cpucp_nic_info *nic_info = &hdev->asic_prop.cpucp_nic_info;
+	struct hl_cn_cpucp_info *cn_cpucp_info = &hdev->asic_prop.cn_cpucp_info;
 
 	/* Assume HLS3 connections */
 	if (hdev->cn_lanes_per_port == PORT_LANES_2) {
-		nic_info->link_ext_mask[0] = cpu_to_le64(GAUDI3_HLS3_EXTERN_PORTS_MASK_200G_48TB);
-		nic_info->link_mask[0] = cpu_to_le64(GAUDI3_PORTS_MASK_200G);
+		cn_cpucp_info->link_ext_mask[0] = GAUDI3_HLS3_EXTERN_PORTS_MASK_200G_48TB;
+		cn_cpucp_info->link_mask[0] = GAUDI3_PORTS_MASK_200G;
 	} else {
-		nic_info->link_ext_mask[0] = cpu_to_le64(GAUDI3_HLS3_EXTERN_PORTS_MASK_400G_48TB);
-		nic_info->link_mask[0] = cpu_to_le64(GAUDI3_PORTS_MASK_400G);
+		cn_cpucp_info->link_ext_mask[0] = GAUDI3_HLS3_EXTERN_PORTS_MASK_400G_48TB;
+		cn_cpucp_info->link_mask[0] = GAUDI3_PORTS_MASK_400G;
 	}
 }
 
@@ -987,7 +987,7 @@ static int gaudi3_sim_cpucp_info_get(struct hl_device *hdev)
 			gaudi3_simulator_dev_table[hdev->id];
 	struct gaudi3_device *gaudi3 = hdev->asic_specific;
 	struct asic_fixed_properties *prop = &hdev->asic_prop;
-	struct cpucp_nic_info *nic_info = &prop->cpucp_nic_info;
+	struct hl_cn_cpucp_info *cn_cpucp_info = &prop->cn_cpucp_info;
 	u64 dram_size;
 	int rc;
 
@@ -999,9 +999,9 @@ static int gaudi3_sim_cpucp_info_get(struct hl_device *hdev)
 			 */
 			if (!hdev->ignore_fw_nic_info) {
 				gaudi3_sim_get_nic_info(hdev);
-				hdev->cn_ports_ext_mask &= le64_to_cpu(nic_info->link_ext_mask[0]);
-				hdev->cn_ports_mask &= le64_to_cpu(nic_info->link_mask[0]);
-				hdev->cn_auto_neg_mask &= le64_to_cpu(nic_info->auto_neg_mask[0]);
+				hdev->cn_ports_ext_mask &= cn_cpucp_info->link_ext_mask[0];
+				hdev->cn_ports_mask &= cn_cpucp_info->link_mask[0];
+				hdev->cn_auto_neg_mask &= cn_cpucp_info->auto_neg_mask[0];
 			}
 
 			rc = gaudi3_cn_set_info(hdev, false);
