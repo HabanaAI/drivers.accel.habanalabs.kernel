@@ -686,6 +686,9 @@ struct hl_mem_block_info {
  *                             alignment overhead, always >= etr_buf_dram_size.
  * @engine_core_interrupt_reg_addr: interrupt register address for engine core to use
  *                                  in order to raise events toward FW.
+ * @nic_drv_addr: base address for NIC driver on DRAM.
+ * @nic_drv_size: driver size reserved for NIC driver on DRAM.
+ * @macro_cfg_size: the size of the macro configuration space.
  * @etr_buf_number: total number of ETR bufs in DRAM, varies per number of dies
  * @pdma_ch_max: single/dual die dependent max num of PDMA channels.
  * @pdma_grp_max: single/dual die dependent max num of PDMA groups (SPDMAs).
@@ -775,6 +778,7 @@ struct hl_mem_block_info {
  * @cache_line_size: device cache line size.
  * @server_type: Server type that the ASIC is currently installed in.
  *               The value is according to enum hl_server_type in uapi file.
+ * @clk: clock frequency in MHz.
  * @completion_queues_count: number of completion queues.
  * @completion_mode: 0 - job based completion, 1 - cs based completion
  * @mme_master_slave_mode: 0 - Each MME works independently, 1 - MME works
@@ -865,6 +869,9 @@ struct asic_fixed_properties {
 	u64				etr_buf_dram_size;
 	u64				etr_buf_dram_size_aligned;
 	u64				engine_core_interrupt_reg_addr;
+	u64				nic_drv_addr;
+	u64				nic_drv_size;
+	u32				macro_cfg_size;
 	u32				etr_buf_number;
 	u32				pdma_ch_max;
 	u32				pdma_grp_max;
@@ -932,6 +939,7 @@ struct asic_fixed_properties {
 	u16				eq_interrupt_id;
 	u16				cache_line_size;
 	u16				server_type;
+	u16				clk;
 	u8				completion_queues_count;
 	u8				completion_mode;
 	u8				mme_master_slave_mode;

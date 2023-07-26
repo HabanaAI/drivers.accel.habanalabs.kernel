@@ -531,6 +531,9 @@ static int hl_cn_aux_data_init(struct hl_device *hdev)
 	aux_data->minor = hdev->id;
 	aux_data->fw_ver = asic_props->cpucp_info.cpucp_version;
 	aux_data->cn_props = &asic_props->cn_props;
+	aux_data->nic_drv_addr = asic_props->nic_drv_addr;
+	aux_data->nic_drv_size = asic_props->nic_drv_size;
+	aux_data->macro_cfg_size = asic_props->macro_cfg_size;
 	aux_data->pending_reset_long_timeout = hdev->pldm ? HL_PLDM_HARD_RESET_MAX_TIMEOUT :
 									HL_HARD_RESET_MAX_TIMEOUT;
 	aux_data->id = hdev->cdev_idx;
@@ -541,6 +544,7 @@ static int hl_cn_aux_data_init(struct hl_device *hdev)
 	aux_data->supports_coresight = hdev->supports_coresight;
 	aux_data->use_fw_serdes_info = cn->use_fw_serdes_info;
 	aux_data->cache_line_size = asic_props->cache_line_size;
+	aux_data->clk = asic_props->clk;
 	aux_data->kernel_asid = HL_KERNEL_ASID_ID;
 	aux_data->card_location = cn->card_location;
 	aux_data->mmu_enable = true;
