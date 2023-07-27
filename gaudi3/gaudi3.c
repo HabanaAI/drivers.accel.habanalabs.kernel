@@ -11328,7 +11328,15 @@ int gaudi3_block_mmap(struct hl_device *hdev, struct vm_area_struct *vma,
 
 void gaudi3_enable_events_from_fw(struct hl_device *hdev)
 {
-	/* TODO: SW-84955 enable events once we have interrupt support */
+	struct cpucp_packet pkt;
+	int rc;
+
+	memset(&pkt, 0, sizeof(pkt));
+	pkt.ctl = cpu_to_le32(CPUCP_PACKET_INTS_REGISTER << CPUCP_PKT_CTL_OPCODE_SHIFT);
+
+	rc = hdev->asic_funcs->send_cpu_message(hdev, (u32 *) &pkt, sizeof(pkt), 0, NULL);
+	if (rc)
+		dev_err(hdev->dev, "failed to send interrupt register msg (err = %d)\n", rc);
 }
 
 int gaudi3_ack_mmu_page_fault_or_access_error(struct hl_device *hdev, u64 mmu_cap_mask)
