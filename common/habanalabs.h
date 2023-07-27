@@ -3594,7 +3594,6 @@ struct hl_etr_buf_store {
  *              when a user opens the control device
  * @fpriv_list_lock: protects the fpriv_list
  * @fpriv_ctrl_list_lock: protects the fpriv_ctrl_list
- * @cn_hw_access_lock: protects the HW access from CN flows.
  * @aggregated_cs_counters: aggregated cs counters among all contexts
  * @mmu_priv: device-specific MMU data.
  * @mmu_func: device-related MMU functions.
@@ -3644,11 +3643,6 @@ struct hl_etr_buf_store {
  *                drams are binned-out
  * @tpc_binning: contains mask of tpc engines that is received from the f/w which indicates which
  *               tpc engines are binned-out
- * @cn_ports_mask: contains mask of the CN ports that are enabled, as received from the f/w. This
- *                  field can contain different values based on the server type
- * @cn_ports_ext_mask: contains mask of the CN ports that are external (used for scale-out), as
- *                      received from the f/w. This field can contain different values based on the
- *                      server type.
  * @dmabuf_export_cnt: number of dma-buf exporting.
  * @card_type: Various ASICs have several card types. This indicates the card
  *             type of the current device.
@@ -3811,7 +3805,6 @@ struct hl_device {
 	struct list_head		fpriv_ctrl_list;
 	struct mutex			fpriv_list_lock;
 	struct mutex			fpriv_ctrl_list_lock;
-	struct mutex			cn_hw_access_lock;
 
 	struct hl_cs_counters_atomic	aggregated_cs_counters;
 
@@ -3861,8 +3854,6 @@ struct hl_device {
 	u64				fw_comms_poll_interval_usec;
 	u64				dram_binning;
 	u64				tpc_binning;
-	u64				cn_ports_mask;
-	u64				cn_ports_ext_mask;
 	atomic_t			dmabuf_export_cnt;
 	enum cpucp_card_types		card_type;
 	u32				major;
@@ -3926,7 +3917,6 @@ struct hl_device {
 	u8				heartbeat;
 
 	/* Parameters for bring-up (not to be upstreamed) */
-	u64				cn_auto_neg_mask;
 	u64				tpc_mask;
 	u64				mme_binning;
 	u64				pdma_ch_mask;
@@ -3950,22 +3940,18 @@ struct hl_device {
 	u8				hbm_ecc_enable;
 	u8				compatibility_mode;
 	u8				bringup_flags_enable;
-	u8				cn_load_fw;
 	u8				rl_enable;
 	u8				sram_binning;
 	u8				force_driver_clock_gating;
 	u8				pll_async_if_enable;
 	u8				bootfit_relocatable;
 	u8				ignore_fw_nic_info;
-	u8				cn_lanes_per_port;
-	u8				skip_cn_phy_init;
 	u8				reset_if_device_not_idle;
 	u8				half_nominal_pll_mode;
 	u8				scrub_arc_dccm;
 	u8				skip_cluster_config;
 	u8				fw_cfg_skip;
 	u8				bmu_enable;
-	u8				cn_eth_on_internal;
 	u8				config_qman_arc_for_stub_mme;
 	u8				debug_rreg;
 	u8				debug_wreg;

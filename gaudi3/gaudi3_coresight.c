@@ -6573,17 +6573,17 @@ int gaudi3_coresight_init(struct hl_device *hdev)
 		/* Set NIC disable components */
 
 		half_size = CS_DBG_NIC_ID_SIZE >> 1;
-		enabled_mask = hdev->cn_ports_mask;
+		enabled_mask = hdev->cn.ports_mask;
 
 		/*
 		 * if PORT_LANES_2 - we have 2 bits in port mask per nic
 		 */
-		if (hdev->cn_lanes_per_port == PORT_LANES_2) {
+		if (hdev->cn.lanes_per_port == PORT_LANES_2) {
 			enabled_mask = 0x0;
 			tmp_mask_index = 0;
 
-			while (hdev->cn_ports_mask >> (tmp_mask_index << 1)) {
-				if ((hdev->cn_ports_mask >> (tmp_mask_index << 1)) & 0x3)
+			while (hdev->cn.ports_mask >> (tmp_mask_index << 1)) {
+				if ((hdev->cn.ports_mask >> (tmp_mask_index << 1)) & 0x3)
 					enabled_mask |= 1ULL << tmp_mask_index;
 				tmp_mask_index += 1;
 			}
@@ -6860,8 +6860,8 @@ int gaudi3_cn_spmu_config(struct hl_device *hdev, u32 port, u32 num_event_types,
 	/* For odd ports in 200G mode, if SPMU is already configured for even port, then return,
 	 * since SPMU base regs are per macro.
 	 */
-	if (hdev->cn_lanes_per_port == PORT_LANES_2 && (port & 1) &&
-	    (hdev->cn_ports_mask & BIT(port - 1)))
+	if (hdev->cn.lanes_per_port == PORT_LANES_2 && (port & 1) &&
+	    (hdev->cn.ports_mask & BIT(port - 1)))
 		return 0;
 
 	/* validate nic port */

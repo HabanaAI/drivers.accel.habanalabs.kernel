@@ -71,21 +71,21 @@ static bool hl_cn_device_operational(struct hl_aux_dev *aux_dev)
 }
 
 static void hl_cn_hw_access_lock(struct hl_aux_dev *aux_dev)
-	__acquires(&hdev->cn_hw_access_lock)
+	__acquires(&hdev->cn.hw_access_lock)
 {
 	struct hl_cn *cn = container_of(aux_dev, struct hl_cn, cn_aux_dev);
 	struct hl_device *hdev = container_of(cn, struct hl_device, cn);
 
-	mutex_lock(&hdev->cn_hw_access_lock);
+	mutex_lock(&hdev->cn.hw_access_lock);
 }
 
 static void hl_cn_hw_access_unlock(struct hl_aux_dev *aux_dev)
-	__releases(&hdev->cn_hw_access_lock)
+	__releases(&hdev->cn.hw_access_lock)
 {
 	struct hl_cn *cn = container_of(aux_dev, struct hl_cn, cn_aux_dev);
 	struct hl_device *hdev = container_of(cn, struct hl_device, cn);
 
-	mutex_unlock(&hdev->cn_hw_access_lock);
+	mutex_unlock(&hdev->cn.hw_access_lock);
 }
 
 static void hl_cn_spmu_get_stats_info(struct hl_aux_dev *aux_dev, u32 port,
@@ -523,9 +523,9 @@ static int hl_cn_aux_data_init(struct hl_device *hdev)
 	aux_data->pdev = hdev->pdev;
 	aux_data->dev = hdev->dev;
 	aux_data->driver_ver = hdev->driver_ver;
-	aux_data->ports_mask = hdev->cn_ports_mask;
+	aux_data->ports_mask = hdev->cn.ports_mask;
 	aux_data->ext_ports_mask = cn->eth_ports_mask;
-	aux_data->auto_neg_mask = hdev->cn_auto_neg_mask;
+	aux_data->auto_neg_mask = hdev->cn.auto_neg_mask;
 	aux_data->vendor_id = PCI_VENDOR_ID_HABANALABS;
 	aux_data->pci_id = hdev->asic_funcs->get_pci_id(hdev);
 	aux_data->minor = hdev->id;
@@ -535,8 +535,8 @@ static int hl_cn_aux_data_init(struct hl_device *hdev)
 									HL_HARD_RESET_MAX_TIMEOUT;
 	aux_data->id = hdev->cdev_idx;
 	aux_data->pldm = hdev->pldm;
-	aux_data->skip_phy_init = hdev->skip_cn_phy_init;
-	aux_data->load_phy_fw = hdev->cn_load_fw;
+	aux_data->skip_phy_init = hdev->cn.skip_phy_init;
+	aux_data->load_phy_fw = hdev->cn.load_fw;
 	aux_data->cpucp_fw = !!(hdev->fw_components & FW_TYPE_BOOT_CPU);
 	aux_data->supports_coresight = hdev->supports_coresight;
 	aux_data->use_fw_serdes_info = cn->use_fw_serdes_info;
@@ -544,7 +544,7 @@ static int hl_cn_aux_data_init(struct hl_device *hdev)
 	aux_data->kernel_asid = HL_KERNEL_ASID_ID;
 	aux_data->card_location = cn->card_location;
 	aux_data->mmu_enable = true;
-	aux_data->lanes_per_port = hdev->cn_lanes_per_port;
+	aux_data->lanes_per_port = hdev->cn.lanes_per_port;
 	aux_data->mmap_type_flag = HL_MMAP_TYPE_CN_MEM;
 	aux_data->device_timeout = HL_DEVICE_TIMEOUT_USEC;
 	aux_data->dram_enable = hdev->dram_enable;
@@ -774,7 +774,7 @@ int hl_cn_reopen(struct hl_device *hdev)
 	int rc;
 
 	/* check if the NIC is enabled */
-	if (!hdev->cn_ports_mask)
+	if (!hdev->cn.ports_mask)
 		return 0;
 
 	if (aux_ops->ports_reopen) {
@@ -804,12 +804,12 @@ int hl_cn_init(struct hl_device *hdev)
 	if (hdev->reset_info.in_reset)
 		return hl_cn_reopen(hdev);
 
-	hdev->cn_ports_mask &= GENMASK(cn_props->max_num_of_ports - 1, 0);
-	hdev->cn_ports_ext_mask &= hdev->cn_ports_mask;
-	hdev->cn_auto_neg_mask &= hdev->cn_ports_mask;
+	hdev->cn.ports_mask &= GENMASK(cn_props->max_num_of_ports - 1, 0);
+	hdev->cn.ports_ext_mask &= hdev->cn.ports_mask;
+	hdev->cn.auto_neg_mask &= hdev->cn.ports_mask;
 
 	/* check if the NIC is enabled */
-	if (!hdev->cn_ports_mask)
+	if (!hdev->cn.ports_mask)
 		return 0;
 
 	rc = cn_funcs->pre_core_init(hdev);
@@ -819,13 +819,13 @@ int hl_cn_init(struct hl_device *hdev)
 	}
 
 	/* check if all ports are disabled by the FW */
-	if (!hdev->cn_ports_mask) {
+	if (!hdev->cn.ports_mask) {
 		dev_dbg(hdev->dev, "all NIC ports are disabled by the FW\n");
 		return 0;
 	}
 
-	cn->eth_ports_mask = hdev->cn_eth_on_internal ? hdev->cn_ports_mask :
-									hdev->cn_ports_ext_mask;
+	cn->eth_ports_mask = hdev->cn.eth_on_internal ? hdev->cn.ports_mask :
+									hdev->cn.ports_ext_mask;
 
 	/* verify the kernel module name as the auxiliary drivers will bind according to it */
 	WARN_ONCE(strcmp(HL_NAME, KBUILD_MODNAME),
@@ -853,7 +853,7 @@ void hl_cn_fini(struct hl_device *hdev)
 	 * w/o calling to hl_cn_ports_reopen().
 	 * But we can check if the NIC is totally disabled.
 	 */
-	if (!hdev->cn_ports_mask)
+	if (!hdev->cn.ports_mask)
 		return;
 
 	if (!cn->is_initialized)

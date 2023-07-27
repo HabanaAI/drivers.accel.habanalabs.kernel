@@ -1101,9 +1101,9 @@ static int gaudi2_sim_cpucp_info_get(struct hl_device *hdev)
 			 */
 			if (!hdev->ignore_fw_nic_info) {
 				gaudi2_sim_get_nic_info(hdev);
-				hdev->cn_ports_ext_mask &= cn_cpucp_info->link_ext_mask[0];
-				hdev->cn_ports_mask &= cn_cpucp_info->link_mask[0];
-				hdev->cn_auto_neg_mask &= cn_cpucp_info->auto_neg_mask[0];
+				hdev->cn.ports_ext_mask &= cn_cpucp_info->link_ext_mask[0];
+				hdev->cn.ports_mask &= cn_cpucp_info->link_mask[0];
+				hdev->cn.auto_neg_mask &= cn_cpucp_info->auto_neg_mask[0];
 			}
 
 			rc = gaudi2_cn_set_info(hdev, false);

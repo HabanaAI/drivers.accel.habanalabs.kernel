@@ -1195,7 +1195,7 @@ static void set_driver_behavior_per_device(struct hl_device *hdev)
 
 	hdev->reset_pcilink = 0;
 	hdev->config_pll = 0;
-	hdev->cn_load_fw = 0;
+	hdev->cn.load_fw = 0;
 	hdev->sram_binning = 0;
 	hdev->compatibility_mode = 0;
 	hdev->force_driver_clock_gating = 0;
@@ -1207,9 +1207,9 @@ static void set_driver_behavior_per_device(struct hl_device *hdev)
 	hdev->skip_cluster_config = 1;
 	hdev->fw_cfg_skip = 0;
 	hdev->bmu_enable = 1;
-	hdev->cn_eth_on_internal = 0;
+	hdev->cn.eth_on_internal = 0;
 	hdev->config_qman_arc_for_stub_mme = 0;
-	hdev->skip_cn_phy_init = 0;
+	hdev->cn.skip_phy_init = 0;
 	hdev->odp_enabled = 1;
 	hdev->pci_rev_id_override = 0;
 	hdev->debug_wreg = 1;
@@ -1246,7 +1246,7 @@ static void copy_kernel_module_params_to_device(struct hl_device *hdev)
 	hdev->memory_scrub = memory_scrub;
 	hdev->reset_on_lockup = reset_on_lockup;
 	hdev->ignore_fw_nic_info = ignore_fw_nic_info;
-	hdev->cn_lanes_per_port = nic_lanes_per_port;
+	hdev->cn.lanes_per_port = nic_lanes_per_port;
 	hdev->boot_error_status_mask = boot_error_status_mask;
 	hdev->reset_upon_device_release = reset_upon_device_release;
 	hdev->skip_iatu_for_unsecured_device = skip_iatu_for_unsecured_device;
@@ -1288,7 +1288,7 @@ static void copy_bfe_params_to_device(struct hl_device *hdev)
 	hdev->reset_if_device_not_idle = bfe_reset_if_device_not_idle;
 	hdev->half_nominal_pll_mode = bfe_half_nominal_pll_mode;
 	hdev->bmc_enable = bfe_bmc_enable;
-	hdev->cn_load_fw = bfe_nic_load_fw;
+	hdev->cn.load_fw = bfe_nic_load_fw;
 	hdev->mmu_huge_page_opt = bfe_gaudi_huge_page_optimization;
 	hdev->rl_enable = bfe_rl_enable;
 	hdev->reset_pcilink = bfe_reset_pcilink;
@@ -1307,9 +1307,9 @@ static void copy_bfe_params_to_device(struct hl_device *hdev)
 	hdev->skip_cluster_config = bfe_skip_cluster_config;
 	hdev->fw_cfg_skip = bfe_fw_cfg_skip;
 	hdev->bmu_enable = bfe_bmu_enable;
-	hdev->cn_eth_on_internal = bfe_nic_eth_on_internal;
+	hdev->cn.eth_on_internal = bfe_nic_eth_on_internal;
 	hdev->config_qman_arc_for_stub_mme = bfe_config_qman_arc_for_stub_mme;
-	hdev->skip_cn_phy_init = bfe_skip_nic_phy_init;
+	hdev->cn.skip_phy_init = bfe_skip_nic_phy_init;
 	hdev->debug_rreg = bfe_debug_rreg;
 	hdev->debug_wreg = bfe_debug_wreg;
 	hdev->odp_enabled = bfe_enable_odp;
@@ -1504,15 +1504,15 @@ static int fixup_device_params(struct hl_device *hdev)
 	/* Adjust NIC ports parameters according to the device in-hand */
 	dev_nic_ports_mask = get_dev_nic_ports_mask(hdev->asic_type);
 
-	hdev->cn_ports_mask = nic_ports_mask & dev_nic_ports_mask;
+	hdev->cn.ports_mask = nic_ports_mask & dev_nic_ports_mask;
 	/* ports ext and autoneg masks are subsets of device ports_pask */
-	hdev->cn_ports_ext_mask = nic_ports_ext_mask & hdev->cn_ports_mask;
-	hdev->cn_auto_neg_mask = nic_auto_neg_mask & hdev->cn_ports_mask;
+	hdev->cn.ports_ext_mask = nic_ports_ext_mask & hdev->cn.ports_mask;
+	hdev->cn.auto_neg_mask = nic_auto_neg_mask & hdev->cn.ports_mask;
 
 	fixup_device_params_per_asic(hdev, tmp_timeout);
 
-	if (hdev->cn_lanes_per_port != PORT_LANES_4 && hdev->cn_lanes_per_port != PORT_LANES_2) {
-		pr_err("%d lanes per NIC port is invalid\n", hdev->cn_lanes_per_port);
+	if (hdev->cn.lanes_per_port != PORT_LANES_4 && hdev->cn.lanes_per_port != PORT_LANES_2) {
+		pr_err("%d lanes per NIC port is invalid\n", hdev->cn.lanes_per_port);
 		return -EINVAL;
 	}
 

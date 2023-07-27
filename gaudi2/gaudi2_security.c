@@ -3508,7 +3508,7 @@ static int gaudi2_init_protection_bits(struct hl_device *hdev)
 	rc |= hl_init_pb_with_mask(hdev, NIC_NUMBER_OF_MACROS, NIC_OFFSET,
 			HL_PB_SINGLE_INSTANCE, HL_PB_NA,
 			gaudi2_pb_nic0, ARRAY_SIZE(gaudi2_pb_nic0),
-			NULL, HL_PB_NA, hdev->cn_ports_mask);
+			NULL, HL_PB_NA, hdev->cn.ports_mask);
 
 	/* NIC QM and QPC */
 	rc |= hl_init_pb_with_mask(hdev, NIC_NUMBER_OF_MACROS, NIC_OFFSET,
@@ -3516,7 +3516,7 @@ static int gaudi2_init_protection_bits(struct hl_device *hdev)
 			gaudi2_pb_nic0_qm_qpc, ARRAY_SIZE(gaudi2_pb_nic0_qm_qpc),
 			gaudi2_pb_nic0_qm_qpc_unsecured_regs,
 			ARRAY_SIZE(gaudi2_pb_nic0_qm_qpc_unsecured_regs),
-			hdev->cn_ports_mask);
+			hdev->cn.ports_mask);
 
 	/* NIC QM ARC */
 	rc |= hl_init_pb_ranges_with_mask(hdev, NIC_NUMBER_OF_MACROS,
@@ -3525,7 +3525,7 @@ static int gaudi2_init_protection_bits(struct hl_device *hdev)
 			ARRAY_SIZE(gaudi2_pb_nic0_qm_arc_aux0),
 			gaudi2_pb_nic0_qm_arc_aux0_unsecured_regs,
 			ARRAY_SIZE(gaudi2_pb_nic0_qm_arc_aux0_unsecured_regs),
-			hdev->cn_ports_mask);
+			hdev->cn.ports_mask);
 
 	/* NIC UMR */
 	rc |= hl_init_pb_ranges_with_mask(hdev, NIC_NUMBER_OF_MACROS,
@@ -3534,7 +3534,7 @@ static int gaudi2_init_protection_bits(struct hl_device *hdev)
 			ARRAY_SIZE(gaudi2_pb_nic0_umr),
 			gaudi2_pb_nic0_umr_unsecured_regs,
 			ARRAY_SIZE(gaudi2_pb_nic0_umr_unsecured_regs),
-			hdev->cn_ports_mask);
+			hdev->cn.ports_mask);
 
 	/* Rotators */
 	instance_offset = mmROT1_BASE - mmROT0_BASE;
@@ -3823,22 +3823,22 @@ void gaudi2_ack_protection_bits_errors(struct hl_device *hdev)
 
 	/* NIC */
 	hl_ack_pb_with_mask(hdev, NIC_NUMBER_OF_MACROS, NIC_OFFSET, HL_PB_SINGLE_INSTANCE, HL_PB_NA,
-			gaudi2_pb_nic0, ARRAY_SIZE(gaudi2_pb_nic0), hdev->cn_ports_mask);
+			gaudi2_pb_nic0, ARRAY_SIZE(gaudi2_pb_nic0), hdev->cn.ports_mask);
 
 	/* NIC QM and QPC */
 	hl_ack_pb_with_mask(hdev, NIC_NUMBER_OF_MACROS, NIC_OFFSET, NIC_NUMBER_OF_QM_PER_MACRO,
 			NIC_QM_OFFSET, gaudi2_pb_nic0_qm_qpc, ARRAY_SIZE(gaudi2_pb_nic0_qm_qpc),
-			hdev->cn_ports_mask);
+			hdev->cn.ports_mask);
 
 	/* NIC QM ARC */
 	hl_ack_pb_with_mask(hdev, NIC_NUMBER_OF_MACROS, NIC_OFFSET, NIC_NUMBER_OF_QM_PER_MACRO,
 			NIC_QM_OFFSET, gaudi2_pb_nic0_qm_arc_aux0,
-			ARRAY_SIZE(gaudi2_pb_nic0_qm_arc_aux0), hdev->cn_ports_mask);
+			ARRAY_SIZE(gaudi2_pb_nic0_qm_arc_aux0), hdev->cn.ports_mask);
 
 	/* NIC UMR */
 	hl_ack_pb_with_mask(hdev, NIC_NUMBER_OF_MACROS, NIC_OFFSET, NIC_NUMBER_OF_QM_PER_MACRO,
 			NIC_QM_OFFSET, gaudi2_pb_nic0_umr, ARRAY_SIZE(gaudi2_pb_nic0_umr),
-			hdev->cn_ports_mask);
+			hdev->cn.ports_mask);
 
 	/* Rotators */
 	instance_offset = mmROT1_BASE - mmROT0_BASE;

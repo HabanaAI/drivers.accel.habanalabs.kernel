@@ -277,7 +277,7 @@ void gaudi2_cn_quiescence_phy_no_fw(struct hl_device *hdev)
 	/* if any NIC is present and running on PLDM or simulator,
 	 * prevent traffic from entering the device.
 	 */
-	if ((hdev->pldm || !hdev->pdev) && hdev->cn_ports_mask) {
+	if ((hdev->pldm || !hdev->pdev) && hdev->cn.ports_mask) {
 
 		/* This is a privilege register that is modified prior golden register modification,
 		 * hence we should disable assertion on simulator to allow us modifying it.
@@ -319,7 +319,7 @@ static bool gaudi2_cn_is_macro_enabled(struct hl_device *hdev, u8 macro_idx)
 	port1 = macro_idx << 1; /* the index of the first port in the macro */
 	port2 = port1 + 1;
 
-	return (hdev->cn_ports_mask & BIT(port1)) || (hdev->cn_ports_mask & BIT(port2));
+	return (hdev->cn.ports_mask & BIT(port1)) || (hdev->cn.ports_mask & BIT(port2));
 }
 
 static void gaudi2_cn_macros_hw_config_no_fw(struct hl_device *hdev)
@@ -346,7 +346,7 @@ static void gaudi2_cn_ports_config_no_fw(struct hl_device *hdev)
 		gaudi2_cn_config_hw_eq_no_fw(hdev, port);
 
 		/* Don't initialize disabled ports */
-		if (!(hdev->cn_ports_mask & BIT(port)))
+		if (!(hdev->cn.ports_mask & BIT(port)))
 			continue;
 
 		/* TXS Configuration */
@@ -365,7 +365,7 @@ static void gaudi2_cn_ports_config_no_fw(struct hl_device *hdev)
 
 void gaudi2_cn_blocks_fw_config(struct hl_device *hdev)
 {
-	if (!hdev->cn_ports_mask)
+	if (!hdev->cn.ports_mask)
 		return;
 
 	if (hdev->reset_info.in_compute_reset)
@@ -384,7 +384,7 @@ void gaudi2_cn_restore_dynamic_cfg_soft_reset_fw(struct hl_device *hdev)
 
 	for (port = 0 ; port < NIC_NUMBER_OF_PORTS ; port++) {
 		/* Don't initialize disabled ports */
-		if (!(hdev->cn_ports_mask & BIT(port)))
+		if (!(hdev->cn.ports_mask & BIT(port)))
 			continue;
 
 		NIC_RMWREG32(mmNIC0_RXE0_RXE_CHECKS, 1,

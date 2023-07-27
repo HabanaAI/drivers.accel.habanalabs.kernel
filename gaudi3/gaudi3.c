@@ -2298,7 +2298,7 @@ void gaudi3_iterate_nics(struct hl_device *hdev, struct iterate_module_ctx *ctx)
 	for (die = 0 ; die < prop->num_of_dies ; die++) {
 		for (inst = 0 ; inst < NIC_NUM_MACROS_PER_DIE ; inst++) {
 			nic_id = die * NIC_NUM_MACROS_PER_DIE + inst;
-			if (!(hdev->cn_ports_mask & gaudi3_cn_get_macro_ports_mask(hdev, nic_id)))
+			if (!(hdev->cn.ports_mask & gaudi3_cn_get_macro_ports_mask(hdev, nic_id)))
 				continue;
 
 			offset = die * NIC_DIE_OFFSET + inst * NIC_OFFSET;
@@ -4653,7 +4653,7 @@ static bool gaudi3_special_blocks_skip_with_mask(struct hl_device *hdev,
 		if (instance_idx >= NIC_NUMBER_OF_MACROS)
 			return true;
 
-		if (hdev->cn_ports_mask & gaudi3_cn_get_macro_ports_mask(hdev, instance_idx))
+		if (hdev->cn.ports_mask & gaudi3_cn_get_macro_ports_mask(hdev, instance_idx))
 			return false;
 
 		return true;
@@ -5997,7 +5997,7 @@ void gaudi3_init_nic_qmans(struct hl_device *hdev)
 		.fn = gaudi3_init_nic_qman
 	};
 
-	if (!hdev->cn_ports_mask)
+	if (!hdev->cn.ports_mask)
 		return;
 
 	if ((gaudi3->hw_cap_nic_initialized & HW_CAP_NIC_MASK) == HW_CAP_NIC_MASK)
@@ -8193,7 +8193,7 @@ static int __user_mapped_nic_blocks_init(struct hl_device *hdev, int block_idx,
 		umr_block_id = i % n_umr_blocks;
 
 		nic_id = die_id * NIC_NUM_MACROS_PER_DIE + die_nic_id;
-		if (!(hdev->cn_ports_mask & gaudi3_cn_get_macro_ports_mask(hdev, nic_id))) {
+		if (!(hdev->cn.ports_mask & gaudi3_cn_get_macro_ports_mask(hdev, nic_id))) {
 			i += n_umr_blocks;
 			continue;
 		}
@@ -8307,7 +8307,7 @@ static bool gaudi3_is_engine_enabled(struct hl_device *hdev, u32 eng_id)
 		fallthrough;
 	case GAUDI3_DIE0_ENGINE_ID_NIC_0 ... GAUDI3_DIE0_ENGINE_ID_NIC_5:
 		nic_id = eng_id - GAUDI3_DIE0_ENGINE_ID_NIC_0;
-		return !!(hdev->cn_ports_mask & gaudi3_cn_get_macro_ports_mask(hdev, nic_id));
+		return !!(hdev->cn.ports_mask & gaudi3_cn_get_macro_ports_mask(hdev, nic_id));
 
 	case GAUDI3_DIE0_ENGINE_ID_PDMA_0_CH_0 ... GAUDI3_DIE1_ENGINE_ID_PDMA_1_CH_5:
 		return !!(hdev->pdma_ch_mask & BIT_ULL(eng_id - GAUDI3_DIE0_ENGINE_ID_PDMA_0_CH_0));
@@ -11063,7 +11063,7 @@ static void gaudi3_get_nic_qmans_idle_status(struct hl_device *hdev,
 		.data = idle_data
 	};
 
-	if (idle_data->e && hdev->cn_ports_mask)
+	if (idle_data->e && hdev->cn.ports_mask)
 		hl_engine_data_sprintf(idle_data->e, header);
 
 	gaudi3_iterate_nics(hdev, &iter_ctx);

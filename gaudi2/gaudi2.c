@@ -3338,7 +3338,7 @@ static void gaudi2_init_arcs(struct hl_device *hdev)
 			continue;
 
 		if (gaudi2_is_arc_nic_owned(arc_id) &&
-				!(hdev->cn_ports_mask & BIT_ULL(arc_id - CPU_ID_NIC_QMAN_ARC0)))
+				!(hdev->cn.ports_mask & BIT_ULL(arc_id - CPU_ID_NIC_QMAN_ARC0)))
 			continue;
 
 		if (gaudi2_is_arc_tpc_owned(arc_id) && !(gaudi2->tpc_hw_cap_initialized &
@@ -3360,7 +3360,7 @@ static int gaudi2_cn_clear_mem(struct hl_device *hdev)
 	u64 val = 0, i;
 	int rc = 0;
 
-	if (!hdev->cn_ports_mask)
+	if (!hdev->cn.ports_mask)
 		return rc;
 
 	for (i = 0 ; i < cn_prop->nic_drv_size ; i += sizeof(val)) {
@@ -4267,7 +4267,7 @@ void gaudi2_stop_nic_qmans(struct hl_device *hdev)
 	queue_id = GAUDI2_QUEUE_ID_NIC_0_0;
 
 	for (i = 0 ; i < NIC_NUMBER_OF_ENGINES ; i++, queue_id += NUM_OF_PQ_PER_QMAN) {
-		if (!(hdev->cn_ports_mask & BIT(i)))
+		if (!(hdev->cn.ports_mask & BIT(i)))
 			continue;
 
 		reg_base = gaudi2_qm_blocks_bases[queue_id];
@@ -4463,7 +4463,7 @@ void gaudi2_disable_nic_qmans(struct hl_device *hdev)
 	queue_id = GAUDI2_QUEUE_ID_NIC_0_0;
 
 	for (i = 0 ; i < NIC_NUMBER_OF_ENGINES ; i++, queue_id += NUM_OF_PQ_PER_QMAN) {
-		if (!(hdev->cn_ports_mask & BIT(i)))
+		if (!(hdev->cn.ports_mask & BIT(i)))
 			continue;
 
 		reg_base = gaudi2_qm_blocks_bases[queue_id];
@@ -4918,7 +4918,7 @@ void gaudi2_nic_qmans_manual_flush(struct hl_device *hdev)
 	queue_id = GAUDI2_QUEUE_ID_NIC_0_0;
 
 	for (i = 0 ; i < NIC_NUMBER_OF_ENGINES ; i++, queue_id += NUM_OF_PQ_PER_QMAN) {
-		if (!(hdev->cn_ports_mask & BIT(i)))
+		if (!(hdev->cn.ports_mask & BIT(i)))
 			continue;
 
 		gaudi2_qman_manual_flush_common(hdev, queue_id);
@@ -7610,7 +7610,7 @@ static bool gaudi2_get_nic_idle_status(struct hl_device *hdev, u64 *mask_arr, u8
 	u64 offset = 0;
 
 	/* NIC, twelve macros in Full chip */
-	if (e && hdev->cn_ports_mask)
+	if (e && hdev->cn.ports_mask)
 		hl_engine_data_sprintf(e,
 					"\nNIC  is_idle  QM_GLBL_STS0  QM_CGM_STS\n"
 					"---  -------  ------------  ----------\n");
@@ -7621,7 +7621,7 @@ static bool gaudi2_get_nic_idle_status(struct hl_device *hdev, u64 *mask_arr, u8
 		else
 			offset += NIC_QM_OFFSET;
 
-		if (!(hdev->cn_ports_mask & BIT(i)))
+		if (!(hdev->cn.ports_mask & BIT(i)))
 			continue;
 
 		engine_idx = GAUDI2_ENGINE_ID_NIC0_0 + i;
@@ -7920,7 +7920,7 @@ void gaudi2_init_cn(struct hl_device *hdev)
 	struct gaudi2_device *gaudi2 = hdev->asic_specific;
 	u32 i, reg_base, queue_id;
 
-	if (!hdev->cn_ports_mask)
+	if (!hdev->cn.ports_mask)
 		return;
 
 	if (gaudi2->nic_hw_cap_initialized & HW_CAP_NIC_MASK)
@@ -7930,7 +7930,7 @@ void gaudi2_init_cn(struct hl_device *hdev)
 
 	for (i = 0; i < NIC_NUMBER_OF_ENGINES;
 		i++, queue_id += NUM_OF_PQ_PER_QMAN) {
-		if (!(hdev->cn_ports_mask & BIT(i)))
+		if (!(hdev->cn.ports_mask & BIT(i)))
 			continue;
 
 		reg_base = gaudi2_qm_blocks_bases[queue_id];
@@ -8220,7 +8220,7 @@ static int gaudi2_mmu_shared_prepare(struct hl_device *hdev, u32 asid)
 	/* NIC */
 	for (i = 0 ; i < NIC_NUMBER_OF_MACROS ; i++)
 		for (q = 0 ; q < NIC_NUMBER_OF_QM_PER_MACRO ; q++) {
-			if (!(hdev->cn_ports_mask & BIT(i * NIC_NUMBER_OF_QM_PER_MACRO + q)))
+			if (!(hdev->cn.ports_mask & BIT(i * NIC_NUMBER_OF_QM_PER_MACRO + q)))
 				continue;
 
 			WREG32(mmNIC0_QM0_AXUSER_NONSECURED_HB_ASID +
@@ -8787,7 +8787,7 @@ static void gaudi2_check_if_razwi_happened(struct hl_device *hdev)
 
 	/* check all NICs */
 	for (mod_idx = 0 ; mod_idx < NIC_NUMBER_OF_PORTS ; mod_idx++)
-		if (hdev->cn_ports_mask & BIT(mod_idx))
+		if (hdev->cn.ports_mask & BIT(mod_idx))
 			gaudi2_ack_module_razwi_event_handler(hdev, RAZWI_NIC, mod_idx >> 1, 0,
 								NULL);
 
@@ -12043,7 +12043,7 @@ static void gaudi2_update_nic_qmans_state(struct hl_device *hdev)
 		 * NIC is disabled
 		 */
 		if ((gaudi2->nic_hw_cap_initialized & nic_mask) &&
-				(!(hdev->cn_ports_mask & BIT(nic_id)))) {
+				(!(hdev->cn.ports_mask & BIT(nic_id)))) {
 
 			gaudi2_stop_qman_common(hdev, gaudi2_qm_blocks_bases[queue_id]);
 			gaudi2_disable_qman_common(hdev, gaudi2_qm_blocks_bases[queue_id]);

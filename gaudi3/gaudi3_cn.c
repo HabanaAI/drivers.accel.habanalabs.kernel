@@ -11,7 +11,7 @@
 
 static bool is_400g_mode(struct hl_device *hdev)
 {
-	return hdev->cn_lanes_per_port == PORT_LANES_4;
+	return hdev->cn.lanes_per_port == PORT_LANES_4;
 }
 
 static bool is_200g_mode(struct hl_device *hdev)
@@ -48,14 +48,14 @@ bool gaudi3_cn_is_macro_enabled(struct hl_device *hdev, int macro_idx)
 	if (is_400g_mode(hdev)) {
 		port1 = macro_idx;
 
-		return (hdev->cn_ports_mask & BIT(port1));
+		return (hdev->cn.ports_mask & BIT(port1));
 	}
 
 	/* 200G mode */
 	port1 = macro_idx * 2;
 	port2 = port1 + 1;
 
-	return ((hdev->cn_ports_mask & BIT(port1)) || (hdev->cn_ports_mask & BIT(port2)));
+	return ((hdev->cn.ports_mask & BIT(port1)) || (hdev->cn.ports_mask & BIT(port2)));
 }
 
 int gaudi3_cn_set_info(struct hl_device *hdev, bool get_from_fw)
@@ -82,9 +82,9 @@ int gaudi3_cn_set_info(struct hl_device *hdev, bool get_from_fw)
 			dev_dbg(hdev->dev,
 				"skipping NIC FW ports info with an overridden pci revision id\n");
 		} else {
-			hdev->cn_ports_mask &= cn_cpucp_info->link_mask[0];
-			hdev->cn_ports_ext_mask &= cn_cpucp_info->link_ext_mask[0];
-			hdev->cn_auto_neg_mask &= cn_cpucp_info->auto_neg_mask[0];
+			hdev->cn.ports_mask &= cn_cpucp_info->link_mask[0];
+			hdev->cn.ports_ext_mask &= cn_cpucp_info->link_ext_mask[0];
+			hdev->cn.auto_neg_mask &= cn_cpucp_info->auto_neg_mask[0];
 		}
 
 		serdes_type = cn_cpucp_info->serdes_type;
@@ -101,7 +101,7 @@ int gaudi3_cn_set_info(struct hl_device *hdev, bool get_from_fw)
 
 		/* check for invalid MAC addresses from F/W (bad OUI) */
 		for (i = 0 ; i < NIC_NUMBER_OF_PORTS ; i++) {
-			if (!(hdev->cn_ports_mask & BIT(i)))
+			if (!(hdev->cn.ports_mask & BIT(i)))
 				continue;
 
 			mac_addr = mac_arr[i].mac_addr;
@@ -128,7 +128,7 @@ int gaudi3_cn_set_info(struct hl_device *hdev, bool get_from_fw)
 		get_random_bytes(&mac[3], 2);
 
 		for (i = 0 ; i < NIC_NUMBER_OF_PORTS ; i++) {
-			if (!(hdev->cn_ports_mask & BIT(i)))
+			if (!(hdev->cn.ports_mask & BIT(i)))
 				continue;
 
 			mac[ETH_ALEN - 1] = i;
@@ -172,8 +172,8 @@ int gaudi3_cn_set_info(struct hl_device *hdev, bool get_from_fw)
 
 	/* PCI card is a testing card so set all ports as external */
 	if (hdev->card_type == cpucp_card_type_pci) {
-		hdev->cn_ports_ext_mask = hdev->cn_ports_mask;
-		hdev->cn_auto_neg_mask &= ~hdev->cn_ports_ext_mask;
+		hdev->cn.ports_ext_mask = hdev->cn.ports_mask;
+		hdev->cn.auto_neg_mask &= ~hdev->cn.ports_ext_mask;
 	}
 
 	return 0;
@@ -258,7 +258,7 @@ static void gaudi3_cn_disable_nics_interrupts(struct hl_device *hdev)
 	/* Disable interrupts of all NICs */
 	for (i = 0 ; i < NIC_NUMBER_OF_MACROS ; i++) {
 		/* skip non-present macros in pldm as we may run on partial-nics image */
-		if (hdev->pldm && !(hdev->cn_ports_mask &
+		if (hdev->pldm && !(hdev->cn.ports_mask &
 					gaudi3_cn_get_macro_ports_mask(hdev, i)))
 			continue;
 

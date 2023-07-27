@@ -2731,7 +2731,7 @@ void gaudi_init_pll(struct hl_device *hdev)
 		}
 
 		if (!hdev->pldm ||
-			(hdev->cn_ports_mask & GAUDI_NIC_MASK_NIC0)) {
+			(hdev->cn.ports_mask & GAUDI_NIC_MASK_NIC0)) {
 			WREG32(mmNIC0_PLL_DIV_SEL_0, 0x1);
 			WREG32(mmNIC0_PLL_DIV_SEL_1, 0x3);
 			WREG32(mmNIC0_PLL_DIV_SEL_2, 0x3);
@@ -2896,7 +2896,7 @@ void gaudi_init_pll(struct hl_device *hdev)
 		WREG32(mmNIC2_HBM_PLL_DIV_SEL_1, 0x3);
 	}
 
-	if (!hdev->pldm || (hdev->cn_ports_mask & GAUDI_NIC_MASK_NIC0)) {
+	if (!hdev->pldm || (hdev->cn.ports_mask & GAUDI_NIC_MASK_NIC0)) {
 		dev_dbg(hdev->dev, "Configure NIC0 PLL\n");
 
 		WREG32(mmNIC0_PLL_RST, 1);

@@ -972,7 +972,7 @@ static void gaudi3_sim_get_nic_info(struct hl_device *hdev)
 	struct hl_cn_cpucp_info *cn_cpucp_info = &hdev->asic_prop.cn_cpucp_info;
 
 	/* Assume HLS3 connections */
-	if (hdev->cn_lanes_per_port == PORT_LANES_2) {
+	if (hdev->cn.lanes_per_port == PORT_LANES_2) {
 		cn_cpucp_info->link_ext_mask[0] = GAUDI3_HLS3_EXTERN_PORTS_MASK_200G_48TB;
 		cn_cpucp_info->link_mask[0] = GAUDI3_PORTS_MASK_200G;
 	} else {
@@ -999,9 +999,9 @@ static int gaudi3_sim_cpucp_info_get(struct hl_device *hdev)
 			 */
 			if (!hdev->ignore_fw_nic_info) {
 				gaudi3_sim_get_nic_info(hdev);
-				hdev->cn_ports_ext_mask &= cn_cpucp_info->link_ext_mask[0];
-				hdev->cn_ports_mask &= cn_cpucp_info->link_mask[0];
-				hdev->cn_auto_neg_mask &= cn_cpucp_info->auto_neg_mask[0];
+				hdev->cn.ports_ext_mask &= cn_cpucp_info->link_ext_mask[0];
+				hdev->cn.ports_mask &= cn_cpucp_info->link_mask[0];
+				hdev->cn.auto_neg_mask &= cn_cpucp_info->auto_neg_mask[0];
 			}
 
 			rc = gaudi3_cn_set_info(hdev, false);

@@ -203,7 +203,7 @@ static int hw_ip_info(struct hl_device *hdev, struct hl_info_args *args)
 	hw_ip.pdma_user_owned_ch_mask = prop->pdma_user_owned_ch_mask;
 	hw_ip.server_type = prop->server_type;
 
-	hw_ip.nic_ports_mask = hdev->cn_ports_mask;
+	hw_ip.nic_ports_mask = hdev->cn.ports_mask;
 	hw_ip.nic_ports_external_mask = hdev->cn.eth_ports_mask;
 	hw_ip.security_enabled = prop->fw_security_enabled;
 	hw_ip.mme_enabled_mask = hdev->mme_mask;
@@ -1157,8 +1157,8 @@ static int module_params_info(struct hl_device *hdev, struct hl_info_args *args)
 	}
 	module_params->mme_enable = hdev->mme_mask ? true : false;
 	module_params->tpc_mask = hdev->tpc_mask;
-	module_params->nic_ports_mask = hdev->cn_ports_mask;
-	module_params->nic_lanes_per_port = hdev->cn_lanes_per_port;
+	module_params->nic_ports_mask = hdev->cn.ports_mask;
+	module_params->nic_lanes_per_port = hdev->cn.lanes_per_port;
 	module_params->dram_enable = hdev->dram_enable;
 	module_params->cpu_enable = !!hdev->fw_components;
 	module_params->reset_pcilink = hdev->reset_pcilink;

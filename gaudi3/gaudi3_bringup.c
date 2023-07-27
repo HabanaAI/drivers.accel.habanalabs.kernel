@@ -1857,7 +1857,7 @@ static void gaudi3_set_nic_isolation(struct hl_device *hdev, bool isolate)
 	 */
 	nic_iso = 0;
 	for (i = 0 ; i < NIC_NUM_MACROS_PER_DIE ; i++) {
-		if (!(hdev->cn_ports_mask & gaudi3_cn_get_macro_ports_mask(hdev, i)))
+		if (!(hdev->cn.ports_mask & gaudi3_cn_get_macro_ports_mask(hdev, i)))
 			nic_iso |= BIT(i);
 	}
 	WREG32(mmD0_PSOC_BOOT_CONF_BASE + mmPSOC_BOOT_CONF_NIC_ISO, nic_iso);
@@ -1870,7 +1870,7 @@ static void gaudi3_set_nic_isolation(struct hl_device *hdev, bool isolate)
 	 */
 	nic_iso = 0;
 	for (i = 0 ; i < NIC_NUM_MACROS_PER_DIE ; i++) {
-		if (!(hdev->cn_ports_mask & gaudi3_cn_get_macro_ports_mask(hdev,
+		if (!(hdev->cn.ports_mask & gaudi3_cn_get_macro_ports_mask(hdev,
 								NIC_NUM_MACROS_PER_DIE + i)))
 			nic_iso |= BIT(i);
 	}
@@ -2412,7 +2412,7 @@ static void gaudi3_init_nic_qmans_fw_config(struct hl_device *hdev)
 		.fn = gaudi3_init_nic_qman_fw_config
 	};
 
-	if (!hdev->cn_ports_mask)
+	if (!hdev->cn.ports_mask)
 		return;
 
 	if ((gaudi3->hw_cap_nic_initialized & HW_CAP_NIC_MASK) == HW_CAP_NIC_MASK)

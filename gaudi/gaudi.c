@@ -1131,7 +1131,7 @@ static int gaudi_cn_clear_mem(struct hl_device *hdev)
 {
 	struct hl_cn_properties *cn_prop = &hdev->asic_prop.cn_props;
 
-	if (!hdev->cn_ports_mask)
+	if (!hdev->cn.ports_mask)
 		return 0;
 
 	return gaudi_memset_device_memory(hdev, cn_prop->nic_drv_addr,
@@ -1700,10 +1700,10 @@ int gaudi_late_init(struct hl_device *hdev)
 	}
 
 	if ((hdev->card_type == cpucp_card_type_pci) &&
-			(hdev->cn_ports_mask & 0x3)) {
+			(hdev->cn.ports_mask & 0x3)) {
 		dev_info(hdev->dev,
 			"PCI card detected, only 8 ports are enabled\n");
-		hdev->cn_ports_mask &= ~0x3;
+		hdev->cn.ports_mask &= ~0x3;
 
 		/* Stop and disable unused NIC QMANs */
 		WREG32(mmNIC0_QM0_GLBL_CFG1, NIC0_QM0_GLBL_CFG1_PQF_STOP_MASK |
@@ -2081,7 +2081,7 @@ irqreturn_t gaudi_irq_handler_single(int irq, void *arg)
 	 */
 	if (unlikely(aux_ops->rx_irq_handler))
 		for (i = 0 ; i < NIC_NUMBER_OF_PORTS ; i++)
-			if (hdev->cn_ports_mask & BIT(i))
+			if (hdev->cn.ports_mask & BIT(i))
 				aux_ops->rx_irq_handler(aux_dev, i);
 
 	if (unlikely(aux_ops->cq_irq_handler))
@@ -3665,7 +3665,7 @@ void gaudi_init_nic_qmans(struct hl_device *hdev)
 			mmNIC1_QM0_GLBL_CFG0 - mmNIC0_QM0_GLBL_CFG0;
 	int i, nic_id, internal_q_index;
 
-	if (!hdev->cn_ports_mask)
+	if (!hdev->cn.ports_mask)
 		return;
 
 	if (gaudi->hw_cap_initialized & HW_CAP_NIC_MASK)
@@ -3674,7 +3674,7 @@ void gaudi_init_nic_qmans(struct hl_device *hdev)
 	dev_dbg(hdev->dev, "Initializing NIC QMANs\n");
 
 	for (nic_id = 0 ; nic_id < NIC_NUMBER_OF_ENGINES ; nic_id++) {
-		if (!(hdev->cn_ports_mask & (1 << nic_id))) {
+		if (!(hdev->cn.ports_mask & (1 << nic_id))) {
 			nic_offset += nic_delta_between_qmans;
 			if (nic_id & 1) {
 				nic_offset -= (nic_delta_between_qmans * 2);
@@ -9367,7 +9367,7 @@ static void gaudi_update_nic_qmans_state(struct hl_device *hdev)
 		 * NIC is disabled
 		 */
 		if ((gaudi->hw_cap_initialized & nic_mask) &&
-				(!(hdev->cn_ports_mask & BIT(nic_id)))) {
+				(!(hdev->cn.ports_mask & BIT(nic_id)))) {
 
 			/* Stop and disable the NIC QMAN */
 			WREG32(mmNIC0_QM0_GLBL_CFG1 + nic_offset,

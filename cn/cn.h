@@ -41,6 +41,12 @@ struct hl_ctx;
  * struct hl_cn - habanalabs CN common structure.
  * @cn_aux_dev: pointer to CN auxiliary device structure.
  * @ctx: compute user context.
+ * @hw_access_lock: protects the HW access from CN flows.
+ * @ports_mask: contains mask of the CN ports that are enabled, as received from the f/w. This
+ *              field can contain different values based on the server type
+ * @ports_ext_mask: contains mask of the CN ports that are external (used for scale-out), as
+ *                  received from the f/w. This field can contain different values based on the
+ *                  server type.
  * @eth_ports_mask: Ethernet ports enable mask.
  * @card_location: the OAM number in the HLS (relevant for PMC card type).
  * @use_fw_serdes_info: true if NIC should use serdes values from F/W, false if CN should use hard
@@ -51,11 +57,21 @@ struct hl_ctx;
 struct hl_cn {
 	struct hl_aux_dev	cn_aux_dev;
 	struct hl_ctx		*ctx;
+	struct mutex		hw_access_lock;
+	u64			ports_mask;
+	u64			ports_ext_mask;
 	u64			eth_ports_mask;
 	u32			card_location;
 	u8			use_fw_serdes_info;
 	u8			is_cn_aux_dev_initialized;
 	u8			is_initialized;
+
+	/* Parameters for bring-up (not to be upstreamed) */
+	u64				auto_neg_mask;
+	u8				load_fw;
+	u8				lanes_per_port;
+	u8				skip_phy_init;
+	u8				eth_on_internal;
 };
 
 /**

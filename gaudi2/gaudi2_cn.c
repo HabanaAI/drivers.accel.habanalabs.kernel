@@ -80,7 +80,7 @@ void gaudi2_cn_disable_interrupts(struct hl_device *hdev)
 		gaudi2_disable_nic_interrupts_cpu_if(hdev);
 
 	/* Disable interrupts of all NICs */
-	if (hdev->cn_ports_mask) {
+	if (hdev->cn.ports_mask) {
 		/* we only need the port number for NIC_WREG32 */
 		for (port = 0 ; port < NIC_NUMBER_OF_PORTS ; port++) {
 			NIC_WREG32(mmNIC0_QPC0_EVENT_QUE_CFG, 0);
@@ -175,9 +175,9 @@ int gaudi2_cn_set_info(struct hl_device *hdev, bool get_from_fw)
 			dev_dbg(hdev->dev,
 				"skipping NIC FW ports info on gaudi2B device with an overridden pci revision id\n");
 		} else {
-			hdev->cn_ports_mask &= cn_cpucp_info->link_mask[0];
-			hdev->cn_ports_ext_mask &= cn_cpucp_info->link_ext_mask[0];
-			hdev->cn_auto_neg_mask &= cn_cpucp_info->auto_neg_mask[0];
+			hdev->cn.ports_mask &= cn_cpucp_info->link_mask[0];
+			hdev->cn.ports_ext_mask &= cn_cpucp_info->link_ext_mask[0];
+			hdev->cn.auto_neg_mask &= cn_cpucp_info->auto_neg_mask[0];
 		}
 
 		serdes_type = cn_cpucp_info->serdes_type;
@@ -194,7 +194,7 @@ int gaudi2_cn_set_info(struct hl_device *hdev, bool get_from_fw)
 
 		/* check for invalid MAC addresses from F/W (bad OUI) */
 		for (i = 0 ; i < NIC_NUMBER_OF_PORTS ; i++) {
-			if (!(hdev->cn_ports_mask & BIT(i)))
+			if (!(hdev->cn.ports_mask & BIT(i)))
 				continue;
 
 			mac_addr = mac_arr[i].mac_addr;
@@ -221,7 +221,7 @@ int gaudi2_cn_set_info(struct hl_device *hdev, bool get_from_fw)
 		get_random_bytes(&mac[3], 2);
 
 		for (i = 0 ; i < NIC_NUMBER_OF_PORTS ; i++) {
-			if (!(hdev->cn_ports_mask & BIT(i)))
+			if (!(hdev->cn.ports_mask & BIT(i)))
 				continue;
 
 			mac[ETH_ALEN - 1] = i;
@@ -267,13 +267,13 @@ int gaudi2_cn_set_info(struct hl_device *hdev, bool get_from_fw)
 	if (hdev->card_type == cpucp_card_type_pci ||
 			hdev->gaudi2_setup_type != GAUDI2_SETUP_TYPE_HLS2) {
 		if (hdev->asic_type != ASIC_GAUDI2B)
-			hdev->cn_ports_ext_mask = hdev->cn_ports_mask;
+			hdev->cn.ports_ext_mask = hdev->cn.ports_mask;
 
-		hdev->cn_auto_neg_mask &= ~hdev->cn_ports_ext_mask;
+		hdev->cn.auto_neg_mask &= ~hdev->cn.ports_ext_mask;
 	}
 
 	/* Disable ANLT on NIC 0 ports (due to lane swapping) */
-	hdev->cn_auto_neg_mask &= ~0x3;
+	hdev->cn.auto_neg_mask &= ~0x3;
 
 	return 0;
 }

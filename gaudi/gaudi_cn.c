@@ -101,7 +101,7 @@ static int gaudi_cn_pre_core_init(struct hl_device *hdev)
 		}
 
 		for (i = 0 ; i < NIC_NUMBER_OF_PORTS ; i++) {
-			if (!(hdev->cn_ports_mask & BIT(i)))
+			if (!(hdev->cn.ports_mask & BIT(i)))
 				continue;
 
 			mac_addr = mac_arr[i].mac_addr;
@@ -115,9 +115,9 @@ static int gaudi_cn_pre_core_init(struct hl_device *hdev)
 		}
 
 		if (!hdev->ignore_fw_nic_info || !hdev->pdev) {
-			hdev->cn_ports_mask &= cn_cpucp_info->link_mask[0];
-			hdev->cn_ports_ext_mask &= cn_cpucp_info->link_ext_mask[0];
-			hdev->cn_auto_neg_mask &= cn_cpucp_info->auto_neg_mask[0];
+			hdev->cn.ports_mask &= cn_cpucp_info->link_mask[0];
+			hdev->cn.ports_ext_mask &= cn_cpucp_info->link_ext_mask[0];
+			hdev->cn.auto_neg_mask &= cn_cpucp_info->auto_neg_mask[0];
 		}
 
 		cn->card_location = le32_to_cpu(cpucp_info->card_location);
@@ -141,20 +141,20 @@ static int gaudi_cn_pre_core_init(struct hl_device *hdev)
 		cn->card_location = card_location;
 
 		/* TODO: remove when Autoneg is supported towards the switch */
-		if ((hdev->card_type == cpucp_card_type_pci) && (hdev->cn_auto_neg_mask)) {
+		if ((hdev->card_type == cpucp_card_type_pci) && (hdev->cn.auto_neg_mask)) {
 			dev_info(hdev->dev, "No Autoneg in PCI card\n");
-			hdev->cn_auto_neg_mask = 0;
+			hdev->cn.auto_neg_mask = 0;
 		}
 	}
 
 	/* no need to proceed if all ports are disabled */
-	if (!hdev->cn_ports_mask)
+	if (!hdev->cn.ports_mask)
 		return 0;
 
 	/* PCI card is usually connected directly to a switch so set all ports as external */
 	if (hdev->card_type == cpucp_card_type_pci) {
-		hdev->cn_ports_ext_mask = hdev->cn_ports_mask;
-		hdev->cn_auto_neg_mask &= ~hdev->cn_ports_ext_mask;
+		hdev->cn.ports_ext_mask = hdev->cn.ports_mask;
+		hdev->cn.auto_neg_mask &= ~hdev->cn.ports_ext_mask;
 	}
 
 	return 0;
