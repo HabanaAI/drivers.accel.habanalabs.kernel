@@ -282,6 +282,20 @@ static void hl_cn_dram_writel(struct hl_aux_dev *aux_dev, u32 val, u64 addr)
 		dev_crit(hdev->dev, "Failed to writel to dev_mem addr 0x%llx\n", addr);
 }
 
+static int hl_cn_dram_writeq(struct hl_aux_dev *aux_dev, u64 val, u64 addr)
+{
+	struct hl_cn *cn = container_of(aux_dev, struct hl_cn, cn_aux_dev);
+	struct hl_device *hdev = container_of(cn, struct hl_device, cn);
+	u64 data = val;
+	int rc;
+
+	rc = hdev->asic_funcs->access_dev_mem(hdev, PCI_REGION_DRAM, addr, &data, DEBUGFS_WRITE64);
+	if (rc)
+		dev_crit(hdev->dev, "Failed to writel to dev_mem addr 0x%llx\n", addr);
+
+	return rc;
+}
+
 static u32 hl_cn_rreg(struct hl_aux_dev *aux_dev, u32 reg)
 {
 	struct hl_cn *cn = container_of(aux_dev, struct hl_cn, cn_aux_dev);
@@ -592,6 +606,7 @@ static int hl_cn_aux_data_init(struct hl_device *hdev)
 	aux_ops->dram_readq = hl_cn_dram_readq;
 	aux_ops->dram_writeb = hl_cn_dram_writeb;
 	aux_ops->dram_writel = hl_cn_dram_writel;
+	aux_ops->dram_writeq = hl_cn_dram_writeq;
 	aux_ops->rreg = hl_cn_rreg;
 	aux_ops->wreg = hl_cn_wreg;
 	aux_ops->set_priv_assertions = hl_cn_set_priv_assertions;
