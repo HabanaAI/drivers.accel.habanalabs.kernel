@@ -288,13 +288,12 @@ static int gaudi2_simulator_gen_int_ioctl(struct hl_simulator_device *edev, void
 	if (unlikely(edev->reset))
 		goto out;
 
-	if (args->id == GAUDI2_IRQ_NUM_EVENT_QUEUE) {
+	switch (args->id) {
+	case GAUDI2_IRQ_NUM_EVENT_QUEUE:
 		hl_irq_handler_eq(args->id, &hdev->event_queue);
-	} else if (args->id >= GAUDI2_IRQ_NUM_DCORE0_DEC0_NRM &&
-			args->id <= GAUDI2_IRQ_NUM_SHARED_DEC1_ABNRM) {
-
+		break;
+	case GAUDI2_IRQ_NUM_DCORE0_DEC0_NRM ... GAUDI2_IRQ_NUM_SHARED_DEC1_ABNRM:
 		relative_idx = args->id - GAUDI2_IRQ_NUM_DCORE0_DEC0_NRM;
-
 		dec = hdev->dec + relative_idx / 2;
 
 		if (relative_idx % 2) {
@@ -310,22 +309,24 @@ static int gaudi2_simulator_gen_int_ioctl(struct hl_simulator_device *edev, void
 			hl_irq_user_interrupt_thread_handler(args->id,
 							&hdev->user_interrupt[dec->core_id]);
 		}
-
-	} else if (args->id == GAUDI2_IRQ_NUM_COMPLETION) {
-
+		break;
+	case GAUDI2_IRQ_NUM_COMPLETION:
 		cq = &hdev->completion_queue[GAUDI2_RESERVED_CQ_CS_COMPLETION];
 		hl_irq_handler_cq(args->id, cq);
-
-	} else if (args->id >= GAUDI2_IRQ_NUM_NIC_PORT_FIRST &&
-			args->id <= GAUDI2_IRQ_NUM_NIC_PORT_LAST) {
-
+		break;
+	case GAUDI2_IRQ_NUM_NIC_PORT_FIRST ... GAUDI2_IRQ_NUM_NIC_PORT_LAST:
 		nic_eq_interrupt = args->id - GAUDI2_IRQ_NUM_NIC_PORT_FIRST;
 
 		if (gaudi2_aux_ops->eq_irq_handler)
 			gaudi2_aux_ops->eq_irq_handler(aux_dev, nic_eq_interrupt);
-
-	} else if (args->id >= GAUDI2_IRQ_NUM_USER_FIRST && args->id <= GAUDI2_IRQ_NUM_USER_LAST) {
-
+		break;
+	case GAUDI2_IRQ_NUM_TPC_ASSERT:
+		hl_irq_user_interrupt_thread_handler(args->id, &hdev->tpc_interrupt);
+		break;
+	case GAUDI2_IRQ_NUM_UNEXPECTED_ERROR:
+		hl_irq_user_interrupt_thread_handler(args->id, &hdev->unexpected_error_interrupt);
+		break;
+	case GAUDI2_IRQ_NUM_USER_FIRST ... GAUDI2_IRQ_NUM_USER_LAST:
 		int_idx = args->id - GAUDI2_IRQ_NUM_USER_FIRST +
 				hdev->asic_prop.user_dec_intr_count;
 
@@ -337,9 +338,11 @@ static int gaudi2_simulator_gen_int_ioctl(struct hl_simulator_device *edev, void
 			goto out;
 		}
 		hl_irq_user_interrupt_thread_handler(args->id, user_interrupt);
+		break;
 
-	} else {
+	default:
 		dev_err(edev->dev, "unexpected interrupt id %d", args->id);
+		break;
 	}
 out:
 	mutex_unlock(&edev->irq_mutex[args->id]);
