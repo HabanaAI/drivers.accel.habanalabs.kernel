@@ -12,51 +12,35 @@
 
 static bool gaudi2_cn_get_hw_cap(struct hl_device *hdev);
 
-static_assert(MAX_PORTS_PER_NIC == HL_CN_CPUCP_MAX_PORTS_PER_NIC);
-
-static void gaudi2_cn_convert_intr_cause(struct hl_cn_eq_intr_cause *to,
-						struct hl_eq_nic_intr_cause *from)
-{
-	int i;
-
-	to->intr_type = le32_to_cpu(from->intr_type);
-
-	for (i = 0 ; i < HL_CN_CPUCP_MAX_PORTS_PER_NIC ; i++)
-		to->intr_cause[i].intr_cause_data =
-						le64_to_cpu(from->intr_cause[i].intr_cause_data);
-}
-
 int gaudi2_cn_handle_sw_error_event(struct hl_device *hdev, u16 event_type, u8 macro_index,
 					struct hl_eq_nic_intr_cause *nic_intr_cause)
 {
 	struct hl_aux_dev *aux_dev = &hdev->cn.cn_aux_dev;
 	struct gaudi2_device *gaudi2 = hdev->asic_specific;
 	struct gaudi2_cn_aux_ops *aux_ops = &gaudi2->cn_aux_ops;
-	struct hl_cn_eq_intr_cause cn_intr_cause = {};
 	u32 error_count = 0;
 
-	if (aux_ops->sw_err_event_handler) {
-		gaudi2_cn_convert_intr_cause(&cn_intr_cause, nic_intr_cause);
-		error_count = aux_ops->sw_err_event_handler(aux_dev, event_type, macro_index,
-								&cn_intr_cause);
+	if (aux_ops->sw_err_event_handler_temp) {
+		error_count = aux_ops->sw_err_event_handler_temp(aux_dev, event_type, macro_index,
+									nic_intr_cause);
 	}
 
 	return error_count;
 }
 
 int gaudi2_cn_handle_axi_error_response_event(struct hl_device *hdev, u16 event_type,
-					u8 macro_index, struct hl_eq_nic_intr_cause *nic_intr_cause)
+						u8 macro_index,
+						struct hl_eq_nic_intr_cause *nic_intr_cause)
 {
 	struct hl_aux_dev *aux_dev = &hdev->cn.cn_aux_dev;
 	struct gaudi2_device *gaudi2 = hdev->asic_specific;
 	struct gaudi2_cn_aux_ops *aux_ops = &gaudi2->cn_aux_ops;
-	struct hl_cn_eq_intr_cause cn_intr_cause = {};
 	u32 error_count = 0;
 
-	if (aux_ops->axi_error_response_event_handler) {
-		gaudi2_cn_convert_intr_cause(&cn_intr_cause, nic_intr_cause);
-		error_count = aux_ops->axi_error_response_event_handler(aux_dev, event_type,
-								macro_index, &cn_intr_cause);
+	if (aux_ops->axi_error_response_event_handler_temp) {
+		error_count = aux_ops->axi_error_response_event_handler_temp(aux_dev, event_type,
+										macro_index,
+										nic_intr_cause);
 	}
 
 	return error_count;
