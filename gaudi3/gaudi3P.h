@@ -92,6 +92,7 @@
 #define NUM_MCS_PER_HBM			8
 #define SINGLE_HBM_SIZE			SZ_16G
 
+/* TODO: SW-153130 - remove once SW-153128 is done */
 #define GAUDI3_NIC_CLK_FREQ		533000000ull	/* 533 MHz */
 
 #define GAUDI3_FPGA_CPU_TIMEOUT_USEC		100000000	/* 100s */
@@ -152,17 +153,10 @@
 #define NIC_PORTS_PER_MACRO		(NIC_MAC_LANES / hdev->cn.lanes_per_port)
 #define NIC_NUM_PORTS_PER_DIE		(NIC_NUM_MACROS_PER_DIE * NIC_PORTS_PER_MACRO)
 #define NIC_NUMBER_OF_PORTS		(NIC_NUM_PORTS_PER_DIE * NIC_NUM_OF_DIES)
-#define NIC_CQS_NUM			2 /* For Raw and RDMA */
 
-#define NIC_MAX_PORTS_PER_MACRO		(NIC_MAC_LANES / PORT_LANES_2)
-#define NIC_MAX_NUM_PORTS_PER_DIE	(NIC_NUM_MACROS_PER_DIE * NIC_MAX_PORTS_PER_MACRO)
-#define NIC_MAX_NUMBER_OF_PORTS		(NIC_MAX_NUM_PORTS_PER_DIE * MAX_NUM_OF_DIES)
-
+/* Parameters for bring-up (not to be upstreamed) */
 #define GAUDI3_NIC_MAX_CQS_NUM	16
-#define GAUDI3_NIC_MAX_CCQS_NUM	4
-/* make sure generic max CCQs number is always larger than h/w specific max CCQs number */
-static_assert(GAUDI3_NIC_MAX_CCQS_NUM <= NIC_DRV_MAX_CCQS_NUM);
-
+/* TODO: SW-153130 - remove once SW-153128 is done */
 #define GAUDI3_NIC_NUM_DB_FIFOS	32
 
 #define LBW_DUP_PUSH_BLOCK_SIZE		512
@@ -214,6 +208,7 @@ static_assert(GAUDI3_NIC_MAX_CCQS_NUM <= NIC_DRV_MAX_CCQS_NUM);
 
 static_assert(IS_POWER_OF_2(ETR_BUF_SIZE));
 
+/* TODO: SW-153130 - remove once SW-153128 is done */
 #define NIC_DRV_SIZE		0x20000000				/* 512MB */
 
 #define MMU_PAGE_TABLES_SIZE	0x0C000000				/* 192MB */

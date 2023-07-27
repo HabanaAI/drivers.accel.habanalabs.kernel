@@ -11,30 +11,17 @@
 #include "gaudi2P.h"
 #include "../include/gaudi2/asic_reg/gaudi2_regs.h"
 
+/* Parameters for bring-up (not to be upstreamed) */
 #define NIC_MAX_RC_MTU		SZ_8K
-
 /* This is the max frame length the H/W supports (Tx/Rx) */
 #define NIC_MAX_RDMA_HDRS	128
 #define NIC_MAX_FRM_LEN		(NIC_MAX_RC_MTU + NIC_MAX_RDMA_HDRS)
-#define NIC_RAW_MIN_MTU		(SZ_1K - HL_EN_MAX_HEADERS_SZ)
-#define NIC_RAW_MAX_MTU		(NIC_MAX_RC_MTU - HL_EN_MAX_HEADERS_SZ)
 
-/* This is the size of an element size in the RAW buffer - note that it is different than
- * NIC_MAX_FRM_LEN, because it has to be power of 2.
- */
-#define NIC_RAW_ELEM_SIZE	(2 * NIC_MAX_RC_MTU)
-
-/* verify power of 2 */
-static_assert(IS_POWER_OF_2(NIC_RAW_ELEM_SIZE));
-
-#define NIC_MIN_CONN_ID		1
+/* TODO: SW-153130 - remove once SW-153128 is done - START*/
 #define NIC_MAX_CONN_ID		((1 << 13) - 1) /* 8K QPs */
-
 #define NIC_MAX_QP_NUM		(NIC_MAX_CONN_ID + 1)
-
 /* Number of available QPs must not exceed NIC_HW_MAX_QP_NUM */
 static_assert(NIC_MAX_QP_NUM <= NIC_HW_MAX_QP_NUM);
-
 /* Allocate an extra QP to be used as dummy QP. */
 #define REQ_QPC_TOTAL_PORT_SIZE	((NIC_MAX_QP_NUM + 1) * sizeof(struct gaudi2_qpc_requester))
 #define RES_QPC_TOTAL_PORT_SIZE	((NIC_MAX_QP_NUM + 1) * sizeof(struct gaudi2_qpc_responder))
@@ -91,6 +78,7 @@ static_assert(NIC_MAX_QP_NUM <= NIC_HW_MAX_QP_NUM);
 /* Unlike the other NIC related sizes, this size is shared between all the engines */
 #define WQ_BASE_SIZE(nic_drv_addr, nic_drv_size) \
 			(NIC_DRV_END_ADDR(nic_drv_addr, nic_drv_size) - WQ_BASE_ADDR(nic_drv_addr))
+/* TODO: SW-153130 - remove once SW-153128 is done - END*/
 
 #define NIC_CFG_LO_SIZE		(mmNIC0_QPC1_REQ_STATIC_CONFIG - \
 					mmNIC0_QPC0_REQ_STATIC_CONFIG)
@@ -105,12 +93,10 @@ static_assert(NIC_MAX_QP_NUM <= NIC_HW_MAX_QP_NUM);
 
 #define NIC_RREG32(reg) RREG32(NIC_CFG_BASE(port, (reg)) + (reg))
 #define NIC_WREG32(reg, val) WREG32(NIC_CFG_BASE(port, (reg)) + (reg), (val))
-
 #define NIC_RMWREG32(reg, val, mask)	\
 		RMWREG32(NIC_CFG_BASE(port, reg) + (reg), (val), (mask))
-#define NIC_RMWREG32_SHIFTED(reg, val, mask)	\
-		RMWREG32_SHIFTED(NIC_CFG_BASE(port, reg) + (reg), (val), (mask))
 
+/* Parameters for simulator (not to be upstreamed) */
 #define GAUDI2_HLS2_EXTERN_PORTS_MASK 0xC00100
 
 int gaudi2_cn_set_info(struct hl_device *hdev, bool get_from_fw);

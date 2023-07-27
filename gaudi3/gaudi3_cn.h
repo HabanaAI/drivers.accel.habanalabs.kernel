@@ -11,14 +11,11 @@
 #include "gaudi3P.h"
 #include "../include/gaudi3/asic_reg/gaudi3_regs.h"
 
+/* Parameters for bring-up (not to be upstreamed) - START */
 #define NIC_MAX_RC_MTU		SZ_8K
-
 /* This is the max frame length the H/W supports (Tx/Rx) */
 #define NIC_MAX_RDMA_HDRS	234
 #define NIC_MAX_FRM_LEN		(NIC_MAX_RC_MTU + NIC_MAX_RDMA_HDRS)
-
-#define NIC_RAW_MIN_MTU		(SZ_1K - HL_EN_MAX_HEADERS_SZ)
-#define NIC_RAW_MAX_MTU		(NIC_MAX_RC_MTU - HL_EN_MAX_HEADERS_SZ)
 
 /* This is the size of an element size in the RAW buffer - note that it is different than
  * NIC_MAX_FRM_LEN, because it has to be power of 2.
@@ -27,8 +24,9 @@
 
 /* verify power of 2 */
 static_assert(IS_POWER_OF_2(NIC_RAW_ELEM_SIZE));
+/* Parameters for bring-up (not to be upstreamed) - END */
 
-#define NIC_MIN_CONN_ID		1
+/* TODO: SW-153130 - remove once SW-153128 is done - START */
 #define NIC_MAX_CONN_ID		((1 << 15) - 1) /* 32K QPs */
 #define NIC_MAX_CONN_ID_NO_DRAM	((1 << 14) - 1) /* 16K QPs */
 
@@ -103,6 +101,7 @@ static_assert((NIC_MAX_CONN_ID + 1) <= NIC_HW_MAX_QP_NUM);
 /* Unlike the other NIC related sizes, this size is shared between all the engines */
 #define WQ_BASE_SIZE(nic_drv_addr, nic_drv_size) \
 			(NIC_DRV_END_ADDR(nic_drv_addr, nic_drv_size) - WQ_BASE_ADDR(nic_drv_addr))
+/* TODO: SW-153130 - remove once SW-153128 is done - END*/
 
 /* read/write port specific registers */
 #define NIC_PORT_DIE_OFFSET(port)	(((port) >= NIC_NUM_PORTS_PER_DIE) ? NIC_DIE_OFFSET : 0)
@@ -116,8 +115,8 @@ static_assert((NIC_MAX_CONN_ID + 1) <= NIC_HW_MAX_QP_NUM);
 #define NIC_RREG32(reg)			RREG32(NIC_REG(reg))
 #define NIC_WREG32(reg, val)		WREG32(NIC_REG(reg), (val))
 #define NIC_RMWREG32(reg, val, mask)	RMWREG32(NIC_REG(reg), (val), (mask))
-#define NIC_RMWREG32_SHIFTED(reg, val, mask)	RMWREG32_SHIFTED(NIC_REG(reg), (val), (mask))
 
+/* Parameters for bring-up (not to be upstreamed) - START */
 #define VALID_WQE_OPCODES \
 	(BIT(WQE_SEND) | BIT(WQE_LINEAR) | BIT(WQE_STRIDE) | BIT(WQE_MULTI_STRIDE) | \
 	BIT(WQE_RENDEZVOUS_WR) | BIT(WQE_RENDEZVOUS_RD) | BIT(WQE_ATOMIC_FETCH_ADD) | \
@@ -140,12 +139,15 @@ static_assert((NIC_MAX_CONN_ID + 1) <= NIC_HW_MAX_QP_NUM);
 
 #define PLAIN_RDMA_VALID_WQE_OPCODES \
 	(BIT(WQE_SEND) | BIT(WQE_LINEAR))
+/* Parameters for bring-up (not to be upstreamed) - END */
 
+/* Parameters for simulator (not to be upstreamed) - START*/
 #define GAUDI3_PORTS_MASK_200G 0xFFFFFF
 #define GAUDI3_PORTS_MASK_400G 0xFFF
 #define GAUDI3_HLS3_EXTERN_PORTS_MASK_200G_16TB 0x3003C0
 #define GAUDI3_HLS3_EXTERN_PORTS_MASK_200G_48TB GAUDI3_PORTS_MASK_200G
 #define GAUDI3_HLS3_EXTERN_PORTS_MASK_400G_48TB GAUDI3_PORTS_MASK_400G
+/* Parameters for simulator (not to be upstreamed) - END*/
 
 u64 gaudi3_cn_get_macro_ports_mask(struct hl_device *hdev, int macro_idx);
 u32 gaudi3_cn_handle_bmon_spmu_event(struct hl_device *hdev, u32 macro_index);

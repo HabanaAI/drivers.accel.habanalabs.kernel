@@ -89,7 +89,7 @@
 #define GAUDI2_PREBOOT_REQ_TIMEOUT_USEC		25000000	/* 25s */
 
 #define GAUDI2_BOOT_FIT_REQ_TIMEOUT_USEC	10000000	/* 10s */
-
+/* TODO: SW-153130 - remove once SW-153128 is done */
 #define GAUDI2_NIC_CLK_FREQ			488000000ull	/* 488 MHz */
 
 #define DC_POWER_DEFAULT			60000		/* 60W */
@@ -112,21 +112,12 @@
 
 #define CPU_FW_IMAGE_SIZE			0x10000000	/* 256MB */
 
-/* This define should be used only when working in a debug mode without dram.
- * When working with dram, the driver size will be calculated dynamically.
- */
-#define NIC_DEFAULT_DRV_SIZE			0x20000000	/* 512MB */
-
 #define CPU_FW_IMAGE_ADDR			DRAM_PHYS_BASE
 
 #define NIC_NUMBER_OF_PORTS			NIC_NUMBER_OF_ENGINES
-#define NIC_MAX_NUM_OF_LANES			(NIC_NUMBER_OF_MACROS * NIC_MAC_LANES)
-
+/* TODO: SW-153130 - remove once SW-153128 is done */
 #define GAUDI2_NIC_MAX_CQS_NUM			16
-
-/* make sure generic max CCQs number is always larger than h/w specific max CCQs number */
-static_assert(NIC_MAX_CCQS_NUM <= NIC_DRV_MAX_CCQS_NUM);
-
+/* TODO: SW-153130 - remove once SW-153128 is done */
 #define GAUDI2_NIC_NUM_DB_FIFOS			32
 
 #define NUMBER_OF_PCIE_DEC			2
