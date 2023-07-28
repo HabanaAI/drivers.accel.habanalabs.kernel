@@ -973,7 +973,7 @@ static void gaudi3_sim_get_nic_info(struct hl_device *hdev)
 
 	/* Assume HLS3 connections */
 	if (hdev->cn_lanes_per_port == PORT_LANES_2) {
-		nic_info->link_ext_mask[0] = cpu_to_le64(GAUDI3_HLS3_EXTERN_PORTS_MASK_200G);
+		nic_info->link_ext_mask[0] = cpu_to_le64(GAUDI3_HLS3_EXTERN_PORTS_MASK_200G_48TB);
 		nic_info->link_mask[0] = cpu_to_le64(GAUDI3_PORTS_MASK_200G);
 	} else {
 		nic_info->link_ext_mask[0] = cpu_to_le64(GAUDI3_HLS3_EXTERN_PORTS_MASK_400G_48TB);
