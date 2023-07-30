@@ -12796,16 +12796,18 @@ static u32 gaudi3_handle_nic_spi(struct hl_device *hdev, u32 macro_index, u16 da
 
 static void gaudi3_handle_ecc_event(struct hl_device *hdev, struct hl_eq_ecc_data *ecc_data)
 {
-	u64 ecc_address = 0, ecc_syndrom = 0;
-	u8 memory_wrapper_idx = 0;
+	u64 ecc_address, ecc_syndrome;
+	u8 memory_wrapper_idx;
+	u32 block_base;
 
 	ecc_address = le64_to_cpu(ecc_data->ecc_address);
-	ecc_syndrom = le64_to_cpu(ecc_data->ecc_syndrom);
+	ecc_syndrome = le64_to_cpu(ecc_data->ecc_syndrom);
 	memory_wrapper_idx = ecc_data->memory_wrapper_idx;
+	block_base = FIELD_PREP(ECC_BLOCK_LBW_BASE_ADDR_M, le16_to_cpu(ecc_data->block_id));
 
 	dev_err(hdev->dev,
-		"ECC error detected. address: %#llx. Syndrom: %#llx. block id %u. critical %u.\n",
-		ecc_address, ecc_syndrom, memory_wrapper_idx, ecc_data->is_critical);
+		"ECC error detected. block base %#x. memory idx %u. address %#llx. syndrome: %#llx. critical %u.\n",
+		block_base, memory_wrapper_idx, ecc_address, ecc_syndrome, ecc_data->is_critical);
 }
 
 static u32 gaudi3_handle_nic_status_event(struct hl_device *hdev,

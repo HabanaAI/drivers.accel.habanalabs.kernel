@@ -3266,6 +3266,8 @@ static void __handle_and_clear_derr_events(struct hl_device *hdev, u32 special_r
 			ecc_data->ecc_syndrom = cpu_to_le64(ecc_syndrom);
 			ecc_data->memory_wrapper_idx = (u8) mem;
 			ecc_data->is_critical = 0;
+			ecc_data->block_id = FIELD_GET(ECC_BLOCK_LBW_BASE_ADDR_M,
+							special_regs_base);
 
 			*ecc_err_found = true;
 		}
