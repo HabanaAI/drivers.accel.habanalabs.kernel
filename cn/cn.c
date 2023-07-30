@@ -514,6 +514,23 @@ static int hl_cn_send_cpu_message(struct hl_aux_dev *aux_dev, u32 *msg, u16 len,
 	return hdev->asic_funcs->send_cpu_message(hdev, msg, len, timeout, result);
 }
 
+static void *hl_cn_cpu_accessible_dma_pool_alloc(struct hl_aux_dev *aux_dev, size_t size,
+							dma_addr_t *dma_handle)
+{
+	struct hl_cn *cn = container_of(aux_dev, struct hl_cn, cn_aux_dev);
+	struct hl_device *hdev = container_of(cn, struct hl_device, cn);
+
+	return hl_cpu_accessible_dma_pool_alloc(hdev, size, dma_handle);
+}
+
+static void hl_cn_cpu_accessible_dma_pool_free(struct hl_aux_dev *aux_dev, size_t size,
+						void *vaddr)
+{
+	struct hl_cn *cn = container_of(aux_dev, struct hl_cn, cn_aux_dev);
+	struct hl_device *hdev = container_of(cn, struct hl_device, cn);
+
+	hl_cpu_accessible_dma_pool_free(hdev,  size, vaddr);
+}
 
 static int hl_cn_get_asic_type(struct hl_device *hdev, enum hl_cn_asic_type *asic_type)
 {
@@ -655,6 +672,8 @@ static int hl_cn_aux_data_init(struct hl_device *hdev)
 	aux_ops->poll_reg = hl_cn_poll_reg;
 	aux_ops->get_cpucp_info = hl_cn_get_cpucp_info;
 	aux_ops->send_cpu_message = hl_cn_send_cpu_message;
+	aux_ops->cpu_accessible_dma_pool_alloc = hl_cn_cpu_accessible_dma_pool_alloc;
+	aux_ops->cpu_accessible_dma_pool_free = hl_cn_cpu_accessible_dma_pool_free;
 
 	cn_funcs->set_cn_data(hdev);
 
