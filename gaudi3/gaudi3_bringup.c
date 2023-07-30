@@ -4044,6 +4044,7 @@ static void handle_and_clear_mme_events(struct hl_device *hdev, u32 die, u32 hdc
 	case ERR_GRP_SEI:
 		handle_and_clear_mme_sei_events(hdev, idx, offset, &eq_dynamic_entry.mme_sei_data);
 		eq_dynamic_entry.hdr.size = cpu_to_le16(sizeof(struct hl_eq_mme_sei_data));
+		unmask_event_in_aggr = true;
 		break;
 	case ERR_GRP_SPI_ECO:
 		spi_data = &eq_dynamic_entry.mme_spi_data;
@@ -4079,6 +4080,8 @@ static void handle_and_clear_mme_events(struct hl_device *hdev, u32 die, u32 hdc
 		default:
 			return;
 		}
+		unmask_event_in_aggr = true;
+		break;
 	default:
 		return;
 	}
