@@ -868,11 +868,28 @@ static void gaudi_sim_notify_reset(struct hl_device *hdev)
 
 /* All the code below this point is the gaudi simulator device implementation */
 
+static void gaudi_sim_cn_early_init_props(struct hl_device *hdev)
+{
+	struct asic_fixed_properties *prop = &hdev->asic_prop;
+	struct hl_cn_properties *cn_prop = &prop->cn_props;
+
+	cn_prop->nic_drv_addr = GAUDI_SIM_NIC_DRV_ADDR;
+	cn_prop->nic_drv_size = GAUDI_SIM_NIC_DRV_SIZE;
+	cn_prop->nic_drv_base_addr = GAUDI_SIM_NIC_DRV_BASE_ADDR;
+	cn_prop->nic_drv_end_addr = GAUDI_SIM_NIC_DRV_END_ADDR;
+
+	cn_prop->sb_base_addr = GAUDI_SIM_SB_BASE_ADDR;
+	cn_prop->swq_base_addr = GAUDI_SIM_SWQ_BASE_ADDR;
+	cn_prop->txs_base_addr = GAUDI_SIM_TXS_BASE_ADDR;
+	cn_prop->tmr_base_addr = GAUDI_SIM_TMR_BASE_ADDR;
+	cn_prop->req_qpc_base_addr = GAUDI_SIM_REQ_QPC_BASE_ADDR;
+	cn_prop->res_qpc_base_addr = GAUDI_SIM_RES_QPC_BASE_ADDR;
+}
+
 static int gaudi_sim_set_fixed_properties(struct hl_device *hdev)
 {
 	struct hl_simulator_device *edev = gaudi_simulator_dev_table[hdev->id];
 	struct asic_fixed_properties *prop = &hdev->asic_prop;
-	struct hl_cn_properties *cn_prop = &prop->cn_props;
 	int rc;
 
 	rc = gaudi_set_fixed_properties(hdev);
@@ -892,18 +909,10 @@ static int gaudi_sim_set_fixed_properties(struct hl_device *hdev)
 
 	prop->cb_pool_cb_cnt = GAUDI_SIM_CB_POOL_CB_CNT;
 	prop->cb_pool_cb_size = GAUDI_SIM_CB_POOL_CB_SIZE;
+	prop->nic_drv_addr = GAUDI_SIM_NIC_DRV_ADDR;
+	prop->nic_drv_size = GAUDI_SIM_NIC_DRV_SIZE;
 
-	cn_prop->nic_drv_addr = GAUDI_SIM_NIC_DRV_ADDR;
-	cn_prop->nic_drv_size = GAUDI_SIM_NIC_DRV_SIZE;
-	cn_prop->nic_drv_base_addr = GAUDI_SIM_NIC_DRV_BASE_ADDR;
-	cn_prop->nic_drv_end_addr = GAUDI_SIM_NIC_DRV_END_ADDR;
-
-	cn_prop->sb_base_addr = GAUDI_SIM_SB_BASE_ADDR;
-	cn_prop->swq_base_addr = GAUDI_SIM_SWQ_BASE_ADDR;
-	cn_prop->txs_base_addr = GAUDI_SIM_TXS_BASE_ADDR;
-	cn_prop->tmr_base_addr = GAUDI_SIM_TMR_BASE_ADDR;
-	cn_prop->req_qpc_base_addr = GAUDI_SIM_REQ_QPC_BASE_ADDR;
-	cn_prop->res_qpc_base_addr = GAUDI_SIM_RES_QPC_BASE_ADDR;
+	gaudi_sim_cn_early_init_props(hdev);
 
 	return 0;
 }
