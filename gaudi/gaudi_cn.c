@@ -40,7 +40,7 @@ static void gaudi_cn_set_hw_cap(struct hl_device *hdev, bool enable)
 
 static int gaudi_cn_pre_core_init(struct hl_device *hdev)
 {
-	struct hl_cn_cpucp_info *cn_cpucp_info = &hdev->asic_prop.cn_cpucp_info;
+	struct hl_cn_cpucp_info *cn_cpucp_info = &hdev->asic_prop.cn_props.cpucp_info;
 	struct hl_cn_properties *cn_prop = &hdev->asic_prop.cn_props;
 	struct cpucp_info *cpucp_info = &hdev->asic_prop.cpucp_info;
 	struct hl_cn_cpucp_mac_addr *mac_arr = cn_cpucp_info->mac_addrs;

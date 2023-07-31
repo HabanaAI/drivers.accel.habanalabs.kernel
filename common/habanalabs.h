@@ -637,8 +637,6 @@ struct hl_mem_block_info {
  * @cn_props: CN driver properties.
  * @cpucp_info: received various information from CPU-CP regarding the H/W, e.g.
  *		available sensors.
- * @cpucp_nic_info: received various information from CPU-CP regarding the NIC
- *                  H/W, e.g. MAC addresses.
  * @uboot_ver: F/W U-boot version.
  * @preboot_ver: F/W Preboot version.
  * @dmmu: DRAM MMU address translation properties.
@@ -825,7 +823,6 @@ struct asic_fixed_properties {
 	struct hl_special_blocks_cfg	pb_blocks_cfg;
 	struct hl_cn_properties		cn_props;
 	struct cpucp_info		cpucp_info;
-	struct hl_cn_cpucp_info		cn_cpucp_info;
 	char				uboot_ver[VERSION_MAX_LEN];
 	char				preboot_ver[VERSION_MAX_LEN];
 	struct hl_mmu_properties	dmmu;

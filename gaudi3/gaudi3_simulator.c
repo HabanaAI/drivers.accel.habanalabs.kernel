@@ -969,7 +969,7 @@ static int gaudi3_sim_early_fini(struct hl_device *hdev)
 
 static void gaudi3_sim_get_nic_info(struct hl_device *hdev)
 {
-	struct hl_cn_cpucp_info *cn_cpucp_info = &hdev->asic_prop.cn_cpucp_info;
+	struct hl_cn_cpucp_info *cn_cpucp_info = &hdev->asic_prop.cn_props.cpucp_info;
 
 	/* Assume HLS3 connections */
 	if (hdev->cn.lanes_per_port == PORT_LANES_2) {
@@ -987,7 +987,7 @@ static int gaudi3_sim_cpucp_info_get(struct hl_device *hdev)
 			gaudi3_simulator_dev_table[hdev->id];
 	struct gaudi3_device *gaudi3 = hdev->asic_specific;
 	struct asic_fixed_properties *prop = &hdev->asic_prop;
-	struct hl_cn_cpucp_info *cn_cpucp_info = &prop->cn_cpucp_info;
+	struct hl_cn_cpucp_info *cn_cpucp_info = &prop->cn_props.cpucp_info;
 	u64 dram_size;
 	int rc;
 

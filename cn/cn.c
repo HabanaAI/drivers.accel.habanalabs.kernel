@@ -388,7 +388,7 @@ static void hl_cn_get_cpucp_info(struct hl_aux_dev *aux_dev,
 	struct hl_device *hdev = container_of(cn, struct hl_device, cn);
 	struct hl_cn_cpucp_info *cn_cpucp_info;
 
-	cn_cpucp_info = &hdev->asic_prop.cn_cpucp_info;
+	cn_cpucp_info = &hdev->asic_prop.cn_props.cpucp_info;
 
 	memcpy(hl_cn_cpucp_info, cn_cpucp_info, sizeof(*cn_cpucp_info));
 }
@@ -1113,7 +1113,7 @@ int hl_cn_cpucp_info_get(struct hl_device *hdev)
 	if (rc)
 		goto out;
 
-	hl_cn_cpucp_info_le_to_cpu(cpucp_nic_info, &prop->cn_cpucp_info);
+	hl_cn_cpucp_info_le_to_cpu(cpucp_nic_info, &prop->cn_props.cpucp_info);
 
 out:
 	hl_cpu_accessible_dma_pool_free(hdev, sizeof(struct cpucp_nic_info), cpucp_nic_info);

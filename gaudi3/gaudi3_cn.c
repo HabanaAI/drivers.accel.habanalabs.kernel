@@ -60,8 +60,7 @@ bool gaudi3_cn_is_macro_enabled(struct hl_device *hdev, int macro_idx)
 
 int gaudi3_cn_set_info(struct hl_device *hdev, bool get_from_fw)
 {
-	struct hl_cn_cpucp_info *cn_cpucp_info =
-					&hdev->asic_prop.cn_cpucp_info;
+	struct hl_cn_cpucp_info *cn_cpucp_info = &hdev->asic_prop.cn_props.cpucp_info;
 	struct cpucp_info *cpucp_info = &hdev->asic_prop.cpucp_info;
 	struct hl_cn_cpucp_mac_addr *mac_arr = cn_cpucp_info->mac_addrs;
 	struct hl_cn *cn = &hdev->cn;

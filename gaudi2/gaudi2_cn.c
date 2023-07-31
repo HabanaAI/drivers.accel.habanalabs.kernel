@@ -151,7 +151,7 @@ static void gaudi2_cn_set_hw_cap(struct hl_device *hdev, bool enable)
 
 int gaudi2_cn_set_info(struct hl_device *hdev, bool get_from_fw)
 {
-	struct hl_cn_cpucp_info *cn_cpucp_info = &hdev->asic_prop.cn_cpucp_info;
+	struct hl_cn_cpucp_info *cn_cpucp_info = &hdev->asic_prop.cn_props.cpucp_info;
 	struct cpucp_info *cpucp_info = &hdev->asic_prop.cpucp_info;
 	struct hl_cn_cpucp_mac_addr *mac_arr = cn_cpucp_info->mac_addrs;
 	struct hl_cn *cn = &hdev->cn;

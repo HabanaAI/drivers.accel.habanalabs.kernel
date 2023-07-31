@@ -962,7 +962,7 @@ static int gaudi_sim_early_fini(struct hl_device *hdev)
 
 static void gaudi_sim_get_nic_info(struct hl_device *hdev)
 {
-	struct hl_cn_cpucp_info *cn_cpucp_info = &hdev->asic_prop.cn_cpucp_info;
+	struct hl_cn_cpucp_info *cn_cpucp_info = &hdev->asic_prop.cn_props.cpucp_info;
 	struct cpucp_info *cpucp_info = &hdev->asic_prop.cpucp_info;
 	u32 i, card_location;
 	u8 mac[ETH_ALEN];
