@@ -2141,6 +2141,9 @@ static const char * const gaudi3_interrupt_hdcore_name[INT_HDCORE_MAX] = {
 	[INT_PSOC]    = "PSOC"
 };
 
+static int gaudi3_validate_eqe_data_size(struct hl_device *hdev,
+					 u16 actual_size, u16 expected_size);
+
 static int gaudi3_test_qmans_get_sob_for_engine(struct hl_device *hdev,
 						enum gaudi3_engine_id engine_id,
 						struct gaudi3_sob_info *sob);
@@ -2936,7 +2939,7 @@ static void gaudi3_dtlb_fault_desc(struct hl_device *hdev, int hdcore, int inst,
 }
 
 static u32 hmmu_event_get_dtlb_desc(struct hl_device *hdev, u32 hdcore, u32 die,
-						char *str, u64 size, u64 *event_mask)
+				    char *str, u64 size, u64 *event_mask)
 {
 	struct dtlb_fault_desc desc = { .str = str, .str_size = size, .die = die, .str_len = 0,
 					.event_mask = event_mask};
@@ -2954,20 +2957,17 @@ static u32 hmmu_event_get_dtlb_desc(struct hl_device *hdev, u32 hdcore, u32 die,
 	return 1;
 }
 
-static u32 hmmu_event_get_stlb_desc(struct hl_device *hdev, u32 hdcore, char *str, u64 size)
+static u32 hmmu_event_get_stlb_desc(struct hl_device *hdev,
+				    const struct hl_eq_stlb_spi_data *stlb_spi_data,
+				    char *str, u64 size)
 {
-	u64 intr_log_hi, intr_log_low, intr_log, pte_l, pte_h, pte;
-	u32 offset, cause;
+	u64 intr_log = le64_to_cpu(stlb_spi_data->fault_data.syndrom_dti);
+	u64 pte = le64_to_cpu(stlb_spi_data->fault_data.syndrom_pte);
+	u64 cause = le64_to_cpu(stlb_spi_data->cause.intr_cause_data);
 	u8 dti_opcode;
 
-	offset = hdcore * HDCORE_OFFSET;
-	cause = RREG32(mmHD0_STLB_BASE + mmSTLB_INTR_SPI_CAUSE + offset);
-	intr_log_low = RREG32(mmHD0_STLB_BASE + mmSTLB_FAULT_SYNDROME1 + offset);
-	intr_log_hi = RREG32(mmHD0_STLB_BASE + mmSTLB_FAULT_SYNDROME2 + offset);
-	intr_log = (intr_log_hi << 32) | intr_log_low;
-	pte_l = RREG32(mmHD0_STLB_BASE + mmSTLB_FAULT_SYNDROME3 + offset);
-	pte_h = RREG32(mmHD0_STLB_BASE + mmSTLB_FAULT_SYNDROME4 + offset);
-	pte = (pte_h << 32) | pte_l;
+	if (!cause)
+		return 0;
 
 	if (cause & 0x2) {
 		dti_opcode = FIELD_GET(GENMASK_ULL(7, 4), intr_log);
@@ -2999,22 +2999,22 @@ static u32 hmmu_event_get_stlb_desc(struct hl_device *hdev, u32 hdcore, char *st
 			va, asid, hop, pte);
 	}
 
-	/* clear to allow another interrupt */
-	WREG32(mmHD0_STLB_BASE + mmSTLB_INTR_SPI_CAUSE + offset, 0);
-	WREG32(mmHD0_STLB_BASE + mmSTLB_FAULT_SYNDORM_CNTRL + offset,
-			FIELD_PREP(STLB_FAULT_SYNDORM_CNTRL_REL_M, 0x1));
-
-	return !!cause;
+	return 1;
 }
 
-static u32 handle_hmmu_events(struct hl_device *hdev, u32 die, u32 hdcore, u64 *event_mask)
+static u32 handle_hmmu_spi_events(struct hl_device *hdev, u16 data_size,
+				  struct hl_eq_stlb_spi_data *spi_data, u32 hdcore, u32 die,
+				  u64 *event_mask)
 {
 	char stlb_str[256] = {0}, dtlb_str[256] = {0};
 	u32 err_cnt = 0;
 
-	err_cnt = hmmu_event_get_stlb_desc(hdev, hdcore, stlb_str, sizeof(stlb_str));
-	err_cnt += hmmu_event_get_dtlb_desc(hdev, hdcore, die, dtlb_str, sizeof(dtlb_str),
-						event_mask);
+	if (gaudi3_validate_eqe_data_size(hdev, data_size, sizeof(*spi_data)))
+		return 0;
+
+	err_cnt = hmmu_event_get_stlb_desc(hdev, spi_data, stlb_str, sizeof(stlb_str));
+	err_cnt += hmmu_event_get_dtlb_desc(hdev, hdcore, die,
+					    dtlb_str, sizeof(dtlb_str), event_mask);
 
 	dev_err(hdev->dev,
 		"STLB info: %s, DTLB info: %s\n", stlb_str, dtlb_str);
@@ -11957,7 +11957,7 @@ static u16 eq_agg_header_to_engine_id(struct hl_agg_eq_header *agg_hdr)
 	u32 die = agg_hdr->die_id, hdcore = hdcore_type_to_hdcore(die, agg_hdr->hdcore_type),
 			instance = agg_hdr->comp_instance;
 	enum hl_agg_component_type agg_component_type = agg_hdr->int_comp_type;
-	u16 engine_id = U16_MAX;
+	u16 engine_id;
 
 	switch (agg_component_type) {
 	case INT_COMP_TYPE_ARC_FARM:
@@ -12044,6 +12044,7 @@ static u16 eq_agg_header_to_engine_id(struct hl_agg_eq_header *agg_hdr)
 		break;
 
 	default:
+		engine_id = U16_MAX;
 		break;
 	}
 
@@ -12109,6 +12110,11 @@ static void gaudi3_sei_razwi_handler(struct hl_device *hdev, struct hl_agg_eq_he
 
 	case INT_COMP_TYPE_ROT:
 		gaudi3_razwi_handler(hdev, RAZWI_ROT, die, hdcore, initiator_idx, eng_id,
+					event_mask);
+		break;
+
+	case INT_COMP_TYPE_STLB:
+		gaudi3_razwi_handler(hdev, RAZWI_STLB, die, hdcore, initiator_idx, eng_id,
 					event_mask);
 		break;
 
@@ -12596,6 +12602,87 @@ static u32 gaudi3_handle_mme_sei_err(struct hl_device *hdev, u16 data_size,
 	return err_num;
 }
 
+static u32 hmmu_sei_event_get_dti_desc(struct hl_device *hdev, u64 syndrom_dti, char *str, u64 size)
+{
+	u64 id = FIELD_GET(GENMASK_ULL(3, 0), syndrom_dti);
+	u64 opcode = FIELD_GET(GENMASK_ULL(7, 4), syndrom_dti);
+	u64 va = FIELD_GET(GENMASK_ULL(43, 16), syndrom_dti);
+	u64 pa = FIELD_GET(GENMASK_ULL(35, 16), syndrom_dti);
+	u64 asid = FIELD_GET(GENMASK_ULL(57, 48), syndrom_dti);
+	u64 sz = FIELD_GET(GENMASK_ULL(51, 48), syndrom_dti);
+	u64 type = FIELD_GET(GENMASK_ULL(55, 52), syndrom_dti);
+	u64 status = FIELD_GET(GENMASK_ULL(63, 60), syndrom_dti);
+
+	switch (opcode) {
+	case 0x0:
+		snprintf(str, size,
+			 "TRANS_REQ id: %llu, va: 0x%llx, asid: %llu", id, va, asid);
+		break;
+	case 0x1:
+		snprintf(str, size,
+			 "TRANS_RESP id: %llu, pa: 0x%llx, size: %llu, type: %llu, status: %llu",
+			 id, pa, sz, type, status);
+		break;
+	case 0x2:
+		snprintf(str, size,
+			 "INV_VA_REQ id: %llu, va: 0x%llx, asid: %llu", id, va, asid);
+		break;
+	case 0x3:
+		snprintf(str, size,
+			 "INV_VA_RESP id: %llu, status %llu", id, status);
+		break;
+	case 0x4:
+		snprintf(str, size,
+			 "INV_ALL_REQ id: %llu, asid %llu", id, asid);
+		break;
+	case 0x5:
+		snprintf(str, size,
+			 "INV_ALL_RESP id %llu, status %llu", id, status);
+		break;
+	case 0x6:
+		snprintf(str, size,
+			 "FAULT_MSG_REQ id: %llu, va: 0x%llx, asid: %llu", id, va, asid);
+		break;
+	case 0x7:
+		snprintf(str, size,
+			 "FAULT_MSG_RESP, id %llu, status %llu", id, status);
+		break;
+	default:
+		snprintf(str, size,
+			 "TRANS id %llu, unknown code %llu", id, opcode);
+		break;
+	}
+
+	return 1;
+}
+
+static u32 handle_hmmu_sei_events(struct hl_device *hdev, u16 data_size,
+				  struct hl_eq_stlb_sei_data *sei_data)
+{
+	char stlb_str[256] = {0}, dtlb_str[256] = {0};
+	u32 err_cnt = 0;
+
+	if (gaudi3_validate_eqe_data_size(hdev, data_size, sizeof(*sei_data)))
+		return 0;
+
+	if (sei_data->cause.intr_cause_data & STLB_INTR_SEI_CAUSE_LBW_RSP_ERR_M) {
+		snprintf(stlb_str, sizeof(stlb_str), "LBW resp error: address 0x%x, data: 0x%x",
+			 le32_to_cpu(sei_data->lbw_data.addr),
+			 le32_to_cpu(sei_data->lbw_data.data));
+		err_cnt++;
+	}
+
+	if (sei_data->cause.intr_cause_data & STLB_INTR_SEI_CAUSE_PTW_RSP_ERR_M)
+		err_cnt += hmmu_sei_event_get_dti_desc(hdev,
+						le64_to_cpu(sei_data->fault_data.syndrom_dti),
+						dtlb_str, sizeof(dtlb_str));
+
+	dev_err(hdev->dev,
+		"STLB info: %s, DTLB info: %s\n", stlb_str, dtlb_str);
+
+	return err_cnt;
+}
+
 static u32 handle_tpc_sei_events(struct hl_device *hdev, u16 data_size,
 					struct hl_eq_tpc_sei_data *sei_data)
 {
@@ -13041,6 +13128,9 @@ static u32 gaudi3_handle_sei_event(struct hl_device *hdev,
 	case INT_COMP_TYPE_CS:
 		err_cnt = gaudi3_handle_cs_sei_err(hdev, data_size, &eq_dynamic_entry->intr_cause);
 		break;
+	case INT_COMP_TYPE_STLB:
+		err_cnt = handle_hmmu_sei_events(hdev, data_size, &eq_dynamic_entry->stlb_sei_data);
+		break;
 	case INT_COMP_TYPE_TPC:
 		err_cnt = handle_tpc_sei_events(hdev, data_size, &eq_dynamic_entry->tpc_sei_data);
 		break;
@@ -13092,7 +13182,8 @@ static u32 gaudi3_handle_spi_event(struct hl_device *hdev,
 		err_cnt = handle_pmmu_events(hdev, die, event_mask);
 		break;
 	case INT_COMP_TYPE_STLB:
-		err_cnt = handle_hmmu_events(hdev, die, hdcore, event_mask);
+		err_cnt = handle_hmmu_spi_events(hdev, data_size, &eq_dynamic_entry->stlb_spi_data,
+						 hdcore, die, event_mask);
 		break;
 	case INT_COMP_TYPE_TPC:
 		err_cnt = handle_tpc_spi_events(hdev, data_size, &eq_dynamic_entry->tpc_spi_data);

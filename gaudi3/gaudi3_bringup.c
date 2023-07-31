@@ -271,6 +271,8 @@ enum spi_intr_idx {
 	SPI_INTR_DEC1_TRACE_N_DBG,
 };
 
+#define SPI_INTR_STLB_BASE SPI_INTR_STLB_FAULT
+
 typedef void (*shared_aggr_handle_and_clear)(struct hl_device *hdev, u32 die,
 					enum err_grp type, u32 sts, u32 sts_idx, u32 idx,
 					u32 aggr_mask_reg, u32 events_mask);
@@ -4255,6 +4257,77 @@ static u32 stlb_special_regs_base[] = {
 	mmHD0_STLB_SPECIAL_BASE
 };
 
+static void handle_and_clear_stlb_spi_events(struct hl_device *hdev, u32 offset, u32 idx,
+					     struct hl_eq_stlb_spi_data *spi_data)
+{
+	u32 base = 0, cause = 0, syndrom_l, syndrom_h, mask = 0;
+
+	base = mmHD0_STLB_BASE + offset;
+
+	switch (idx + SPI_INTR_STLB_BASE) {
+	case SPI_INTR_STLB_FAULT:
+		mask = STLB_INTR_SPI_CAUSE_FAULT_UNMAPPED_M |
+			STLB_INTR_SPI_CAUSE_FAULT_PERMISSION_M |
+			STLB_INTR_SPI_CAUSE_FAULT_PTW_DATA_M;
+		syndrom_l = RREG32(base + mmSTLB_FAULT_SYNDROME1);
+		syndrom_h = RREG32(base + mmSTLB_FAULT_SYNDROME2);
+		spi_data->fault_data.syndrom_dti =
+				cpu_to_le64(((u64) syndrom_h << 32) | syndrom_l);
+		syndrom_l = RREG32(base + mmSTLB_FAULT_SYNDROME3);
+		syndrom_h = RREG32(base + mmSTLB_FAULT_SYNDROME4);
+		spi_data->fault_data.syndrom_pte =
+				cpu_to_le64(((u64) syndrom_h << 32) | syndrom_l);
+		break;
+	case SPI_INTR_STLB_MAINT_QUEUE_FULL:
+		mask = STLB_INTR_SPI_CAUSE_MAINT_QUEUE_FULL_M;
+		break;
+	case SPI_INTR_STLB_SW_PREFETCH_FAIL:
+		mask = STLB_INTR_SPI_CAUSE_MAINT_PREFETCH_FAULT_M;
+		break;
+	default:
+		return;
+	}
+
+	cause = RREG32(base + mmSTLB_INTR_SPI_CAUSE) & mask;
+	spi_data->cause.intr_cause_data = cpu_to_le64(cause);
+
+	/* Write 0 to clear interrupt */
+	RMWREG32((base + mmSTLB_INTR_SPI_CAUSE), 0, cause);
+	if (idx == SPI_INTR_STLB_FAULT)
+		WREG32(base + mmSTLB_FAULT_SYNDORM_CNTRL,
+			FIELD_PREP(STLB_FAULT_SYNDORM_CNTRL_REL_M, 0x1));
+}
+
+static void handle_and_clear_stlb_sei_events(struct hl_device *hdev, u32 offset, u32 idx,
+					     struct hl_eq_stlb_sei_data *sei_data)
+{
+	u32 base, syndrom_l, syndrom_h, cause;
+
+	/* single interrupt SEI_INTR_STLB_FAULT so index should be 0 */
+	if (idx)
+		return;
+
+	base = mmHD0_STLB_BASE + offset;
+
+	cause = RREG32(base + mmSTLB_INTR_SEI_CAUSE);
+	sei_data->cause.intr_cause_data = cpu_to_le64((u64) cause);
+
+	if (cause & STLB_INTR_SEI_CAUSE_LBW_RSP_ERR_M) {
+		sei_data->lbw_data.addr = cpu_to_le32(RREG32(base + mmSTLB_FAULT_LBW_ADDR));
+		sei_data->lbw_data.data = cpu_to_le32(RREG32(base + mmSTLB_FAULT_LBW_DATA));
+	}
+
+	if (cause & STLB_INTR_SEI_CAUSE_PTW_RSP_ERR_M) {
+		syndrom_l = RREG32(base + mmSTLB_FAULT_SYNDROME1);
+		syndrom_h = RREG32(base + mmSTLB_FAULT_SYNDROME2);
+		sei_data->fault_data.syndrom_dti =
+				cpu_to_le64(((u64) syndrom_h << 32) | syndrom_l);
+	}
+
+	/* Write 0 to clear interrupt */
+	RMWREG32((base + mmSTLB_INTR_SEI_CAUSE), 0, cause);
+}
+
 /* HDCORE_STLB_EVENT */
 static void handle_and_clear_stlb_events(struct hl_device *hdev, u32 die, u32 hdcore, u32 instance,
 					enum err_grp type, u32 sts, u32 sts_idx, u32 idx,
@@ -4262,7 +4335,6 @@ static void handle_and_clear_stlb_events(struct hl_device *hdev, u32 die, u32 hd
 {
 	struct hl_eq_dynamic_entry eq_dynamic_entry = {};
 	struct eq_agg_header_params params = {};
-	bool unmask_event_in_aggr = false;
 	u32 offset;
 	int rc;
 
@@ -4274,12 +4346,16 @@ static void handle_and_clear_stlb_events(struct hl_device *hdev, u32 die, u32 hd
 						ARRAY_SIZE(stlb_special_regs_base), offset,
 						&eq_dynamic_entry.ecc_data);
 		eq_dynamic_entry.hdr.size = cpu_to_le16(sizeof(struct hl_eq_ecc_data));
-		unmask_event_in_aggr = true;
 		break;
 	case ERR_GRP_SEI:
+		handle_and_clear_stlb_sei_events(hdev, offset, idx,
+						 &eq_dynamic_entry.stlb_sei_data);
+		eq_dynamic_entry.hdr.size = cpu_to_le16(sizeof(struct hl_eq_stlb_sei_data));
 		break;
 	case ERR_GRP_SPI_ECO:
-		unmask_event_in_aggr = true;
+		handle_and_clear_stlb_spi_events(hdev, offset, idx,
+						 &eq_dynamic_entry.stlb_spi_data);
+		eq_dynamic_entry.hdr.size = cpu_to_le16(sizeof(struct hl_eq_ecc_data));
 		break;
 	default:
 		return;
@@ -4296,8 +4372,7 @@ static void handle_and_clear_stlb_events(struct hl_device *hdev, u32 die, u32 hd
 	if (rc)
 		return;
 
-	if (unmask_event_in_aggr)
-		WREG32_AND(aggr_mask_reg, events_mask);
+	WREG32_AND(aggr_mask_reg, events_mask);
 }
 
 static u32 pdma_special_regs_base[] = {
