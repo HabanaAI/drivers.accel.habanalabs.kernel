@@ -487,7 +487,7 @@ struct ecc_info_extract_params {
 static int gaudi_send_job_on_qman0(struct hl_device *hdev,
 					struct hl_cs_job *job);
 static int gaudi_memset_device_memory(struct hl_device *hdev, u64 addr,
-					u32 size, u64 val);
+					u64 size, u64 val);
 static int gaudi_memset_registers(struct hl_device *hdev, u64 reg_base,
 					u32 num_regs, u32 val);
 static inline enum hl_collective_mode
@@ -6065,7 +6065,7 @@ void gaudi_update_eq_ci(struct hl_device *hdev, u32 val)
 }
 
 static int gaudi_memset_device_memory(struct hl_device *hdev, u64 addr,
-					u32 size, u64 val)
+					u64 size, u64 val)
 {
 	struct packet_lin_dma *lin_dma_pkt;
 	struct hl_cs_job *job;
@@ -9876,6 +9876,7 @@ static const struct hl_asic_funcs gaudi_funcs = {
 	.set_dram_properties = gaudi_set_dram_properties,
 	.set_priv_assertions = gaudi_set_priv_assertions,
 	.set_binning_masks = gaudi_set_binning_masks,
+	.memset_device_memory = gaudi_memset_device_memory,
 };
 
 /**
