@@ -7702,13 +7702,12 @@ int gaudi3_set_dynamic_dram_properties(struct hl_device *hdev)
 	u64 hbm_nic_base_offset = 0, hbm_etr_offset = 0, hbm_user_base_offset,
 			etr_total_bufs_size;
 	struct asic_fixed_properties *prop = &hdev->asic_prop;
-	struct hl_cn_properties *cn_prop = &prop->cn_props;
 
 	if (!hdev->dram_enable)
 		return 0;
 
 	hbm_nic_base_offset = roundup(prop->reserved_fw_mem_size, prop->dram_page_size);
-	hbm_etr_offset = roundup(hbm_nic_base_offset + cn_prop->nic_drv_size,
+	hbm_etr_offset = roundup(hbm_nic_base_offset + prop->nic_drv_size,
 			prop->dram_page_size);
 	prop->etr_bufs_dram_phys_base = prop->dram_base_address + hbm_etr_offset;
 	prop->etr_buf_dram_size_aligned = roundup(prop->etr_buf_dram_size, prop->dram_page_size);
