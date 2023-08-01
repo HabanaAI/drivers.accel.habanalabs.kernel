@@ -492,6 +492,7 @@ static void gaudi_cn_set_cn_data(struct hl_device *hdev)
 	gaudi_aux_ops->set_lpbk = gaudi_cn_set_lpbk;
 	gaudi_aux_ops->read_mac_cnt = gaudi_cn_read_mac_cnt;
 	gaudi_aux_ops->reset_mac_stats = gaudi_cn_reset_mac_stats;
+	gaudi_aux_ops->sim_init_props = gaudi_sim_cn_early_init_props_ext;
 }
 
 static void gaudi_cn_post_send_status(struct hl_device *hdev, u32 port)
