@@ -20,9 +20,9 @@ int gaudi2_cn_handle_sw_error_event(struct hl_device *hdev, u16 event_type, u8 m
 	struct gaudi2_cn_aux_ops *aux_ops = &gaudi2->cn_aux_ops;
 	u32 error_count = 0;
 
-	if (aux_ops->sw_err_event_handler_temp) {
-		error_count = aux_ops->sw_err_event_handler_temp(aux_dev, event_type, macro_index,
-									nic_intr_cause);
+	if (aux_ops->sw_err_event_handler) {
+		error_count = aux_ops->sw_err_event_handler(aux_dev, event_type, macro_index,
+								nic_intr_cause);
 	}
 
 	return error_count;
@@ -37,10 +37,10 @@ int gaudi2_cn_handle_axi_error_response_event(struct hl_device *hdev, u16 event_
 	struct gaudi2_cn_aux_ops *aux_ops = &gaudi2->cn_aux_ops;
 	u32 error_count = 0;
 
-	if (aux_ops->axi_error_response_event_handler_temp) {
-		error_count = aux_ops->axi_error_response_event_handler_temp(aux_dev, event_type,
-										macro_index,
-										nic_intr_cause);
+	if (aux_ops->axi_error_response_event_handler) {
+		error_count = aux_ops->axi_error_response_event_handler(aux_dev, event_type,
+									macro_index,
+									nic_intr_cause);
 	}
 
 	return error_count;
