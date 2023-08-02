@@ -1348,7 +1348,7 @@ static const char * const gaudi3_cs_sei_err_cause[] = {
 		"exclusive write ,rta hit in device",
 		"maint_cmd_lost because no place in buffer",
 		"HBM rtrn slverr 2Host, was given AWW/MEM",
-		"reduciton with op=sub",
+		"reduction with op=sub",
 		"due to un-supported flow",
 		"lrd tag stg. r2c_ar rtrn with ecc error",
 		"lrd tag stg. r2c_aww rtrn with ecc err",
