@@ -552,7 +552,6 @@ static int hl_cn_aux_data_init(struct hl_device *hdev)
 	aux_data->pci_id = hdev->asic_funcs->get_pci_id(hdev);
 	aux_data->minor = hdev->id;
 	aux_data->fw_ver = asic_props->cpucp_info.cpucp_version;
-	aux_data->cn_props = &asic_props->cn_props;
 	aux_data->nic_drv_addr = asic_props->nic_drv_addr;
 	aux_data->nic_drv_size = asic_props->nic_drv_size;
 	aux_data->macro_cfg_size = asic_props->macro_cfg_size;
