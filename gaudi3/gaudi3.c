@@ -3417,54 +3417,6 @@ int gaudi3_set_binning_masks(struct hl_device *hdev)
 	return 0;
 }
 
-static void gaudi3_cn_early_init_props(struct hl_device *hdev)
-{
-	struct asic_fixed_properties *prop = &hdev->asic_prop;
-	struct hl_cn_properties *cn_prop = &prop->cn_props;
-
-	cn_prop->macro_cfg_size = NIC_OFFSET;
-	cn_prop->nic_drv_size = NIC_DRV_SIZE;
-	/* wq_base_size most likely to be overridden later */
-	cn_prop->wq_base_size = WQ_BASE_SIZE(0, cn_prop->nic_drv_size);
-	cn_prop->txs_base_size = TXS_TOTAL_PORT_SIZE;
-	cn_prop->tmr_base_size = TMR_TOTAL_MACRO_SIZE;
-	cn_prop->req_qpc_base_size = REQ_QPC_TOTAL_PORT_SIZE;
-	cn_prop->res_qpc_base_size = RES_QPC_TOTAL_PORT_SIZE;
-	cn_prop->req_qpc_swl_base_size = REQ_QPC_SWL_TOTAL_PORT_SIZE;
-	cn_prop->clk = GAUDI3_NIC_CLK_FREQ / USEC_PER_SEC;
-}
-
-static int gaudi3_cn_dram_props(struct hl_device *hdev)
-{
-	struct asic_fixed_properties *prop = &hdev->asic_prop;
-	struct hl_cn_properties *cn_prop = &prop->cn_props;
-	u64 hbm_nic_base_offset;
-
-	hbm_nic_base_offset = roundup(prop->reserved_fw_mem_size, prop->dram_page_size);
-
-	cn_prop->nic_drv_addr = DRAM_PHYS_BASE + hbm_nic_base_offset;
-	cn_prop->nic_drv_base_addr = NIC_DRV_BASE_ADDR(cn_prop->nic_drv_addr);
-	cn_prop->nic_drv_end_addr = NIC_DRV_END_ADDR(cn_prop->nic_drv_addr,
-							cn_prop->nic_drv_size);
-	cn_prop->wq_base_addr = WQ_BASE_ADDR(cn_prop->nic_drv_addr);
-	cn_prop->txs_base_addr = TXS_BASE_ADDR(cn_prop->nic_drv_addr);
-	cn_prop->tmr_base_addr = TMR_BASE_ADDR(cn_prop->nic_drv_addr);
-	cn_prop->req_qpc_base_addr = REQ_QPC_BASE_ADDR(cn_prop->nic_drv_addr);
-	cn_prop->res_qpc_base_addr = RES_QPC_BASE_ADDR(cn_prop->nic_drv_addr);
-	cn_prop->req_qpc_swl_base_addr = REQ_QPC_SWL_BASE_ADDR(cn_prop->nic_drv_addr);
-	cn_prop->wq_base_size = WQ_BASE_SIZE(cn_prop->nic_drv_addr, cn_prop->nic_drv_size);
-
-	if ((cn_prop->nic_drv_end_addr - cn_prop->nic_drv_addr) > cn_prop->nic_drv_size) {
-		dev_err(hdev->dev,
-			"NIC DRAM memory allocation overflow (reserved %llu, allocated %llu)\n",
-			cn_prop->nic_drv_size,
-			cn_prop->nic_drv_end_addr - cn_prop->nic_drv_addr);
-		return -ENOMEM;
-	}
-
-	return 0;
-}
-
 int gaudi3_set_fixed_properties(struct hl_device *hdev)
 {
 	struct asic_fixed_properties *prop = &hdev->asic_prop;
@@ -3706,8 +3658,6 @@ int gaudi3_set_fixed_properties(struct hl_device *hdev)
 	prop->clk = GAUDI3_NIC_CLK_FREQ / USEC_PER_SEC;
 	cn_prop->status_packet_size = sizeof(struct cpucp_nic_status);
 	cn_prop->max_num_of_ports = NIC_NUMBER_OF_PORTS;
-
-	gaudi3_cn_early_init_props(hdev);
 
 	return 0;
 
@@ -7783,14 +7733,14 @@ static uint64_t gaudi3_set_hbm_bar_base(struct hl_device *hdev, u64 addr)
 	return old_addr;
 }
 
-int gaudi3_set_dynamic_dram_properties(struct hl_device *hdev)
+void gaudi3_set_dynamic_dram_properties(struct hl_device *hdev)
 {
 	u64 hbm_nic_base_offset = 0, hbm_etr_offset = 0, hbm_user_base_offset,
 			etr_total_bufs_size;
 	struct asic_fixed_properties *prop = &hdev->asic_prop;
 
 	if (!hdev->dram_enable)
-		return 0;
+		return;
 
 	hbm_nic_base_offset = roundup(prop->reserved_fw_mem_size, prop->dram_page_size);
 	hbm_etr_offset = roundup(hbm_nic_base_offset + prop->nic_drv_size,
@@ -7809,8 +7759,6 @@ int gaudi3_set_dynamic_dram_properties(struct hl_device *hdev)
 			roundup(hbm_user_base_offset, prop->dram_page_size);
 	prop->nic_drv_addr = DRAM_PHYS_BASE +
 			roundup(prop->reserved_fw_mem_size, prop->dram_page_size);
-
-	return gaudi3_cn_dram_props(hdev);
 }
 
 static int gaudi3_hw_init(struct hl_device *hdev)
@@ -7870,9 +7818,7 @@ static int gaudi3_hw_init(struct hl_device *hdev)
 	 * on user base address, are set here, because user base address depends on FW HBM region
 	 * size which is set after cpu init.
 	 */
-	rc = gaudi3_set_dynamic_dram_properties(hdev);
-	if (rc)
-		return rc;
+	gaudi3_set_dynamic_dram_properties(hdev);
 
 	gaudi3_hw_init_fw_config(hdev);
 

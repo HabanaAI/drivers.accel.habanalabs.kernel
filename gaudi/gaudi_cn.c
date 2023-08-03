@@ -41,23 +41,13 @@ static void gaudi_cn_set_hw_cap(struct hl_device *hdev, bool enable)
 static int gaudi_cn_pre_core_init(struct hl_device *hdev)
 {
 	struct hl_cn_cpucp_info *cn_cpucp_info = &hdev->asic_prop.cn_props.cpucp_info;
-	struct hl_cn_properties *cn_prop = &hdev->asic_prop.cn_props;
 	struct cpucp_info *cpucp_info = &hdev->asic_prop.cpucp_info;
 	struct hl_cn_cpucp_mac_addr *mac_arr = cn_cpucp_info->mac_addrs;
 	struct gaudi_device *gaudi = hdev->asic_specific;
 	struct hl_cn *cn = &hdev->cn;
-	u64 nic_dram_alloc_size;
 	u32 card_location;
 	u8 mac[ETH_ALEN];
 	int i, rc;
-
-	nic_dram_alloc_size = cn_prop->nic_drv_end_addr - cn_prop->nic_drv_base_addr;
-	if (nic_dram_alloc_size > cn_prop->nic_drv_size) {
-		dev_err(hdev->dev, "DRAM allocation for NIC (%lluMB) shouldn't exceed %lluMB\n",
-			div_u64(nic_dram_alloc_size, SZ_1M),
-			div_u64(cn_prop->nic_drv_size, SZ_1M));
-		return -ENOMEM;
-	}
 
 	if (TMR_FSM_SIZE + TMR_FREE_SIZE + TMR_FIFO_SIZE + TMR_FIFO_STATIC_SIZE >
 			TMR_FSM_ENGINE_OFFS) {

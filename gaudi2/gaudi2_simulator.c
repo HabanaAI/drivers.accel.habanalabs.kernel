@@ -969,28 +969,6 @@ static void gaudi2_sim_notify_reset(struct hl_device *hdev)
 
 /* All the code below this point is the gaudi2 sim device implementation */
 
-static void gaudi2_sim_cn_early_init_props(struct hl_device *hdev)
-{
-	struct asic_fixed_properties *prop = &hdev->asic_prop;
-	struct hl_cn_properties *cn_prop = &prop->cn_props;
-	u64 nic_drv_addr, nic_drv_size;
-
-	nic_drv_addr = GAUDI2_SIM_NIC_DRV_ADDR;
-	nic_drv_size = GAUDI2_SIM_NIC_DRV_SIZE;
-
-	cn_prop->nic_drv_addr = nic_drv_addr;
-	cn_prop->nic_drv_base_addr = NIC_DRV_BASE_ADDR(nic_drv_addr);
-	cn_prop->nic_drv_end_addr = NIC_DRV_END_ADDR(nic_drv_addr, nic_drv_size);
-	cn_prop->wq_base_addr = WQ_BASE_ADDR(nic_drv_addr);
-	cn_prop->txs_base_addr = TXS_BASE_ADDR(nic_drv_addr);
-	cn_prop->tmr_base_addr = TMR_BASE_ADDR(nic_drv_addr);
-	cn_prop->req_qpc_base_addr = REQ_QPC_BASE_ADDR(nic_drv_addr);
-	cn_prop->res_qpc_base_addr = RES_QPC_BASE_ADDR(nic_drv_addr);
-
-	cn_prop->nic_drv_size = nic_drv_size;
-	cn_prop->wq_base_size = WQ_BASE_SIZE(nic_drv_addr, nic_drv_size);
-}
-
 static int gaudi2_sim_set_fixed_properties(struct hl_device *hdev)
 {
 	struct hl_simulator_device *edev = gaudi2_simulator_dev_table[hdev->id];
@@ -1024,8 +1002,6 @@ static int gaudi2_sim_set_fixed_properties(struct hl_device *hdev)
 	prop->cb_pool_cb_size = SIM_CB_POOL_CB_SIZE;
 	prop->nic_drv_size = nic_drv_size;
 	prop->nic_drv_addr = GAUDI2_SIM_NIC_DRV_ADDR;
-
-	gaudi2_sim_cn_early_init_props(hdev);
 
 	return 0;
 }

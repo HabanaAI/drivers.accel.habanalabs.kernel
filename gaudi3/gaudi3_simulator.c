@@ -1304,9 +1304,7 @@ static int gaudi3_sim_hw_init(struct hl_device *hdev)
 	 * on user base address, are set here, because user base address depends on FW HBM region
 	 * size which is set after cpu init.
 	 */
-	rc = gaudi3_set_dynamic_dram_properties(hdev);
-	if (rc)
-		return rc;
+	gaudi3_set_dynamic_dram_properties(hdev);
 
 	if (hdev->cache_enable) {
 		rc = gaudi3_set_cache_mode(hdev);

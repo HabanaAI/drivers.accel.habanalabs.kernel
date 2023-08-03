@@ -2332,37 +2332,6 @@ static int set_number_of_functional_hbms(struct hl_device *hdev)
 	return 0;
 }
 
-static void gaudi2_cn_early_init_props(struct hl_device *hdev)
-{
-	struct asic_fixed_properties *prop = &hdev->asic_prop;
-	struct hl_cn_properties *cn_prop = &prop->cn_props;
-
-	cn_prop->macro_cfg_size = NIC_OFFSET;
-	cn_prop->txs_base_size = TXS_TOTAL_PORT_SIZE;
-	cn_prop->tmr_base_size = TMR_TOTAL_MACRO_SIZE;
-	cn_prop->req_qpc_base_size = REQ_QPC_TOTAL_PORT_SIZE;
-	cn_prop->res_qpc_base_size = RES_QPC_TOTAL_PORT_SIZE;
-	cn_prop->clk = GAUDI2_NIC_CLK_FREQ / USEC_PER_SEC;
-}
-
-static void gaudi2_cn_dram_props(struct hl_device *hdev)
-{
-	struct asic_fixed_properties *prop = &hdev->asic_prop;
-	struct hl_cn_properties *cn_prop = &prop->cn_props;
-
-	/* NIC props */
-	cn_prop->nic_drv_addr = prop->nic_drv_addr;
-	cn_prop->nic_drv_base_addr = NIC_DRV_BASE_ADDR(prop->nic_drv_addr);
-	cn_prop->nic_drv_end_addr = NIC_DRV_END_ADDR(prop->nic_drv_addr, prop->nic_drv_size);
-	cn_prop->wq_base_addr = WQ_BASE_ADDR(prop->nic_drv_addr);
-	cn_prop->txs_base_addr = TXS_BASE_ADDR(prop->nic_drv_addr);
-	cn_prop->tmr_base_addr = TMR_BASE_ADDR(prop->nic_drv_addr);
-	cn_prop->req_qpc_base_addr = REQ_QPC_BASE_ADDR(prop->nic_drv_addr);
-	cn_prop->res_qpc_base_addr = RES_QPC_BASE_ADDR(prop->nic_drv_addr);
-	cn_prop->nic_drv_size = prop->nic_drv_size;
-	cn_prop->wq_base_size = WQ_BASE_SIZE(prop->nic_drv_addr, prop->nic_drv_size);
-}
-
 int gaudi2_set_dram_properties(struct hl_device *hdev)
 {
 	struct asic_fixed_properties *prop = &hdev->asic_prop;
@@ -2429,8 +2398,6 @@ int gaudi2_set_dram_properties(struct hl_device *hdev)
 	prop->nic_drv_size = prop->dram_page_size - hbm_drv_base_offset;
 	prop->nic_drv_addr = DRAM_PHYS_BASE + hbm_drv_base_offset;
 	prop->clk = GAUDI2_NIC_CLK_FREQ / USEC_PER_SEC;
-
-	gaudi2_cn_dram_props(hdev);
 
 	return 0;
 }
@@ -2655,8 +2622,6 @@ int gaudi2_set_fixed_properties(struct hl_device *hdev)
 	prop->macro_cfg_size = NIC_OFFSET;
 	cn_prop->status_packet_size = sizeof(struct cpucp_nic_status);
 	cn_prop->max_num_of_ports = NIC_NUMBER_OF_PORTS;
-
-	gaudi2_cn_early_init_props(hdev);
 
 	return 0;
 
@@ -3374,20 +3339,19 @@ static void gaudi2_init_arcs(struct hl_device *hdev)
 
 static int gaudi2_cn_clear_mem(struct hl_device *hdev)
 {
-	struct hl_cn_properties *cn_prop = &hdev->asic_prop.cn_props;
 	u64 val = 0, i;
 	int rc = 0;
 
 	if (!hdev->cn.ports_mask)
 		return rc;
 
-	for (i = 0 ; i < cn_prop->nic_drv_size ; i += sizeof(val)) {
+	for (i = 0 ; i < hdev->asic_prop.nic_drv_size ; i += sizeof(val)) {
 		rc = hdev->asic_funcs->access_dev_mem(hdev, PCI_REGION_DRAM,
-			cn_prop->nic_drv_addr + i, &val, DEBUGFS_WRITE64);
+			hdev->asic_prop.nic_drv_addr + i, &val, DEBUGFS_WRITE64);
 
 		if (rc) {
 			dev_err(hdev->dev, "Failed to set nic memory. addr: 0x%llx",
-						cn_prop->nic_drv_addr + i);
+						hdev->asic_prop.nic_drv_addr + i);
 			return rc;
 		}
 

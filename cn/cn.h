@@ -33,7 +33,7 @@ struct hl_ctx;
 #define NIC_SIM_QPC_INV_USEC		(NIC_QPC_INV_USEC * 5)
 #define NIC_PLDM_QPC_INV_USEC		(NIC_QPC_INV_USEC * 10)
 
-#define NIC_MACRO_CFG_SIZE		hdev->asic_prop.cn_props.macro_cfg_size
+#define NIC_MACRO_CFG_SIZE		hdev->asic_prop.macro_cfg_size
 #define NIC_MACRO_CFG_BASE(port)	(NIC_MACRO_CFG_SIZE * ((port) >> 1))
 #define NIC_MACRO_WREG32(reg, val)	WREG32(NIC_MACRO_CFG_BASE(port) + (reg), (val))
 
