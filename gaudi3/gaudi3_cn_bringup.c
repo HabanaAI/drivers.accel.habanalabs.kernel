@@ -368,6 +368,17 @@ static void gaudi3_cn_config_hw_txe_fw(struct hl_device *hdev, u32 port)
 			NIC_TXE_SPECIAL_GLBL_SPARE_0_ECO_5457_ENABLE_M);
 }
 
+static void gaudi3_cn_config_hw_tmr_fw(struct hl_device *hdev, u32 port)
+{
+	u32 axuser_hbw_reg_base = NIC_REG(mmD0_NIC0_TMR_AXUSER_AXUSER_BASE);
+
+	/* configure MMU-BP for TIMERS */
+	gaudi3_axuser_hbw_mmu_bp_set(hdev, axuser_hbw_reg_base, true);
+
+	/* Perform read to flush the writes */
+	NIC_RREG32(mmD0_NIC0_TMR_AXUSER_AXUSER_BASE + mmNIC_TMR_AXUSER_AXUSER_HB_MMU_BYPASS);
+}
+
 static void gaudi3_cn_set_rx_drop_eco_fw(struct hl_device *hdev, u32 port)
 {
 	u32 txe_val, txb_disable_eco, rxb_disable_eco;
@@ -411,6 +422,8 @@ static void gaudi3_cn_hw_macro_config_fw(struct hl_device *hdev, int macro_idx)
 
 	gaudi3_cn_config_hw_mac_fw(hdev, port);
 
+	gaudi3_cn_config_hw_tmr_fw(hdev, port);
+
 	gaudi3_cn_config_hw_rxe_fw(hdev, port);
 
 	gaudi3_cn_config_hw_qpc_fw(hdev, port);
@@ -422,7 +435,19 @@ static void gaudi3_cn_hw_macro_config_fw(struct hl_device *hdev, int macro_idx)
 
 void gaudi3_cn_macros_fw_config(struct hl_device *hdev)
 {
+	u32 port;
 	int i;
+
+	/* TODO: SW-155409 remove TMR MMU bypass config once pre-boot fw starts doing it */
+	if (!hdev->reset_info.in_compute_reset)
+		for (i = 0 ; i < NIC_NUMBER_OF_MACROS ; i++) {
+			if (!gaudi3_cn_is_macro_enabled(hdev, i))
+				continue;
+
+			port = gaudi3_cn_get_first_port(hdev, i);
+
+			gaudi3_cn_config_hw_tmr_fw(hdev, port);
+		}
 
 	if (hdev->reset_info.in_compute_reset || (hdev->fw_components & FW_TYPE_PREBOOT_CPU))
 		return;
