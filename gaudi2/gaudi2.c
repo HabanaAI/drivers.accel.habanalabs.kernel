@@ -3222,7 +3222,7 @@ static int gaudi2_fetch_nic_frequency(struct hl_device *hdev)
 
 	/* DIV1 - nic_clk */
 	if (pll_freq_arr[1] != 0)
-		hdev->asic_prop.cn_props.clk = pll_freq_arr[1];
+		hdev->asic_prop.clk = pll_freq_arr[1];
 
 	return 0;
 }
