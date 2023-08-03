@@ -9,6 +9,7 @@
 
 #include "gaudiP.h"
 #include "gaudi_cn.h"
+#include "../common/simulator.h"
 #include "include/common/simulator.h"
 #include "include/gaudi/gaudi_fw_if.h"
 #include "include/hw_ip/mmu/mmu_general.h"
@@ -575,7 +576,7 @@ int gaudi_simulator_start(struct simulator_start_args *args)
 	edev->hclass = args->hclass;
 	edev->major = args->major;
 	edev->id = args->minor + HLV_SIM_ID_OFFSET;
-	edev->rw_reg_timeout = GAUDI_SIM_RW_REG_TIMEOUT_US;
+	edev->rw_reg_timeout = SIM_RW_REG_TIMEOUT_US;
 	edev->reset = true;
 	edev->single_msi_mode = true; /* force single msi mode */
 	edev->virt_dev_type = args->virt_dev_type;
