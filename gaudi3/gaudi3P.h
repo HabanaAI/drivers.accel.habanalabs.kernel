@@ -314,7 +314,7 @@ struct gaudi3_etr_ac_config {
 #define GAUDI3_MIN_ETR_BUFS	16
 #define GAUDI3_MAX_ETR_BUFS	32
 
-extern const u32 gaudi3_arc_blocks_bases[CPU_ID_MAX];
+extern const u32 gaudi3_arc_blocks_bases[NUM_ACTIVE_ARCS];
 extern const u32 gaudi3_pdma_grp_blocks_bases[NUM_OF_PDMA_GRP];
 extern struct gaudi3_etr_ac_config gaudi3_etr_ac_config[GAUDI3_NUM_ETR];
 
@@ -480,10 +480,7 @@ struct gaudi3_qmans_test_info {
  *                  Once an engine arc is initialized, its respective bit is
  *                  set. Each respective bit is cleared upon reset of its
  *                  corresponding ARC of the TPC engine.
- * @active_nic_arc: This field contains a bit per ARC of the NIC engines.
- *                  Once an engine arc is initialized, its respective bit is
- *                  set. Each respective bit is cleared upon reset of its
- *                  corresponding ARC of the NIC engine.
+ * @coll_lag_size: This field contains the collective operation's lag size.
  * @iatu_dram_region_id: IATU region ID for DRAM.
  */
 struct gaudi3_device {
@@ -505,7 +502,7 @@ struct gaudi3_device {
 	u64					active_hw_arc;
 	u64					active_sched_arc;
 	u64					active_tpc_arc;
-	u64					active_nic_arc;
+	u32					coll_lag_size;
 	u8					iatu_dram_region_id;
 };
 
@@ -617,13 +614,11 @@ void gaudi3_init_tpc(struct hl_device *hdev);
 void gaudi3_init_mme(struct hl_device *hdev);
 void gaudi3_init_rotator(struct hl_device *hdev);
 void gaudi3_init_decoder(struct hl_device *hdev);
-void gaudi3_init_nic_qmans(struct hl_device *hdev);
 int gaudi3_init_security(struct hl_device *hdev);
 void gaudi3_stop_edma_qmans(struct hl_device *hdev);
 void gaudi3_stop_tpc_qmans(struct hl_device *hdev);
 void gaudi3_stop_mme_qmans(struct hl_device *hdev);
 void gaudi3_stop_rotator_qmans(struct hl_device *hdev);
-void gaudi3_stop_nic_qmans(struct hl_device *hdev);
 void gaudi3_halt_arcs(struct hl_device *hdev);
 void gaudi3_halt_pdma(struct hl_device *hdev);
 void gaudi3_halt_dup(struct hl_device *hdev);
@@ -636,7 +631,6 @@ void gaudi3_disable_edma_qmans(struct hl_device *hdev);
 void gaudi3_disable_tpc_qmans(struct hl_device *hdev);
 void gaudi3_disable_mme_qmans(struct hl_device *hdev);
 void gaudi3_disable_rotator_qmans(struct hl_device *hdev);
-void gaudi3_disable_nic_qmans(struct hl_device *hdev);
 void gaudi3_clear_arcs_hw_cap(struct hl_device *hdev);
 void gaudi3_reset_arcs(struct hl_device *hdev);
 int gaudi3_enable_msix(struct hl_device *hdev);
