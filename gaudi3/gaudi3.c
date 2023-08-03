@@ -12029,17 +12029,6 @@ int gaudi3_get_monitor_dump(struct hl_device *hdev, void *data)
 	return -EOPNOTSUPP;
 }
 
-static u32 gaudi3_handle_pcie_drain(struct hl_device *hdev)
-{
-	bool dummy;
-
-	if (hdev->pldm)
-		return gaudi3_handle_axi_drain(hdev, &dummy);
-
-	/* Handled by fw*/
-	return 0;
-}
-
 static void gaudi3_pdma_mask_err_int(struct hl_device *hdev,
 		u64 err_cause_reg, u32 err_ignore_msk, u64 err_int_mask_reg)
 {
@@ -12601,19 +12590,89 @@ static u32 gaudi3_handle_rotator_spi_err(struct hl_device *hdev, u16 data_size,
 	return err_num;
 }
 
+static inline u32 gaudi3_handle_single_err_mask(struct hl_device *hdev, u32 err_msk, char *err_name)
+{
+	if (err_msk) {
+		dev_err_ratelimited(hdev->dev, "%s event\n", err_name);
+		return 1;
+	}
+
+	return 0;
+}
+
+static u32 gaudi3_handle_pcie_spi_drain(struct hl_device *hdev,
+						struct hl_eq_pcie_drain_ind_data *dc)
+{
+	u64 cause = le64_to_cpu(dc->intr_cause.intr_cause_data);
+	u32 err_num = 0;
+
+	if (cause & (PCIE_WRAP_AXI_DRAIN_IND_LBW_AXI_DRAIN_IND_M |
+			PCIE_WRAP_AXI_DRAIN_IND_LBW_AXI_DRAIN_BP_IND_M)) {
+		err_num++;
+		dev_err_ratelimited(
+				hdev->dev, "PCIE SPI LBW drain error WR 0x%llX, RD 0x%llX\n",
+				le64_to_cpu(dc->drain_wr_addr_lbw),
+				le64_to_cpu(dc->drain_rd_addr_lbw));
+	}
+
+	if (cause & (PCIE_WRAP_AXI_DRAIN_IND_HBW_AXI_DRAIN_IND_M |
+			PCIE_WRAP_AXI_DRAIN_IND_HBW_AXI_DRAIN_BP_IND_M)) {
+		err_num++;
+		dev_err_ratelimited(
+				hdev->dev, "PCIE SPI HBW drain error WR 0x%llX, RD 0x%llX\n",
+				le64_to_cpu(dc->drain_wr_addr_hbw),
+				le64_to_cpu(dc->drain_rd_addr_hbw));
+	}
+
+	return err_num;
+}
+
 static u32 gaudi3_handle_pcie0_spi_err(struct hl_device *hdev, u16 data_size,
 					struct hl_eq_pcie_spi_data *pcie_spi_data)
 {
+	u32 err_num = 0, err_msk;
 	int rc;
 
 	rc = gaudi3_validate_eqe_data_size(hdev, data_size, sizeof(*pcie_spi_data));
 	if (rc)
 		return 0;
 
-	if (pcie_spi_data->spi_type != PCIE_SPI_DRAIN)
-		return 0;
+	switch (pcie_spi_data->spi_type) {
+	case PCIE_SPI_FLR:
+		err_msk = lower_32_bits(le64_to_cpu(pcie_spi_data->flr_cause.intr_cause_data));
+		err_num = gaudi3_handle_single_err_mask(hdev, err_msk, "PCIE SPI FLR");
+		break;
 
-	return gaudi3_handle_pcie_drain(hdev);
+	case PCIE_SPI_APB_ACCESS_TIMEOUT:
+		err_num = 1;
+		dev_err_ratelimited(hdev->dev, "PCIE SPI APB access timeout error\n");
+		break;
+
+	case PCIE_SPI_FATAL_ERR:
+		err_msk = lower_32_bits(le64_to_cpu(pcie_spi_data->fatal_error.intr_cause_data));
+		err_num = gaudi3_handle_single_err_mask(hdev, err_msk, "PCIE SPI fatal");
+		break;
+
+	case PCIE_SPI_P2P_OR_MSIX_GW_INTR:
+		err_msk = lower_32_bits(le64_to_cpu(pcie_spi_data->p2p_msix.p2p.intr_cause_data));
+		err_num = gaudi3_handle_single_err_mask(hdev, err_msk, "PCIE SPI P2P");
+
+		err_msk = lower_32_bits(
+				le64_to_cpu(pcie_spi_data->p2p_msix.msix_gw.intr_cause_data));
+		err_num += gaudi3_handle_single_err_mask(hdev, err_msk, "PCIE SPI MSIX gateway");
+		break;
+
+	case PCIE_SPI_DRAIN:
+		err_num = gaudi3_handle_pcie_spi_drain(hdev, &pcie_spi_data->drain_cause);
+		break;
+
+	default:
+		dev_err_ratelimited(hdev->dev, "Error: PCIE SPI unknown error type (%u)\n",
+				pcie_spi_data->spi_type);
+		break;
+	}
+
+	return err_num;
 }
 
 static u32 gaudi3_handle_decoder_spi(struct hl_device *hdev, u16 data_size,
