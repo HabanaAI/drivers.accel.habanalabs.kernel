@@ -134,7 +134,4 @@
 
 /* Defines for external components (not to be upstreamed) - END */
 
-/* TODO: SW-153130 - remove once SW-153128 is done */
-#define NIC_HW_MAX_QP_NUM		(1 << 24) /* 16M (per nic) */
-
 #endif /* GAUDI2_H */
