@@ -985,12 +985,9 @@ static void gaudi3_sim_get_nic_info(struct hl_device *hdev)
 
 static int gaudi3_sim_cpucp_info_get(struct hl_device *hdev)
 {
-	struct hl_simulator_device *edev =
-			gaudi3_simulator_dev_table[hdev->id];
 	struct gaudi3_device *gaudi3 = hdev->asic_specific;
 	struct asic_fixed_properties *prop = &hdev->asic_prop;
 	struct hl_cn_cpucp_info *cn_cpucp_info = &prop->cn_props.cpucp_info;
-	u64 dram_size;
 	int rc;
 
 	if (!(gaudi3->hw_cap_initialized & HW_CAP_CPU_Q)) {
@@ -1061,19 +1058,6 @@ static int gaudi3_sim_cpucp_info_get(struct hl_device *hdev)
 		kfree(channel_info_arr);
 
 		hdev->hl_chip_info->info = NULL;
-	}
-
-	dram_size = le64_to_cpu(prop->cpucp_info.dram_size);
-	if (dram_size) {
-		if (dram_size != edev->dram_size) {
-			dev_err(hdev->dev,
-				"F/W reported invalid HBM size %llu != %llu\n",
-				dram_size, edev->dram_size);
-			dram_size = edev->dram_size;
-		}
-
-		prop->dram_size = dram_size;
-		prop->dram_end_address = prop->dram_base_address + dram_size;
 	}
 
 	if (!hdev->reset_info.in_reset) {
