@@ -3336,7 +3336,6 @@ static void gaudi3_cn_early_init_props(struct hl_device *hdev)
 	struct asic_fixed_properties *prop = &hdev->asic_prop;
 	struct hl_cn_properties *cn_prop = &prop->cn_props;
 
-	cn_prop->max_num_of_ports = NIC_NUMBER_OF_PORTS;
 	cn_prop->macro_cfg_size = NIC_OFFSET;
 	cn_prop->nic_drv_size = NIC_DRV_SIZE;
 	/* wq_base_size most likely to be overridden later */
@@ -3620,6 +3619,7 @@ int gaudi3_set_fixed_properties(struct hl_device *hdev)
 	prop->macro_cfg_size = NIC_OFFSET;
 	prop->clk = GAUDI3_NIC_CLK_FREQ / USEC_PER_SEC;
 	cn_prop->status_packet_size = sizeof(struct cpucp_nic_status);
+	cn_prop->max_num_of_ports = NIC_NUMBER_OF_PORTS;
 
 	gaudi3_cn_early_init_props(hdev);
 
