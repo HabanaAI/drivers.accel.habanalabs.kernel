@@ -1043,22 +1043,8 @@ static int gaudi3_sim_cpucp_info_get(struct hl_device *hdev)
 		return rc;
 
 	/* Make sure we don't expose HWMON for simulator */
-	if (hdev->hl_chip_info->info) {
-		const struct hwmon_channel_info * const *channel_info_arr;
-		int i = 0;
-
-		channel_info_arr = hdev->hl_chip_info->info;
-
-		while (channel_info_arr[i]) {
-			kfree(channel_info_arr[i]->config);
-			kfree(channel_info_arr[i]);
-			i++;
-		}
-
-		kfree(channel_info_arr);
-
-		hdev->hl_chip_info->info = NULL;
-	}
+	if (hdev->hl_chip_info->info)
+		hl_hwmon_release_resources(hdev);
 
 	if (!hdev->reset_info.in_reset) {
 		/* Override info from module param. */
