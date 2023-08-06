@@ -5034,22 +5034,10 @@ void gaudi3_special_blocks_iterator_free(struct hl_device *hdev)
 	gaudi3_pb_blocks_free(hdev);
 }
 
-static int gaudi3_cpucp_info_get(struct hl_device *hdev)
+int gaudi3_cpucp_handshake_info_get(struct hl_device *hdev)
 {
 	struct asic_fixed_properties *prop = &hdev->asic_prop;
-	struct gaudi3_device *gaudi3 = hdev->asic_specific;
 	int rc;
-
-	if (!(gaudi3->hw_cap_initialized & HW_CAP_CPU_Q)) {
-		/* Skip for hard or device release reset flow. No need to repopulate. */
-		if (!hdev->reset_info.in_reset) {
-			rc = gaudi3_cn_set_info(hdev, false);
-			if (rc)
-				return rc;
-		}
-
-		return 0;
-	}
 
 	/* No point of asking this information again when not doing hard reset, as the device
 	 * CPU hasn't been reset
@@ -5079,6 +5067,26 @@ static int gaudi3_cpucp_info_get(struct hl_device *hdev)
 			hdev->rotator_binning);
 
 	rc = hdev->asic_funcs->set_binning_masks(hdev);
+	return rc;
+}
+
+static int gaudi3_cpucp_info_get(struct hl_device *hdev)
+{
+	struct gaudi3_device *gaudi3 = hdev->asic_specific;
+	int rc;
+
+	if (!(gaudi3->hw_cap_initialized & HW_CAP_CPU_Q)) {
+		/* Skip for hard or device release reset flow. No need to repopulate. */
+		if (!hdev->reset_info.in_reset) {
+			rc = gaudi3_cn_set_info(hdev, false);
+			if (rc)
+				return rc;
+		}
+
+		return 0;
+	}
+
+	rc = gaudi3_cpucp_handshake_info_get(hdev);
 	if (rc)
 		return rc;
 

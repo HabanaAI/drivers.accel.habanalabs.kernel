@@ -1011,34 +1011,7 @@ static int gaudi3_sim_cpucp_info_get(struct hl_device *hdev)
 		return 0;
 	}
 
-	/* No point of asking this information again when not doing hard reset, as the device
-	 * CPU hasn't been reset
-	 */
-	if (hdev->reset_info.in_compute_reset)
-		return 0;
-
-	rc = hl_fw_cpucp_handshake(hdev,
-			mmD0_PSOC_GLOBAL_CONF_BASE + mmCPU_BOOT_DEV_STS0,
-			mmD0_PSOC_GLOBAL_CONF_BASE + mmCPU_BOOT_DEV_STS1,
-			mmD0_PSOC_GLOBAL_CONF_BASE + mmCPU_BOOT_ERR0,
-			mmD0_PSOC_GLOBAL_CONF_BASE + mmCPU_BOOT_ERR1);
-	if (rc)
-		return rc;
-
-	if (!strlen(prop->cpucp_info.card_name))
-		strncpy(prop->cpucp_info.card_name, GAUDI3_DEFAULT_CARD_NAME, CARD_NAME_MAX_LEN);
-
-	/* Overwrite binning masks with the actual binning values from F/W */
-	hdev->dram_binning = prop->cpucp_info.dram_binning_mask;
-	hdev->tpc_binning = le64_to_cpu(prop->cpucp_info.tpc_binning_mask);
-	hdev->decoder_binning = lower_32_bits(le64_to_cpu(prop->cpucp_info.decoder_binning_mask));
-	hdev->rotator_binning = le32_to_cpu(prop->cpucp_info.rot_binning_mask);
-
-	dev_dbg(hdev->dev, "Read binning masks: tpc: 0x%llx, dram: 0x%llx, dec: 0x%x, rot: 0x%x\n",
-			hdev->tpc_binning, hdev->dram_binning, hdev->decoder_binning,
-			hdev->rotator_binning);
-
-	rc = hdev->asic_funcs->set_binning_masks(hdev);
+	rc = gaudi3_cpucp_handshake_info_get(hdev);
 	if (rc)
 		return rc;
 
