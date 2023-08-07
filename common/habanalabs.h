@@ -627,6 +627,19 @@ struct hl_mem_block_info {
 	u32 num_mem_blocks;
 };
 
+/**
+ * struct hl_cn_properties - ASIC specific properties.
+ * @cpucp_info: received various information from CPU-CP regarding the NIC
+ *              H/W, e.g. MAC addresses.
+ * @status_packet_size: size of the status packet we are going to send to F/W.
+ * @max_num_of_ports: maximum number of ports supported by ASIC.
+ */
+struct hl_cn_properties {
+	struct hl_cn_cpucp_info cpucp_info;
+	u32 status_packet_size;
+	u8 max_num_of_ports;
+};
+
 /*
  * struct asic_fixed_properties - ASIC specific immutable properties.
  * @hw_queues_props: H/W queues properties.
