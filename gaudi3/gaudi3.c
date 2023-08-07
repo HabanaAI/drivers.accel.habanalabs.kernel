@@ -85,6 +85,10 @@
 #include <linux/iommu.h>
 #include <linux/vmalloc.h>
 
+/* TODO - added for compilation issue, will be removed in the next patch */
+void gaudi3_handle_razwi(struct hl_device *hdev, struct hl_eq_razwi_rtr_data *rd, u16 eng_id,
+					u64 *event_mask);
+
 MODULE_FIRMWARE(GAUDI3_BOOT_FIT_FILE);
 
 #define GAUDI3_PDMA_TIMEOUT_USEC			USEC_PER_SEC
@@ -12969,6 +12973,66 @@ static int gaudi3_validate_eq_agg_header(struct hl_device *hdev, struct hl_agg_e
 	return 0;
 }
 
+static void gaudi3_handle_razwi_info(struct hl_device *hdev, struct hl_eq_razwi_regs *r,
+						char *type, u16 eng_id, u8 flags, u64 *event_mask)
+{
+	u64 addr = ((u64)le32_to_cpu(r->hi_reg) << 32) + le32_to_cpu(r->lo_reg);
+
+	dev_err(hdev->dev, "%s RAZWI happened: addr 0x%llX, id 0x%X", type, addr, r->id);
+
+	hl_handle_razwi(hdev, addr, &eng_id, 1, flags, event_mask);
+}
+
+void gaudi3_handle_razwi(struct hl_device *hdev, struct hl_eq_razwi_rtr_data *rd, u16 eng_id,
+					u64 *event_mask)
+{
+	if (rd->lbw.rr_aw.razwi_happened)
+		gaudi3_handle_razwi_info(hdev, &rd->lbw.adec_ar, "LBW RR AW", eng_id,
+				HL_RAZWI_LBW | HL_RAZWI_RR | HL_RAZWI_WRITE,
+				event_mask);
+
+	if (rd->lbw.rr_ar.razwi_happened)
+		gaudi3_handle_razwi_info(hdev, &rd->lbw.adec_ar, "LBW RR AR", eng_id,
+				HL_RAZWI_LBW | HL_RAZWI_RR | HL_RAZWI_READ,
+				event_mask);
+
+	if (rd->lbw.adec_aw.razwi_happened)
+		gaudi3_handle_razwi_info(hdev, &rd->lbw.adec_ar, "LBW ADEC AW", eng_id,
+				HL_RAZWI_LBW | HL_RAZWI_ADDR_DEC | HL_RAZWI_WRITE,
+				event_mask);
+
+	if (rd->lbw.adec_ar.razwi_happened)
+		gaudi3_handle_razwi_info(hdev, &rd->lbw.adec_ar, "LBW ADEC AR", eng_id,
+				HL_RAZWI_LBW | HL_RAZWI_ADDR_DEC | HL_RAZWI_READ,
+				event_mask);
+
+	if (rd->hbw.rr_aw.razwi_happened)
+		gaudi3_handle_razwi_info(hdev, &rd->lbw.adec_ar, "HBW RR AW", eng_id,
+				HL_RAZWI_HBW | HL_RAZWI_RR | HL_RAZWI_WRITE,
+				event_mask);
+
+	if (rd->hbw.rr_ar.razwi_happened)
+		gaudi3_handle_razwi_info(hdev, &rd->lbw.adec_ar, "HBW RR AR", eng_id,
+				HL_RAZWI_HBW | HL_RAZWI_RR | HL_RAZWI_READ,
+				event_mask);
+
+	if (rd->hbw.adec_aw.razwi_happened)
+		gaudi3_handle_razwi_info(hdev, &rd->lbw.adec_ar, "HBW ADEC AW", eng_id,
+				HL_RAZWI_HBW | HL_RAZWI_ADDR_DEC | HL_RAZWI_WRITE,
+				event_mask);
+
+	if (rd->hbw.adec_ar.razwi_happened)
+		gaudi3_handle_razwi_info(hdev, &rd->lbw.adec_ar, "HBW ADEC AR", eng_id,
+				HL_RAZWI_HBW | HL_RAZWI_ADDR_DEC | HL_RAZWI_READ,
+				event_mask);
+}
+
+static void gaudi3_sei_razwi_handler(struct hl_device *hdev, struct hl_agg_eq_header *agg_hdr,
+					u64 *event_mask)
+{
+
+}
+
 static u32 gaudi3_handle_sei_event(struct hl_device *hdev,
 				struct hl_eq_dynamic_entry *eq_dynamic_entry, u64 *event_mask)
 {
@@ -13030,7 +13094,10 @@ static u32 gaudi3_handle_sei_event(struct hl_device *hdev,
 		break;
 	}
 
-	gaudi3_sei_razwi_handler_no_fw(hdev, agg_hdr, event_mask);
+	if (hdev->fw_components | FW_TYPE_BOOT_CPU)
+		gaudi3_sei_razwi_handler(hdev, agg_hdr, event_mask);
+	else
+		gaudi3_sei_razwi_handler_no_fw(hdev, agg_hdr, event_mask);
 
 	hl_check_for_glbl_errors(hdev);
 
