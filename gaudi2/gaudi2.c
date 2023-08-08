@@ -8266,6 +8266,7 @@ static inline bool is_info_event(u32 event)
 	 * an indication to an error.
 	 */
 	case GAUDI2_EVENT_CPU0_STATUS_NIC0_ENG0 ... GAUDI2_EVENT_CPU11_STATUS_NIC11_ENG1:
+	case GAUDI2_EVENT_ARC_EQ_HEARTBEAT:
 		return true;
 	default:
 		return false;
@@ -10309,6 +10310,11 @@ static u16 event_id_to_engine_id(struct hl_device *hdev, u16 event_type)
 	return U16_MAX;
 }
 
+static void hl_eq_heartbeat_event_handle(struct hl_device *hdev)
+{
+	hdev->eq_heartbeat_received = true;
+}
+
 void gaudi2_handle_eqe(struct hl_device *hdev, struct hl_eq_entry *eq_entry)
 {
 	struct gaudi2_device *gaudi2 = hdev->asic_specific;
@@ -10800,6 +10806,10 @@ void gaudi2_handle_eqe(struct hl_device *hdev, struct hl_eq_entry *eq_entry)
 					gaudi2_irq_map_table[event_type].name);
 		break;
 
+	case GAUDI2_EVENT_ARC_EQ_HEARTBEAT:
+		hl_eq_heartbeat_event_handle(hdev);
+		error_count = GAUDI2_NA_EVENT_CAUSE;
+		break;
 	default:
 		if (gaudi2_irq_map_table[event_type].valid) {
 			dev_err_ratelimited(hdev->dev, "Cannot find handler for event %d\n",
