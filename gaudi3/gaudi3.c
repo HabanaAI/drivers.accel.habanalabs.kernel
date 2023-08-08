@@ -1547,6 +1547,54 @@ static const char * const gaudi3_parc_sei_intr_cause[] = {
 	"parc_arc_access_prot"
 };
 
+static const char * const gaudi3_d2d_mac_sei_intr_cause1[] = {
+	"d2d_mac_core_0_retry_fatal",
+	"d2d_mac_core_0_buf_ovfl",
+	"d2d_mac_core_0_msa_error",
+	"d2d_mac_core_0_crc_error",
+	"d2d_mac_core_0_sqid_error",
+	"d2d_mac_core_0_phy_tx_error",
+	"d2d_mac_core_0_phy_rx_error",
+	"d2d_mac_core_1_retry_fatal",
+	"d2d_mac_core_1_buf_ovfl",
+	"d2d_mac_core_1_msa_error",
+	"d2d_mac_core_1_crc_error",
+	"d2d_mac_core_1_sqid_error",
+	"d2d_mac_core_1_phy_tx_error",
+	"d2d_mac_core_1_phy_rx_error",
+	"d2d_mac_core_2_retry_fatal",
+	"d2d_mac_core_2_buf_ovfl",
+	"d2d_mac_core_2_msa_error",
+	"d2d_mac_core_2_crc_error",
+	"d2d_mac_core_2_sqid_error",
+	"d2d_mac_core_2_phy_tx_error",
+	"d2d_mac_core_2_phy_rx_error"
+};
+
+static const char * const gaudi3_d2d_mac_sei_intr_cause2[] = {
+	"d2d_mac_core_3_retry_fatal",
+	"d2d_mac_core_3_buf_ovfl",
+	"d2d_mac_core_3_msa_error",
+	"d2d_mac_core_3_crc_error",
+	"d2d_mac_core_3_sqid_error",
+	"d2d_mac_core_3_phy_tx_error",
+	"d2d_mac_core_3_phy_rx_error",
+	"d2d_mac_core_4_retry_fatal",
+	"d2d_mac_core_4_buf_ovfl",
+	"d2d_mac_core_4_msa_error",
+	"d2d_mac_core_4_crc_error",
+	"d2d_mac_core_4_sqid_error",
+	"d2d_mac_core_4_phy_tx_error",
+	"d2d_mac_core_4_phy_rx_error",
+	"d2d_mac_core_5_retry_fatal",
+	"d2d_mac_core_5_buf_ovfl",
+	"d2d_mac_core_5_msa_error",
+	"d2d_mac_core_5_crc_error",
+	"d2d_mac_core_5_sqid_error",
+	"d2d_mac_core_5_phy_tx_error",
+	"d2d_mac_core_5_phy_rx_error"
+};
+
 struct gaudi3_dup_grp_info {
 	enum gaudi3_dup_group name;
 	u32 fixup_offset;
@@ -13071,6 +13119,7 @@ static void gaudi3_sei_razwi_handler(struct hl_device *hdev, struct hl_eq_dynami
 	switch (agg_component_type) {
 
 	case INT_COMP_TYPE_PCIE:
+	case INT_COMP_TYPE_D2D_MAC:
 		/* No need to handle razwi */
 		break;
 
@@ -13120,6 +13169,27 @@ static u32 gaudi3_handle_parc_sei_err(struct hl_device *hdev, u16 data_size,
 			gaudi3_parc_sei_intr_cause, "PARC", "SEI");
 }
 
+static u32 gaudi3_handle_d2d_mac_sei_err(struct hl_device *hdev, u16 data_size,
+					struct hl_eq_d2dmac_sei_data *d2d_mac_sei_data)
+{
+	u32 err_cnt;
+	int rc;
+
+	rc = gaudi3_validate_eqe_data_size(hdev, data_size, sizeof(struct hl_eq_d2dmac_sei_data));
+	if (rc)
+		return 0;
+
+	err_cnt = gaudi3_err_cause_iterator(hdev,
+			lower_32_bits(le64_to_cpu(d2d_mac_sei_data->intr_cause[0].intr_cause_data)),
+			gaudi3_d2d_mac_sei_intr_cause1, "D2D_MAC", "SEI");
+
+	err_cnt += gaudi3_err_cause_iterator(hdev,
+			lower_32_bits(le64_to_cpu(d2d_mac_sei_data->intr_cause[1].intr_cause_data)),
+			gaudi3_d2d_mac_sei_intr_cause2, "D2D_MAC", "SEI");
+
+	return err_cnt;
+}
+
 static u32 gaudi3_handle_sei_event(struct hl_device *hdev,
 				struct hl_eq_dynamic_entry *eq_dynamic_entry, u64 *event_mask)
 {
@@ -13143,6 +13213,10 @@ static u32 gaudi3_handle_sei_event(struct hl_device *hdev,
 	case INT_COMP_TYPE_CPU:
 		err_cnt = gaudi3_handle_cpu_sei_err(hdev, data_size,
 							&eq_dynamic_entry->cpu_sei_data);
+		break;
+	case INT_COMP_TYPE_D2D_MAC:
+		err_cnt = gaudi3_handle_d2d_mac_sei_err(hdev, data_size,
+							&eq_dynamic_entry->d2dmac_sei_data);
 		break;
 	case INT_COMP_TYPE_DEC:
 		err_cnt = gaudi3_handle_decoder_sei_err(hdev, data_size,
