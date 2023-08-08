@@ -12660,7 +12660,7 @@ static u32 gaudi3_handle_rotator_spi_err(struct hl_device *hdev, u16 data_size,
 
 static inline u32 gaudi3_handle_single_err_mask(struct hl_device *hdev, u32 err_msk, char *err_name)
 {
-	if (err_msk) {
+	if (err_msk & 0x1) {
 		dev_err_ratelimited(hdev->dev, "%s event\n", err_name);
 		return 1;
 	}
@@ -13162,6 +13162,7 @@ static void gaudi3_sei_razwi_handler(struct hl_device *hdev, struct hl_eq_dynami
 	case INT_COMP_TYPE_CS:
 	case INT_COMP_TYPE_D2D_MAC:
 	case INT_COMP_TYPE_PCIE:
+	case INT_COMP_TYPE_PLL:
 		/* No need to handle razwi */
 		break;
 
@@ -13290,6 +13291,24 @@ static u32 gaudi3_handle_d2d_phy_sei_err(struct hl_device *hdev, u16 data_size,
 							"D2D_PHY", "SEI");
 }
 
+static u32 gaudi3_handle_pll_sei_err(struct hl_device *hdev, u16 data_size,
+					struct hl_eq_pll_sei_data *pll_sei_cause)
+{
+	char err_str[32];
+	u32 err_msk;
+	int rc;
+
+	rc = gaudi3_validate_eqe_data_size(hdev, data_size, sizeof(struct hl_eq_pll_sei_data));
+	if (rc)
+		return 0;
+
+	err_msk = lower_32_bits(le64_to_cpu(pll_sei_cause->intr_cause.intr_cause_data));
+
+	snprintf(err_str, sizeof(err_str) - 1, "PLL %u lock lost\n", pll_sei_cause->index);
+
+	return gaudi3_handle_single_err_mask(hdev, err_msk, err_str);
+}
+
 static u32 gaudi3_handle_sei_event(struct hl_device *hdev,
 				struct hl_eq_dynamic_entry *eq_dynamic_entry, u64 *event_mask)
 {
@@ -13345,6 +13364,10 @@ static u32 gaudi3_handle_sei_event(struct hl_device *hdev,
 		break;
 	case INT_COMP_TYPE_PDMA:
 		err_cnt = gaudi3_handle_pdma_sei_err(hdev, die);
+		break;
+	case INT_COMP_TYPE_PLL:
+		err_cnt = gaudi3_handle_pll_sei_err(hdev, data_size,
+							&eq_dynamic_entry->pll_sei_data);
 		break;
 	case INT_COMP_TYPE_CS:
 		err_cnt = gaudi3_handle_cs_sei_err(hdev, data_size, &eq_dynamic_entry->cs_sei_data);
