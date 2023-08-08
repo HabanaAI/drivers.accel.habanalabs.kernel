@@ -1523,6 +1523,30 @@ static const char * const gaudi3_cpu_sei_intr_cause[] = {
 	"intr_aggt_mstr_if_lbw_rd_err"
 };
 
+static const char * const gaudi3_parc_sei_intr_cause[] = {
+	"ic_arc_double_window_hit",
+	"ic_arc_window_miss_hit",
+	"ic_hbw_double_window_hit",
+	"ic_hbw_window_miss_hit",
+	"ic_lbw_double_window_hit",
+	"ic_lbw_window_miss_hit",
+	"axi_split_cbu_arc0",
+	"axi_split_cbu_arc1",
+	"axi_split_cbu_arc2",
+	"axi_split_lbu_arc0",
+	"axi_split_lbu_arc1",
+	"axi_split_lbu_arc2",
+	"axi_split_bootrom_spi",
+	"spi_dma_pslverr",
+	"spi_dma_bresp",
+	"lbw_arc_cfg_um_addr",
+	"lbw_parc_cfg_um_addr",
+	"lbu_term",
+	"cbu_term",
+	"mailbox_access_prot",
+	"parc_arc_access_prot"
+};
+
 struct gaudi3_dup_grp_info {
 	enum gaudi3_dup_group name;
 	u32 fixup_offset;
@@ -13054,6 +13078,10 @@ static void gaudi3_sei_razwi_handler(struct hl_device *hdev, struct hl_eq_dynami
 		rd = &eq->cpu_sei_data.rtr_data;
 		break;
 
+	case INT_COMP_TYPE_PARC:
+		rd = &eq->parc_sei_data.rtr_data;
+		break;
+
 	default:
 		dev_err(hdev->dev, "Component type %u doesn't have razwi handler\n",
 			agg_component_type);
@@ -13078,6 +13106,20 @@ static u32 gaudi3_handle_cpu_sei_err(struct hl_device *hdev, u16 data_size,
 			gaudi3_cpu_sei_intr_cause, "CPU", "SEI");
 }
 
+static u32 gaudi3_handle_parc_sei_err(struct hl_device *hdev, u16 data_size,
+					struct hl_eq_parc_sei_data *parc_sei_data)
+{
+	int rc;
+
+	rc = gaudi3_validate_eqe_data_size(hdev, data_size, sizeof(struct hl_eq_parc_sei_data));
+	if (rc)
+		return 0;
+
+	return gaudi3_err_cause_iterator(hdev,
+			lower_32_bits(le64_to_cpu(parc_sei_data->intr_cause.intr_cause_data)),
+			gaudi3_parc_sei_intr_cause, "PARC", "SEI");
+}
+
 static u32 gaudi3_handle_sei_event(struct hl_device *hdev,
 				struct hl_eq_dynamic_entry *eq_dynamic_entry, u64 *event_mask)
 {
@@ -13094,13 +13136,13 @@ static u32 gaudi3_handle_sei_event(struct hl_device *hdev,
 	instance = eq_dynamic_entry->agg_hdr.comp_instance;
 
 	switch (agg_component_type) {
-	case INT_COMP_TYPE_CPU:
-		err_cnt = gaudi3_handle_cpu_sei_err(hdev, data_size,
-							&eq_dynamic_entry->cpu_sei_data);
-		break;
 	case INT_COMP_TYPE_ARC_FARM:
 		err_cnt = gaudi3_handle_arc_farm_sei_err(hdev, data_size,
 							&eq_dynamic_entry->arcfarm_sei_data);
+		break;
+	case INT_COMP_TYPE_CPU:
+		err_cnt = gaudi3_handle_cpu_sei_err(hdev, data_size,
+							&eq_dynamic_entry->cpu_sei_data);
 		break;
 	case INT_COMP_TYPE_DEC:
 		err_cnt = gaudi3_handle_decoder_sei_err(hdev, data_size,
@@ -13114,6 +13156,10 @@ static u32 gaudi3_handle_sei_event(struct hl_device *hdev,
 		if (aux_ops->sei_err_event_handler)
 			err_cnt = aux_ops->sei_err_event_handler(aux_dev,
 							die * NIC_NUM_MACROS_PER_DIE + instance);
+		break;
+	case INT_COMP_TYPE_PARC:
+		err_cnt = gaudi3_handle_parc_sei_err(hdev, data_size,
+							&eq_dynamic_entry->parc_sei_data);
 		break;
 	case INT_COMP_TYPE_PCIE:
 		err_cnt = gaudi3_handle_pcie0_sei_err(hdev, data_size,
