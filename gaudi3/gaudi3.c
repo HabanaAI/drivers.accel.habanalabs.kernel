@@ -85,10 +85,6 @@
 #include <linux/iommu.h>
 #include <linux/vmalloc.h>
 
-/* TODO - added for compilation issue, will be removed in the next patch */
-void gaudi3_handle_razwi(struct hl_device *hdev, struct hl_eq_razwi_rtr_data *rd, u16 eng_id,
-					u64 *event_mask);
-
 MODULE_FIRMWARE(GAUDI3_BOOT_FIT_FILE);
 
 #define GAUDI3_PDMA_TIMEOUT_USEC			USEC_PER_SEC
@@ -1511,6 +1507,20 @@ static const char * const gaudi3_cs_dbg_spmu_pmintenset_el1[] = {
 	"N/A",
 	"N/A",
 	"cycle counter",
+};
+
+static const char * const gaudi3_cpu_sei_intr_cause[] = {
+	"lbw_axi_terminator_wr",
+	"lbw_axi_terminator_rd",
+	"axi_split_sei_status",
+	"prot_gic_terminetor_wr",
+	"prot_gic_terminetor_rd",
+	"cpu_mstr_if_hbw_wr_err",
+	"cpu_mstr_if_hbw_rd_err",
+	"cpu_mstr_if_lbw_wr_err",
+	"cpu_mstr_if_lbw_rd_err",
+	"intr_aggt_mstr_if_lbw_wr_err",
+	"intr_aggt_mstr_if_lbw_rd_err"
 };
 
 struct gaudi3_dup_grp_info {
@@ -12983,7 +12993,7 @@ static void gaudi3_handle_razwi_info(struct hl_device *hdev, struct hl_eq_razwi_
 	hl_handle_razwi(hdev, addr, &eng_id, 1, flags, event_mask);
 }
 
-void gaudi3_handle_razwi(struct hl_device *hdev, struct hl_eq_razwi_rtr_data *rd, u16 eng_id,
+static void gaudi3_handle_razwi(struct hl_device *hdev, struct hl_eq_razwi_rtr_data *rd, u16 eng_id,
 					u64 *event_mask)
 {
 	if (rd->lbw.rr_aw.razwi_happened)
@@ -13027,10 +13037,45 @@ void gaudi3_handle_razwi(struct hl_device *hdev, struct hl_eq_razwi_rtr_data *rd
 				event_mask);
 }
 
-static void gaudi3_sei_razwi_handler(struct hl_device *hdev, struct hl_agg_eq_header *agg_hdr,
+static void gaudi3_sei_razwi_handler(struct hl_device *hdev, struct hl_eq_dynamic_entry *eq,
 					u64 *event_mask)
 {
+	enum hl_agg_component_type agg_component_type = eq->agg_hdr.int_comp_type;
+	u16 eng_id = eq_agg_header_to_engine_id(&eq->agg_hdr);
+	struct hl_eq_razwi_rtr_data *rd = NULL;
 
+	switch (agg_component_type) {
+
+	case INT_COMP_TYPE_PCIE:
+		/* No need to handle razwi */
+		break;
+
+	case INT_COMP_TYPE_CPU:
+		rd = &eq->cpu_sei_data.rtr_data;
+		break;
+
+	default:
+		dev_err(hdev->dev, "Component type %u doesn't have razwi handler\n",
+			agg_component_type);
+		break;
+	}
+
+	if (rd)
+		gaudi3_handle_razwi(hdev, rd, eng_id, event_mask);
+}
+
+static u32 gaudi3_handle_cpu_sei_err(struct hl_device *hdev, u16 data_size,
+					struct hl_eq_cpu_sei_data *cpu_sei_data)
+{
+	int rc;
+
+	rc = gaudi3_validate_eqe_data_size(hdev, data_size, sizeof(struct hl_eq_cpu_sei_data));
+	if (rc)
+		return 0;
+
+	return gaudi3_err_cause_iterator(hdev,
+			lower_32_bits(le64_to_cpu(cpu_sei_data->intr_cause.intr_cause_data)),
+			gaudi3_cpu_sei_intr_cause, "CPU", "SEI");
 }
 
 static u32 gaudi3_handle_sei_event(struct hl_device *hdev,
@@ -13049,6 +13094,10 @@ static u32 gaudi3_handle_sei_event(struct hl_device *hdev,
 	instance = eq_dynamic_entry->agg_hdr.comp_instance;
 
 	switch (agg_component_type) {
+	case INT_COMP_TYPE_CPU:
+		err_cnt = gaudi3_handle_cpu_sei_err(hdev, data_size,
+							&eq_dynamic_entry->cpu_sei_data);
+		break;
 	case INT_COMP_TYPE_ARC_FARM:
 		err_cnt = gaudi3_handle_arc_farm_sei_err(hdev, data_size,
 							&eq_dynamic_entry->arcfarm_sei_data);
@@ -13095,7 +13144,7 @@ static u32 gaudi3_handle_sei_event(struct hl_device *hdev,
 	}
 
 	if (hdev->fw_components | FW_TYPE_BOOT_CPU)
-		gaudi3_sei_razwi_handler(hdev, agg_hdr, event_mask);
+		gaudi3_sei_razwi_handler(hdev, eq_dynamic_entry, event_mask);
 	else
 		gaudi3_sei_razwi_handler_no_fw(hdev, agg_hdr, event_mask);
 
