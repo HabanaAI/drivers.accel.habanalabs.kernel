@@ -1301,22 +1301,22 @@ static const char * const gaudi3_cs_sei_err_cause[] = {
 		"maint_cmd_lost because no place in buffer",
 		"HBM rtrn slverr 2Host, was given AWW/MEM",
 		"reduction with op=sub",
-		"due to un-supported flow",
+		"reduction with op=sub corrupt due to un-supported flow",
 		"lrd tag stg. r2c_ar rtrn with ecc error",
 		"lrd tag stg. r2c_aww rtrn with ecc err",
 		"lrd tag stg. D2H_req mem_wr rtrn ecc err",
 		"lrd tag stg. rtrning H2D of AR ECC err",
 		"lrd tag stg. rtrning H2D of AWW ECC err",
-		"capture err/info/addr",
-		"capture err/info/addr",
+		"capture err/info/addr (Far)",
+		"capture err/info/addr (Close)",
 		"capture num error from alu reduc calc",
 		"Both FNC and FNA bits in ARUSER are 1",
-		"Cache lrd mid stage 428",
-		"Cache lrd mid stage 428",
+		"Cache lrd mid stage 428 (Remote)",
+		"Cache lrd mid stage 428 (host)",
 		"num_err != NE_NORMAL",
 		"every couple of bytes has same strb",
 		"sram_mode_addr_bits_23_21_and_16_no_skip",
-		"N/A",
+		"sram_mode INTR B",
 		"N/A",
 		"N/A",
 		"N/A",
@@ -1328,7 +1328,7 @@ static const char * const gaudi3_cs_sei_err_cause[] = {
 		"obuf TO when exceed cfg_obuf_timeout_va",
 		"obuf TO when exceed cfg_obuf_timeout_va",
 		"obuf TO when exceed cfg_obuf_timeout_va",
-		"this is RTL bug",
+		"SNP_WITH_NO_LTA_ETA_HIT this is RTL bug",
 };
 
 static const char * const gaudi3_rotator_sei_cause[] = {
@@ -11972,6 +11972,7 @@ static void gaudi3_sei_razwi_handler_no_fw(struct hl_device *hdev,
 
 	switch (agg_component_type) {
 	case INT_COMP_TYPE_PCIE:
+	case INT_COMP_TYPE_CS:
 		/* No need to handle razwi */
 		break;
 
@@ -13000,19 +13001,85 @@ static u32 gaudi3_handle_derr_event(struct hl_device *hdev,
 	return 1;
 }
 
-static u32 gaudi3_handle_cs_sei_err(struct hl_device *hdev, u16 data_size,
-					struct hl_eq_intr_cause *intr_cause)
+static u32 gaudi3_cs_sei_err_cause_iterator(struct hl_device *hdev,
+						struct hl_eq_cs_sei_data *sei_data)
 {
-	u32 err_msk;
+	u32 cause = lower_32_bits(le64_to_cpu(sei_data->cause.intr_cause_data));
+	int i, err_count = 0;
+
+	for (i = 0 ; i < 32 && cause ; i++) {
+		switch (BIT(i) & cause) {
+		case 0:
+			/* no error */
+			continue;
+		case CACHE_MAIN_SEI_CAUSE_REG_C2M_R_SLV_ERR_ORIG_WRITE_M:
+			dev_err_ratelimited(hdev->dev, "CS SEI error: %s, addr 0x%llx\n",
+					    gaudi3_cs_sei_err_cause[i],
+					    le64_to_cpu(sei_data->err_data.slv_err_addr));
+			break;
+		case CACHE_MAIN_SEI_CAUSE_REG_POISON_LOCAL_AR_M:
+		case CACHE_MAIN_SEI_CAUSE_REG_POISON_LOCAL_AWW_M:
+		case CACHE_MAIN_SEI_CAUSE_REG_POISON_LOCAL_M_WR_M:
+		case CACHE_MAIN_SEI_CAUSE_REG_POISON_REMOTE_AR_M:
+		case CACHE_MAIN_SEI_CAUSE_REG_POISON_REMOTE_AWW_M:
+			dev_err_ratelimited(hdev->dev,
+					    "CS SEI error: %s, addr 0x%llx, id 0x%llx\n",
+					    gaudi3_cs_sei_err_cause[i],
+					    le64_to_cpu(sei_data->err_data.poison_data.addr),
+					    le64_to_cpu(sei_data->err_data.poison_data.id));
+			break;
+		case CACHE_MAIN_SEI_CAUSE_REG_FAR_HOST_REDUC_NUM_ERR_M:
+			dev_err_ratelimited(hdev->dev,
+					    "CS SEI error: %s, err 0x%x, info 0x%llx, addr 0x%llx\n",
+					    gaudi3_cs_sei_err_cause[i],
+					    sei_data->err_data.far_data.num_err,
+					    le64_to_cpu(sei_data->err_data.far_data.info),
+					    le64_to_cpu(sei_data->err_data.far_data.addr));
+			break;
+		case CACHE_MAIN_SEI_CAUSE_REG_CLOSE_HOST_REDUC_NUM_ERR_M:
+			dev_err_ratelimited(hdev->dev,
+					    "CS SEI error: %s, err 0x%x, info 0x%llx, addr 0x%llx\n",
+					    gaudi3_cs_sei_err_cause[i],
+					    sei_data->err_data.close_data.num_err,
+					    le64_to_cpu(sei_data->err_data.close_data.info),
+					    le64_to_cpu(sei_data->err_data.close_data.addr));
+			break;
+		case CACHE_MAIN_SEI_CAUSE_REG_AAB_REDUC_NUM_ERR_M:
+			dev_err_ratelimited(hdev->dev,
+					    "CS SEI error: %s, num_err 0x%x\n",
+					    gaudi3_cs_sei_err_cause[i],
+					    sei_data->err_data.aab_num_err);
+			break;
+		case CACHE_MAIN_SEI_CAUSE_REG_DN_CONV_NUM_ERR_M:
+			dev_err_ratelimited(hdev->dev,
+					    "CS SEI error: %s, dn_conv_id 0x%llx\n",
+					    gaudi3_cs_sei_err_cause[i],
+					    le64_to_cpu(sei_data->err_data.dn_conv_id));
+			break;
+		default:
+			dev_err_ratelimited(hdev->dev,
+					    "CS SEI error: %s\n", gaudi3_cs_sei_err_cause[i]);
+			break;
+		}
+
+		cause &= ~BIT(i);
+		err_count++;
+	}
+
+	return err_count;
+}
+
+static u32 gaudi3_handle_cs_sei_err(struct hl_device *hdev, u16 data_size,
+					struct hl_eq_cs_sei_data *sei_data)
+{
 	int rc;
 
-	rc = gaudi3_validate_eqe_data_size(hdev, data_size, sizeof(*intr_cause));
+	rc = gaudi3_validate_eqe_data_size(hdev, data_size, sizeof(*sei_data));
 	if (rc)
 		return 0;
 
-	err_msk = lower_32_bits(le64_to_cpu(intr_cause->intr_cause_data));
 
-	return gaudi3_err_cause_iterator(hdev, err_msk, gaudi3_cs_sei_err_cause, "CS", "SEI");
+	return gaudi3_cs_sei_err_cause_iterator(hdev, sei_data);
 }
 
 static int gaudi3_validate_eq_agg_header(struct hl_device *hdev, struct hl_agg_eq_header *agg_hdr)
@@ -13243,7 +13310,7 @@ static u32 gaudi3_handle_sei_event(struct hl_device *hdev,
 		err_cnt = gaudi3_handle_pdma_sei_err(hdev, die);
 		break;
 	case INT_COMP_TYPE_CS:
-		err_cnt = gaudi3_handle_cs_sei_err(hdev, data_size, &eq_dynamic_entry->intr_cause);
+		err_cnt = gaudi3_handle_cs_sei_err(hdev, data_size, &eq_dynamic_entry->cs_sei_data);
 		break;
 	case INT_COMP_TYPE_STLB:
 		err_cnt = handle_hmmu_sei_events(hdev, data_size, &eq_dynamic_entry->stlb_sei_data);

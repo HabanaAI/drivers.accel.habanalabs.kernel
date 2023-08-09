@@ -157,6 +157,7 @@
 #include "prt_mac_aux_special_regs.h"
 #include "mac_pcs_rsfec400_regs.h"
 #include "farm_regs.h"
+#include "cache_err_regs.h"
 
 /* TODO: used for debug, so can be removed once H9-5315 is resolved */
 #include "nrtr_crdt_rrtr_ob_crdt_regs.h"
@@ -235,6 +236,7 @@
 #include "cs_dbg_tpc_eml_bmon0_masks.h"
 #include "sb_masks.h"
 #include "acc_masks.h"
+#include "cache_err_masks.h"
 
 #define BMON_BASE_OFFSET		(mmHD0_TPC0_CS_DBG_BMON1_BASE - \
 						mmHD0_TPC0_CS_DBG_BMON0_BASE)

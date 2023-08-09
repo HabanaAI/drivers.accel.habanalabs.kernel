@@ -3330,6 +3330,106 @@ static u32 cs_special_regs_base[] = {
 	mmHD0_CS0_SPECIAL_BASE
 };
 
+static void handle_and_clear_cs_sei_events(struct hl_device *hdev, u32 offset,
+					   struct hl_eq_cs_sei_data *sei_data)
+{
+	u32 base = mmHD0_CS0_MAIN_BASE + offset;
+	u32 cause, mask, lsb, msb, val;
+
+	cause = RREG32(base + mmCACHE_MAIN_SEI_CAUSE_REG);
+	sei_data->cause.intr_cause_data = cpu_to_le64((u64)cause);
+
+	/* process the interrupt */
+	if (cause & CACHE_MAIN_SEI_CAUSE_REG_C2M_R_SLV_ERR_ORIG_WRITE_M) {
+		lsb = FIELD_GET(CACHE_ERR_SLV_ERR_ADDR_LSB_VALUE_M,
+				RREG32(base + mmCACHE_ERR_SLV_ERR_ADDR_LSB));
+		msb = FIELD_GET(CACHE_ERR_SLV_ERR_ADDR_MSB_VALUE_M,
+				RREG32(base + mmCACHE_ERR_SLV_ERR_ADDR_MSB));
+		sei_data->err_data.slv_err_addr = cpu_to_le64(((u64)msb << 32) | lsb);
+	}
+
+	mask = (CACHE_MAIN_SEI_CAUSE_REG_POISON_LOCAL_AR_M |
+		CACHE_MAIN_SEI_CAUSE_REG_POISON_LOCAL_AWW_M |
+		CACHE_MAIN_SEI_CAUSE_REG_POISON_LOCAL_M_WR_M |
+		CACHE_MAIN_SEI_CAUSE_REG_POISON_REMOTE_AR_M |
+		CACHE_MAIN_SEI_CAUSE_REG_POISON_REMOTE_AWW_M);
+	if (cause & mask) {
+		val = RREG32(base + mmCACHE_ERR_POISON_INFO_A);
+
+		msb = FIELD_GET(CACHE_ERR_POISON_INFO_A_ID_MSB_M, val);
+		lsb = FIELD_GET(CACHE_ERR_POISON_INFO_B_ID_LSB_M,
+				RREG32(base + mmCACHE_ERR_POISON_INFO_B));
+		sei_data->err_data.poison_data.id = cpu_to_le64(((u64)msb << 32) | lsb);
+
+		msb = FIELD_GET(CACHE_ERR_POISON_INFO_A_ADDR_MSB_M, val);
+		lsb = FIELD_GET(CACHE_ERR_POISON_INFO_C_ADDR_LSB_M,
+				RREG32(base + mmCACHE_ERR_POISON_INFO_C));
+		sei_data->err_data.poison_data.addr = cpu_to_le64(((u64)msb << 32) | lsb);
+
+		WREG32((base + mmCACHE_ERR_POISON_INFO_CLEAR), (cause & mask));
+	}
+
+	if (cause & CACHE_MAIN_SEI_CAUSE_REG_FAR_HOST_REDUC_NUM_ERR_M) {
+		val = RREG32(offset + mmCACHE_ERR_NUM_ERR_FAR_HOST_A);
+
+		sei_data->err_data.far_data.num_err =
+				FIELD_GET(CACHE_ERR_NUM_ERR_FAR_HOST_A_NUM_ERR_M, val);
+
+		msb = FIELD_GET(CACHE_ERR_NUM_ERR_FAR_HOST_B_USER_LSB_M, val);
+		lsb = FIELD_GET(CACHE_ERR_NUM_ERR_FAR_HOST_B_USER_LSB_M,
+				RREG32(base + mmCACHE_ERR_NUM_ERR_FAR_HOST_B));
+		sei_data->err_data.far_data.info = cpu_to_le64(((u64) msb << 32) | lsb);
+
+		msb = FIELD_GET(CACHE_ERR_NUM_ERR_FAR_HOST_A_ADDR_MSB_M, val);
+		lsb = FIELD_GET(CACHE_ERR_NUM_ERR_FAR_HOST_C_ADDR_LSB_M,
+				RREG32(base + mmCACHE_ERR_NUM_ERR_FAR_HOST_C));
+		sei_data->err_data.far_data.addr = cpu_to_le64(((u64)msb << 32) | lsb);
+
+		WREG32((base + mmCACHE_ERR_NUM_ERR_FAR_HOST_CLEAR),
+				CACHE_MAIN_SEI_CAUSE_REG_FAR_HOST_REDUC_NUM_ERR_M);
+	}
+
+	if (cause & CACHE_MAIN_SEI_CAUSE_REG_CLOSE_HOST_REDUC_NUM_ERR_M) {
+		val = RREG32(base + mmCACHE_ERR_NUM_ERR_CLOSE_HOST_A);
+
+		sei_data->err_data.close_data.num_err =
+				FIELD_GET(CACHE_ERR_NUM_ERR_CLOSE_HOST_A_NUM_ERR_M, val);
+		msb = FIELD_GET(CACHE_ERR_NUM_ERR_CLOSE_HOST_A_USER_MSB_M, val);
+		lsb = FIELD_GET(CACHE_ERR_NUM_ERR_CLOSE_HOST_B_USER_LSB_M,
+				RREG32(base + mmCACHE_ERR_NUM_ERR_CLOSE_HOST_B));
+		sei_data->err_data.close_data.info = cpu_to_le64(((u64) msb << 32) | lsb);
+
+		msb = FIELD_GET(CACHE_ERR_NUM_ERR_CLOSE_HOST_A_ADDR_MSB_M, val);
+		lsb = FIELD_GET(CACHE_ERR_NUM_ERR_CLOSE_HOST_C_ADDR_LSB_M,
+				RREG32(base + mmCACHE_ERR_NUM_ERR_CLOSE_HOST_C));
+		sei_data->err_data.close_data.addr = cpu_to_le64(((u64) msb << 32) | lsb);
+
+		WREG32((base + mmCACHE_ERR_NUM_ERR_CLOSE_HOST_CLEAR),
+				CACHE_MAIN_SEI_CAUSE_REG_CLOSE_HOST_REDUC_NUM_ERR_M);
+	}
+
+	if (cause & CACHE_MAIN_SEI_CAUSE_REG_AAB_REDUC_NUM_ERR_M) {
+		sei_data->err_data.aab_num_err = FIELD_GET(CACHE_ERR_NUM_ERR_AAB_A_NUM_ERR_M,
+							   RREG32(mmCACHE_ERR_NUM_ERR_AAB_A));
+		WREG32((base + mmCACHE_ERR_NUM_ERR_AAB_CLEAR),
+				CACHE_MAIN_SEI_CAUSE_REG_AAB_REDUC_NUM_ERR_M);
+	}
+
+	if (cause & CACHE_MAIN_SEI_CAUSE_REG_DN_CONV_NUM_ERR_M) {
+		lsb = FIELD_GET(CACHE_ERR_DN_CONV_INFO_A_ID_LSB_M,
+				RREG32(base + mmCACHE_ERR_DN_CONV_INFO_A));
+		msb = FIELD_GET(CACHE_ERR_DN_CONV_INFO_B_ID_MSB_M,
+				RREG32(base + mmCACHE_ERR_DN_CONV_INFO_B));
+		sei_data->err_data.dn_conv_id = cpu_to_le64(((u64) msb << 32) | lsb);
+
+		WREG32((base + mmCACHE_ERR_DN_CONV_INFO_CLEAR),
+				CACHE_MAIN_SEI_CAUSE_REG_DN_CONV_NUM_ERR_M);
+	}
+
+	/* clear the cause reg */
+	WREG32(base + mmCACHE_MAIN_SEI_CAUSE_REG, cause);
+}
+
 /* HDCORE_CS_EVENT */
 static void handle_and_clear_cs_events(struct hl_device *hdev, u32 die, u32 hdcore, u32 instance,
 					enum err_grp type, u32 sts, u32 sts_idx, u32 idx,
@@ -3352,11 +3452,9 @@ static void handle_and_clear_cs_events(struct hl_device *hdev, u32 die, u32 hdco
 		unmask_event_in_aggr = true;
 		break;
 	case ERR_GRP_SEI:
-		eq_dynamic_entry.hdr.size = cpu_to_le16(sizeof(struct hl_eq_intr_cause));
-		intr_cause_reg = mmHD0_CS0_MAIN_BASE + offset + mmCACHE_MAIN_SEI_CAUSE_REG;
-		intr_cause_data = RREG32(intr_cause_reg);
-		eq_dynamic_entry.intr_cause.intr_cause_data = cpu_to_le64((u64)intr_cause_data);
-		need_clear = unmask_event_in_aggr = true;
+		handle_and_clear_cs_sei_events(hdev, offset, &eq_dynamic_entry.cs_sei_data);
+		eq_dynamic_entry.hdr.size = cpu_to_le16(sizeof(struct hl_eq_cs_sei_data));
+		unmask_event_in_aggr = true;
 		break;
 	case ERR_GRP_SPI_ECO:
 		eq_dynamic_entry.hdr.size = cpu_to_le16(sizeof(struct hl_eq_intr_cause));
