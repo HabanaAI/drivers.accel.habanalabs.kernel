@@ -575,6 +575,8 @@ static int hl_cn_aux_data_init(struct hl_device *hdev)
 	aux_data->dram_enable = hdev->dram_enable;
 	aux_data->fw_major_version = hdev->fw_inner_major_ver;
 	aux_data->fw_minor_version = hdev->fw_inner_minor_ver;
+	aux_data->fw_app_cpu_boot_dev_sts0 = asic_props->fw_app_cpu_boot_dev_sts0;
+	aux_data->fw_app_cpu_boot_dev_sts1 = asic_props->fw_app_cpu_boot_dev_sts1;
 	aux_data->cpucp_checkers_shift = NIC_CHECKERS_CHECK_SHIFT;
 	aux_data->num_of_dies = hdev->asic_prop.num_of_dies;
 
