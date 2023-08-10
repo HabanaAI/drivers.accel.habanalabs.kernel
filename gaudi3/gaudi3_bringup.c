@@ -2983,6 +2983,9 @@ void gaudi3_enable_interrupt_aggr_msgs(struct hl_device *hdev)
 	if (!hdev->pldm || !hdev->enable_intr_aggr)
 		return;
 
+	if (hdev->fw_components & FW_TYPE_BOOT_CPU)
+		return;
+
 	/* Enable interrupt messages for all aggregators in CPU and PSOC blocks */
 	for (die = 0 ; die < props->num_of_dies ; ++die) {
 		/* Both die0 and die1 aggregators should write to die0 PCIE_MSIX.
@@ -3097,11 +3100,12 @@ void gaudi3_enable_interrupt_aggr_msgs(struct hl_device *hdev)
 		WREG32(mmD0_CPU_INT_AGG_SHARED_SEI_INT_MSG_BASE +
 				mmINT_AGG_SHARED_SEI_INT_MSG_MSG_PENDING + offset, 1);
 
-		/* PSOC aggregators
-		 * Skip setting up PSOC aggregators if FW exist since those
-		 * event will pass through the EQ handler and we don't want to receive it twice.
+		/*
+		 * PSOC aggregators.
+		 * Skip when running with preboot because it needs to handle the PSOC aggregators
+		 * interrupts, and they should be routed to PSOC ARC.
 		 */
-		if (hdev->fw_components != (FW_TYPE_PREBOOT_CPU | FW_TYPE_BOOT_CPU)) {
+		if (!(hdev->fw_components & FW_TYPE_PREBOOT_CPU)) {
 			msix_addr = CFG_BAR_BASE - LBW_BASE + mmD0_PCIE_MSIX_BASE;
 
 			for (i = 0 ; i < PSOC_INTR_AGGR_NUM_OF_AGGR_BLOCKS ; i++) {
@@ -3138,6 +3142,9 @@ void gaudi3_disable_interrupt_aggr_msgs(struct hl_device *hdev)
 	u32 offset, die, intr_agg;
 
 	if (!hdev->pldm || !hdev->enable_intr_aggr)
+		return;
+
+	if (hdev->fw_components & FW_TYPE_BOOT_CPU)
 		return;
 
 	/* Disable interrupt messages for all aggregators in CPU and PSOC blocks */
@@ -3177,7 +3184,7 @@ void gaudi3_disable_interrupt_aggr_msgs(struct hl_device *hdev)
 				mmINT_AGG_SHARED_SPI_ECO_INT_MSG_MSG_CFG + offset, 0x0);
 
 		/* PSOC aggregators */
-		if (hdev->fw_components == (FW_TYPE_PREBOOT_CPU | FW_TYPE_BOOT_CPU))
+		if (hdev->fw_components & FW_TYPE_PREBOOT_CPU)
 			continue;
 
 		for (intr_agg = 0 ; intr_agg < PSOC_INTR_AGGR_NUM_OF_AGGR_BLOCKS ; ++intr_agg) {
