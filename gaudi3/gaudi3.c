@@ -1595,6 +1595,29 @@ static const char * const gaudi3_d2d_mac_sei_intr_cause2[] = {
 	"d2d_mac_core_5_phy_rx_error"
 };
 
+static const char * const gaudi3_d2d_phy_sei_intr_cause[] = {
+	"tx_s0_ovf_intr",
+	"tx_s1_ovf_intr",
+	"tx_s2_ovf_intr",
+	"tx_s3_ovf_intr",
+	"tx_s4_ovf_intr",
+	"tx_s5_ovf_intr",
+	"tx_s6_ovf_intr",
+	"tx_s7_ovf_intr",
+	"rx_s0_ovf_intr",
+	"rx_s1_ovf_intr",
+	"rx_s2_ovf_intr",
+	"rx_s3_ovf_intr",
+	"rx_s4_ovf_intr",
+	"rx_s5_ovf_intr",
+	"rx_s6_ovf_intr",
+	"rx_s7_ovf_intr",
+	"msa_0123_intr",
+	"msa_4567_intr",
+	"grp0_terr_intr",
+	"grp1_terr_intr"
+};
+
 struct gaudi3_dup_grp_info {
 	enum gaudi3_dup_group name;
 	u32 fixup_offset;
@@ -13203,6 +13226,22 @@ static u32 gaudi3_handle_d2d_mac_sei_err(struct hl_device *hdev, u16 data_size,
 	return err_cnt;
 }
 
+static u32 gaudi3_handle_d2d_phy_sei_err(struct hl_device *hdev, u16 data_size,
+						struct hl_eq_intr_cause *intr_cause)
+{
+	u32 err_mask;
+	int rc;
+
+	rc = gaudi3_validate_eqe_data_size(hdev, data_size, sizeof(struct hl_eq_intr_cause));
+	if (rc)
+		return 0;
+
+	err_mask = lower_32_bits(le64_to_cpu(intr_cause->intr_cause_data));
+
+	return gaudi3_err_cause_iterator(hdev, err_mask, gaudi3_d2d_phy_sei_intr_cause,
+							"D2D_PHY", "SEI");
+}
+
 static u32 gaudi3_handle_sei_event(struct hl_device *hdev,
 				struct hl_eq_dynamic_entry *eq_dynamic_entry, u64 *event_mask)
 {
@@ -13230,6 +13269,10 @@ static u32 gaudi3_handle_sei_event(struct hl_device *hdev,
 	case INT_COMP_TYPE_D2D_MAC:
 		err_cnt = gaudi3_handle_d2d_mac_sei_err(hdev, data_size,
 							&eq_dynamic_entry->d2dmac_sei_data);
+		break;
+	case INT_COMP_TYPE_D2D_PHY:
+		err_cnt = gaudi3_handle_d2d_phy_sei_err(hdev, data_size,
+							&eq_dynamic_entry->intr_cause);
 		break;
 	case INT_COMP_TYPE_DEC:
 		err_cnt = gaudi3_handle_decoder_sei_err(hdev, data_size,
