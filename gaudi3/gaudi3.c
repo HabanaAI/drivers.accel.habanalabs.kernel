@@ -11876,8 +11876,8 @@ static u16 eq_agg_header_to_engine_id(struct hl_agg_eq_header *agg_hdr)
 	return engine_id;
 }
 
-static void gaudi3_sei_razwi_handler(struct hl_device *hdev, struct hl_agg_eq_header *agg_hdr,
-					u64 *event_mask)
+static void gaudi3_sei_razwi_handler_no_fw(struct hl_device *hdev,
+						struct hl_agg_eq_header *agg_hdr, u64 *event_mask)
 {
 	u8 die = agg_hdr->die_id, hdcore = (u8) hdcore_type_to_hdcore(die, agg_hdr->hdcore_type),
 			initiator_idx = agg_hdr->comp_instance;
@@ -13030,7 +13030,7 @@ static u32 gaudi3_handle_sei_event(struct hl_device *hdev,
 		break;
 	}
 
-	gaudi3_sei_razwi_handler(hdev, agg_hdr, event_mask);
+	gaudi3_sei_razwi_handler_no_fw(hdev, agg_hdr, event_mask);
 
 	hl_check_for_glbl_errors(hdev);
 
