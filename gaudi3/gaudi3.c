@@ -11972,6 +11972,11 @@ static void gaudi3_sei_razwi_handler_no_fw(struct hl_device *hdev,
 		gaudi3_razwi_handler(hdev, RAZWI_EDMA, die, hdcore, 1, eng_id + 1, event_mask);
 		break;
 
+	case INT_COMP_TYPE_MME:
+		gaudi3_razwi_handler(hdev, RAZWI_MME, die, hdcore, initiator_idx, eng_id,
+					event_mask);
+		break;
+
 	case INT_COMP_TYPE_PDMA:
 		/*
 		 * TODO:
