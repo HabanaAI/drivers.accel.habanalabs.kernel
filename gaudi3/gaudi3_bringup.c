@@ -4595,8 +4595,10 @@ static void handle_and_clear_decoder_events(struct hl_device *hdev, u32 die, u32
 	case ERR_GRP_SEI:
 		cause_intr_addr = mmHD0_VDEC0_BRDG_CTRL_BASE + offset + mmVDEC_BRDG_CTRL_CAUSE_INTR;
 		cause_intr = RREG32(cause_intr_addr) & VDEC_BRDG_CTRL_CAUSE_INTR_SEI_M;
-		eq_dynamic_entry.intr_cause.intr_cause_data = cpu_to_le64(cause_intr);
-		eq_dynamic_entry.hdr.size = cpu_to_le16(sizeof(struct hl_eq_intr_cause));
+		eq_dynamic_entry.razwi_with_intr_cause.intr_cause.intr_cause_data =
+				cpu_to_le64(cause_intr);
+		eq_dynamic_entry.hdr.size =
+				cpu_to_le16(sizeof(struct hl_eq_razwi_with_intr_cause_data));
 
 		/* Clear interrupt (W1C) */
 		WREG32(cause_intr_addr, cause_intr);

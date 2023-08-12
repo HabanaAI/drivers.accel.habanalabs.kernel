@@ -12218,16 +12218,16 @@ static u32 gaudi3_handle_arc_farm_sei_err(struct hl_device *hdev, u16 data_size,
 }
 
 static u32 gaudi3_handle_decoder_sei_err(struct hl_device *hdev, u16 data_size,
-						struct hl_eq_intr_cause *intr_cause)
+				struct hl_eq_razwi_with_intr_cause_data *razwi_with_intr_cause)
 {
 	u32 err_mask;
 	int rc;
 
-	rc = gaudi3_validate_eqe_data_size(hdev, data_size, sizeof(*intr_cause));
+	rc = gaudi3_validate_eqe_data_size(hdev, data_size, sizeof(*razwi_with_intr_cause));
 	if (rc)
 		return 0;
 
-	err_mask = lower_32_bits(le64_to_cpu(intr_cause->intr_cause_data)) &
+	err_mask = lower_32_bits(le64_to_cpu(razwi_with_intr_cause->intr_cause.intr_cause_data)) &
 			VDEC_BRDG_CTRL_CAUSE_INTR_SEI_M;
 
 	return gaudi3_err_cause_iterator(hdev, err_mask, gaudi3_decoder_intr_cause, "DEC", "SEI");
@@ -13281,7 +13281,7 @@ static u32 gaudi3_handle_sei_event(struct hl_device *hdev,
 		break;
 	case INT_COMP_TYPE_DEC:
 		err_cnt = gaudi3_handle_decoder_sei_err(hdev, data_size,
-							&eq_dynamic_entry->intr_cause);
+							&eq_dynamic_entry->razwi_with_intr_cause);
 		break;
 	case INT_COMP_TYPE_EDMA:
 		err_cnt = gaudi3_handle_edma_sei_err(hdev, data_size,
