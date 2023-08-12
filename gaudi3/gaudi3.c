@@ -13155,21 +13155,65 @@ static void gaudi3_sei_razwi_handler(struct hl_device *hdev, struct hl_eq_dynami
 {
 	enum hl_agg_component_type agg_component_type = eq->agg_hdr.int_comp_type;
 	u16 eng_id = eq_agg_header_to_engine_id(&eq->agg_hdr);
-	struct hl_eq_razwi_rtr_data *rd = NULL;
 
 	switch (agg_component_type) {
-
-	case INT_COMP_TYPE_PCIE:
+	case INT_COMP_TYPE_CS:
 	case INT_COMP_TYPE_D2D_MAC:
+	case INT_COMP_TYPE_PCIE:
 		/* No need to handle razwi */
 		break;
 
+	case INT_COMP_TYPE_ARC_FARM:
+		gaudi3_handle_razwi(hdev, &eq->arcfarm_sei_data.rtr_data, eng_id, event_mask);
+		break;
+
 	case INT_COMP_TYPE_CPU:
-		rd = &eq->cpu_sei_data.rtr_data;
+		gaudi3_handle_razwi(hdev, &eq->cpu_sei_data.rtr_data, eng_id, event_mask);
+		break;
+
+	case INT_COMP_TYPE_DEC:
+		gaudi3_handle_razwi(hdev, &eq->razwi_with_intr_cause.rtr_data, eng_id, event_mask);
+		break;
+
+	case INT_COMP_TYPE_EDMA:
+		gaudi3_handle_razwi(hdev, &eq->edma_sei_data.rtr_data[SEDMA_ID0], eng_id,
+					event_mask);
+		gaudi3_handle_razwi(hdev, &eq->edma_sei_data.rtr_data[SEDMA_ID1], eng_id + 1,
+					event_mask);
+		break;
+
+	case INT_COMP_TYPE_MME:
+		gaudi3_handle_razwi(hdev, &eq->mme_sei_data.sbte_data.rtr_data, eng_id, event_mask);
+		gaudi3_handle_razwi(hdev, &eq->mme_sei_data.acc_data.rtr_data, eng_id, event_mask);
+		gaudi3_handle_razwi(hdev,
+				&eq->mme_sei_data.control_data.qm_rtr_data[MME_QM_RAZWI_RD], eng_id,
+				event_mask);
+		gaudi3_handle_razwi(hdev,
+				&eq->mme_sei_data.control_data.qm_rtr_data[MME_QM_RAZWI_WR], eng_id,
+				event_mask);
 		break;
 
 	case INT_COMP_TYPE_PARC:
-		rd = &eq->parc_sei_data.rtr_data;
+		gaudi3_handle_razwi(hdev, &eq->parc_sei_data.rtr_data, eng_id, event_mask);
+		break;
+
+	case INT_COMP_TYPE_PDMA:
+		gaudi3_handle_razwi(hdev, &eq->pdma_sei_data.spdma_data[SPDMA_ID0].rtr_data, eng_id,
+					event_mask);
+		gaudi3_handle_razwi(hdev, &eq->pdma_sei_data.spdma_data[SPDMA_ID0].rtr_data,
+					eng_id + NUM_OF_PDMA_CH_PER_GRP, event_mask);
+		break;
+
+	case INT_COMP_TYPE_TPC:
+		gaudi3_handle_razwi(hdev, &eq->tpc_sei_data.rtr_data, eng_id, event_mask);
+		break;
+
+	case INT_COMP_TYPE_ROT:
+		gaudi3_handle_razwi(hdev, &eq->rot_sei_data.rtr_data, eng_id, event_mask);
+		break;
+
+	case INT_COMP_TYPE_STLB:
+		gaudi3_handle_razwi(hdev, &eq->stlb_sei_data.rtr_data, eng_id, event_mask);
 		break;
 
 	default:
@@ -13177,9 +13221,6 @@ static void gaudi3_sei_razwi_handler(struct hl_device *hdev, struct hl_eq_dynami
 			agg_component_type);
 		break;
 	}
-
-	if (rd)
-		gaudi3_handle_razwi(hdev, rd, eng_id, event_mask);
 }
 
 static u32 gaudi3_handle_cpu_sei_err(struct hl_device *hdev, u16 data_size,
