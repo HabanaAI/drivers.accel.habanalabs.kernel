@@ -953,10 +953,11 @@ int hl_cn_ctx_init(struct hl_ctx *ctx)
 	if (!cn_funcs->get_hw_cap(hdev))
 		return 0;
 
-	if (aux_ops->ctx_init) {
-		/* must be done before calling CN ctx_init as it might be used there */
-		cn->ctx = ctx;
+	/* must be done before calling CN ctx_init as it might be used there */
+	cn->ctx = ctx;
 
+	/* Used for non-IB flow only (not to be upstreamed) */
+	if (aux_ops->ctx_init) {
 		rc = aux_ops->ctx_init(aux_dev, ctx->asid);
 		if (rc) {
 			cn->ctx = NULL;
@@ -982,10 +983,12 @@ void hl_cn_ctx_fini(struct hl_ctx *ctx)
 	if (!cn->ctx)
 		return;
 
+	/* Used for non-IB flow only (not to be upstreamed) */
 	/* No need to check for NULL pointer because here the context is not NULL so we can be sure
 	 * that the aux_ops pointer is not NULL either.
 	 */
-	aux_ops->ctx_fini(aux_dev, ctx->asid);
+	if (aux_ops->ctx_fini)
+		aux_ops->ctx_fini(aux_dev, ctx->asid);
 
 	/* must be done after calling CN ctx_fini as it might be used there */
 	cn->ctx = NULL;
