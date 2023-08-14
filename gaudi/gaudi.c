@@ -8911,7 +8911,7 @@ int gaudi_ctx_init(struct hl_ctx *ctx)
 	if (ctx->asid == HL_KERNEL_ASID_ID)
 		return 0;
 
-	rc = hl_cn_ctx_init(ctx);
+	rc = gaudi_cn_ctx_init(ctx);
 	if (rc)
 		return rc;
 
@@ -8933,7 +8933,7 @@ void gaudi_ctx_fini(struct hl_ctx *ctx)
 
 	gaudi_internal_cb_pool_fini(ctx->hdev, ctx);
 
-	hl_cn_ctx_fini(ctx);
+	gaudi_cn_ctx_fini(ctx);
 }
 
 int gaudi_pre_schedule_cs(struct hl_cs *cs)

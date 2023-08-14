@@ -598,6 +598,8 @@ void gaudi_cn_spmu_get_stats_info(struct hl_device *hdev, u32 port, struct hl_cn
 int gaudi_cn_spmu_config(struct hl_device *hdev, u32 port, u32 num_event_types, u32 event_types[],
 				bool enable);
 int gaudi_cn_spmu_sample(struct hl_device *hdev, u32 port, u32 num_out_data, u64 out_data[]);
+int gaudi_cn_ctx_init(struct hl_ctx *ctx);
+void gaudi_cn_ctx_fini(struct hl_ctx *ctx);
 
 /* Bringup functions */
 void gaudi_init_pll(struct hl_device *hdev);

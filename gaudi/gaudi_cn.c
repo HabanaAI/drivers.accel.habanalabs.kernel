@@ -21,6 +21,65 @@ void gaudi_cn_handle_qp_err(struct hl_device *hdev, u16 event_type)
 	gaudi_aux_ops->handle_qp_err(aux_dev, event_type - GAUDI_EVENT_NIC0_QP0);
 }
 
+int gaudi_cn_ctx_init(struct hl_ctx *ctx)
+{
+	struct gaudi_cn_aux_ops *gaudi_aux_ops;
+	struct hl_device *hdev = ctx->hdev;
+	struct hl_cn *cn = &hdev->cn;
+	struct hl_cn_funcs *cn_funcs;
+	struct gaudi_device *gaudi;
+	struct hl_aux_dev *aux_dev;
+	int rc;
+
+	aux_dev = &cn->cn_aux_dev;
+	cn_funcs = hdev->asic_funcs->cn_funcs;
+	gaudi = hdev->asic_specific;
+	gaudi_aux_ops = &gaudi->cn_aux_ops;
+
+	if (!cn_funcs->get_hw_cap(hdev))
+		return 0;
+
+	if (gaudi_aux_ops->ctx_init) {
+		/* must be done before calling CN ctx_init as it might be used there */
+		cn->ctx = ctx;
+
+		rc = gaudi_aux_ops->ctx_init(aux_dev, ctx->asid);
+		if (rc) {
+			cn->ctx = NULL;
+			return rc;
+		}
+	}
+
+	return 0;
+}
+
+void gaudi_cn_ctx_fini(struct hl_ctx *ctx)
+{
+	struct gaudi_cn_aux_ops *gaudi_aux_ops;
+	struct hl_device *hdev = ctx->hdev;
+	struct hl_cn *cn = &hdev->cn;
+	struct gaudi_device *gaudi;
+	struct hl_aux_dev *aux_dev;
+
+	aux_dev = &cn->cn_aux_dev;
+	gaudi = hdev->asic_specific;
+	gaudi_aux_ops = &gaudi->cn_aux_ops;
+
+	/* Check the context pointer instead of the capability bit because the CN ctx_fini should
+	 * be called even if the ports are stopped.
+	 */
+	if (!cn->ctx)
+		return;
+
+	/* No need to check for NULL pointer because here the context is not NULL so we can be sure
+	 * that the aux_ops pointer is not NULL either.
+	 */
+	gaudi_aux_ops->ctx_fini(aux_dev, ctx->asid);
+
+	/* must be done after calling CN ctx_fini as it might be used there */
+	cn->ctx = NULL;
+}
+
 static bool gaudi_cn_get_hw_cap(struct hl_device *hdev)
 {
 	struct gaudi_device *gaudi = hdev->asic_specific;
