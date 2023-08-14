@@ -158,7 +158,7 @@ static uint bfe_mme_row_repair_h;
 static int bfe_pci_rev_id;
 static int bfe_ptw_bypass_enable = 1;
 static uint bfe_rotator_binning;
-static int bfe_hbm_compression_enable = 1;
+static int bfe_hbm_compression_enable;
 static int bfe_nic_enable_h9_rx_drop_eco = 1;
 static int bfe_enable_h9_cache_eta_eco = 1;
 static int bfe_force_h9_single_die;
@@ -478,7 +478,7 @@ MODULE_PARM_DESC(bfe_rotator_binning,
 
 module_param(bfe_hbm_compression_enable, int, 0444);
 MODULE_PARM_DESC(bfe_hbm_compression_enable,
-	"Enable HBM compression, relevant for Gaudi3 or later (0 = no, 1 = yes, default yes)");
+	"Enable HBM compression, relevant for Gaudi3 or later (0 = no, 1 = yes, default no)");
 
 module_param(bfe_nic_enable_h9_rx_drop_eco, int, 0444);
 MODULE_PARM_DESC(bfe_nic_enable_h9_rx_drop_eco,
