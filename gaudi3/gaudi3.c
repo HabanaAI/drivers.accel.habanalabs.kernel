@@ -13367,7 +13367,7 @@ static u32 gaudi3_handle_sei_event(struct hl_device *hdev,
 		break;
 	}
 
-	if (hdev->fw_components | FW_TYPE_BOOT_CPU)
+	if (hdev->fw_components & FW_TYPE_BOOT_CPU)
 		gaudi3_sei_razwi_handler(hdev, eq_dynamic_entry, event_mask);
 	else
 		gaudi3_sei_razwi_handler_no_fw(hdev, agg_hdr, event_mask);
