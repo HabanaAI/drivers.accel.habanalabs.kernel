@@ -3772,6 +3772,8 @@ static void handle_and_clear_psoc_events(struct hl_device *hdev, u32 die,
 					struct hl_eq_dynamic_entry *eq_dynamic_entry)
 {
 	struct eq_agg_header_params params = {};
+	struct hl_eq_psoc_sei_data *data;
+	u32 base = mmD0_PSOC_GLOBAL_CONF2_BASE + die * DIE_OFFSET, intr_cause;
 	bool unmask_event_in_aggr = false;
 	int rc;
 
@@ -3779,7 +3781,12 @@ static void handle_and_clear_psoc_events(struct hl_device *hdev, u32 die,
 
 	switch (type) {
 	case ERR_GRP_SEI:
-	case ERR_GRP_SPI_ECO:
+		intr_cause = RREG32(base + mmPSOC_GLOBAL_CONF2_SEI_INTR_CTRL_CAUSE);
+		WREG32(base + mmPSOC_GLOBAL_CONF2_SEI_INTR_CTRL_CLEAR, intr_cause);
+
+		data = &eq_dynamic_entry->psoc_sei_data;
+		data->intr_cause.intr_cause_data = cpu_to_le64((u64)intr_cause);
+		unmask_event_in_aggr = true;
 		break;
 	default:
 		return;

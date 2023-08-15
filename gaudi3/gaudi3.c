@@ -1618,6 +1618,27 @@ static const char * const gaudi3_d2d_phy_sei_intr_cause[] = {
 	"grp1_terr_intr"
 };
 
+static const char * const gaudi3_psoc_sei_cause[] = {
+	"ic_mem_cpy2lby_term",
+	"ic_split2lbw_term",
+	"ic_lbw_psoc_cfg_um_addr",
+	"bsac_btl_arb_timeout",
+	"etr_wrap_axi_split",
+	"etr_apb_arb_timeout",
+	"ic_split_win_miss",
+	"ic_split_double_win_hit",
+	"ic_lbw_win_miss",
+	"ic_lbw_double_win_hit",
+	"ic_32_win_miss",
+	"ic_32_double_win_hit",
+	"ic_64_win_miss",
+	"ic_64_double_win_hit",
+	"ic_hbw_win_miss",
+	"ic_hbw_double_win_hit",
+	"psoc_cfg_access_prot",
+	"qspi_mem_access_prot"
+};
+
 struct gaudi3_dup_grp_info {
 	enum gaudi3_dup_group name;
 	u32 fixup_offset;
@@ -12004,6 +12025,11 @@ static void gaudi3_sei_razwi_handler_no_fw(struct hl_device *hdev,
 					event_mask);
 		break;
 
+	case INT_COMP_TYPE_PSOC:
+		gaudi3_razwi_handler(hdev, RAZWI_PSOC, die, hdcore, initiator_idx, eng_id,
+					event_mask);
+		break;
+
 	default:
 		dev_err(hdev->dev, "Component type %u doesn't have razwi handler\n",
 			agg_component_type);
@@ -12593,6 +12619,23 @@ static u32 gaudi3_handle_rotator_sei_err(struct hl_device *hdev, u16 data_size,
 	err_num = gaudi3_err_cause_iterator(hdev, err_msk, gaudi3_rotator_sei_cause, "ROT", "SEI");
 
 	err_num += gaudi3_handle_qm_sei_err(hdev, &rot_sei_data->qm_data, "ROT");
+
+	return err_num;
+}
+
+static u32 gaudi3_handle_psoc_sei_err(struct hl_device *hdev, u16 data_size,
+						struct hl_eq_psoc_sei_data *sei_data)
+{
+	u32 err_bits, err_num;
+	int rc;
+
+	rc = gaudi3_validate_eqe_data_size(hdev, data_size, sizeof(*sei_data));
+	if (rc)
+		return 0;
+
+	err_bits = lower_32_bits(le64_to_cpu(sei_data->intr_cause.intr_cause_data)) &
+				PSOC_GLBL_CONF2_SEI_INTR_MASK;
+	err_num = gaudi3_err_cause_iterator(hdev, err_bits, gaudi3_psoc_sei_cause, "PSOC", "SEI");
 
 	return err_num;
 }
@@ -13219,6 +13262,10 @@ static void gaudi3_sei_razwi_handler(struct hl_device *hdev, struct hl_eq_dynami
 		gaudi3_handle_razwi(hdev, &eq->stlb_sei_data.rtr_data, eng_id, event_mask);
 		break;
 
+	case INT_COMP_TYPE_PSOC:
+		gaudi3_handle_razwi(hdev, &eq->psoc_sei_data.rtr_data, eng_id, event_mask);
+		break;
+
 	default:
 		dev_err(hdev->dev, "Component type %u doesn't have razwi handler\n",
 			agg_component_type);
@@ -13385,6 +13432,10 @@ static u32 gaudi3_handle_sei_event(struct hl_device *hdev,
 	case INT_COMP_TYPE_ROT:
 		err_cnt = gaudi3_handle_rotator_sei_err(hdev, data_size,
 							&eq_dynamic_entry->rot_sei_data);
+		break;
+	case INT_COMP_TYPE_PSOC:
+		err_cnt = gaudi3_handle_psoc_sei_err(hdev, data_size,
+							&eq_dynamic_entry->psoc_sei_data);
 		break;
 	default:
 		break;
