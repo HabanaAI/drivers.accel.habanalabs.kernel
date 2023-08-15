@@ -4500,6 +4500,52 @@ static u32 pdma_special_regs_base[] = {
 	mmD0_SPDMA1_CMN_B_SPECIAL_BASE
 };
 
+static void handle_and_clear_pdma_sei_events(struct hl_device *hdev, u8 die,
+						struct hl_eq_pdma_sei_data *data)
+{
+	u32 ch_b_base, cmn_b_base, die_offset, spdma_offset, ch_offset, err_msk, cmn_err_msk;
+	u8 i, j;
+
+	die_offset = (DIE_OFFSET * die);
+	ch_b_base = mmD0_SPDMA0_CH0_B_BASE + die_offset;
+	cmn_b_base = mmD0_SPDMA0_CMN_B_PQM_CMN_B_BASE + die_offset;
+
+	for (i = 0; i < SPDMA_ID_MAX; i++) {
+		spdma_offset = (PDMA_GRP_OFFSET * i);
+		ch_b_base += spdma_offset;
+		cmn_b_base += spdma_offset;
+
+		for (j = 0; j < SPDMA_CHANNEL_MAX; j++) {
+			ch_offset = ch_b_base + (D0_SPDMA0_CH0_B_MAX_OFFSET * j);
+
+			err_msk = RREG32(ch_offset + mmPDMA_CH_B_ERR_STATUS);
+			/* Clear error status of channel B */
+			WREG32((ch_offset + mmPDMA_CH_B_ERR_STATUS), err_msk);
+
+			data->spdma_data[i].ch_b_data[j].err_sts.intr_cause_data =
+					cpu_to_le64(err_msk);
+		}
+
+		cmn_err_msk = RREG32(cmn_b_base + mmPDMA_CMN_B_PQM_CMN_B_SEI_STATUS);
+
+		for (j = 0; j < SPDMA_CHANNEL_MAX; j++) {
+			ch_offset = ch_b_base + (D0_SPDMA0_CH0_B_MAX_OFFSET * j);
+
+			err_msk = RREG32(ch_offset + mmPDMA_CH_B_PQM_CH_ERR_STATUS);
+			/* Clear error status of PQM CH of channel B */
+			WREG32((ch_offset + mmPDMA_CH_B_PQM_CH_ERR_STATUS), err_msk);
+
+			data->spdma_data[i].ch_b_data[j].pqm_chn_err_sts.intr_cause_data =
+					cpu_to_le64(err_msk);
+		}
+
+		/* Clear PDMA SEI interrupt */
+		WREG32((cmn_b_base + mmPDMA_CMN_B_PQM_CMN_B_SEI_STATUS), cmn_err_msk);
+
+		data->spdma_data[i].cmn_b_cause.intr_cause_data = cpu_to_le64(cmn_err_msk);
+	}
+}
+
 /* SHARED_PDMA_EVENT */
 static void handle_and_clear_pdma_events(struct hl_device *hdev, u32 die,
 					enum err_grp type, u32 sts, u32 sts_idx, u32 idx,
@@ -4523,6 +4569,8 @@ static void handle_and_clear_pdma_events(struct hl_device *hdev, u32 die,
 		unmask_event_in_aggr = true;
 		break;
 	case ERR_GRP_SEI:
+		eq_dynamic_entry->hdr.size = cpu_to_le16(sizeof(struct hl_eq_pdma_sei_data));
+		handle_and_clear_pdma_sei_events(hdev, die, &eq_dynamic_entry->pdma_sei_data);
 		unmask_event_in_aggr = true;
 		break;
 	case ERR_GRP_SPI_ECO:

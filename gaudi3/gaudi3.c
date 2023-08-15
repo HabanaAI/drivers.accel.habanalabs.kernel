@@ -1273,6 +1273,15 @@ static const char * const gaudi3_edma_err_cause[] = {
 	"eng_inf_input_det"
 };
 
+static const char * const gaudi3_pdma_cmn_sei_err_cause[] = {
+		"axi_err_ch_0",
+		"axi_err_ch_1",
+		"axi_err_ch_2",
+		"axi_err_ch_3",
+		"axi_err_ch_4",
+		"axi_err_ch_5",
+};
+
 static const char * const gaudi3_pdma_sei_err_cause[] = {
 		"eng_hbw_rd_rsp_err",
 		"eng_timeout_err",
@@ -12214,86 +12223,46 @@ int gaudi3_get_monitor_dump(struct hl_device *hdev, void *data)
 	return -EOPNOTSUPP;
 }
 
-static void gaudi3_pdma_mask_err_int(struct hl_device *hdev,
-		u64 err_cause_reg, u32 err_ignore_msk, u64 err_int_mask_reg)
+static u32 gaudi3_handle_pdma_sei_err(struct hl_device *hdev, u16 data_size,
+						struct hl_eq_pdma_sei_data *eqd)
 {
-	u32 err_int_mask_val, err_cause_val = RREG32(err_cause_reg) & (~err_ignore_msk);
-
-	if (err_cause_val) {
-		err_int_mask_val = RREG32(err_int_mask_reg);
-		WREG32(err_int_mask_reg, err_int_mask_val | err_cause_val);
-	}
-}
-
-static u32 gaudi3_handle_pdma_module_sei_err(struct hl_device *hdev, u8 die, bool is_pqm)
-{
-	u64 err_cause_reg_offset, ch_err_cause_addr, ch_err_int_mask_addr, grp_addr, ch_addr;
 	struct asic_fixed_properties *prop = &hdev->asic_prop;
-	u32 err_cnt = 0, curr_err_cnt, ch_err_ignore_mask;
-	const char * const *err_tbl;
+	u32 err_cnt = 0, err_msk;
 	char pdma_channel_name[20];
-	const char *module_name;
-	int i, j;
+	int i, j, rc;
 
-	if (is_pqm) {
-		err_cause_reg_offset = PDMA_CH_B_OFFSET + mmPDMA_CH_B_PQM_CH_ERR_STATUS;
-		module_name = "PQM";
-		ch_err_ignore_mask = 0;
-		err_tbl = gaudi3_pdma_pqm_sei_err_cause;
-	} else {
-		err_cause_reg_offset = PDMA_CH_B_OFFSET + mmPDMA_CH_B_ERR_STATUS;
-		module_name = "PDMA";
-		/* Ignore valid bit */
-		ch_err_ignore_mask = PDMA_CH_B_ERR_STATUS_VALID_M;
-		err_tbl = gaudi3_pdma_sei_err_cause;
-	}
+	rc = gaudi3_validate_eqe_data_size(hdev, data_size, sizeof(struct hl_eq_pdma_sei_data));
+	if (rc)
+		return 0;
 
 	/* Loop on all groups in die */
 	for (i = 0 ; i < NUM_OF_PDMA_GRP_PER_DIE ; i++) {
-		grp_addr = gaudi3_pdma_grp_blocks_bases[(die * NUM_OF_PDMA_GRP_PER_DIE) + i];
+		snprintf(pdma_channel_name, sizeof(pdma_channel_name) - 1, "PDMA_CMN_%d", i);
+		err_msk = lower_32_bits(le64_to_cpu(
+				eqd->spdma_data[i].cmn_b_cause.intr_cause_data));
+		err_cnt += gaudi3_err_cause_iterator(hdev, err_msk,
+				gaudi3_pdma_cmn_sei_err_cause, pdma_channel_name, "SEI");
 
 		/* Loop on all channels in group */
 		for (j = 0 ; j < prop->pdma_grp_ch_max ; j++) {
-			ch_addr = grp_addr + (j * PDMA_CH_OFFSET);
-			ch_err_cause_addr = ch_addr + err_cause_reg_offset;
-			ch_err_int_mask_addr = ch_addr + PDMA_CH_B_OFFSET +
-						mmPDMA_CH_B_ERR_INT_MASK;
 			snprintf(pdma_channel_name, sizeof(pdma_channel_name) - 1,
-					"%s%d_%d", module_name, i, j);
+					"PDMA%d_%d", i, j);
+			err_msk = lower_32_bits(le64_to_cpu(
+				eqd->spdma_data[i].ch_b_data[j].err_sts.intr_cause_data)) &
+						PDMA_CH_ERR_MASK;
 
-			if (!is_pqm) {
-				/* Further ahead, we avoid clearing PDMA engine error indications-
-				 * (clearing them will resume PDMA although STOP_ON_ERR's active).
-				 * Yet, it causes the IRQ agg to storm us with the same event over
-				 * and over, so instead of masking all PDMA SEI events we simply
-				 * mask the error interrupts of the relevant PDMA engine channel.
-				 */
-				gaudi3_pdma_mask_err_int(hdev, ch_err_cause_addr,
-						ch_err_ignore_mask, ch_err_int_mask_addr);
-			}
+			err_cnt += gaudi3_err_cause_iterator(hdev, err_msk,
+					gaudi3_pdma_sei_err_cause, pdma_channel_name, "SEI");
 
-			curr_err_cnt = gaudi3_handle_err_cause_reg(hdev, ch_err_cause_addr,
-					false, err_tbl, pdma_channel_name, "SEI",
-					ch_err_ignore_mask);
-			if (curr_err_cnt) {
-				err_cnt += curr_err_cnt;
-				if (is_pqm)
-					WREG32(grp_addr + PDMA_CMN_B_OFFSET +
-							mmPDMA_CMN_B_PQM_CMN_B_SEI_STATUS,
-							0x1 << j);
-			}
+			snprintf(pdma_channel_name, sizeof(pdma_channel_name) - 1,
+					"PQM%d_%d", i, j);
+			err_msk = lower_32_bits(le64_to_cpu(
+				eqd->spdma_data[i].ch_b_data[j].pqm_chn_err_sts.intr_cause_data));
+
+			err_cnt += gaudi3_err_cause_iterator(hdev, err_msk,
+					gaudi3_pdma_pqm_sei_err_cause, pdma_channel_name, "SEI");
 		}
 	}
-
-	return err_cnt;
-}
-
-static u32 gaudi3_handle_pdma_sei_err(struct hl_device *hdev, u8 die)
-{
-	bool err_cnt = 0;
-
-	err_cnt = gaudi3_handle_pdma_module_sei_err(hdev, die, false);
-	err_cnt += gaudi3_handle_pdma_module_sei_err(hdev, die, true);
 
 	return err_cnt;
 }
@@ -13508,10 +13477,11 @@ static u32 gaudi3_handle_sei_event(struct hl_device *hdev,
 		break;
 	case INT_COMP_TYPE_PCIE:
 		err_cnt = gaudi3_handle_pcie0_sei_err(hdev, data_size,
-					&eq_dynamic_entry->pcie_sei_data);
+							&eq_dynamic_entry->pcie_sei_data);
 		break;
 	case INT_COMP_TYPE_PDMA:
-		err_cnt = gaudi3_handle_pdma_sei_err(hdev, die);
+		err_cnt = gaudi3_handle_pdma_sei_err(hdev, data_size,
+							&eq_dynamic_entry->pdma_sei_data);
 		break;
 	case INT_COMP_TYPE_PLL:
 		err_cnt = gaudi3_handle_pll_sei_err(hdev, data_size,
