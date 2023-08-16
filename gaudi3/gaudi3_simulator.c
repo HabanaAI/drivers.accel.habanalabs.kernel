@@ -904,8 +904,6 @@ static int gaudi3_sim_set_fixed_properties(struct hl_device *hdev)
 		prop->dram_end_address = prop->dram_base_address + prop->dram_size;
 	}
 
-	prop->support_special_blks_lookup = true;
-
 	return 0;
 }
 
@@ -1676,19 +1674,6 @@ static int gaudi3_sim_memset_device_memory(struct hl_device *hdev, u64 addr, u64
 	return 0;
 }
 
-static int gaudi3_sim_lookup_glb_priv(struct hl_device *hdev, u64 blk_addr, u32 *glbl_priv_data)
-{
-	int rc;
-
-	gaudi3_sim_set_priv_assertions(hdev, false);
-
-	rc = hl_lookup_glbl_priv(hdev, blk_addr, glbl_priv_data);
-
-	gaudi3_sim_set_priv_assertions(hdev, true);
-
-	return rc;
-}
-
 static const struct hl_asic_funcs gaudi3_sim_funcs = {
 	.early_init = gaudi3_sim_early_init,
 	.early_fini = gaudi3_sim_early_fini,
@@ -1790,7 +1775,6 @@ static const struct hl_asic_funcs gaudi3_sim_funcs = {
 	.set_priv_assertions = gaudi3_sim_set_priv_assertions,
 	.set_binning_masks = gaudi3_sim_set_binning_masks,
 	.memset_device_memory = gaudi3_sim_memset_device_memory,
-	.lookup_glbl_priv = gaudi3_sim_lookup_glb_priv,
 };
 
 /**

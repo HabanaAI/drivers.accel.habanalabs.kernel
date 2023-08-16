@@ -1002,7 +1002,6 @@ static int gaudi2_sim_set_fixed_properties(struct hl_device *hdev)
 	prop->cb_pool_cb_size = SIM_CB_POOL_CB_SIZE;
 	prop->nic_drv_size = nic_drv_size;
 	prop->nic_drv_addr = GAUDI2_SIM_NIC_DRV_ADDR;
-	prop->support_special_blks_lookup = true;
 
 	return 0;
 }
@@ -1734,19 +1733,6 @@ static int gaudi2_sim_memset_device_memory(struct hl_device *hdev, u64 addr, u64
 	return 0;
 }
 
-static int gaudi2_sim_lookup_glb_priv(struct hl_device *hdev, u64 blk_addr, u32 *glbl_priv_data)
-{
-	int rc;
-
-	gaudi2_sim_set_priv_assertions(hdev, false);
-
-	rc = hl_lookup_glbl_priv(hdev, blk_addr, glbl_priv_data);
-
-	gaudi2_sim_set_priv_assertions(hdev, true);
-
-	return rc;
-}
-
 static const struct hl_asic_funcs gaudi2_sim_funcs = {
 	.early_init = gaudi2_sim_early_init,
 	.early_fini = gaudi2_sim_early_fini,
@@ -1854,7 +1840,6 @@ static const struct hl_asic_funcs gaudi2_sim_funcs = {
 	.set_priv_assertions = gaudi2_sim_set_priv_assertions,
 	.set_binning_masks = gaudi2_set_binning_masks,
 	.memset_device_memory = gaudi2_sim_memset_device_memory,
-	.lookup_glbl_priv = gaudi2_sim_lookup_glb_priv,
 };
 
 /**
