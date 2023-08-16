@@ -782,6 +782,7 @@ void gaudi3_eq_disable_msix(struct hl_device *hdev);
 int gaudi3_set_engines(struct hl_device *hdev, u32 *engine_ids,
 					u32 num_engines, u32 engine_command);
 int gaudi3_irq_vector(struct hl_device *hdev, unsigned int nr);
+int gaudi3_get_eeprom_data(struct hl_device *hdev, void *data, size_t max_size);
 
 /* Bringup functions (w/o F/W support) */
 u32 gaudi3_handle_axi_drain(struct hl_device *hdev, bool *pci_link_error);

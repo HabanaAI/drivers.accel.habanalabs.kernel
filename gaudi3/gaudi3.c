@@ -12118,6 +12118,16 @@ int gaudi3_mmu_get_real_page_size(struct hl_device *hdev, struct hl_mmu_properti
 	return -EFAULT;
 }
 
+int gaudi3_get_eeprom_data(struct hl_device *hdev, void *data, size_t max_size)
+{
+	struct gaudi3_device *gaudi3 = hdev->asic_specific;
+
+	if (!(gaudi3->hw_cap_initialized & HW_CAP_CPU_Q))
+		return 0;
+
+	return hl_fw_get_eeprom_data(hdev, data, max_size);
+}
+
 int gaudi3_get_monitor_dump(struct hl_device *hdev, void *data)
 {
 	return -EOPNOTSUPP;
@@ -13702,7 +13712,7 @@ static const struct hl_asic_funcs gaudi3_funcs = {
 	.hw_queues_lock = gaudi3_hw_queues_lock,
 	.hw_queues_unlock = gaudi3_hw_queues_unlock,
 	.get_pci_id = gaudi3_get_pci_id,
-	.get_eeprom_data = NULL,
+	.get_eeprom_data = gaudi3_get_eeprom_data,
 	.get_monitor_dump = gaudi3_get_monitor_dump,
 	.send_cpu_message = gaudi3_send_cpu_message,
 	.cn_init = gaudi3_cn_init,
