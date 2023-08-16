@@ -7394,6 +7394,7 @@ void gaudi3_eq_disable_msix(struct hl_device *hdev)
 
 static int gaudi3_pldm_enable_msix(struct hl_device *hdev)
 {
+	struct gaudi3_device *gaudi3 = hdev->asic_specific;
 	u32 i, irq_cnt;
 	int irq, rc;
 
@@ -7407,8 +7408,10 @@ static int gaudi3_pldm_enable_msix(struct hl_device *hdev)
 			goto free_irqs;
 		}
 
+		gaudi3->pldm_msix_info[i - GAUDI3_PLDM_IRQ_FIRST].hdev = hdev;
 		rc = request_threaded_irq(irq, NULL, hl_pldm_irq_handler, IRQF_ONESHOT,
-						gaudi3_irq_name(i), hdev);
+					  gaudi3_irq_name(i),
+					  &gaudi3->pldm_msix_info[i - GAUDI3_PLDM_IRQ_FIRST]);
 		if (rc)
 			goto free_irqs;
 	}

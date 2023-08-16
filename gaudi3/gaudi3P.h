@@ -433,17 +433,29 @@ struct gaudi3_qmans_test_info {
 };
 
 /**
+ * struct gaudi3_pldm_msix_info - ASIC specific info passed to the PLDM MSIX interrupt at interrupt
+ *                                time.
+ * @hdev: the device that owns/issued the interrupt
+ * @eq_dyn_entry: a placeholder for the information gathered by the interrupt.
+ */
+struct gaudi3_pldm_msix_info {
+	struct hl_device *hdev;
+	struct hl_eq_dynamic_entry eq_dyn_entry;
+};
+
+/**
  * struct gaudi3_device - ASIC specific manage structure.
  * @cpucp_info_get: get information on device from CPU-CP
  * @mapped_blocks: Array that holds the base address and size of all blocks
  *                 the user can map.
  * @cn_aux_ops: functions for core <-> accel drivers communication.
  * @cn_aux_data: data to be used by the core driver.
+ * @page_fault_queue: page fault queue, (since PMMU1 is disabled, only one is needed)
+ * @pgf_q_entries: buffer that holds current page fault queue entries to be handled
  * @hbm_cfg: HBM subsystem settings
  * @kdma_lock_mutex: Lock protecting the access to the KDMA engine
  * @qmans_test_info: Information used by the driver when testing the QMANs.
- * @page_fault_queue: page fault queue, (since PMMU1 is disabled, only one is needed)
- * @pgf_q_entries: buffer that holds current page fault queue entries to be handled
+ * @pldm_msix_info: information used by the driver MSIX interrupts when running on Palladium.
  * @hw_cap_initialized: This field contains a bit per H/W component. When that component is
  *                      initialized, that bit is set by the driver to signal we can use this
  *                      component in later code paths. Each bit is cleared upon reset of its
@@ -493,6 +505,7 @@ struct gaudi3_device {
 	struct gaudi3_hbm			hbm_cfg;
 	struct mutex				kdma_lock_mutex;
 	struct gaudi3_qmans_test_info		qmans_test_info[GAUDI3_NUM_TESTED_QMANS];
+	struct gaudi3_pldm_msix_info		pldm_msix_info[INTR_AGGR_NUM_OF_MSIX_VECTORS];
 	u64					hw_cap_initialized;
 	u64					hw_cap_pdma_initialized;
 	u64					hw_cap_tpc_initialized;
