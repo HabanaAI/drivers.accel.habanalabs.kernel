@@ -2576,7 +2576,7 @@ static enum gaudi3_engine_id gaudi3_axid_mapping(struct hl_device *hdev, u64 axi
 	 * hd4: 8 hd5: E hd6: 9 hd7: F
 	 */
 	bool is_hd0145 = hd == 0 || hd == 1 || hd == 4 || hd == 5;
-	enum gaudi3_engine_id e;
+	enum gaudi3_engine_id eng_id;
 
 	if (hd == -1) {
 		dev_err(hdev->dev, "bad hd_val: %u\n", hd_val);
@@ -2675,24 +2675,24 @@ static enum gaudi3_engine_id gaudi3_axid_mapping(struct hl_device *hdev, u64 axi
 	case 0x00:
 	case 0xF0:
 		if (id == 0x00 && (hd == 0x1 || hd == 0x4))
-			e = (hd == 0x1) ? GAUDI3_HDCORE1_ENGINE_ID_EDMA_0 :
+			eng_id = (hd == 0x1) ? GAUDI3_HDCORE1_ENGINE_ID_EDMA_0 :
 					GAUDI3_HDCORE4_ENGINE_ID_EDMA_0;
 		else if (id == 0xF0 && (hd == 0x3 || hd == 0x6))
-			e = (hd == 0x3) ? GAUDI3_HDCORE3_ENGINE_ID_EDMA_0 :
+			eng_id = (hd == 0x3) ? GAUDI3_HDCORE3_ENGINE_ID_EDMA_0 :
 					GAUDI3_HDCORE6_ENGINE_ID_EDMA_0;
 		else
 			break;
 
 		if (is_read) {
 			if (axid14 == 1)
-				return e;
+				return eng_id;
 			else
-				return e + 1;
+				return eng_id + 1;
 		} else {
 			if (axid17 == 1)
-				return e;
+				return eng_id;
 			else
-				return e + 1;
+				return eng_id + 1;
 		}
 		break;
 	/* 21th row in table */
@@ -2754,22 +2754,22 @@ static enum gaudi3_engine_id gaudi3_axid_mapping(struct hl_device *hdev, u64 axi
 	case 0xF01:
 		/* decide which die */
 		if (main_id == 0x0F1 && die == 0)
-			e = GAUDI3_DIE0_ENGINE_ID_PDMA_0_CH_0;
+			eng_id = GAUDI3_DIE0_ENGINE_ID_PDMA_0_CH_0;
 		else if (main_id == 0xF01 && die == 1)
-			e = GAUDI3_DIE1_ENGINE_ID_PDMA_0_CH_0;
+			eng_id = GAUDI3_DIE1_ENGINE_ID_PDMA_0_CH_0;
 		else
 			break;
 		/* decide which pdma inside the die */
 		if (is_read) {
 			if (axid17 == 1)
-				return e;
+				return eng_id;
 			else
-				return e + NUM_OF_PDMA_CH_PER_GRP;
+				return eng_id + NUM_OF_PDMA_CH_PER_GRP;
 		} else {
 			if (axid18 == 1)
-				return e;
+				return eng_id;
 			else
-				return e + NUM_OF_PDMA_CH_PER_GRP;
+				return eng_id + NUM_OF_PDMA_CH_PER_GRP;
 		}
 		break;
 	case 0x0F0:
