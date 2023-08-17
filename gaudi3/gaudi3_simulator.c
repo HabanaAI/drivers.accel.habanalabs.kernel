@@ -1775,6 +1775,7 @@ static const struct hl_asic_funcs gaudi3_sim_funcs = {
 	.set_priv_assertions = gaudi3_sim_set_priv_assertions,
 	.set_binning_masks = gaudi3_sim_set_binning_masks,
 	.memset_device_memory = gaudi3_sim_memset_device_memory,
+	.get_msi_info = gaudi3_get_msi_info,
 };
 
 /**

@@ -336,6 +336,7 @@ extern struct gaudi3_etr_ac_config gaudi3_etr_ac_config[GAUDI3_NUM_ETR];
 							PSOC_INTR_AGGR_NUM_OF_MSIX_VECTORS)
 #define INTR_AGGR_NUM_OF_MSIX_VECTORS		(MAX_NUM_OF_DIES * \
 							INTR_AGGR_NUM_OF_MSIX_VECTORS_PER_DIE)
+#define GAUDI3_EVENT_QUEUE_MSIX_IDX	0
 
 enum gaudi3_irq_num {
 	GAUDI3_IRQ_NUM_EVENT_QUEUE = 0,
@@ -353,6 +354,7 @@ enum gaudi3_irq_num {
 	GAUDI3_PLDM_IRQ_FIRST,
 	GAUDI3_PLDM_IRQ_LAST =
 			GAUDI3_PLDM_IRQ_FIRST + INTR_AGGR_NUM_OF_MSIX_VECTORS - 1,
+	GAUDI3_IRQ_NUM_EQ_ERROR,
 	GAUDI3_IRQ_NUM_RESERVED_FIRST,
 	GAUDI3_IRQ_NUM_RESERVED_LAST = (GAUDI3_MSIX_ENTRIES - 2),
 	GAUDI3_IRQ_NUM_UNEXPECTED_ERROR = RESERVED_MSIX_UNEXPECTED_USER_ERROR_INTERRUPT,
@@ -783,6 +785,7 @@ int gaudi3_set_engines(struct hl_device *hdev, u32 *engine_ids,
 					u32 num_engines, u32 engine_command);
 int gaudi3_irq_vector(struct hl_device *hdev, unsigned int nr);
 int gaudi3_get_eeprom_data(struct hl_device *hdev, void *data, size_t max_size);
+void gaudi3_get_msi_info(__le32 *table);
 
 /* Bringup functions (w/o F/W support) */
 u32 gaudi3_handle_axi_drain(struct hl_device *hdev, bool *pci_link_error);

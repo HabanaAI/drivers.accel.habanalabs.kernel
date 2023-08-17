@@ -6411,6 +6411,8 @@ static const char *gaudi3_irq_name(u16 irq_number)
 		return "gaudi3 etr";
 	case GAUDI3_IRQ_NUM_UNEXPECTED_ERROR:
 		return "gaudi3 unexpected error";
+	case GAUDI3_IRQ_NUM_EQ_ERROR:
+		return "gaudi3 eq error";
 	default:
 		return "invalid";
 	}
@@ -7413,6 +7415,26 @@ void gaudi3_eq_disable_msix(struct hl_device *hdev)
 	free_irq(irq, &hdev->event_queue);
 }
 
+static int gaudi3_eq_error_enable_msix(struct hl_device *hdev)
+{
+	enum gaudi3_irq_num irq_nr = GAUDI3_IRQ_NUM_EQ_ERROR;
+	int irq;
+
+	irq = hl_irq_vector(hdev, irq_nr);
+	if (irq < 0)
+		return irq;
+
+	return request_threaded_irq(irq, NULL, hl_irq_eq_error_interrupt_thread_handler,
+					IRQF_ONESHOT, gaudi3_irq_name(irq_nr), hdev);
+}
+
+static void gaudi3_eq_error_disable_msix(struct hl_device *hdev)
+{
+	int irq = hl_irq_vector(hdev, GAUDI3_IRQ_NUM_EQ_ERROR);
+
+	free_irq(irq, hdev);
+}
+
 static int gaudi3_pldm_enable_msix(struct hl_device *hdev)
 {
 	struct gaudi3_device *gaudi3 = hdev->asic_specific;
@@ -7509,9 +7531,18 @@ int gaudi3_enable_msix(struct hl_device *hdev)
 		goto free_eq_irqs;
 	}
 
+	rc = gaudi3_eq_error_enable_msix(hdev);
+	if (rc) {
+		dev_err(hdev->dev, "MSI-X: Failed to enable EQ error interrupt - %d\n", rc);
+		goto free_pldm_irqs;
+	}
+
 	gaudi3->hw_cap_initialized |= HW_CAP_MSIX;
 
 	return 0;
+
+free_pldm_irqs:
+	gaudi3_pldm_disable_msix(hdev);
 
 free_eq_irqs:
 	gaudi3_eq_disable_msix(hdev);
@@ -7617,6 +7648,9 @@ void gaudi3_sync_irqs(struct hl_device *hdev)
 			synchronize_irq(irq);
 		}
 	}
+
+	irq = hl_irq_vector(hdev, GAUDI3_IRQ_NUM_EQ_ERROR);
+	synchronize_irq(irq);
 }
 
 void gaudi3_disable_msix(struct hl_device *hdev)
@@ -7637,6 +7671,8 @@ void gaudi3_disable_msix(struct hl_device *hdev)
 	gaudi3_eq_disable_msix(hdev);
 
 	gaudi3_pldm_disable_msix(hdev);
+
+	gaudi3_eq_error_disable_msix(hdev);
 
 	hl_free_irq_vectors(hdev);
 
@@ -11419,9 +11455,10 @@ int gaudi3_ack_mmu_page_fault_or_access_error(struct hl_device *hdev, u64 mmu_ca
 	return 0;
 }
 
-static void gaudi3_get_msi_info(__le32 *table)
+void gaudi3_get_msi_info(__le32 *table)
 {
-	/* TODO: SW-84955 implement once we have msi-x table */
+	table[CPUCP_EVENT_QUEUE_MSI_TYPE] = cpu_to_le32(GAUDI3_EVENT_QUEUE_MSIX_IDX);
+	table[CPUCP_EVENT_QUEUE_ERR_MSI_TYPE] = cpu_to_le32(GAUDI3_IRQ_NUM_EQ_ERROR);
 }
 
 int gaudi3_map_pll_idx_to_fw_idx(u32 pll_idx)
@@ -12885,6 +12922,14 @@ static u32 gaudi3_handle_nic_status_event(struct hl_device *hdev,
 	return 0;
 }
 
+static u32 gaudi3_handle_eq_heartbeat_event(struct hl_device *hdev,
+				struct hl_eq_dynamic_entry *eq_dynamic_entry)
+{
+	hdev->eq_heartbeat_received = true;
+
+	return 0;
+}
+
 static int gaudi3_handle_msg_event(struct hl_device *hdev,
 				struct hl_eq_dynamic_entry *eq_dynamic_entry, u32 *reset_flags,
 				u64 *event_mask)
@@ -12898,6 +12943,8 @@ static int gaudi3_handle_msg_event(struct hl_device *hdev,
 	switch (event_type) {
 	case EQ_EVENT_NIC_STS_REQUEST:
 		return gaudi3_handle_nic_status_event(hdev, eq_dynamic_entry);
+	case EQ_EVENT_HEARTBEAT:
+		return gaudi3_handle_eq_heartbeat_event(hdev, eq_dynamic_entry);
 	default:
 		return 0;
 	}
