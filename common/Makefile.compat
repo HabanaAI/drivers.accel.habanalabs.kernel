@@ -68,10 +68,6 @@ ifneq ($(shell grep "unpin_user_pages_dirty_lock" include/linux/mm.h > /dev/null
 	ccflags-y += -D_HAS_USER_PAGES_DIRTY_LOCK
 endif
 
-ifneq ($(shell grep "FOLL_PTRACE" include/linux/mm.h > /dev/null 2>&1 && echo 1),)
-	ccflags-y += -D_HAS_FOLL_PTRACE
-endif
-
 ifneq ($(shell ls include/linux/dax.h > /dev/null 2>&1 && echo 1),)
 	ccflags-y += -D_HAS_DAX_H
 endif

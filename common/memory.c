@@ -29,6 +29,12 @@ MODULE_IMPORT_NS(DMA_BUF);
 
 #define MEM_HANDLE_INVALID	ULONG_MAX
 
+#if KERNEL_VERSION(6, 2, 0) <= LINUX_VERSION_CODE
+#define GUP_FLAGS  (FOLL_WRITE | FOLL_LONGTERM)
+#else
+#define GUP_FLAGS  (FOLL_FORCE | FOLL_WRITE | FOLL_LONGTERM)
+#endif
+
 /* DO NOT UPSTREAM - START */
 #ifdef _HAS_PEER2PEER
 
@@ -2929,15 +2935,7 @@ static int get_user_memory(struct hl_device *hdev, u64 addr, u64 size,
 		return -ENOMEM;
 
 #if KERNEL_VERSION(5, 11, 0) <= LINUX_VERSION_CODE
-
-#ifdef _HAS_FOLL_PTRACE
-	rc = pin_user_pages_fast(start, npages, FOLL_WRITE | FOLL_LONGTERM,
-				 userptr->pages);
-#else
-	rc = pin_user_pages_fast(start, npages, FOLL_FORCE | FOLL_WRITE | FOLL_LONGTERM,
-				 userptr->pages);
-#endif
-
+	rc = pin_user_pages_fast(start, npages, GUP_FLAGS, userptr->pages);
 #else
 	/* In kernels before 5.11 that have pin_user_pages_fast(), we can't pin many pages at the
 	 * same time because of some kmalloc call inside the pinning code path. Split the pinning
