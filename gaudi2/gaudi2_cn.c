@@ -10,6 +10,12 @@
 #include "../include/gaudi2/gaudi2_async_ids_map_extended.h"
 #include "../include/hw_ip/nic/nic_general.h"
 
+enum gaudi2_setup_type {
+	GAUDI2_SETUP_TYPE_HLS2,
+	GAUDI2_SETUP_TYPE_HL225_S_EXT_LB,
+	GAUDI2_SETUP_TYPE_HL325_S_EXT_LB
+};
+
 static bool gaudi2_cn_get_hw_cap(struct hl_device *hdev);
 
 int gaudi2_cn_handle_sw_error_event(struct hl_device *hdev, u16 event_type, u8 macro_index,

@@ -29,6 +29,19 @@ static_assert(IS_POWER_OF_2(NIC_RAW_ELEM_SIZE));
 static_assert(NIC_MAX_QP_NUM <= NIC_HW_MAX_QP_NUM);
 
 /* The '*_SIZE' defines are per NIC port */
+
+struct gaudi_qpc_requester {
+	__le64	data[8];
+};
+
+struct gaudi_qpc_responder {
+	__le64	data[4];
+};
+
+struct gaudi_sq_wqe {
+	__le64	data[4];
+};
+
 #define REQ_QPC_BASE_SIZE	(NIC_MAX_QP_NUM * sizeof(struct gaudi_qpc_requester))
 #define RES_QPC_BASE_SIZE	(NIC_MAX_QP_NUM * sizeof(struct gaudi_qpc_responder))
 #define SWQ_BASE_SIZE		(WQ_BUFFER_SIZE * sizeof(struct gaudi_sq_wqe))

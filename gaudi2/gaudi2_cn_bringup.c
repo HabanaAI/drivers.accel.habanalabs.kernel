@@ -7,6 +7,8 @@
 
 #include "gaudi2_cn.h"
 
+#define NIC_SKB_PAD_SIZE	187
+
 static void set_txe_checkers(struct hl_device *hdev, u32 port)
 {
 	/* SW-33416: For rendezvous read request if WQE size is 0, TX gets stuck.

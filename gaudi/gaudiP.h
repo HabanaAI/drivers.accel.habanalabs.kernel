@@ -8,7 +8,7 @@
 #ifndef GAUDIP_H_
 #define GAUDIP_H_
 
-#include <linux/net/intel/gaudi.h>
+#include <linux/habanalabs/habanalabs_aux.h>
 #include <uapi/drm/habanalabs_accel.h>
 #include "../common/habanalabs.h"
 #include <linux/habanalabs/hl_boot_if.h>

@@ -8,6 +8,8 @@
 #include "gaudi_cn.h"
 #include "../include/hw_ip/nic/nic_general.h"
 
+#define NUM_OF_XPCS91_REGS	2
+
 void gaudi_cn_handle_qp_err(struct hl_device *hdev, u16 event_type)
 {
 	struct gaudi_device *gaudi = hdev->asic_specific;
