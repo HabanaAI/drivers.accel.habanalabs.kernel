@@ -1691,20 +1691,23 @@ int map_device_va(struct hl_ctx *ctx, struct hl_mem_in *args, u64 *device_addr)
 		goto va_block_err;
 	}
 
-	mutex_lock(&hdev->mmu_lock);
+	if (!is_odp) {
+		mutex_lock(&hdev->mmu_lock);
 
-	rc = map_phys_pg_pack(ctx, ret_vaddr, phys_pg_pack);
-	if (rc) {
-		dev_err(hdev->dev, "mapping page pack failed for handle %u\n", handle);
+		rc = map_phys_pg_pack(ctx, ret_vaddr, phys_pg_pack);
+		if (rc) {
+			dev_err(hdev->dev, "mapping page pack failed for handle %u\n", handle);
+			mutex_unlock(&hdev->mmu_lock);
+			goto map_err;
+		}
+
+		rc = hl_mmu_invalidate_cache_range(hdev, false,
+				*vm_type | MMU_OP_SKIP_LOW_CACHE_INV, ctx->asid, ret_vaddr,
+				phys_pg_pack->total_size);
 		mutex_unlock(&hdev->mmu_lock);
-		goto map_err;
+		if (rc)
+			goto map_err;
 	}
-
-	rc = hl_mmu_invalidate_cache_range(hdev, false, *vm_type | MMU_OP_SKIP_LOW_CACHE_INV,
-				ctx->asid, ret_vaddr, phys_pg_pack->total_size);
-	mutex_unlock(&hdev->mmu_lock);
-	if (rc)
-		goto map_err;
 
 	/*
 	 * prefetch is done upon user's request. it is performed in WQ as and so can
@@ -1735,7 +1738,7 @@ int map_device_va(struct hl_ctx *ctx, struct hl_mem_in *args, u64 *device_addr)
 	if (is_userptr)
 		free_phys_pg_pack(hdev, phys_pg_pack);
 
-	return rc;
+	return 0;
 
 map_err:
 	if (add_va_block(hdev, va_range, ret_vaddr,
