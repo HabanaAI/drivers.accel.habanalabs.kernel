@@ -305,6 +305,7 @@ static int odp_mmu_update_page_in_locked(struct hl_odp_region_ctx *rg,
 		rc = hl_mmu_map_page(ctx, device_addr, dma_addr, PAGE_SIZE,
 				     (i + 1) == npages);
 		if (unlikely(rc)) {
+			xa_erase(&rg->pt, va_pfn);
 			hl_dma_unmap_page(hdev, dma_addr, PAGE_SIZE, rg->userptr->dir);
 			goto rollback;
 		}
