@@ -2101,6 +2101,11 @@ static struct sg_table *alloc_sgt_from_device_pages(struct hl_device *hdev, u64 
 		return ERR_PTR(-EINVAL);
 	}
 
+#if KERNEL_VERSION(6, 2, 0) > LINUX_VERSION_CODE
+	/* Limit chunk size to overcome an overflow issue in the ib block iterator in old kernels */
+	dma_max_seg_size = min_t(u64, dma_max_seg_size, SZ_1G);
+#endif
+
 	sgt = kzalloc(sizeof(*sgt), GFP_KERNEL);
 	if (!sgt)
 		return ERR_PTR(-ENOMEM);
