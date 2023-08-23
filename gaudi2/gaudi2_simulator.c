@@ -339,6 +339,9 @@ static int gaudi2_simulator_gen_int_ioctl(struct hl_simulator_device *edev, void
 		}
 		hl_irq_user_interrupt_handler(args->id, user_interrupt);
 		break;
+	case GAUDI2_IRQ_NUM_EQ_ERROR:
+		hl_irq_eq_error_interrupt_thread_handler(args->id, hdev);
+		break;
 	default:
 		dev_err(edev->dev, "unexpected interrupt id %d", args->id);
 		break;
