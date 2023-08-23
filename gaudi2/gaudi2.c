@@ -3339,25 +3339,70 @@ static void gaudi2_init_arcs(struct hl_device *hdev)
 
 static int gaudi2_cn_clear_mem(struct hl_device *hdev)
 {
-	u64 val = 0, i;
-	int rc = 0;
+	u32 nic_drv_size, gran_per_packet, num_iter;
+	struct asic_fixed_properties *asic_prop;
+	struct cpucp_cn_clear_mem_packet pkt;
+	bool use_cpucp;
+	int i, rc = 0;
+	u64 val = 0;
 
 	if (!hdev->cn.ports_mask)
 		return rc;
 
-	for (i = 0 ; i < hdev->asic_prop.nic_drv_size ; i += sizeof(val)) {
-		rc = hdev->asic_funcs->access_dev_mem(hdev, PCI_REGION_DRAM,
-			hdev->asic_prop.nic_drv_addr + i, &val, DEBUGFS_WRITE64);
+	asic_prop = &hdev->asic_prop;
 
-		if (rc) {
-			dev_err(hdev->dev, "Failed to set nic memory. addr: 0x%llx",
-						hdev->asic_prop.nic_drv_addr + i);
-			return rc;
+	use_cpucp = !!(hdev->asic_prop.fw_app_cpu_boot_dev_sts0 &
+			CPU_BOOT_DEV_STS0_NIC_MEM_CLEAR_EN);
+	if (use_cpucp) {
+		/* nic driver size is expected to be less than 4GB in gaudi2 */
+		if (asic_prop->nic_drv_size > BIT(32)) {
+			dev_err(hdev->dev,
+				"Failed to clear NIC memory, nic size is 0x%llx is bigger than 4GB\n",
+				asic_prop->nic_drv_size);
+			return -EINVAL;
 		}
 
-		/* sleep every 32MB to avoid high CPU utilization */
-		if (i && !(i % SZ_32M))
-			usleep_range(50, 100);
+		nic_drv_size = (asic_prop->nic_drv_size - 1) & 0xFFFFFFFF;
+		/* max 250 MB per packet, in order to avoid CPUCP packet timeout */
+		gran_per_packet = 250 * 1024 * 1024;
+		num_iter = (nic_drv_size + gran_per_packet) / gran_per_packet;
+
+		for (i = 0; i < num_iter; i++) {
+			memset(&pkt, 0, sizeof(pkt));
+			pkt.cpucp_pkt.ctl = cpu_to_le32(CPUCP_PACKET_NIC_CLR_MEM <<
+							CPUCP_PKT_CTL_OPCODE_SHIFT);
+			pkt.mem_base_addr = cpu_to_le64(asic_prop->nic_drv_addr +
+							i * gran_per_packet);
+
+			if (i < num_iter - 1)
+				pkt.size = cpu_to_le32(gran_per_packet);
+			else
+				pkt.size = cpu_to_le32(nic_drv_size - gran_per_packet * i);
+
+			rc = gaudi2_send_cpu_message(hdev, (u32 *) &pkt, sizeof(pkt), 0, NULL);
+			if (rc) {
+				dev_err(hdev->dev,
+					"Failed to handle CPU-CP pkt %u, error %d\n",
+					CPUCP_PACKET_NIC_CLR_MEM, rc);
+				return rc;
+			}
+		}
+	} else {
+		for (i = 0; i < hdev->asic_prop.nic_drv_size; i += sizeof(val)) {
+			rc = hdev->asic_funcs->access_dev_mem(hdev, PCI_REGION_DRAM,
+								hdev->asic_prop.nic_drv_addr + i,
+								&val, DEBUGFS_WRITE64);
+
+			if (rc) {
+				dev_err(hdev->dev, "Failed to set nic memory. addr: 0x%llx",
+						hdev->asic_prop.nic_drv_addr + i);
+				return rc;
+			}
+
+			/* sleep every 32MB to avoid high CPU utilization */
+			if (i && !(i % SZ_32M))
+				usleep_range(50, 100);
+		}
 	}
 
 	return rc;
