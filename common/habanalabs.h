@@ -190,6 +190,10 @@ enum hl_mmu_page_table_location {
 
 #define hl_asic_dma_pool_free(hdev, vaddr, dma_addr) \
 	hl_asic_dma_pool_free_caller(hdev, vaddr, dma_addr, __func__)
+#define hl_dma_map_page(hdev, page, offset, len, dir) \
+	hl_dma_map_page_caller(hdev, page, offset, len, dir, __func__)
+#define hl_dma_unmap_page(hdev, dma_addr, len, dir) \
+	hl_dma_unmap_page_caller(hdev, dma_addr, len, dir, __func__)
 
 /*
  * Reset Flags
@@ -385,6 +389,8 @@ enum hl_trace_events {
 	HL_TRACE_WREG32,
 	HL_TRACE_ELBI_READ,
 	HL_TRACE_ELBI_WRITE,
+	HL_TRACE_DMA_MAP_PAGE,
+	HL_TRACE_DMA_UNMAP_PAGE,
 	HL_TRACE_NUM_EVENTS,
 };
 
@@ -404,6 +410,8 @@ static_assert(HL_TRACE_NUM_EVENTS < 64);
 #define HL_TRACE_WREG32_MASK			BIT_ULL(HL_TRACE_WREG32)
 #define HL_TRACE_ELBI_READ_MASK			BIT_ULL(HL_TRACE_ELBI_READ)
 #define HL_TRACE_ELBI_WRITE_MASK		BIT_ULL(HL_TRACE_ELBI_WRITE)
+#define HL_TRACE_DMA_MAP_PAGE_MASK		BIT_ULL(HL_TRACE_DMA_MAP_PAGE)
+#define HL_TRACE_DMA_UNMAP_PAGE_MASK		BIT_ULL(HL_TRACE_DMA_UNMAP_PAGE)
 #define HL_TRACE_ALL_EVENTS_MASK		(BIT_ULL(HL_TRACE_NUM_EVENTS) - 1)
 
 /**
@@ -4171,6 +4179,11 @@ void *hl_asic_dma_pool_zalloc_caller(struct hl_device *hdev, size_t size, gfp_t 
 					dma_addr_t *dma_handle, const char *caller);
 void hl_asic_dma_pool_free_caller(struct hl_device *hdev, void *vaddr, dma_addr_t dma_addr,
 					const char *caller);
+dma_addr_t hl_dma_map_page_caller(struct hl_device *hdev, struct page *page,
+				int offset, int len, enum dma_data_direction dir,
+				const char *caller);
+void hl_dma_unmap_page_caller(struct hl_device *hdev, dma_addr_t dma_addr, int len,
+				enum dma_data_direction dir, const char *caller);
 int hl_dma_map_sgtable(struct hl_device *hdev, struct sg_table *sgt, enum dma_data_direction dir);
 void hl_dma_unmap_sgtable(struct hl_device *hdev, struct sg_table *sgt,
 				enum dma_data_direction dir);

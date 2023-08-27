@@ -252,8 +252,7 @@ void hl_odp_region_ctx_destroy(struct hl_odp_region_ctx *rg)
 #endif
 		dma_addr = xa_to_value(entry);
 		hl_mmu_unmap_page(ctx, device_addr, PAGE_SIZE, true);
-		hdev->asic_funcs->asic_dma_unmap_page(hdev, dma_addr, PAGE_SIZE,
-						      rg->userptr->dir);
+		hl_dma_unmap_page(hdev, dma_addr, PAGE_SIZE, rg->userptr->dir);
 		xa_erase(&rg->pt, va_pfn);
 	}
 
@@ -308,9 +307,8 @@ static int odp_mmu_update_page_in_locked(struct hl_odp_region_ctx *rg,
 			goto rollback;
 		}
 
-		dma_addr = hdev->asic_funcs->asic_dma_map_page(
-			hdev, pfn_to_page(pfns[i]), 0, PAGE_SIZE,
-			rg->userptr->dir);
+		dma_addr = hl_dma_map_page(hdev, pfn_to_page(pfns[i]), 0, PAGE_SIZE,
+						rg->userptr->dir);
 		if (unlikely(!dma_addr)) {
 			xa_release(&rg->pt, va_pfn);
 			rc = -ENOMEM;
@@ -321,8 +319,7 @@ static int odp_mmu_update_page_in_locked(struct hl_odp_region_ctx *rg,
 		rc = hl_mmu_map_page(ctx, device_addr, dma_addr, PAGE_SIZE,
 				     (i + 1) == npages);
 		if (unlikely(rc)) {
-			hdev->asic_funcs->asic_dma_unmap_page(
-				hdev, dma_addr, PAGE_SIZE, rg->userptr->dir);
+			hl_dma_unmap_page(hdev, dma_addr, PAGE_SIZE, rg->userptr->dir);
 			goto rollback;
 		}
 #ifndef ODP_SKIP_DEBUG_PRINTS
@@ -349,8 +346,7 @@ rollback:
 			continue;
 		dma_addr = xa_to_value(entry);
 		hl_mmu_unmap_page(ctx, device_addr, PAGE_SIZE, i == 0);
-		hdev->asic_funcs->asic_dma_unmap_page(hdev, dma_addr, PAGE_SIZE,
-						      rg->userptr->dir);
+		hl_dma_unmap_page(hdev, dma_addr, PAGE_SIZE, rg->userptr->dir);
 		xa_erase(&rg->pt, va_pfn);
 	}
 	return rc;
@@ -452,7 +448,7 @@ static bool odp_mmu_update_page_out_locked(struct hl_odp_region_ctx *rg, u64 sta
 			continue;
 
 		dma_addr = xa_to_value(entry);
-		hdev->asic_funcs->asic_dma_unmap_page(hdev, dma_addr, PAGE_SIZE, rg->userptr->dir);
+		hl_dma_unmap_page(hdev, dma_addr, PAGE_SIZE, rg->userptr->dir);
 		xa_erase(&rg->pt, va_pfn);
 	}
 

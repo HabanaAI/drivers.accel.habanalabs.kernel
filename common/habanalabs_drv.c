@@ -2011,6 +2011,8 @@ static char *hl_events[HL_TRACE_NUM_EVENTS] __initdata = {
 	[HL_TRACE_WREG32] = "habanalabs_wreg32",
 	[HL_TRACE_ELBI_READ] = "habanalabs_elbi_read",
 	[HL_TRACE_ELBI_WRITE] = "habanalabs_elbi_write",
+	[HL_TRACE_DMA_MAP_PAGE] = "habanalabs_dma_map_page",
+	[HL_TRACE_DMA_UNMAP_PAGE] = "habanalabs_dma_unmap_page",
 };
 
 static char hl_event_filename_buffer[HL_EVENT_FILE_MAX_NAME_LEN] __initdata;

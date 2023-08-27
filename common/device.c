@@ -156,6 +156,29 @@ static void *hl_dma_alloc_common(struct hl_device *hdev, size_t size, dma_addr_t
 	return ptr;
 }
 
+dma_addr_t hl_dma_map_page_caller(struct hl_device *hdev, struct page *page,
+				int offset, int len, enum dma_data_direction dir,
+				const char *caller)
+{
+	dma_addr_t dma_addr;
+
+	dma_addr = hdev->asic_funcs->asic_dma_map_page(hdev, page, offset, len, dir);
+	if (hdev->pdev && unlikely(dma_mapping_error(&hdev->pdev->dev, dma_addr)))
+		return 0;
+
+	trace_habanalabs_dma_map_page(hdev->dev, page_to_phys(page) + offset, dma_addr, len, dir,
+					caller);
+
+	return dma_addr;
+}
+
+void hl_dma_unmap_page_caller(struct hl_device *hdev, dma_addr_t dma_addr, int len,
+				enum dma_data_direction dir, const char *caller)
+{
+	hdev->asic_funcs->asic_dma_unmap_page(hdev, dma_addr, len, dir);
+	trace_habanalabs_dma_unmap_page(hdev->dev, 0, dma_addr, len, dir, caller);
+}
+
 static void hl_asic_dma_free_common(struct hl_device *hdev, size_t size, void *cpu_addr,
 					dma_addr_t dma_handle, enum dma_alloc_type alloc_type,
 					const char *caller)
