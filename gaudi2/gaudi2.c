@@ -10386,15 +10386,6 @@ void gaudi2_handle_eqe(struct hl_device *hdev, struct hl_eq_entry *eq_entry)
 	ctl = le32_to_cpu(eq_entry->hdr.ctl);
 	event_type = ((ctl & EQ_CTL_EVENT_TYPE_MASK) >> EQ_CTL_EVENT_TYPE_SHIFT);
 
-	/*
-	 * TODO SW-147637: Temporary skip event 1328 to allow FW to merge the eq check support
-	 * then remove after we merge driver support
-	 * since FW will start sending this event every 5 second in response to heartbeat
-	 * and we need driver not to print errors repeatedly.
-	 */
-	if (event_type == 1328)
-		return;
-
 	if (event_type >= GAUDI2_EVENT_SIZE) {
 		dev_err(hdev->dev, "Event type %u exceeds maximum of %u",
 				event_type, GAUDI2_EVENT_SIZE - 1);
