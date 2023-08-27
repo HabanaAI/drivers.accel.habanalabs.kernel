@@ -67,6 +67,9 @@
 					VDEC_BRDG_CTRL_CAUSE_INTR_NRM_SPI_M | \
 					VDEC_BRDG_CTRL_CAUSE_INTR_ABNRM_SPI_M)
 
+/* we have up to 8 bmons */
+#define NUM_OF_BMONS 8
+
 /* A DUMMY block isn't a regular block, but in fact a block with a manually
  * configured block response, and used by PCIE 'Fabric Serialization' feature.
  * Although listed in SOL, it has no 'specs' record associated to it.
@@ -4111,18 +4114,19 @@ static void handle_and_clear_mme_sei_events(struct hl_device *hdev, u32 idx, u32
 
 static void process_spmu_bmon_spi_interrupt(struct hl_device *hdev,
 						struct hl_eq_spmu_bmon *spmu_bmon_data,
-					u32 spmu_base, u32 bmon_base)
+					u32 spmu_base, u32 bmon_base, u32 num_bmon)
 {
-	__le32 *cause_arr = spmu_bmon_data->cause;
 	u32 cause;
 	int i;
 
-	cause = RREG32(spmu_base + mmCS_DBG_W_SPMU_4_BMON_SPMU_PMINTENSET_EL1);
-	cause_arr[CS_DBG_SPMU] = cpu_to_le32(cause);
-	if (cause)
-		WREG32(spmu_base + mmCS_DBG_W_SPMU_4_BMON_SPMU_PMINTENCLR_EL1, cause);
+	if (spmu_base) {
+		cause = RREG32(spmu_base + mmCS_DBG_W_SPMU_4_BMON_SPMU_PMINTENSET_EL1);
+		spmu_bmon_data->cause[CS_DBG_SPMU] = cpu_to_le32(cause);
+		if (cause)
+			WREG32(spmu_base + mmCS_DBG_W_SPMU_4_BMON_SPMU_PMINTENCLR_EL1, cause);
+	}
 
-	for (i = CS_DBG_BMON0; i < CS_DBG_BMON_MAX; i++) {
+	for (i = CS_DBG_BMON0; i < CS_DBG_BMON0 + num_bmon; i++) {
 		cause = RREG32(bmon_base + mmCS_DBG_W_SPMU_4_BMON_BMON0_TRIG_TH);
 		spmu_bmon_data->cause[i] = cpu_to_le32(cause);
 		if (cause)
@@ -4170,7 +4174,7 @@ static void handle_and_clear_mme_events(struct hl_device *hdev, u32 die, u32 hdc
 			spi_data->spmu_bmon_data.comp_sub_type = CS_DBG_MME_QM;
 			spi_data->type = MME_DATA_TYPE_CS_DBG;
 			process_spmu_bmon_spi_interrupt(hdev, &spi_data->spmu_bmon_data.data,
-							spmu_base, bmon_base);
+							spmu_base, bmon_base, NUM_OF_BMONS);
 			break;
 		case SPI_INTR_MME0_ACC:
 		case SPI_INTR_MME1_ACC:
