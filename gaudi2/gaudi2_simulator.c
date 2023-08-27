@@ -1761,8 +1761,8 @@ static const struct hl_asic_funcs gaudi2_sim_funcs = {
 	.cpu_accessible_dma_pool_alloc =
 				gaudi2_sim_cpu_accessible_dma_pool_alloc,
 	.cpu_accessible_dma_pool_free = gaudi2_sim_cpu_accessible_dma_pool_free,
-	.asic_dma_map_sgtable = hl_sim_dma_map_sgtable,
-	.hl_dma_unmap_sgtable = hl_sim_dma_unmap_sgtable,
+	.dma_map_sgtable = hl_sim_dma_map_sgtable,
+	.dma_unmap_sgtable = hl_sim_dma_unmap_sgtable,
 	.cs_parser = gaudi2_cs_parser,
 	.add_end_of_cb_packets = NULL,
 	.update_eq_ci = gaudi2_update_eq_ci,

@@ -710,7 +710,7 @@ static int dma_map_host_va(struct hl_device *hdev, u64 addr,
 	if (userptr->is_odp)
 		return 0;
 
-	rc = hdev->asic_funcs->asic_dma_map_sgtable(hdev, userptr->sgt, DMA_BIDIRECTIONAL);
+	rc = hl_dma_map_sgtable(hdev, userptr->sgt, DMA_BIDIRECTIONAL);
 	if (rc) {
 		dev_err(hdev->dev, "failed to map sgt with DMA region\n");
 		goto dma_map_err;
@@ -3120,7 +3120,7 @@ void hl_unpin_host_memory(struct hl_device *hdev, struct hl_userptr *userptr)
 		hl_odp_region_ctx_destroy(userptr->odp_rg);
 	} else {
 		if (userptr->dma_mapped)
-			hdev->asic_funcs->hl_dma_unmap_sgtable(hdev, userptr->sgt, userptr->dir);
+			hl_dma_unmap_sgtable(hdev, userptr->sgt, userptr->dir);
 
 		if (!userptr->is_kernel_addr) {
 			unpin_user_pages_dirty_lock(userptr->pages, userptr->npages, true);
@@ -3146,7 +3146,7 @@ void hl_unpin_host_memory(struct hl_device *hdev, struct hl_userptr *userptr)
 		hl_odp_region_ctx_destroy(userptr->odp_rg);
 	} else {
 		if (userptr->dma_mapped)
-			hdev->asic_funcs->hl_dma_unmap_sgtable(hdev, userptr->sgt, userptr->dir);
+			hl_dma_unmap_sgtable(hdev, userptr->sgt, userptr->dir);
 
 		if (!userptr->is_kernel_addr) {
 			pages = frame_vector_pages(userptr->vec);

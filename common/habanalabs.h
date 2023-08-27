@@ -194,6 +194,10 @@ enum hl_mmu_page_table_location {
 	hl_dma_map_page_caller(hdev, page, offset, len, dir, __func__)
 #define hl_dma_unmap_page(hdev, dma_addr, len, dir) \
 	hl_dma_unmap_page_caller(hdev, dma_addr, len, dir, __func__)
+#define hl_dma_map_sgtable(hdev, sgt, dir) \
+	hl_dma_map_sgtable_caller(hdev, sgt, dir, __func__)
+#define hl_dma_unmap_sgtable(hdev, sgt, dir) \
+	hl_dma_unmap_sgtable_caller(hdev, sgt, dir, __func__)
 
 /*
  * Reset Flags
@@ -1696,9 +1700,9 @@ struct engines_data {
  * @cpu_accessible_dma_pool_free: free CPU PQ packet from DMA pool.
  * @asic_dma_unmap_page: unmap a single dma page
  * @asic_dma_map_page: map a single page to a DMA
- * @hl_dma_unmap_sgtable: DMA unmap scatter-gather table.
+ * @dma_unmap_sgtable: DMA unmap scatter-gather table.
+ * @dma_map_sgtable: DMA map scatter-gather table.
  * @cs_parser: parse Command Submission.
- * @asic_dma_map_sgtable: DMA map scatter-gather table.
  * @add_end_of_cb_packets: Add packets to the end of CB, if device requires it.
  * @update_eq_ci: update event queue CI.
  * @context_switch: called upon ASID context switch.
@@ -1839,12 +1843,11 @@ struct hl_asic_funcs {
 	dma_addr_t (*asic_dma_map_page)(struct hl_device *hdev,
 				struct page *page, int offset, int len,
 				enum dma_data_direction dir);
-	void (*hl_dma_unmap_sgtable)(struct hl_device *hdev,
-				struct sg_table *sgt,
+	void (*dma_unmap_sgtable)(struct hl_device *hdev, struct sg_table *sgt,
+				enum dma_data_direction dir);
+	int (*dma_map_sgtable)(struct hl_device *hdev, struct sg_table *sgt,
 				enum dma_data_direction dir);
 	int (*cs_parser)(struct hl_device *hdev, struct hl_cs_parser *parser);
-	int (*asic_dma_map_sgtable)(struct hl_device *hdev, struct sg_table *sgt,
-				enum dma_data_direction dir);
 	void (*add_end_of_cb_packets)(struct hl_device *hdev,
 					void *kernel_address, u32 len,
 					u32 original_len,
@@ -4184,8 +4187,13 @@ dma_addr_t hl_dma_map_page_caller(struct hl_device *hdev, struct page *page,
 				const char *caller);
 void hl_dma_unmap_page_caller(struct hl_device *hdev, dma_addr_t dma_addr, int len,
 				enum dma_data_direction dir, const char *caller);
-int hl_dma_map_sgtable(struct hl_device *hdev, struct sg_table *sgt, enum dma_data_direction dir);
-void hl_dma_unmap_sgtable(struct hl_device *hdev, struct sg_table *sgt,
+int hl_dma_map_sgtable_caller(struct hl_device *hdev, struct sg_table *sgt,
+				enum dma_data_direction dir, const char *caller);
+void hl_dma_unmap_sgtable_caller(struct hl_device *hdev, struct sg_table *sgt,
+					enum dma_data_direction dir, const char *caller);
+int hl_asic_dma_map_sgtable(struct hl_device *hdev, struct sg_table *sgt,
+				enum dma_data_direction dir);
+void hl_asic_dma_unmap_sgtable(struct hl_device *hdev, struct sg_table *sgt,
 				enum dma_data_direction dir);
 bool hl_is_device_va(struct hl_device *hdev, u64 addr);
 int hl_device_va_to_pa(struct hl_device *hdev, u64 virt_addr, u32 size, u64 *phys_addr);
