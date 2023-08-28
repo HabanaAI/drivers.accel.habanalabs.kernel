@@ -434,10 +434,6 @@ static bool odp_mmu_update_page_out_locked(struct hl_odp_region_ctx *rg, u64 sta
 				dma_addr, device_addr, rc);
 			return false;
 		}
-		hdev->asic_funcs->asic_dma_unmap_page(hdev, dma_addr, PAGE_SIZE,
-						      rg->userptr->dir);
-		xa_erase(&rg->pt, va_pfn);
-
 		erased = true;
 	}
 
@@ -450,6 +446,15 @@ static bool odp_mmu_update_page_out_locked(struct hl_odp_region_ctx *rg, u64 sta
 					   npages * PAGE_SIZE);
 	if (rc)
 		return false;
+
+	xa_for_each_range(&rg->pt, va_pfn, entry, start_va_pfn, last_va_pfn) {
+		if (!entry)
+			continue;
+
+		dma_addr = xa_to_value(entry);
+		hdev->asic_funcs->asic_dma_unmap_page(hdev, dma_addr, PAGE_SIZE, rg->userptr->dir);
+		xa_erase(&rg->pt, va_pfn);
+	}
 
 	return true;
 }
