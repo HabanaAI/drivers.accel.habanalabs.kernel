@@ -215,7 +215,7 @@ static void hl_ts_free_objects(struct work_struct *work)
 
 		hl_mmap_mem_buf_put(free_obj->buf);
 		hl_cb_put(free_obj->cq_cb);
-		atomic_set(&free_obj->in_use, 0);
+		kfree(free_obj);
 	}
 
 	kfree(free_list_head);
@@ -236,9 +236,6 @@ static int handle_registration_node(struct hl_device *hdev, struct hl_user_pendi
 						struct list_head **free_list, ktime_t now,
 						u32 interrupt_id)
 {
-	struct hl_user_interrupt *intr = &hdev->user_interrupt[interrupt_id];
-	struct hl_ts_free_jobs *ts_free_jobs_data = &intr->ts_free_jobs_data;
-	u32 free_node_index = ts_free_jobs_data->next_avail_free_node_idx;
 	struct timestamp_reg_free_node *free_node;
 	u64 timestamp;
 
@@ -251,18 +248,9 @@ static int handle_registration_node(struct hl_device *hdev, struct hl_user_pendi
 		INIT_LIST_HEAD(*free_list);
 	}
 
-	free_node = &ts_free_jobs_data->free_nodes_pool[free_node_index];
-	if (atomic_cmpxchg(&free_node->in_use, 0, 1)) {
-		dev_crit(hdev->dev,
-			"Timestamp free node pool is full, buff: %p, record: %p, irq: %u\n",
-				pend->ts_reg_info.buf,
-				pend,
-				interrupt_id);
+	free_node = kmalloc(sizeof(*free_node), GFP_ATOMIC);
+	if (!free_node)
 		return -ENOMEM;
-	}
-
-	ts_free_jobs_data->next_avail_free_node_idx =
-				(++free_node_index) % ts_free_jobs_data->free_nodes_length;
 
 	timestamp = ktime_to_ns(now);
 

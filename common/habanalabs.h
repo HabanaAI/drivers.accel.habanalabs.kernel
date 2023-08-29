@@ -140,8 +140,6 @@ struct hl_fpriv;
 /* MMU */
 #define MMU_HASH_TABLE_BITS		7 /* 1 << 7 buckets */
 
-#define TIMESTAMP_FREE_NODES_NUM	50
-
 /**
  * enum hl_mmu_page_table_location - mmu page table location
  * @MMU_DR_PGT: page-table is located on device DRAM.
@@ -1272,25 +1270,8 @@ enum hl_user_interrupt_type {
 };
 
 /**
- * struct hl_ts_free_jobs - holds user interrupt ts free nodes related data
- * @free_nodes_pool: pool of nodes to be used for free timestamp jobs
- * @free_nodes_length: number of nodes in free_nodes_pool
- * @next_avail_free_node_idx: index of the next free node in the pool
- *
- * the free nodes pool must be protected by the user interrupt lock
- * to avoid race between different interrupts which are using the same
- * ts buffer with different offsets.
- */
-struct hl_ts_free_jobs {
-	struct timestamp_reg_free_node *free_nodes_pool;
-	u32				free_nodes_length;
-	u32				next_avail_free_node_idx;
-};
-
-/**
  * struct hl_user_interrupt - holds user interrupt information
  * @hdev: pointer to the device structure
- * @ts_free_jobs_data: timestamp free jobs related data
  * @type: user interrupt type
  * @wait_list_head: head to the list of user threads pending on this interrupt
  * @wait_list_lock: protects wait_list_head
@@ -1299,7 +1280,6 @@ struct hl_ts_free_jobs {
  */
 struct hl_user_interrupt {
 	struct hl_device		*hdev;
-	struct hl_ts_free_jobs		ts_free_jobs_data;
 	enum hl_user_interrupt_type	type;
 	struct list_head		wait_list_head;
 	spinlock_t			wait_list_lock;
@@ -1312,13 +1292,11 @@ struct hl_user_interrupt {
  * @free_objects_node: node in the list free_obj_jobs
  * @cq_cb: pointer to cq command buffer to be freed
  * @buf: pointer to timestamp buffer to be freed
- * @in_use: indicates whether the node still in use in workqueue thread.
  */
 struct timestamp_reg_free_node {
 	struct list_head	free_objects_node;
 	struct hl_cb		*cq_cb;
 	struct hl_mmap_mem_buf	*buf;
-	atomic_t		in_use;
 };
 
 /* struct timestamp_reg_work_obj - holds the timestamp registration free objects job

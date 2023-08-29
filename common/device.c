@@ -2589,9 +2589,7 @@ out_err:
 int hl_device_init(struct hl_device *hdev)
 {
 	int i, rc, cq_cnt, user_interrupt_cnt, cq_ready_cnt;
-	struct hl_ts_free_jobs *free_jobs_data;
 	bool expose_interfaces_on_err = false;
-	void *p;
 
 #if !IS_ENABLED(CONFIG_DRM_ACCEL)
 	rc = create_cdev(hdev);
@@ -2617,35 +2615,7 @@ int hl_device_init(struct hl_device *hdev)
 			rc = -ENOMEM;
 			goto early_fini;
 		}
-
-		/* Timestamp records supported only if CQ supported in device */
-		if (hdev->asic_prop.first_available_cq[0] != USHRT_MAX) {
-			for (i = 0 ; i < user_interrupt_cnt ; i++) {
-				p = vzalloc(TIMESTAMP_FREE_NODES_NUM *
-						sizeof(struct timestamp_reg_free_node));
-				if (!p) {
-					rc = -ENOMEM;
-					goto free_usr_intr_mem;
-				}
-				free_jobs_data = &hdev->user_interrupt[i].ts_free_jobs_data;
-				free_jobs_data->free_nodes_pool = p;
-				free_jobs_data->free_nodes_length = TIMESTAMP_FREE_NODES_NUM;
-				free_jobs_data->next_avail_free_node_idx = 0;
-			}
-		}
 	}
-
-	free_jobs_data = &hdev->common_user_cq_interrupt.ts_free_jobs_data;
-	p = vzalloc(TIMESTAMP_FREE_NODES_NUM *
-				sizeof(struct timestamp_reg_free_node));
-	if (!p) {
-		rc = -ENOMEM;
-		goto free_usr_intr_mem;
-	}
-
-	free_jobs_data->free_nodes_pool = p;
-	free_jobs_data->free_nodes_length = TIMESTAMP_FREE_NODES_NUM;
-	free_jobs_data->next_avail_free_node_idx = 0;
 
 	/*
 	 * Start calling ASIC initialization. First S/W then H/W and finally
@@ -2653,7 +2623,7 @@ int hl_device_init(struct hl_device *hdev)
 	 */
 	rc = hdev->asic_funcs->sw_init(hdev);
 	if (rc)
-		goto free_common_usr_intr_mem;
+		goto free_usr_intr_mem;
 
 
 	/* initialize completion structure for multi CS wait */
@@ -2901,17 +2871,8 @@ hw_queues_destroy:
 	hl_hw_queues_destroy(hdev);
 sw_fini:
 	hdev->asic_funcs->sw_fini(hdev);
-free_common_usr_intr_mem:
-	vfree(hdev->common_user_cq_interrupt.ts_free_jobs_data.free_nodes_pool);
 free_usr_intr_mem:
-	if (user_interrupt_cnt) {
-		for (i = 0 ; i < user_interrupt_cnt ; i++) {
-			if (!hdev->user_interrupt[i].ts_free_jobs_data.free_nodes_pool)
-				break;
-			vfree(hdev->user_interrupt[i].ts_free_jobs_data.free_nodes_pool);
-		}
-		kfree(hdev->user_interrupt);
-	}
+	kfree(hdev->user_interrupt);
 early_fini:
 	device_early_fini(hdev);
 #if !IS_ENABLED(CONFIG_DRM_ACCEL)
@@ -2943,7 +2904,7 @@ out_disabled:
  */
 void hl_device_fini(struct hl_device *hdev)
 {
-	u32 process_kill_timeout, user_interrupt_cnt;
+	u32 process_kill_timeout;
 	bool device_in_reset;
 	ktime_t timeout;
 	u64 reset_sec;
@@ -3078,20 +3039,7 @@ void hl_device_fini(struct hl_device *hdev)
 	for (i = 0 ; i < hdev->asic_prop.completion_queues_count ; i++)
 		hl_cq_fini(hdev, &hdev->completion_queue[i]);
 	kfree(hdev->completion_queue);
-
-	user_interrupt_cnt = hdev->asic_prop.user_dec_intr_count +
-					hdev->asic_prop.user_interrupt_count;
-
-	if (user_interrupt_cnt) {
-		if (hdev->asic_prop.first_available_cq[0] != USHRT_MAX) {
-			for (i = 0 ; i < user_interrupt_cnt ; i++)
-				vfree(hdev->user_interrupt[i].ts_free_jobs_data.free_nodes_pool);
-		}
-
-		kfree(hdev->user_interrupt);
-	}
-
-	vfree(hdev->common_user_cq_interrupt.ts_free_jobs_data.free_nodes_pool);
+	kfree(hdev->user_interrupt);
 
 	hl_hw_queues_destroy(hdev);
 
