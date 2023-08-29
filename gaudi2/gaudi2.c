@@ -4584,7 +4584,9 @@ static int gaudi2_dec_enable_msix(struct hl_device *hdev)
 			rc = request_irq(irq, hl_irq_handler_dec_abnrm, 0,
 						gaudi2_irq_name(i), (void *) dec);
 		} else {
-			rc = request_irq(irq, hl_irq_user_interrupt_handler, 0, gaudi2_irq_name(i),
+			rc = request_threaded_irq(irq, NULL,
+					hl_irq_user_interrupt_thread_handler, IRQF_ONESHOT,
+					gaudi2_irq_name(i),
 					(void *) &hdev->user_interrupt[dec->core_id]);
 		}
 
@@ -4664,8 +4666,9 @@ static int gaudi2_enable_msix(struct hl_device *hdev)
 			i++, j++, user_irq_init_cnt++) {
 
 		irq = pci_irq_vector(hdev->pdev, i);
-		rc = request_irq(irq, hl_irq_user_interrupt_handler, 0, gaudi2_irq_name(i),
-				&hdev->user_interrupt[j]);
+		rc = request_threaded_irq(irq, NULL, hl_irq_user_interrupt_thread_handler,
+				IRQF_ONESHOT, gaudi2_irq_name(i), &hdev->user_interrupt[j]);
+
 		if (rc) {
 			dev_err(hdev->dev, "Failed to request IRQ %d", irq);
 			goto free_user_irq;
