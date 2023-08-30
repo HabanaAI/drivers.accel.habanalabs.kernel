@@ -4375,10 +4375,65 @@ static u32 stlb_special_regs_base[] = {
 	mmHD0_STLB_SPECIAL_BASE
 };
 
-static void handle_and_clear_stlb_spi_events(struct hl_device *hdev, u32 offset, u32 idx,
+#define NUM_OF_DTLB_PER_NRTR (DTLB_NRTR1 - DTLB_NRTR0 + 1)
+
+static void dtlb_read_fault_data(struct hl_device *hdev,
+				 u32 base, struct hl_eq_dtlb_fault_data *data)
+{
+	u32 syndrom_l, syndrom_h;
+
+	data->fault_type = cpu_to_le32(RREG32(base + mmDTLB_FLT_SYNDROM1));
+	if (data->fault_type) {
+		data->addr_47_20 = cpu_to_le32(RREG32(base + mmDTLB_FLT_SYNDROM2));
+		syndrom_l = RREG32(base + mmDTLB_FLT_SYNDROM3);
+		syndrom_h = RREG32(base + mmDTLB_FLT_SYNDROM4);
+		data->id = cpu_to_le64(((u64) syndrom_h << 32) | syndrom_l);
+
+		/* Clear interrupt (W1C) */
+		WREG32((base + mmDTLB_FLT_SYNDROM_CLR), DTLB_FLT_SYNDROM_CLR_FLT_CLR_M);
+	}
+}
+
+static void dtlbs_read_fault_data(struct hl_device *hdev, u32 die, u32 hdcore,
+				  struct hl_eq_dtlb_fault_data *dtlb_data)
+{
+	struct hl_eq_dtlb_fault_data *dtlbd;
+	u8 dtlb;
+	u32 offset, nrtr_base;
+	int rrtr;
+
+	/* convert to absolute hdcore number */
+	hdcore = die * NUM_OF_HDCORES_PER_DIE + hdcore;
+
+	for (rrtr = DTLB_RRTR0 ; rrtr <= DTLB_RRTR7 ; rrtr++) {
+		/* each RRTR has single DTLB so no need to iterate over DTLBs */
+		offset = mmHD0_RRTR0_DTLB_BASE +
+			 hdcore * HDCORE_OFFSET + rrtr * RRTR_OFFSET;
+		dtlbd = &dtlb_data[rrtr];
+		dtlb_read_fault_data(hdev, offset, dtlbd);
+	}
+
+	if (!(hdcore == 0 || hdcore == 2 || hdcore == 5 || hdcore == 7))
+		return;
+
+	/* for STLBs {0, 2, 5, 7} we have 2 more dtlbs connected which sits on the NRTR
+	 * STLB0 and STLB7 are on NRTR0 , STLB2 and STLB5 are on NRTR1
+	 */
+	nrtr_base = hdcore == 0 || hdcore == 7 ?
+			mmD0_NRTR0_DTLB_NW0_BASE : mmD0_NRTR1_DTLB_NW1_BASE;
+
+	for (dtlb = 0 ; dtlb < NUM_OF_DTLB_PER_NRTR ; dtlb++) {
+		offset = nrtr_base + (die * DIE_OFFSET) + (dtlb * NRTR_DTLB_OFFSET);
+		dtlbd = &dtlb_data[dtlb + DTLB_NRTR0];
+		dtlb_read_fault_data(hdev, offset, dtlbd);
+	}
+}
+
+static void handle_and_clear_stlb_spi_events(struct hl_device *hdev, u32 die, u32 hdcore,
+					     u32 offset, u32 idx,
 					     struct hl_eq_stlb_spi_data *spi_data)
 {
-	u32 base = 0, cause = 0, syndrom_l, syndrom_h, mask = 0;
+	u32 base, cause, syndrom_l, syndrom_h, mask;
 
 	base = mmHD0_STLB_BASE + offset;
 
@@ -4395,6 +4450,9 @@ static void handle_and_clear_stlb_spi_events(struct hl_device *hdev, u32 offset,
 		syndrom_h = RREG32(base + mmSTLB_FAULT_SYNDROME4);
 		spi_data->fault_data.syndrom_pte =
 				cpu_to_le64(((u64) syndrom_h << 32) | syndrom_l);
+
+		dtlbs_read_fault_data(hdev, die, hdcore, spi_data->dtlb_data);
+
 		break;
 	case SPI_INTR_STLB_MAINT_QUEUE_FULL:
 		mask = STLB_INTR_SPI_CAUSE_MAINT_QUEUE_FULL_M;
@@ -4473,9 +4531,9 @@ static void handle_and_clear_stlb_events(struct hl_device *hdev, u32 die, u32 hd
 		eq_dynamic_entry->hdr.size = cpu_to_le16(sizeof(struct hl_eq_stlb_sei_data));
 		break;
 	case ERR_GRP_SPI_ECO:
-		handle_and_clear_stlb_spi_events(hdev, offset, idx,
+		handle_and_clear_stlb_spi_events(hdev, die, hdcore, offset, idx,
 						 &eq_dynamic_entry->stlb_spi_data);
-		eq_dynamic_entry->hdr.size = cpu_to_le16(sizeof(struct hl_eq_ecc_data));
+		eq_dynamic_entry->hdr.size = cpu_to_le16(sizeof(struct hl_eq_stlb_spi_data));
 		break;
 	default:
 		return;
