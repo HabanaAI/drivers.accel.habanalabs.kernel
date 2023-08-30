@@ -2867,6 +2867,15 @@ static const char *gaudi3_axid_mapping(struct hl_device *hdev, u64 axid,
 			else
 				*initiator = eng_id + NUM_OF_PDMA_CH_PER_GRP;
 		}
+
+		/*
+		 * Fix known HW issue that physical and logical PDMA0/1 are swapped
+		 * so swap them back, pdma0 <-> pdma1
+		 */
+		if (IS_PDMA_0_ON_DIE0(*initiator) || IS_PDMA_0_ON_DIE1(*initiator))
+			*initiator += NUM_OF_PDMA_CH_PER_GRP;
+		else if (IS_PDMA_1_ON_DIE0(*initiator) || IS_PDMA_1_ON_DIE1(*initiator))
+			*initiator -= NUM_OF_PDMA_CH_PER_GRP;
 		break;
 	case 0x0F0:
 		if (die == 0 && axid17_19 == 0x7)
@@ -3018,68 +3027,43 @@ static u32 handle_pmmu_events(struct hl_device *hdev, u32 die, u64 *event_mask)
 	return err_cnt;
 }
 
-struct dtlb_fault_desc {
-	char *str;
-	u64 str_size;
-	u32 die;
-	u64 str_len;
-	u64 *event_mask;
-};
-
-static void gaudi3_dtlb_fault_desc(struct hl_device *hdev, int hdcore, int inst, u32 offset,
-					struct iterate_module_ctx *ctx)
+static void gaudi3_dtlb_fault_desc(struct hl_device *hdev, int hdcore, u32 die, int inst,
+				   u64 *event_mask, struct hl_eq_dtlb_fault_data *dtlb_data,
+				   char *str, u64 str_max_len, u64 *str_len)
 {
-	struct dtlb_fault_desc *desc = ctx->data;
-	u64 dtlb_addr47_20, axi_id1, axi_id2, axi_id, va;
+	u64 dtlb_addr47_20, axi_id, va;
 	enum gaudi3_engine_id initiator = GAUDI3_ENGINE_ID_SIZE;
-	u32 fault_type = RREG32(mmDTLB_FLT_SYNDROM1 + offset);
+	u32 fault_type = le32_to_cpu(dtlb_data->fault_type);
 	const char *initiator_str;
 	bool is_read;
 
 	if (fault_type) {
 		is_read = !FIELD_GET(DTLB_FLT_SYNDROM1_RD_OR_WR_M, fault_type);
-		dtlb_addr47_20 = FIELD_GET(DTLB_FLT_SYNDROM2_ADDR_47_20_M,
-					RREG32(mmDTLB_FLT_SYNDROM2 + offset));
+		dtlb_addr47_20 = le32_to_cpu(dtlb_data->addr_47_20);
 		va = DRAM_PHYS_BASE + (dtlb_addr47_20 << 20);
-		axi_id1 = RREG32(mmDTLB_FLT_SYNDROM3 + offset);
-		axi_id2 = RREG32(mmDTLB_FLT_SYNDROM4 + offset);
-		axi_id = (axi_id2 << 32) | axi_id1;
-		initiator_str = gaudi3_axid_mapping(hdev, axi_id, desc->die, is_read, &initiator);
-
-		/*
-		 * Fix known HW issue that physical and logical PDMA0/1 are swapped
-		 * so swap them back, pdma0 <-> pdma1
-		 */
-		if (IS_PDMA_0_ON_DIE0(initiator) || IS_PDMA_0_ON_DIE1(initiator))
-			initiator += NUM_OF_PDMA_CH_PER_GRP;
-		if (IS_PDMA_1_ON_DIE0(initiator) || IS_PDMA_1_ON_DIE1(initiator))
-			initiator -= NUM_OF_PDMA_CH_PER_GRP;
-
-		hl_handle_page_fault(hdev, va, initiator, false, desc->event_mask);
+		axi_id = le64_to_cpu(dtlb_data->id);
+		initiator_str = gaudi3_axid_mapping(hdev, axi_id, die, is_read, &initiator);
+		hl_handle_page_fault(hdev, va, initiator, false, event_mask);
 		/* collect info on all DTLBs causing fault as long as we have place on str */
-		if (desc->str_len < desc->str_size)
-			desc->str_len = snprintf(desc->str + desc->str_len,
-						desc->str_size - desc->str_len,
-						"%s page fault dtlb-id: %u, va: 0x%.16llx, initiator=%s",
-						is_read ? "read" : "write",
-						inst, va, initiator_str);
-		WREG32(mmDTLB_FLT_SYNDROM_CLR + offset,
-			FIELD_PREP(DTLB_FLT_SYNDROM_CLR_FLT_CLR_M, 0x1));
+		if (*str_len < str_max_len)
+			*str_len = snprintf(str + *str_len, str_max_len - *str_len,
+					    "%s page fault dtlb-id: %u, va: 0x%.16llx, initiator=%s",
+					    is_read ? "read" : "write", inst, va, initiator_str);
 	}
 }
 
 static u32 hmmu_event_get_dtlb_desc(struct hl_device *hdev, u32 hdcore, u32 die,
+				    struct hl_eq_dtlb_fault_data *dtlb_data,
 				    char *str, u64 size, u64 *event_mask)
 {
-	struct dtlb_fault_desc desc = { .str = str, .str_size = size, .die = die, .str_len = 0,
-					.event_mask = event_mask};
-	struct iterate_module_ctx ctx = {
-		.fn = gaudi3_dtlb_fault_desc,
-		.data = &desc,
-	};
+	u64 str_len = 0;
+	int i;
 
-	gaudi3_iterate_dtlbs_of_stlb(hdev, &ctx, hdcore, false);
-	if (!desc.str_len) {
+	for (i = 0 ; i < DTLB_ID_MAX ; i++)
+		gaudi3_dtlb_fault_desc(hdev, hdcore, die, i, event_mask,
+					&dtlb_data[i], str, size, &str_len);
+
+	if (!str_len) {
 		snprintf(str, size, "DTLB causing the fault not found");
 		return 0;
 	}
@@ -3143,7 +3127,7 @@ static u32 handle_hmmu_spi_events(struct hl_device *hdev, u16 data_size,
 		return 0;
 
 	err_cnt = hmmu_event_get_stlb_desc(hdev, spi_data, stlb_str, sizeof(stlb_str));
-	err_cnt += hmmu_event_get_dtlb_desc(hdev, hdcore, die,
+	err_cnt += hmmu_event_get_dtlb_desc(hdev, hdcore, die, spi_data->dtlb_data,
 					    dtlb_str, sizeof(dtlb_str), event_mask);
 
 	dev_err(hdev->dev,
