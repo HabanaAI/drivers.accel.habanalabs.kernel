@@ -969,68 +969,6 @@ static int gaudi3_sim_early_fini(struct hl_device *hdev)
 	return 0;
 }
 
-static void gaudi3_sim_get_nic_info(struct hl_device *hdev)
-{
-	struct hl_cn_cpucp_info *cn_cpucp_info = &hdev->asic_prop.cn_props.cpucp_info;
-
-	/* Assume HLS3 connections */
-	if (hdev->cn.lanes_per_port == PORT_LANES_2) {
-		cn_cpucp_info->link_ext_mask[0] = GAUDI3_HLS3_EXTERN_PORTS_MASK_200G;
-		cn_cpucp_info->link_mask[0] = GAUDI3_PORTS_MASK_200G;
-	} else {
-		cn_cpucp_info->link_ext_mask[0] = GAUDI3_HLS3_EXTERN_PORTS_MASK_400G_48TB;
-		cn_cpucp_info->link_mask[0] = GAUDI3_PORTS_MASK_400G;
-	}
-}
-
-static int gaudi3_sim_cpucp_info_get(struct hl_device *hdev)
-{
-	struct gaudi3_device *gaudi3 = hdev->asic_specific;
-	struct asic_fixed_properties *prop = &hdev->asic_prop;
-	struct hl_cn_cpucp_info *cn_cpucp_info = &prop->cn_props.cpucp_info;
-	int rc;
-
-	if (!(gaudi3->hw_cap_initialized & HW_CAP_CPU_Q)) {
-		/* Skip for hard or device release reset flow. No need to repopulate. */
-		if (!hdev->reset_info.in_reset) {
-			/* Set nic_info by the driver because F/W is disabled on simulator.
-			 * Override info from module param.
-			 */
-			if (!hdev->ignore_fw_nic_info) {
-				gaudi3_sim_get_nic_info(hdev);
-				hdev->cn.ports_ext_mask &= cn_cpucp_info->link_ext_mask[0];
-				hdev->cn.ports_mask &= cn_cpucp_info->link_mask[0];
-				hdev->cn.auto_neg_mask &= cn_cpucp_info->auto_neg_mask[0];
-			}
-
-			rc = gaudi3_cn_set_info(hdev, false);
-			if (rc)
-				return rc;
-		}
-
-		return 0;
-	}
-
-	rc = gaudi3_cpucp_handshake_info_get(hdev);
-	if (rc)
-		return rc;
-
-	/* Make sure we don't expose HWMON for simulator */
-	if (hdev->hl_chip_info->info)
-		hl_hwmon_release_resources(hdev);
-
-	if (!hdev->reset_info.in_reset) {
-		/* Override info from module param. */
-		if (!hdev->ignore_fw_nic_info)
-			hdev->card_type = le32_to_cpu(hdev->asic_prop.cpucp_info.card_type);
-
-		/* For NIC do not populate from FW. */
-		rc = gaudi3_cn_set_info(hdev, false);
-	}
-
-	return 0;
-}
-
 static int gaudi3_sim_sw_init(struct hl_device *hdev)
 {
 	struct gaudi3_device *gaudi3;
@@ -1062,7 +1000,7 @@ static int gaudi3_sim_sw_init(struct hl_device *hdev)
 		goto free_cpu_accessible_dma_pool;
 	}
 
-	gaudi3->cpucp_info_get = gaudi3_sim_cpucp_info_get;
+	gaudi3->cpucp_info_get = gaudi3_cpucp_info_get;
 	hdev->asic_prop.supports_compute_reset = true;
 	hdev->asic_specific = gaudi3;
 

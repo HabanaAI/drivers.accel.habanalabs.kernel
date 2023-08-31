@@ -562,7 +562,7 @@ enum gaudi3_block_types {
 extern struct hl_cn_funcs gaudi3_cn_funcs;
 
 /* Gaudi3 declarations for simulator */
-int gaudi3_cpucp_handshake_info_get(struct hl_device *hdev);
+int gaudi3_cpucp_info_get(struct hl_device *hdev);
 int gaudi3_scrub_device_dram(struct hl_device *hdev, u64 val);
 int gaudi3_scrub_device_mem(struct hl_device *hdev);
 int gaudi3_late_init(struct hl_device *hdev);

@@ -5034,7 +5034,7 @@ void gaudi3_special_blocks_iterator_free(struct hl_device *hdev)
 	gaudi3_pb_blocks_free(hdev);
 }
 
-int gaudi3_cpucp_handshake_info_get(struct hl_device *hdev)
+static int gaudi3_cpucp_handshake_info_get(struct hl_device *hdev)
 {
 	struct asic_fixed_properties *prop = &hdev->asic_prop;
 	int rc;
@@ -5070,7 +5070,7 @@ int gaudi3_cpucp_handshake_info_get(struct hl_device *hdev)
 	return rc;
 }
 
-static int gaudi3_cpucp_info_get(struct hl_device *hdev)
+int gaudi3_cpucp_info_get(struct hl_device *hdev)
 {
 	struct gaudi3_device *gaudi3 = hdev->asic_specific;
 	int rc;
@@ -5078,6 +5078,26 @@ static int gaudi3_cpucp_info_get(struct hl_device *hdev)
 	if (!(gaudi3->hw_cap_initialized & HW_CAP_CPU_Q)) {
 		/* Skip for hard or device release reset flow. No need to repopulate. */
 		if (!hdev->reset_info.in_reset) {
+			if (!hdev->pdev && !hdev->ignore_fw_nic_info) {
+				struct hl_cn_cpucp_info *cn_cpucp_info =
+						&hdev->asic_prop.cn_props.cpucp_info;
+
+				/* Assume HLS3 connections */
+				if (hdev->cn.lanes_per_port == PORT_LANES_2) {
+					cn_cpucp_info->link_ext_mask[0] =
+							GAUDI3_HLS3_EXTERN_PORTS_MASK_200G;
+					cn_cpucp_info->link_mask[0] = GAUDI3_PORTS_MASK_200G;
+				} else {
+					cn_cpucp_info->link_ext_mask[0] =
+							GAUDI3_HLS3_EXTERN_PORTS_MASK_400G_48TB;
+					cn_cpucp_info->link_mask[0] = GAUDI3_PORTS_MASK_400G;
+				}
+
+				hdev->cn.ports_ext_mask &= cn_cpucp_info->link_ext_mask[0];
+				hdev->cn.ports_mask &= cn_cpucp_info->link_mask[0];
+				hdev->cn.auto_neg_mask &= cn_cpucp_info->auto_neg_mask[0];
+			}
+
 			rc = gaudi3_cn_set_info(hdev, false);
 			if (rc)
 				return rc;
@@ -5090,13 +5110,25 @@ static int gaudi3_cpucp_info_get(struct hl_device *hdev)
 	if (rc)
 		return rc;
 
-	/* If reading from FW, repopulate post hard reset since device CPU has been reset.
-	 * For ignore FW case, no need to repopulate.
+	/* Make sure we don't expose HWMON for simulator */
+	if (!hdev->pdev && hdev->hl_chip_info->info)
+		hl_hwmon_release_resources(hdev);
+
+	/*
+	 * In case of ASIC and reading from FW,
+	 * repopulate post hard reset since device CPU has been reset.
+	 * For other cases (simulator or need to ignore F/W),
+	 * no need to repopulate.
 	 */
-	if (!hdev->ignore_fw_nic_info)
+	if (hdev->pdev && !hdev->ignore_fw_nic_info) {
 		rc = gaudi3_cn_set_info(hdev, true);
-	else if (!hdev->reset_info.in_reset)
+	} else if (!hdev->reset_info.in_reset) {
+		/* Override info from module param. */
+		if (!hdev->ignore_fw_nic_info)
+			hdev->card_type = le32_to_cpu(hdev->asic_prop.cpucp_info.card_type);
+
 		rc = gaudi3_cn_set_info(hdev, false);
+	}
 
 	return rc;
 }
