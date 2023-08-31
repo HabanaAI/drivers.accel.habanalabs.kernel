@@ -214,8 +214,12 @@ ifneq ($(shell grep -P "get_user_pages[^\w]" include/linux/mm.h | grep "struct t
 	ccflags-y += -D_HAS_GET_USER_PAGES_WITH_TASK_PTR
 endif
 
-ifneq ($(shell grep -A 1 " get_user_pages" include/linux/mm.h | grep "gup_flags"> /dev/null 2>&1 && echo 1),)
+ifneq ($(shell (grep -A 1 " get_user_pages" include/linux/mm.h | grep "gup_flags") > /dev/null 2>&1 && echo 1),)
 	ccflags-y += -D_HAS_GET_USER_PAGES_WITH_GUP_FLAGS
+endif
+
+ifneq ($(shell (grep -A2 " get_user_pages" include/linux/mm.h | grep "vmas") > /dev/null 2>&1 && echo 1),)
+	ccflags-y += -D_HAS_GET_USER_PAGES_WITH_VMAS
 endif
 
 ifneq ($(shell grep "get_user_pages_remote" include/linux/mm.h > /dev/null 2>&1 && echo 1),)

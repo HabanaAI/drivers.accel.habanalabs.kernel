@@ -1141,8 +1141,12 @@ int hl_sim_vmap_user_pages(u64 user_pointer, u64 size_in_bytes,
 						FOLL_POPULATE |
 #endif
 						FOLL_WRITE,
-						out_user_pages->pages, NULL);
+#ifndef _HAS_GET_USER_PAGES_WITH_VMAS
+						out_user_pages->pages);
 #else
+						out_user_pages->pages, NULL);
+#endif
+#else /* _HAS_GET_USER_PAGES_WITH_TASK_PTR */
 	out_user_pages->nr_pages =
 		get_user_pages(current, current->mm, user_pointer,
 				nr_pages, true, false,
@@ -1246,7 +1250,11 @@ hl_sim_copy_user_remote(struct hl_vm_user_pages *user_pages, u64 usr_addr,
 #ifdef _HAS_FOLL_POPULATE
 					FOLL_POPULATE |
 #endif
-					FOLL_WRITE, pages, NULL, &locked);
+					FOLL_WRITE, pages,
+#ifdef _HAS_GET_USER_PAGES_WITH_VMAS
+					NULL,
+#endif
+					&locked);
 #endif /* _HAS_GET_USER_PAGES_REMOTE_WITH_TASK_PTR */
 #else /* _HAS_GET_USER_PAGES_REMOTE */
 	nr_pages_pinned = get_user_pages(user_pages->tsk, owner_mm, start_page_addr,
