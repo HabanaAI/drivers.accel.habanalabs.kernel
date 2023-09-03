@@ -1698,6 +1698,13 @@ static const char * const gaudi3_psoc_sei_cause[] = {
 	"qspi_mem_access_prot"
 };
 
+static const char * const gaudi3_sob_sei_cause[] = {
+	"SOB value to be written is above maximum (15'h7fff) and under minimum 16'h0.",
+	"The payload address of monitor is not aligned to 4B.",
+	"Armed monitor write got BRESP (SLVERR or DECERR).",
+	"Direct CQ overflow, written when direct CQ request on full CQ buffer (buffer size 64)",
+};
+
 struct gaudi3_dup_grp_info {
 	enum gaudi3_dup_group name;
 	u32 fixup_offset;
@@ -12165,7 +12172,10 @@ static void gaudi3_sei_razwi_handler_no_fw(struct hl_device *hdev,
 		gaudi3_razwi_handler(hdev, RAZWI_PSOC, die, hdcore, initiator_idx, eng_id,
 					event_mask);
 		break;
-
+	case INT_COMP_TYPE_SOB:
+		gaudi3_razwi_handler(hdev, RAZWI_SM, die, hdcore, initiator_idx, eng_id,
+					event_mask);
+		break;
 	default:
 		dev_err(hdev->dev, "Component type %u doesn't have razwi handler\n",
 			agg_component_type);
@@ -12743,6 +12753,59 @@ static u32 gaudi3_handle_psoc_sei_err(struct hl_device *hdev, u16 data_size,
 				PSOC_GLBL_CONF2_SEI_INTR_MASK;
 	err_num = gaudi3_err_cause_iterator(hdev, err_bits, gaudi3_psoc_sei_cause, "PSOC", "SEI");
 
+	return err_num;
+}
+
+static void gaudi3_handle_sob_sei_log(struct hl_device *hdev, u32 log_idx, u32 log)
+{
+	switch (log_idx) {
+	case 0:
+		dev_err(hdev->dev, "SO ID which cause overflow is 0x%x\n", log);
+		break;
+	case 1:
+		dev_err(hdev->dev, "monitor address[15:0] is 0x%x\n", log);
+		break;
+	case 2:
+		dev_err(hdev->dev,
+			"the AXID of the write transaction which got SLVERR/DECERR is 0x%x\n", log);
+		break;
+	case 3:
+		dev_err(hdev->dev, "the CQ that caused overflow is 0x%x\n", log);
+		break;
+	default:
+		dev_err(hdev->dev, "Invalid log idx for SM sei event: 0x%x\n", log_idx);
+		break;
+	}
+}
+
+static u32 gaudi3_handle_sob_sei_err(struct hl_device *hdev, u16 data_size,
+						struct hl_eq_sob_sei_data *sei_data)
+{
+	u32 log_idx, sm_cause, sm_cause_cause, sm_cause_log, err_num = 0, cq_intr_queue_idx;
+	int rc;
+
+	rc = gaudi3_validate_eqe_data_size(hdev, data_size, sizeof(*sei_data));
+	if (rc)
+		return 0;
+	sm_cause = le64_to_cpu(sei_data->intr_cause.intr_cause_data);
+	sm_cause_cause = FIELD_GET(SOB_GLBL_SM_SEI_CAUSE_CAUSE_M, sm_cause);
+	err_num = gaudi3_err_cause_iterator(hdev, sm_cause_cause, gaudi3_sob_sei_cause,
+							"SOB", "SEI");
+	if (err_num) {
+		log_idx = ffs(sm_cause_cause) - 1;
+		sm_cause_log = FIELD_GET(SOB_GLBL_SM_SEI_CAUSE_LOG_M, sm_cause);
+		gaudi3_handle_sob_sei_log(hdev, log_idx, sm_cause_log);
+	} else {
+		if (!sei_data->cq_data.cq_intr) {
+			dev_err(hdev->dev, "No error cause for sob sei event\n");
+		} else {
+			cq_intr_queue_idx = sei_data->cq_data.cq_intr_queue_idx;
+			dev_err(hdev->dev,
+				"SOB CQ security event, cq intr queue index is 0x%x\n",
+						cq_intr_queue_idx);
+			err_num = 1;
+		}
+	}
 	return err_num;
 }
 
@@ -13382,6 +13445,10 @@ static void gaudi3_sei_razwi_handler(struct hl_device *hdev, struct hl_eq_dynami
 		gaudi3_handle_razwi(hdev, &eq->psoc_sei_data.rtr_data, eng_id, event_mask);
 		break;
 
+	case INT_COMP_TYPE_SOB:
+		gaudi3_handle_razwi(hdev, &eq->sob_sei_data.rtr_data, eng_id, event_mask);
+		break;
+
 	default:
 		dev_err(hdev->dev, "Component type %u doesn't have razwi handler\n",
 			agg_component_type);
@@ -13554,6 +13621,9 @@ static u32 gaudi3_handle_sei_event(struct hl_device *hdev,
 		err_cnt = gaudi3_handle_psoc_sei_err(hdev, data_size,
 							&eq_dynamic_entry->psoc_sei_data);
 		break;
+	case INT_COMP_TYPE_SOB:
+		err_cnt = gaudi3_handle_sob_sei_err(hdev, data_size,
+							&eq_dynamic_entry->sob_sei_data);
 	default:
 		break;
 	}
