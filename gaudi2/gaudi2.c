@@ -3362,6 +3362,7 @@ static int gaudi2_cn_clear_mem(struct hl_device *hdev)
 			return -EINVAL;
 		}
 
+		/* subtract 1 to support size of 4GB as well */
 		nic_drv_size = (asic_prop->nic_drv_size - 1) & 0xFFFFFFFF;
 		/* max 250 MB per packet, in order to avoid CPUCP packet timeout */
 		gran_per_packet = 250 * 1024 * 1024;
@@ -3377,7 +3378,8 @@ static int gaudi2_cn_clear_mem(struct hl_device *hdev)
 			if (i < num_iter - 1)
 				pkt.size = cpu_to_le32(gran_per_packet);
 			else
-				pkt.size = cpu_to_le32(nic_drv_size - gran_per_packet * i);
+				/* add 1 as it was subtracted in original size calculation */
+				pkt.size = cpu_to_le32(nic_drv_size - gran_per_packet * i + 1);
 
 			rc = gaudi2_send_cpu_message(hdev, (u32 *) &pkt, sizeof(pkt), 0, NULL);
 			if (rc) {
