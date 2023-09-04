@@ -881,15 +881,19 @@ out_err:
 	return rc;
 }
 
-static u32 get_dev_nic_ports_mask(enum hl_asic_type asic_type)
+static u32 get_dev_nic_ports_mask(struct hl_device *hdev)
 {
+	enum hl_asic_type asic_type = hdev->asic_type;
 	u32 mask;
 
 	switch (asic_type) {
 	case ASIC_GAUDI3:
 	case ASIC_GAUDI3_SIM:
 	case ASIC_GAUDI3_SIM_ARC:
-		mask = (nic_lanes_per_port == PORT_LANES_4) ? 0xFFF : 0xFFFFFF;
+		if (hdev->force_h9_single_die)
+			mask = (nic_lanes_per_port == PORT_LANES_4) ? 0x3F : 0xFFF;
+		else
+			mask = (nic_lanes_per_port == PORT_LANES_4) ? 0xFFF : 0xFFFFFF;
 		break;
 	case ASIC_GAUDI3_SINGLE_DIE:
 	case ASIC_GAUDI3_SIM_SINGLE_DIE:
@@ -1514,7 +1518,7 @@ static int fixup_device_params(struct hl_device *hdev)
 		hdev->heartbeat = 0;
 
 	/* Adjust NIC ports parameters according to the device in-hand */
-	dev_nic_ports_mask = get_dev_nic_ports_mask(hdev->asic_type);
+	dev_nic_ports_mask = get_dev_nic_ports_mask(hdev);
 
 	hdev->cn.ports_mask = nic_ports_mask & dev_nic_ports_mask;
 	/* ports ext and autoneg masks are subsets of device ports_pask */

@@ -79,6 +79,7 @@
 #include "../include/gaudi3/gaudi3_reg_map.h"
 #include "../include/hw_ip/mmu/mmu_v2_0.h"
 #include "../include/hw_ip/mmu/mmu_v3_0.h"
+#include "../include/common/pci_ids.h"
 #include <linux/module.h>
 #include <linux/pci.h>
 #include <linux/hwmon.h>
@@ -5169,6 +5170,24 @@ int gaudi3_sw_init(struct hl_device *hdev)
 {
 	struct gaudi3_device *gaudi3;
 	int rc;
+
+	if (hdev->force_h9_single_die) {
+		hdev->tpc_mask &= BIT(NUM_OF_HDCORES_PER_DIE * NUM_OF_TPC_PER_HDCORE) - 1;
+		hdev->mme_mask &= BIT(NUM_OF_HDCORES_PER_DIE * NUM_OF_MME_PER_HDCORE) - 1;
+		hdev->pdma_ch_mask &= BIT(NUM_OF_PDMA_CH_PER_DIE) - 1;
+		hdev->edma_mask &= BIT((NUM_OF_HDCORES_PER_DIE / 2) * NUM_OF_EDMA_PER_HDCORE) - 1;
+		hdev->decoder_mask &= BIT(NUM_OF_HDCORES_PER_DIE * NUM_OF_DECODER_PER_HDCORE) - 1;
+		hdev->sched_arc_mask &= BIT(NUM_OF_HDCORES_PER_DIE * NUM_ARC_SCHED_PER_HDCORE) - 1;
+		hdev->rotator_mask &= BIT((NUM_OF_HDCORES_PER_DIE / 2) * NUM_OF_ROTATOR_PER_HDCORE)
+									- 1;
+
+		dev_dbg(hdev->dev, "Running in force single die mode, engine masks are:\n");
+		dev_dbg(hdev->dev, "TPC 0x%llX, MME 0x%X, PDMA 0x%llX, EDMA 0x%X\n",
+				hdev->tpc_mask, hdev->mme_mask, hdev->pdma_ch_mask,
+				hdev->edma_mask);
+		dev_dbg(hdev->dev, "Decoder 0x%X, Sched Arcs 0x%llX, Rotator 0x%X\n",
+				hdev->decoder_mask, hdev->sched_arc_mask, hdev->rotator_mask);
+	}
 
 	/* Allocate device structure */
 	gaudi3 = kzalloc(sizeof(*gaudi3), GFP_KERNEL);
@@ -11326,6 +11345,9 @@ void gaudi3_hw_queues_unlock(struct hl_device *hdev)
 
 u32 gaudi3_get_pci_id(struct hl_device *hdev)
 {
+	if (hdev->force_h9_single_die)
+		return PCI_IDS_GAUDI3_SINGLE_DIE;
+
 	return hdev->pdev->device;
 }
 
