@@ -342,6 +342,10 @@ static void handle_and_clear_hbm_events(struct hl_device *hdev, u32 die, u32 hdc
 					enum err_grp type, u32 sts, u32 sts_idx, u32 idx,
 					u32 aggr_mask_reg, u32 events_mask,
 					struct hl_eq_dynamic_entry *eq_dynamic_entry);
+static void handle_and_clear_sob_events(struct hl_device *hdev, u32 die, u32 hdcore, u32 instance,
+					enum err_grp type, u32 sts, u32 sts_idx, u32 idx,
+					u32 aggr_mask_reg, u32 events_mask,
+					struct hl_eq_dynamic_entry *eq_dynamic_entry);
 
 static const shared_aggr_handle_and_clear shared_handle_and_clear[] = {
 	handle_and_clear_pcie_events, /* SHARED_PCIE_EVENT */
@@ -367,7 +371,7 @@ static const hdcore_aggr_handle_and_clear hdcore_handle_and_clear[] = {
 	handle_and_clear_cs_events, /* HDCORE_CS_EVENT */
 	handle_and_clear_stlb_events, /* HDCORE_STLB_EVENT */
 	handle_and_clear_hbm_events, /* HDCORE_HBM_EVENT */
-	NULL, /* HDCORE_SOB_EVENT */
+	handle_and_clear_sob_events, /* HDCORE_SOB_EVENT */
 	handle_and_clear_arc_farm_events, /* HDCORE_ARCFARM_EVENT */
 	handle_and_clear_decoder_events, /* HDCORE_DEC_EVENT */
 	NULL, /* HDCORE_DUP_EVENT */
@@ -3547,6 +3551,72 @@ static void handle_and_clear_hbm_events(struct hl_device *hdev, u32 die, u32 hdc
 	params.die = die;
 	params.hdcore = hdcore;
 	params.instance = 0;
+	prepare_eq_dynamic_entry_agg_header(eq_dynamic_entry, &params);
+
+	rc = gaudi3_handle_eqe(hdev, eq_dynamic_entry);
+	if (rc)
+		return;
+
+	if (unmask_event_in_aggr)
+		WREG32_AND(aggr_mask_reg, events_mask);
+}
+
+static u32 sob_special_regs_base[] = {
+	mmHD0_SYNC_MNGR_GLBL_SPECIAL_BASE,
+};
+
+/* HDCORE_SOB_EVENT */
+static void handle_and_clear_sob_events(struct hl_device *hdev, u32 die, u32 hdcore, u32 instance,
+					enum err_grp type, u32 sts, u32 sts_idx, u32 idx,
+					u32 aggr_mask_reg, u32 events_mask,
+					struct hl_eq_dynamic_entry *eq_dynamic_entry)
+{
+	struct hl_eq_sob_sei_data *sob_sei_data = &eq_dynamic_entry->sob_sei_data;
+	struct eq_agg_header_params params = {};
+	bool unmask_event_in_aggr = false;
+	u32 offset, base, sei_cause, cq_intr_val;
+	int rc;
+
+	offset = (die * NUM_OF_HDCORES_PER_DIE + hdcore) * HDCORE_OFFSET;
+	switch (type) {
+	case ERR_GRP_DERR:
+		handle_and_clear_derr_events(hdev, sob_special_regs_base,
+						ARRAY_SIZE(sob_special_regs_base), offset,
+						&eq_dynamic_entry->ecc_data);
+		eq_dynamic_entry->hdr.size = cpu_to_le16(sizeof(struct hl_eq_ecc_data));
+		unmask_event_in_aggr = true;
+		break;
+	case ERR_GRP_SEI:
+		base = mmHD0_SYNC_MNGR_GLBL_BASE + offset;
+		sei_cause = RREG32(base + mmSOB_GLBL_SM_SEI_CAUSE);
+
+		sob_sei_data->intr_cause.intr_cause_data = cpu_to_le64(sei_cause);
+		eq_dynamic_entry->hdr.size = cpu_to_le16(sizeof(struct hl_eq_sob_sei_data));
+
+		if (sei_cause == 0) {
+			sob_sei_data->cq_data.cq_intr = 1;
+			cq_intr_val = RREG32(base + mmSOB_GLBL_CQ_INTR);
+			sob_sei_data->cq_data.cq_intr_queue_idx =
+				FIELD_GET(SOB_GLBL_CQ_INTR_CQ_INTR_QUEUE_INDEX_M, cq_intr_val);
+			WREG32(base + mmSOB_GLBL_CQ_INTR, 0x0);
+		}
+
+		/* Clear interrupt (W0C) */
+		WREG32(base + mmSOB_GLBL_SM_SEI_CAUSE, 0x0);
+		unmask_event_in_aggr = true;
+		break;
+	case ERR_GRP_SPI_ECO:
+		/* SPI interrupt is only for trace/debug so don't pass it to EQ handler */
+		return;
+	default:
+		return;
+	}
+
+	params.component_type = INT_COMP_TYPE_SOB;
+	params.grp_type = type;
+	params.die = die;
+	params.hdcore = hdcore;
+	params.instance = instance;
 	prepare_eq_dynamic_entry_agg_header(eq_dynamic_entry, &params);
 
 	rc = gaudi3_handle_eqe(hdev, eq_dynamic_entry);
