@@ -1527,11 +1527,29 @@ static void detect_cpu_boot_status(struct hl_device *hdev, u32 status)
 int hl_fw_wait_preboot_ready(struct hl_device *hdev)
 {
 	struct pre_fw_load_props *pre_fw_load = &hdev->fw_loader.pre_fw_load;
-	u32 status;
+	u32 status = 0;
 	int rc;
 
-	if (hdev->pldm)
+	if (hdev->pldm) {
 		dev_dbg(hdev->dev, "Waiting for preboot ready, might take few min...\n");
+
+		/* This section is only for PLDM to ensure that the boot status register
+		 * polling will be after iatu is configured.
+		 */
+		rc = hl_poll_timeout_elbi(
+				hdev,
+				hdev->asic_prop.cfg_base_address + pre_fw_load->cpu_boot_status_reg,
+				status,
+				(status == CPU_BOOT_STATUS_WAITING_FOR_BOOT_FIT),
+				hdev->fw_poll_interval_usec,
+				pre_fw_load->wait_for_preboot_timeout);
+		if (rc) {
+			dev_err(hdev->dev, "CPU boot ready ELBI timeout (status = %d)\n", status);
+			return -EIO;
+		}
+		/* Wait for prfeboot iatu setup */
+		ssleep(5);
+	}
 
 	/* Need to check two possible scenarios:
 	 *
