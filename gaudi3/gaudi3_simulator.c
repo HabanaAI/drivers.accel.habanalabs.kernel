@@ -904,6 +904,8 @@ static int gaudi3_sim_set_fixed_properties(struct hl_device *hdev)
 		prop->dram_end_address = prop->dram_base_address + prop->dram_size;
 	}
 
+	prop->support_glbl_priv_fetch = true;
+
 	return 0;
 }
 

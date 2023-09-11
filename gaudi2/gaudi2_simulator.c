@@ -1004,6 +1004,7 @@ static int gaudi2_sim_set_fixed_properties(struct hl_device *hdev)
 	prop->cb_pool_cb_size = SIM_CB_POOL_CB_SIZE;
 	prop->nic_drv_size = nic_drv_size;
 	prop->nic_drv_addr = GAUDI2_SIM_NIC_DRV_ADDR;
+	prop->support_glbl_priv_fetch = true;
 
 	return 0;
 }
