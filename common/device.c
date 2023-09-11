@@ -287,6 +287,8 @@ void hl_dma_unmap_sgtable_caller(struct hl_device *hdev, struct sg_table *sgt,
 	struct scatterlist *sg;
 	int i;
 
+	hdev->asic_funcs->dma_unmap_sgtable(hdev, sgt, dir);
+
 	if (trace_habanalabs_dma_unmap_page_enabled()) {
 		for_each_sgtable_dma_sg(sgt, sg, i)
 			trace_habanalabs_dma_unmap_page(hdev->dev, page_to_phys(sg_page(sg)),
