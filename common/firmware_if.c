@@ -755,7 +755,7 @@ static bool fw_report_boot_dev0(struct hl_device *hdev, u32 err_val,
 
 	if (err_val & CPU_BOOT_ERR0_DEVICE_UNUSABLE_FAIL) {
 		/* Ignore this bit, don't prevent driver loading */
-		dev_dbg(hdev->dev, "device unusable status is set\n");
+		dev_info(hdev->dev, "device unusable status is set\n");
 		err_val &= ~CPU_BOOT_ERR0_DEVICE_UNUSABLE_FAIL;
 	}
 
