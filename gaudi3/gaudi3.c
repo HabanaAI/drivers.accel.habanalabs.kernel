@@ -13518,12 +13518,14 @@ static u32 gaudi3_handle_sei_event(struct hl_device *hdev,
 		break;
 	}
 
-	if (hdev->fw_components & FW_TYPE_BOOT_CPU)
-		gaudi3_sei_razwi_handler(hdev, eq_dynamic_entry, event_mask);
-	else
-		gaudi3_sei_razwi_handler_no_fw(hdev, agg_hdr, event_mask);
+	if (err_cnt) {
+		if (hdev->fw_components & FW_TYPE_BOOT_CPU)
+			gaudi3_sei_razwi_handler(hdev, eq_dynamic_entry, event_mask);
+		else
+			gaudi3_sei_razwi_handler_no_fw(hdev, agg_hdr, event_mask);
 
-	hl_check_for_glbl_errors(hdev);
+		hl_check_for_glbl_errors(hdev);
+	}
 
 	return err_cnt;
 }
@@ -13575,7 +13577,8 @@ static u32 gaudi3_handle_spi_event(struct hl_device *hdev,
 		break;
 	}
 
-	hl_check_for_glbl_errors(hdev);
+	if (err_cnt)
+		hl_check_for_glbl_errors(hdev);
 
 	return err_cnt;
 }
