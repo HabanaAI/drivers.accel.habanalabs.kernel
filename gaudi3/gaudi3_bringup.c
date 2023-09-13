@@ -2785,33 +2785,20 @@ static void gaudi3_ac_program_all(struct hl_device *hdev)
 		gaudi3_ac_program(hdev, etr_idx);
 }
 
-void gaudi3_ac_start(struct hl_device *hdev, u32 etr_idx)
+void gaudi3_ac_start_no_fw(struct hl_device *hdev, u32 etr_idx)
 {
-	struct hl_etr_buf_store *store = &hdev->etr_buf_store;
 	u64 base = gaudi3_etr_ac_config[etr_idx].ac_off;
-
-	store->etr_tracer[etr_idx].ac_started = 1;
 
 	RMWREG32(mmD0_NCH_AC_BASE + mmAUTONOMOUS_CONTROL_CTRL + base, 1,
 			AUTONOMOUS_CONTROL_CTRL_EN_M);
 }
 
-void gaudi3_ac_stop(struct hl_device *hdev, u32 etr_idx)
+void gaudi3_ac_stop_no_fw(struct hl_device *hdev, u32 etr_idx)
 {
-	struct hl_etr_buf_store *store = &hdev->etr_buf_store;
 	u64 base = gaudi3_etr_ac_config[etr_idx].ac_off;
-
-	store->etr_tracer[etr_idx].ac_started = 0;
 
 	RMWREG32(mmD0_NCH_AC_BASE + mmAUTONOMOUS_CONTROL_CTRL + base, 0,
 			AUTONOMOUS_CONTROL_CTRL_EN_M);
-}
-
-int gaudi3_is_ac_started(struct hl_device *hdev, u32 etr_idx)
-{
-	struct hl_etr_buf_store *store = &hdev->etr_buf_store;
-
-	return store->etr_tracer[etr_idx].ac_started;
 }
 
 static void gaudi3_init_credits(struct hl_device *hdev)

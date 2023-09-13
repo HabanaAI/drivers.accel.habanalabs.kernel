@@ -5839,6 +5839,57 @@ static int gaudi3_etr_validate_address(struct hl_device *hdev, u64 addr, u64 siz
 	return false;
 }
 
+static int gaudi3_is_ac_started(struct hl_device *hdev, u32 etr_idx)
+{
+	struct hl_etr_buf_store *store = &hdev->etr_buf_store;
+
+	return store->etr_tracer[etr_idx].ac_started;
+}
+
+static void gaudi3_ac_start(struct hl_device *hdev, u32 etr_idx)
+{
+	struct hl_etr_buf_store *store = &hdev->etr_buf_store;
+	struct cpucp_packet pkt;
+	int rc;
+
+	if (hdev->fw_components & FW_TYPE_BOOT_CPU) {
+		memset(&pkt, 0, sizeof(pkt));
+
+		pkt.ctl = cpu_to_le32(CPUCP_PACKET_AC_CONTROL << CPUCP_PKT_CTL_OPCODE_SHIFT);
+		pkt.index = etr_idx;
+		pkt.pkt_subidx = AC_OP_START;
+		rc = hdev->asic_funcs->send_cpu_message(hdev, (u32 *) &pkt, sizeof(pkt), 0, NULL);
+		if (rc)
+			dev_err(hdev->dev, "failed to send AC start msg (err = %d)\n", rc);
+	} else {
+		gaudi3_ac_start_no_fw(hdev, etr_idx);
+	}
+
+	store->etr_tracer[etr_idx].ac_started = 1;
+}
+
+static void gaudi3_ac_stop(struct hl_device *hdev, u32 etr_idx)
+{
+	struct hl_etr_buf_store *store = &hdev->etr_buf_store;
+	struct cpucp_packet pkt;
+	int rc;
+
+	if (hdev->fw_components & FW_TYPE_BOOT_CPU) {
+		memset(&pkt, 0, sizeof(pkt));
+
+		pkt.ctl = cpu_to_le32(CPUCP_PACKET_AC_CONTROL << CPUCP_PKT_CTL_OPCODE_SHIFT);
+		pkt.index = etr_idx;
+		pkt.pkt_subidx = AC_OP_STOP;
+		rc = hdev->asic_funcs->send_cpu_message(hdev, (u32 *) &pkt, sizeof(pkt), 0, NULL);
+		if (rc)
+			dev_err(hdev->dev, "failed to send AC stop msg (err = %d)\n", rc);
+	} else {
+		gaudi3_ac_stop_no_fw(hdev, etr_idx);
+	}
+
+	store->etr_tracer[etr_idx].ac_started = 0;
+}
+
 static int gaudi3_config_etr(struct hl_device *hdev, struct hl_ctx *ctx,
 				struct hl_debug_params *params)
 {

@@ -661,9 +661,6 @@ int gaudi3_etr_buf_store_late_init(struct hl_device *hdev);
 void gaudi3_etr_buf_store_late_fini(struct hl_device *hdev);
 struct hl_etr_buf *gaudi3_etr_buf_store_pop_buf(struct hl_device *hdev, u32 etr_idx);
 void gaudi3_etr_buf_store_return_buf_to_pool(struct hl_device *hdev, struct hl_etr_buf *buf);
-void gaudi3_ac_start(struct hl_device *hdev, u32 etr_idx);
-void gaudi3_ac_stop(struct hl_device *hdev, u32 etr_idx);
-int gaudi3_is_ac_started(struct hl_device *hdev, u32 etr_idx);
 int gaudi3_etr_fetch_buffer_to_host(struct hl_device *hdev, u32 etr_idx, bool last_buffer);
 void gaudi3_init_msix_gw_table(struct hl_device *hdev);
 void gaudi3_iterate_edmas(struct hl_device *hdev, struct iterate_module_ctx *ctx);
@@ -792,5 +789,6 @@ u32 gaudi3_handle_axi_drain(struct hl_device *hdev, bool *pci_link_error);
 void gaudi3_cn_macros_fw_config(struct hl_device *hdev);
 void gaudi3_cn_restore_dynamic_cfg_soft_reset_fw(struct hl_device *hdev);
 void gaudi3_dtlb_nrtr_eco_fixup(struct hl_device *hdev);
-
+void gaudi3_ac_start_no_fw(struct hl_device *hdev, u32 etr_idx);
+void gaudi3_ac_stop_no_fw(struct hl_device *hdev, u32 etr_idx);
 #endif /* GAUDI3P_H_ */
