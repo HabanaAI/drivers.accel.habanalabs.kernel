@@ -9,7 +9,7 @@
 #define CN_H_
 
 #include <uapi/drm/habanalabs_accel.h>
-#include <linux/habanalabs/habanalabs_aux.h>
+#include <linux/net/intel/cn_aux.h>
 
 #include <linux/kfifo.h>
 #include <linux/hashtable.h>
