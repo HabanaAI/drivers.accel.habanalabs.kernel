@@ -13509,17 +13509,33 @@ static u32 gaudi3_handle_pll_sei_err(struct hl_device *hdev, u16 data_size,
 	return gaudi3_handle_single_err_mask(hdev, err_msk, err_str);
 }
 
+static u32 gaudi3_handle_nic_sei_err_event(struct hl_device *hdev, u16 data_size,
+						   u32 macro_index,
+						   struct hl_eq_nic_sei_data *nic_sei_data)
+{
+	struct hl_aux_dev *aux_dev = &hdev->cn.cn_aux_dev;
+	struct gaudi3_device *gaudi3 = hdev->asic_specific;
+	struct gaudi3_cn_aux_ops *aux_ops = &gaudi3->cn_aux_ops;
+	int rc;
+
+	rc = gaudi3_validate_eqe_data_size(hdev, data_size, sizeof(struct hl_eq_nic_sei_data));
+	if (rc)
+		return 0;
+
+	if (aux_ops->sei_err_event_handler)
+		rc = aux_ops->sei_err_event_handler(aux_dev, macro_index);
+
+	return rc;
+}
+
 static u32 gaudi3_handle_sei_event(struct hl_device *hdev,
 				struct hl_eq_dynamic_entry *eq_dynamic_entry, u64 *event_mask)
 {
 	struct hl_agg_eq_header *agg_hdr = &eq_dynamic_entry->agg_hdr;
-	struct gaudi3_device *gaudi3 = hdev->asic_specific;
-	struct gaudi3_cn_aux_ops *aux_ops = &gaudi3->cn_aux_ops;
 	u16 data_size = le16_to_cpu(eq_dynamic_entry->hdr.size);
-	struct hl_aux_dev *aux_dev = &hdev->cn.cn_aux_dev;
 	enum hl_agg_component_type agg_component_type;
 	struct hl_eq_glbl_err *glbl_err_data = NULL;
-	u32 die, instance, err_cnt = 0;
+	u32 die, instance, err_cnt = 0, macro_index;
 
 	agg_component_type = eq_dynamic_entry->agg_hdr.int_comp_type;
 	die = eq_dynamic_entry->agg_hdr.die_id;
@@ -13556,10 +13572,10 @@ static u32 gaudi3_handle_sei_event(struct hl_device *hdev,
 		glbl_err_data = &eq_dynamic_entry->edma_sei_data.glbl_err_data;
 		break;
 	case INT_COMP_TYPE_NIC:
-		/* TODO: set the glbl_err_data while handling SW-152170 */
-		if (aux_ops->sei_err_event_handler)
-			err_cnt = aux_ops->sei_err_event_handler(aux_dev,
-							die * NIC_NUM_MACROS_PER_DIE + instance);
+		macro_index = die * NIC_NUM_MACROS_PER_DIE + instance;
+		err_cnt = gaudi3_handle_nic_sei_err_event(hdev, data_size, macro_index,
+								 &eq_dynamic_entry->nic_sei_data);
+		glbl_err_data = &eq_dynamic_entry->nic_sei_data.glbl_err_data;
 		break;
 	case INT_COMP_TYPE_PARC:
 		err_cnt = gaudi3_handle_parc_sei_err(hdev, data_size,

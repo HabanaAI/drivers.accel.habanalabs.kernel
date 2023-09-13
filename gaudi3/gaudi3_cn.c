@@ -9,7 +9,7 @@
 #include "../include/gaudi3/asic_reg/gaudi3_regs.h"
 #include "../include/hw_ip/nic/nic_general.h"
 
-static bool is_400g_mode(struct hl_device *hdev)
+bool is_400g_mode(struct hl_device *hdev)
 {
 	return hdev->cn.lanes_per_port == PORT_LANES_4;
 }

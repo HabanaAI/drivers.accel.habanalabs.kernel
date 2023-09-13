@@ -101,5 +101,6 @@ enum gaudi3_wqe_opcode {
 u64 gaudi3_cn_get_macro_ports_mask(struct hl_device *hdev, int macro_idx);
 u32 gaudi3_cn_handle_bmon_spmu_event(struct hl_device *hdev, u32 macro_index);
 int gaudi3_cn_set_info(struct hl_device *hdev, bool get_from_fw);
+bool is_400g_mode(struct hl_device *hdev);
 
 #endif /* GAUDI3_CN_H_ */

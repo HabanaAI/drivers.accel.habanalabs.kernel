@@ -5098,7 +5098,7 @@ static void handle_and_clear_nic_events(struct hl_device *hdev, u32 die,
 {
 	struct eq_agg_header_params params = {};
 	bool unmask_event_in_aggr = false;
-	u32 instance, offset;
+	u32 instance, offset, macro_index;
 	int rc;
 
 	memset(eq_dynamic_entry, 0, sizeof(*eq_dynamic_entry));
@@ -5115,13 +5115,27 @@ static void handle_and_clear_nic_events(struct hl_device *hdev, u32 die,
 		break;
 	case ERR_GRP_SEI:
 		instance = idx;
+		eq_dynamic_entry->hdr.size = cpu_to_le16(sizeof(struct hl_eq_nic_sei_data));
 		unmask_event_in_aggr = true;
+		macro_index = die * NIC_NUM_MACROS_PER_DIE + instance;
+		gaudi3_cn_get_sei_error_event_data(hdev, &eq_dynamic_entry->nic_sei_data,
+						   macro_index);
+		gaudi3_cn_clear_sei_error_event(hdev, &eq_dynamic_entry->nic_sei_data,
+						macro_index);
 		break;
 	case ERR_GRP_SPI_ECO:
 		instance = idx / 2;
 		eq_dynamic_entry->nic_spi_data.spi_type = idx & 0x1;
 		eq_dynamic_entry->hdr.size = cpu_to_le16(sizeof(struct hl_eq_nic_spi_data));
 		unmask_event_in_aggr = true;
+		/* TODO: SW-163409 get cause & clear interrupt(s) for NIC_SPI_BMON_SPMU */
+		if (eq_dynamic_entry->nic_spi_data.spi_type != NIC_SPI_BMON_SPMU) {
+			macro_index = die * NIC_NUM_MACROS_PER_DIE + instance;
+			gaudi3_cn_get_spi_event_data(hdev, &eq_dynamic_entry->nic_spi_data,
+						     macro_index);
+			gaudi3_cn_clear_spi_event(hdev, &eq_dynamic_entry->nic_spi_data,
+						  macro_index);
+		}
 		break;
 	default:
 		return;
@@ -5135,6 +5149,7 @@ static void handle_and_clear_nic_events(struct hl_device *hdev, u32 die,
 	prepare_eq_dynamic_entry_agg_header(eq_dynamic_entry, &params);
 
 	rc = gaudi3_handle_eqe(hdev, eq_dynamic_entry);
+
 	if (rc)
 		return;
 

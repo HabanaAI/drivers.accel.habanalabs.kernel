@@ -131,6 +131,7 @@
 #include "stlb_regs.h"
 #include "nic_txs_regs.h"
 #include "nic_txe_regs.h"
+#include "nic_tmr_regs.h"
 #include "nic_qpc_regs.h"
 #include "nic_rxe_regs.h"
 #include "nic_rxb_core_regs.h"
