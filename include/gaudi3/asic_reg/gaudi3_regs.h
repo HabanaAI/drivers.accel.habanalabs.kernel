@@ -20,6 +20,7 @@
 #include "qman_cgm_regs.h"
 #include "edma_cmn_regs.h"
 #include "tpc_regs.h"
+#include "tpc_eml_cfg_regs.h"
 #include "tpc_qm_regs.h"
 #include "tpc_kernel_regs.h"
 #include "tpc_qm_tensor_0_shared_regs.h"

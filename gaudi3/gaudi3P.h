@@ -83,6 +83,15 @@
 /* Total number of decoders */
 #define NUMBER_OF_DEC			16
 
+/* Total number of edmas */
+#define NUMBER_OF_EDMA 8
+
+/* Total number of tpcs */
+#define NUMBER_OF_TPC 64
+
+/* Total number of mmes */
+#define NUMBER_OF_MME 8
+
 #define NUM_OF_MME_EU_PER_HDCORE	2
 #define NUM_OF_MME_SBTE_PER_EU		4
 
