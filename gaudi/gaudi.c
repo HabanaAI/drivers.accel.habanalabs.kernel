@@ -9848,7 +9848,6 @@ static const struct hl_asic_funcs gaudi_funcs = {
 	.set_dram_properties = gaudi_set_dram_properties,
 	.set_priv_assertions = gaudi_set_priv_assertions,
 	.set_binning_masks = gaudi_set_binning_masks,
-	.memset_device_memory = gaudi_memset_device_memory,
 };
 
 /**

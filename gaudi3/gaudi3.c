@@ -13725,11 +13725,6 @@ static void gaudi3_set_priv_assertions(struct hl_device *hdev, bool enable)
 {
 }
 
-static int gaudi3_memset_device_memory_ext(struct hl_device *hdev, u64 addr, u64 size, u64 val)
-{
-	return gaudi3_memset_device_memory(hdev, addr, size, val, "EXT scrub");
-}
-
 static const struct hl_asic_funcs gaudi3_funcs = {
 	.early_init = gaudi3_early_init,
 	.early_fini = gaudi3_early_fini,
@@ -13834,7 +13829,6 @@ static const struct hl_asic_funcs gaudi3_funcs = {
 	.set_dram_properties = gaudi3_set_dram_properties,
 	.set_priv_assertions = gaudi3_set_priv_assertions,
 	.set_binning_masks = gaudi3_set_binning_masks,
-	.memset_device_memory = gaudi3_memset_device_memory_ext,
 };
 
 void gaudi3_set_asic_funcs(struct hl_device *hdev)

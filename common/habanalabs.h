@@ -1838,7 +1838,6 @@ struct engines_data {
  * @set_dram_properties: set DRAM related properties.
  * @set_priv_assertions: enable/disable privilege assertions.
  * @set_binning_masks: set binning/enable masks for all relevant components.
- * @memset_device_memory: set memory region in device memory with a value.
  */
 struct hl_asic_funcs {
 	int (*early_init)(struct hl_device *hdev);
@@ -1997,7 +1996,6 @@ struct hl_asic_funcs {
 	int (*set_dram_properties)(struct hl_device *hdev);
 	void (*set_priv_assertions)(struct hl_device *hdev, bool enable);
 	int (*set_binning_masks)(struct hl_device *hdev);
-	int (*memset_device_memory)(struct hl_device *hdev, u64 addr, u64 size, u64 val);
 };
 
 

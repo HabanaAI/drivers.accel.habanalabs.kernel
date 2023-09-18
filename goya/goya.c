@@ -5508,11 +5508,6 @@ void goya_set_priv_assertions(struct hl_device *hdev, bool enable)
 {
 }
 
-static int goya_memset_device_memory_ext(struct hl_device *hdev, u64 addr, u64 size, u64 val)
-{
-	return goya_memset_device_memory(hdev, addr, size, val, true);
-}
-
 static const struct hl_asic_funcs goya_funcs = {
 	.early_init = goya_early_init,
 	.early_fini = goya_early_fini,
@@ -5618,7 +5613,6 @@ static const struct hl_asic_funcs goya_funcs = {
 	.set_priv_assertions = goya_set_priv_assertions,
 	.set_binning_masks = goya_set_binning_masks,
 	.irq_vector = goya_irq_vector,
-	.memset_device_memory = goya_memset_device_memory_ext,
 };
 
 /*

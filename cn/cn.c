@@ -472,14 +472,6 @@ static void hl_cn_post_send_status(struct hl_aux_dev *aux_dev, u32 port)
 	port_funcs->post_send_status(hdev, port);
 }
 
-static int hl_cn_memset_device_memory(struct hl_aux_dev *aux_dev, u64 addr, u64 size, u64 val)
-{
-	struct hl_cn *cn = container_of(aux_dev, struct hl_cn, cn_aux_dev);
-	struct hl_device *hdev = container_of(cn, struct hl_device, cn);
-
-	return hdev->asic_funcs->memset_device_memory(hdev, addr, size, val);
-}
-
 static int hl_cn_get_asic_type(struct hl_device *hdev, enum hl_cn_asic_type *asic_type)
 {
 	switch (hdev->asic_type) {
@@ -627,7 +619,6 @@ static int hl_cn_aux_data_init(struct hl_device *hdev)
 	aux_ops->cpu_accessible_dma_pool_alloc = hl_cn_cpu_accessible_dma_pool_alloc;
 	aux_ops->cpu_accessible_dma_pool_free = hl_cn_cpu_accessible_dma_pool_free;
 	aux_ops->post_send_status = hl_cn_post_send_status;
-	aux_ops->memset_device_memory = hl_cn_memset_device_memory;
 
 	cn_funcs->set_cn_data(hdev);
 

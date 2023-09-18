@@ -449,11 +449,6 @@ static int gaudi3_fpga_scrub_device_dram(struct hl_device *hdev, u64 val)
 	return -EOPNOTSUPP;
 }
 
-static int gaudi3_fpga_memset_device_memory(struct hl_device *hdev, u64 addr, u64 size, u64 val)
-{
-	return 0;
-}
-
 static const struct hl_asic_funcs gaudi3_fpga_funcs = {
 	.early_init = gaudi3_fpga_early_init,
 	.early_fini = gaudi3_early_fini,
@@ -557,7 +552,6 @@ static const struct hl_asic_funcs gaudi3_fpga_funcs = {
 	.fw_security_emulation_fini = gaudi3_fw_security_emulation_fini,
 	.set_dram_properties = gaudi3_set_dram_properties,
 	.set_binning_masks = gaudi3_set_binning_masks,
-	.memset_device_memory = gaudi3_fpga_memset_device_memory,
 };
 
 void gaudi3_fpga_set_asic_funcs(struct hl_device *hdev)

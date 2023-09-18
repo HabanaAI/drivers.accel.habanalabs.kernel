@@ -1731,11 +1731,6 @@ static bool gaudi2_sim_is_device_idle(struct hl_device *hdev, u64 *mask_arr, u8 
 	return gaudi2_is_device_idle(hdev, mask_arr, mask_len, e);
 }
 
-static int gaudi2_sim_memset_device_memory(struct hl_device *hdev, u64 addr, u64 size, u64 val)
-{
-	return 0;
-}
-
 static const struct hl_asic_funcs gaudi2_sim_funcs = {
 	.early_init = gaudi2_sim_early_init,
 	.early_fini = gaudi2_sim_early_fini,
@@ -1842,7 +1837,6 @@ static const struct hl_asic_funcs gaudi2_sim_funcs = {
 	.set_dram_properties = gaudi2_set_dram_properties,
 	.set_priv_assertions = gaudi2_sim_set_priv_assertions,
 	.set_binning_masks = gaudi2_set_binning_masks,
-	.memset_device_memory = gaudi2_sim_memset_device_memory,
 };
 
 /**

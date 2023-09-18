@@ -1342,11 +1342,6 @@ static int goya_sim_pll_info_get(struct hl_device *hdev, u32 pll_index,
 	return 0;
 }
 
-static int goya_sim_memset_device_memory(struct hl_device *hdev, u64 addr, u64 size, u64 val)
-{
-	return 0;
-}
-
 static const struct hl_asic_funcs goya_sim_funcs = {
 	.early_init = goya_sim_early_init,
 	.early_fini = goya_sim_early_fini,
@@ -1446,7 +1441,6 @@ static const struct hl_asic_funcs goya_sim_funcs = {
 	.set_dram_properties = goya_set_dram_properties,
 	.set_priv_assertions = goya_set_priv_assertions,
 	.set_binning_masks = goya_set_binning_masks,
-	.memset_device_memory = goya_sim_memset_device_memory,
 };
 
 /**

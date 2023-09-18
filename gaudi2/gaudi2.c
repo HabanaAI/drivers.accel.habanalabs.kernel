@@ -12348,7 +12348,6 @@ static const struct hl_asic_funcs gaudi2_funcs = {
 	.set_dram_properties = gaudi2_set_dram_properties,
 	.set_priv_assertions = gaudi2_set_priv_assertions,
 	.set_binning_masks = gaudi2_set_binning_masks,
-	.memset_device_memory = gaudi2_memset_device_memory,
 };
 
 void gaudi2_set_asic_funcs(struct hl_device *hdev)
