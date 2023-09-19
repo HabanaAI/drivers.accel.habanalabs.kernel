@@ -61,6 +61,15 @@
 #define NIC_QPC_SPECIAL_GLBL_SPARE_0_ECO_5490_DISABLE_S 2
 #define NIC_QPC_SPECIAL_GLBL_SPARE_0_ECO_5490_DISABLE_M 0x4
 
+static void gaudi3_cn_config_hw_early_init_fw(struct hl_device *hdev, u32 port)
+{
+	/* H9-5194: Setting timeout for PRT configurations. */
+	NIC_WREG32(mmD0_NIC0_PHY_SPECIAL_BASE + mmPRT_PHY_SPECIAL_GLBL_SPARE_0,
+		   hdev->nic_enable_h9_phy_mac_hang_eco ? 0x1001000 : 0);
+	NIC_WREG32(mmD0_NIC0_MAC_AUX_SPECIAL_BASE + mmPRT_MAC_AUX_SPECIAL_GLBL_SPARE_0,
+		   hdev->nic_enable_h9_phy_mac_hang_eco ? 0x1001000 : 0);
+}
+
 static void gaudi3_cn_config_hw_mac_fw(struct hl_device *hdev, u32 port)
 {
 	NIC_WREG32(mmD0_NIC0_MAC_AUX_BASE + mmPRT_MAC_AUX_MAC_CFG_SEC, 0);
@@ -419,6 +428,8 @@ static void gaudi3_cn_hw_macro_config_fw(struct hl_device *hdev, int macro_idx)
 	u32 port;
 
 	port = gaudi3_cn_get_first_port(hdev, macro_idx);
+
+	gaudi3_cn_config_hw_early_init_fw(hdev, port);
 
 	gaudi3_cn_config_hw_mac_fw(hdev, port);
 
