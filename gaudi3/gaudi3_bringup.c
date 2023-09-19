@@ -3875,12 +3875,83 @@ static u32 pmmu_special_regs_base[] = {
 	mmD0_PMMU_HBW_STLB_SPECIAL_BASE
 };
 
+static void handle_pmmu_spi_events(struct hl_device *hdev, u32 die,
+		struct hl_eq_pmmu_spi_data *spi_data)
+{
+	u32 valid, err_type, mmu_spi_status, offset = die * DIE_OFFSET,
+		acc_err_m = MMU_ACCESS_PAGE_ERROR_VALID_ACCESS_ERR_VALID_ENTRY_M,
+		acc_err_spi_sts_m = MMU_SPI_STATUS_I2_M,
+		page_fault_err_m = MMU_ACCESS_PAGE_ERROR_VALID_PAGE_ERR_VALID_ENTRY_M,
+		page_fault_spi_sts_m = MMU_SPI_STATUS_I0_M | MMU_SPI_STATUS_I1_M;
+	u64 axi_id1, axi_id2, lsb_va, msb_va;
+
+	mmu_spi_status = RREG32(mmD0_PMMU_HBW_MMU_BASE + mmMMU_SPI_STATUS + offset);
+	mmu_spi_status &= (acc_err_spi_sts_m | page_fault_spi_sts_m);
+	if (!mmu_spi_status)
+		return;
+	spi_data->intr_cause.intr_cause_data = cpu_to_le64(mmu_spi_status);
+
+	err_type = RREG32(mmD0_PMMU_HBW_MMU_BASE + mmMMU_ACCESS_PAGE_ERROR_VALID + offset);
+	err_type &= (acc_err_m | page_fault_err_m);
+	spi_data->err_type = cpu_to_le64(err_type);
+
+	if ((mmu_spi_status & page_fault_spi_sts_m) || (err_type & page_fault_err_m)) {
+		lsb_va = RREG32(mmD0_PMMU_HBW_MMU_BASE + mmMMU_PAGE_ERROR_CAPTURE_VA + offset);
+		msb_va = RREG32(mmD0_PMMU_HBW_MMU_BASE + mmMMU_PAGE_ERROR_CAPTURE + offset);
+		spi_data->va = cpu_to_le64((msb_va << 32) | lsb_va);
+
+		axi_id1 = RREG32(mmD0_PMMU_HBW_MMU_BASE + mmMMU_PAGE_FAULT_ID_LSB + offset);
+		axi_id2 = RREG32(mmD0_PMMU_HBW_MMU_BASE + mmMMU_PAGE_FAULT_ID_MSB + offset);
+		spi_data->axid = cpu_to_le64((axi_id2 << 32) | axi_id1);
+	}
+	if ((mmu_spi_status & acc_err_spi_sts_m) || (err_type & acc_err_m)) {
+		lsb_va = RREG32(mmD0_PMMU_HBW_MMU_BASE + mmMMU_ACCESS_ERROR_CAPTURE_VA + offset);
+		msb_va = RREG32(mmD0_PMMU_HBW_MMU_BASE + mmMMU_ACCESS_ERROR_CAPTURE + offset);
+		spi_data->va = cpu_to_le64((msb_va << 32) | lsb_va);
+
+		axi_id1 = RREG32(mmD0_PMMU_HBW_MMU_BASE + mmMMU_PAGE_ACCESS_ID_LSB + offset);
+		axi_id2 = RREG32(mmD0_PMMU_HBW_MMU_BASE + mmMMU_PAGE_ACCESS_ID_MSB + offset);
+		spi_data->axid = cpu_to_le64((axi_id2 << 32) | axi_id1);
+	}
+
+	/* we have a loop since we might have several errors and we want to clear all of them */
+	while (mmu_spi_status || err_type) {
+		if ((mmu_spi_status & page_fault_spi_sts_m) || (err_type & page_fault_err_m)) {
+			valid = RREG32(mmD0_PMMU_HBW_MMU_BASE + mmMMU_ACCESS_PAGE_ERROR_VALID +
+					offset);
+			valid = valid & ~MMU_ACCESS_PAGE_ERROR_VALID_PAGE_ERR_VALID_ENTRY_M;
+			/* Clear VALID_BIT; */
+			WREG32(mmD0_PMMU_HBW_MMU_BASE + mmMMU_ACCESS_PAGE_ERROR_VALID + offset,
+					valid);
+
+			WREG32(mmD0_PMMU_HBW_MMU_BASE + mmMMU_SPI_STATUS + offset,
+					page_fault_spi_sts_m);
+		}
+		if ((mmu_spi_status & acc_err_spi_sts_m) || (err_type & acc_err_m)) {
+			valid = RREG32(mmD0_PMMU_HBW_MMU_BASE + mmMMU_ACCESS_PAGE_ERROR_VALID +
+					offset);
+			valid = valid & ~MMU_ACCESS_PAGE_ERROR_VALID_ACCESS_ERR_VALID_ENTRY_M;
+			/* Clear VALID_BIT; */
+			WREG32(mmD0_PMMU_HBW_MMU_BASE + mmMMU_ACCESS_PAGE_ERROR_VALID + offset,
+					valid);
+
+			WREG32(mmD0_PMMU_HBW_MMU_BASE + mmMMU_SPI_STATUS + offset,
+					acc_err_spi_sts_m);
+		}
+		err_type = RREG32(mmD0_PMMU_HBW_MMU_BASE + mmMMU_ACCESS_PAGE_ERROR_VALID + offset);
+		err_type &= (acc_err_m | page_fault_err_m);
+		mmu_spi_status = RREG32(mmD0_PMMU_HBW_MMU_BASE + mmMMU_SPI_STATUS + offset);
+		mmu_spi_status &= (acc_err_spi_sts_m | page_fault_spi_sts_m);
+	}
+}
+
 /* SHARED_PMMU_EVENT */
 static void handle_and_clear_pmmu_events(struct hl_device *hdev, u32 die,
 					enum err_grp type, u32 sts, u32 sts_idx, u32 idx,
 					u32 aggr_mask_reg, u32 events_mask,
 					struct hl_eq_dynamic_entry *eq_dynamic_entry)
 {
+	struct hl_eq_pmmu_spi_data *spi_data = &eq_dynamic_entry->pmmu_spi_data;
 	struct eq_agg_header_params params = {};
 	bool unmask_event_in_aggr = false;
 	u32 offset;
@@ -3900,6 +3971,8 @@ static void handle_and_clear_pmmu_events(struct hl_device *hdev, u32 die,
 	case ERR_GRP_SEI:
 		break;
 	case ERR_GRP_SPI_ECO:
+		handle_pmmu_spi_events(hdev, die, spi_data);
+		eq_dynamic_entry->hdr.size = cpu_to_le16(sizeof(struct hl_eq_pmmu_spi_data));
 		unmask_event_in_aggr = true;
 		break;
 	default:
