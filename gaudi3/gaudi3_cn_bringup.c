@@ -435,19 +435,7 @@ static void gaudi3_cn_hw_macro_config_fw(struct hl_device *hdev, int macro_idx)
 
 void gaudi3_cn_macros_fw_config(struct hl_device *hdev)
 {
-	u32 port;
 	int i;
-
-	/* TODO: SW-155409 remove TMR MMU bypass config once pre-boot fw starts doing it */
-	if (!hdev->reset_info.in_compute_reset)
-		for (i = 0 ; i < NIC_NUMBER_OF_MACROS ; i++) {
-			if (!gaudi3_cn_is_macro_enabled(hdev, i))
-				continue;
-
-			port = gaudi3_cn_get_first_port(hdev, i);
-
-			gaudi3_cn_config_hw_tmr_fw(hdev, port);
-		}
 
 	if (hdev->reset_info.in_compute_reset || (hdev->fw_components & FW_TYPE_PREBOOT_CPU))
 		return;
