@@ -170,6 +170,7 @@ static int bfe_nic_enable_h9_single_qp_perf_fix_eco = 1;
 static int bfe_nic_enable_h9_sal_override_eco = 1;
 static int bfe_nic_enable_h9_sack_deadlock_eco = 1;
 static int bfe_nic_enable_h9_txe_buff_alloc_eco = 1;
+static int bfe_nic_enable_h9_phy_mac_hang_eco = 1;
 static int bfe_heartbeat_reset_enable = 1;
 static int bfe_glbl_errors_read_enable = 1;
 
@@ -523,6 +524,10 @@ MODULE_PARM_DESC(bfe_nic_enable_h9_sack_deadlock_eco,
 module_param(bfe_nic_enable_h9_txe_buff_alloc_eco, int, 0444);
 MODULE_PARM_DESC(bfe_nic_enable_h9_txe_buff_alloc_eco,
 	"Enable H9-5471 ECO, fixes TXE buff allocation issue (0 - disabled, 1 - enabled, default 1)");
+
+module_param(bfe_nic_enable_h9_phy_mac_hang_eco, int, 0444);
+MODULE_PARM_DESC(bfe_nic_enable_h9_phy_mac_hang_eco,
+	"Enable H9-5194 ECO, fixes PHY-MAC hang issue (0 - disabled, 1 - enabled, default 1)");
 
 module_param(bfe_heartbeat_reset_enable, int, 0444);
 MODULE_PARM_DESC(bfe_heartbeat_reset_enable,
@@ -1242,6 +1247,7 @@ static void set_driver_behavior_per_device(struct hl_device *hdev)
 	hdev->nic_enable_h9_sal_override_eco = 1;
 	hdev->nic_enable_h9_sack_deadlock_eco = 1;
 	hdev->nic_enable_h9_txe_buff_alloc_eco = 1;
+	hdev->nic_enable_h9_phy_mac_hang_eco = 1;
 	hdev->enable_h9_cache_eta_eco = 1;
 
 	hdev->glbl_errors_read_enable = 1;
@@ -1350,6 +1356,7 @@ static void copy_bfe_params_to_device(struct hl_device *hdev)
 	hdev->nic_enable_h9_sal_override_eco = bfe_nic_enable_h9_sal_override_eco;
 	hdev->nic_enable_h9_sack_deadlock_eco = bfe_nic_enable_h9_sack_deadlock_eco;
 	hdev->nic_enable_h9_txe_buff_alloc_eco = bfe_nic_enable_h9_txe_buff_alloc_eco;
+	hdev->nic_enable_h9_phy_mac_hang_eco = bfe_nic_enable_h9_phy_mac_hang_eco;
 	hdev->heartbeat_reset_enable = bfe_heartbeat_reset_enable;
 	hdev->glbl_errors_read_enable = bfe_glbl_errors_read_enable;
 

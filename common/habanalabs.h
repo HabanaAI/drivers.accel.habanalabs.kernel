@@ -4052,6 +4052,7 @@ struct hl_device {
 	u8				nic_enable_h9_sal_override_eco;
 	u8				nic_enable_h9_sack_deadlock_eco;
 	u8				nic_enable_h9_txe_buff_alloc_eco;
+	u8				nic_enable_h9_phy_mac_hang_eco;
 	u8				heartbeat_reset_enable;
 	u8				glbl_errors_read_enable;
 };
