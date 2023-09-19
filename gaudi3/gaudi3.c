@@ -2937,99 +2937,64 @@ out:
 	return pmmu_page_fault_initiator_str(*initiator);
 }
 
-static u32 handle_pmmu_events(struct hl_device *hdev, u32 die, u64 *event_mask)
+static u32 handle_pmmu_spi_events(struct hl_device *hdev, u32 die, u64 *event_mask, u16 data_size,
+					struct hl_eq_pmmu_spi_data *pmmu_spi_data)
 {
-	u32 valid, err_type, offset = die * DIE_OFFSET,
-		acc_err_mask = MMU_ACCESS_PAGE_ERROR_VALID_ACCESS_ERR_VALID_ENTRY_M,
+	u32 err_type, acc_err_mask = MMU_ACCESS_PAGE_ERROR_VALID_ACCESS_ERR_VALID_ENTRY_M,
 		acc_err_spi_sts_mask = MMU_SPI_STATUS_I2_M,
 		page_fault_err_mask =
 			MMU_ACCESS_PAGE_ERROR_VALID_PAGE_ERR_VALID_ENTRY_M,
 		page_fault_spi_sts_mask =
 			MMU_SPI_STATUS_I0_M | MMU_SPI_STATUS_I1_M,
-		mmu_spi_status = RREG32(mmD0_PMMU_HBW_MMU_BASE + mmMMU_SPI_STATUS + offset),
-		err_cnt = 0;
-	u64 va, axi_id, axi_id1, axi_id2, lsb_va, msb_va;
+		mmu_spi_status, err_cnt = 0;
+	u64 va, axi_id;
 	enum gaudi3_engine_id initiator = GAUDI3_ENGINE_ID_SIZE;
 	const char *initiator_str;
 	const bool is_read = true;
+	int rc;
 
+	rc = gaudi3_validate_eqe_data_size(hdev, data_size, sizeof(*pmmu_spi_data));
+	if (rc)
+		return 0;
+
+	mmu_spi_status = le64_to_cpu(pmmu_spi_data->intr_cause.intr_cause_data);
 	if (!mmu_spi_status)
 		return 0;
 
-	err_type = RREG32(mmD0_PMMU_HBW_MMU_BASE + mmMMU_ACCESS_PAGE_ERROR_VALID + offset);
+	err_type = le32_to_cpu(pmmu_spi_data->err_type);
+	va = le64_to_cpu(pmmu_spi_data->va);
+	axi_id = le64_to_cpu(pmmu_spi_data->axid);
 
-	while ((mmu_spi_status & (acc_err_spi_sts_mask | page_fault_spi_sts_mask)) ||
-		(err_type & (acc_err_mask | page_fault_err_mask))) {
-		if ((mmu_spi_status & page_fault_spi_sts_mask) ||
-			(err_type & page_fault_err_mask)) {
-			lsb_va = RREG32(mmD0_PMMU_HBW_MMU_BASE + mmMMU_PAGE_ERROR_CAPTURE_VA +
-					offset);
-			msb_va = RREG32(mmD0_PMMU_HBW_MMU_BASE + mmMMU_PAGE_ERROR_CAPTURE + offset);
-			va = (msb_va << 32) | lsb_va;
+	if ((mmu_spi_status & page_fault_spi_sts_mask) || (err_type & page_fault_err_mask)) {
 
-			axi_id1 = RREG32(mmD0_PMMU_HBW_MMU_BASE + mmMMU_PAGE_FAULT_ID_LSB + offset);
-			axi_id2 = RREG32(mmD0_PMMU_HBW_MMU_BASE + mmMMU_PAGE_FAULT_ID_MSB + offset);
-			axi_id = (axi_id2 << 32) | axi_id1;
+		/*
+		 * we call gaudi3_axid_mapping always with 'is_read = true' since we
+		 * can't know if page fault was read or write. The read/write is used to
+		 * distinguish the different PDMA/EDMA. But we ignore this anyway by
+		 * calling 'pmmu_page_fault_initiator_str'
+		 */
+		initiator_str = gaudi3_axid_mapping(hdev, axi_id, die, is_read, &initiator);
 
-			valid = RREG32(mmD0_PMMU_HBW_MMU_BASE + mmMMU_ACCESS_PAGE_ERROR_VALID +
-					offset);
-			valid = valid &
-				~MMU_ACCESS_PAGE_ERROR_VALID_PAGE_ERR_VALID_ENTRY_M;
-			/* Clear VALID_BIT; */
-			WREG32(mmD0_PMMU_HBW_MMU_BASE + mmMMU_ACCESS_PAGE_ERROR_VALID + offset,
-					valid);
+		/*
+		 * The PDMA access the va aligned to 128 bytes and then do the offset
+		 * addition inside. Therefore if the page fault initiator is the PDMA,
+		 * the va will be the original va aligned to 128 bytes
+		 */
+		dev_err(hdev->dev, "page fault: va=0x%llx axi id=0x%.16llx initiator=%s",
+			va, axi_id, initiator_str);
 
-			WREG32(mmD0_PMMU_HBW_MMU_BASE + mmMMU_SPI_STATUS + offset,
-					page_fault_spi_sts_mask);
+		hl_handle_page_fault(hdev, va, initiator, true, event_mask);
+		err_cnt = 1;
+	}
+	if ((mmu_spi_status & acc_err_spi_sts_mask) || (err_type & acc_err_mask)) {
+		va = le64_to_cpu(pmmu_spi_data->va);
 
-			/*
-			 * we call gaudi3_axid_mapping always with 'is_read = true' since we
-			 * can't know if page fault was read or write. The read/write is used to
-			 * distinguish the different PDMA/EDMA. But we ignore this anyway by
-			 * calling 'pmmu_page_fault_initiator_str'
-			 */
-			initiator_str = gaudi3_axid_mapping(hdev, axi_id, die, is_read, &initiator);
+		axi_id = le64_to_cpu(pmmu_spi_data->axid);
 
-			/*
-			 * The PDMA access the va aligned to 128 bytes and then do the offset
-			 * addition inside. Therefore if the page fault initiator is the PDMA,
-			 * the va will be the original va aligned to 128 bytes
-			 */
-			dev_err(hdev->dev, "page fault: va=0x%llx axi id=0x%.16llx initiator=%s",
-				va, axi_id, initiator_str);
-
-			hl_handle_page_fault(hdev, va, initiator, true, event_mask);
-			err_cnt++;
-		}
-		if ((mmu_spi_status & acc_err_spi_sts_mask) || (err_type & acc_err_mask)) {
-			lsb_va = RREG32(mmD0_PMMU_HBW_MMU_BASE + mmMMU_ACCESS_ERROR_CAPTURE_VA +
-					offset);
-			msb_va = RREG32(mmD0_PMMU_HBW_MMU_BASE + mmMMU_ACCESS_ERROR_CAPTURE +
-					offset);
-			va = (msb_va << 32) | lsb_va;
-
-			axi_id1 = RREG32(mmD0_PMMU_HBW_MMU_BASE + mmMMU_PAGE_ACCESS_ID_LSB +
-					offset);
-			axi_id2 = RREG32(mmD0_PMMU_HBW_MMU_BASE + mmMMU_PAGE_ACCESS_ID_MSB +
-					offset);
-			axi_id = (axi_id2 << 32) | axi_id1;
-			valid = RREG32(mmD0_PMMU_HBW_MMU_BASE + mmMMU_ACCESS_PAGE_ERROR_VALID +
-					offset);
-			valid = valid &
-				(~MMU_ACCESS_PAGE_ERROR_VALID_ACCESS_ERR_VALID_ENTRY_M);
-			/* Clear VALID_BIT; */
-			WREG32(mmD0_PMMU_HBW_MMU_BASE + mmMMU_ACCESS_PAGE_ERROR_VALID + offset,
-					valid);
-
-			WREG32(mmD0_PMMU_HBW_MMU_BASE + mmMMU_SPI_STATUS + offset,
-					acc_err_spi_sts_mask);
-			initiator_str = gaudi3_axid_mapping(hdev, axi_id, die, is_read, &initiator);
-			dev_err(hdev->dev, "access error: va=0x%llx axi id=0x%16llx initiator=%s",
-				va, axi_id, initiator_str);
-			err_cnt++;
-		}
-		err_type = RREG32(mmD0_PMMU_HBW_MMU_BASE + mmMMU_ACCESS_PAGE_ERROR_VALID + offset);
-		mmu_spi_status = RREG32(mmD0_PMMU_HBW_MMU_BASE + mmMMU_SPI_STATUS + offset);
+		initiator_str = gaudi3_axid_mapping(hdev, axi_id, die, is_read, &initiator);
+		dev_err(hdev->dev, "access error: va=0x%llx axi id=0x%16llx initiator=%s",
+			va, axi_id, initiator_str);
+		err_cnt = 1;
 	}
 
 	return err_cnt;
@@ -13674,7 +13639,8 @@ static u32 gaudi3_handle_spi_event(struct hl_device *hdev,
 							&eq_dynamic_entry->pcie_spi_data);
 		break;
 	case INT_COMP_TYPE_PMMU:
-		err_cnt = handle_pmmu_events(hdev, die, event_mask);
+		err_cnt = handle_pmmu_spi_events(hdev, die, event_mask, data_size,
+						&eq_dynamic_entry->pmmu_spi_data);
 		break;
 	case INT_COMP_TYPE_STLB:
 		err_cnt = handle_hmmu_spi_events(hdev, data_size, &eq_dynamic_entry->stlb_spi_data,
