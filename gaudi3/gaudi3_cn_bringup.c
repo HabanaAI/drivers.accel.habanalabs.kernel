@@ -75,10 +75,22 @@ static void gaudi3_cn_config_hw_mac_fw(struct hl_device *hdev, u32 port)
 	NIC_WREG32(mmD0_NIC0_MAC_AUX_BASE + mmPRT_MAC_AUX_MAC_CFG_SEC, 0);
 }
 
+static void gaudi3_cn_config_hw_rxb_fw(struct hl_device *hdev, u32 port)
+{
+	NIC_WREG32(mmD0_NIC0_RXB_CORE_BASE + mmNIC_RXB_CORE_AXI_AWPROT_HBW_PRIV, 0);
+	NIC_WREG32(mmD0_NIC0_RXB_CORE_BASE + mmNIC_RXB_CORE_AXI_AWPROT_HBW_SEC, 0);
+
+	NIC_WREG32(mmD0_NIC0_RXB_CORE_BASE + mmNIC_RXB_CORE_AXI_AWPROT_HBW_LPBK_PRIV, 0);
+	NIC_WREG32(mmD0_NIC0_RXB_CORE_BASE + mmNIC_RXB_CORE_AXI_AWPROT_HBW_LPBK_SEC, 0);
+}
+
 static void gaudi3_cn_config_hw_rxe_fw(struct hl_device *hdev, u32 port)
 {
 	uint32_t rxe_qpc_checks_mask;
 	int i;
+
+	/* Make sure LBW write access (for SM) can never be privileged */
+	NIC_WREG32(mmD0_NIC0_RXE_BASE + mmNIC_RXE_AWPROT_LBW_PRIV, 0);
 
 	NIC_WREG32(mmD0_NIC0_RXE_BASE + mmNIC_RXE_ARPROT_HBW_UNSEC, 0);
 
@@ -432,6 +444,8 @@ static void gaudi3_cn_hw_macro_config_fw(struct hl_device *hdev, int macro_idx)
 	gaudi3_cn_config_hw_early_init_fw(hdev, port);
 
 	gaudi3_cn_config_hw_mac_fw(hdev, port);
+
+	gaudi3_cn_config_hw_rxb_fw(hdev, port);
 
 	gaudi3_cn_config_hw_tmr_fw(hdev, port);
 
