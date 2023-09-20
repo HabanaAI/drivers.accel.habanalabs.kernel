@@ -2300,6 +2300,9 @@ static struct sg_table *hl_map_dmabuf(struct dma_buf_attachment *attachment,
 	struct hl_device *hdev;
 	struct sg_table *sgt;
 
+	hl_dmabuf = dma_buf->priv;
+	hdev = hl_dmabuf->ctx->hdev;
+
 #if defined(_HAS_PEER2PEER) && defined(CONFIG_PCI_P2PDMA) && !defined(__IMPORTER)
 	if (!attachment->peer2peer) {
 		dev_dbg(hdev->dev, "Failed to map dmabuf because p2p is disabled\n");
@@ -2307,8 +2310,6 @@ static struct sg_table *hl_map_dmabuf(struct dma_buf_attachment *attachment,
 	}
 #endif
 
-	hl_dmabuf = dma_buf->priv;
-	hdev = hl_dmabuf->ctx->hdev;
 	exported_size = hl_dmabuf->dmabuf->size;
 	offset = hl_dmabuf->offset;
 	phys_pg_pack = hl_dmabuf->phys_pg_pack;
