@@ -324,7 +324,7 @@ extern struct gaudi3_etr_ac_config gaudi3_etr_ac_config[GAUDI3_NUM_ETR];
  */
 #define GAUDI3_NUM_USER_INTERRUPTS 512
 
-/* CPU/PSOC interrupt aggregators */
+/* PLDM interrupts: CPU/PSOC interrupt aggregators and QM SW interrupts */
 #define CPU_INTR_AGGR_NUM_OF_HDCORE_AGGR	4
 #define CPU_INTR_AGGR_NUM_OF_SHARED_AGGR	1
 #define CPU_INTR_AGGR_NUM_OF_EVENTS_GROUPS	4
@@ -337,6 +337,9 @@ extern struct gaudi3_etr_ac_config gaudi3_etr_ac_config[GAUDI3_NUM_ETR];
 							PSOC_INTR_AGGR_NUM_OF_MSIX_VECTORS)
 #define INTR_AGGR_NUM_OF_MSIX_VECTORS		(MAX_NUM_OF_DIES * \
 							INTR_AGGR_NUM_OF_MSIX_VECTORS_PER_DIE)
+#define GAUDI3_NUM_OF_SW_QM_INTR	88 /* This should be ARRAY_SIZE(gaudi3_qm_irq_map_table) */
+#define GAUDI3_NUM_OF_PLDM_INTR	(INTR_AGGR_NUM_OF_MSIX_VECTORS + GAUDI3_NUM_OF_SW_QM_INTR)
+
 #define GAUDI3_EVENT_QUEUE_MSIX_IDX	0
 
 enum gaudi3_irq_num {
@@ -350,11 +353,11 @@ enum gaudi3_irq_num {
 	GAUDI3_IRQ_NUM_ETR_FIRST,
 	GAUDI3_IRQ_NUM_ETR_LAST = GAUDI3_IRQ_NUM_ETR_FIRST + GAUDI3_NUM_ETR - 1,
 	GAUDI3_IRQ_NUM_USER_FIRST,
-	GAUDI3_IRQ_NUM_USER_LAST =
-		GAUDI3_IRQ_NUM_USER_FIRST + GAUDI3_NUM_USER_INTERRUPTS - 1,
+	GAUDI3_IRQ_NUM_USER_LAST = GAUDI3_IRQ_NUM_USER_FIRST + GAUDI3_NUM_USER_INTERRUPTS - 1,
 	GAUDI3_PLDM_AGGR_IRQ_FIRST,
-	GAUDI3_PLDM_AGGR_IRQ_LAST =
-			GAUDI3_PLDM_AGGR_IRQ_FIRST + INTR_AGGR_NUM_OF_MSIX_VECTORS - 1,
+	GAUDI3_PLDM_AGGR_IRQ_LAST = GAUDI3_PLDM_AGGR_IRQ_FIRST + INTR_AGGR_NUM_OF_MSIX_VECTORS - 1,
+	GAUDI3_PLDM_QM_SW_IRQ_FIRST,
+	GAUDI3_PLDM_QM_SW_IRQ_LAST = GAUDI3_PLDM_QM_SW_IRQ_FIRST + GAUDI3_NUM_OF_SW_QM_INTR - 1,
 	GAUDI3_IRQ_NUM_EQ_ERROR,
 	GAUDI3_IRQ_NUM_RESERVED_FIRST,
 	GAUDI3_IRQ_NUM_RESERVED_LAST = (GAUDI3_MSIX_ENTRIES - 2),
@@ -508,7 +511,7 @@ struct gaudi3_device {
 	struct gaudi3_hbm			hbm_cfg;
 	struct mutex				kdma_lock_mutex;
 	struct gaudi3_qmans_test_info		qmans_test_info[GAUDI3_NUM_TESTED_QMANS];
-	struct gaudi3_pldm_msix_info		pldm_msix_info[INTR_AGGR_NUM_OF_MSIX_VECTORS];
+	struct gaudi3_pldm_msix_info		pldm_msix_info[GAUDI3_NUM_OF_PLDM_INTR];
 	u64					hw_cap_initialized;
 	u64					hw_cap_pdma_initialized;
 	u64					hw_cap_tpc_initialized;
@@ -747,6 +750,7 @@ void gaudi3_fabric_serialization_init_fw_config(struct hl_device *hdev);
 void gaudi3_fabric_serialization_fini_fw_config(struct hl_device *hdev);
 void gaudi3_execute_reset_no_fw(struct hl_device *hdev, bool hard_reset);
 void gaudi3_enable_interrupt_aggr_msgs(struct hl_device *hdev);
+void gaudi3_enable_qm_sw_interrupt_msgs(struct hl_device *hdev);
 void gaudi3_disable_interrupt_aggr_msgs(struct hl_device *hdev);
 irqreturn_t hl_pldm_irq_handler(int irq, void *arg);
 void gaudi3_pdma_print_debug_info(struct hl_device *hdev, u32 ch_idx);

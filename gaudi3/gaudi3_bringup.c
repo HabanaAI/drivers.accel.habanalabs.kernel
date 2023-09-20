@@ -126,6 +126,140 @@
 						CPU_SHARED_AGGR_SEI_GRP_INTR_NUM + \
 						CPU_SHARED_AGGR_SPI_GRP_INTR_NUM)
 
+#define GAUDI3_GLBL_ERR_CFG	(FIELD_PREP(QMAN_GLBL_ERR_CFG_CQF_ERR_MSG_EN_M, 0x1) |	\
+				FIELD_PREP(QMAN_GLBL_ERR_CFG_CP_ERR_MSG_EN_M, 0x1) |	\
+				FIELD_PREP(QMAN_GLBL_ERR_CFG_ARC_CQF_ERR_MSG_EN_M, 0x1))
+
+struct qm_sw_event_info {
+	enum hl_agg_component_type comp;
+	u32 instance;
+	u32 hd;
+	u32 die;
+	u32 base;
+};
+
+/*
+ * based on gaudi3_qm_irq_map_table in embedded/specs/gaudi3/gaudi3_interrupt.h.
+ */
+static const struct qm_sw_event_info gaudi3_qm_irq_map_table[] = {
+	/* hd0 */
+	{.comp = INT_COMP_TYPE_MME, .instance = 0, .hd = 0, .die = 0, .base = mmHD0_MME_QM_BASE},
+	{.comp = INT_COMP_TYPE_TPC, .instance = 0, .hd = 0, .die = 0, .base = mmHD0_TPC0_QM_BASE},
+	{.comp = INT_COMP_TYPE_TPC, .instance = 1, .hd = 0, .die = 0, .base = mmHD0_TPC1_QM_BASE},
+	{.comp = INT_COMP_TYPE_TPC, .instance = 2, .hd = 0, .die = 0, .base = mmHD0_TPC2_QM_BASE},
+	{.comp = INT_COMP_TYPE_TPC, .instance = 3, .hd = 0, .die = 0, .base = mmHD0_TPC3_QM_BASE},
+	{.comp = INT_COMP_TYPE_TPC, .instance = 4, .hd = 0, .die = 0, .base = mmHD0_TPC4_QM_BASE},
+	{.comp = INT_COMP_TYPE_TPC, .instance = 5, .hd = 0, .die = 0, .base = mmHD0_TPC5_QM_BASE},
+	{.comp = INT_COMP_TYPE_TPC, .instance = 6, .hd = 0, .die = 0, .base = mmHD0_TPC6_QM_BASE},
+	{.comp = INT_COMP_TYPE_TPC, .instance = 7, .hd = 0, .die = 0, .base = mmHD0_TPC7_QM_BASE},
+
+	/* hd1 */
+	{.comp = INT_COMP_TYPE_MME, .instance = 0, .hd = 1, .die = 0, .base = mmHD1_MME_QM_BASE},
+	{.comp = INT_COMP_TYPE_TPC, .instance = 0, .hd = 1, .die = 0, .base = mmHD1_TPC0_QM_BASE},
+	{.comp = INT_COMP_TYPE_TPC, .instance = 1, .hd = 1, .die = 0, .base = mmHD1_TPC1_QM_BASE},
+	{.comp = INT_COMP_TYPE_TPC, .instance = 2, .hd = 1, .die = 0, .base = mmHD1_TPC2_QM_BASE},
+	{.comp = INT_COMP_TYPE_TPC, .instance = 3, .hd = 1, .die = 0, .base = mmHD1_TPC3_QM_BASE},
+	{.comp = INT_COMP_TYPE_TPC, .instance = 4, .hd = 1, .die = 0, .base = mmHD1_TPC4_QM_BASE},
+	{.comp = INT_COMP_TYPE_TPC, .instance = 5, .hd = 1, .die = 0, .base = mmHD1_TPC5_QM_BASE},
+	{.comp = INT_COMP_TYPE_TPC, .instance = 6, .hd = 1, .die = 0, .base = mmHD1_TPC6_QM_BASE},
+	{.comp = INT_COMP_TYPE_TPC, .instance = 7, .hd = 1, .die = 0, .base = mmHD1_TPC7_QM_BASE},
+
+	{.comp = INT_COMP_TYPE_ROT, .instance = 0, .hd = 1, .die = 0, .base = mmHD1_ROT0_QM_BASE},
+	{.comp = INT_COMP_TYPE_ROT, .instance = 1, .hd = 1, .die = 0, .base = mmHD1_ROT1_QM_BASE},
+
+	{.comp = INT_COMP_TYPE_EDMA, .instance = 0, .hd = 1, .die = 0,
+					.base = mmHD1_SEDMA0_QM_BASE},
+	{.comp = INT_COMP_TYPE_EDMA, .instance = 1, .hd = 1, .die = 0,
+					.base = mmHD1_SEDMA1_QM_BASE},
+
+	/* hd2 */
+	{.comp = INT_COMP_TYPE_MME, .instance = 0, .hd = 2, .die = 0, .base = mmHD2_MME_QM_BASE},
+	{.comp = INT_COMP_TYPE_TPC, .instance = 0, .hd = 2, .die = 0, .base = mmHD2_TPC0_QM_BASE},
+	{.comp = INT_COMP_TYPE_TPC, .instance = 1, .hd = 2, .die = 0, .base = mmHD2_TPC1_QM_BASE},
+	{.comp = INT_COMP_TYPE_TPC, .instance = 2, .hd = 2, .die = 0, .base = mmHD2_TPC2_QM_BASE},
+	{.comp = INT_COMP_TYPE_TPC, .instance = 3, .hd = 2, .die = 0, .base = mmHD2_TPC3_QM_BASE},
+	{.comp = INT_COMP_TYPE_TPC, .instance = 4, .hd = 2, .die = 0, .base = mmHD2_TPC4_QM_BASE},
+	{.comp = INT_COMP_TYPE_TPC, .instance = 5, .hd = 2, .die = 0, .base = mmHD2_TPC5_QM_BASE},
+	{.comp = INT_COMP_TYPE_TPC, .instance = 6, .hd = 2, .die = 0, .base = mmHD2_TPC6_QM_BASE},
+	{.comp = INT_COMP_TYPE_TPC, .instance = 7, .hd = 2, .die = 0, .base = mmHD2_TPC7_QM_BASE},
+
+	/* hd3 */
+	{.comp = INT_COMP_TYPE_MME, .instance = 0, .hd = 3, .die = 0, .base = mmHD3_MME_QM_BASE},
+	{.comp = INT_COMP_TYPE_TPC, .instance = 0, .hd = 3, .die = 0, .base = mmHD3_TPC0_QM_BASE},
+	{.comp = INT_COMP_TYPE_TPC, .instance = 1, .hd = 3, .die = 0, .base = mmHD3_TPC1_QM_BASE},
+	{.comp = INT_COMP_TYPE_TPC, .instance = 2, .hd = 3, .die = 0, .base = mmHD3_TPC2_QM_BASE},
+	{.comp = INT_COMP_TYPE_TPC, .instance = 3, .hd = 3, .die = 0, .base = mmHD3_TPC3_QM_BASE},
+	{.comp = INT_COMP_TYPE_TPC, .instance = 4, .hd = 3, .die = 0, .base = mmHD3_TPC4_QM_BASE},
+	{.comp = INT_COMP_TYPE_TPC, .instance = 5, .hd = 3, .die = 0, .base = mmHD3_TPC5_QM_BASE},
+	{.comp = INT_COMP_TYPE_TPC, .instance = 6, .hd = 3, .die = 0, .base = mmHD3_TPC6_QM_BASE},
+	{.comp = INT_COMP_TYPE_TPC, .instance = 7, .hd = 3, .die = 0, .base = mmHD3_TPC7_QM_BASE},
+
+	{.comp = INT_COMP_TYPE_ROT, .instance = 0, .hd = 3, .die = 0, .base = mmHD3_ROT0_QM_BASE},
+	{.comp = INT_COMP_TYPE_ROT, .instance = 1, .hd = 3, .die = 0, .base = mmHD3_ROT1_QM_BASE},
+	{.comp = INT_COMP_TYPE_EDMA, .instance = 0, .hd = 3, .die = 0,
+					.base = mmHD3_SEDMA0_QM_BASE},
+	{.comp = INT_COMP_TYPE_EDMA, .instance = 1, .hd = 3, .die = 0,
+					.base = mmHD3_SEDMA1_QM_BASE},
+
+	/* hd7 */
+	{.comp = INT_COMP_TYPE_MME, .instance = 0, .hd = 7, .die = 1, .base = mmHD7_MME_QM_BASE},
+	{.comp = INT_COMP_TYPE_TPC, .instance = 0, .hd = 7, .die = 1, .base = mmHD7_TPC0_QM_BASE},
+	{.comp = INT_COMP_TYPE_TPC, .instance = 1, .hd = 7, .die = 1, .base = mmHD7_TPC1_QM_BASE},
+	{.comp = INT_COMP_TYPE_TPC, .instance = 2, .hd = 7, .die = 1, .base = mmHD7_TPC2_QM_BASE},
+	{.comp = INT_COMP_TYPE_TPC, .instance = 3, .hd = 7, .die = 1, .base = mmHD7_TPC3_QM_BASE},
+	{.comp = INT_COMP_TYPE_TPC, .instance = 4, .hd = 7, .die = 1, .base = mmHD7_TPC4_QM_BASE},
+	{.comp = INT_COMP_TYPE_TPC, .instance = 5, .hd = 7, .die = 1, .base = mmHD7_TPC5_QM_BASE},
+	{.comp = INT_COMP_TYPE_TPC, .instance = 6, .hd = 7, .die = 1, .base = mmHD7_TPC6_QM_BASE},
+	{.comp = INT_COMP_TYPE_TPC, .instance = 7, .hd = 7, .die = 1, .base = mmHD7_TPC7_QM_BASE},
+
+	/* hd6 */
+	{.comp = INT_COMP_TYPE_MME, .instance = 0, .hd = 6, .die = 1, .base = mmHD6_MME_QM_BASE},
+	{.comp = INT_COMP_TYPE_TPC, .instance = 0, .hd = 6, .die = 1, .base = mmHD6_TPC0_QM_BASE},
+	{.comp = INT_COMP_TYPE_TPC, .instance = 1, .hd = 6, .die = 1, .base = mmHD6_TPC1_QM_BASE},
+	{.comp = INT_COMP_TYPE_TPC, .instance = 2, .hd = 6, .die = 1, .base = mmHD6_TPC2_QM_BASE},
+	{.comp = INT_COMP_TYPE_TPC, .instance = 3, .hd = 6, .die = 1, .base = mmHD6_TPC3_QM_BASE},
+	{.comp = INT_COMP_TYPE_TPC, .instance = 4, .hd = 6, .die = 1, .base = mmHD6_TPC4_QM_BASE},
+	{.comp = INT_COMP_TYPE_TPC, .instance = 5, .hd = 6, .die = 1, .base = mmHD6_TPC5_QM_BASE},
+	{.comp = INT_COMP_TYPE_TPC, .instance = 6, .hd = 6, .die = 1, .base = mmHD6_TPC6_QM_BASE},
+	{.comp = INT_COMP_TYPE_TPC, .instance = 7, .hd = 6, .die = 1, .base = mmHD6_TPC7_QM_BASE},
+
+	{.comp = INT_COMP_TYPE_ROT, .instance = 0, .hd = 6, .die = 1, .base = mmHD6_ROT0_QM_BASE},
+	{.comp = INT_COMP_TYPE_ROT, .instance = 1, .hd = 6, .die = 1, .base = mmHD6_ROT1_QM_BASE},
+	{.comp = INT_COMP_TYPE_EDMA, .instance = 0, .hd = 6, .die = 1,
+					.base = mmHD6_SEDMA0_QM_BASE},
+	{.comp = INT_COMP_TYPE_EDMA, .instance = 1, .hd = 6, .die = 1,
+					.base = mmHD6_SEDMA1_QM_BASE},
+
+	/* hd5 */
+	{.comp = INT_COMP_TYPE_MME, .instance = 0, .hd = 5, .die = 1, .base = mmHD5_MME_QM_BASE},
+	{.comp = INT_COMP_TYPE_TPC, .instance = 0, .hd = 5, .die = 1, .base = mmHD5_TPC0_QM_BASE},
+	{.comp = INT_COMP_TYPE_TPC, .instance = 1, .hd = 5, .die = 1, .base = mmHD5_TPC1_QM_BASE},
+	{.comp = INT_COMP_TYPE_TPC, .instance = 2, .hd = 5, .die = 1, .base = mmHD5_TPC2_QM_BASE},
+	{.comp = INT_COMP_TYPE_TPC, .instance = 3, .hd = 5, .die = 1, .base = mmHD5_TPC3_QM_BASE},
+	{.comp = INT_COMP_TYPE_TPC, .instance = 4, .hd = 5, .die = 1, .base = mmHD5_TPC4_QM_BASE},
+	{.comp = INT_COMP_TYPE_TPC, .instance = 5, .hd = 5, .die = 1, .base = mmHD5_TPC5_QM_BASE},
+	{.comp = INT_COMP_TYPE_TPC, .instance = 6, .hd = 5, .die = 1, .base = mmHD5_TPC6_QM_BASE},
+	{.comp = INT_COMP_TYPE_TPC, .instance = 7, .hd = 5, .die = 1, .base = mmHD5_TPC7_QM_BASE},
+
+	/* hd4 */
+	{.comp = INT_COMP_TYPE_MME, .instance = 0, .hd = 4, .die = 1, .base = mmHD4_MME_QM_BASE},
+	{.comp = INT_COMP_TYPE_TPC, .instance = 0, .hd = 4, .die = 1, .base = mmHD4_TPC0_QM_BASE},
+	{.comp = INT_COMP_TYPE_TPC, .instance = 1, .hd = 4, .die = 1, .base = mmHD4_TPC1_QM_BASE},
+	{.comp = INT_COMP_TYPE_TPC, .instance = 2, .hd = 4, .die = 1, .base = mmHD4_TPC2_QM_BASE},
+	{.comp = INT_COMP_TYPE_TPC, .instance = 3, .hd = 4, .die = 1, .base = mmHD4_TPC3_QM_BASE},
+	{.comp = INT_COMP_TYPE_TPC, .instance = 4, .hd = 4, .die = 1, .base = mmHD4_TPC4_QM_BASE},
+	{.comp = INT_COMP_TYPE_TPC, .instance = 5, .hd = 4, .die = 1, .base = mmHD4_TPC5_QM_BASE},
+	{.comp = INT_COMP_TYPE_TPC, .instance = 6, .hd = 4, .die = 1, .base = mmHD4_TPC6_QM_BASE},
+	{.comp = INT_COMP_TYPE_TPC, .instance = 7, .hd = 4, .die = 1, .base = mmHD4_TPC7_QM_BASE},
+
+	{.comp = INT_COMP_TYPE_ROT, .instance = 0, .hd = 4, .die = 1, .base = mmHD4_ROT0_QM_BASE},
+	{.comp = INT_COMP_TYPE_ROT, .instance = 1, .hd = 4, .die = 1, .base = mmHD4_ROT1_QM_BASE},
+	{.comp = INT_COMP_TYPE_EDMA, .instance = 0, .hd = 4, .die = 1,
+					.base = mmHD4_SEDMA0_QM_BASE},
+	{.comp = INT_COMP_TYPE_EDMA, .instance = 1, .hd = 4, .die = 1,
+					.base = mmHD4_SEDMA1_QM_BASE},
+};
+
 struct gaudi3_cpu_aggr_intr_map {
 	u32 grp_type;
 	u32 comp_type;
@@ -3030,6 +3164,71 @@ void gaudi3_execute_reset_no_fw(struct hl_device *hdev, bool hard_reset)
 	WREG32(d0_reset_reg, 0x1);
 
 	dev_dbg(hdev->dev, "Driver issued %s reset command\n", hard_reset ? "HARD" : "SOFT");
+}
+
+static u32 gaudi3_get_qm_sw_map_idx(u32 base)
+{
+	u32 i;
+
+	for (i = 0; i < ARRAY_SIZE(gaudi3_qm_irq_map_table); i++) {
+		if (gaudi3_qm_irq_map_table[i].base == base)
+			return i;
+	}
+
+	return ARRAY_SIZE(gaudi3_qm_irq_map_table);
+}
+
+static void gaudi3_cfg_qm_sw_irq(struct hl_device *hdev, int block, int inst,
+						u32 offset, struct iterate_module_ctx *ctx)
+{
+	u32 first_qm_reg_base = *(u32 *) ctx->data, qm_reg_base = first_qm_reg_base + offset;
+	u64 msix_addr = CFG_BAR_BASE + mmD0_PCIE_MSIX_BASE;
+	u32 irq, msix_addr_lo, msix_addr_hi;
+
+	msix_addr_hi = upper_32_bits(msix_addr);
+	msix_addr_lo = lower_32_bits(msix_addr);
+
+	irq = gaudi3_get_qm_sw_map_idx(qm_reg_base);
+	if (irq == ARRAY_SIZE(gaudi3_qm_irq_map_table)) {
+		dev_err(hdev->dev, "invalid qm sw base: 0x%x, first base: 0x%x\n", qm_reg_base,
+						first_qm_reg_base);
+		return;
+	}
+	irq += GAUDI3_PLDM_QM_SW_IRQ_FIRST;
+
+	WREG32(qm_reg_base + mmQMAN_GLBL_ERR_ADDR_HI, msix_addr_hi);
+	WREG32(qm_reg_base + mmQMAN_GLBL_ERR_ADDR_LO, msix_addr_lo);
+	WREG32(qm_reg_base + mmQMAN_GLBL_ERR_WDATA, irq);
+	WREG32(qm_reg_base + mmQMAN_GLBL_ERR_CFG, GAUDI3_GLBL_ERR_CFG);
+}
+
+void gaudi3_enable_qm_sw_interrupt_msgs(struct hl_device *hdev)
+{
+	u32 first_qm_reg_base;
+	struct iterate_module_ctx iter_ctx = {
+		.fn = gaudi3_cfg_qm_sw_irq,
+		.data = &first_qm_reg_base
+	};
+
+	static_assert(ARRAY_SIZE(gaudi3_qm_irq_map_table) == GAUDI3_NUM_OF_SW_QM_INTR);
+
+	if (!hdev->pldm)
+		return;
+
+	if (hdev->fw_components & FW_TYPE_BOOT_CPU)
+		return;
+
+	first_qm_reg_base = mmHD1_SEDMA0_QM_BASE;
+	gaudi3_iterate_edmas(hdev, &iter_ctx);
+
+	first_qm_reg_base = mmHD0_TPC0_QM_BASE;
+	gaudi3_iterate_tpcs(hdev, &iter_ctx);
+
+	first_qm_reg_base = mmHD0_MME_QM_BASE;
+	gaudi3_iterate_mmes(hdev, &iter_ctx);
+
+	first_qm_reg_base = mmHD1_ROT0_QM_BASE;
+	gaudi3_iterate_rotators(hdev, &iter_ctx);
 }
 
 void gaudi3_enable_interrupt_aggr_msgs(struct hl_device *hdev)
@@ -6588,11 +6787,51 @@ static void gaudi3_handle_cpu_aggr(struct hl_device *hdev, u32 intr_aggr_irq, u3
 	};
 }
 
+static void gaudi3_handle_qm_sw_event(struct hl_device *hdev,
+					const struct qm_sw_event_info *qm_info,
+					struct hl_eq_dynamic_entry *eq_dynamic_entry)
+{
+	struct hl_eq_qm_sei_data *qm_data;
+	u32 glbl_err_sts;
+
+	switch (qm_info->comp) {
+	case INT_COMP_TYPE_MME:
+		dev_dbg(hdev->dev, "got MME QM SW event HD %u\n", qm_info->hd);
+		qm_data = &eq_dynamic_entry->mme_sei_data.control_data.qm_data;
+		eq_dynamic_entry->mme_sei_data.type = MME_DATA_TYPE_CTRL;
+		eq_dynamic_entry->hdr.size = cpu_to_le16(sizeof(struct hl_eq_mme_sei_data));
+		break;
+	case INT_COMP_TYPE_TPC:
+		dev_dbg(hdev->dev, "got TPC%u QM SW event HD %u\n", qm_info->instance, qm_info->hd);
+		qm_data = &eq_dynamic_entry->tpc_sei_data.qm_data;
+		eq_dynamic_entry->hdr.size = cpu_to_le16(sizeof(struct hl_eq_tpc_sei_data));
+		break;
+	case INT_COMP_TYPE_ROT:
+		dev_dbg(hdev->dev, "got ROT%u QM SW event HD %u\n", qm_info->instance, qm_info->hd);
+		qm_data = &eq_dynamic_entry->rot_sei_data.qm_data;
+		eq_dynamic_entry->hdr.size = cpu_to_le16(sizeof(struct hl_eq_rot_sei_data));
+		break;
+	case INT_COMP_TYPE_EDMA:
+		dev_dbg(hdev->dev, "got EDMA%u QM SW event HD %u\n", qm_info->instance,
+				qm_info->hd);
+		qm_data = &eq_dynamic_entry->edma_sei_data.qm_data[qm_info->instance];
+		eq_dynamic_entry->hdr.size = cpu_to_le16(sizeof(struct hl_eq_edma_sei_data));
+		break;
+	default:
+		dev_err(hdev->dev, "got QM SW event with invalid component %u\n", qm_info->comp);
+		return;
+	}
+	glbl_err_sts = RREG32(qm_info->base + mmQMAN_GLBL_ERR_STS) & QMAN_GLBL_ERR_STS_MASK;
+	qm_data->qm_cause.intr_cause_data = cpu_to_le64(glbl_err_sts);
+}
+
 irqreturn_t hl_pldm_irq_handler(int irq, void *arg)
 {
 	struct gaudi3_pldm_msix_info *msix_info = arg;
 	struct hl_device *hdev = msix_info->hdev;
 	struct hl_eq_dynamic_entry *eq_dynamic_entry = &msix_info->eq_dyn_entry;
+	struct eq_agg_header_params params = {};
+	const struct qm_sw_event_info *qm_info;
 	u32 intr_aggr_irq, die;
 	bool is_psoc;
 
@@ -6612,14 +6851,30 @@ irqreturn_t hl_pldm_irq_handler(int irq, void *arg)
 	 * D1 PSOC:        IRQs 74..107
 	 */
 	intr_aggr_irq = irq - hl_irq_vector(hdev, GAUDI3_PLDM_AGGR_IRQ_FIRST);
-	die = (intr_aggr_irq >= INTR_AGGR_NUM_OF_MSIX_VECTORS_PER_DIE) ? 1 : 0;
-	is_psoc = (intr_aggr_irq - die * INTR_AGGR_NUM_OF_MSIX_VECTORS_PER_DIE) >=
-			CPU_INTR_AGGR_NUM_OF_MSIX_VECTORS;
+	if (intr_aggr_irq < INTR_AGGR_NUM_OF_MSIX_VECTORS) {
+		die = (intr_aggr_irq >= INTR_AGGR_NUM_OF_MSIX_VECTORS_PER_DIE) ? 1 : 0;
+		is_psoc = (intr_aggr_irq - die * INTR_AGGR_NUM_OF_MSIX_VECTORS_PER_DIE) >=
+				CPU_INTR_AGGR_NUM_OF_MSIX_VECTORS;
 
-	if (is_psoc)
-		gaudi3_handle_psoc_aggr(hdev, intr_aggr_irq, die, eq_dynamic_entry);
-	else
-		gaudi3_handle_cpu_aggr(hdev, intr_aggr_irq, die, eq_dynamic_entry);
+		if (is_psoc)
+			gaudi3_handle_psoc_aggr(hdev, intr_aggr_irq, die, eq_dynamic_entry);
+		else
+			gaudi3_handle_cpu_aggr(hdev, intr_aggr_irq, die, eq_dynamic_entry);
+	/* the case of QM SW interrupt */
+	} else {
+		intr_aggr_irq -= INTR_AGGR_NUM_OF_MSIX_VECTORS;
+		qm_info = &gaudi3_qm_irq_map_table[intr_aggr_irq];
+		gaudi3_handle_qm_sw_event(hdev, qm_info, eq_dynamic_entry);
+
+		params.component_type = qm_info->comp;
+		params.grp_type = ERR_GRP_SEI;
+		params.die = qm_info->die;
+		params.hdcore = qm_info->hd % NUM_OF_HDCORES_PER_DIE;
+		params.instance = qm_info->comp == INT_COMP_TYPE_EDMA ? 0 : qm_info->instance;
+		prepare_eq_dynamic_entry_agg_header(eq_dynamic_entry, &params);
+
+		gaudi3_handle_eqe(hdev, eq_dynamic_entry);
+	}
 
 	return IRQ_HANDLED;
 }

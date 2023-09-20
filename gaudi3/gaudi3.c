@@ -5689,29 +5689,7 @@ static void gaudi3_init_qman_common(struct hl_device *hdev, u32 reg_base, u32 en
 {
 	u32 axcache_cfg;
 
-#if 0
-	u32 irq_handler_offset, glbl_err_cfg;
-	int map_table_entry;
-#endif
-
 	WREG32(reg_base + mmQMAN_GLBL_PROT, FIELD_PREP(QMAN_GLBL_PROT_ERR_M, 0x1));
-
-	/* TODO: SW-126594 enable when F/W events are defined */
-#if 0
-	irq_handler_offset = gaudi3_get_dyn_sp_reg(hdev, engine_id);
-	WREG32(reg_base + mmQMAN_GLBL_ERR_ADDR_LO,
-			lower_32_bits(CFG_BAR_BASE + irq_handler_offset));
-	WREG32(reg_base + mmQMAN_GLBL_ERR_ADDR_HI,
-			upper_32_bits(CFG_BAR_BASE + irq_handler_offset));
-
-	map_table_entry = gaudi3_qman_async_event_id[engine_id];
-	WREG32(reg_base + mmQMAN_GLBL_ERR_WDATA, gaudi3_irq_map_table[map_table_entry].cpu_id);
-
-	glbl_err_cfg = FIELD_PREP(QMAN_GLBL_ERR_CFG_CQF_ERR_MSG_EN_M, 0x1) |
-			FIELD_PREP(QMAN_GLBL_ERR_CFG_CP_ERR_MSG_EN_M, 0x1) |
-			FIELD_PREP(QMAN_GLBL_ERR_CFG_ARC_CQF_ERR_MSG_EN_M, 0x1);
-	WREG32(reg_base + mmQMAN_GLBL_ERR_CFG, glbl_err_cfg);
-#endif
 
 	WREG32(reg_base + mmQMAN_GLBL_CFG1, 0);
 	WREG32(reg_base + mmQMAN_GLBL_CFG2, 0);
@@ -6478,6 +6456,8 @@ static const char *gaudi3_irq_name(u16 irq_number)
 		return "gaudi3 user completion";
 	case GAUDI3_PLDM_AGGR_IRQ_FIRST ... GAUDI3_PLDM_AGGR_IRQ_LAST:
 		return "gaudi3 pldm aggr interrupts";
+	case GAUDI3_PLDM_QM_SW_IRQ_FIRST ...  GAUDI3_PLDM_QM_SW_IRQ_LAST:
+		return "gaudi3 pldm qm sw interrupts";
 	case GAUDI3_IRQ_NUM_ETR_FIRST ... GAUDI3_IRQ_NUM_ETR_LAST:
 		return "gaudi3 etr";
 	case GAUDI3_IRQ_NUM_UNEXPECTED_ERROR:
@@ -7516,7 +7496,7 @@ static int gaudi3_pldm_enable_msix(struct hl_device *hdev)
 	if (!hdev->pldm)
 		return 0;
 
-	for (i = GAUDI3_PLDM_AGGR_IRQ_FIRST, irq_cnt = 0; i <= GAUDI3_PLDM_AGGR_IRQ_LAST;
+	for (i = GAUDI3_PLDM_AGGR_IRQ_FIRST, irq_cnt = 0; i <= GAUDI3_PLDM_QM_SW_IRQ_LAST;
 			++i, ++irq_cnt) {
 		irq = hl_irq_vector(hdev, i);
 		if (irq < 0) {
@@ -7554,7 +7534,7 @@ static void gaudi3_pldm_disable_msix(struct hl_device *hdev)
 	if (!hdev->pldm)
 		return;
 
-	for (i = GAUDI3_PLDM_AGGR_IRQ_FIRST ; i <= GAUDI3_PLDM_AGGR_IRQ_LAST ; ++i) {
+	for (i = GAUDI3_PLDM_AGGR_IRQ_FIRST ; i <= GAUDI3_PLDM_QM_SW_IRQ_LAST ; ++i) {
 		irq = hl_irq_vector(hdev, i);
 		pldm_msix_info = &gaudi3->pldm_msix_info[i - GAUDI3_PLDM_AGGR_IRQ_FIRST];
 		free_irq(irq, pldm_msix_info);
@@ -7720,7 +7700,7 @@ void gaudi3_sync_irqs(struct hl_device *hdev)
 	synchronize_irq(irq);
 
 	if (hdev->pldm) {
-		for (i = GAUDI3_PLDM_AGGR_IRQ_FIRST ; i <= GAUDI3_PLDM_AGGR_IRQ_LAST ; i++) {
+		for (i = GAUDI3_PLDM_AGGR_IRQ_FIRST ; i <= GAUDI3_PLDM_QM_SW_IRQ_LAST ; i++) {
 			irq = hl_irq_vector(hdev, i);
 			synchronize_irq(irq);
 		}
@@ -8055,6 +8035,7 @@ static int gaudi3_hw_init(struct hl_device *hdev)
 		return rc;
 
 	gaudi3_enable_interrupt_aggr_msgs(hdev);
+	gaudi3_enable_qm_sw_interrupt_msgs(hdev);
 
 	rc = gaudi3_enable_msix(hdev);
 	if (rc)
