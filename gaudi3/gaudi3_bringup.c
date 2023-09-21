@@ -4266,7 +4266,8 @@ static void handle_and_clear_rotator_events(struct hl_device *hdev, u32 die, u32
 	}
 
 	/* Subtract 1 from hdcore because the offset is relative to the first rotator in HD1 */
-	offset = (die * NUM_OF_HDCORES_PER_DIE + hdcore - 1) * HDCORE_OFFSET;
+	offset = (die * NUM_OF_HDCORES_PER_DIE + hdcore - 1) * HDCORE_OFFSET +
+				HDCORE_ROT_OFFSET * instance;
 
 	memset(eq_dynamic_entry, 0, sizeof(*eq_dynamic_entry));
 
