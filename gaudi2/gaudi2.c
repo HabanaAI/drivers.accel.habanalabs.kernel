@@ -4619,6 +4619,8 @@ static int gaudi2_enable_msix(struct hl_device *hdev)
 	if (gaudi2->hw_cap_initialized & HW_CAP_MSIX)
 		return 0;
 
+	hl_init_cpu_for_irq(hdev);
+
 	rc = pci_alloc_irq_vectors(hdev->pdev, GAUDI2_MSIX_ENTRIES, GAUDI2_MSIX_ENTRIES,
 					PCI_IRQ_MSIX);
 	if (rc < 0) {
@@ -4672,6 +4674,7 @@ static int gaudi2_enable_msix(struct hl_device *hdev)
 			i++, j++, user_irq_init_cnt++) {
 
 		irq = pci_irq_vector(hdev->pdev, i);
+		hl_set_irq_affinity(hdev, irq);
 		rc = request_irq(irq, hl_irq_user_interrupt_handler, 0, gaudi2_irq_name(i),
 				&hdev->user_interrupt[j]);
 		if (rc) {
