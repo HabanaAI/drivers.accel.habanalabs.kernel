@@ -18,6 +18,8 @@
 #include <linux/uaccess.h>
 #include <linux/vmalloc.h>
 
+#include <asm/msr.h>
+
 #define MAX_SCHEDULER_BUF_SIZE	SZ_4K
 
 static u32 hl_debug_struct_size[HL_DEBUG_OP_FETCH_TRACE + 1] = {
