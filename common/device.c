@@ -250,7 +250,12 @@ int hl_dma_map_sgtable_caller(struct hl_device *hdev, struct sg_table *sgt,
 		trace_habanalabs_dma_map_page(hdev->dev,
 				page_to_phys(sg_page(sg)),
 				sg->dma_address - prop->device_dma_offset_for_host_access,
-				sg->dma_length, dir, caller);
+#ifdef CONFIG_NEED_SG_DMA_LENGTH
+				sg->dma_length,
+#else
+				sg->length,
+#endif
+				dir, caller);
 
 	return 0;
 }
@@ -293,7 +298,12 @@ void hl_dma_unmap_sgtable_caller(struct hl_device *hdev, struct sg_table *sgt,
 		for_each_sgtable_dma_sg(sgt, sg, i)
 			trace_habanalabs_dma_unmap_page(hdev->dev, page_to_phys(sg_page(sg)),
 					sg->dma_address - prop->device_dma_offset_for_host_access,
-					sg->dma_length, dir, caller);
+#ifdef CONFIG_NEED_SG_DMA_LENGTH
+					sg->dma_length,
+#else
+					sg->length,
+#endif
+					dir, caller);
 	}
 }
 
