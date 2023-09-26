@@ -6853,6 +6853,15 @@ static int gaudi2_load_boot_bin_to_device(struct hl_device *hdev)
 	return hl_fw_load_fw_to_device(hdev, GAUDI2_UBOOT_FW_FILE, dst, 0, 0);
 }
 
+static int gaudi2_load_firmware_to_device(struct hl_device *hdev)
+{
+	void __iomem *dst;
+
+	dst = hdev->pcie_bar[DRAM_BAR_ID] + LINUX_FW_OFFSET;
+
+	return hl_fw_load_fw_to_device(hdev, GAUDI2_LINUX_FW_FILE, dst, 0, 0);
+}
+
 int gaudi2_pldm_init_cpu(struct hl_device *hdev)
 {
 	int rc;

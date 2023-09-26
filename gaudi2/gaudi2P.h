@@ -792,7 +792,6 @@ void gaudi2_hw_queues_lock(struct hl_device *hdev);
 void gaudi2_hw_queues_unlock(struct hl_device *hdev);
 u32 gaudi2_get_pci_id(struct hl_device *hdev);
 void gaudi2_enable_events_from_fw(struct hl_device *hdev);
-int gaudi2_load_firmware_to_device(struct hl_device *hdev);
 void gaudi2_init_firmware_loader(struct hl_device *hdev);
 int gaudi2_init_cpu(struct hl_device *hdev);
 int gaudi2_init_cpu_queues(struct hl_device *hdev, u32 cpu_timeout);

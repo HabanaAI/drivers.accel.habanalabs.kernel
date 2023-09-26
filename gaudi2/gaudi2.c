@@ -5189,15 +5189,6 @@ skip_engines:
 	hl_cn_synchronize_irqs(hdev);
 }
 
-int gaudi2_load_firmware_to_device(struct hl_device *hdev)
-{
-	void __iomem *dst;
-
-	dst = hdev->pcie_bar[DRAM_BAR_ID] + LINUX_FW_OFFSET;
-
-	return hl_fw_load_fw_to_device(hdev, GAUDI2_LINUX_FW_FILE, dst, 0, 0);
-}
-
 static void gaudi2_init_firmware_preload_params(struct hl_device *hdev)
 {
 	struct pre_fw_load_props *pre_fw_load = &hdev->fw_loader.pre_fw_load;
