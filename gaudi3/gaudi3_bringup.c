@@ -274,6 +274,19 @@ enum spi_intr_idx {
 	SPI_INTR_DEC1_TRACE_N_DBG,
 };
 
+enum eco_bfe {
+	NIC_ENABLE_H9_RX_DROP_ECO = 0,
+	NIC_ENABLE_H9_QP_DOORBELLS_ECO,
+	NIC_ENABLE_H9_CC_MSG_DROPS_ECO,
+	NIC_ENABLE_H9_REMOTE_PI_UPDATE_ECO,
+	NIC_ENABLE_H9_RXB_MEM_DEADLOCK_ECO,
+	NIC_ENABLE_H9_SINGLE_QP_PERF_FIX_ECO,
+	NIC_ENABLE_H9_SAL_OVERRIDE_ECO,
+	NIC_ENABLE_H9_SACK_DEADLOCK_ECO,
+	NIC_ENABLE_H9_TXE_BUFF_ALLOC_ECO,
+	NIC_ENABLE_H9_PHY_MAC_HANG_ECO,
+};
+
 #define SPI_INTR_STLB_BASE SPI_INTR_STLB_FAULT
 
 typedef void (*shared_aggr_handle_and_clear)(struct hl_device *hdev, u32 die,
@@ -629,6 +642,37 @@ static struct rotator_err_ctx_id_reg {
 				ROTATOR_COORD_NUM_ERR_CONTEXT_ID_COORD_S,
 				ROTATOR_COORD_NUM_ERR_CONTEXT_ID_COORD_M}
 };
+
+bool gaudi3_get_bfe_status(struct hl_aux_dev *aux_dev, u8 bfe)
+{
+	struct hl_cn *cn = container_of(aux_dev, struct hl_cn, cn_aux_dev);
+	struct hl_device *hdev = container_of(cn, struct hl_device, cn);
+
+	switch (bfe) {
+	case NIC_ENABLE_H9_RX_DROP_ECO:
+		return hdev->nic_enable_h9_rx_drop_eco;
+	case NIC_ENABLE_H9_QP_DOORBELLS_ECO:
+		return hdev->nic_enable_h9_qp_doorbells_eco;
+	case NIC_ENABLE_H9_CC_MSG_DROPS_ECO:
+		return hdev->nic_enable_h9_cc_msg_drops_eco;
+	case NIC_ENABLE_H9_REMOTE_PI_UPDATE_ECO:
+		return hdev->nic_enable_h9_remote_pi_update_eco;
+	case NIC_ENABLE_H9_RXB_MEM_DEADLOCK_ECO:
+		return hdev->nic_enable_h9_rxb_mem_deadlock_eco;
+	case NIC_ENABLE_H9_SINGLE_QP_PERF_FIX_ECO:
+		return hdev->nic_enable_h9_single_qp_perf_fix_eco;
+	case NIC_ENABLE_H9_SAL_OVERRIDE_ECO:
+		return hdev->nic_enable_h9_sal_override_eco;
+	case NIC_ENABLE_H9_SACK_DEADLOCK_ECO:
+		return hdev->nic_enable_h9_sack_deadlock_eco;
+	case NIC_ENABLE_H9_TXE_BUFF_ALLOC_ECO:
+		return hdev->nic_enable_h9_txe_buff_alloc_eco;
+	case NIC_ENABLE_H9_PHY_MAC_HANG_ECO:
+		return hdev->nic_enable_h9_phy_mac_hang_eco;
+	}
+
+	return false;
+}
 
 /**
  * gaudi3_get_spi_gw_addr - convert address to SPI GW address

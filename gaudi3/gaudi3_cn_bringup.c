@@ -503,7 +503,6 @@ void gaudi3_cn_restore_dynamic_cfg_soft_reset_fw(struct hl_device *hdev)
 	u32 port;
 	int i;
 
-
 	for (i = 0 ; i < NIC_NUMBER_OF_MACROS ; i++) {
 		port = gaudi3_cn_get_first_port(hdev, i);
 		/* It's not allowed to configure a macro that its port or ports are disabled. */

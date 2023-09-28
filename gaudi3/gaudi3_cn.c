@@ -212,6 +212,39 @@ static int gaudi3_cn_irq_vector(struct hl_aux_dev *aux_dev, unsigned int nr)
 	return hl_irq_vector(hdev, nr);
 }
 
+static void gaudi3_cn_axuser_hbw_mmu_bp_set(struct hl_aux_dev *aux_dev, u32 axuser_hbw_reg_base,
+						bool bypass)
+{
+	struct hl_cn *cn = container_of(aux_dev, struct hl_cn, cn_aux_dev);
+	struct hl_device *hdev = container_of(cn, struct hl_device, cn);
+
+	gaudi3_axuser_hbw_mmu_bp_set(hdev, axuser_hbw_reg_base, bypass);
+}
+
+static bool gaudi3_cn_is_preboot_fw_enabled(struct hl_aux_dev *aux_dev)
+{
+	struct hl_cn *cn = container_of(aux_dev, struct hl_cn, cn_aux_dev);
+	struct hl_device *hdev = container_of(cn, struct hl_device, cn);
+
+	return hdev->fw_components & FW_TYPE_PREBOOT_CPU;
+}
+
+static bool gaudi3_cn_is_full_fw_enabled(struct hl_aux_dev *aux_dev)
+{
+	struct hl_cn *cn = container_of(aux_dev, struct hl_cn, cn_aux_dev);
+	struct hl_device *hdev = container_of(cn, struct hl_device, cn);
+
+	return hdev->fw_components & FW_TYPE_BOOT_CPU;
+}
+
+static bool gaudi3_cn_is_fw_security_enabled(struct hl_aux_dev *aux_dev)
+{
+	struct hl_cn *cn = container_of(aux_dev, struct hl_cn, cn_aux_dev);
+	struct hl_device *hdev = container_of(cn, struct hl_device, cn);
+
+	return hdev->asic_prop.fw_security_enabled;
+}
+
 static void gaudi3_cn_set_cn_data(struct hl_device *hdev)
 {
 	struct gaudi3_device *gaudi3 = hdev->asic_specific;
@@ -238,6 +271,11 @@ static void gaudi3_cn_set_cn_data(struct hl_device *hdev)
 	gaudi3_aux_data->enable_h9_rx_drop_eco = hdev->nic_enable_h9_rx_drop_eco;
 
 	gaudi3_aux_ops->irq_vector = gaudi3_cn_irq_vector;
+	gaudi3_aux_ops->get_bfe_status = gaudi3_get_bfe_status;
+	gaudi3_aux_ops->axuser_hbw_mmu_bp_set = gaudi3_cn_axuser_hbw_mmu_bp_set;
+	gaudi3_aux_ops->is_preboot_fw_enabled = gaudi3_cn_is_preboot_fw_enabled;
+	gaudi3_aux_ops->is_full_fw_enabled = gaudi3_cn_is_full_fw_enabled;
+	gaudi3_aux_ops->is_fw_security_enabled = gaudi3_cn_is_fw_security_enabled;
 }
 
 /**

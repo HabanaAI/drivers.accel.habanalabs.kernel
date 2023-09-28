@@ -753,6 +753,7 @@ void gaudi3_pdma_print_debug_info(struct hl_device *hdev, u32 ch_idx);
 void gaudi3_halt_engines_fw_config(struct hl_device *hdev);
 void gaudi3_set_isolation(struct hl_device *hdev, bool isolate_engines, bool isolate_hbm);
 void gaudi3_cn_ecos_override(struct hl_device *hdev);
+bool gaudi3_get_bfe_status(struct hl_aux_dev *aux_dev, u8 bfe);
 
 /* Functions exported for FPGA support */
 int gaudi3_early_fini(struct hl_device *hdev);
