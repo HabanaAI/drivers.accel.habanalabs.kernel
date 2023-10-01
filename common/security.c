@@ -761,6 +761,41 @@ static int hl_read_glbl_errors(struct hl_device *hdev,
 	return 0;
 }
 
+void hl_check_for_glbl_errors_from_fw(struct hl_device *hdev, struct hl_eq_glbl_err *glbl_err_data)
+{
+	struct hl_eq_glbl_err_reg_info *info;
+	u32 block_addr, addr, cause;
+	int i;
+
+	if (!glbl_err_data) {
+		dev_err(hdev->dev, "Need to set the pointer to global err data!\n");
+		return;
+	}
+
+	if (glbl_err_data->num_valid_entries > GLBL_ERR_MAX) {
+		dev_err(hdev->dev, "Invalid number of entries in global err data(%u)\n",
+						glbl_err_data->num_valid_entries);
+		return;
+	}
+
+	for (i = 0, info = glbl_err_data->info ; i < glbl_err_data->num_valid_entries ; i++) {
+		block_addr = le32_to_cpu(info[i].block_addr);
+		cause = le32_to_cpu(info[i].cause);
+		addr = le32_to_cpu(info[i].addr);
+
+		if (cause >= HL_MAX_NUM_OF_GLBL_ERR_CAUSE) {
+			dev_err(hdev->dev, "Invalid cause value(%u) in entry(%u)\n", cause, i);
+			continue;
+		}
+
+		dev_err_ratelimited(hdev->dev,
+				"%s, addr %#llx\n",
+				hl_glbl_error_cause[cause],
+				hdev->asic_prop.cfg_base_address + block_addr +
+				FIELD_GET(HL_GLBL_ERR_ADDRESS_MASK, addr));
+	}
+}
+
 void hl_check_for_glbl_errors(struct hl_device *hdev)
 {
 	struct asic_fixed_properties *prop = &hdev->asic_prop;
