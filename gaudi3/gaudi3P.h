@@ -9,6 +9,7 @@
 #define GAUDI3P_H_
 
 #include <linux/net/intel/cn_aux.h>
+#include <linux/net/intel/gaudi3_aux.h>
 #include <uapi/drm/habanalabs_accel.h>
 #include "../common/habanalabs.h"
 #include <linux/habanalabs/hl_boot_if.h>
