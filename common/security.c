@@ -720,6 +720,9 @@ static int hl_init_pb_block(struct hl_device *hdev,
 		b_idx++;
 	}
 
+	/* Flush */
+	RREG32(pb_reg_addr);
+
 	return 0;
 }
 
