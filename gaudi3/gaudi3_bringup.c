@@ -1970,7 +1970,7 @@ void gaudi3_init_arc(struct hl_device *hdev, u32 cpu_id)
 	if (hdev->fw_components & FW_TYPE_BOOT_CPU)
 		return;
 
-	hdev->asic_funcs->set_priv_assertions(hdev, true);
+	hdev->asic_funcs->set_priv_assertions(hdev, false);
 
 	reg_base = gaudi3_arc_blocks_bases[cpu_id];
 
@@ -2008,7 +2008,7 @@ void gaudi3_init_arc(struct hl_device *hdev, u32 cpu_id)
 		WREG32(reg_base + mmARC_AF_ENG_SB_ARCACHE, reg_val);
 	}
 
-	hdev->asic_funcs->set_priv_assertions(hdev, false);
+	hdev->asic_funcs->set_priv_assertions(hdev, true);
 }
 
 void gaudi3_reset_arc(struct hl_device *hdev, u32 cpu_id)
