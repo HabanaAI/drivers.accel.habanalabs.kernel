@@ -166,6 +166,10 @@ int gaudi3_cn_set_info(struct hl_device *hdev, bool get_from_fw)
 		break;
 	default:
 		hdev->asic_prop.server_type = HL_SERVER_TYPE_UNKNOWN;
+		if (get_from_fw) {
+			dev_err(hdev->dev, "bad SerDes type %d\n", serdes_type);
+			return -EFAULT;
+		}
 		break;
 	}
 
