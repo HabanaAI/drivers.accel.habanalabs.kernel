@@ -1291,10 +1291,13 @@ static void gaudi3_sim_poll_on_reset_complete(struct hl_device *hdev, u32 die)
 
 static int gaudi3_sim_hw_fini(struct hl_device *hdev, bool hard_reset, bool fw_reset)
 {
+	struct hl_simulator_device *edev = gaudi3_simulator_dev_table[hdev->id];
 	struct asic_fixed_properties *prop = &hdev->asic_prop;
 	int die, rc;
 
+	hl_sim_set_priv_assertions(edev, false);
 	gaudi3_reset_arcs(hdev);
+	hl_sim_set_priv_assertions(edev, true);
 
 	gaudi3_sim_set_isolation(hdev, true, hard_reset);
 
