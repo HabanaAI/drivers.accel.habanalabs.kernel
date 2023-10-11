@@ -6476,8 +6476,8 @@ static const char *gaudi3_irq_name(u16 irq_number)
 		return gaudi3_vdec_irq_name[irq_number - GAUDI3_IRQ_NUM_DEC_NRM_FIRST];
 	case GAUDI3_IRQ_NUM_USER_FIRST ... GAUDI3_IRQ_NUM_USER_LAST:
 		return "gaudi3 user completion";
-	case GAUDI3_PLDM_IRQ_FIRST ... GAUDI3_PLDM_IRQ_LAST:
-		return "gaudi3 pldm interrupts";
+	case GAUDI3_PLDM_AGGR_IRQ_FIRST ... GAUDI3_PLDM_AGGR_IRQ_LAST:
+		return "gaudi3 pldm aggr interrupts";
 	case GAUDI3_IRQ_NUM_ETR_FIRST ... GAUDI3_IRQ_NUM_ETR_LAST:
 		return "gaudi3 etr";
 	case GAUDI3_IRQ_NUM_UNEXPECTED_ERROR:
@@ -7516,14 +7516,15 @@ static int gaudi3_pldm_enable_msix(struct hl_device *hdev)
 	if (!hdev->pldm)
 		return 0;
 
-	for (i = GAUDI3_PLDM_IRQ_FIRST, irq_cnt = 0 ; i <= GAUDI3_PLDM_IRQ_LAST ; ++i, ++irq_cnt) {
+	for (i = GAUDI3_PLDM_AGGR_IRQ_FIRST, irq_cnt = 0; i <= GAUDI3_PLDM_AGGR_IRQ_LAST;
+			++i, ++irq_cnt) {
 		irq = hl_irq_vector(hdev, i);
 		if (irq < 0) {
 			rc = irq;
 			goto free_irqs;
 		}
 
-		pldm_msix_info = &gaudi3->pldm_msix_info[i - GAUDI3_PLDM_IRQ_FIRST];
+		pldm_msix_info = &gaudi3->pldm_msix_info[i - GAUDI3_PLDM_AGGR_IRQ_FIRST];
 		pldm_msix_info->hdev = hdev;
 		rc = request_threaded_irq(irq, NULL, hl_pldm_irq_handler, IRQF_ONESHOT,
 					  gaudi3_irq_name(i), pldm_msix_info);
@@ -7534,9 +7535,9 @@ static int gaudi3_pldm_enable_msix(struct hl_device *hdev)
 	return 0;
 
 free_irqs:
-	for (i = GAUDI3_PLDM_IRQ_FIRST ; i < GAUDI3_PLDM_IRQ_FIRST + irq_cnt ; ++i) {
+	for (i = GAUDI3_PLDM_AGGR_IRQ_FIRST ; i < GAUDI3_PLDM_AGGR_IRQ_FIRST + irq_cnt ; ++i) {
 		irq = hl_irq_vector(hdev, i);
-		pldm_msix_info = &gaudi3->pldm_msix_info[i - GAUDI3_PLDM_IRQ_FIRST];
+		pldm_msix_info = &gaudi3->pldm_msix_info[i - GAUDI3_PLDM_AGGR_IRQ_FIRST];
 		free_irq(irq, pldm_msix_info);
 	}
 
@@ -7553,9 +7554,9 @@ static void gaudi3_pldm_disable_msix(struct hl_device *hdev)
 	if (!hdev->pldm)
 		return;
 
-	for (i = GAUDI3_PLDM_IRQ_FIRST ; i <= GAUDI3_PLDM_IRQ_LAST ; ++i) {
+	for (i = GAUDI3_PLDM_AGGR_IRQ_FIRST ; i <= GAUDI3_PLDM_AGGR_IRQ_LAST ; ++i) {
 		irq = hl_irq_vector(hdev, i);
-		pldm_msix_info = &gaudi3->pldm_msix_info[i - GAUDI3_PLDM_IRQ_FIRST];
+		pldm_msix_info = &gaudi3->pldm_msix_info[i - GAUDI3_PLDM_AGGR_IRQ_FIRST];
 		free_irq(irq, pldm_msix_info);
 	}
 }
@@ -7719,7 +7720,7 @@ void gaudi3_sync_irqs(struct hl_device *hdev)
 	synchronize_irq(irq);
 
 	if (hdev->pldm) {
-		for (i = GAUDI3_PLDM_IRQ_FIRST ; i <= GAUDI3_PLDM_IRQ_LAST ; i++) {
+		for (i = GAUDI3_PLDM_AGGR_IRQ_FIRST ; i <= GAUDI3_PLDM_AGGR_IRQ_LAST ; i++) {
 			irq = hl_irq_vector(hdev, i);
 			synchronize_irq(irq);
 		}
