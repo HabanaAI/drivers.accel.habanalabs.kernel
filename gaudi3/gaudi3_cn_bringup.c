@@ -460,9 +460,29 @@ static void gaudi3_cn_hw_macro_config_fw(struct hl_device *hdev, int macro_idx)
 
 void gaudi3_cn_macros_fw_config(struct hl_device *hdev)
 {
+	u32 port;
 	int i;
 
-	if (hdev->reset_info.in_compute_reset || (hdev->fw_components & FW_TYPE_PREBOOT_CPU))
+	if (hdev->reset_info.in_compute_reset)
+		return;
+
+	for (i = 0 ; i < NIC_NUMBER_OF_MACROS ; i++) {
+		if (!gaudi3_cn_is_macro_enabled(hdev, i))
+			continue;
+
+		port = gaudi3_cn_get_first_port(hdev, i);
+		/* TODO SW-162124 - This configuration is done temporary until preboot
+		 * image will be updated on PLDM machines.
+		 */
+		gaudi3_cn_config_hw_early_init_fw(hdev, port);
+
+		/* This configuration is done as long as full FW is not loaded */
+		NIC_WREG32(mmD0_NIC0_RXE_BASE + mmNIC_RXE_AWPROT_LBW_PRIV, 0);
+
+		gaudi3_cn_config_hw_rxb_fw(hdev, port);
+	}
+
+	if (hdev->fw_components & FW_TYPE_PREBOOT_CPU)
 		return;
 
 	for (i = 0 ; i < NIC_NUMBER_OF_MACROS ; i++) {
