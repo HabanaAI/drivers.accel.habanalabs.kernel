@@ -83,6 +83,7 @@ static int skip_iatu_for_unsecured_device;
 static int reset_upon_device_release = 1;
 static int gaudi2_setup_type;
 static ulong enable_events_tracing;
+static char *tracefs_mnt = "/sys/kernel/debug/tracing";
 static int ignore_eeprom_errors;
 
 /* Parameters for bring-up/debugging */
@@ -236,6 +237,9 @@ MODULE_PARM_DESC(gaudi2_setup_type,
 module_param(enable_events_tracing, ulong, 0444);
 MODULE_PARM_DESC(enable_events_tracing,
 	"Bitmask for enable various events tracing indication (values in HL_TRACE_*_MASK definitions, default 0)");
+
+module_param(tracefs_mnt, charp, 0444);
+MODULE_PARM_DESC(tracefs_mnt, "string representing full path to tracefs mount point. default /sys/kernel/debug/tracing");
 
 module_param(ignore_eeprom_errors, int, 0444);
 MODULE_PARM_DESC(ignore_eeprom_errors,
@@ -2045,7 +2049,7 @@ void hl_pci_force_remove_device(struct hl_device *hdev)
 }
 
 #define HL_EVENT_FILE_MAX_NAME_LEN	128
-#define HL_EVENTS_DIR	"/sys/kernel/debug/tracing/events/habanalabs"
+#define HL_TRACE_EVENTS_DIR	"events/habanalabs"
 
 static char *hl_events[HL_TRACE_NUM_EVENTS] __initdata = {
 	[HL_TRACE_MMU_MAP] = "habanalabs_mmu_map",
@@ -2114,36 +2118,45 @@ static void hl_trace_print_sync_timestamp(void)
 
 static void __init hl_enable_trace_events(void)
 {
-	int i, dir_namelen;
+	int i, path_len, free_space;
+	long rc;
 
 	if (!enable_events_tracing)
 		return;
 
 	hl_trace_print_sync_timestamp();
 
-	if ((enable_events_tracing & HL_TRACE_ALL_EVENTS_MASK) == HL_TRACE_ALL_EVENTS_MASK) {
-		hl_enable_trace_event(HL_EVENTS_DIR "/enable");
+	/* compose habanalabs trace folder */
+	path_len = snprintf(hl_event_filename_buffer, HL_EVENT_FILE_MAX_NAME_LEN,
+					"%s/%s/", tracefs_mnt, HL_TRACE_EVENTS_DIR);
+	if ((path_len < 0) || (path_len >= HL_EVENT_FILE_MAX_NAME_LEN)) {
+		pr_err("failed to snprintf hbanalabas trace folder %d\n", path_len);
 		return;
 	}
 
-	dir_namelen = snprintf(hl_event_filename_buffer, HL_EVENT_FILE_MAX_NAME_LEN,
-					"%s/", HL_EVENTS_DIR);
-	if ((dir_namelen < 0) || (dir_namelen >= HL_EVENT_FILE_MAX_NAME_LEN)) {
-		pr_err("failed to snprintf hl trace dir %d\n", dir_namelen);
+	/* update free space in buffer */
+	free_space = HL_EVENT_FILE_MAX_NAME_LEN - path_len;
+
+	if ((enable_events_tracing & HL_TRACE_ALL_EVENTS_MASK) == HL_TRACE_ALL_EVENTS_MASK) {
+		rc = snprintf(&hl_event_filename_buffer[path_len], free_space, "enable");
+
+		if ((rc < 0) || (rc >= free_space)) {
+			pr_err("failed to snprintf enable (all) %ld\n", rc);
+			return;
+		}
+
+		hl_enable_trace_event(hl_event_filename_buffer);
 		return;
 	}
 
 	for (i = 0; i < HL_TRACE_NUM_EVENTS; i++) {
-		int tracefile_len = HL_EVENT_FILE_MAX_NAME_LEN - dir_namelen;
-		long rc;
-
 		if (!(enable_events_tracing & BIT_ULL(i)))
 			continue;
 
-		rc = snprintf(&hl_event_filename_buffer[dir_namelen], tracefile_len,
+		rc = snprintf(&hl_event_filename_buffer[path_len], free_space,
 					"%s/enable", hl_events[i]);
 
-		if ((rc < 0) || (rc >= tracefile_len)) {
+		if ((rc < 0) || (rc >= free_space)) {
 			pr_err("failed to snprintf hl trace file %s %ld\n",
 					hl_events[i], rc);
 			return;
