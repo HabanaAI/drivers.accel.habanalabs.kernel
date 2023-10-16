@@ -12855,7 +12855,8 @@ static inline u32 gaudi3_handle_single_err_mask(struct hl_device *hdev, u32 err_
 }
 
 static u32 gaudi3_handle_pcie_spi_drain(struct hl_device *hdev,
-						struct hl_eq_pcie_drain_ind_data *dc)
+					struct hl_eq_pcie_drain_ind_data *dc,
+					u32 *reset_flags, u64 *event_mask)
 {
 	u64 cause = le64_to_cpu(dc->intr_cause.intr_cause_data);
 	u32 err_num = 0;
@@ -12878,11 +12879,21 @@ static u32 gaudi3_handle_pcie_spi_drain(struct hl_device *hdev,
 				le64_to_cpu(dc->drain_rd_addr_hbw));
 	}
 
+	/* Reset is initiated by F/W as requesting it through PCIe might be impossible */
+	if (hdev->asic_prop.fw_security_enabled) {
+		*reset_flags &= ~HL_DRV_RESET_DELAY;
+		*reset_flags |= HL_DRV_RESET_BYPASS_REQ_TO_FW;
+		*event_mask &= ~HL_NOTIFIER_EVENT_GENERAL_HW_ERR;
+		*event_mask |= HL_NOTIFIER_EVENT_CRITICL_HW_ERR |
+				HL_NOTIFIER_EVENT_DEVICE_UNAVAILABLE;
+	}
+
 	return err_num;
 }
 
 static u32 gaudi3_handle_pcie0_spi_err(struct hl_device *hdev, u16 data_size,
-					struct hl_eq_pcie_spi_data *pcie_spi_data)
+					struct hl_eq_pcie_spi_data *pcie_spi_data,
+					u32 *reset_flags, u64 *event_mask)
 {
 	u32 err_num = 0, err_msk;
 	int rc;
@@ -12917,7 +12928,8 @@ static u32 gaudi3_handle_pcie0_spi_err(struct hl_device *hdev, u16 data_size,
 		break;
 
 	case PCIE_SPI_DRAIN:
-		err_num = gaudi3_handle_pcie_spi_drain(hdev, &pcie_spi_data->drain_cause);
+		err_num = gaudi3_handle_pcie_spi_drain(hdev, &pcie_spi_data->drain_cause,
+							reset_flags, event_mask);
 		break;
 
 	default:
@@ -13669,7 +13681,8 @@ static u32 gaudi3_handle_sei_event(struct hl_device *hdev,
 }
 
 static u32 gaudi3_handle_spi_event(struct hl_device *hdev,
-				struct hl_eq_dynamic_entry *eq_dynamic_entry, u64 *event_mask)
+					struct hl_eq_dynamic_entry *eq_dynamic_entry,
+					u32 *reset_flags, u64 *event_mask)
 {
 	u16 data_size = le16_to_cpu(eq_dynamic_entry->hdr.size);
 	enum hl_agg_component_type agg_component_type;
@@ -13691,7 +13704,8 @@ static u32 gaudi3_handle_spi_event(struct hl_device *hdev,
 		break;
 	case INT_COMP_TYPE_PCIE:
 		err_cnt = gaudi3_handle_pcie0_spi_err(hdev, data_size,
-							&eq_dynamic_entry->pcie_spi_data);
+							&eq_dynamic_entry->pcie_spi_data,
+							reset_flags, event_mask);
 		break;
 	case INT_COMP_TYPE_PMMU:
 		err_cnt = handle_pmmu_spi_events(hdev, die, event_mask, data_size,
@@ -13766,7 +13780,7 @@ static int gaudi3_handle_hw_event(struct hl_device *hdev,
 		err_cnt = gaudi3_handle_sei_event(hdev, eq_dynamic_entry, event_mask);
 		break;
 	case INT_GRP_TYPE_SPI:
-		err_cnt = gaudi3_handle_spi_event(hdev, eq_dynamic_entry, event_mask);
+		err_cnt = gaudi3_handle_spi_event(hdev, eq_dynamic_entry, reset_flags, event_mask);
 		break;
 	default:
 		break;
