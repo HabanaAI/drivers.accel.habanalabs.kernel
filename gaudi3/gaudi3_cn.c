@@ -161,6 +161,12 @@ int gaudi3_cn_set_info(struct hl_device *hdev, bool get_from_fw)
 	}
 
 	switch (serdes_type) {
+	/* TODO: SW-149834 - Handle each serder type separately */
+	case HLS3_FULLSCALE_IN_SERDES_TYPE:
+	case HLS3_FULLSCALE_OUT_SERDES_TYPE:
+	case HLS3_FULL_OAM_3PORTS_SCALE_OUT_SERDES_TYPE:
+	case HLS3_FULL_OAM_6PORTS_SCALE_OUT_SERDES_TYPE:
+	case HLS3_SINGLEPORT_OAM_FULLSCALE_OUT_SERDES_TYPE:
 	case HLS3_SERDES_TYPE:
 		hdev->asic_prop.server_type = HL_SERVER_GAUDI3_HLS3;
 		break;
