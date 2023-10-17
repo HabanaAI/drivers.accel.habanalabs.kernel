@@ -58,6 +58,26 @@ bool gaudi3_cn_is_macro_enabled(struct hl_device *hdev, int macro_idx)
 	return ((hdev->cn.ports_mask & BIT(port1)) || (hdev->cn.ports_mask & BIT(port2)));
 }
 
+static int gaudi3_cn_check_oui_prefix_validity(u8 *mac_addr)
+{
+	u8 mac[ETH_ALEN];
+	int i;
+
+	for (i = 0 ; i < 3 ; i++)
+		mac[i] = HABANALABS_MAC_OUI_1 >> (8 * (2 - i));
+
+	if (!strncmp(mac, mac_addr, 3))
+		return 1;
+
+	for (i = 0 ; i < 3 ; i++)
+		mac[i] = HABANALABS_MAC_OUI_2 >> (8 * (2 - i));
+
+	if (!strncmp(mac, mac_addr, 3))
+		return 1;
+
+	return 0;
+}
+
 int gaudi3_cn_set_info(struct hl_device *hdev, bool get_from_fw)
 {
 	struct hl_cn_cpucp_info *cn_cpucp_info = &hdev->asic_prop.cn_props.cpucp_info;
@@ -104,7 +124,7 @@ int gaudi3_cn_set_info(struct hl_device *hdev, bool get_from_fw)
 				continue;
 
 			mac_addr = mac_arr[i].mac_addr;
-			if (strncmp(mac, mac_addr, 3)) {
+			if (!gaudi3_cn_check_oui_prefix_validity(mac_addr)) {
 				if (hdev->ignore_eeprom_errors) {
 					dev_dbg(hdev->dev,
 						"bad MAC OUI %pM, port %d - setting a valid MAC\n",
@@ -112,10 +132,8 @@ int gaudi3_cn_set_info(struct hl_device *hdev, bool get_from_fw)
 					mac[ETH_ALEN - 1] = i;
 					memcpy(mac_addr, mac, ETH_ALEN);
 				} else {
-					dev_err(hdev->dev,
-						"bad MAC OUI %pM, port %d - failing the initialization\n",
+					dev_warn(hdev->dev, "unrecognized MAC OUI %pM, port %d\n",
 						mac_addr, i);
-					return -EFAULT;
 				}
 			}
 		}
