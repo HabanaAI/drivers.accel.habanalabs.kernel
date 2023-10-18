@@ -13066,14 +13066,32 @@ static const char *gaudi3_get_interrupt_hdcore_name(u8 hdcore_type)
 	return gaudi3_interrupt_hdcore_name[hdcore_type];
 }
 
-static void gaudi3_print_hw_event_info(struct hl_device *hdev, struct hl_agg_eq_header *agg_hdr)
+static void gaudi3_stringify_agg_eq_header(char *str, size_t size, struct hl_agg_eq_header *agg_hdr)
 {
-	dev_dbg(hdev->dev, "Received H/W event [%s, DIE%d, %s, instance %d, %s]\n",
+	snprintf(str, size, "[%s, DIE%d, %s, instance %d, %s]\n",
 			gaudi3_get_interrupt_comp_name(agg_hdr->int_comp_type),
 			agg_hdr->die_id,
 			gaudi3_get_interrupt_hdcore_name(agg_hdr->hdcore_type),
 			agg_hdr->comp_instance,
 			gaudi3_get_interrupt_grp_name(agg_hdr->int_grp_type));
+}
+
+static void gaudi3_print_hw_event_info(struct hl_device *hdev, struct hl_agg_eq_header *agg_hdr)
+{
+	char agg_eq_header_str[64] = "";
+
+	gaudi3_stringify_agg_eq_header(agg_eq_header_str, sizeof(agg_eq_header_str), agg_hdr);
+
+	dev_dbg(hdev->dev, "Received H/W event %s\n", agg_eq_header_str);
+}
+
+static void gaudi3_print_hw_event_invalid(struct hl_device *hdev, struct hl_agg_eq_header *agg_hdr)
+{
+	char agg_eq_header_str[64] = "";
+
+	gaudi3_stringify_agg_eq_header(agg_eq_header_str, sizeof(agg_eq_header_str), agg_hdr);
+
+	dev_err(hdev->dev, "H/W event was received without a valid cause %s\n", agg_eq_header_str);
 }
 
 static void gaudi3_set_reset_flags_and_event_mask(struct hl_device *hdev,
@@ -13751,7 +13769,7 @@ static int gaudi3_handle_hw_event(struct hl_device *hdev,
 	}
 
 	if (!err_cnt) {
-		dev_err(hdev->dev, "No error cause\n");
+		gaudi3_print_hw_event_invalid(hdev, agg_hdr);
 		return -EIO;
 	}
 
