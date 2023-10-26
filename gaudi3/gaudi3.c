@@ -13730,9 +13730,6 @@ static u32 gaudi3_handle_spi_event(struct hl_device *hdev,
 		break;
 	}
 
-	if (err_cnt)
-		hl_check_for_glbl_errors(hdev);
-
 	return err_cnt;
 }
 
