@@ -13416,14 +13416,26 @@ static void gaudi3_sei_razwi_handler(struct hl_device *hdev, struct hl_eq_dynami
 		break;
 
 	case INT_COMP_TYPE_MME:
-		gaudi3_handle_razwi(hdev, &eq->mme_sei_data.sbte_data.rtr_data, eng_id, event_mask);
-		gaudi3_handle_razwi(hdev, &eq->mme_sei_data.acc_data.rtr_data, eng_id, event_mask);
-		gaudi3_handle_razwi(hdev,
-				&eq->mme_sei_data.control_data.qm_rtr_data[MME_QM_RAZWI_RD], eng_id,
-				event_mask);
-		gaudi3_handle_razwi(hdev,
-				&eq->mme_sei_data.control_data.qm_rtr_data[MME_QM_RAZWI_WR], eng_id,
-				event_mask);
+		switch (eq->mme_sei_data.type) {
+		case MME_DATA_TYPE_SBTE:
+			gaudi3_handle_razwi(hdev, &eq->mme_sei_data.sbte_data.rtr_data,
+					eng_id, event_mask);
+			break;
+		case MME_DATA_TYPE_ACC:
+			gaudi3_handle_razwi(hdev, &eq->mme_sei_data.acc_data.rtr_data,
+					eng_id, event_mask);
+			break;
+		case MME_DATA_TYPE_CTRL:
+			gaudi3_handle_razwi(hdev,
+					&eq->mme_sei_data.control_data.qm_rtr_data[MME_QM_RAZWI_RD],
+					eng_id, event_mask);
+			gaudi3_handle_razwi(hdev,
+					&eq->mme_sei_data.control_data.qm_rtr_data[MME_QM_RAZWI_WR],
+					eng_id, event_mask);
+			break;
+		default:
+			break;
+		}
 		break;
 
 	case INT_COMP_TYPE_PARC:
