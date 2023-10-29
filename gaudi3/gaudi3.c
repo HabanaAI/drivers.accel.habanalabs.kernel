@@ -12368,7 +12368,7 @@ static u32 gaudi3_handle_pcie0_sei_err(struct hl_device *hdev, u16 data_size,
 }
 
 static u32 gaudi3_handle_qm_sei_err(struct hl_device *hdev, struct hl_eq_qm_sei_data *qm_sei_data,
-					const char *engine)
+					const char *engine, u64 *event_mask)
 {
 	u32 err_num, err_msk;
 	char buf[32];
@@ -12377,6 +12377,9 @@ static u32 gaudi3_handle_qm_sei_err(struct hl_device *hdev, struct hl_eq_qm_sei_
 	err_msk = lower_32_bits(le64_to_cpu(qm_sei_data->qm_cause.intr_cause_data)) &
 			QMAN_GLBL_ERR_STS_MASK;
 	err_num = gaudi3_err_cause_iterator(hdev, err_msk, gaudi3_qm_err_cause, buf, "SEI");
+
+	if (event_mask && (err_msk & QMAN_GLBL_ERR_STS_CP_UNDEF_CMD_ERR_M))
+		*event_mask |= HL_NOTIFIER_EVENT_UNDEFINED_OPCODE;
 
 	snprintf(buf, sizeof(buf), "%s_QM_ARC_AUX", engine);
 	err_msk = lower_32_bits(le64_to_cpu(qm_sei_data->arc_qm_cause.intr_cause_data));
@@ -12387,7 +12390,7 @@ static u32 gaudi3_handle_qm_sei_err(struct hl_device *hdev, struct hl_eq_qm_sei_
 }
 
 static u32 gaudi3_handle_edma_sei_err(struct hl_device *hdev, u16 data_size,
-					struct hl_eq_edma_sei_data *edma_sei_data)
+				struct hl_eq_edma_sei_data *edma_sei_data, u64 *event_mask)
 {
 	u32 instance, channel, chn_data_idx, err_num = 0, err_mask, err_num_tmp;
 	struct hl_eq_edma_chn_data *edma_chn_data;
@@ -12414,7 +12417,8 @@ static u32 gaudi3_handle_edma_sei_err(struct hl_device *hdev, u16 data_size,
 		}
 
 		snprintf(buf, sizeof(buf), "EDMA%u", instance);
-		err_num += gaudi3_handle_qm_sei_err(hdev, &edma_sei_data->qm_data[instance], buf);
+		err_num += gaudi3_handle_qm_sei_err(hdev, &edma_sei_data->qm_data[instance], buf,
+					event_mask);
 	}
 
 	return err_num;
@@ -12553,7 +12557,7 @@ static u32 gaudi3_handle_mme_spi_events(struct hl_device *hdev, u16 data_size,
 }
 
 static u32 gaudi3_handle_mme_sei_err(struct hl_device *hdev, u16 data_size,
-					struct hl_eq_mme_sei_data *sei_data)
+					struct hl_eq_mme_sei_data *sei_data, u64 *event_mask)
 {
 	struct hl_eq_mme_ctrl_data *ctrl_data = &sei_data->control_data;
 	struct hl_eq_mme_acc_data *acc_data = &sei_data->acc_data;
@@ -12584,7 +12588,7 @@ static u32 gaudi3_handle_mme_sei_err(struct hl_device *hdev, u16 data_size,
 		cause = le64_to_cpu(ctrl_data->cause.intr_cause_data);
 		err_num = gaudi3_err_cause_iterator(hdev, cause, gaudi3_mme_ctrl_lo_intr_cause,
 								"MME_CTRL", "SEI");
-		err_num += gaudi3_handle_qm_sei_err(hdev, &ctrl_data->qm_data, "MME");
+		err_num += gaudi3_handle_qm_sei_err(hdev, &ctrl_data->qm_data, "MME", event_mask);
 		break;
 	default:
 		break;
@@ -12675,7 +12679,7 @@ static u32 handle_hmmu_sei_events(struct hl_device *hdev, u16 data_size,
 }
 
 static u32 handle_tpc_sei_events(struct hl_device *hdev, u16 data_size,
-					struct hl_eq_tpc_sei_data *sei_data)
+					struct hl_eq_tpc_sei_data *sei_data, u64 *event_mask)
 {
 	u32 err_num;
 	int rc;
@@ -12689,13 +12693,13 @@ static u32 handle_tpc_sei_events(struct hl_device *hdev, u16 data_size,
 		dev_err_ratelimited(hdev->dev, "TPC KERNEL ID: 0x%x\n",
 				le16_to_cpu(sei_data->data.kernel_id));
 
-	err_num += gaudi3_handle_qm_sei_err(hdev, &sei_data->qm_data, "TPC");
+	err_num += gaudi3_handle_qm_sei_err(hdev, &sei_data->qm_data, "TPC", event_mask);
 
 	return err_num;
 }
 
 static u32 gaudi3_handle_rotator_sei_err(struct hl_device *hdev, u16 data_size,
-						struct hl_eq_rot_sei_data *rot_sei_data)
+					struct hl_eq_rot_sei_data *rot_sei_data, u64 *event_mask)
 {
 	u32 err_msk, err_num;
 	int rc;
@@ -12708,7 +12712,7 @@ static u32 gaudi3_handle_rotator_sei_err(struct hl_device *hdev, u16 data_size,
 			ROTATOR_MSS_SEI_CAUSE_MASK;
 	err_num = gaudi3_err_cause_iterator(hdev, err_msk, gaudi3_rotator_sei_cause, "ROT", "SEI");
 
-	err_num += gaudi3_handle_qm_sei_err(hdev, &rot_sei_data->qm_data, "ROT");
+	err_num += gaudi3_handle_qm_sei_err(hdev, &rot_sei_data->qm_data, "ROT", event_mask);
 
 	return err_num;
 }
@@ -13602,7 +13606,8 @@ static u32 gaudi3_handle_sei_event(struct hl_device *hdev,
 		break;
 	case INT_COMP_TYPE_EDMA:
 		err_cnt = gaudi3_handle_edma_sei_err(hdev, data_size,
-							&eq_dynamic_entry->edma_sei_data);
+							&eq_dynamic_entry->edma_sei_data,
+							event_mask);
 		glbl_err_data = &eq_dynamic_entry->edma_sei_data.glbl_err_data;
 		break;
 	case INT_COMP_TYPE_NIC:
@@ -13640,17 +13645,18 @@ static u32 gaudi3_handle_sei_event(struct hl_device *hdev,
 		glbl_err_data = &eq_dynamic_entry->stlb_sei_data.glbl_err_data;
 		break;
 	case INT_COMP_TYPE_TPC:
-		err_cnt = handle_tpc_sei_events(hdev, data_size, &eq_dynamic_entry->tpc_sei_data);
+		err_cnt = handle_tpc_sei_events(hdev, data_size, &eq_dynamic_entry->tpc_sei_data,
+				event_mask);
 		glbl_err_data = &eq_dynamic_entry->tpc_sei_data.glbl_err_data;
 		break;
 	case INT_COMP_TYPE_MME:
 		err_cnt = gaudi3_handle_mme_sei_err(hdev, data_size,
-							&eq_dynamic_entry->mme_sei_data);
+						&eq_dynamic_entry->mme_sei_data, event_mask);
 		glbl_err_data = &eq_dynamic_entry->mme_sei_data.glbl_err_data;
 		break;
 	case INT_COMP_TYPE_ROT:
 		err_cnt = gaudi3_handle_rotator_sei_err(hdev, data_size,
-							&eq_dynamic_entry->rot_sei_data);
+						&eq_dynamic_entry->rot_sei_data, event_mask);
 		glbl_err_data = &eq_dynamic_entry->rot_sei_data.glbl_err_data;
 		break;
 	case INT_COMP_TYPE_PSOC:
