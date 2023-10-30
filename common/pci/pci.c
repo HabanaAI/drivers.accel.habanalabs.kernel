@@ -428,8 +428,12 @@ int hl_pci_init(struct hl_device *hdev)
 	}
 
 	/* Driver must sleep in order for FW to finish the iATU configuration */
-	if (hdev->asic_prop.iatu_done_by_fw)
-		usleep_range(2000, 3000);
+	if (hdev->asic_prop.iatu_done_by_fw) {
+		if (hdev->pldm)
+			ssleep(3);
+		else
+			usleep_range(2000, 3000);
+	}
 
 #ifndef _HAS_PCI_CONFIGURE_EXTENDED_TAGS
 	rc = hl_pci_configure_extended_tags(pdev);
