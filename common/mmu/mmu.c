@@ -652,10 +652,13 @@ int hl_mmu_if_set_funcs(struct hl_device *hdev)
 		break;
 	case ASIC_GAUDI2_SIM:
 	case ASIC_GAUDI2B_SIM:
+	case ASIC_GAUDI2C_SIM:
 	case ASIC_GAUDI2_SIM_ARC:
 	case ASIC_GAUDI2B_SIM_ARC:
+	case ASIC_GAUDI2C_SIM_ARC:
 	case ASIC_GAUDI2:
 	case ASIC_GAUDI2B:
+	case ASIC_GAUDI2C:
 		/* MMUs in Gaudi2 are always host resident */
 		hl_mmu_v2_hr_set_funcs(hdev, &hdev->mmu_func[MMU_HR_PGT]);
 		break;
