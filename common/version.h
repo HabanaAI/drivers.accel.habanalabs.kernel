@@ -8,9 +8,9 @@
 #ifndef HL_VERSION_H
 #define HL_VERSION_H
 
-#define HL_DRIVER_DATE          "20230831"
+#define HL_DRIVER_DATE          "20231030"
 #define HL_DRIVER_MAJOR         1
-#define HL_DRIVER_MINOR         13
+#define HL_DRIVER_MINOR         14
 #define HL_DRIVER_PATCHLEVEL    0
 
 #endif /* HL_VERSION_H */
