@@ -320,7 +320,8 @@ static void hl_cn_set_priv_assertions(struct hl_aux_dev *aux_dev, bool enable)
 	hdev->asic_funcs->set_priv_assertions(hdev, enable);
 }
 
-static int hl_cn_get_compute_user_ctx(struct hl_aux_dev *aux_dev, int user_fd)
+static int hl_cn_register_cn_user_context(struct hl_aux_dev *aux_dev, int user_fd,
+				const void *cn_ctx, u64 *comp_handle, u64 *vm_handle)
 {
 	struct hl_cn *cn = container_of(aux_dev, struct hl_cn, cn_aux_dev);
 	struct hl_device *hdev = container_of(cn, struct hl_device, cn);
@@ -329,21 +330,28 @@ static int hl_cn_get_compute_user_ctx(struct hl_aux_dev *aux_dev, int user_fd)
 	struct file *file;
 	int rc = 0;
 
+	if (atomic_cmpxchg(&cn->ctx_registered, 0, 1)) {
+		dev_dbg(hdev->dev, "user context is already registered\n");
+		return -EBUSY;
+	}
+
 	/* CN driver can independently manage its resources and context.
 	 * However, for HL devices, corresponding HW resources can also be managed by compute side.
 	 * To avoid contention (e.g. abrupt application close) between them, enforce orderly FD
 	 * closure. This facilitates that CN destroy runs first, followed by compute fini.
 	 */
 	file = fget(user_fd);
-	if (!file)
-		return -EBADF;
+	if (!file) {
+		rc = -EBADF;
+		goto file_err;
+	}
 
 	mutex_lock(&hdev->fpriv_list_lock);
 
 	if (list_empty(&hdev->fpriv_list)) {
 		dev_dbg(hdev->dev, "no open user context\n");
 		rc = -ESRCH;
-		goto out;
+		goto open_ctx_err;
 	}
 
 	/* The list should contain a single element as currently only a single user context is
@@ -355,18 +363,34 @@ static int hl_cn_get_compute_user_ctx(struct hl_aux_dev *aux_dev, int user_fd)
 	if (hpriv != file_priv->driver_priv) {
 		dev_dbg(hdev->dev, "user FD mismatch\n");
 		rc = -EINVAL;
+		goto fd_mismatch_err;
 	}
 
-out:
 	mutex_unlock(&hdev->fpriv_list_lock);
 
-	if (rc)
-		fput(file);
+	*comp_handle = 0;
+	*vm_handle = 0;
+
+	return 0;
+
+fd_mismatch_err:
+open_ctx_err:
+	mutex_unlock(&hdev->fpriv_list_lock);
+	fput(file);
+file_err:
+	atomic_set(&cn->ctx_registered, 0);
 
 	return rc;
 }
 
-static void hl_cn_put_compute_user_ctx(struct hl_aux_dev *aux_dev)
+static int hl_cn_get_compute_user_ctx(struct hl_aux_dev *aux_dev, int user_fd)
+{
+	u64 comp_handle, vm_handle;
+
+	return hl_cn_register_cn_user_context(aux_dev, user_fd, NULL, &comp_handle, &vm_handle);
+}
+
+static void hl_cn_deregister_cn_user_context(struct hl_aux_dev *aux_dev, u64 vm_handle)
 {
 	struct hl_cn *cn = container_of(aux_dev, struct hl_cn, cn_aux_dev);
 	struct hl_device *hdev = container_of(cn, struct hl_device, cn);
@@ -379,10 +403,38 @@ static void hl_cn_put_compute_user_ctx(struct hl_aux_dev *aux_dev)
 
 	file = hpriv->file_priv->filp;
 
-	/* We can assert here that all CN resources which might have dependency on compute side
-	 * are already released. Hence, release reference to compute file.
+	/* We can assert here that all CN resources which might have dependency on compute side are
+	 * already released. Hence, release reference to compute file.
 	 */
 	fput(file);
+
+	atomic_set(&cn->ctx_registered, 0);
+}
+
+static void hl_cn_put_compute_user_ctx(struct hl_aux_dev *aux_dev)
+{
+	hl_cn_deregister_cn_user_context(aux_dev, 0);
+}
+
+static int hl_cn_vm_create(struct hl_aux_dev *aux_dev, u64 comp_handle, u32 flags, u64 *vm_handle)
+{
+	*vm_handle = 0;
+
+	return 0;
+}
+
+static void hl_cn_vm_destroy(struct hl_aux_dev *aux_dev, u64 vm_handle)
+{
+
+}
+
+static int hl_cn_get_vm_info(struct hl_aux_dev *aux_dev, u64 vm_handle,
+				struct hl_cn_vm_info *vm_info)
+{
+	vm_info->mmu_mode = HL_CN_MMU_MODE_EXTERNAL;
+	vm_info->net_tlb.pasid = 1;
+
+	return 0;
 }
 
 static int hl_cn_poll_reg(struct hl_aux_dev *aux_dev, u32 reg, u64 timeout_us,
@@ -616,6 +668,11 @@ static int hl_cn_aux_data_init(struct hl_device *hdev)
 	aux_ops->set_priv_assertions = hl_cn_set_priv_assertions;
 	aux_ops->get_compute_user_ctx = hl_cn_get_compute_user_ctx;
 	aux_ops->put_compute_user_ctx = hl_cn_put_compute_user_ctx;
+	aux_ops->register_cn_user_context = hl_cn_register_cn_user_context;
+	aux_ops->deregister_cn_user_context = hl_cn_deregister_cn_user_context;
+	aux_ops->vm_create = hl_cn_vm_create;
+	aux_ops->vm_destroy = hl_cn_vm_destroy;
+	aux_ops->get_vm_info = hl_cn_get_vm_info;
 	aux_ops->poll_reg = hl_cn_poll_reg;
 	aux_ops->get_cpucp_info = hl_cn_get_cpucp_info;
 	aux_ops->send_cpu_message = hl_cn_send_cpu_message;

@@ -48,6 +48,7 @@ struct hl_ctx;
  *                  received from the f/w. This field can contain different values based on the
  *                  server type.
  * @eth_ports_mask: Ethernet ports enable mask.
+ * @ctx_registered: is user context registered.
  * @card_location: the OAM number in the HLS (relevant for PMC card type).
  * @use_fw_serdes_info: true if NIC should use serdes values from F/W, false if CN should use hard
  *                      coded values.
@@ -61,6 +62,7 @@ struct hl_cn {
 	u64			ports_mask;
 	u64			ports_ext_mask;
 	u64			eth_ports_mask;
+	atomic_t		ctx_registered;
 	u32			card_location;
 	u8			use_fw_serdes_info;
 	u8			is_cn_aux_dev_initialized;
