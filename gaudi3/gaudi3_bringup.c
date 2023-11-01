@@ -4736,10 +4736,25 @@ static u32 pdma_special_regs_base[] = {
 	mmD0_SPDMA1_CMN_B_SPECIAL_BASE
 };
 
+static void pdma_eng_mask_err_int(struct hl_device *hdev, u32 err_cause_reg, u32 err_int_mask_reg,
+								u32 *err_cause_data)
+{
+	u32 err_int_mask_val, err_ignore_msk;
+
+	err_ignore_msk = PDMA_CH_B_ERR_STATUS_VALID_M;
+	*err_cause_data = RREG32(err_cause_reg) & (~err_ignore_msk);
+
+	if (*err_cause_data) {
+		err_int_mask_val = RREG32(err_int_mask_reg);
+		WREG32(err_int_mask_reg, err_int_mask_val | *err_cause_data);
+	}
+}
+
 static void handle_and_clear_pdma_sei_events(struct hl_device *hdev, u8 die,
 						struct hl_eq_pdma_sei_data *data)
 {
-	u32 ch_b_base, cmn_b_base, die_offset, spdma_offset, ch_offset, err_msk, cmn_err_msk;
+	u32 ch_b_base, cmn_b_base, die_offset, spdma_offset, ch_offset, err_msk, cmn_err_msk,
+				ch_err_cause_addr, ch_err_int_mask_addr;
 	u8 i, j;
 
 	die_offset = (DIE_OFFSET * die);
@@ -4753,11 +4768,11 @@ static void handle_and_clear_pdma_sei_events(struct hl_device *hdev, u8 die,
 
 		for (j = 0; j < SPDMA_CHANNEL_MAX; j++) {
 			ch_offset = ch_b_base + (D0_SPDMA0_CH0_B_MAX_OFFSET * j);
+			ch_err_cause_addr = ch_offset + mmPDMA_CH_B_ERR_STATUS;
+			ch_err_int_mask_addr = ch_offset + mmPDMA_CH_B_ERR_INT_MASK;
 
-			err_msk = RREG32(ch_offset + mmPDMA_CH_B_ERR_STATUS);
-			/* Clear error status of channel B */
-			WREG32((ch_offset + mmPDMA_CH_B_ERR_STATUS), err_msk);
-
+			pdma_eng_mask_err_int(hdev, ch_err_cause_addr, ch_err_int_mask_addr,
+									&err_msk);
 			data->spdma_data[i].ch_b_data[j].err_sts.intr_cause_data =
 					cpu_to_le64(err_msk);
 		}
