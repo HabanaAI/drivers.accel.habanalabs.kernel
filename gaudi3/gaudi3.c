@@ -11695,11 +11695,21 @@ u32 gaudi3_get_queue_id_for_cq(struct hl_device *hdev, u32 cq_idx)
 	return HL_INVALID_QUEUE;
 }
 
-u64 gaudi3_get_device_time(struct hl_device *hdev)
+u64 gaudi3_get_device_time(struct hl_device *hdev, u32 die_index)
 {
-	u64 device_time = ((u64) RREG32(mmD0_PSOC_TIMESTAMP_BASE + mmTIMESTAMP_CNTCVU)) << 32;
+	struct asic_fixed_properties *prop = &hdev->asic_prop;
+	u32 base_reg = mmD0_PSOC_TIMESTAMP_BASE;
+	u64 device_time;
 
-	return device_time | RREG32(mmD0_PSOC_TIMESTAMP_BASE + mmTIMESTAMP_CNTCVL);
+	/* Assuming that, die index is not high than number of active dies */
+	if (die_index >= prop->num_of_dies)
+		return 0;
+
+	if (die_index == 1)
+		base_reg = mmD1_PSOC_TIMESTAMP_BASE;
+
+	device_time = ((u64) RREG32(base_reg + mmTIMESTAMP_CNTCVU)) << 32;
+	return device_time | RREG32(base_reg + mmTIMESTAMP_CNTCVL);
 }
 
 static void gaudi3_pb_print_security_errors(struct hl_device *hdev,

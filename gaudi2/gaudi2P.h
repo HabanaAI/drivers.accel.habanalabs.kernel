@@ -736,7 +736,7 @@ u32 gaudi2_get_sob_addr(struct hl_device *hdev, u32 sob_id);
 u32 *gaudi2_get_stream_master_qid_arr(void);
 void gaudi2_reset_sob(struct hl_device *hdev, void *data);
 void gaudi2_reset_sob_group(struct hl_device *hdev, u16 sob_group);
-u64 gaudi2_get_device_time(struct hl_device *hdev);
+u64 gaudi2_get_device_time(struct hl_device *hdev, u32 die_index);
 int gaudi2_collective_wait_init_cs(struct hl_cs *cs);
 int gaudi2_collective_wait_create_jobs(struct hl_device *hdev, struct hl_ctx *ctx,
 					struct hl_cs *cs, u32 wait_queue_id,

@@ -558,7 +558,7 @@ void gaudi_ctx_fini(struct hl_ctx *ctx);
 int gaudi_pre_schedule_cs(struct hl_cs *cs);
 void gaudi_update_eq_ci(struct hl_device *hdev, u32 val);
 int gaudi_run_tpc_kernel(struct hl_device *hdev, u64 tpc_kernel, u32 tpc_id);
-u64 gaudi_get_device_time(struct hl_device *hdev);
+u64 gaudi_get_device_time(struct hl_device *hdev, u32 die_index);
 int gaudi_collective_wait_init_cs(struct hl_cs *cs);
 int gaudi_collective_wait_create_jobs(struct hl_device *hdev,
 		struct hl_ctx *ctx, struct hl_cs *cs, u32 wait_queue_id,

@@ -1950,7 +1950,7 @@ struct hl_asic_funcs {
 			struct hl_gen_wait_properties *prop);
 	void (*reset_sob)(struct hl_device *hdev, void *data);
 	void (*reset_sob_group)(struct hl_device *hdev, u16 sob_group);
-	u64 (*get_device_time)(struct hl_device *hdev);
+	u64 (*get_device_time)(struct hl_device *hdev, u32 die_index);
 	void (*pb_print_security_errors)(struct hl_device *hdev,
 			u32 block_addr, u32 cause, u32 offended_addr);
 	int (*collective_wait_init_cs)(struct hl_cs *cs);

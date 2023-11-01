@@ -604,7 +604,7 @@ int gaudi3_send_cpu_message(struct hl_device *hdev, u32 *msg, u16 len,
 int gaudi3_ctx_init(struct hl_ctx *ctx);
 void gaudi3_ctx_fini(struct hl_ctx *ctx);
 u32 gaudi3_get_queue_id_for_cq(struct hl_device *hdev, u32 cq_idx);
-u64 gaudi3_get_device_time(struct hl_device *hdev);
+u64 gaudi3_get_device_time(struct hl_device *hdev, u32 die_index);
 void gaudi3_ack_protection_bits_errors(struct hl_device *hdev);
 int gaudi3_get_hw_block_id(struct hl_device *hdev, u64 block_addr,
 				u32 *block_size, u32 *block_id);

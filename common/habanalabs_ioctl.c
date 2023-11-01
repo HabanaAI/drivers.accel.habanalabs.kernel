@@ -505,12 +505,39 @@ static int time_sync_info(struct hl_device *hdev, struct hl_info_args *args)
 	if ((!max_size) || (!out))
 		return -EINVAL;
 
-	time_sync.device_time = hdev->asic_funcs->get_device_time(hdev);
+	time_sync.device_time = hdev->asic_funcs->get_device_time(hdev, 0);
 	time_sync.host_time = ktime_get_raw_ns();
 	time_sync.tsc_time = rdtsc();
 
 	return copy_to_user(out, &time_sync,
 		min((size_t) max_size, sizeof(time_sync))) ? -EFAULT : 0;
+}
+
+static int time_sync_info_per_die(struct hl_device *hdev, struct hl_info_args *args)
+{
+	struct hl_info_time_sync_per_die ts_info = {0};
+	u32 max_size = args->return_size;
+	void __user *out = (void __user *) (uintptr_t) args->return_pointer;
+	int rc;
+	u8 num_of_dies;
+
+	if ((!max_size) || (!out))
+		return -EINVAL;
+
+	rc = copy_from_user(&ts_info, out, min_t(size_t, max_size, sizeof(ts_info)));
+	if (rc)
+		return -EFAULT;
+
+	num_of_dies = hdev->asic_prop.num_of_dies != 0x0 ? hdev->asic_prop.num_of_dies : 0x1;
+	if (ts_info.die_index >= num_of_dies)
+		return -EINVAL;
+
+	ts_info.device_time = hdev->asic_funcs->get_device_time(hdev, ts_info.die_index);
+	ts_info.host_time = ktime_get_raw_ns();
+	ts_info.tsc_time = rdtsc();
+
+	return copy_to_user(out, &ts_info,
+		min((size_t) max_size, sizeof(ts_info))) ? -EFAULT : 0;
 }
 
 static int pci_counters_info(struct hl_fpriv *hpriv, struct hl_info_args *args)
@@ -1393,6 +1420,9 @@ static int _hl_info_ioctl(struct hl_fpriv *hpriv, void *data,
 
 	case HL_INFO_FW_GENERIC_REQ:
 		return send_fw_generic_request(hdev, args);
+
+	case HL_INFO_TIME_SYNC_PER_DIE:
+		return time_sync_info_per_die(hdev, args);
 
 	default:
 		dev_err(dev, "Invalid request %d\n", args->op);
