@@ -291,7 +291,7 @@ static void gaudi3_init_n2r_credits_d2d(struct hl_device *hdev)
 	WREG32(0xC855524, 0xE0E);
 	WREG32(0xC855528, 0xE0E);
 	WREG32(0xC85552C, 0xE0E);
-	RREG32(0xC85552C);
+	RREG32(0xc402000);
 }
 
 static void gaudi3_init_n2r_credits_single_die(struct hl_device *hdev)
@@ -379,7 +379,7 @@ static void gaudi3_init_n2r_credits_single_die(struct hl_device *hdev)
 	WREG32(0xC055524, 0xE0E);
 	WREG32(0xC055528, 0xE0E);
 	WREG32(0xC05552C, 0xE0E);
-	RREG32(0xC05552C);
+	RREG32(0xc402000);
 }
 
 static void gaudi3_init_r2c_credits_single_die_rif_edma_hd1_hd4_block(
@@ -394,7 +394,7 @@ static void gaudi3_init_r2c_credits_single_die_rif_edma_hd1_hd4_block(
 	WREG32(offset + 0x434, 0xA0E);
 	WREG32(offset + 0x438, 0xA0E);
 	WREG32(offset + 0x43C, 0xA0E);
-	RREG32(offset + 0x43C);
+	RREG32(0xc402000);
 }
 
 static void gaudi3_init_r2c_credits_d2d_rif_edma_hd1_hd4_block(
@@ -409,7 +409,7 @@ static void gaudi3_init_r2c_credits_d2d_rif_edma_hd1_hd4_block(
 	WREG32(offset + 0x434, 0xA0E);
 	WREG32(offset + 0x438, 0xA0E);
 	WREG32(offset + 0x43C, 0xA0E);
-	RREG32(offset + 0x43C);
+	RREG32(0xc402000);
 }
 
 static void gaudi3_init_r2c_credits_single_die_rif_edma_hd3_hd5_block(
@@ -424,7 +424,7 @@ static void gaudi3_init_r2c_credits_single_die_rif_edma_hd3_hd5_block(
 	WREG32(offset + 0x434, 0x80C);
 	WREG32(offset + 0x438, 0x80A);
 	WREG32(offset + 0x43C, 0x608);
-	RREG32(offset + 0x43C);
+	RREG32(0xc402000);
 }
 
 static void gaudi3_init_r2c_credits_d2d_rif_edma_hd3_hd5_block(
@@ -439,7 +439,7 @@ static void gaudi3_init_r2c_credits_d2d_rif_edma_hd3_hd5_block(
 	WREG32(offset + 0x434, 0x80C);
 	WREG32(offset + 0x438, 0x80A);
 	WREG32(offset + 0x43C, 0x608);
-	RREG32(offset + 0x43C);
+	RREG32(0xc402000);
 }
 
 static void gaudi3_init_r2c_credits_single_die_rif_rot_hd1_hd4_block(
@@ -454,7 +454,7 @@ static void gaudi3_init_r2c_credits_single_die_rif_rot_hd1_hd4_block(
 	WREG32(offset + 0x434, 0x404);
 	WREG32(offset + 0x438, 0x404);
 	WREG32(offset + 0x43C, 0x404);
-	RREG32(offset + 0x43C);
+	RREG32(0xc402000);
 }
 
 static void gaudi3_init_r2c_credits_d2d_rif_rot_hd1_hd4_block(
@@ -469,7 +469,7 @@ static void gaudi3_init_r2c_credits_d2d_rif_rot_hd1_hd4_block(
 	WREG32(offset + 0x434, 0x404);
 	WREG32(offset + 0x438, 0x404);
 	WREG32(offset + 0x43C, 0x404);
-	RREG32(offset + 0x43C);
+	RREG32(0xc402000);
 }
 
 static void gaudi3_init_r2c_credits_single_die_rif_rot_hd3_hd5_block(
@@ -484,7 +484,7 @@ static void gaudi3_init_r2c_credits_single_die_rif_rot_hd3_hd5_block(
 	WREG32(offset + 0x434, 0x404);
 	WREG32(offset + 0x438, 0x404);
 	WREG32(offset + 0x43C, 0x404);
-	RREG32(offset + 0x43C);
+	RREG32(0xc402000);
 }
 
 static void gaudi3_init_r2c_credits_d2d_rif_rot_hd3_hd5_block(
@@ -499,7 +499,7 @@ static void gaudi3_init_r2c_credits_d2d_rif_rot_hd3_hd5_block(
 	WREG32(offset + 0x434, 0x404);
 	WREG32(offset + 0x438, 0x404);
 	WREG32(offset + 0x43C, 0x404);
-	RREG32(offset + 0x43C);
+	RREG32(0xc402000);
 }
 
 static void gaudi3_init_r2c_credits_single_die_rif_tpc_spare_hd01_hd45_block(
@@ -514,7 +514,7 @@ static void gaudi3_init_r2c_credits_single_die_rif_tpc_spare_hd01_hd45_block(
 	WREG32(offset + 0x434, 0xA08);
 	WREG32(offset + 0x438, 0xA08);
 	WREG32(offset + 0x43C, 0xA08);
-	RREG32(offset + 0x43C);
+	RREG32(0xc402000);
 }
 
 static void gaudi3_init_r2c_credits_d2d_rif_tpc_spare_hd01_hd45_block(
@@ -529,7 +529,7 @@ static void gaudi3_init_r2c_credits_d2d_rif_tpc_spare_hd01_hd45_block(
 	WREG32(offset + 0x434, 0xA08);
 	WREG32(offset + 0x438, 0xA08);
 	WREG32(offset + 0x43C, 0xA08);
-	RREG32(offset + 0x43C);
+	RREG32(0xc402000);
 }
 
 static void gaudi3_init_r2c_credits_single_die_rif_tpc_spare_hd23_hd67_block(
@@ -544,7 +544,7 @@ static void gaudi3_init_r2c_credits_single_die_rif_tpc_spare_hd23_hd67_block(
 	WREG32(offset + 0x434, 0x806);
 	WREG32(offset + 0x438, 0x806);
 	WREG32(offset + 0x43C, 0x606);
-	RREG32(offset + 0x43C);
+	RREG32(0xc402000);
 }
 
 static void gaudi3_init_r2c_credits_d2d_rif_tpc_spare_hd23_hd67_block(
@@ -559,7 +559,7 @@ static void gaudi3_init_r2c_credits_d2d_rif_tpc_spare_hd23_hd67_block(
 	WREG32(offset + 0x434, 0x806);
 	WREG32(offset + 0x438, 0x806);
 	WREG32(offset + 0x43C, 0x606);
-	RREG32(offset + 0x43C);
+	RREG32(0xc402000);
 }
 
 static void gaudi3_init_r2c_credits_single_die_rif_stlb_hd0145_block(
@@ -574,7 +574,7 @@ static void gaudi3_init_r2c_credits_single_die_rif_stlb_hd0145_block(
 	WREG32(offset + 0x434, 0x200);
 	WREG32(offset + 0x438, 0x200);
 	WREG32(offset + 0x43C, 0x200);
-	RREG32(offset + 0x43C);
+	RREG32(0xc402000);
 }
 
 static void gaudi3_init_r2c_credits_d2d_rif_stlb_hd0145_block(
@@ -589,7 +589,7 @@ static void gaudi3_init_r2c_credits_d2d_rif_stlb_hd0145_block(
 	WREG32(offset + 0x434, 0x200);
 	WREG32(offset + 0x438, 0x200);
 	WREG32(offset + 0x43C, 0x200);
-	RREG32(offset + 0x43C);
+	RREG32(0xc402000);
 }
 
 static void gaudi3_init_r2c_credits_single_die_rif_stlb_hd2367_block(
@@ -604,7 +604,7 @@ static void gaudi3_init_r2c_credits_single_die_rif_stlb_hd2367_block(
 	WREG32(offset + 0x434, 0x200);
 	WREG32(offset + 0x438, 0x200);
 	WREG32(offset + 0x43C, 0x200);
-	RREG32(offset + 0x43C);
+	RREG32(0xc402000);
 }
 
 static void gaudi3_init_r2c_credits_d2d_rif_stlb_hd2367_block(
@@ -619,7 +619,7 @@ static void gaudi3_init_r2c_credits_d2d_rif_stlb_hd2367_block(
 	WREG32(offset + 0x434, 0x200);
 	WREG32(offset + 0x438, 0x200);
 	WREG32(offset + 0x43C, 0x200);
-	RREG32(offset + 0x43C);
+	RREG32(0xc402000);
 }
 
 static void gaudi3_init_r2c_credits_single_die_mme_b0_block(
@@ -634,7 +634,7 @@ static void gaudi3_init_r2c_credits_single_die_mme_b0_block(
 	WREG32(offset + 0x434, 0x700);
 	WREG32(offset + 0x438, 0x700);
 	WREG32(offset + 0x43C, 0x700);
-	RREG32(offset + 0x43C);
+	RREG32(0xc402000);
 }
 
 static void gaudi3_init_r2c_credits_d2d_mme_b0_block(
@@ -649,7 +649,7 @@ static void gaudi3_init_r2c_credits_d2d_mme_b0_block(
 	WREG32(offset + 0x434, 0x700);
 	WREG32(offset + 0x438, 0x700);
 	WREG32(offset + 0x43C, 0x700);
-	RREG32(offset + 0x43C);
+	RREG32(0xc402000);
 }
 
 static void gaudi3_init_r2c_credits_single_die_mme_b1_block(
@@ -664,7 +664,7 @@ static void gaudi3_init_r2c_credits_single_die_mme_b1_block(
 	WREG32(offset + 0x434, 0x700);
 	WREG32(offset + 0x438, 0x700);
 	WREG32(offset + 0x43C, 0x700);
-	RREG32(offset + 0x43C);
+	RREG32(0xc402000);
 }
 
 static void gaudi3_init_r2c_credits_d2d_mme_b1_block(
@@ -679,7 +679,7 @@ static void gaudi3_init_r2c_credits_d2d_mme_b1_block(
 	WREG32(offset + 0x434, 0x700);
 	WREG32(offset + 0x438, 0x700);
 	WREG32(offset + 0x43C, 0x700);
-	RREG32(offset + 0x43C);
+	RREG32(0xc402000);
 }
 
 static void gaudi3_init_r2c_credits_single_die_tpc0_block(
@@ -694,7 +694,7 @@ static void gaudi3_init_r2c_credits_single_die_tpc0_block(
 	WREG32(offset + 0x434, 0x606);
 	WREG32(offset + 0x438, 0x706);
 	WREG32(offset + 0x43C, 0x706);
-	RREG32(offset + 0x43C);
+	RREG32(0xc402000);
 }
 
 static void gaudi3_init_r2c_credits_d2d_tpc0_block(
@@ -709,7 +709,7 @@ static void gaudi3_init_r2c_credits_d2d_tpc0_block(
 	WREG32(offset + 0x434, 0x606);
 	WREG32(offset + 0x438, 0x706);
 	WREG32(offset + 0x43C, 0x706);
-	RREG32(offset + 0x43C);
+	RREG32(0xc402000);
 }
 
 static void gaudi3_init_r2c_credits_single_die_tpc1_block(
@@ -724,7 +724,7 @@ static void gaudi3_init_r2c_credits_single_die_tpc1_block(
 	WREG32(offset + 0x434, 0x606);
 	WREG32(offset + 0x438, 0x706);
 	WREG32(offset + 0x43C, 0x706);
-	RREG32(offset + 0x43C);
+	RREG32(0xc402000);
 }
 
 static void gaudi3_init_r2c_credits_d2d_tpc1_block(
@@ -739,7 +739,7 @@ static void gaudi3_init_r2c_credits_d2d_tpc1_block(
 	WREG32(offset + 0x434, 0x606);
 	WREG32(offset + 0x438, 0x706);
 	WREG32(offset + 0x43C, 0x706);
-	RREG32(offset + 0x43C);
+	RREG32(0xc402000);
 }
 
 static void gaudi3_init_r2c_credits_single_die_tpc2_block(
@@ -754,7 +754,7 @@ static void gaudi3_init_r2c_credits_single_die_tpc2_block(
 	WREG32(offset + 0x434, 0x606);
 	WREG32(offset + 0x438, 0x606);
 	WREG32(offset + 0x43C, 0x706);
-	RREG32(offset + 0x43C);
+	RREG32(0xc402000);
 }
 
 static void gaudi3_init_r2c_credits_d2d_tpc2_block(
@@ -769,7 +769,7 @@ static void gaudi3_init_r2c_credits_d2d_tpc2_block(
 	WREG32(offset + 0x434, 0x606);
 	WREG32(offset + 0x438, 0x606);
 	WREG32(offset + 0x43C, 0x706);
-	RREG32(offset + 0x43C);
+	RREG32(0xc402000);
 }
 
 static void gaudi3_init_r2c_credits_single_die_tpc3_block(
@@ -784,7 +784,7 @@ static void gaudi3_init_r2c_credits_single_die_tpc3_block(
 	WREG32(offset + 0x434, 0x606);
 	WREG32(offset + 0x438, 0x606);
 	WREG32(offset + 0x43C, 0x706);
-	RREG32(offset + 0x43C);
+	RREG32(0xc402000);
 }
 
 static void gaudi3_init_r2c_credits_d2d_tpc3_block(
@@ -799,7 +799,7 @@ static void gaudi3_init_r2c_credits_d2d_tpc3_block(
 	WREG32(offset + 0x434, 0x606);
 	WREG32(offset + 0x438, 0x606);
 	WREG32(offset + 0x43C, 0x706);
-	RREG32(offset + 0x43C);
+	RREG32(0xc402000);
 }
 
 static void gaudi3_init_r2c_credits_single_die_mme_a0_block(
@@ -814,7 +814,7 @@ static void gaudi3_init_r2c_credits_single_die_mme_a0_block(
 	WREG32(offset + 0x434, 0x600);
 	WREG32(offset + 0x438, 0x600);
 	WREG32(offset + 0x43C, 0x600);
-	RREG32(offset + 0x43C);
+	RREG32(0xc402000);
 }
 
 static void gaudi3_init_r2c_credits_d2d_mme_a0_block(
@@ -829,7 +829,7 @@ static void gaudi3_init_r2c_credits_d2d_mme_a0_block(
 	WREG32(offset + 0x434, 0x600);
 	WREG32(offset + 0x438, 0x600);
 	WREG32(offset + 0x43C, 0x600);
-	RREG32(offset + 0x43C);
+	RREG32(0xc402000);
 }
 
 static void gaudi3_init_r2c_credits_single_die_mme_a1_c0_block(
@@ -844,7 +844,7 @@ static void gaudi3_init_r2c_credits_single_die_mme_a1_c0_block(
 	WREG32(offset + 0x434, 0x60A);
 	WREG32(offset + 0x438, 0x60A);
 	WREG32(offset + 0x43C, 0x60A);
-	RREG32(offset + 0x43C);
+	RREG32(0xc402000);
 }
 
 static void gaudi3_init_r2c_credits_d2d_mme_a1_c0_block(
@@ -859,7 +859,7 @@ static void gaudi3_init_r2c_credits_d2d_mme_a1_c0_block(
 	WREG32(offset + 0x434, 0x60A);
 	WREG32(offset + 0x438, 0x60A);
 	WREG32(offset + 0x43C, 0x60A);
-	RREG32(offset + 0x43C);
+	RREG32(0xc402000);
 }
 
 static void gaudi3_init_r2c_credits_single_die_mme_a2_c1_qman_wr_block(
@@ -874,7 +874,7 @@ static void gaudi3_init_r2c_credits_single_die_mme_a2_c1_qman_wr_block(
 	WREG32(offset + 0x434, 0x508);
 	WREG32(offset + 0x438, 0x50A);
 	WREG32(offset + 0x43C, 0x60A);
-	RREG32(offset + 0x43C);
+	RREG32(0xc402000);
 }
 
 static void gaudi3_init_r2c_credits_d2d_mme_a2_c1_qman_wr_block(
@@ -889,7 +889,7 @@ static void gaudi3_init_r2c_credits_d2d_mme_a2_c1_qman_wr_block(
 	WREG32(offset + 0x434, 0x508);
 	WREG32(offset + 0x438, 0x50A);
 	WREG32(offset + 0x43C, 0x60A);
-	RREG32(offset + 0x43C);
+	RREG32(0xc402000);
 }
 
 static void gaudi3_init_r2c_credits_single_die_mme_a3_qman_rd_block(
@@ -904,7 +904,7 @@ static void gaudi3_init_r2c_credits_single_die_mme_a3_qman_rd_block(
 	WREG32(offset + 0x434, 0x500);
 	WREG32(offset + 0x438, 0x500);
 	WREG32(offset + 0x43C, 0x600);
-	RREG32(offset + 0x43C);
+	RREG32(0xc402000);
 }
 
 static void gaudi3_init_r2c_credits_d2d_mme_a3_qman_rd_block(
@@ -919,7 +919,7 @@ static void gaudi3_init_r2c_credits_d2d_mme_a3_qman_rd_block(
 	WREG32(offset + 0x434, 0x500);
 	WREG32(offset + 0x438, 0x500);
 	WREG32(offset + 0x43C, 0x600);
-	RREG32(offset + 0x43C);
+	RREG32(0xc402000);
 }
 
 static void gaudi3_init_r2c_credits_single_die_tpc4_block(
@@ -934,7 +934,7 @@ static void gaudi3_init_r2c_credits_single_die_tpc4_block(
 	WREG32(offset + 0x434, 0x504);
 	WREG32(offset + 0x438, 0x504);
 	WREG32(offset + 0x43C, 0x504);
-	RREG32(offset + 0x43C);
+	RREG32(0xc402000);
 }
 
 static void gaudi3_init_r2c_credits_d2d_tpc4_block(
@@ -949,7 +949,7 @@ static void gaudi3_init_r2c_credits_d2d_tpc4_block(
 	WREG32(offset + 0x434, 0x504);
 	WREG32(offset + 0x438, 0x504);
 	WREG32(offset + 0x43C, 0x504);
-	RREG32(offset + 0x43C);
+	RREG32(0xc402000);
 }
 
 static void gaudi3_init_r2c_credits_single_die_tpc5_block(
@@ -964,7 +964,7 @@ static void gaudi3_init_r2c_credits_single_die_tpc5_block(
 	WREG32(offset + 0x434, 0x504);
 	WREG32(offset + 0x438, 0x504);
 	WREG32(offset + 0x43C, 0x504);
-	RREG32(offset + 0x43C);
+	RREG32(0xc402000);
 }
 
 static void gaudi3_init_r2c_credits_d2d_tpc5_block(
@@ -979,7 +979,7 @@ static void gaudi3_init_r2c_credits_d2d_tpc5_block(
 	WREG32(offset + 0x434, 0x504);
 	WREG32(offset + 0x438, 0x504);
 	WREG32(offset + 0x43C, 0x504);
-	RREG32(offset + 0x43C);
+	RREG32(0xc402000);
 }
 
 static void gaudi3_init_r2c_credits_single_die_tpc6_block(
@@ -994,7 +994,7 @@ static void gaudi3_init_r2c_credits_single_die_tpc6_block(
 	WREG32(offset + 0x434, 0x504);
 	WREG32(offset + 0x438, 0x504);
 	WREG32(offset + 0x43C, 0x504);
-	RREG32(offset + 0x43C);
+	RREG32(0xc402000);
 }
 
 static void gaudi3_init_r2c_credits_d2d_tpc6_block(
@@ -1009,7 +1009,7 @@ static void gaudi3_init_r2c_credits_d2d_tpc6_block(
 	WREG32(offset + 0x434, 0x504);
 	WREG32(offset + 0x438, 0x504);
 	WREG32(offset + 0x43C, 0x504);
-	RREG32(offset + 0x43C);
+	RREG32(0xc402000);
 }
 
 static void gaudi3_init_r2c_credits_single_die_tpc7_block(
@@ -1024,7 +1024,7 @@ static void gaudi3_init_r2c_credits_single_die_tpc7_block(
 	WREG32(offset + 0x434, 0x504);
 	WREG32(offset + 0x438, 0x504);
 	WREG32(offset + 0x43C, 0x504);
-	RREG32(offset + 0x43C);
+	RREG32(0xc402000);
 }
 
 static void gaudi3_init_r2c_credits_d2d_tpc7_block(
@@ -1039,7 +1039,7 @@ static void gaudi3_init_r2c_credits_d2d_tpc7_block(
 	WREG32(offset + 0x434, 0x504);
 	WREG32(offset + 0x438, 0x504);
 	WREG32(offset + 0x43C, 0x504);
-	RREG32(offset + 0x43C);
+	RREG32(0xc402000);
 }
 
 static void gaudi3_init_r2c_credits_single_die_mme_b2_block(
@@ -1054,7 +1054,7 @@ static void gaudi3_init_r2c_credits_single_die_mme_b2_block(
 	WREG32(offset + 0x434, 0x600);
 	WREG32(offset + 0x438, 0x500);
 	WREG32(offset + 0x43C, 0x500);
-	RREG32(offset + 0x43C);
+	RREG32(0xc402000);
 }
 
 static void gaudi3_init_r2c_credits_d2d_mme_b2_block(
@@ -1069,7 +1069,7 @@ static void gaudi3_init_r2c_credits_d2d_mme_b2_block(
 	WREG32(offset + 0x434, 0x600);
 	WREG32(offset + 0x438, 0x500);
 	WREG32(offset + 0x43C, 0x500);
-	RREG32(offset + 0x43C);
+	RREG32(0xc402000);
 }
 
 static void gaudi3_init_r2c_credits_single_die_mme_b3_block(
@@ -1084,7 +1084,7 @@ static void gaudi3_init_r2c_credits_single_die_mme_b3_block(
 	WREG32(offset + 0x434, 0x600);
 	WREG32(offset + 0x438, 0x500);
 	WREG32(offset + 0x43C, 0x500);
-	RREG32(offset + 0x43C);
+	RREG32(0xc402000);
 }
 
 static void gaudi3_init_r2c_credits_d2d_mme_b3_block(
@@ -1099,7 +1099,7 @@ static void gaudi3_init_r2c_credits_d2d_mme_b3_block(
 	WREG32(offset + 0x434, 0x600);
 	WREG32(offset + 0x438, 0x500);
 	WREG32(offset + 0x43C, 0x500);
-	RREG32(offset + 0x43C);
+	RREG32(0xc402000);
 }
 
 static void gaudi3_init_r2c_credits_single_die_rif_edma_hd1_hd4(struct hl_device *hdev)
@@ -1612,7 +1612,7 @@ static void gaudi3_init_scrambling_single_die_rtr_cntrl_block(struct hl_device *
 	WREG32(offset + 0x0D4, 0xBA9587);
 	WREG32(offset + 0x0D8, 0x51);
 	WREG32(offset + 0xF60, 0x1F);
-	RREG32(offset + 0xF60);
+	RREG32(0xc402000);
 }
 
 static void gaudi3_init_scrambling_d2d_8_hbm_rtr_cntrl_block(struct hl_device *hdev,
@@ -1662,7 +1662,7 @@ static void gaudi3_init_scrambling_d2d_8_hbm_rtr_cntrl_block(struct hl_device *h
 	WREG32(offset + 0x0D4, 0xBA9587);
 	WREG32(offset + 0x0D8, 0x51);
 	WREG32(offset + 0xF60, 0x1F);
-	RREG32(offset + 0xF60);
+	RREG32(0xc402000);
 }
 
 static void gaudi3_init_scrambling_d2d_7_hbm_rtr_cntrl_block(struct hl_device *hdev,
@@ -1712,7 +1712,7 @@ static void gaudi3_init_scrambling_d2d_7_hbm_rtr_cntrl_block(struct hl_device *h
 	WREG32(offset + 0x0D4, 0xBA9687);
 	WREG32(offset + 0x0D8, 0x61);
 	WREG32(offset + 0xF60, 0x1F);
-	RREG32(offset + 0xF60);
+	RREG32(0xc402000);
 }
 
 static void gaudi3_init_scrambling_single_die_dtlb_block(struct hl_device *hdev,
@@ -1732,7 +1732,7 @@ static void gaudi3_init_scrambling_single_die_dtlb_block(struct hl_device *hdev,
 	WREG32(offset + 0x0A8, 0x2FC);
 	WREG32(offset + 0x0AC, 0x149);
 	WREG32(offset + 0xF64, 0xFFFFFFFF);
-	RREG32(offset + 0xF64);
+	RREG32(0xc402000);
 }
 
 static void gaudi3_init_scrambling_d2d_8_hbm_dtlb_block(struct hl_device *hdev,
@@ -1752,7 +1752,7 @@ static void gaudi3_init_scrambling_d2d_8_hbm_dtlb_block(struct hl_device *hdev,
 	WREG32(offset + 0x0A8, 0x2FC);
 	WREG32(offset + 0x0AC, 0x149);
 	WREG32(offset + 0xF64, 0xFFFFFFFF);
-	RREG32(offset + 0xF64);
+	RREG32(0xc402000);
 }
 
 static void gaudi3_init_scrambling_d2d_7_hbm_dtlb_block(struct hl_device *hdev,
@@ -1772,7 +1772,7 @@ static void gaudi3_init_scrambling_d2d_7_hbm_dtlb_block(struct hl_device *hdev,
 	WREG32(offset + 0x0A8, 0x7F2);
 	WREG32(offset + 0x0AC, 0xEC6);
 	WREG32(offset + 0xF64, 0xFFFFFFDD);
-	RREG32(offset + 0xF64);
+	RREG32(0xc402000);
 }
 
 static void gaudi3_init_scrambling_single_die_cache_block(struct hl_device *hdev,
@@ -1797,7 +1797,7 @@ static void gaudi3_init_scrambling_single_die_cache_block(struct hl_device *hdev
 	WREG32(offset + 0x40C, 0x16);
 	WREG32(offset + 0x410, 0x2E);
 	WREG32(offset + 0x414, 0x3C);
-	RREG32(offset + 0x414);
+	RREG32(0xc402000);
 }
 
 static void gaudi3_init_scrambling_d2d_8_hbm_cache_block(struct hl_device *hdev,
@@ -1822,7 +1822,7 @@ static void gaudi3_init_scrambling_d2d_8_hbm_cache_block(struct hl_device *hdev,
 	WREG32(offset + 0x40C, 0x16);
 	WREG32(offset + 0x410, 0x2E);
 	WREG32(offset + 0x414, 0x3C);
-	RREG32(offset + 0x414);
+	RREG32(0xc402000);
 }
 
 static void gaudi3_init_scrambling_d2d_7_hbm_cache_block(struct hl_device *hdev,
@@ -1847,7 +1847,7 @@ static void gaudi3_init_scrambling_d2d_7_hbm_cache_block(struct hl_device *hdev,
 	WREG32(offset + 0x40C, 0x16);
 	WREG32(offset + 0x410, 0x2E);
 	WREG32(offset + 0x414, 0x3C);
-	RREG32(offset + 0x414);
+	RREG32(0xc402000);
 }
 
 static void gaudi3_init_scrambling_single_die_mc_block(struct hl_device *hdev,
@@ -1875,7 +1875,7 @@ static void gaudi3_init_scrambling_single_die_mc_block(struct hl_device *hdev,
 	WREG32(offset + 0x058, 0x1C);
 	WREG32(offset + 0x05C, 0x1D);
 	WREG32(offset + 0x060, 0xE);
-	RREG32(offset + 0x060);
+	RREG32(0xc402000);
 }
 
 static void gaudi3_init_scrambling_d2d_8_hbm_mc_block(struct hl_device *hdev,
@@ -1903,7 +1903,7 @@ static void gaudi3_init_scrambling_d2d_8_hbm_mc_block(struct hl_device *hdev,
 	WREG32(offset + 0x058, 0x1C);
 	WREG32(offset + 0x05C, 0x1D);
 	WREG32(offset + 0x060, 0xE);
-	RREG32(offset + 0x060);
+	RREG32(0xc402000);
 }
 
 static void gaudi3_init_scrambling_d2d_7_hbm_mc_block(struct hl_device *hdev,
@@ -1931,7 +1931,7 @@ static void gaudi3_init_scrambling_d2d_7_hbm_mc_block(struct hl_device *hdev,
 	WREG32(offset + 0x058, 0x1C);
 	WREG32(offset + 0x05C, 0x1D);
 	WREG32(offset + 0x060, 0xE);
-	RREG32(offset + 0x060);
+	RREG32(0xc402000);
 }
 
 static void gaudi3_init_scrambling_single_die_rtr_cntrl(struct hl_device *hdev)
@@ -2097,7 +2097,7 @@ static void gaudi3_init_regulators_single_die_tpc_block(struct hl_device *hdev,
 	WREG32(offset + 0x868, 0x70208);
 	WREG32(offset + 0x86C, 0x80308);
 	WREG32(offset + 0xC00, 0x11010);
-	RREG32(offset + 0xC00);
+	RREG32(0xc402000);
 }
 
 static void gaudi3_init_regulators_d2d_8_hbm_tpc_block(struct hl_device *hdev,
@@ -2143,7 +2143,7 @@ static void gaudi3_init_regulators_d2d_8_hbm_tpc_block(struct hl_device *hdev,
 	WREG32(offset + 0x868, 0x70208);
 	WREG32(offset + 0x86C, 0x80308);
 	WREG32(offset + 0xC00, 0x11010);
-	RREG32(offset + 0xC00);
+	RREG32(0xc402000);
 }
 
 static void gaudi3_init_regulators_d2d_7_hbm_tpc_block(struct hl_device *hdev,
@@ -2154,7 +2154,7 @@ static void gaudi3_init_regulators_d2d_7_hbm_tpc_block(struct hl_device *hdev,
 	WREG32(offset + 0xA04, 0x190);
 	WREG32(offset + 0xA20, 0x1040508);
 	WREG32(offset + 0xA24, 0x1040508);
-	RREG32(offset + 0xA24);
+	RREG32(0xc402000);
 }
 
 static void gaudi3_init_regulators_single_die_mme_block(struct hl_device *hdev,
@@ -2227,7 +2227,7 @@ static void gaudi3_init_regulators_single_die_mme_block(struct hl_device *hdev,
 	WREG32(offset + 0xF60, 0x84E95E95);
 	WREG32(offset + 0xF64, 0x115011D);
 	WREG32(offset + 0xF68, 0x43FA6FA6);
-	RREG32(offset + 0xF68);
+	RREG32(0xc402000);
 }
 
 static void gaudi3_init_regulators_d2d_8_hbm_mme_block(struct hl_device *hdev,
@@ -2300,7 +2300,7 @@ static void gaudi3_init_regulators_d2d_8_hbm_mme_block(struct hl_device *hdev,
 	WREG32(offset + 0xF60, 0x84E95E95);
 	WREG32(offset + 0xF64, 0x115011D);
 	WREG32(offset + 0xF68, 0x43FA6FA6);
-	RREG32(offset + 0xF68);
+	RREG32(0xc402000);
 }
 
 static void gaudi3_init_regulators_d2d_7_hbm_mme_block(struct hl_device *hdev,
@@ -2312,7 +2312,7 @@ static void gaudi3_init_regulators_d2d_7_hbm_mme_block(struct hl_device *hdev,
 	WREG32(offset + 0xA20, 0x1040508);
 	WREG32(offset + 0xA24, 0x1040508);
 	WREG32(offset + 0xB64, 0x8080);
-	RREG32(offset + 0xB64);
+	RREG32(0xc402000);
 }
 
 static void gaudi3_init_regulators_single_die_nic_cntrl_block(struct hl_device *hdev,
@@ -2321,7 +2321,7 @@ static void gaudi3_init_regulators_single_die_nic_cntrl_block(struct hl_device *
 	offset += 0xD038000;
 	WREG32(offset + 0xA20, 0x1070208);
 	WREG32(offset + 0xA24, 0x1070208);
-	RREG32(offset + 0xA24);
+	RREG32(0xc402000);
 }
 
 static void gaudi3_init_regulators_d2d_8_hbm_nic_cntrl_block(struct hl_device *hdev,
@@ -2330,7 +2330,7 @@ static void gaudi3_init_regulators_d2d_8_hbm_nic_cntrl_block(struct hl_device *h
 	offset += 0xD038000;
 	WREG32(offset + 0xA20, 0x1070208);
 	WREG32(offset + 0xA24, 0x1070208);
-	RREG32(offset + 0xA24);
+	RREG32(0xc402000);
 }
 
 static void gaudi3_init_regulators_d2d_7_hbm_nic_cntrl_block(struct hl_device *hdev,
@@ -2339,7 +2339,7 @@ static void gaudi3_init_regulators_d2d_7_hbm_nic_cntrl_block(struct hl_device *h
 	offset += 0xD038000;
 	WREG32(offset + 0xA20, 0x1070208);
 	WREG32(offset + 0xA24, 0x1070208);
-	RREG32(offset + 0xA24);
+	RREG32(0xc402000);
 }
 
 static void gaudi3_init_regulators_single_die_nic_data_block(struct hl_device *hdev,
@@ -2348,7 +2348,7 @@ static void gaudi3_init_regulators_single_die_nic_data_block(struct hl_device *h
 	offset += 0xD039000;
 	WREG32(offset + 0xA20, 0x1090808);
 	WREG32(offset + 0xA24, 0x1090808);
-	RREG32(offset + 0xA24);
+	RREG32(0xc402000);
 }
 
 static void gaudi3_init_regulators_d2d_8_hbm_nic_data_block(struct hl_device *hdev,
@@ -2357,7 +2357,7 @@ static void gaudi3_init_regulators_d2d_8_hbm_nic_data_block(struct hl_device *hd
 	offset += 0xD039000;
 	WREG32(offset + 0xA20, 0x1090808);
 	WREG32(offset + 0xA24, 0x1090808);
-	RREG32(offset + 0xA24);
+	RREG32(0xc402000);
 }
 
 static void gaudi3_init_regulators_d2d_7_hbm_nic_data_block(struct hl_device *hdev,
@@ -2366,7 +2366,7 @@ static void gaudi3_init_regulators_d2d_7_hbm_nic_data_block(struct hl_device *hd
 	offset += 0xD039000;
 	WREG32(offset + 0xA20, 0x1090808);
 	WREG32(offset + 0xA24, 0x1090808);
-	RREG32(offset + 0xA24);
+	RREG32(0xc402000);
 }
 
 static void gaudi3_init_regulators_single_die_pdma_block(struct hl_device *hdev,
@@ -2375,7 +2375,7 @@ static void gaudi3_init_regulators_single_die_pdma_block(struct hl_device *hdev,
 	offset += 0xC54D000;
 	WREG32(offset + 0xA20, 0x1050208);
 	WREG32(offset + 0xA24, 0x1050208);
-	RREG32(offset + 0xA24);
+	RREG32(0xc402000);
 }
 
 static void gaudi3_init_regulators_d2d_8_hbm_pdma_block(struct hl_device *hdev,
@@ -2384,7 +2384,7 @@ static void gaudi3_init_regulators_d2d_8_hbm_pdma_block(struct hl_device *hdev,
 	offset += 0xC54D000;
 	WREG32(offset + 0xA20, 0x1050208);
 	WREG32(offset + 0xA24, 0x1050208);
-	RREG32(offset + 0xA24);
+	RREG32(0xc402000);
 }
 
 static void gaudi3_init_regulators_d2d_7_hbm_pdma_block(struct hl_device *hdev,
@@ -2393,7 +2393,7 @@ static void gaudi3_init_regulators_d2d_7_hbm_pdma_block(struct hl_device *hdev,
 	offset += 0xC54D000;
 	WREG32(offset + 0xA20, 0x1050208);
 	WREG32(offset + 0xA24, 0x1050208);
-	RREG32(offset + 0xA24);
+	RREG32(0xc402000);
 }
 
 static void gaudi3_init_regulators_single_die_sedma_master_if_block(struct hl_device *hdev,
@@ -2427,7 +2427,7 @@ static void gaudi3_init_regulators_single_die_sedma_master_if_block(struct hl_de
 	WREG32(offset + 0xBDC, 0x40408);
 	WREG32(offset + 0xBE0, 0x40508);
 	WREG32(offset + 0xC00, 0x11010);
-	RREG32(offset + 0xC00);
+	RREG32(0xc402000);
 }
 
 static void gaudi3_init_regulators_d2d_8_hbm_sedma_master_if_block(struct hl_device *hdev,
@@ -2461,7 +2461,7 @@ static void gaudi3_init_regulators_d2d_8_hbm_sedma_master_if_block(struct hl_dev
 	WREG32(offset + 0xBDC, 0x40408);
 	WREG32(offset + 0xBE0, 0x40508);
 	WREG32(offset + 0xC00, 0x11010);
-	RREG32(offset + 0xC00);
+	RREG32(0xc402000);
 }
 
 static void gaudi3_init_regulators_d2d_7_hbm_sedma_master_if_block(struct hl_device *hdev,
@@ -2473,7 +2473,7 @@ static void gaudi3_init_regulators_d2d_7_hbm_sedma_master_if_block(struct hl_dev
 	WREG32(offset + 0xA20, 0x1040508);
 	WREG32(offset + 0xA24, 0x1040508);
 	WREG32(offset + 0xB64, 0x8080);
-	RREG32(offset + 0xB64);
+	RREG32(0xc402000);
 }
 
 static void gaudi3_init_regulators_single_die_sedma_cmn_block(struct hl_device *hdev,
@@ -2482,7 +2482,7 @@ static void gaudi3_init_regulators_single_die_sedma_cmn_block(struct hl_device *
 	offset += 0xE50D000;
 	WREG32(offset + 0xE00, 0x1040508);
 	WREG32(offset + 0xE04, 0x1040508);
-	RREG32(offset + 0xE04);
+	RREG32(0xc402000);
 }
 
 static void gaudi3_init_regulators_d2d_8_hbm_sedma_cmn_block(struct hl_device *hdev,
@@ -2491,7 +2491,7 @@ static void gaudi3_init_regulators_d2d_8_hbm_sedma_cmn_block(struct hl_device *h
 	offset += 0xE50D000;
 	WREG32(offset + 0xE00, 0x1040508);
 	WREG32(offset + 0xE04, 0x1040508);
-	RREG32(offset + 0xE04);
+	RREG32(0xc402000);
 }
 
 static void gaudi3_init_regulators_d2d_7_hbm_sedma_cmn_block(struct hl_device *hdev,
@@ -2500,7 +2500,7 @@ static void gaudi3_init_regulators_d2d_7_hbm_sedma_cmn_block(struct hl_device *h
 	offset += 0xE50D000;
 	WREG32(offset + 0xE00, 0x1040508);
 	WREG32(offset + 0xE04, 0x1040508);
-	RREG32(offset + 0xE04);
+	RREG32(0xc402000);
 }
 
 static void gaudi3_init_regulators_single_die_vdec_block(struct hl_device *hdev,
@@ -2509,7 +2509,7 @@ static void gaudi3_init_regulators_single_die_vdec_block(struct hl_device *hdev,
 	offset += 0xE125000;
 	WREG32(offset + 0xA20, 0x10A0108);
 	WREG32(offset + 0xA24, 0x10A0108);
-	RREG32(offset + 0xA24);
+	RREG32(0xc402000);
 }
 
 static void gaudi3_init_regulators_d2d_8_hbm_vdec_block(struct hl_device *hdev,
@@ -2518,7 +2518,7 @@ static void gaudi3_init_regulators_d2d_8_hbm_vdec_block(struct hl_device *hdev,
 	offset += 0xE125000;
 	WREG32(offset + 0xA20, 0x10A0108);
 	WREG32(offset + 0xA24, 0x10A0108);
-	RREG32(offset + 0xA24);
+	RREG32(0xc402000);
 }
 
 static void gaudi3_init_regulators_d2d_7_hbm_vdec_block(struct hl_device *hdev,
@@ -2527,7 +2527,7 @@ static void gaudi3_init_regulators_d2d_7_hbm_vdec_block(struct hl_device *hdev,
 	offset += 0xE125000;
 	WREG32(offset + 0xA20, 0x10A0108);
 	WREG32(offset + 0xA24, 0x10A0108);
-	RREG32(offset + 0xA24);
+	RREG32(0xc402000);
 }
 
 static void gaudi3_init_regulators_single_die_rot_block(struct hl_device *hdev,
@@ -2537,7 +2537,7 @@ static void gaudi3_init_regulators_single_die_rot_block(struct hl_device *hdev,
 	WREG32(offset + 0xA20, 0x1040508);
 	WREG32(offset + 0xA24, 0x1040508);
 	WREG32(offset + 0xC00, 0x11010);
-	RREG32(offset + 0xC00);
+	RREG32(0xc402000);
 }
 
 static void gaudi3_init_regulators_d2d_8_hbm_rot_block(struct hl_device *hdev,
@@ -2547,7 +2547,7 @@ static void gaudi3_init_regulators_d2d_8_hbm_rot_block(struct hl_device *hdev,
 	WREG32(offset + 0xA20, 0x1040508);
 	WREG32(offset + 0xA24, 0x1040508);
 	WREG32(offset + 0xC00, 0x11010);
-	RREG32(offset + 0xC00);
+	RREG32(0xc402000);
 }
 
 static void gaudi3_init_regulators_d2d_7_hbm_rot_block(struct hl_device *hdev,
@@ -2556,7 +2556,7 @@ static void gaudi3_init_regulators_d2d_7_hbm_rot_block(struct hl_device *hdev,
 	offset += 0xE551000;
 	WREG32(offset + 0xA20, 0x1040508);
 	WREG32(offset + 0xA24, 0x1040508);
-	RREG32(offset + 0xA24);
+	RREG32(0xc402000);
 }
 
 static void gaudi3_init_regulators_single_die_arc_farm_block(
@@ -2564,7 +2564,7 @@ static void gaudi3_init_regulators_single_die_arc_farm_block(
 {
 	WREG32(offset + 0xA20, 0x1070108);
 	WREG32(offset + 0xA24, 0x1200108);
-	RREG32(offset + 0xA24);
+	RREG32(0xc402000);
 }
 
 static void gaudi3_init_regulators_d2d_8_hbm_arc_farm_block(
@@ -2572,7 +2572,7 @@ static void gaudi3_init_regulators_d2d_8_hbm_arc_farm_block(
 {
 	WREG32(offset + 0xA20, 0x1070108);
 	WREG32(offset + 0xA24, 0x1200108);
-	RREG32(offset + 0xA24);
+	RREG32(0xc402000);
 }
 
 static void gaudi3_init_regulators_d2d_7_hbm_arc_farm_block(
@@ -2580,7 +2580,7 @@ static void gaudi3_init_regulators_d2d_7_hbm_arc_farm_block(
 {
 	WREG32(offset + 0xA20, 0x1070108);
 	WREG32(offset + 0xA24, 0x1200108);
-	RREG32(offset + 0xA24);
+	RREG32(0xc402000);
 }
 
 static void gaudi3_init_regulators_single_die_tpc(struct hl_device *hdev)
@@ -2893,7 +2893,7 @@ static void gaudi3_init_qos_single_die_rrtr_block(struct hl_device *hdev,
 	WREG32(offset + 0x0C4, 0x10020);
 	WREG32(offset + 0x0C8, 0x10020);
 	WREG32(offset + 0x0CC, 0x10020);
-	RREG32(offset + 0x0CC);
+	RREG32(0xc402000);
 }
 
 static void gaudi3_init_qos_d2d_8_hbm_rrtr_block(struct hl_device *hdev,
@@ -2916,7 +2916,7 @@ static void gaudi3_init_qos_d2d_8_hbm_rrtr_block(struct hl_device *hdev,
 	WREG32(offset + 0x0C4, 0x10020);
 	WREG32(offset + 0x0C8, 0x10020);
 	WREG32(offset + 0x0CC, 0x10020);
-	RREG32(offset + 0x0CC);
+	RREG32(0xc402000);
 }
 
 static void gaudi3_init_qos_d2d_7_hbm_rrtr_block(struct hl_device *hdev,
@@ -2939,7 +2939,7 @@ static void gaudi3_init_qos_d2d_7_hbm_rrtr_block(struct hl_device *hdev,
 	WREG32(offset + 0x0C4, 0x10020);
 	WREG32(offset + 0x0C8, 0x10020);
 	WREG32(offset + 0x0CC, 0x10020);
-	RREG32(offset + 0x0CC);
+	RREG32(0xc402000);
 }
 
 static void gaudi3_init_qos_single_die_rrtr(struct hl_device *hdev)
@@ -3006,7 +3006,7 @@ static void gaudi3_init_cache_single_die_cache_block(struct hl_device *hdev,
 	WREG32(offset + 0x80C, 0x18181011);
 	WREG32(offset + 0x860, 0x401);
 	WREG32(offset + 0x878, 0x444430);
-	RREG32(offset + 0x878);
+	RREG32(0xc402000);
 }
 
 static void gaudi3_init_cache_d2d_8_hbm_cache_block(struct hl_device *hdev,
@@ -3034,7 +3034,7 @@ static void gaudi3_init_cache_d2d_8_hbm_cache_block(struct hl_device *hdev,
 	WREG32(offset + 0x80C, 0x18181011);
 	WREG32(offset + 0x860, 0x401);
 	WREG32(offset + 0x878, 0x444430);
-	RREG32(offset + 0x878);
+	RREG32(0xc402000);
 }
 
 static void gaudi3_init_cache_d2d_7_hbm_cache_block(struct hl_device *hdev,
@@ -3062,47 +3062,47 @@ static void gaudi3_init_cache_d2d_7_hbm_cache_block(struct hl_device *hdev,
 	WREG32(offset + 0x80C, 0x18181011);
 	WREG32(offset + 0x860, 0x401);
 	WREG32(offset + 0x878, 0x444430);
-	RREG32(offset + 0x878);
+	RREG32(0xc402000);
 }
 
 static void gaudi3_init_cache_single_die_hd0246_cache_block(
 			struct hl_device *hdev, u64 offset)
 {
 	WREG32(offset + 0x000, 0x4ADFE7D);
-	RREG32(offset + 0x000);
+	RREG32(0xc402000);
 }
 
 static void gaudi3_init_cache_d2d_8_hbm_hd0246_cache_block(
 			struct hl_device *hdev, u64 offset)
 {
 	WREG32(offset + 0x000, 0x4ADFE7D);
-	RREG32(offset + 0x000);
+	RREG32(0xc402000);
 }
 
 static void gaudi3_init_cache_d2d_7_hbm_hd0246_cache_block(
 			struct hl_device *hdev, u64 offset)
 {
-	RREG32(offset + 0x000);
+	RREG32(0xc402000);
 }
 
 static void gaudi3_init_cache_single_die_hd1357_cache_block(
 			struct hl_device *hdev, u64 offset)
 {
 	WREG32(offset + 0x000, 0x6ADFE7D);
-	RREG32(offset + 0x000);
+	RREG32(0xc402000);
 }
 
 static void gaudi3_init_cache_d2d_8_hbm_hd1357_cache_block(
 			struct hl_device *hdev, u64 offset)
 {
 	WREG32(offset + 0x000, 0x6ADFE7D);
-	RREG32(offset + 0x000);
+	RREG32(0xc402000);
 }
 
 static void gaudi3_init_cache_d2d_7_hbm_hd1357_cache_block(
 			struct hl_device *hdev, u64 offset)
 {
-	RREG32(offset + 0x000);
+	RREG32(0xc402000);
 }
 
 static void gaudi3_init_cache_single_die_cache(struct hl_device *hdev)
@@ -3340,7 +3340,7 @@ static void gaudi3_init_mc_single_die_mc_block(struct hl_device *hdev,
 	WREG32(offset + 0x0B0, 0x20);
 	WREG32(offset + 0x2D8, 0x1FF);
 	WREG32(offset + 0x364, 0x30);
-	RREG32(offset + 0x364);
+	RREG32(0xc402000);
 }
 
 static void gaudi3_init_mc_d2d_8_hbm_mc_block(struct hl_device *hdev,
@@ -3349,7 +3349,7 @@ static void gaudi3_init_mc_d2d_8_hbm_mc_block(struct hl_device *hdev,
 	WREG32(offset + 0x0B0, 0x20);
 	WREG32(offset + 0x2D8, 0x1FF);
 	WREG32(offset + 0x364, 0x30);
-	RREG32(offset + 0x364);
+	RREG32(0xc402000);
 }
 
 static void gaudi3_init_mc_d2d_7_hbm_mc_block(struct hl_device *hdev,
@@ -3358,7 +3358,7 @@ static void gaudi3_init_mc_d2d_7_hbm_mc_block(struct hl_device *hdev,
 	WREG32(offset + 0x0B0, 0x20);
 	WREG32(offset + 0x2D8, 0x1FF);
 	WREG32(offset + 0x364, 0x30);
-	RREG32(offset + 0x364);
+	RREG32(0xc402000);
 }
 
 static void gaudi3_init_mc_single_die_mc(struct hl_device *hdev)
