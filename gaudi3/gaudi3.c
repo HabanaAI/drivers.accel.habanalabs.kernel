@@ -12972,9 +12972,9 @@ static u32 gaudi3_handle_nic_spi(struct hl_device *hdev, u32 macro_index, u16 da
 
 	if (nic_spi_data->spi_type == NIC_SPI_BMON_SPMU)
 		return gaudi3_cn_handle_bmon_spmu_event(hdev, macro_index);
-	else if (aux_ops->spi_event_handler)
+	else if (aux_ops->spi_event_handler_tmp)
 		/* NIC_SPI_SW_ERROR */
-		return aux_ops->spi_event_handler(aux_dev, macro_index);
+		return aux_ops->spi_event_handler_tmp(aux_dev, nic_spi_data, macro_index);
 
 	return 0;
 }
@@ -13555,8 +13555,8 @@ static u32 gaudi3_handle_nic_sei_err_event(struct hl_device *hdev, u16 data_size
 	if (rc)
 		return 0;
 
-	if (aux_ops->sei_err_event_handler)
-		rc = aux_ops->sei_err_event_handler(aux_dev, macro_index);
+	if (aux_ops->sei_err_event_handler_tmp)
+		rc = aux_ops->sei_err_event_handler_tmp(aux_dev, nic_sei_data, macro_index);
 
 	return rc;
 }
