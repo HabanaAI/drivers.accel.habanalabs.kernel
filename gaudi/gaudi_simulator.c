@@ -902,6 +902,7 @@ static int gaudi_sim_set_fixed_properties(struct hl_device *hdev)
 
 	prop->mmu_pgt_addr = GAUDI_SIM_MMU_PAGE_TABLES_ADDR;
 	prop->mmu_pgt_size = GAUDI_SIM_MMU_PAGE_TABLES_SIZE;
+	prop->dmmu.pgt_size = prop->mmu_pgt_size;
 	prop->mmu_cache_mng_addr = GAUDI_SIM_MMU_CACHE_MNG_ADDR;
 	prop->mmu_cache_mng_size = GAUDI_SIM_MMU_CACHE_MNG_SIZE;
 

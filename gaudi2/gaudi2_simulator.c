@@ -975,8 +975,9 @@ static int gaudi2_sim_set_fixed_properties(struct hl_device *hdev)
 {
 	struct hl_simulator_device *edev = gaudi2_simulator_dev_table[hdev->id];
 	struct asic_fixed_properties *prop = &hdev->asic_prop;
-	u64 hbm_user_base_offset, nic_drv_size;
-	int rc;
+	u64 hbm_user_base_offset, nic_drv_size, edma_pq_base_addr;
+	u32 edma_idx = 0;
+	int rc, i;
 
 	nic_drv_size = GAUDI2_SIM_NIC_DRV_SIZE;
 
@@ -1002,9 +1003,24 @@ static int gaudi2_sim_set_fixed_properties(struct hl_device *hdev)
 
 	prop->cb_pool_cb_cnt = SIM_CB_POOL_CB_CNT;
 	prop->cb_pool_cb_size = SIM_CB_POOL_CB_SIZE;
-	prop->nic_drv_size = nic_drv_size;
+	prop->nic_drv_size = nic_drv_size -
+			(HMMU_PAGE_TABLES_SIZE + EDMA_PQS_SIZE + EDMA_SCRATCHPAD_SIZE);
 	prop->nic_drv_addr = GAUDI2_SIM_NIC_DRV_ADDR;
 	prop->support_glbl_priv_fetch = true;
+
+	/* Reserve region in HBM for HMMU page tables */
+	prop->mmu_pgt_addr = prop->nic_drv_addr + prop->nic_drv_size;
+
+	/* Set EDMA PQs HBM addresses */
+	edma_pq_base_addr = prop->mmu_pgt_addr + HMMU_PAGE_TABLES_SIZE;
+
+	for (i = 0 ; i < GAUDI2_QUEUE_ID_CPU_PQ ; i++) {
+		if (gaudi2_is_edma_queue_id(i)) {
+			prop->hw_queues_props[i].q_dram_bd_address = edma_pq_base_addr +
+							(edma_idx * HL_QUEUE_SIZE_IN_BYTES);
+			edma_idx++;
+		}
+	}
 
 	return 0;
 }
@@ -1187,13 +1203,7 @@ static int gaudi2_sim_sw_init(struct hl_device *hdev)
 		goto free_gaudi2_device;
 	}
 
-	gaudi2->scratchpad_kernel_address = hl_asic_dma_alloc_coherent(hdev, PAGE_SIZE,
-								&gaudi2->scratchpad_bus_address,
-								GFP_KERNEL | __GFP_ZERO);
-	if (!gaudi2->scratchpad_kernel_address) {
-		rc = -ENOMEM;
-		goto free_virt_msix_db_mem;
-	}
+	gaudi2->scratchpad_bus_address = prop->mmu_pgt_addr + HMMU_PAGE_TABLES_SIZE + EDMA_PQS_SIZE;
 
 	gaudi2_user_mapped_blocks_init(hdev);
 
@@ -1210,7 +1220,7 @@ static int gaudi2_sim_sw_init(struct hl_device *hdev)
 
 	rc = gaudi2_special_blocks_iterator_config(hdev);
 	if (rc)
-		goto free_scratchpad_mem;
+		goto free_virt_msix_db_mem;
 
 	rc = gaudi2_test_queues_msgs_alloc(hdev);
 	if (rc)
@@ -1227,10 +1237,6 @@ static int gaudi2_sim_sw_init(struct hl_device *hdev)
 
 special_blocks_free:
 	gaudi2_special_blocks_iterator_free(hdev);
-
-free_scratchpad_mem:
-	hl_asic_dma_free_coherent(hdev, PAGE_SIZE, gaudi2->scratchpad_kernel_address,
-					gaudi2->scratchpad_bus_address);
 free_virt_msix_db_mem:
 	hl_asic_dma_free_coherent(hdev, prop->pmmu.page_size, gaudi2->virt_msix_db_cpu_addr,
 					gaudi2->virt_msix_db_dma_addr);
@@ -1248,9 +1254,6 @@ static int gaudi2_sim_sw_fini(struct hl_device *hdev)
 	gaudi2_test_queues_msgs_free(hdev);
 
 	gaudi2_special_blocks_iterator_free(hdev);
-
-	hl_asic_dma_free_coherent(hdev, PAGE_SIZE, gaudi2->scratchpad_kernel_address,
-					gaudi2->scratchpad_bus_address);
 
 	hl_asic_dma_free_coherent(hdev, prop->pmmu.page_size, gaudi2->virt_msix_db_cpu_addr,
 					gaudi2->virt_msix_db_dma_addr);

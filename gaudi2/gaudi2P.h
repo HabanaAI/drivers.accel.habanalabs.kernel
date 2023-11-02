@@ -23,8 +23,6 @@
 #define GAUDI2_LINUX_FW_FILE	"habanalabs/gaudi2/gaudi2-fit.itb"
 #define GAUDI2_BOOT_FIT_FILE	"habanalabs/gaudi2/gaudi2-boot-fit.itb"
 
-#define MMU_PAGE_TABLES_INITIAL_SIZE	0x10000000	/* 256MB */
-
 #define GAUDI2_CPU_TIMEOUT_USEC		30000000	/* 30s */
 
 #define NUMBER_OF_PDMA_QUEUES		2
@@ -113,8 +111,11 @@
 /* DRAM Memory Map */
 
 #define CPU_FW_IMAGE_SIZE			0x10000000	/* 256MB */
-
 #define CPU_FW_IMAGE_ADDR			DRAM_PHYS_BASE
+#define PMMU_PAGE_TABLES_SIZE			0x10000000      /* 256MB */
+#define EDMA_PQS_SIZE				SZ_2M
+#define EDMA_SCRATCHPAD_SIZE			SZ_1M
+#define HMMU_PAGE_TABLES_SIZE			SZ_1M
 
 #define NIC_NUMBER_OF_PORTS			NIC_NUMBER_OF_ENGINES
 /* TODO: SW-153130 - remove once SW-153128 is done */
@@ -775,6 +776,7 @@ int gaudi2_set_binning_masks(struct hl_device *hdev);
 int gaudi2_set_cluster_binning_masks_fw_config(struct hl_device *hdev);
 int gaudi2_test_queues_msgs_alloc(struct hl_device *hdev);
 void gaudi2_test_queues_msgs_free(struct hl_device *hdev);
+bool gaudi2_is_edma_queue_id(u32 queue_id);
 
 /* Functions exported for bringup support */
 int gaudi2_early_fini(struct hl_device *hdev);

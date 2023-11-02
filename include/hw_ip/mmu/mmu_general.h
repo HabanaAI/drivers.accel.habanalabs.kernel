@@ -42,6 +42,7 @@
 #define FLAGS_MASK			0x0000000000FFFull
 
 #define MMU_ARCH_3_HOPS			3
+#define MMU_ARCH_4_HOPS			4
 #define MMU_ARCH_5_HOPS			5
 #define MMU_ARCH_6_HOPS			6
 
