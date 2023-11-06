@@ -383,13 +383,6 @@ file_err:
 	return rc;
 }
 
-static int hl_cn_get_compute_user_ctx(struct hl_aux_dev *aux_dev, int user_fd)
-{
-	u64 comp_handle, vm_handle;
-
-	return hl_cn_register_cn_user_context(aux_dev, user_fd, NULL, &comp_handle, &vm_handle);
-}
-
 static void hl_cn_deregister_cn_user_context(struct hl_aux_dev *aux_dev, u64 vm_handle)
 {
 	struct hl_cn *cn = container_of(aux_dev, struct hl_cn, cn_aux_dev);
@@ -409,11 +402,6 @@ static void hl_cn_deregister_cn_user_context(struct hl_aux_dev *aux_dev, u64 vm_
 	fput(file);
 
 	atomic_set(&cn->ctx_registered, 0);
-}
-
-static void hl_cn_put_compute_user_ctx(struct hl_aux_dev *aux_dev)
-{
-	hl_cn_deregister_cn_user_context(aux_dev, 0);
 }
 
 static int hl_cn_vm_create(struct hl_aux_dev *aux_dev, u64 comp_handle, u32 flags, u64 *vm_handle)
@@ -666,8 +654,6 @@ static int hl_cn_aux_data_init(struct hl_device *hdev)
 	aux_ops->rreg = hl_cn_rreg;
 	aux_ops->wreg = hl_cn_wreg;
 	aux_ops->set_priv_assertions = hl_cn_set_priv_assertions;
-	aux_ops->get_compute_user_ctx = hl_cn_get_compute_user_ctx;
-	aux_ops->put_compute_user_ctx = hl_cn_put_compute_user_ctx;
 	aux_ops->register_cn_user_context = hl_cn_register_cn_user_context;
 	aux_ops->deregister_cn_user_context = hl_cn_deregister_cn_user_context;
 	aux_ops->vm_create = hl_cn_vm_create;
