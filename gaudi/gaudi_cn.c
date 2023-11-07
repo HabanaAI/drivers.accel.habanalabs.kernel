@@ -211,7 +211,7 @@ static int gaudi_cn_pre_core_init(struct hl_device *hdev)
 	return 0;
 }
 
-static int gaudi_cn_map_device_va(struct hl_aux_dev *aux_dev, struct hl_mem_in *args, u64 *va)
+static int gaudi_cn_map_device_va(struct hl_aux_dev *aux_dev, void *args, u64 *va)
 {
 	struct hl_cn *cn = container_of(aux_dev, struct hl_cn, cn_aux_dev);
 	struct hl_device *hdev = container_of(cn, struct hl_device, cn);
@@ -219,7 +219,7 @@ static int gaudi_cn_map_device_va(struct hl_aux_dev *aux_dev, struct hl_mem_in *
 	return map_device_va(hdev->kernel_ctx, args, va);
 }
 
-static int gaudi_cn_unmap_device_va(struct hl_aux_dev *aux_dev, struct hl_mem_in *args)
+static int gaudi_cn_unmap_device_va(struct hl_aux_dev *aux_dev, void *args)
 {
 	struct hl_cn *cn = container_of(aux_dev, struct hl_cn, cn_aux_dev);
 	struct hl_device *hdev = container_of(cn, struct hl_device, cn);
