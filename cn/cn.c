@@ -614,6 +614,7 @@ static int hl_cn_aux_data_init(struct hl_device *hdev)
 	aux_data->fw_app_cpu_boot_dev_sts1 = asic_props->fw_app_cpu_boot_dev_sts1;
 	aux_data->cpucp_checkers_shift = NIC_CHECKERS_CHECK_SHIFT;
 	aux_data->num_of_dies = hdev->asic_prop.num_of_dies;
+	aux_data->card_type = hdev->card_type;
 
 	aux_data->gaudi2_setup_type = hdev->gaudi2_setup_type;
 
