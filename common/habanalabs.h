@@ -790,6 +790,7 @@ struct hl_cn_properties {
  * @soft_reset_sleep_ms: sleep time in mms for soft reset
  * @reset_poll_timeout_us: timeout in us for poll reset indication
  * @reserved_fw_mem_size: size in MB of dram memory reserved for FW.
+ * @pcie_flush_reg_addr: this address is used for pcie flush operation.
  * @collective_first_sob: first sync object available for collective use
  * @collective_first_mon: first monitor available for collective use
  * @sync_stream_first_sob: first sync object available for sync stream use
@@ -954,6 +955,7 @@ struct asic_fixed_properties {
 	u32				soft_reset_sleep_ms;
 	u32				reset_poll_timeout_us;
 	u32				reserved_fw_mem_size;
+	u32				pcie_flush_reg_addr;
 	u16				collective_first_sob;
 	u16				collective_first_mon;
 	u16				sync_stream_first_sob;

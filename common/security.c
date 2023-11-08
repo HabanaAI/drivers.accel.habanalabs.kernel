@@ -721,7 +721,8 @@ static int hl_init_pb_block(struct hl_device *hdev,
 	}
 
 	/* Flush */
-	RREG32(pb_reg_addr);
+	if (hdev->pldm && hdev->asic_prop.pcie_flush_reg_addr)
+		RREG32(hdev->asic_prop.pcie_flush_reg_addr);
 
 	return 0;
 }

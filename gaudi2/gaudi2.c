@@ -2623,6 +2623,8 @@ int gaudi2_set_fixed_properties(struct hl_device *hdev)
 	cn_prop->status_packet_size = sizeof(struct cpucp_nic_status);
 	cn_prop->max_num_of_ports = NIC_NUMBER_OF_PORTS;
 
+	prop->pcie_flush_reg_addr = mmPSOC_TIMESTAMP_CNTCR;
+
 	return 0;
 
 free_qprops:

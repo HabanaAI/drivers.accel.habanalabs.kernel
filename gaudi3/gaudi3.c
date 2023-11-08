@@ -3716,6 +3716,8 @@ int gaudi3_set_fixed_properties(struct hl_device *hdev)
 	cn_prop->status_packet_size = sizeof(struct cpucp_nic_status);
 	cn_prop->max_num_of_ports = NIC_NUMBER_OF_PORTS;
 
+	prop->pcie_flush_reg_addr = mmD0_PSOC_TIMESTAMP_BASE + mmTIMESTAMP_CNTCR;
+
 	return 0;
 
 free_hw_queues_props:
