@@ -798,17 +798,5 @@ void gaudi3_cn_restore_dynamic_cfg_soft_reset_fw(struct hl_device *hdev);
 void gaudi3_dtlb_nrtr_eco_fixup(struct hl_device *hdev);
 void gaudi3_ac_start_no_fw(struct hl_device *hdev, u32 etr_idx);
 void gaudi3_ac_stop_no_fw(struct hl_device *hdev, u32 etr_idx);
-void gaudi3_cn_get_spi_event_data(struct hl_device *hdev,
-				  struct hl_eq_nic_spi_data *spi_data,
-				  u32 macro_index);
-void gaudi3_cn_clear_spi_event(struct hl_device *hdev,
-			       struct hl_eq_nic_spi_data *spi_data,
-			       u32 macro_index);
-void gaudi3_cn_get_sei_error_event_data(struct hl_device *hdev,
-					struct hl_eq_nic_sei_data *sei_data,
-					u32 macro_index);
-void gaudi3_cn_clear_sei_error_event(struct hl_device *hdev,
-				     const struct hl_eq_nic_sei_data *sei_data,
-				     u32 macro_index);
 
 #endif /* GAUDI3P_H_ */

@@ -260,6 +260,14 @@ static const struct qm_sw_event_info gaudi3_qm_irq_map_table[] = {
 					.base = mmHD4_SEDMA1_QM_BASE},
 };
 
+/* The meaning of the bits in the interrupt mask register is:
+ *    [3..0] - EQ event interrupt (1 bit per EQ)
+ *    [4..7] - EQ error interrupt (1 bit per EQ)
+ * i.e. EQ error shift = EQ event shift + 4
+ */
+#define GAUDI3_NIC_EQ_INTERRUPT_S(port) ((is_400g_mode(hdev) || !(port & 1)) ? 0 : 2)
+#define GAUDI3_NIC_EQ_ERR_INTERRUPT_M(port) BIT(GAUDI3_NIC_EQ_INTERRUPT_S(port) + 4)
+
 struct gaudi3_cpu_aggr_intr_map {
 	u32 grp_type;
 	u32 comp_type;
@@ -3060,11 +3068,9 @@ void gaudi3_fabric_serialization_init_fw_config(struct hl_device *hdev)
 
 void gaudi3_hw_init_fw_config(struct hl_device *hdev)
 {
-	/* This function is a BFE configuration that accesses privilege registers
-	 * it is used for PLDM and ASIC bringup regardless of FW presence. As long
-	 * as security is not enabled.
-	 */
-	gaudi3_cn_ecos_override(hdev);
+	struct gaudi3_device *gaudi3 = hdev->asic_specific;
+	struct gaudi3_cn_aux_ops *aux_ops = &gaudi3->cn_aux_ops;
+	struct hl_aux_dev *aux_dev = &hdev->cn.cn_aux_dev;
 
 	if (hdev->fw_components & FW_TYPE_BOOT_CPU)
 		return;
@@ -3098,9 +3104,8 @@ void gaudi3_hw_init_fw_config(struct hl_device *hdev)
 	gaudi3_ac_program_all(hdev);
 	gaudi3_enable_ptw_bypass(hdev);
 	gaudi3_init_qos(hdev);
-	gaudi3_cn_restore_dynamic_cfg_soft_reset_fw(hdev);
-
-	gaudi3_cn_macros_fw_config(hdev);
+	if (aux_ops->sei_err_event_handler)
+		aux_ops->restore_dynamic_cfg_soft_reset_fw(aux_dev);
 
 	if (hdev->cache_enable)
 		gaudi3_init_cache(hdev);
@@ -5304,6 +5309,197 @@ static u32 nic_special_regs_base[] = {
 	mmD0_NIC0_MSTR_IF_DATA_SPECIAL_BASE
 };
 
+static void gaudi3_cn_get_spi_event_data(struct hl_device *hdev,
+				  struct hl_eq_nic_spi_data *spi_data,
+				  u32 macro_index)
+{
+	u32 rxe_spi_intr_cause_0, rxe_spi_intr_cause_1, rxb_core_spi_intr_cause,
+		rxe_spi_intr_mask_0, rxe_spi_intr_mask_1, rxb_core_spi_intr_mask,
+		qpc_intr_cause, port = macro_index * NIC_PORTS_PER_MACRO;
+
+	qpc_intr_cause = NIC_RREG32(mmD0_NIC0_QPC_BASE + mmNIC_QPC_INTERRUPT_CAUSE);
+	rxe_spi_intr_cause_0 = NIC_RREG32(mmD0_NIC0_RXE_BASE + mmNIC_RXE_SPI_INTR_CAUSE_0);
+	rxe_spi_intr_mask_0 = NIC_RREG32(mmD0_NIC0_RXE_BASE + mmNIC_RXE_SPI_INTR_MASK_0);
+	rxe_spi_intr_cause_0 = rxe_spi_intr_cause_0 & ~rxe_spi_intr_mask_0;
+
+	rxe_spi_intr_cause_1 = NIC_RREG32(mmD0_NIC0_RXE_BASE + mmNIC_RXE_SPI_INTR_CAUSE_1);
+	rxe_spi_intr_mask_1 = NIC_RREG32(mmD0_NIC0_RXE_BASE + mmNIC_RXE_SPI_INTR_MASK_1);
+	rxe_spi_intr_cause_1 = rxe_spi_intr_cause_1 & ~rxe_spi_intr_mask_1;
+
+	rxb_core_spi_intr_cause = NIC_RREG32(mmD0_NIC0_RXB_CORE_BASE +
+					     mmNIC_RXB_CORE_SPI_INTR_CAUSE);
+	rxb_core_spi_intr_mask = NIC_RREG32(mmD0_NIC0_RXB_CORE_BASE + mmNIC_RXB_CORE_SPI_INTR_MASK);
+	rxb_core_spi_intr_cause = rxb_core_spi_intr_cause & ~rxb_core_spi_intr_mask;
+
+	spi_data->qpc_cause.intr_cause_data = cpu_to_le64(qpc_intr_cause);
+	spi_data->rxb_core_cause.intr_cause_data = cpu_to_le64(rxb_core_spi_intr_cause);
+	spi_data->rxe_cause_0.intr_cause_data = cpu_to_le64(rxe_spi_intr_cause_0);
+	spi_data->rxe_cause_1.intr_cause_data = cpu_to_le64(rxe_spi_intr_cause_1);
+}
+
+static void gaudi3_cn_clear_spi_event(struct hl_device *hdev,
+			       struct hl_eq_nic_spi_data *spi_data,
+			       u32 macro_index)
+{
+	u32 rxe_spi_intr_cause_0, rxe_spi_intr_cause_1, rxb_core_spi_intr_cause,
+		qpc_intr_cause, port, first_port, last_port;
+
+	first_port = macro_index * NIC_PORTS_PER_MACRO;
+	last_port = (macro_index + 1) * NIC_PORTS_PER_MACRO - 1;
+
+	qpc_intr_cause = lower_32_bits(le64_to_cpu(spi_data->qpc_cause.intr_cause_data));
+
+	for (port = first_port; port <= last_port; port++) {
+		/* check that port is indeed enabled in the macro */
+		if (!(hdev->cn.ports_mask & BIT(port)))
+			continue;
+
+		/* eqe interrupts are mapped to MSI except interrupt on error event queue
+		 * which is handled here, in such case port reset is required.
+		 */
+		if ((qpc_intr_cause & GAUDI3_NIC_EQ_ERR_INTERRUPT_M(port)))
+			NIC_WREG32(mmD0_NIC0_QPC_BASE + mmNIC_QPC_INTERRUPT_CLR,
+				   GAUDI3_NIC_EQ_ERR_INTERRUPT_M(port));
+	}
+
+	port = first_port;
+	rxb_core_spi_intr_cause =
+			lower_32_bits(le64_to_cpu(spi_data->rxb_core_cause.intr_cause_data));
+	rxe_spi_intr_cause_0 =
+			lower_32_bits(le64_to_cpu(spi_data->rxe_cause_0.intr_cause_data));
+	rxe_spi_intr_cause_1 =
+			lower_32_bits(le64_to_cpu(spi_data->rxe_cause_1.intr_cause_data));
+
+	/* RXE SPI interrupts are packet caused interrupts and are not severe,
+	 * no need to perform port reset on them, they should be print for debug purpose.
+	 */
+	if (rxe_spi_intr_cause_0) {
+		/* After writing to the SPI_INTR_CLEAR register we need to set it back to zero as
+		 * it's a sticky register (the read between is done in order to flush the first
+		 * write).
+		 */
+		NIC_WREG32(mmD0_NIC0_RXE_BASE + mmNIC_RXE_SPI_INTR_CLEAR_0, rxe_spi_intr_cause_0);
+		NIC_RREG32(mmD0_NIC0_RXE_BASE + mmNIC_RXE_SPI_INTR_CLEAR_0);
+		NIC_WREG32(mmD0_NIC0_RXE_BASE + mmNIC_RXE_SPI_INTR_CLEAR_0, 0);
+	}
+
+	if (rxe_spi_intr_cause_1) {
+		/* After writing to the SPI_INTR_CLEAR register we need to set it back to zero as
+		 * it's a sticky register (the read between is done in order to flush the first
+		 * write).
+		 */
+		NIC_WREG32(mmD0_NIC0_RXE_BASE + mmNIC_RXE_SPI_INTR_CLEAR_1, rxe_spi_intr_cause_1);
+		NIC_RREG32(mmD0_NIC0_RXE_BASE + mmNIC_RXE_SPI_INTR_CLEAR_1);
+		NIC_WREG32(mmD0_NIC0_RXE_BASE + mmNIC_RXE_SPI_INTR_CLEAR_1, 0);
+	}
+
+	if (rxb_core_spi_intr_cause) {
+		/* After writing to the SPI_INTR_CLEAR register we need to set it back to zero
+		 * as it's a sticky register (the read between is done in order to flush the first
+		 * write).
+		 */
+		NIC_WREG32(mmD0_NIC0_RXB_CORE_BASE + mmNIC_RXB_CORE_SPI_INTR_CLEAR,
+			   rxb_core_spi_intr_cause);
+		NIC_RREG32(mmD0_NIC0_RXB_CORE_BASE + mmNIC_RXB_CORE_SPI_INTR_CLEAR);
+		NIC_WREG32(mmD0_NIC0_RXB_CORE_BASE + mmNIC_RXB_CORE_SPI_INTR_CLEAR, 0);
+	}
+}
+
+static void gaudi3_cn_get_sei_error_event_data(struct hl_device *hdev,
+					 struct hl_eq_nic_sei_data *sei_data,
+					 u32 macro_index)
+{
+	u32 rxe_sei_intr_cause, rxb_core_sei_intr_cause, tmr_intr_cause, rxe_sei_intr_mask,
+		rxb_core_sei_intr_mask, tmr_intr_mask, port, qpc_intr_resp_err_cause,
+		txs_intr_cause, txe_intr_cause, qpc_intr_resp_err_mask, txs_intr_mask,
+		txe_intr_mask;
+
+	port = macro_index * NIC_PORTS_PER_MACRO;
+	rxe_sei_intr_cause = NIC_RREG32(mmD0_NIC0_RXE_BASE + mmNIC_RXE_SEI_INTR_CAUSE);
+	rxe_sei_intr_mask = NIC_RREG32(mmD0_NIC0_RXE_BASE + mmNIC_RXE_SEI_INTR_MASK);
+	rxe_sei_intr_cause = rxe_sei_intr_cause & ~rxe_sei_intr_mask;
+
+	rxb_core_sei_intr_cause = NIC_RREG32(mmD0_NIC0_RXB_CORE_BASE +
+			mmNIC_RXB_CORE_SEI_INTR_CAUSE);
+	rxb_core_sei_intr_mask = NIC_RREG32(mmD0_NIC0_RXB_CORE_BASE +
+			mmNIC_RXB_CORE_SEI_INTR_MASK);
+	rxb_core_sei_intr_cause = rxb_core_sei_intr_cause & ~rxb_core_sei_intr_mask;
+
+	tmr_intr_cause = NIC_RREG32(mmD0_NIC0_TMR_BASE + mmNIC_TMR_INTERRUPT_CAUSE);
+	tmr_intr_mask = NIC_RREG32(mmD0_NIC0_TMR_BASE + mmNIC_TMR_INTERRUPT_MASK);
+	tmr_intr_cause = tmr_intr_cause & ~tmr_intr_mask;
+
+	qpc_intr_resp_err_cause = NIC_RREG32(mmD0_NIC0_QPC_BASE +
+			mmNIC_QPC_INTERRUPT_RESP_ERR_CAUSE);
+	qpc_intr_resp_err_mask = NIC_RREG32(mmD0_NIC0_QPC_BASE + mmNIC_QPC_INTERRUPT_RESP_ERR_MASK);
+	qpc_intr_resp_err_cause = qpc_intr_resp_err_cause & ~qpc_intr_resp_err_mask;
+
+	txs_intr_cause = NIC_RREG32(mmD0_NIC0_TXS_BASE + mmNIC_TXS_INTERRUPT_CAUSE);
+	txs_intr_mask = NIC_RREG32(mmD0_NIC0_TXS_BASE + mmNIC_TXS_INTERRUPT_MASK);
+	txs_intr_cause = txs_intr_cause & ~txs_intr_mask;
+
+	txe_intr_cause = NIC_RREG32(mmD0_NIC0_TXE_BASE + mmNIC_TXE_INTERRUPT_CAUSE);
+	txe_intr_mask = NIC_RREG32(mmD0_NIC0_TXE_BASE + mmNIC_TXE_INTERRUPT_MASK);
+	txe_intr_cause = txe_intr_cause & ~txe_intr_mask;
+
+	sei_data->rxe_cause.intr_cause_data = cpu_to_le64(rxe_sei_intr_cause);
+	sei_data->rxb_core_cause.intr_cause_data = cpu_to_le64(rxb_core_sei_intr_cause);
+	sei_data->tmr_cause.intr_cause_data = cpu_to_le64(tmr_intr_cause);
+	sei_data->qpc_cause.intr_cause_data = cpu_to_le64(qpc_intr_resp_err_cause);
+	sei_data->txs_cause.intr_cause_data = cpu_to_le64(txs_intr_cause);
+}
+
+static void gaudi3_cn_clear_sei_error_event(struct hl_device *hdev,
+				      const struct hl_eq_nic_sei_data *sei_data,
+				      u32 macro_index)
+{
+	u32 rxe_sei_intr_cause, rxb_core_sei_intr_cause, tmr_intr_cause, port,
+		qpc_intr_resp_err_cause, txs_intr_cause, txe_intr_cause;
+
+	rxe_sei_intr_cause = lower_32_bits(le64_to_cpu(sei_data->rxe_cause.intr_cause_data));
+	rxb_core_sei_intr_cause =
+			lower_32_bits(le64_to_cpu(sei_data->rxb_core_cause.intr_cause_data));
+	tmr_intr_cause = lower_32_bits(le64_to_cpu(sei_data->tmr_cause.intr_cause_data));
+	qpc_intr_resp_err_cause = lower_32_bits(le64_to_cpu(sei_data->qpc_cause.intr_cause_data));
+	txs_intr_cause = lower_32_bits(le64_to_cpu(sei_data->txs_cause.intr_cause_data));
+	txe_intr_cause = lower_32_bits(le64_to_cpu(sei_data->txe_cause.intr_cause_data));
+
+	port = macro_index * NIC_PORTS_PER_MACRO;
+
+	if (rxe_sei_intr_cause) {
+		/* After writing to the SEI_INTR_CLEAR register we need to set it back to zero as
+		 * it's a sticky register (the read between is done in order to flush the first
+		 * write).
+		 */
+		NIC_WREG32(mmD0_NIC0_RXE_BASE + mmNIC_RXE_SEI_INTR_CLEAR, rxe_sei_intr_cause);
+		NIC_RREG32(mmD0_NIC0_RXE_BASE + mmNIC_RXE_SEI_INTR_CLEAR);
+		NIC_WREG32(mmD0_NIC0_RXE_BASE + mmNIC_RXE_SEI_INTR_CLEAR, 0);
+	}
+
+	if (rxb_core_sei_intr_cause) {
+		/* After writing to the SEI_INTR_CLEAR register we need to set it back to zero
+		 * as it's a sticky register (the read between is done in order to flush the first
+		 * write).
+		 */
+		NIC_WREG32(mmD0_NIC0_RXB_CORE_BASE + mmNIC_RXB_CORE_SEI_INTR_CLEAR,
+				rxb_core_sei_intr_cause);
+		NIC_RREG32(mmD0_NIC0_RXB_CORE_BASE + mmNIC_RXB_CORE_SEI_INTR_CLEAR);
+		NIC_WREG32(mmD0_NIC0_RXB_CORE_BASE + mmNIC_RXB_CORE_SEI_INTR_CLEAR, 0);
+	}
+
+	if (tmr_intr_cause)
+		NIC_WREG32(mmD0_NIC0_TMR_BASE + mmNIC_TMR_INTERRUPT_CLR, tmr_intr_cause);
+
+	if (qpc_intr_resp_err_cause)
+		NIC_WREG32(mmD0_NIC0_QPC_BASE + mmNIC_QPC_INTERRUPR_RESP_ERR_CLR,
+				qpc_intr_resp_err_cause);
+
+	if (txs_intr_cause)
+		NIC_WREG32(mmD0_NIC0_TXS_BASE + mmNIC_TXS_INTERRUPT_CLR, txs_intr_cause);
+
+	if (txe_intr_cause)
+		NIC_WREG32(mmD0_NIC0_TXE_BASE + mmNIC_TXE_INTERRUPT_CLR, txe_intr_cause);
+}
 /* SHARED_NIC_EVENT */
 static void handle_and_clear_nic_events(struct hl_device *hdev, u32 die,
 					enum err_grp type, u32 sts, u32 sts_idx, u32 idx,
