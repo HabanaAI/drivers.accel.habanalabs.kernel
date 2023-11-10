@@ -420,7 +420,7 @@ static int hl_cn_get_vm_info(struct hl_aux_dev *aux_dev, u64 vm_handle,
 				struct hl_cn_vm_info *vm_info)
 {
 	vm_info->mmu_mode = HL_CN_MMU_MODE_EXTERNAL;
-	vm_info->net_tlb.pasid = 1;
+	vm_info->ext_mmu.work_id = 1;
 
 	return 0;
 }
