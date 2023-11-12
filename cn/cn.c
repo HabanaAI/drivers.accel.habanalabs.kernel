@@ -368,8 +368,9 @@ static int hl_cn_register_cn_user_context(struct hl_aux_dev *aux_dev, int user_f
 
 	mutex_unlock(&hdev->fpriv_list_lock);
 
+	/* these must have different values to allow data transfer */
 	*comp_handle = 0;
-	*vm_handle = 0;
+	*vm_handle = 1;
 
 	return 0;
 
