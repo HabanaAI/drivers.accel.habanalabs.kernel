@@ -984,7 +984,6 @@ static void set_driver_behavior_per_device(struct hl_device *hdev)
 		hdev->cache_enable = 0;
 		hdev->rotator_binning = 0;
 		hdev->hbm_compression_enable = 0;
-		hdev->heartbeat_reset_enable = 1;
 		break;
 
 	case ASIC_GAUDI2_SIM_ARC:
@@ -1012,7 +1011,6 @@ static void set_driver_behavior_per_device(struct hl_device *hdev)
 		hdev->cache_enable = 0;
 		hdev->rotator_binning = 0;
 		hdev->hbm_compression_enable = 0;
-		hdev->heartbeat_reset_enable = 1;
 		break;
 
 	case ASIC_GAUDI2:
@@ -1040,7 +1038,6 @@ static void set_driver_behavior_per_device(struct hl_device *hdev)
 		hdev->cache_enable = 0;
 		hdev->rotator_binning = 0;
 		hdev->hbm_compression_enable = 0;
-		hdev->heartbeat_reset_enable = 0;
 		break;
 
 	case ASIC_GAUDI3:
@@ -1067,7 +1064,6 @@ static void set_driver_behavior_per_device(struct hl_device *hdev)
 		hdev->ptw_bypass_enable = 1;
 		hdev->rotator_binning = 0;
 		hdev->hbm_compression_enable = 1;
-		hdev->heartbeat_reset_enable = 1;
 		break;
 
 	case ASIC_GAUDI3_SIM:
@@ -1093,7 +1089,6 @@ static void set_driver_behavior_per_device(struct hl_device *hdev)
 		hdev->cache_enable = 1;
 		hdev->rotator_binning = 0;
 		hdev->hbm_compression_enable = 1;
-		hdev->heartbeat_reset_enable = 1;
 		break;
 
 	case ASIC_GAUDI3_SIM_ARC:
@@ -1119,7 +1114,6 @@ static void set_driver_behavior_per_device(struct hl_device *hdev)
 		hdev->cache_enable = 1;
 		hdev->rotator_binning = 0;
 		hdev->hbm_compression_enable = 1;
-		hdev->heartbeat_reset_enable = 1;
 		break;
 
 	case ASIC_GAUDI3_SIM_SINGLE_DIE:
@@ -1145,7 +1139,6 @@ static void set_driver_behavior_per_device(struct hl_device *hdev)
 		hdev->cache_enable = 1;
 		hdev->rotator_binning = 0;
 		hdev->hbm_compression_enable = 1;
-		hdev->heartbeat_reset_enable = 1;
 		break;
 
 	case ASIC_GAUDI3_SIM_SINGLE_DIE_ARC:
@@ -1171,7 +1164,6 @@ static void set_driver_behavior_per_device(struct hl_device *hdev)
 		hdev->cache_enable = 1;
 		hdev->rotator_binning = 0;
 		hdev->hbm_compression_enable = 1;
-		hdev->heartbeat_reset_enable = 1;
 		break;
 
 	case ASIC_GAUDI3_FPGA:
@@ -1197,7 +1189,6 @@ static void set_driver_behavior_per_device(struct hl_device *hdev)
 		hdev->cache_enable = 0;
 		hdev->rotator_binning = 0;
 		hdev->hbm_compression_enable = 1;
-		hdev->heartbeat_reset_enable = 1;
 		break;
 
 	default:
@@ -1273,6 +1264,7 @@ static void set_driver_behavior_per_device(struct hl_device *hdev)
 	hdev->enable_h9_cache_eta_eco = 1;
 
 	hdev->glbl_errors_read_enable = 1;
+	hdev->heartbeat_reset_enable = 1;
 }
 
 static void copy_kernel_module_params_to_device(struct hl_device *hdev)
