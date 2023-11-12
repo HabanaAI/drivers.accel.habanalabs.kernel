@@ -11522,7 +11522,7 @@ int gaudi2_ctx_init(struct hl_ctx *ctx)
 
 	rc = gaudi2_mmu_prepare(ctx->hdev, ctx->asid);
 	if (rc)
-		return rc;
+		goto cn_ctx_fini;
 
 	/* No need to clear user registers if the device has just
 	 * performed reset, we restore only nic qm registers
@@ -11534,12 +11534,18 @@ int gaudi2_ctx_init(struct hl_ctx *ctx)
 
 	rc = gaudi2_internal_cb_pool_init(ctx->hdev, ctx);
 	if (rc)
-		return rc;
+		goto cn_ctx_fini;
 
 	rc = gaudi2_map_virtual_msix_doorbell_memory(ctx);
 	if (rc)
-		gaudi2_internal_cb_pool_fini(ctx->hdev, ctx);
+		goto internal_cb_pool_fini;
 
+	return 0;
+
+internal_cb_pool_fini:
+	gaudi2_internal_cb_pool_fini(ctx->hdev, ctx);
+cn_ctx_fini:
+	hl_cn_ctx_fini(ctx);
 	return rc;
 }
 
