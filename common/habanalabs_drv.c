@@ -85,6 +85,7 @@ static int gaudi2_setup_type;
 static ulong enable_events_tracing;
 static char *tracefs_mnt = "/sys/kernel/debug/tracing";
 static int ignore_eeprom_errors;
+static int gaudi3_setup_type;
 
 /* Parameters for bring-up/debugging */
 static int pldm;
@@ -244,6 +245,10 @@ MODULE_PARM_DESC(tracefs_mnt, "string representing full path to tracefs mount po
 module_param(ignore_eeprom_errors, int, 0444);
 MODULE_PARM_DESC(ignore_eeprom_errors,
 	"Ignore eeprom errors (0 - disabled, 1 - enabled, default 0)");
+
+module_param(gaudi3_setup_type, int, 0444);
+MODULE_PARM_DESC(gaudi3_setup_type,
+	"The type of setup according to which the gaudi3 PHY should be configured (0 - HLS3, 1 - HL325-S with external loopbacks, default 0)");
 
 /* Bring-Up flags */
 module_param(pldm, int, 0444);
@@ -1291,6 +1296,7 @@ static void copy_kernel_module_params_to_device(struct hl_device *hdev)
 	hdev->skip_iatu_for_unsecured_device = skip_iatu_for_unsecured_device;
 	hdev->gaudi2_setup_type = gaudi2_setup_type;
 	hdev->ignore_eeprom_errors = ignore_eeprom_errors;
+	hdev->gaudi3_setup_type = gaudi3_setup_type;
 }
 
 static void copy_bfe_params_to_device(struct hl_device *hdev)

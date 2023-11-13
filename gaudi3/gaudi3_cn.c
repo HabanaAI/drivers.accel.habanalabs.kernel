@@ -139,7 +139,7 @@ int gaudi3_cn_set_info(struct hl_device *hdev, bool get_from_fw)
 		}
 
 		cn->card_location = le32_to_cpu(cpucp_info->card_location);
-		cn->use_fw_serdes_info = true;
+		cn->use_fw_serdes_info = hdev->gaudi3_setup_type == GAUDI3_SETUP_TYPE_HLS3;
 	} else {
 		/* No F/W, hence need to set the MACs manually (randomize) */
 		get_random_bytes(&mac[3], 2);
@@ -193,9 +193,11 @@ int gaudi3_cn_set_info(struct hl_device *hdev, bool get_from_fw)
 		break;
 	}
 
-	/* PCI card is a testing card so set all ports as external */
-	if (hdev->card_type == cpucp_card_type_pci) {
-		hdev->cn.ports_ext_mask = hdev->cn.ports_mask;
+	if (hdev->card_type == cpucp_card_type_pci ||
+	    hdev->gaudi3_setup_type != GAUDI3_SETUP_TYPE_HLS3) {
+		/* PCI card is a testing card so set all ports as external */
+		if (hdev->card_type == cpucp_card_type_pci)
+			hdev->cn.ports_ext_mask = hdev->cn.ports_mask;
 		hdev->cn.auto_neg_mask &= ~hdev->cn.ports_ext_mask;
 	}
 
