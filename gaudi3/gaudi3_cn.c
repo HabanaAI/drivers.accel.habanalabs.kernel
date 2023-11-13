@@ -78,6 +78,127 @@ static int gaudi3_cn_check_oui_prefix_validity(u8 *mac_addr)
 	return 0;
 }
 
+static uint64_t gaudi3_cn_override_ports_ext_mask(struct hl_device *hdev,
+						  enum cpucp_serdes_type serdes_type)
+{
+	/* If we are running on a PCI card, all the ports should be set as external */
+	if (hdev->card_type == cpucp_card_type_pci)
+		return hdev->cn.ports_mask;
+
+	switch (hdev->gaudi3_setup_type) {
+	case GAUDI3_SETUP_TYPE_HLS3:
+		switch (serdes_type) {
+		case HLS3_FULLSCALE_IN_SERDES_TYPE:
+			return 0x0;
+		case HLS3_FULLSCALE_OUT_SERDES_TYPE:
+			switch (hdev->cn.card_location) {
+			case 0:
+				return 0xFFC000;
+			case 1:
+				return 0x000FFC;
+			case 2:
+				return 0x000FFC;
+			case 3:
+				return 0xFFC000;
+			case 4:
+				return 0x3FF000;
+			case 5:
+				return 0x0003FF;
+			case 6:
+				return 0x0003FF;
+			case 7:
+				return 0x3FF000;
+			default:
+				dev_err(hdev->dev, "Invalid card location %u\n",
+					hdev->cn.card_location);
+			}
+			break;
+		case HLS3_FULL_OAM_3PORTS_SCALE_OUT_SERDES_TYPE:
+			switch (hdev->cn.card_location) {
+			case 0:
+				return 0x320000;
+			case 1:
+				return 0x000320;
+			case 2:
+				return 0x000320;
+			case 3:
+				return 0x320000;
+			case 4:
+				return 0x08C000;
+			case 5:
+				return 0x00008C;
+			case 6:
+				return 0x00008C;
+			case 7:
+				return 0x08C000;
+			default:
+				dev_err(hdev->dev, "Invalid card location %u\n",
+					hdev->cn.card_location);
+			}
+			break;
+		case HLS3_FULL_OAM_6PORTS_SCALE_OUT_SERDES_TYPE:
+			switch (hdev->cn.card_location) {
+			case 0:
+				return 0x374000;
+			case 1:
+				return 0x000374;
+			case 2:
+				return 0x000374;
+			case 3:
+				return 0x374000;
+			case 4:
+				return 0x1DC000;
+			case 5:
+				return 0x0001DC;
+			case 6:
+				return 0x0001DC;
+			case 7:
+				return 0x1DC000;
+			default:
+				dev_err(hdev->dev, "Invalid card location %u\n",
+					hdev->cn.card_location);
+			}
+			break;
+		case HLS3_SINGLEPORT_OAM_FULLSCALE_OUT_SERDES_TYPE:
+			switch (hdev->cn.card_location) {
+			case 0:
+				return 0x320000;
+			case 1:
+				return 0x000320;
+			case 2:
+				return 0x000320;
+			case 3:
+				return 0x320000;
+			case 4:
+				return 0x08C000;
+			case 5:
+				return 0x00008C;
+			case 6:
+				return 0x00008C;
+			case 7:
+				return 0x08C000;
+			default:
+				dev_err(hdev->dev, "Invalid card location %u\n",
+					hdev->cn.card_location);
+			}
+			break;
+		default:
+			dev_err(hdev->dev, "Invalid gaudi3_serdes_type %u\n",
+				hdev->gaudi3_setup_type);
+			break;
+		}
+
+		break;
+	case GAUDI3_SETUP_TYPE_HL325_S_EXT_LB:
+		/* For the above setup types, all the ports should be set as external */
+		return hdev->cn.ports_mask;
+	default:
+		dev_err(hdev->dev, "Invalid gaudi3_setup_type %u\n", hdev->gaudi3_setup_type);
+	}
+
+	return hdev->cn.ports_ext_mask;
+}
+
 int gaudi3_cn_set_info(struct hl_device *hdev, bool get_from_fw)
 {
 	struct hl_cn_cpucp_info *cn_cpucp_info = &hdev->asic_prop.cn_props.cpucp_info;
@@ -176,6 +297,8 @@ int gaudi3_cn_set_info(struct hl_device *hdev, bool get_from_fw)
 		} else {
 			dev_warn(hdev->dev, "can't read card location as FW security is enabled\n");
 		}
+
+		hdev->cn.ports_ext_mask = gaudi3_cn_override_ports_ext_mask(hdev, serdes_type);
 	}
 
 	switch (serdes_type) {
