@@ -176,20 +176,46 @@ static int hl_cn_unmap_vmalloc_range(struct hl_aux_dev *aux_dev, u64 device_va)
 	return hl_unmap_vmalloc_range(cn->ctx, device_va);
 }
 
-static u64 hl_cn_reserve_va_block(struct hl_aux_dev *aux_dev, u64 size)
+static int hl_cn_vm_reserve_dva_block(struct hl_aux_dev *aux_dev, u64 vm_handle, u64 size, u64 *dva)
+{
+	struct hl_cn *cn = container_of(aux_dev, struct hl_cn, cn_aux_dev);
+	struct hl_device *hdev = container_of(cn, struct hl_device, cn);
+	u64 addr;
+
+	addr = hl_reserve_va_block(hdev, cn->ctx, HL_VA_RANGE_TYPE_HOST, size, PAGE_SIZE);
+	if (!addr)
+		return -ENOMEM;
+
+	*dva = addr;
+
+	return 0;
+}
+static void hl_cn_vm_unreserve_dva_block(struct hl_aux_dev *aux_dev, u64 vm_handle, u64 dva,
+		u64 size)
 {
 	struct hl_cn *cn = container_of(aux_dev, struct hl_cn, cn_aux_dev);
 	struct hl_device *hdev = container_of(cn, struct hl_device, cn);
 
-	return hl_reserve_va_block(hdev, cn->ctx, HL_VA_RANGE_TYPE_HOST, size, PAGE_SIZE);
+	hl_unreserve_va_block(hdev, cn->ctx, dva, size);
+}
+
+static u64 hl_cn_reserve_va_block(struct hl_aux_dev *aux_dev, u64 size)
+{
+	u64 addr;
+	int rc;
+
+	rc = hl_cn_vm_reserve_dva_block(aux_dev, 0, size, &addr);
+	if (rc)
+		return 0;
+
+	return addr;
 }
 
 static int hl_cn_unreserve_va_block(struct hl_aux_dev *aux_dev, u64 addr, u64 size)
 {
-	struct hl_cn *cn = container_of(aux_dev, struct hl_cn, cn_aux_dev);
-	struct hl_device *hdev = container_of(cn, struct hl_device, cn);
+	hl_cn_vm_unreserve_dva_block(aux_dev, 0, addr, size);
 
-	return hl_unreserve_va_block(hdev, cn->ctx, addr, size);
+	return 0;
 }
 
 static int hl_cn_get_hw_block_handle(struct hl_aux_dev *aux_dev, u64 address, u64 *handle)
@@ -643,6 +669,8 @@ static int hl_cn_aux_data_init(struct hl_device *hdev)
 	aux_ops->unmap_vmalloc_range = hl_cn_unmap_vmalloc_range;
 	aux_ops->reserve_va_block = hl_cn_reserve_va_block;
 	aux_ops->unreserve_va_block = hl_cn_unreserve_va_block;
+	aux_ops->vm_reserve_dva_block = hl_cn_vm_reserve_dva_block;
+	aux_ops->vm_unreserve_dva_block = hl_cn_vm_unreserve_dva_block;
 	aux_ops->get_hw_block_handle = hl_cn_get_hw_block_handle;
 	aux_ops->dma_mmap = hl_cn_dma_mmap;
 	aux_ops->user_mmap = hl_cn_user_mmap;
