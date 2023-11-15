@@ -3972,6 +3972,41 @@ static void gaudi3_clear_pcie_sei_cause_events(struct hl_device *hdev, u32 err_m
 	WREG32(mmD0_PCIE_WRAP_BASE + mmPCIE_WRAP_AXI_INTR, 1);
 }
 
+static void handle_and_clear_pcie_drain_event(struct hl_device *hdev,
+						struct hl_eq_pcie_drain_ind_data *drain_cause)
+{
+	u64 addr_lo, addr_hi;
+	u32 axi_drain_ind;
+
+	axi_drain_ind = RREG32(mmD0_PCIE_WRAP_BASE + mmPCIE_WRAP_AXI_DRAIN_IND);
+	drain_cause->intr_cause.intr_cause_data = cpu_to_le64(axi_drain_ind);
+
+	if (axi_drain_ind & (PCIE_WRAP_AXI_DRAIN_IND_LBW_AXI_DRAIN_IND_M |
+				PCIE_WRAP_AXI_DRAIN_IND_LBW_AXI_DRAIN_BP_IND_M)) {
+		addr_lo = RREG32(mmD0_PCIE_WRAP_BASE + mmPCIE_WRAP_LBW_DRAIN_WR_ADDR_0);
+		addr_hi = RREG32(mmD0_PCIE_WRAP_BASE + mmPCIE_WRAP_LBW_DRAIN_WR_ADDR_1);
+		drain_cause->drain_wr_addr_lbw = cpu_to_le64((addr_hi << 32) | addr_lo);
+
+		addr_lo = RREG32(mmD0_PCIE_WRAP_BASE + mmPCIE_WRAP_LBW_DRAIN_RD_ADDR_0);
+		addr_hi = RREG32(mmD0_PCIE_WRAP_BASE + mmPCIE_WRAP_LBW_DRAIN_RD_ADDR_1);
+		drain_cause->drain_rd_addr_lbw = cpu_to_le64((addr_hi << 32) | addr_lo);
+	}
+
+	if (axi_drain_ind & (PCIE_WRAP_AXI_DRAIN_IND_HBW_AXI_DRAIN_IND_M |
+				PCIE_WRAP_AXI_DRAIN_IND_HBW_AXI_DRAIN_BP_IND_M)) {
+		addr_lo = RREG32(mmD0_PCIE_WRAP_BASE + mmPCIE_WRAP_HBW_DRAIN_WR_ADDR_0);
+		addr_hi = RREG32(mmD0_PCIE_WRAP_BASE + mmPCIE_WRAP_HBW_DRAIN_WR_ADDR_1);
+		drain_cause->drain_wr_addr_hbw = cpu_to_le64((addr_hi << 32) | addr_lo);
+
+		addr_lo = RREG32(mmD0_PCIE_WRAP_BASE + mmPCIE_WRAP_HBW_DRAIN_RD_ADDR_0);
+		addr_hi = RREG32(mmD0_PCIE_WRAP_BASE + mmPCIE_WRAP_HBW_DRAIN_RD_ADDR_1);
+		drain_cause->drain_rd_addr_hbw = cpu_to_le64((addr_hi << 32) | addr_lo);
+	}
+
+	/* Clear interrupt */
+	WREG32(mmD0_PCIE_WRAP_BASE + mmPCIE_WRAP_AXI_DRAIN_IND, 0x0);
+}
+
 static u32 pcie_special_regs_base[] = {
 	mmD0_PCIE_CORE_SPECIAL_BASE,
 	mmD0_PCIE_WRAP_SPECIAL_BASE,
@@ -3984,8 +4019,8 @@ static void handle_and_clear_pcie_events(struct hl_device *hdev, u32 die,
 						u32 aggr_mask_reg, u32 events_mask,
 						struct hl_eq_dynamic_entry *eq_dynamic_entry)
 {
-	struct eq_agg_header_params params = {};
 	u32 intr_cause = 0x0, err_idx = 0, err_msk;
+	struct eq_agg_header_params params = {};
 	bool unmask_event_in_aggr = false;
 	int rc;
 
@@ -4026,9 +4061,14 @@ static void handle_and_clear_pcie_events(struct hl_device *hdev, u32 die,
 			eq_dynamic_entry->pcie_spi_data.spi_type = PCIE_SPI_P2P_OR_MSIX_GW_INTR;
 		else /* 8 */
 			eq_dynamic_entry->pcie_spi_data.spi_type = PCIE_SPI_DRAIN;
+
 		eq_dynamic_entry->hdr.size = cpu_to_le16(sizeof(struct hl_eq_pcie_spi_data));
-		if (eq_dynamic_entry->pcie_spi_data.spi_type == PCIE_SPI_DRAIN)
+
+		if (eq_dynamic_entry->pcie_spi_data.spi_type == PCIE_SPI_DRAIN) {
+			handle_and_clear_pcie_drain_event(hdev,
+						&eq_dynamic_entry->pcie_spi_data.drain_cause);
 			unmask_event_in_aggr = true;
+		}
 		break;
 	default:
 		return;
