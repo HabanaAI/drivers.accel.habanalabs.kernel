@@ -13430,7 +13430,7 @@ static const char *gaudi3_get_interrupt_hdcore_name(u8 hdcore_type)
 
 static void gaudi3_stringify_agg_eq_header(char *str, size_t size, struct hl_agg_eq_header *agg_hdr)
 {
-	snprintf(str, size, "[%s, DIE%d, %s, instance %d, %s]\n",
+	snprintf(str, size, "[%s, DIE%d, %s, instance %d, %s]",
 			gaudi3_get_interrupt_comp_name(agg_hdr->int_comp_type),
 			agg_hdr->die_id,
 			gaudi3_get_interrupt_hdcore_name(agg_hdr->hdcore_type),
