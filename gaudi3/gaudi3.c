@@ -13444,7 +13444,7 @@ static void gaudi3_print_hw_event_info(struct hl_device *hdev, struct hl_agg_eq_
 
 	gaudi3_stringify_agg_eq_header(agg_eq_header_str, sizeof(agg_eq_header_str), agg_hdr);
 
-	dev_dbg(hdev->dev, "Received H/W event %s\n", agg_eq_header_str);
+	dev_err(hdev->dev, "Received H/W event %s\n", agg_eq_header_str);
 }
 
 static void gaudi3_print_hw_event_invalid(struct hl_device *hdev, struct hl_agg_eq_header *agg_hdr)
