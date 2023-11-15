@@ -6987,36 +6987,41 @@ static void gaudi3_handle_qm_sw_event(struct hl_device *hdev,
 					const struct qm_sw_event_info *qm_info,
 					struct hl_eq_dynamic_entry *eq_dynamic_entry)
 {
+	u32 glbl_err_sts, hd_in_die = qm_info->hd % NUM_OF_HDCORES_PER_DIE;
 	struct hl_eq_qm_sei_data *qm_data;
-	u32 glbl_err_sts;
 
 	switch (qm_info->comp) {
 	case INT_COMP_TYPE_MME:
-		dev_dbg(hdev->dev, "got MME QM SW event HD %u\n", qm_info->hd);
+		dev_err(hdev->dev, "Received QM SW event for D%u_HD%u_MME\n",
+			qm_info->die, hd_in_die);
 		qm_data = &eq_dynamic_entry->mme_sei_data.control_data.qm_data;
 		eq_dynamic_entry->mme_sei_data.type = MME_DATA_TYPE_CTRL;
 		eq_dynamic_entry->hdr.size = cpu_to_le16(sizeof(struct hl_eq_mme_sei_data));
 		break;
 	case INT_COMP_TYPE_TPC:
-		dev_dbg(hdev->dev, "got TPC%u QM SW event HD %u\n", qm_info->instance, qm_info->hd);
+		dev_err(hdev->dev, "Received QM SW event for D%u_HD%u_TPC%u\n",
+			qm_info->die, hd_in_die, qm_info->instance);
 		qm_data = &eq_dynamic_entry->tpc_sei_data.qm_data;
 		eq_dynamic_entry->hdr.size = cpu_to_le16(sizeof(struct hl_eq_tpc_sei_data));
 		break;
 	case INT_COMP_TYPE_ROT:
-		dev_dbg(hdev->dev, "got ROT%u QM SW event HD %u\n", qm_info->instance, qm_info->hd);
+		dev_err(hdev->dev, "Received QM SW event for D%u_HD%u_ROT%u\n",
+			qm_info->die, hd_in_die, qm_info->instance);
 		qm_data = &eq_dynamic_entry->rot_sei_data.qm_data;
 		eq_dynamic_entry->hdr.size = cpu_to_le16(sizeof(struct hl_eq_rot_sei_data));
 		break;
 	case INT_COMP_TYPE_EDMA:
-		dev_dbg(hdev->dev, "got EDMA%u QM SW event HD %u\n", qm_info->instance,
-				qm_info->hd);
+		dev_err(hdev->dev, "Received QM SW event for D%u_HD%u_EDMA%u\n",
+			qm_info->die, hd_in_die, qm_info->instance);
 		qm_data = &eq_dynamic_entry->edma_sei_data.qm_data[qm_info->instance];
 		eq_dynamic_entry->hdr.size = cpu_to_le16(sizeof(struct hl_eq_edma_sei_data));
 		break;
 	default:
-		dev_err(hdev->dev, "got QM SW event with invalid component %u\n", qm_info->comp);
+		dev_err(hdev->dev, "Received QM SW event with invalid component %u\n",
+			qm_info->comp);
 		return;
 	}
+
 	glbl_err_sts = RREG32(qm_info->base + mmQMAN_GLBL_ERR_STS) & QMAN_GLBL_ERR_STS_MASK;
 	qm_data->qm_cause.intr_cause_data = cpu_to_le64(glbl_err_sts);
 }
