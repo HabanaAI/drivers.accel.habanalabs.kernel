@@ -12,14 +12,14 @@
 #include "gaudi3P.h"
 #include "../include/gaudi3/asic_reg/gaudi3_regs.h"
 
-#define N2R_CREDITS_VERSION		"0.5"
+#define N2R_CREDITS_VERSION		"0.6"
 #define R2C_CREDITS_VERSION		"0.7"
 #define SCRAMBLING_VERSION		"0.10"
-#define REGULATORS_VERSION		"0.14"
+#define REGULATORS_VERSION		"0.16"
 #define QOS_VERSION		"0.1"
 #define CACHE_VERSION		"0.7"
 #define MC_VERSION		"0.2"
-#define SOL_CONFIG_VERSION		"1.19"
+#define SOL_CONFIG_VERSION		"1.20"
 
 static void gaudi3_init_n2r_credits_d2d(struct hl_device *hdev)
 {
@@ -2110,38 +2110,38 @@ static void gaudi3_init_regulators_d2d_8_hbm_tpc_block(struct hl_device *hdev,
 	WREG32(offset + 0xA24, 0x1040508);
 	WREG32(offset + 0xB40, 0x11);
 	WREG32(offset + 0xB64, 0x8080);
-	WREG32(offset + 0xB88, 0x70208);
-	WREG32(offset + 0xB8C, 0x70308);
-	WREG32(offset + 0xB90, 0x60308);
-	WREG32(offset + 0xB94, 0x60308);
-	WREG32(offset + 0xB98, 0x50308);
-	WREG32(offset + 0xBA0, 0x100208);
-	WREG32(offset + 0xBA4, 0xA0308);
-	WREG32(offset + 0xBA8, 0x90308);
-	WREG32(offset + 0xBAC, 0x60308);
-	WREG32(offset + 0xBB0, 0x50308);
-	WREG32(offset + 0xBB8, 0x70208);
-	WREG32(offset + 0xBBC, 0x70308);
-	WREG32(offset + 0xBC0, 0x50308);
-	WREG32(offset + 0xBC4, 0x50408);
-	WREG32(offset + 0xBC8, 0x90908);
-	WREG32(offset + 0xBD0, 0x70108);
-	WREG32(offset + 0xBD4, 0x60208);
-	WREG32(offset + 0xBD8, 0x80308);
-	WREG32(offset + 0xBDC, 0x40308);
-	WREG32(offset + 0xBE0, 0x40408);
-	WREG32(offset + 0x840, 0xF0208);
-	WREG32(offset + 0x844, 0x60208);
-	WREG32(offset + 0x848, 0x60308);
-	WREG32(offset + 0x84C, 0x180208);
-	WREG32(offset + 0x850, 0x90208);
-	WREG32(offset + 0x854, 0x180208);
-	WREG32(offset + 0x858, 0xF0208);
-	WREG32(offset + 0x85C, 0x60208);
-	WREG32(offset + 0x860, 0x60308);
-	WREG32(offset + 0x864, 0xA0108);
-	WREG32(offset + 0x868, 0x70208);
-	WREG32(offset + 0x86C, 0x80308);
+	WREG32(offset + 0xB88, 0x130808);
+	WREG32(offset + 0xB8C, 0x130A08);
+	WREG32(offset + 0xB90, 0x130B08);
+	WREG32(offset + 0xB94, 0x130B08);
+	WREG32(offset + 0xB98, 0x130C08);
+	WREG32(offset + 0xBA0, 0x130408);
+	WREG32(offset + 0xBA4, 0x130608);
+	WREG32(offset + 0xBA8, 0x130808);
+	WREG32(offset + 0xBAC, 0x130B08);
+	WREG32(offset + 0xBB0, 0x130E08);
+	WREG32(offset + 0xBB8, 0x130808);
+	WREG32(offset + 0xBBC, 0x130A08);
+	WREG32(offset + 0xBC0, 0x130B08);
+	WREG32(offset + 0xBC4, 0x130B08);
+	WREG32(offset + 0xBC8, 0x130C08);
+	WREG32(offset + 0xBD0, 0x130408);
+	WREG32(offset + 0xBD4, 0x130608);
+	WREG32(offset + 0xBD8, 0x130808);
+	WREG32(offset + 0xBDC, 0x130B08);
+	WREG32(offset + 0xBE0, 0x130E08);
+	WREG32(offset + 0x840, 0x130508);
+	WREG32(offset + 0x844, 0x130708);
+	WREG32(offset + 0x848, 0x130B08);
+	WREG32(offset + 0x84C, 0x130408);
+	WREG32(offset + 0x850, 0x130608);
+	WREG32(offset + 0x854, 0x130808);
+	WREG32(offset + 0x858, 0x130508);
+	WREG32(offset + 0x85C, 0x130708);
+	WREG32(offset + 0x860, 0x130B08);
+	WREG32(offset + 0x864, 0x130408);
+	WREG32(offset + 0x868, 0x130608);
+	WREG32(offset + 0x86C, 0x130808);
 	WREG32(offset + 0xC00, 0x11010);
 	RREG32(0xc489000);
 }
@@ -2200,7 +2200,7 @@ static void gaudi3_init_regulators_single_die_mme_block(struct hl_device *hdev,
 	WREG32(offset + 0xA04, 0x3E8);
 	WREG32(offset + 0xA20, 0x1040508);
 	WREG32(offset + 0xA24, 0x1040508);
-	WREG32(offset + 0xA40, 0x10);
+	WREG32(offset + 0xA40, 0x0);
 	WREG32(offset + 0xA44, 0x1100);
 	WREG32(offset + 0xA48, 0xF0300);
 	WREG32(offset + 0xA4C, 0xF0300);
@@ -2273,7 +2273,7 @@ static void gaudi3_init_regulators_d2d_8_hbm_mme_block(struct hl_device *hdev,
 	WREG32(offset + 0xA04, 0x3E8);
 	WREG32(offset + 0xA20, 0x1040508);
 	WREG32(offset + 0xA24, 0x1040508);
-	WREG32(offset + 0xA40, 0x10);
+	WREG32(offset + 0xA40, 0x0);
 	WREG32(offset + 0xA44, 0x1100);
 	WREG32(offset + 0xA48, 0xF0300);
 	WREG32(offset + 0xA4C, 0xF0300);
@@ -2347,7 +2347,7 @@ static void gaudi3_init_regulators_d2d_7_hbm_mme_block(struct hl_device *hdev,
 	WREG32(offset + 0xA04, 0x3E8);
 	WREG32(offset + 0xA20, 0x1040508);
 	WREG32(offset + 0xA24, 0x1040508);
-	WREG32(offset + 0xA40, 0x10);
+	WREG32(offset + 0xA40, 0x0);
 	WREG32(offset + 0xA44, 0x1100);
 	WREG32(offset + 0xA48, 0xF0300);
 	WREG32(offset + 0xA4C, 0xF0300);
