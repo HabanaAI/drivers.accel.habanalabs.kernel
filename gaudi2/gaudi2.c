@@ -8491,10 +8491,10 @@ static int gaudi2_handle_qman_err_generic(struct hl_device *hdev, u16 event_type
 		for (j = 0 ; j < num_error_causes ; j++)
 			if (glbl_sts_val & BIT(j)) {
 				gaudi2_print_event(hdev, event_type, true,
-					"%s. err cause: %s", reg_desc,
+					"%s. err cause: %s, qid = %u", reg_desc,
 					i == QMAN_STREAMS ?
 					gaudi2_lower_qman_error_cause[j] :
-					gaudi2_qman_error_cause[j]);
+					gaudi2_qman_error_cause[j], qid_base);
 				error_count++;
 			}
 
@@ -10899,14 +10899,14 @@ void gaudi2_handle_eqe(struct hl_device *hdev, struct hl_eq_entry *eq_entry)
 	/* Send unmask irq only for interrupts not classified as MSG */
 	if (!gaudi2_irq_map_table[event_type].msg) {
 		/* TODO remove this debug when SW-159137 is solved */
-		dev_dbg(hdev->dev, "call hl_fw_unmask_irq event_type=0x%x event_mask=0x%llx\n",
+		dev_dbg(hdev->dev, "call hl_fw_unmask_irq event_type=%u event_mask=0x%llx\n",
 				event_type, event_mask);
 		hl_fw_unmask_irq(hdev, event_type);
 	}
 
 	if (event_mask) {
 		/* TODO remove this debug when SW-159137 is solved */
-		dev_dbg(hdev->dev, "call notifier user event_type=0x%x, event_mask=0x%llx\n",
+		dev_dbg(hdev->dev, "call notifier user event_type=%u, event_mask=0x%llx\n",
 			event_type, event_mask);
 		hl_notifier_event_send_all(hdev, event_mask);
 	}

@@ -2411,6 +2411,9 @@ static void hl_notifier_event_send(struct hl_notifier_event *notifier_event, u64
 
 	if (notifier_event->eventfd)
 		eventfd_signal(notifier_event->eventfd, 1);
+	else /* TODO: this debug can be removed when SW-159137 is solved" */
+		pr_debug("no eventfd is registered, events_mask=0x%llx\n",
+				notifier_event->events_mask);
 
 	mutex_unlock(&notifier_event->lock);
 }
