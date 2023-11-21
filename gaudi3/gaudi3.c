@@ -9768,11 +9768,15 @@ static u32 gaudi3_err_cause_iterator(struct hl_device *hdev, u32 err_msk,
 					const char * const *err_tbl, char *initiator, char *type)
 {
 	u32 err_idx = 0, err_cnt = 0;
+	char type_str[32] = "";
+
+	if (type)
+		snprintf(type_str, sizeof(type_str), "%s ", type);
 
 	while (err_msk) {
 		if (err_msk & 1) {
-			dev_err_ratelimited(hdev->dev, "%s %s error: %s\n",
-					initiator, type, err_tbl[err_idx]);
+			dev_err_ratelimited(hdev->dev, "%s %serror: %s\n",
+						initiator, type_str, err_tbl[err_idx]);
 			err_cnt++;
 		}
 		err_idx++;
@@ -12645,7 +12649,7 @@ static u32 gaudi3_handle_qm_sei_err(struct hl_device *hdev, struct hl_eq_qm_sei_
 	snprintf(buf, sizeof(buf), "%s_QM", engine);
 	err_msk = lower_32_bits(le64_to_cpu(qm_sei_data->qm_cause.intr_cause_data)) &
 			QMAN_GLBL_ERR_STS_MASK;
-	err_num = gaudi3_err_cause_iterator(hdev, err_msk, gaudi3_qm_err_cause, buf, "SEI");
+	err_num = gaudi3_err_cause_iterator(hdev, err_msk, gaudi3_qm_err_cause, buf, NULL);
 
 	if (event_mask && (err_msk & QMAN_GLBL_ERR_STS_CP_UNDEF_CMD_ERR_M))
 		*event_mask |= HL_NOTIFIER_EVENT_UNDEFINED_OPCODE;
