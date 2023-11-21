@@ -1742,6 +1742,17 @@ static const char * const gaudi3_cpu_sei_intr_cause[] = {
 	"intr_aggt_mstr_if_lbw_rd_err"
 };
 
+static const char * const gaudi3_edup_sei_intr_cause[] = {
+	"dup_bresp_sei_intr_cause",
+	"dup_push_dropped_sei_intr_cause",
+	"eng2dup_fork_ar_double_window_hit_sei_intr_cause",
+	"eng2dup_fork_aw_double_window_hit_sei_intr_cause",
+	"eng2dup_fork_ar_all_window_miss_sei_intr_cause",
+	"eng2dup_fork_aw_all_window_miss_sei_intr_cause",
+	"dup_mstrif_lbw_wr_resp_err_intr_cause",
+	"dup_mstrif_lbw_rd_resp_err_intr_cause"
+};
+
 static const char * const gaudi3_parc_sei_intr_cause[] = {
 	"ic_arc_double_window_hit",
 	"ic_arc_window_miss_hit",
@@ -13651,7 +13662,9 @@ static void gaudi3_sei_razwi_handler(struct hl_device *hdev, struct hl_eq_dynami
 	case INT_COMP_TYPE_CPU:
 		gaudi3_handle_razwi(hdev, &eq->cpu_sei_data.rtr_data, eng_id, event_mask);
 		break;
-
+	case INT_COMP_TYPE_EDUP:
+		gaudi3_handle_razwi(hdev, &eq->razwi_with_intr_cause.rtr_data, eng_id, event_mask);
+		break;
 	case INT_COMP_TYPE_DEC:
 		gaudi3_handle_razwi(hdev, &eq->razwi_with_intr_cause.rtr_data, eng_id, event_mask);
 		break;
@@ -13736,6 +13749,21 @@ static u32 gaudi3_handle_cpu_sei_err(struct hl_device *hdev, u16 data_size,
 	return gaudi3_err_cause_iterator(hdev,
 			lower_32_bits(le64_to_cpu(cpu_sei_data->intr_cause.intr_cause_data)),
 			gaudi3_cpu_sei_intr_cause, "CPU", "SEI");
+}
+
+static u32 gaudi3_handle_edup_sei_err(struct hl_device *hdev, u16 data_size,
+			struct hl_eq_razwi_with_intr_cause_data *razwi_with_intr_cause)
+{
+	int rc;
+
+	rc = gaudi3_validate_eqe_data_size(hdev, data_size,
+				sizeof(struct hl_eq_razwi_with_intr_cause_data));
+	if (rc)
+		return 0;
+
+	return gaudi3_err_cause_iterator(hdev,
+		lower_32_bits(le64_to_cpu(razwi_with_intr_cause->intr_cause.intr_cause_data)),
+		gaudi3_edup_sei_intr_cause, "EDUP", "SEI");
 }
 
 static u32 gaudi3_handle_parc_sei_err(struct hl_device *hdev, u16 data_size,
@@ -13849,6 +13877,11 @@ static u32 gaudi3_handle_sei_event(struct hl_device *hdev,
 		err_cnt = gaudi3_handle_cpu_sei_err(hdev, data_size,
 							&eq_dynamic_entry->cpu_sei_data);
 		glbl_err_data = &eq_dynamic_entry->cpu_sei_data.glbl_err_data;
+		break;
+	case INT_COMP_TYPE_EDUP:
+		err_cnt = gaudi3_handle_edup_sei_err(hdev, data_size,
+							&eq_dynamic_entry->razwi_with_intr_cause);
+		glbl_err_data = &eq_dynamic_entry->razwi_with_intr_cause.glbl_err_data;
 		break;
 	case INT_COMP_TYPE_D2D_MAC:
 		err_cnt = gaudi3_handle_d2d_mac_sei_err(hdev, data_size,
