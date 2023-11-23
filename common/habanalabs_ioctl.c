@@ -532,6 +532,7 @@ static int time_sync_info_per_die(struct hl_device *hdev, struct hl_info_args *a
 	if (ts_info.die_index >= num_of_dies)
 		return -EINVAL;
 
+	ts_info.pad = 0x0;
 	ts_info.device_time = hdev->asic_funcs->get_device_time(hdev, ts_info.die_index);
 	ts_info.host_time = ktime_get_raw_ns();
 	ts_info.tsc_time = rdtsc();
