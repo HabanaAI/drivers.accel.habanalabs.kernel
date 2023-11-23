@@ -366,7 +366,7 @@ ifneq ($(shell ls include/drm/drm_accel.h > /dev/null 2>&1 && echo 1),)
 	ccflags-y += -D_HAS_DRM_ACCEL_H
 endif
 
-ifneq ($(shell (grep -A10 "struct class {" include/linux/device.h include/linux/device/class.h | grep "devnode" | grep "const struct device") > /dev/null 2>&1 && echo 1),)
+ifneq ($(shell (grep -A10 "struct class {" include/linux/device.h include/linux/device/class.h | grep "devnode" | grep -i "const struct device") > /dev/null 2>&1 && echo 1),)
 	ccflags-y += -D_HAS_DEVNODE_WITH_CONST_DEVICE
 endif
 
