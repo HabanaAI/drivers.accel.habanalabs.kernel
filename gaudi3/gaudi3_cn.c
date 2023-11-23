@@ -302,7 +302,7 @@ int gaudi3_cn_set_info(struct hl_device *hdev, bool get_from_fw)
 	}
 
 	switch (serdes_type) {
-	/* TODO: SW-149834 - Handle each serder type separately */
+	/* TODO: SW-149834 - Handle each serdes type separately */
 	case HLS3_FULLSCALE_IN_SERDES_TYPE:
 	case HLS3_FULLSCALE_OUT_SERDES_TYPE:
 	case HLS3_FULL_OAM_3PORTS_SCALE_OUT_SERDES_TYPE:
@@ -313,6 +313,11 @@ int gaudi3_cn_set_info(struct hl_device *hdev, bool get_from_fw)
 		break;
 	default:
 		hdev->asic_prop.server_type = HL_SERVER_TYPE_UNKNOWN;
+		/* TODO: SW-166512 - remove the pldm check */
+		if (get_from_fw && !hdev->pldm) {
+			dev_err(hdev->dev, "bad SerDes type %d\n", serdes_type);
+			return -EFAULT;
+		}
 		break;
 	}
 
