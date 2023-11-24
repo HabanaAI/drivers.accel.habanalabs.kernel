@@ -189,6 +189,7 @@
 #include "nic_qpc_masks.h"
 #include "nic_rxe_masks.h"
 #include "mc_ch_masks.h"
+#include "mc_cmn_intr_masks.h"
 #include "hbm_phy_p0_master_masks.h"
 #include "arc_af_eng_masks.h"
 #include "arc_af_eng_sec_user_adapt_masks.h"

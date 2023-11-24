@@ -158,6 +158,38 @@ MODULE_FIRMWARE(GAUDI3_BOOT_FIT_FILE);
 #define GAUDI3_ROTATOR_SPI_WCH_ERR_ID_OFFSET		9
 #define GAUDI3_ROTATOR_SPI_IP_NUM_ERR_ID_OFFSET		19
 
+#define MC_CMN_INTR_SEI0_STATUS_MASK	(MC_CMN_INTR_SEI0_STATUS_ECC_DED_0_M | \
+						MC_CMN_INTR_SEI0_STATUS_ECC_DED_1_M | \
+						MC_CMN_INTR_SEI0_STATUS_ECC_DED_2_M | \
+						MC_CMN_INTR_SEI0_STATUS_ECC_DED_3_M | \
+						MC_CMN_INTR_SEI0_STATUS_CMD_PAR_ERR_0_M | \
+						MC_CMN_INTR_SEI0_STATUS_CMD_PAR_ERR_1_M | \
+						MC_CMN_INTR_SEI0_STATUS_CMD_PAR_ERR_2_M | \
+						MC_CMN_INTR_SEI0_STATUS_CMD_PAR_ERR_3_M | \
+						MC_CMN_INTR_SEI0_STATUS_WDATA_PAR_ERR_0_M | \
+						MC_CMN_INTR_SEI0_STATUS_WDATA_PAR_ERR_1_M | \
+						MC_CMN_INTR_SEI0_STATUS_WDATA_PAR_ERR_2_M | \
+						MC_CMN_INTR_SEI0_STATUS_WDATA_PAR_ERR_3_M | \
+						MC_CMN_INTR_SEI0_STATUS_RDATA_PAR_ERR_0_M | \
+						MC_CMN_INTR_SEI0_STATUS_RDATA_PAR_ERR_1_M | \
+						MC_CMN_INTR_SEI0_STATUS_RDATA_PAR_ERR_2_M | \
+						MC_CMN_INTR_SEI0_STATUS_RDATA_PAR_ERR_3_M | \
+						MC_CMN_INTR_SEI0_STATUS_CATTRIP_ASSERTED_M)
+
+#define MC_CMN_INTR_SEI1_STATUS_MASK	(MC_CMN_INTR_SEI1_STATUS_ECC_SEC_0_M | \
+						MC_CMN_INTR_SEI1_STATUS_ECC_SEC_1_M | \
+						MC_CMN_INTR_SEI1_STATUS_ECC_SEC_2_M | \
+						MC_CMN_INTR_SEI1_STATUS_ECC_SEC_3_M | \
+						MC_CMN_INTR_SEI1_STATUS_DFI_ERR_0_M | \
+						MC_CMN_INTR_SEI1_STATUS_DFI_ERR_1_M | \
+						MC_CMN_INTR_SEI1_STATUS_INV_TEMP_RDOUT_M | \
+						MC_CMN_INTR_SEI1_STATUS_BIST_FAIL_0_M | \
+						MC_CMN_INTR_SEI1_STATUS_BIST_FAIL_1_M | \
+						MC_CMN_INTR_SEI1_STATUS_BIST_FAIL_2_S | \
+						MC_CMN_INTR_SEI1_STATUS_BIST_FAIL_2_M | \
+						MC_CMN_INTR_SEI1_STATUS_BIST_FAIL_3_S | \
+						MC_CMN_INTR_SEI1_STATUS_BIST_FAIL_3_M)
+
 #define HL_STR(e) #e
 
 /*
@@ -1874,6 +1906,40 @@ static const char * const gaudi3_sob_sei_cause[] = {
 	"The payload address of monitor is not aligned to 4B.",
 	"Armed monitor write got BRESP (SLVERR or DECERR).",
 	"Direct CQ overflow, written when direct CQ request on full CQ buffer (buffer size 64)",
+};
+
+static const char * const gaudi3_mc_cmn_sei0_cause[] = {
+	"ecc_ded_0",
+	"ecc_ded_1",
+	"ecc_ded_2",
+	"ecc_ded_3",
+	"cmd_par_err_0",
+	"cmd_par_err_1",
+	"cmd_par_err_2",
+	"cmd_par_err_3",
+	"wdata_par_err_0",
+	"wdata_par_err_1",
+	"wdata_par_err_2",
+	"wdata_par_err_3",
+	"rdata_par_err_0",
+	"rdata_par_err_1",
+	"rdata_par_err_2",
+	"rdata_par_err_3",
+	"cattrip_asserted"
+};
+
+static const char * const gaudi3_mc_cmn_sei1_cause[] = {
+	"ecc_sec_0",
+	"ecc_sec_1",
+	"ecc_sec_2",
+	"ecc_sec_3",
+	"dfi_err_0",
+	"dfi_err_1",
+	"inv_temp_rdout",
+	"bist_fail_0",
+	"bist_fail_1",
+	"bist_fail_2",
+	"bist_fail_3"
 };
 
 struct gaudi3_dup_grp_info {
@@ -13664,6 +13730,7 @@ static void gaudi3_sei_razwi_handler(struct hl_device *hdev, struct hl_eq_dynami
 	switch (agg_component_type) {
 	case INT_COMP_TYPE_CS:
 	case INT_COMP_TYPE_D2D_MAC:
+	case INT_COMP_TYPE_MC:
 	case INT_COMP_TYPE_PCIE:
 	case INT_COMP_TYPE_PLL:
 		/* No need to handle razwi */
@@ -13868,8 +13935,184 @@ static u32 gaudi3_handle_nic_sei_err_event(struct hl_device *hdev, u16 data_size
 	return rc;
 }
 
+static void gaudi3_print_hbm_mc_sei_ca_par_intr_info(struct hl_device *hdev, u8 ca_par_err_bitmask,
+							struct hl_eq_hbm_mc_sei_data *sei_data)
+{
+	struct hl_eq_hbm_mc_sei_ca_par_intr_info *ca_parity_info;
+	u32 pc_idx, ch, pc, cmd_idx;
+
+	for (pc_idx = 0 ; pc_idx < NUM_PC_PER_MC_CMN ; ++pc_idx) {
+		if (!(ca_par_err_bitmask & BIT(pc_idx)))
+			continue;
+
+		ch = pc_idx / NUM_CH_PER_MC_CMN;
+		pc = pc_idx % NUM_PC_PER_CH;
+		ca_parity_info = &sei_data->ca_parity_info[pc_idx];
+
+		dev_err_ratelimited(hdev->dev, "CA PAR error in ch%u pc%u: count %u\n",
+					ch, pc, le32_to_cpu(ca_parity_info->ca_err_cnt));
+
+		for (cmd_idx = 0 ; cmd_idx < HBM_CA_ERR_CMD_LIFO_LEN ; ++cmd_idx) {
+			dev_err_ratelimited(hdev->dev,
+					"LAST_CMD[%u]: row: {odd %#x, even %#x}, col: {odd %#x, even %#x}\n",
+					cmd_idx,
+					le16_to_cpu(ca_parity_info->odd_row_data[cmd_idx]),
+					le16_to_cpu(ca_parity_info->even_row_data[cmd_idx]),
+					le32_to_cpu(ca_parity_info->odd_col_data[cmd_idx]),
+					le32_to_cpu(ca_parity_info->even_col_data[cmd_idx]));
+		}
+	}
+}
+
+static void gaudi3_print_hbm_mc_sei_wr_par_intr_info(struct hl_device *hdev, u8 wr_par_err_bitmask,
+							struct hl_eq_hbm_mc_sei_data *sei_data)
+{
+	struct hl_eq_hbm_mc_sei_wr_par_intr_info *wr_parity_info;
+	u32 pc_idx, ch, pc, cmd_idx;
+
+	for (pc_idx = 0 ; pc_idx < NUM_PC_PER_MC_CMN ; ++pc_idx) {
+		if (!(wr_par_err_bitmask & BIT(pc_idx)))
+			continue;
+
+		ch = pc_idx / NUM_CH_PER_MC_CMN;
+		pc = pc_idx % NUM_PC_PER_CH;
+		wr_parity_info = &sei_data->wr_parity_info[pc_idx];
+
+		dev_err_ratelimited(hdev->dev, "WR PAR error in ch%u pc%u: count %u\n",
+					ch, pc, le32_to_cpu(wr_parity_info->wr_par_cnt));
+
+		for (cmd_idx = 0 ; cmd_idx < HBM_WR_PAR_CMD_LIFO_LEN ; ++cmd_idx) {
+			dev_err_ratelimited(hdev->dev,
+					"LAST_CMD[%u]: sid %u, bg %u, ba %u, col %u, derr %u\n",
+					cmd_idx,
+					wr_parity_info->last_wr_cmds[cmd_idx].sid,
+					wr_parity_info->last_wr_cmds[cmd_idx].bg,
+					wr_parity_info->last_wr_cmds[cmd_idx].ba,
+					wr_parity_info->last_wr_cmds[cmd_idx].col,
+					wr_parity_info->last_wr_cmds[cmd_idx].derr);
+		}
+	}
+}
+
+static void gaudi3_print_hbm_mc_sei_rd_err_intr_info(struct hl_device *hdev, u8 rd_err_bitmask,
+							struct hl_eq_hbm_mc_sei_data *sei_data)
+{
+	struct hl_eq_hbm_mc_sei_rd_err_intr_info *rd_error_info;
+	struct hbm_rd_err_beat_data *rd_err_beat;
+	u32 pc_idx, ch, pc, beat, dw;
+
+	for (pc_idx = 0 ; pc_idx < NUM_PC_PER_MC_CMN ; ++pc_idx) {
+		if (!(rd_err_bitmask & BIT(pc_idx)))
+			continue;
+
+		ch = pc_idx / NUM_CH_PER_MC_CMN;
+		pc = pc_idx % NUM_PC_PER_CH;
+		rd_error_info = &sei_data->rd_error_info[pc_idx];
+
+		dev_err_ratelimited(hdev->dev,
+				"RD error in ch%u pc%u: rd_par_cnt %u, serr_cnt %u, scrb_serr_cnt %u, derr_cnt %u\n",
+				ch, pc,
+				le32_to_cpu(rd_error_info->rd_par_cnt),
+				le32_to_cpu(rd_error_info->serr_cnt),
+				le32_to_cpu(rd_error_info->scrb_serr_cnt),
+				le32_to_cpu(rd_error_info->derr_cnt));
+
+		dev_err_ratelimited(hdev->dev,
+				"RD error address: sid %u , bg %u, ba %u, col %u, row %u\n",
+				rd_error_info->rd_err_addr.rd_err_addr_sid,
+				rd_error_info->rd_err_addr.rd_err_addr_bg,
+				rd_error_info->rd_err_addr.rd_err_addr_ba,
+				rd_error_info->rd_err_addr.rd_err_addr_col,
+				le16_to_cpu(rd_error_info->rd_err_addr.rd_err_addr_row));
+
+		for (beat = 0 ; beat < NUM_BEAT_PER_PC ; ++beat) {
+			rd_err_beat = &rd_error_info->rd_err_beat[beat];
+
+			dev_err_ratelimited(hdev->dev,
+					"BEAT[%u]: serr %#x, derr %#x, dm %#x, syndrome %#x\n",
+					beat,
+					rd_err_beat->rd_err_serr,
+					rd_err_beat->rd_err_derr,
+					rd_err_beat->rd_err_dm,
+					rd_err_beat->rd_err_syndrome);
+
+			for (dw = 0 ; dw < NUM_DW_PER_PC ; ++dw) {
+				dev_err_ratelimited(hdev->dev,
+						"BEAT[%u] DW[%u]: data %#x, par_err %#x, par_data %#x\n,",
+						beat, dw,
+						le32_to_cpu(rd_err_beat->rd_err_data[dw]),
+						rd_err_beat->rd_err_par_err[dw],
+						rd_err_beat->rd_err_par_data[dw]);
+			}
+		}
+	}
+}
+
+static u32 gaudi3_handle_hbm_mc_sei_err(struct hl_device *hdev, u16 data_size,
+					struct hl_eq_hbm_mc_cmn_sei_info *hbm_mc_cmn_sei_info,
+					u32 *reset_flags, u64 *event_mask)
+{
+	u32 err_num = 0, hbm_num, mc_cmn_num, status;
+	struct hl_eq_hbm_mc_sei0_header *sei0_header;
+	struct hl_eq_hbm_mc_sei1_header *sei1_header;
+	struct hl_eq_hbm_mc_sei_header *sei_header;
+	struct hl_eq_hbm_mc_sei_data *sei_data;
+	u8 rd_err_bitmask = 0x0;
+	char buf[32];
+	int rc;
+
+	rc = gaudi3_validate_eqe_data_size(hdev, data_size, sizeof(*hbm_mc_cmn_sei_info));
+	if (rc)
+		return 0;
+
+	sei_header = &hbm_mc_cmn_sei_info->sei_header;
+	sei_data = &hbm_mc_cmn_sei_info->sei_data;
+
+	hbm_num = le32_to_cpu(sei_header->hbm_num);
+	mc_cmn_num = le32_to_cpu(sei_header->mc_cmn_num);
+	snprintf(buf, sizeof(buf), "HBM%u_MC_CMN%u", hbm_num, mc_cmn_num);
+
+	sei0_header = &sei_header->sei0_header;
+	if (sei0_header->is_sei0_set) {
+		status = le32_to_cpu(sei0_header->sei0_status) & MC_CMN_INTR_SEI0_STATUS_MASK;
+		err_num += gaudi3_err_cause_iterator(hdev, status, gaudi3_mc_cmn_sei0_cause, buf,
+							"SEI severe");
+
+		if (sei0_header->ca_par_err)
+			gaudi3_print_hbm_mc_sei_ca_par_intr_info(hdev, sei0_header->ca_par_err,
+									sei_data);
+
+		if (sei0_header->wr_par_err)
+			gaudi3_print_hbm_mc_sei_wr_par_intr_info(hdev, sei0_header->wr_par_err,
+									sei_data);
+
+		rd_err_bitmask |= (sei0_header->ecc_derr_err | sei0_header->rd_par_err);
+	}
+
+	sei1_header = &sei_header->sei1_header;
+	if (sei1_header->is_sei1_set) {
+		status = le32_to_cpu(sei1_header->sei1_status) & MC_CMN_INTR_SEI1_STATUS_MASK;
+		err_num += gaudi3_err_cause_iterator(hdev, status, gaudi3_mc_cmn_sei1_cause, buf,
+							"SEI non-severe");
+
+		rd_err_bitmask |= sei1_header->ecc_serr_err;
+	}
+
+	if (rd_err_bitmask)
+		gaudi3_print_hbm_mc_sei_rd_err_intr_info(hdev, rd_err_bitmask, sei_data);
+
+	/* Device reset is not required if error is correctable and non-fatal */
+	if (!hbm_mc_cmn_sei_info->is_fatal) {
+		*reset_flags = 0x0;
+		*event_mask = 0x0;
+	}
+
+	return err_num;
+}
+
 static u32 gaudi3_handle_sei_event(struct hl_device *hdev,
-				struct hl_eq_dynamic_entry *eq_dynamic_entry, u64 *event_mask)
+					struct hl_eq_dynamic_entry *eq_dynamic_entry,
+					u32 *reset_flags, u64 *event_mask)
 {
 	struct hl_agg_eq_header *agg_hdr = &eq_dynamic_entry->agg_hdr;
 	u16 data_size = le16_to_cpu(eq_dynamic_entry->hdr.size);
@@ -13955,6 +14198,11 @@ static u32 gaudi3_handle_sei_event(struct hl_device *hdev,
 		err_cnt = handle_tpc_sei_events(hdev, data_size, &eq_dynamic_entry->tpc_sei_data,
 				event_mask);
 		glbl_err_data = &eq_dynamic_entry->tpc_sei_data.glbl_err_data;
+		break;
+	case INT_COMP_TYPE_MC:
+		err_cnt = gaudi3_handle_hbm_mc_sei_err(hdev, data_size,
+							&eq_dynamic_entry->hbm_mc_cmn_sei_info,
+							reset_flags, event_mask);
 		break;
 	case INT_COMP_TYPE_MME:
 		err_cnt = gaudi3_handle_mme_sei_err(hdev, data_size,
@@ -14087,7 +14335,7 @@ static int gaudi3_handle_hw_event(struct hl_device *hdev,
 		err_cnt = gaudi3_handle_derr_event(hdev, eq_dynamic_entry, event_mask);
 		break;
 	case INT_GRP_TYPE_SEI:
-		err_cnt = gaudi3_handle_sei_event(hdev, eq_dynamic_entry, event_mask);
+		err_cnt = gaudi3_handle_sei_event(hdev, eq_dynamic_entry, reset_flags, event_mask);
 		break;
 	case INT_GRP_TYPE_SPI:
 		err_cnt = gaudi3_handle_spi_event(hdev, eq_dynamic_entry, reset_flags, event_mask);
