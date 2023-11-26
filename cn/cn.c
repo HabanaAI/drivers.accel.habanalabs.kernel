@@ -199,25 +199,6 @@ static void hl_cn_vm_unreserve_dva_block(struct hl_aux_dev *aux_dev, u64 vm_hand
 	hl_unreserve_va_block(hdev, cn->ctx, dva, size);
 }
 
-static u64 hl_cn_reserve_va_block(struct hl_aux_dev *aux_dev, u64 size)
-{
-	u64 addr;
-	int rc;
-
-	rc = hl_cn_vm_reserve_dva_block(aux_dev, 0, size, &addr);
-	if (rc)
-		return 0;
-
-	return addr;
-}
-
-static int hl_cn_unreserve_va_block(struct hl_aux_dev *aux_dev, u64 addr, u64 size)
-{
-	hl_cn_vm_unreserve_dva_block(aux_dev, 0, addr, size);
-
-	return 0;
-}
-
 static int hl_cn_get_hw_block_handle(struct hl_aux_dev *aux_dev, u64 address, u64 *handle)
 {
 	struct hl_cn *cn = container_of(aux_dev, struct hl_cn, cn_aux_dev);
@@ -614,8 +595,6 @@ static int hl_cn_aux_data_init(struct hl_device *hdev)
 	aux_ops->dma_pool_free = hl_cn_dma_pool_free;
 	aux_ops->map_vmalloc_range = hl_cn_map_vmalloc_range;
 	aux_ops->unmap_vmalloc_range = hl_cn_unmap_vmalloc_range;
-	aux_ops->reserve_va_block = hl_cn_reserve_va_block;
-	aux_ops->unreserve_va_block = hl_cn_unreserve_va_block;
 	aux_ops->vm_reserve_dva_block = hl_cn_vm_reserve_dva_block;
 	aux_ops->vm_unreserve_dva_block = hl_cn_vm_unreserve_dva_block;
 	aux_ops->get_hw_block_handle = hl_cn_get_hw_block_handle;
