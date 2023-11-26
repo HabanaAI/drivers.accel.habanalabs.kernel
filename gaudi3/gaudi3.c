@@ -13726,6 +13726,9 @@ static void gaudi3_sei_razwi_handler(struct hl_device *hdev, struct hl_eq_dynami
 	enum hl_agg_component_type agg_component_type = eq->agg_hdr.int_comp_type;
 	u16 eng_id = eq_agg_header_to_engine_id(&eq->agg_hdr);
 
+	if (!(hdev->fw_components & FW_TYPE_BOOT_CPU))
+		return gaudi3_sei_razwi_handler_no_fw(hdev, &eq->agg_hdr, event_mask);
+
 	switch (agg_component_type) {
 	case INT_COMP_TYPE_CS:
 	case INT_COMP_TYPE_D2D_MAC:
@@ -13743,9 +13746,7 @@ static void gaudi3_sei_razwi_handler(struct hl_device *hdev, struct hl_eq_dynami
 	case INT_COMP_TYPE_CPU:
 		gaudi3_handle_razwi(hdev, &eq->cpu_sei_data.rtr_data, eng_id, event_mask);
 		break;
-	case INT_COMP_TYPE_EDUP:
-		gaudi3_handle_razwi(hdev, &eq->razwi_with_intr_cause.rtr_data, eng_id, event_mask);
-		break;
+
 	case INT_COMP_TYPE_DEC:
 		gaudi3_handle_razwi(hdev, &eq->razwi_with_intr_cause.rtr_data, eng_id, event_mask);
 		break;
@@ -13755,6 +13756,10 @@ static void gaudi3_sei_razwi_handler(struct hl_device *hdev, struct hl_eq_dynami
 					event_mask);
 		gaudi3_handle_razwi(hdev, &eq->edma_sei_data.rtr_data[SEDMA_ID1], eng_id + 1,
 					event_mask);
+		break;
+
+	case INT_COMP_TYPE_EDUP:
+		gaudi3_handle_razwi(hdev, &eq->razwi_with_intr_cause.rtr_data, eng_id, event_mask);
 		break;
 
 	case INT_COMP_TYPE_MME:
@@ -13791,24 +13796,24 @@ static void gaudi3_sei_razwi_handler(struct hl_device *hdev, struct hl_eq_dynami
 					eng_id + NUM_OF_PDMA_CH_PER_GRP, event_mask);
 		break;
 
-	case INT_COMP_TYPE_TPC:
-		gaudi3_handle_razwi(hdev, &eq->tpc_sei_data.rtr_data, eng_id, event_mask);
+	case INT_COMP_TYPE_PSOC:
+		gaudi3_handle_razwi(hdev, &eq->psoc_sei_data.rtr_data, eng_id, event_mask);
 		break;
 
 	case INT_COMP_TYPE_ROT:
 		gaudi3_handle_razwi(hdev, &eq->rot_sei_data.rtr_data, eng_id, event_mask);
 		break;
 
+	case INT_COMP_TYPE_SOB:
+		gaudi3_handle_razwi(hdev, &eq->sob_sei_data.rtr_data, eng_id, event_mask);
+		break;
+
 	case INT_COMP_TYPE_STLB:
 		gaudi3_handle_razwi(hdev, &eq->stlb_sei_data.rtr_data, eng_id, event_mask);
 		break;
 
-	case INT_COMP_TYPE_PSOC:
-		gaudi3_handle_razwi(hdev, &eq->psoc_sei_data.rtr_data, eng_id, event_mask);
-		break;
-
-	case INT_COMP_TYPE_SOB:
-		gaudi3_handle_razwi(hdev, &eq->sob_sei_data.rtr_data, eng_id, event_mask);
+	case INT_COMP_TYPE_TPC:
+		gaudi3_handle_razwi(hdev, &eq->tpc_sei_data.rtr_data, eng_id, event_mask);
 		break;
 
 	default:
@@ -14110,14 +14115,95 @@ static u32 gaudi3_handle_hbm_mc_sei_err(struct hl_device *hdev, u16 data_size,
 	return err_num;
 }
 
+static void gaudi3_check_for_glbl_errors(struct hl_device *hdev,
+						struct hl_eq_dynamic_entry *eq_dynamic_entry)
+{
+	enum hl_agg_component_type agg_component_type = eq_dynamic_entry->agg_hdr.int_comp_type;
+	struct hl_eq_glbl_err *glbl_err_data = NULL;
+
+	if (!(hdev->fw_components & FW_TYPE_BOOT_CPU))
+		return hl_check_for_glbl_errors(hdev);
+
+	switch (agg_component_type) {
+	case INT_COMP_TYPE_MC:
+		/* No need to handle global error data */
+		break;
+
+	case INT_COMP_TYPE_ARC_FARM:
+		glbl_err_data = &eq_dynamic_entry->arcfarm_sei_data.glbl_err_data;
+		break;
+	case INT_COMP_TYPE_CPU:
+		glbl_err_data = &eq_dynamic_entry->cpu_sei_data.glbl_err_data;
+		break;
+	case INT_COMP_TYPE_CS:
+		glbl_err_data = &eq_dynamic_entry->cs_sei_data.glbl_err_data;
+		break;
+	case INT_COMP_TYPE_D2D_MAC:
+		glbl_err_data = &eq_dynamic_entry->d2dmac_sei_data.glbl_err_data;
+		break;
+	case INT_COMP_TYPE_D2D_PHY:
+		glbl_err_data = &eq_dynamic_entry->d2dphy_sei_data.glbl_err_data;
+		break;
+	case INT_COMP_TYPE_DEC:
+		glbl_err_data = &eq_dynamic_entry->razwi_with_intr_cause.glbl_err_data;
+		break;
+	case INT_COMP_TYPE_EDMA:
+		glbl_err_data = &eq_dynamic_entry->edma_sei_data.glbl_err_data;
+		break;
+	case INT_COMP_TYPE_EDUP:
+		glbl_err_data = &eq_dynamic_entry->razwi_with_intr_cause.glbl_err_data;
+		break;
+	case INT_COMP_TYPE_MME:
+		glbl_err_data = &eq_dynamic_entry->mme_sei_data.glbl_err_data;
+		break;
+	case INT_COMP_TYPE_NIC:
+		glbl_err_data = &eq_dynamic_entry->nic_sei_data.glbl_err_data;
+		break;
+	case INT_COMP_TYPE_PARC:
+		glbl_err_data = &eq_dynamic_entry->parc_sei_data.glbl_err_data;
+		break;
+	case INT_COMP_TYPE_PCIE:
+		glbl_err_data = &eq_dynamic_entry->pcie_sei_data.glbl_err_data;
+		break;
+	case INT_COMP_TYPE_PDMA:
+		glbl_err_data = &eq_dynamic_entry->pdma_sei_data.glbl_err_data;
+		break;
+	case INT_COMP_TYPE_PLL:
+		glbl_err_data = &eq_dynamic_entry->pll_sei_data.glbl_err_data;
+		break;
+	case INT_COMP_TYPE_PSOC:
+		glbl_err_data = &eq_dynamic_entry->psoc_sei_data.glbl_err_data;
+		break;
+	case INT_COMP_TYPE_ROT:
+		glbl_err_data = &eq_dynamic_entry->rot_sei_data.glbl_err_data;
+		break;
+	case INT_COMP_TYPE_SOB:
+		glbl_err_data = &eq_dynamic_entry->sob_sei_data.glbl_err_data;
+		break;
+	case INT_COMP_TYPE_STLB:
+		glbl_err_data = &eq_dynamic_entry->stlb_sei_data.glbl_err_data;
+		break;
+	case INT_COMP_TYPE_TPC:
+		glbl_err_data = &eq_dynamic_entry->tpc_sei_data.glbl_err_data;
+		break;
+	default:
+		dev_err(hdev->dev, "Global error data is not handled for component type %u\n",
+			agg_component_type);
+		break;
+	}
+
+	if (!glbl_err_data)
+		return;
+
+	hl_check_for_glbl_errors_from_fw(hdev, glbl_err_data);
+}
+
 static u32 gaudi3_handle_sei_event(struct hl_device *hdev,
 					struct hl_eq_dynamic_entry *eq_dynamic_entry,
 					u32 *reset_flags, u64 *event_mask)
 {
-	struct hl_agg_eq_header *agg_hdr = &eq_dynamic_entry->agg_hdr;
 	u16 data_size = le16_to_cpu(eq_dynamic_entry->hdr.size);
 	enum hl_agg_component_type agg_component_type;
-	struct hl_eq_glbl_err *glbl_err_data = NULL;
 	u32 die, instance, err_cnt = 0, macro_index;
 
 	agg_component_type = eq_dynamic_entry->agg_hdr.int_comp_type;
@@ -14128,77 +14214,34 @@ static u32 gaudi3_handle_sei_event(struct hl_device *hdev,
 	case INT_COMP_TYPE_ARC_FARM:
 		err_cnt = gaudi3_handle_arc_farm_sei_err(hdev, data_size,
 							&eq_dynamic_entry->arcfarm_sei_data);
-		glbl_err_data = &eq_dynamic_entry->arcfarm_sei_data.glbl_err_data;
 		break;
 	case INT_COMP_TYPE_CPU:
 		err_cnt = gaudi3_handle_cpu_sei_err(hdev, data_size,
 							&eq_dynamic_entry->cpu_sei_data);
-		glbl_err_data = &eq_dynamic_entry->cpu_sei_data.glbl_err_data;
 		break;
-	case INT_COMP_TYPE_EDUP:
-		err_cnt = gaudi3_handle_edup_sei_err(hdev, data_size,
-							&eq_dynamic_entry->razwi_with_intr_cause);
-		glbl_err_data = &eq_dynamic_entry->razwi_with_intr_cause.glbl_err_data;
+	case INT_COMP_TYPE_CS:
+		err_cnt = gaudi3_handle_cs_sei_err(hdev, data_size, &eq_dynamic_entry->cs_sei_data);
 		break;
 	case INT_COMP_TYPE_D2D_MAC:
 		err_cnt = gaudi3_handle_d2d_mac_sei_err(hdev, data_size,
 							&eq_dynamic_entry->d2dmac_sei_data);
-		glbl_err_data = &eq_dynamic_entry->d2dmac_sei_data.glbl_err_data;
 		break;
 	case INT_COMP_TYPE_D2D_PHY:
 		err_cnt = gaudi3_handle_d2d_phy_sei_err(hdev, data_size,
 							&eq_dynamic_entry->d2dphy_sei_data);
-		glbl_err_data = &eq_dynamic_entry->d2dphy_sei_data.glbl_err_data;
 		break;
 	case INT_COMP_TYPE_DEC:
 		err_cnt = gaudi3_handle_decoder_sei_err(hdev, data_size,
 							&eq_dynamic_entry->razwi_with_intr_cause);
-		glbl_err_data = &eq_dynamic_entry->razwi_with_intr_cause.glbl_err_data;
 		break;
 	case INT_COMP_TYPE_EDMA:
 		err_cnt = gaudi3_handle_edma_sei_err(hdev, data_size,
 							&eq_dynamic_entry->edma_sei_data,
 							event_mask);
-		glbl_err_data = &eq_dynamic_entry->edma_sei_data.glbl_err_data;
 		break;
-	case INT_COMP_TYPE_NIC:
-		macro_index = die * NIC_NUM_MACROS_PER_DIE + instance;
-		err_cnt = gaudi3_handle_nic_sei_err_event(hdev, data_size, macro_index,
-								 &eq_dynamic_entry->nic_sei_data);
-		glbl_err_data = &eq_dynamic_entry->nic_sei_data.glbl_err_data;
-		break;
-	case INT_COMP_TYPE_PARC:
-		err_cnt = gaudi3_handle_parc_sei_err(hdev, data_size,
-							&eq_dynamic_entry->parc_sei_data);
-		glbl_err_data = &eq_dynamic_entry->parc_sei_data.glbl_err_data;
-		break;
-	case INT_COMP_TYPE_PCIE:
-		err_cnt = gaudi3_handle_pcie0_sei_err(hdev, data_size,
-							&eq_dynamic_entry->pcie_sei_data);
-		glbl_err_data = &eq_dynamic_entry->pcie_sei_data.glbl_err_data;
-		break;
-	case INT_COMP_TYPE_PDMA:
-		err_cnt = gaudi3_handle_pdma_sei_err(hdev, data_size,
-							&eq_dynamic_entry->pdma_sei_data);
-		glbl_err_data = &eq_dynamic_entry->pdma_sei_data.glbl_err_data;
-		break;
-	case INT_COMP_TYPE_PLL:
-		err_cnt = gaudi3_handle_pll_sei_err(hdev, data_size,
-							&eq_dynamic_entry->pll_sei_data);
-		glbl_err_data = &eq_dynamic_entry->pll_sei_data.glbl_err_data;
-		break;
-	case INT_COMP_TYPE_CS:
-		err_cnt = gaudi3_handle_cs_sei_err(hdev, data_size, &eq_dynamic_entry->cs_sei_data);
-		glbl_err_data = &eq_dynamic_entry->cs_sei_data.glbl_err_data;
-		break;
-	case INT_COMP_TYPE_STLB:
-		err_cnt = handle_hmmu_sei_events(hdev, data_size, &eq_dynamic_entry->stlb_sei_data);
-		glbl_err_data = &eq_dynamic_entry->stlb_sei_data.glbl_err_data;
-		break;
-	case INT_COMP_TYPE_TPC:
-		err_cnt = handle_tpc_sei_events(hdev, data_size, &eq_dynamic_entry->tpc_sei_data,
-				event_mask);
-		glbl_err_data = &eq_dynamic_entry->tpc_sei_data.glbl_err_data;
+	case INT_COMP_TYPE_EDUP:
+		err_cnt = gaudi3_handle_edup_sei_err(hdev, data_size,
+							&eq_dynamic_entry->razwi_with_intr_cause);
 		break;
 	case INT_COMP_TYPE_MC:
 		err_cnt = gaudi3_handle_hbm_mc_sei_err(hdev, data_size,
@@ -14208,37 +14251,58 @@ static u32 gaudi3_handle_sei_event(struct hl_device *hdev,
 	case INT_COMP_TYPE_MME:
 		err_cnt = gaudi3_handle_mme_sei_err(hdev, data_size,
 						&eq_dynamic_entry->mme_sei_data, event_mask);
-		glbl_err_data = &eq_dynamic_entry->mme_sei_data.glbl_err_data;
 		break;
-	case INT_COMP_TYPE_ROT:
-		err_cnt = gaudi3_handle_rotator_sei_err(hdev, data_size,
-						&eq_dynamic_entry->rot_sei_data, event_mask);
-		glbl_err_data = &eq_dynamic_entry->rot_sei_data.glbl_err_data;
+	case INT_COMP_TYPE_NIC:
+		macro_index = die * NIC_NUM_MACROS_PER_DIE + instance;
+		err_cnt = gaudi3_handle_nic_sei_err_event(hdev, data_size, macro_index,
+								 &eq_dynamic_entry->nic_sei_data);
+		break;
+	case INT_COMP_TYPE_PARC:
+		err_cnt = gaudi3_handle_parc_sei_err(hdev, data_size,
+							&eq_dynamic_entry->parc_sei_data);
+		break;
+	case INT_COMP_TYPE_PCIE:
+		err_cnt = gaudi3_handle_pcie0_sei_err(hdev, data_size,
+							&eq_dynamic_entry->pcie_sei_data);
+		break;
+	case INT_COMP_TYPE_PDMA:
+		err_cnt = gaudi3_handle_pdma_sei_err(hdev, data_size,
+							&eq_dynamic_entry->pdma_sei_data);
+		break;
+	case INT_COMP_TYPE_PLL:
+		err_cnt = gaudi3_handle_pll_sei_err(hdev, data_size,
+							&eq_dynamic_entry->pll_sei_data);
 		break;
 	case INT_COMP_TYPE_PSOC:
 		err_cnt = gaudi3_handle_psoc_sei_err(hdev, data_size,
 							&eq_dynamic_entry->psoc_sei_data);
-		glbl_err_data = &eq_dynamic_entry->psoc_sei_data.glbl_err_data;
+		break;
+	case INT_COMP_TYPE_ROT:
+		err_cnt = gaudi3_handle_rotator_sei_err(hdev, data_size,
+						&eq_dynamic_entry->rot_sei_data, event_mask);
 		break;
 	case INT_COMP_TYPE_SOB:
 		err_cnt = gaudi3_handle_sob_sei_err(hdev, data_size,
 							&eq_dynamic_entry->sob_sei_data);
-		glbl_err_data = &eq_dynamic_entry->sob_sei_data.glbl_err_data;
+		break;
+	case INT_COMP_TYPE_STLB:
+		err_cnt = handle_hmmu_sei_events(hdev, data_size, &eq_dynamic_entry->stlb_sei_data);
+		break;
+	case INT_COMP_TYPE_TPC:
+		err_cnt = handle_tpc_sei_events(hdev, data_size, &eq_dynamic_entry->tpc_sei_data,
+				event_mask);
 		break;
 	default:
 		break;
 	}
 
-	if (err_cnt) {
-		if (hdev->fw_components & FW_TYPE_BOOT_CPU) {
-			gaudi3_sei_razwi_handler(hdev, eq_dynamic_entry, event_mask);
-			hl_check_for_glbl_errors_from_fw(hdev, glbl_err_data);
-		} else {
-			gaudi3_sei_razwi_handler_no_fw(hdev, agg_hdr, event_mask);
-			hl_check_for_glbl_errors(hdev);
-		}
-	}
+	if (!err_cnt)
+		goto out;
 
+	gaudi3_sei_razwi_handler(hdev, eq_dynamic_entry, event_mask);
+	gaudi3_check_for_glbl_errors(hdev, eq_dynamic_entry);
+
+out:
 	return err_cnt;
 }
 
@@ -14260,6 +14324,10 @@ static u32 gaudi3_handle_spi_event(struct hl_device *hdev,
 		err_cnt = gaudi3_handle_decoder_spi(hdev, data_size, &eq_dynamic_entry->spi_data,
 							event_mask);
 		break;
+	case INT_COMP_TYPE_MME:
+		err_cnt = gaudi3_handle_mme_spi_events(hdev, data_size,
+							&eq_dynamic_entry->mme_spi_data);
+		break;
 	case INT_COMP_TYPE_NIC:
 		err_cnt = gaudi3_handle_nic_spi(hdev, die * NIC_NUM_MACROS_PER_DIE + instance,
 						data_size, &eq_dynamic_entry->nic_spi_data);
@@ -14273,20 +14341,16 @@ static u32 gaudi3_handle_spi_event(struct hl_device *hdev,
 		err_cnt = handle_pmmu_spi_events(hdev, die, event_mask, data_size,
 						&eq_dynamic_entry->pmmu_spi_data);
 		break;
+	case INT_COMP_TYPE_ROT:
+		err_cnt = gaudi3_handle_rotator_spi_err(hdev, data_size,
+							&eq_dynamic_entry->rot_spi_data);
+		break;
 	case INT_COMP_TYPE_STLB:
 		err_cnt = handle_hmmu_spi_events(hdev, data_size, &eq_dynamic_entry->stlb_spi_data,
 						 hdcore, die, event_mask);
 		break;
 	case INT_COMP_TYPE_TPC:
 		err_cnt = handle_tpc_spi_events(hdev, data_size, &eq_dynamic_entry->tpc_spi_data);
-		break;
-	case INT_COMP_TYPE_MME:
-		err_cnt = gaudi3_handle_mme_spi_events(hdev, data_size,
-							&eq_dynamic_entry->mme_spi_data);
-		break;
-	case INT_COMP_TYPE_ROT:
-		err_cnt = gaudi3_handle_rotator_spi_err(hdev, data_size,
-							&eq_dynamic_entry->rot_spi_data);
 		break;
 	default:
 		break;
