@@ -12709,8 +12709,34 @@ static u32 gaudi3_handle_pcie0_sei_err(struct hl_device *hdev, u16 data_size,
 	return gaudi3_err_cause_iterator(hdev, err_msk, gaudi3_pcie_sei_err_cause, "PCIE", "SEI");
 }
 
+static void gaudi3_handle_qm_undef_cmd_err(struct hl_device *hdev,
+						struct hl_eq_qm_sei_data *qm_sei_data, u16 eng_id)
+{
+	struct undefined_opcode_info *undef_opcode = &hdev->captured_err_info.undef_opcode;
+	bool is_arc_cq = (qm_sei_data->undef_op_data.cq_type == CQ_TYPE_ARC);
+	u32 cq_size = le32_to_cpu(qm_sei_data->undef_op_data.cq_tsize);
+	u64 cq_ptr = le64_to_cpu(qm_sei_data->undef_op_data.cq_ptr);
+
+	dev_err_ratelimited(hdev->dev,
+			"QM_%sCQ: {ptr %#llx, size %u}, QM_CP: {instruction %#018llx}\n",
+			is_arc_cq ? "ARC_" : "",
+			cq_ptr,
+			cq_size,
+			le64_to_cpu(qm_sei_data->undef_op_data.cp_curr_inst));
+
+	if (undef_opcode->write_enable) {
+		memset(undef_opcode, 0, sizeof(*undef_opcode));
+		undef_opcode->timestamp = ktime_get();
+		undef_opcode->cq_addr = cq_ptr;
+		undef_opcode->cq_size = cq_size;
+		undef_opcode->engine_id = eng_id;
+		undef_opcode->stream_id = MAX_QMAN_STREAMS_INFO;
+		undef_opcode->write_enable = 0;
+	}
+}
+
 static u32 gaudi3_handle_qm_sei_err(struct hl_device *hdev, struct hl_eq_qm_sei_data *qm_sei_data,
-					const char *engine, u64 *event_mask)
+					const char *engine, u16 eng_id, u64 *event_mask)
 {
 	u32 err_num, err_msk;
 	char buf[32];
@@ -12720,8 +12746,10 @@ static u32 gaudi3_handle_qm_sei_err(struct hl_device *hdev, struct hl_eq_qm_sei_
 			QMAN_GLBL_ERR_STS_MASK;
 	err_num = gaudi3_err_cause_iterator(hdev, err_msk, gaudi3_qm_err_cause, buf, NULL);
 
-	if (event_mask && (err_msk & QMAN_GLBL_ERR_STS_CP_UNDEF_CMD_ERR_M))
+	if (err_msk & QMAN_GLBL_ERR_STS_CP_UNDEF_CMD_ERR_M) {
+		gaudi3_handle_qm_undef_cmd_err(hdev, qm_sei_data, eng_id);
 		*event_mask |= HL_NOTIFIER_EVENT_UNDEFINED_OPCODE;
+	}
 
 	snprintf(buf, sizeof(buf), "%s_QM_ARC_AUX", engine);
 	err_msk = lower_32_bits(le64_to_cpu(qm_sei_data->arc_qm_cause.intr_cause_data));
@@ -12732,7 +12760,8 @@ static u32 gaudi3_handle_qm_sei_err(struct hl_device *hdev, struct hl_eq_qm_sei_
 }
 
 static u32 gaudi3_handle_edma_sei_err(struct hl_device *hdev, u16 data_size,
-				struct hl_eq_edma_sei_data *edma_sei_data, u64 *event_mask)
+					struct hl_eq_edma_sei_data *edma_sei_data, u16 eng_id,
+					u64 *event_mask)
 {
 	u32 instance, channel, chn_data_idx, err_num = 0, err_mask, err_num_tmp;
 	struct hl_eq_edma_chn_data *edma_chn_data;
@@ -12760,7 +12789,7 @@ static u32 gaudi3_handle_edma_sei_err(struct hl_device *hdev, u16 data_size,
 
 		snprintf(buf, sizeof(buf), "EDMA%u", instance);
 		err_num += gaudi3_handle_qm_sei_err(hdev, &edma_sei_data->qm_data[instance], buf,
-					event_mask);
+							eng_id, event_mask);
 	}
 
 	return err_num;
@@ -12899,7 +12928,8 @@ static u32 gaudi3_handle_mme_spi_events(struct hl_device *hdev, u16 data_size,
 }
 
 static u32 gaudi3_handle_mme_sei_err(struct hl_device *hdev, u16 data_size,
-					struct hl_eq_mme_sei_data *sei_data, u64 *event_mask)
+					struct hl_eq_mme_sei_data *sei_data, u16 eng_id,
+					u64 *event_mask)
 {
 	struct hl_eq_mme_ctrl_data *ctrl_data = &sei_data->control_data;
 	struct hl_eq_mme_acc_data *acc_data = &sei_data->acc_data;
@@ -12930,7 +12960,8 @@ static u32 gaudi3_handle_mme_sei_err(struct hl_device *hdev, u16 data_size,
 		cause = le64_to_cpu(ctrl_data->cause.intr_cause_data);
 		err_num = gaudi3_err_cause_iterator(hdev, cause, gaudi3_mme_ctrl_lo_intr_cause,
 								"MME_CTRL", "SEI");
-		err_num += gaudi3_handle_qm_sei_err(hdev, &ctrl_data->qm_data, "MME", event_mask);
+		err_num += gaudi3_handle_qm_sei_err(hdev, &ctrl_data->qm_data, "MME", eng_id,
+							event_mask);
 		break;
 	default:
 		break;
@@ -13021,7 +13052,7 @@ static u32 handle_hmmu_sei_events(struct hl_device *hdev, u16 data_size,
 }
 
 static u32 handle_tpc_sei_events(struct hl_device *hdev, u16 data_size,
-					struct hl_eq_tpc_sei_data *sei_data, u64 *event_mask)
+				struct hl_eq_tpc_sei_data *sei_data, u16 eng_id, u64 *event_mask)
 {
 	u32 err_num;
 	int rc;
@@ -13035,13 +13066,14 @@ static u32 handle_tpc_sei_events(struct hl_device *hdev, u16 data_size,
 		dev_err_ratelimited(hdev->dev, "TPC KERNEL ID: 0x%x\n",
 				le16_to_cpu(sei_data->data.kernel_id));
 
-	err_num += gaudi3_handle_qm_sei_err(hdev, &sei_data->qm_data, "TPC", event_mask);
+	err_num += gaudi3_handle_qm_sei_err(hdev, &sei_data->qm_data, "TPC", eng_id, event_mask);
 
 	return err_num;
 }
 
 static u32 gaudi3_handle_rotator_sei_err(struct hl_device *hdev, u16 data_size,
-					struct hl_eq_rot_sei_data *rot_sei_data, u64 *event_mask)
+					struct hl_eq_rot_sei_data *rot_sei_data, u16 eng_id,
+					u64 *event_mask)
 {
 	u32 err_msk, err_num;
 	int rc;
@@ -13054,7 +13086,8 @@ static u32 gaudi3_handle_rotator_sei_err(struct hl_device *hdev, u16 data_size,
 			ROTATOR_MSS_SEI_CAUSE_MASK;
 	err_num = gaudi3_err_cause_iterator(hdev, err_msk, gaudi3_rotator_sei_cause, "ROT", "SEI");
 
-	err_num += gaudi3_handle_qm_sei_err(hdev, &rot_sei_data->qm_data, "ROT", event_mask);
+	err_num += gaudi3_handle_qm_sei_err(hdev, &rot_sei_data->qm_data, "ROT", eng_id,
+						event_mask);
 
 	return err_num;
 }
@@ -14212,13 +14245,15 @@ static u32 gaudi3_handle_sei_event(struct hl_device *hdev,
 					struct hl_eq_dynamic_entry *eq_dynamic_entry,
 					u32 *reset_flags, u64 *event_mask)
 {
-	u16 data_size = le16_to_cpu(eq_dynamic_entry->hdr.size);
 	enum hl_agg_component_type agg_component_type;
 	u32 die, instance, err_cnt = 0, macro_index;
+	u16 data_size, eng_id;
 
+	data_size = le16_to_cpu(eq_dynamic_entry->hdr.size);
 	agg_component_type = eq_dynamic_entry->agg_hdr.int_comp_type;
 	die = eq_dynamic_entry->agg_hdr.die_id;
 	instance = eq_dynamic_entry->agg_hdr.comp_instance;
+	eng_id = eq_agg_header_to_engine_id(&eq_dynamic_entry->agg_hdr);
 
 	switch (agg_component_type) {
 	case INT_COMP_TYPE_ARC_FARM:
@@ -14246,7 +14281,7 @@ static u32 gaudi3_handle_sei_event(struct hl_device *hdev,
 		break;
 	case INT_COMP_TYPE_EDMA:
 		err_cnt = gaudi3_handle_edma_sei_err(hdev, data_size,
-							&eq_dynamic_entry->edma_sei_data,
+							&eq_dynamic_entry->edma_sei_data, eng_id,
 							event_mask);
 		break;
 	case INT_COMP_TYPE_EDUP:
@@ -14260,7 +14295,8 @@ static u32 gaudi3_handle_sei_event(struct hl_device *hdev,
 		break;
 	case INT_COMP_TYPE_MME:
 		err_cnt = gaudi3_handle_mme_sei_err(hdev, data_size,
-						&eq_dynamic_entry->mme_sei_data, event_mask);
+							&eq_dynamic_entry->mme_sei_data, eng_id,
+							event_mask);
 		break;
 	case INT_COMP_TYPE_NIC:
 		macro_index = die * NIC_NUM_MACROS_PER_DIE + instance;
@@ -14289,7 +14325,8 @@ static u32 gaudi3_handle_sei_event(struct hl_device *hdev,
 		break;
 	case INT_COMP_TYPE_ROT:
 		err_cnt = gaudi3_handle_rotator_sei_err(hdev, data_size,
-						&eq_dynamic_entry->rot_sei_data, event_mask);
+							&eq_dynamic_entry->rot_sei_data, eng_id,
+							event_mask);
 		break;
 	case INT_COMP_TYPE_SOB:
 		err_cnt = gaudi3_handle_sob_sei_err(hdev, data_size,
@@ -14300,7 +14337,7 @@ static u32 gaudi3_handle_sei_event(struct hl_device *hdev,
 		break;
 	case INT_COMP_TYPE_TPC:
 		err_cnt = handle_tpc_sei_events(hdev, data_size, &eq_dynamic_entry->tpc_sei_data,
-				event_mask);
+						eng_id, event_mask);
 		break;
 	default:
 		break;

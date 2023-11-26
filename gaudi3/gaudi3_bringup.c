@@ -4298,11 +4298,6 @@ static void handle_and_clear_pmmu_events(struct hl_device *hdev, u32 die,
 		WREG32_AND(aggr_mask_reg, events_mask);
 }
 
-static u32 tpc_special_regs_base[] = {
-	mmHD0_TPC0_QM_ARC_AUX_SPECIAL_BASE,
-	mmHD0_TPC0_CFG_SPECIAL_BASE
-};
-
 static void handle_and_clear_qman_interrupts(struct hl_device *hdev, u32 qm_reg_base,
 				u32 qm_arc_aux_reg_base, struct hl_eq_qm_sei_data *qm_sei_data)
 {
@@ -4322,6 +4317,11 @@ static void handle_and_clear_qman_interrupts(struct hl_device *hdev, u32 qm_reg_
 
 	WREG32(qm_reg_base + mmQMAN_SEI_STATUS, sei_status);
 }
+
+static u32 tpc_special_regs_base[] = {
+	mmHD0_TPC0_QM_ARC_AUX_SPECIAL_BASE,
+	mmHD0_TPC0_CFG_SPECIAL_BASE
+};
 
 /* HDCORE_TPC_EVENT */
 static void handle_and_clear_tpc_events(struct hl_device *hdev, u32 die, u32 hdcore, u32 instance,
@@ -7039,6 +7039,36 @@ static void gaudi3_handle_cpu_aggr(struct hl_device *hdev, u32 intr_aggr_irq, u3
 	};
 }
 
+static void gaudi3_handle_qm_sw_undef_cmd_err(struct hl_device *hdev, u32 qm_reg_base,
+						struct hl_eq_qm_undef_cmd_data *undef_op_data)
+{
+	bool is_arc_cq;
+	u32 cp_sts, lo;
+	u64 hi;
+
+	cp_sts = RREG32(qm_reg_base + mmQMAN_CP_STS);
+	is_arc_cq = !!FIELD_GET(QMAN_CP_STS_CUR_CQ_M, cp_sts); /* 0 - legacy CQ, 1 - ARC_CQ */
+
+	if (is_arc_cq) {
+		undef_op_data->cq_type = CQ_TYPE_ARC;
+		undef_op_data->cq_tsize =
+				cpu_to_le32(RREG32(qm_reg_base + mmQMAN_ARC_CQ_TSIZE_STS));
+		lo = RREG32(qm_reg_base + mmQMAN_ARC_CQ_PTR_LO_STS);
+		hi = RREG32(qm_reg_base + mmQMAN_ARC_CQ_PTR_HI_STS);
+		undef_op_data->cq_ptr = cpu_to_le64((hi << 32) | lo);
+	} else {
+		undef_op_data->cq_type = CQ_TYPE_LEGACY;
+		undef_op_data->cq_tsize = cpu_to_le32(RREG32(qm_reg_base + mmQMAN_CQ_TSIZE_STS));
+		lo = RREG32(qm_reg_base + mmQMAN_CQ_PTR_LO_STS);
+		hi = RREG32(qm_reg_base + mmQMAN_CQ_PTR_HI_STS);
+		undef_op_data->cq_ptr = cpu_to_le64((hi << 32) | lo);
+	}
+
+	lo = RREG32(qm_reg_base + mmQMAN_CP_CURRENT_INST_LO);
+	hi = RREG32(qm_reg_base + mmQMAN_CP_CURRENT_INST_HI);
+	undef_op_data->cp_curr_inst = cpu_to_le64((hi << 32) | lo);
+}
+
 static void gaudi3_handle_qm_sw_event(struct hl_device *hdev,
 					const struct qm_sw_event_info *qm_info,
 					struct hl_eq_dynamic_entry *eq_dynamic_entry)
@@ -7080,6 +7110,9 @@ static void gaudi3_handle_qm_sw_event(struct hl_device *hdev,
 
 	glbl_err_sts = RREG32(qm_info->base + mmQMAN_GLBL_ERR_STS) & QMAN_GLBL_ERR_STS_MASK;
 	qm_data->qm_cause.intr_cause_data = cpu_to_le64(glbl_err_sts);
+
+	if (glbl_err_sts & QMAN_GLBL_ERR_STS_CP_UNDEF_CMD_ERR_M)
+		gaudi3_handle_qm_sw_undef_cmd_err(hdev, qm_info->base, &qm_data->undef_op_data);
 }
 
 irqreturn_t hl_pldm_irq_handler(int irq, void *arg)
