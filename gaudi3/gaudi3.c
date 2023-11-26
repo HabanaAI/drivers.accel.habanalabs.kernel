@@ -13730,6 +13730,7 @@ static void gaudi3_sei_razwi_handler(struct hl_device *hdev, struct hl_eq_dynami
 	switch (agg_component_type) {
 	case INT_COMP_TYPE_CS:
 	case INT_COMP_TYPE_D2D_MAC:
+	case INT_COMP_TYPE_D2D_PHY:
 	case INT_COMP_TYPE_MC:
 	case INT_COMP_TYPE_PCIE:
 	case INT_COMP_TYPE_PLL:
@@ -13883,19 +13884,19 @@ static u32 gaudi3_handle_d2d_mac_sei_err(struct hl_device *hdev, u16 data_size,
 }
 
 static u32 gaudi3_handle_d2d_phy_sei_err(struct hl_device *hdev, u16 data_size,
-						struct hl_eq_intr_cause *intr_cause)
+						struct hl_eq_d2dphy_sei_data *d2dphy_sei_data)
 {
 	u32 err_mask;
 	int rc;
 
-	rc = gaudi3_validate_eqe_data_size(hdev, data_size, sizeof(struct hl_eq_intr_cause));
+	rc = gaudi3_validate_eqe_data_size(hdev, data_size, sizeof(*d2dphy_sei_data));
 	if (rc)
 		return 0;
 
-	err_mask = lower_32_bits(le64_to_cpu(intr_cause->intr_cause_data));
+	err_mask = lower_32_bits(le64_to_cpu(d2dphy_sei_data->intr_cause.intr_cause_data));
 
-	return gaudi3_err_cause_iterator(hdev, err_mask, gaudi3_d2d_phy_sei_intr_cause,
-							"D2D_PHY", "SEI");
+	return gaudi3_err_cause_iterator(hdev, err_mask, gaudi3_d2d_phy_sei_intr_cause, "D2D_PHY",
+						"SEI");
 }
 
 static u32 gaudi3_handle_pll_sei_err(struct hl_device *hdev, u16 data_size,
@@ -14147,7 +14148,8 @@ static u32 gaudi3_handle_sei_event(struct hl_device *hdev,
 		break;
 	case INT_COMP_TYPE_D2D_PHY:
 		err_cnt = gaudi3_handle_d2d_phy_sei_err(hdev, data_size,
-							&eq_dynamic_entry->intr_cause);
+							&eq_dynamic_entry->d2dphy_sei_data);
+		glbl_err_data = &eq_dynamic_entry->d2dphy_sei_data.glbl_err_data;
 		break;
 	case INT_COMP_TYPE_DEC:
 		err_cnt = gaudi3_handle_decoder_sei_err(hdev, data_size,
