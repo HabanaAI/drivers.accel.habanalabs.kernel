@@ -9681,6 +9681,7 @@ skip_engines:
 		return;
 	}
 
+	gaudi3_cn_compute_reset_prepare(hdev);
 	gaudi3_sync_irqs(hdev);
 	hl_cn_synchronize_irqs(hdev);
 }
@@ -11681,6 +11682,8 @@ int gaudi3_compute_reset_late_init(struct hl_device *hdev)
 	rc = gaudi3_invalidate_all_cs(hdev);
 	if (rc)
 		return rc;
+
+	gaudi3_cn_compute_reset_late_init(hdev);
 
 	return gaudi3_reinit_cbc(hdev);
 }

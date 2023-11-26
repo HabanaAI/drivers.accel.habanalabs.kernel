@@ -530,6 +530,34 @@ u32 gaudi3_cn_handle_bmon_spmu_event(struct hl_device *hdev, u32 macro_index)
 	return 1;
 }
 
+void gaudi3_cn_compute_reset_prepare(struct hl_device *hdev)
+{
+	struct gaudi3_device *gaudi3 = hdev->asic_specific;
+	struct gaudi3_cn_aux_ops *gaudi3_aux_ops;
+	struct hl_cn *cn = &hdev->cn;
+	struct hl_aux_dev *aux_dev;
+
+	aux_dev = &cn->cn_aux_dev;
+	gaudi3_aux_ops = &gaudi3->cn_aux_ops;
+
+	if (gaudi3_aux_ops->reset_prepare)
+		gaudi3_aux_ops->reset_prepare(aux_dev);
+}
+
+void gaudi3_cn_compute_reset_late_init(struct hl_device *hdev)
+{
+	struct gaudi3_device *gaudi3 = hdev->asic_specific;
+	struct gaudi3_cn_aux_ops *gaudi3_aux_ops;
+	struct hl_cn *cn = &hdev->cn;
+	struct hl_aux_dev *aux_dev;
+
+	aux_dev = &cn->cn_aux_dev;
+	gaudi3_aux_ops = &gaudi3->cn_aux_ops;
+
+	if (gaudi3_aux_ops->reset_late_init)
+		gaudi3_aux_ops->reset_late_init(aux_dev);
+}
+
 static void gaudi3_cn_post_send_status(struct hl_device *hdev, u32 port)
 {
 	/* FW does not mask MSG interrupts, so unmask_irq is not needed */

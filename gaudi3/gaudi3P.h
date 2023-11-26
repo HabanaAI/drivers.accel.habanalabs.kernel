@@ -702,6 +702,8 @@ void gaudi3_clear_hw_cap(struct hl_device *hdev, bool hard_reset);
 int gaudi3_hw_fini(struct hl_device *hdev, bool hard_reset, bool fw_reset);
 
 void gaudi3_cn_quiescence(struct hl_device *hdev);
+void gaudi3_cn_compute_reset_prepare(struct hl_device *hdev);
+void gaudi3_cn_compute_reset_late_init(struct hl_device *hdev);
 
 void gaudi3_cn_spmu_get_stats_info(struct hl_device *hdev, u32 port, struct hl_cn_stat **stats,
 					u32 *n_stats);

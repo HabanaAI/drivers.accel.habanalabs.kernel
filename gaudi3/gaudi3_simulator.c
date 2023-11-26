@@ -1118,6 +1118,7 @@ static void gaudi3_sim_halt_engines(struct hl_device *hdev, bool hard_reset, boo
 		return;
 	}
 
+	gaudi3_cn_compute_reset_prepare(hdev);
 	gaudi3_sync_irqs(hdev);
 	hl_cn_synchronize_irqs(hdev);
 }
