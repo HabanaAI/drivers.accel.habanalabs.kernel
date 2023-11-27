@@ -12416,7 +12416,6 @@ static void gaudi3_sei_razwi_handler_no_fw(struct hl_device *hdev,
 	u16 eng_id = eq_agg_header_to_engine_id(agg_hdr);
 
 	switch (agg_component_type) {
-	case INT_COMP_TYPE_PCIE:
 	case INT_COMP_TYPE_CS:
 		/* No need to handle razwi */
 		break;
@@ -12450,6 +12449,11 @@ static void gaudi3_sei_razwi_handler_no_fw(struct hl_device *hdev,
 
 	case INT_COMP_TYPE_MME:
 		gaudi3_razwi_handler(hdev, RAZWI_MME, die, hdcore, initiator_idx, eng_id,
+					event_mask);
+		break;
+
+	case INT_COMP_TYPE_PCIE:
+		gaudi3_razwi_handler(hdev, RAZWI_PIF, die, hdcore, initiator_idx, eng_id,
 					event_mask);
 		break;
 
@@ -13734,7 +13738,6 @@ static void gaudi3_sei_razwi_handler(struct hl_device *hdev, struct hl_eq_dynami
 	case INT_COMP_TYPE_D2D_MAC:
 	case INT_COMP_TYPE_D2D_PHY:
 	case INT_COMP_TYPE_MC:
-	case INT_COMP_TYPE_PCIE:
 	case INT_COMP_TYPE_PLL:
 		/* No need to handle razwi */
 		break;
@@ -13787,6 +13790,10 @@ static void gaudi3_sei_razwi_handler(struct hl_device *hdev, struct hl_eq_dynami
 
 	case INT_COMP_TYPE_PARC:
 		gaudi3_handle_razwi(hdev, &eq->parc_sei_data.rtr_data, eng_id, event_mask);
+		break;
+
+	case INT_COMP_TYPE_PCIE:
+		gaudi3_handle_razwi(hdev, &eq->pcie_sei_data.rtr_data, eng_id, event_mask);
 		break;
 
 	case INT_COMP_TYPE_PDMA:
