@@ -3177,17 +3177,16 @@ out:
 static u32 handle_pmmu_spi_events(struct hl_device *hdev, u32 die, u64 *event_mask, u16 data_size,
 					struct hl_eq_pmmu_spi_data *pmmu_spi_data)
 {
-	u32 err_type, acc_err_mask = MMU_ACCESS_PAGE_ERROR_VALID_ACCESS_ERR_VALID_ENTRY_M,
-		acc_err_spi_sts_mask = MMU_SPI_STATUS_I2_M,
-		page_fault_err_mask =
-			MMU_ACCESS_PAGE_ERROR_VALID_PAGE_ERR_VALID_ENTRY_M,
-		page_fault_spi_sts_mask =
-			MMU_SPI_STATUS_I0_M | MMU_SPI_STATUS_I1_M,
+	u32 acc_sts_m = MMU_SPI_STATUS_I2_M,
+		page_fault_sts_m = MMU_SPI_STATUS_I0_M | MMU_SPI_STATUS_I1_M,
 		mmu_spi_status, err_cnt = 0;
-	u64 va, axi_id;
+	struct hl_eq_pmmu_err_data *page_fault_data =
+			&pmmu_spi_data->err_data[PMMU_ERR_TYPE_PAGE_ERR],
+		*acc_data = &pmmu_spi_data->err_data[PMMU_ERR_TYPE_ACCESS_ERR];
 	enum gaudi3_engine_id initiator = GAUDI3_ENGINE_ID_SIZE;
 	const char *initiator_str;
 	const bool is_read = true;
+	u64 va, axi_id;
 	int rc;
 
 	rc = gaudi3_validate_eqe_data_size(hdev, data_size, sizeof(*pmmu_spi_data));
@@ -3198,12 +3197,10 @@ static u32 handle_pmmu_spi_events(struct hl_device *hdev, u32 die, u64 *event_ma
 	if (!mmu_spi_status)
 		return 0;
 
-	err_type = le32_to_cpu(pmmu_spi_data->err_type);
-	va = le64_to_cpu(pmmu_spi_data->va);
-	axi_id = le64_to_cpu(pmmu_spi_data->axid);
 
-	if ((mmu_spi_status & page_fault_spi_sts_mask) || (err_type & page_fault_err_mask)) {
-
+	if ((mmu_spi_status & page_fault_sts_m) || page_fault_data->va || page_fault_data->axid) {
+		va = le64_to_cpu(page_fault_data->va);
+		axi_id = le64_to_cpu(page_fault_data->axid);
 		/*
 		 * we call gaudi3_axid_mapping always with 'is_read = true' since we
 		 * can't know if page fault was read or write. The read/write is used to
@@ -3221,17 +3218,16 @@ static u32 handle_pmmu_spi_events(struct hl_device *hdev, u32 die, u64 *event_ma
 			va, axi_id, initiator_str);
 
 		hl_handle_page_fault(hdev, va, initiator, true, event_mask);
-		err_cnt = 1;
+		err_cnt++;
 	}
-	if ((mmu_spi_status & acc_err_spi_sts_mask) || (err_type & acc_err_mask)) {
-		va = le64_to_cpu(pmmu_spi_data->va);
-
-		axi_id = le64_to_cpu(pmmu_spi_data->axid);
+	if ((mmu_spi_status & acc_sts_m) || acc_data->va || acc_data->axid) {
+		va = le64_to_cpu(acc_data->va);
+		axi_id = le64_to_cpu(acc_data->axid);
 
 		initiator_str = gaudi3_axid_mapping(hdev, axi_id, die, is_read, &initiator);
 		dev_err(hdev->dev, "access error: va=0x%llx axi id=0x%16llx initiator=%s",
 			va, axi_id, initiator_str);
-		err_cnt = 1;
+		err_cnt++;
 	}
 
 	return err_cnt;

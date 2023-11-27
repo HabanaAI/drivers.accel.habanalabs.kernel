@@ -4141,25 +4141,28 @@ static void handle_pmmu_spi_events(struct hl_device *hdev, u32 die,
 
 	err_type = RREG32(mmD0_PMMU_HBW_MMU_BASE + mmMMU_ACCESS_PAGE_ERROR_VALID + offset);
 	err_type &= (acc_err_m | page_fault_err_m);
-	spi_data->err_type = cpu_to_le64(err_type);
 
 	if ((mmu_spi_status & page_fault_spi_sts_m) || (err_type & page_fault_err_m)) {
 		lsb_va = RREG32(mmD0_PMMU_HBW_MMU_BASE + mmMMU_PAGE_ERROR_CAPTURE_VA + offset);
 		msb_va = RREG32(mmD0_PMMU_HBW_MMU_BASE + mmMMU_PAGE_ERROR_CAPTURE + offset);
-		spi_data->va = cpu_to_le64((msb_va << 32) | lsb_va);
+		spi_data->err_data[PMMU_ERR_TYPE_PAGE_ERR].va =
+			cpu_to_le64((msb_va << 32) | lsb_va);
 
 		axi_id1 = RREG32(mmD0_PMMU_HBW_MMU_BASE + mmMMU_PAGE_FAULT_ID_LSB + offset);
 		axi_id2 = RREG32(mmD0_PMMU_HBW_MMU_BASE + mmMMU_PAGE_FAULT_ID_MSB + offset);
-		spi_data->axid = cpu_to_le64((axi_id2 << 32) | axi_id1);
+		spi_data->err_data[PMMU_ERR_TYPE_PAGE_ERR].axid =
+			cpu_to_le64((axi_id2 << 32) | axi_id1);
 	}
 	if ((mmu_spi_status & acc_err_spi_sts_m) || (err_type & acc_err_m)) {
 		lsb_va = RREG32(mmD0_PMMU_HBW_MMU_BASE + mmMMU_ACCESS_ERROR_CAPTURE_VA + offset);
 		msb_va = RREG32(mmD0_PMMU_HBW_MMU_BASE + mmMMU_ACCESS_ERROR_CAPTURE + offset);
-		spi_data->va = cpu_to_le64((msb_va << 32) | lsb_va);
+		spi_data->err_data[PMMU_ERR_TYPE_ACCESS_ERR].va =
+			cpu_to_le64((msb_va << 32) | lsb_va);
 
 		axi_id1 = RREG32(mmD0_PMMU_HBW_MMU_BASE + mmMMU_PAGE_ACCESS_ID_LSB + offset);
 		axi_id2 = RREG32(mmD0_PMMU_HBW_MMU_BASE + mmMMU_PAGE_ACCESS_ID_MSB + offset);
-		spi_data->axid = cpu_to_le64((axi_id2 << 32) | axi_id1);
+		spi_data->err_data[PMMU_ERR_TYPE_ACCESS_ERR].axid =
+			cpu_to_le64((axi_id2 << 32) | axi_id1);
 	}
 
 	/* we have a loop since we might have several errors and we want to clear all of them */
