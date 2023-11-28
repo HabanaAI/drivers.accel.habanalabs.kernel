@@ -183,8 +183,8 @@ static uint64_t gaudi3_cn_override_ports_ext_mask(struct hl_device *hdev,
 			}
 			break;
 		default:
-			dev_err(hdev->dev, "Invalid gaudi3_serdes_type %u\n",
-				hdev->gaudi3_setup_type);
+			dev_err(hdev->dev, "Invalid serdes_type %u\n",
+				serdes_type);
 			break;
 		}
 
