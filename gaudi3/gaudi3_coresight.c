@@ -6339,8 +6339,9 @@ static int gaudi3_config_spmu(struct hl_device *hdev, struct hl_debug_params *pa
 
 		/* dummy read for pldm to flush outstanding writes */
 		if (hdev->pldm) {
-			/* sleep is required for previous write(s) to complete */
-			msleep(2000);
+			/* sleep is required for previous write(s) to complete for NIC SPMU */
+			if (gaudi3_reg_is_nic_spmu(params->reg_idx))
+				msleep(2000);
 			RREG32(base_reg);
 		}
 
