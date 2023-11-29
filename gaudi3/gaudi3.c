@@ -3739,9 +3739,9 @@ int gaudi3_set_fixed_properties(struct hl_device *hdev)
 	/* TODO - remove after power on
 	 * If we run without preboot and without hbm, we will need to use sram.
 	 * Since sram is configured to daul die by preboot, and we run without preboot, we need
-	 * to set sram as in single die.
+	 * to set sram as in single die. Skip for simulator.
 	 */
-	if (!(hdev->fw_components & FW_TYPE_PREBOOT_CPU) && !hdev->dram_enable)
+	if (!(hdev->fw_components & FW_TYPE_PREBOOT_CPU) && !hdev->dram_enable && hdev->pdev)
 		sram_start_offset = SRAM_MODE_0_SINGLE_DIE_OFFSET;
 
 	prop->sram_base_address = SRAM_BASE_ADDR + sram_start_offset;
