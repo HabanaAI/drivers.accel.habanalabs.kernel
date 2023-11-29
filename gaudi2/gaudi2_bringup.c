@@ -6432,6 +6432,25 @@ static void gaudi2_hmmu_stlb_thr_init(struct hl_device *hdev)
 			gaudi2_dcore_hmmu_stlb_thr_init(hdev, dcore_id, hmmu_id);
 }
 
+/*
+ * Make HMMU misses go out with secured level, as now the HMMU page tables resides in HBM
+ * secured section and we have RR check for those transactions, we don't want
+ * them accessing the FW section in HBM.
+ */
+static void gaudi2_hmmu_stlb_arprot_init(struct hl_device *hdev)
+{
+	u32 dcore_id, hmmu_id, offset, stlb_base;
+
+	for (dcore_id = 0 ; dcore_id < NUM_OF_DCORES ; dcore_id++)
+		for (hmmu_id = 0 ; hmmu_id < NUM_OF_HMMU_PER_DCORE; hmmu_id++) {
+			offset = (u32) (dcore_id * DCORE_OFFSET + hmmu_id * DCORE_HMMU_OFFSET);
+			stlb_base = mmDCORE0_HMMU0_STLB_BASE + offset;
+
+			/* Allow HMMU misses to access secured ranges in hbm only */
+			WREG32(stlb_base + STLB_MEM_READ_ARPROT_OFFSET, 0);
+		}
+}
+
 static void gaudi2_init_pdma_fw_config(struct hl_device *hdev)
 {
 	u32 reg_base;
@@ -6753,7 +6772,6 @@ static void gaudi2_enable_mmu_range_registers(struct hl_device *hdev)
 			hmmu_base = mmDCORE0_HMMU0_MMU_BASE + dcore_id * DCORE_OFFSET +
 					hmmu_id * DCORE_HMMU_OFFSET;
 
-
 			/* This register is already set by the F/W when security is enabled.
 			 * Moreover, in this case the register is configured in PB to be with
 			 * privileged access.
@@ -6787,6 +6805,35 @@ static void gaudi2_configure_msix_axi_slave(struct hl_device *hdev)
 
 	msix_addr_match_high = upper_32_bits(gaudi2->virt_msix_db_dma_addr);
 	WREG32(mmPCIE_DBI_MSIX_ADDRESS_MATCH_HIGH_OFF, msix_addr_match_high);
+}
+
+static void gaudi2_init_sft_hbw_mstr_if_cfg(struct hl_device *hdev, u64 base, void *data)
+{
+	WREG32(base + SFT_PRIV_PCIE_EN_OFFSET, 0);
+}
+
+/*
+ * Block HMMU access to PCIe, In order to support moving the HMMU page tables to HBM.
+ * As both HMMU and EDMA shares the same MSTR_IF then these configs will block the EDMA access
+ * as well.
+ */
+void gaudi2_hmmu_pcie_sft_config(struct hl_device *hdev)
+{
+	struct dup_block_ctx sft_ctx = {
+		.blocks = NUM_OF_DCORES,
+		.instances = NUM_OF_SFT_HBW_MSTR_IF,
+		.base = mmSFT0_HBW_RTR_IF0_MSTR_IF_RR_SHRD_HBW_BASE,
+		.block_off = SFT_OFFSET,
+		.instance_off = SFT_IF_OFFSET,
+		.instance_cfg_fn = &gaudi2_init_sft_hbw_mstr_if_cfg,
+		.data = NULL,
+	};
+
+	if (hdev->asic_prop.fw_security_enabled)
+		return;
+
+	/* Init DCOREs SFT RTR HBW MSTR_IF */
+	gaudi2_init_blocks(hdev, &sft_ctx);
 }
 
 int gaudi2_init_golden_registers(struct hl_device *hdev)
@@ -6827,6 +6874,8 @@ int gaudi2_init_golden_registers(struct hl_device *hdev)
 	gaudi2_init_sm_fw_config(hdev);
 	gaudi2_init_sm_axuser_overrides(hdev);
 	gaudi2_hmmu_stlb_thr_init(hdev);
+	gaudi2_hmmu_stlb_arprot_init(hdev);
+	gaudi2_hmmu_pcie_sft_config(hdev);
 	gaudi2_init_range_registers_fw_config(hdev);
 	gaudi2_cn_restore_dynamic_cfg_soft_reset_fw(hdev);
 
