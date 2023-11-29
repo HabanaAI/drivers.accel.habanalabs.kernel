@@ -14,7 +14,9 @@
 #include "habanalabs_compat_accel.h"
 
 #include <linux/pci.h>
+#ifdef _HAS_PCI_ENABLE_PCIE_ERROR_REPORTING
 #include <linux/aer.h>
+#endif
 #include <linux/module.h>
 #include <linux/kthread.h>
 #include <linux/vmalloc.h>
@@ -1836,7 +1838,9 @@ static int hl_pci_probe(struct pci_dev *pdev, const struct pci_device_id *id)
 	 */
 	INIT_WORK(&hdev->work_pci, pci_remove_device);
 
+#ifdef _HAS_PCI_ENABLE_PCIE_ERROR_REPORTING
 	pci_enable_pcie_error_reporting(pdev);
+#endif
 
 	rc = hl_device_init(hdev);
 	if (rc) {
@@ -1849,7 +1853,9 @@ static int hl_pci_probe(struct pci_dev *pdev, const struct pci_device_id *id)
 	return 0;
 
 disable_device:
+#ifdef _HAS_PCI_ENABLE_PCIE_ERROR_REPORTING
 	pci_disable_pcie_error_reporting(pdev);
+#endif
 	pci_set_drvdata(pdev, NULL);
 	destroy_hdev(hdev);
 
@@ -1872,7 +1878,9 @@ static void hl_pci_remove(struct pci_dev *pdev)
 		return;
 
 	hl_device_fini(hdev);
+#ifdef _HAS_PCI_ENABLE_PCIE_ERROR_REPORTING
 	pci_disable_pcie_error_reporting(pdev);
+#endif
 	pci_set_drvdata(pdev, NULL);
 	destroy_hdev(hdev);
 }

@@ -405,3 +405,7 @@ endif
 ifneq ($(shell grep "debugfs_root" include/drm/drm_device.h > /dev/null 2>&1 && echo 1),)
 	ccflags-y += -D_HAS_DEBUGFS_ROOT_IN_DRM_DEVICE
 endif
+
+ifneq ($(shell grep "pci_enable_pcie_error_reporting" include/linux/aer.h > /dev/null 2>&1 && echo 1),)
+	ccflags-y += -D_HAS_PCI_ENABLE_PCIE_ERROR_REPORTING
+endif
