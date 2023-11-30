@@ -2538,12 +2538,16 @@ static void gaudi3_init_rotator_fw_config(struct hl_device *hdev)
 
 static void gaudi3_init_vdec_brdg_ctrl_fw_config(struct hl_device *hdev, u32 reg_base)
 {
+	u32 intr_mask;
+
 	/* Unmask idle signals from IP */
 	WREG32(reg_base + mmVDEC_BRDG_CTRL_IDLE_MASK, 0x0);
 
-	/* Mask SPI normal interrupt because it is received and handled through MSI-X */
-	WREG32(reg_base + mmVDEC_BRDG_CTRL_CAUSE_INTR_MASK,
-			FIELD_PREP(VDEC_BRDG_CTRL_CAUSE_INTR_NRM_SPI_M, 0x1));
+	/* VCD/L2C interrupts are not required. Normal interrupts are handled through MSI-X. */
+	intr_mask = FIELD_PREP(VDEC_BRDG_CTRL_CAUSE_INTR_VCD_SPI_M, 0x1) |
+			FIELD_PREP(VDEC_BRDG_CTRL_CAUSE_INTR_L2C_SPI_M, 0x1) |
+			FIELD_PREP(VDEC_BRDG_CTRL_CAUSE_INTR_NRM_SPI_M, 0x1);
+	WREG32(reg_base + mmVDEC_BRDG_CTRL_CAUSE_INTR_MASK, intr_mask);
 
 	/* Configure the decoder access to HBW/LBW to be non-secure */
 	WREG32(reg_base + mmVDEC_BRDG_CTRL_DEC_HBW_AWPROT_1, 0x1);
