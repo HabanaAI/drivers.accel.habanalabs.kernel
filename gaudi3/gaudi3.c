@@ -13947,21 +13947,23 @@ static u32 gaudi3_handle_nic_sei_err_event(struct hl_device *hdev, u16 data_size
 	return rc;
 }
 
-static void gaudi3_print_hbm_mc_sei_ca_par_intr_info(struct hl_device *hdev, u8 ca_par_err_bitmask,
+static void gaudi3_print_hbm_mc_sei_ca_par_intr_info(struct hl_device *hdev,
+							u32 mc_cmn_num, u8 ca_par_err_bitmask,
 							struct hl_eq_hbm_mc_sei_data *sei_data)
 {
 	struct hl_eq_hbm_mc_sei_ca_par_intr_info *ca_parity_info;
-	u32 pc_idx, ch, pc, cmd_idx;
+	u32 pc_idx, ch_idx, ch, pc, cmd_idx;
 
 	for (pc_idx = 0 ; pc_idx < NUM_PC_PER_MC_CMN ; ++pc_idx) {
 		if (!(ca_par_err_bitmask & BIT(pc_idx)))
 			continue;
 
-		ch = pc_idx / NUM_CH_PER_MC_CMN;
+		ch_idx = pc_idx / NUM_PC_PER_CH;
+		ch = (mc_cmn_num * NUM_CH_PER_MC_CMN) + ch_idx;
 		pc = pc_idx % NUM_PC_PER_CH;
 		ca_parity_info = &sei_data->ca_parity_info[pc_idx];
 
-		dev_err_ratelimited(hdev->dev, "CA PAR error in ch%u pc%u: count %u\n",
+		dev_err_ratelimited(hdev->dev, "CA PAR error in CH%u PC%u: count %u\n",
 					ch, pc, le32_to_cpu(ca_parity_info->ca_err_cnt));
 
 		for (cmd_idx = 0 ; cmd_idx < HBM_CA_ERR_CMD_LIFO_LEN ; ++cmd_idx) {
@@ -13976,21 +13978,23 @@ static void gaudi3_print_hbm_mc_sei_ca_par_intr_info(struct hl_device *hdev, u8 
 	}
 }
 
-static void gaudi3_print_hbm_mc_sei_wr_par_intr_info(struct hl_device *hdev, u8 wr_par_err_bitmask,
+static void gaudi3_print_hbm_mc_sei_wr_par_intr_info(struct hl_device *hdev,
+							u32 mc_cmn_num, u8 wr_par_err_bitmask,
 							struct hl_eq_hbm_mc_sei_data *sei_data)
 {
 	struct hl_eq_hbm_mc_sei_wr_par_intr_info *wr_parity_info;
-	u32 pc_idx, ch, pc, cmd_idx;
+	u32 pc_idx, ch_idx, ch, pc, cmd_idx;
 
 	for (pc_idx = 0 ; pc_idx < NUM_PC_PER_MC_CMN ; ++pc_idx) {
 		if (!(wr_par_err_bitmask & BIT(pc_idx)))
 			continue;
 
-		ch = pc_idx / NUM_CH_PER_MC_CMN;
+		ch_idx = pc_idx / NUM_PC_PER_CH;
+		ch = (mc_cmn_num * NUM_CH_PER_MC_CMN) + ch_idx;
 		pc = pc_idx % NUM_PC_PER_CH;
 		wr_parity_info = &sei_data->wr_parity_info[pc_idx];
 
-		dev_err_ratelimited(hdev->dev, "WR PAR error in ch%u pc%u: count %u\n",
+		dev_err_ratelimited(hdev->dev, "WR PAR error in CH%u PC%u: count %u\n",
 					ch, pc, le32_to_cpu(wr_parity_info->wr_par_cnt));
 
 		for (cmd_idx = 0 ; cmd_idx < HBM_WR_PAR_CMD_LIFO_LEN ; ++cmd_idx) {
@@ -14006,23 +14010,25 @@ static void gaudi3_print_hbm_mc_sei_wr_par_intr_info(struct hl_device *hdev, u8 
 	}
 }
 
-static void gaudi3_print_hbm_mc_sei_rd_err_intr_info(struct hl_device *hdev, u8 rd_err_bitmask,
+static void gaudi3_print_hbm_mc_sei_rd_err_intr_info(struct hl_device *hdev,
+							u32 mc_cmn_num, u8 rd_err_bitmask,
 							struct hl_eq_hbm_mc_sei_data *sei_data)
 {
 	struct hl_eq_hbm_mc_sei_rd_err_intr_info *rd_error_info;
 	struct hbm_rd_err_beat_data *rd_err_beat;
-	u32 pc_idx, ch, pc, beat, dw;
+	u32 pc_idx, ch_idx, ch, pc, beat, dw;
 
 	for (pc_idx = 0 ; pc_idx < NUM_PC_PER_MC_CMN ; ++pc_idx) {
 		if (!(rd_err_bitmask & BIT(pc_idx)))
 			continue;
 
-		ch = pc_idx / NUM_CH_PER_MC_CMN;
+		ch_idx = pc_idx / NUM_PC_PER_CH;
+		ch = (mc_cmn_num * NUM_CH_PER_MC_CMN) + ch_idx;
 		pc = pc_idx % NUM_PC_PER_CH;
 		rd_error_info = &sei_data->rd_error_info[pc_idx];
 
 		dev_err_ratelimited(hdev->dev,
-				"RD error in ch%u pc%u: rd_par_cnt %u, serr_cnt %u, scrb_serr_cnt %u, derr_cnt %u\n",
+				"RD error in CH%u PC%u: rd_par_cnt %u, serr_cnt %u, scrb_serr_cnt %u, derr_cnt %u\n",
 				ch, pc,
 				le32_to_cpu(rd_error_info->rd_par_cnt),
 				le32_to_cpu(rd_error_info->serr_cnt),
@@ -14082,7 +14088,7 @@ static u32 gaudi3_handle_hbm_mc_sei_err(struct hl_device *hdev, u16 data_size,
 
 	hbm_num = le32_to_cpu(sei_header->hbm_num);
 	mc_cmn_num = le32_to_cpu(sei_header->mc_cmn_num);
-	snprintf(buf, sizeof(buf), "HBM%u_MC_CMN%u", hbm_num, mc_cmn_num);
+	snprintf(buf, sizeof(buf), "HBM%u MC_CMN%u", hbm_num, mc_cmn_num);
 
 	sei0_header = &sei_header->sei0_header;
 	if (sei0_header->is_sei0_set) {
@@ -14091,12 +14097,12 @@ static u32 gaudi3_handle_hbm_mc_sei_err(struct hl_device *hdev, u16 data_size,
 							"SEI severe");
 
 		if (sei0_header->ca_par_err)
-			gaudi3_print_hbm_mc_sei_ca_par_intr_info(hdev, sei0_header->ca_par_err,
-									sei_data);
+			gaudi3_print_hbm_mc_sei_ca_par_intr_info(hdev, mc_cmn_num,
+								sei0_header->ca_par_err, sei_data);
 
 		if (sei0_header->wr_par_err)
-			gaudi3_print_hbm_mc_sei_wr_par_intr_info(hdev, sei0_header->wr_par_err,
-									sei_data);
+			gaudi3_print_hbm_mc_sei_wr_par_intr_info(hdev, mc_cmn_num,
+								sei0_header->wr_par_err, sei_data);
 
 		rd_err_bitmask |= (sei0_header->ecc_derr_err | sei0_header->rd_par_err);
 	}
@@ -14111,7 +14117,8 @@ static u32 gaudi3_handle_hbm_mc_sei_err(struct hl_device *hdev, u16 data_size,
 	}
 
 	if (rd_err_bitmask)
-		gaudi3_print_hbm_mc_sei_rd_err_intr_info(hdev, rd_err_bitmask, sei_data);
+		gaudi3_print_hbm_mc_sei_rd_err_intr_info(hdev, mc_cmn_num, rd_err_bitmask,
+								sei_data);
 
 	/* Device reset is not required if error is correctable and non-fatal */
 	if (!hbm_mc_cmn_sei_info->is_fatal) {
