@@ -82,7 +82,7 @@ static uint64_t gaudi3_cn_override_ports_ext_mask(struct hl_device *hdev,
 						  enum cpucp_serdes_type serdes_type)
 {
 	/* If we are running on a PCI card, all the ports should be set as external */
-	if (hdev->card_type == cpucp_card_type_pci)
+	if (hdev->card_type == cpucp_card_type_pci || is_400g_mode(hdev))
 		return hdev->cn.ports_mask;
 
 	switch (hdev->gaudi3_setup_type) {
