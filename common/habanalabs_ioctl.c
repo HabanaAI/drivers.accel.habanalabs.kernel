@@ -20,6 +20,9 @@
 
 #include <asm/msr.h>
 
+/* make sure there is space for all the signed info */
+static_assert(sizeof(struct cpucp_info) <= SEC_DEV_INFO_BUF_SZ);
+
 #define MAX_SCHEDULER_BUF_SIZE	SZ_4K
 
 static u32 hl_debug_struct_size[HL_DEBUG_OP_FETCH_TRACE + 1] = {
@@ -1012,9 +1015,11 @@ static int dev_info_signed(struct hl_fpriv *hpriv, struct hl_info_args *args)
 	info->info_sig_len = dev_info_signed->info_sig_len;
 	info->pub_data_len = le16_to_cpu(dev_info_signed->pub_data_len);
 	info->certificate_len = le16_to_cpu(dev_info_signed->certificate_len);
+	info->dev_info_len = sizeof(struct cpucp_info);
 	memcpy(&info->info_sig, &dev_info_signed->info_sig, sizeof(info->info_sig));
 	memcpy(&info->public_data, &dev_info_signed->public_data, sizeof(info->public_data));
 	memcpy(&info->certificate, &dev_info_signed->certificate, sizeof(info->certificate));
+	memcpy(&info->dev_info, &dev_info_signed->info, info->dev_info_len);
 
 	rc = copy_to_user(out, info, min_t(size_t, max_size, sizeof(*info))) ? -EFAULT : 0;
 
