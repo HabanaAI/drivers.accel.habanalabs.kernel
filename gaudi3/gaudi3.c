@@ -13684,19 +13684,17 @@ static void gaudi3_handle_razwi(struct hl_device *hdev, struct hl_eq_razwi_rtr_d
 					u64 *event_mask)
 {
 	if (rd->lbw.rr_aw.razwi_happened)
-		gaudi3_handle_razwi_info(hdev, &rd->lbw.adec_ar, "LBW RR AW", eng_id,
-				HL_RAZWI_LBW | HL_RAZWI_RR | HL_RAZWI_WRITE,
-				event_mask);
+		gaudi3_handle_razwi_info(hdev, &rd->lbw.rr_aw, "LBW RR AW", eng_id,
+					 HL_RAZWI_LBW | HL_RAZWI_RR | HL_RAZWI_WRITE, event_mask);
 
 	if (rd->lbw.rr_ar.razwi_happened)
-		gaudi3_handle_razwi_info(hdev, &rd->lbw.adec_ar, "LBW RR AR", eng_id,
-				HL_RAZWI_LBW | HL_RAZWI_RR | HL_RAZWI_READ,
-				event_mask);
+		gaudi3_handle_razwi_info(hdev, &rd->lbw.rr_ar, "LBW RR AR", eng_id,
+					 HL_RAZWI_LBW | HL_RAZWI_RR | HL_RAZWI_READ, event_mask);
 
 	if (rd->lbw.adec_aw.razwi_happened)
-		gaudi3_handle_razwi_info(hdev, &rd->lbw.adec_ar, "LBW ADEC AW", eng_id,
-				HL_RAZWI_LBW | HL_RAZWI_ADDR_DEC | HL_RAZWI_WRITE,
-				event_mask);
+		gaudi3_handle_razwi_info(hdev, &rd->lbw.adec_aw, "LBW ADEC AW", eng_id,
+					 HL_RAZWI_LBW | HL_RAZWI_ADDR_DEC | HL_RAZWI_WRITE,
+					 event_mask);
 
 	if (rd->lbw.adec_ar.razwi_happened)
 		gaudi3_handle_razwi_info(hdev, &rd->lbw.adec_ar, "LBW ADEC AR", eng_id,
@@ -13704,24 +13702,22 @@ static void gaudi3_handle_razwi(struct hl_device *hdev, struct hl_eq_razwi_rtr_d
 				event_mask);
 
 	if (rd->hbw.rr_aw.razwi_happened)
-		gaudi3_handle_razwi_info(hdev, &rd->lbw.adec_ar, "HBW RR AW", eng_id,
-				HL_RAZWI_HBW | HL_RAZWI_RR | HL_RAZWI_WRITE,
-				event_mask);
+		gaudi3_handle_razwi_info(hdev, &rd->hbw.rr_aw, "HBW RR AW", eng_id,
+					 HL_RAZWI_HBW | HL_RAZWI_RR | HL_RAZWI_WRITE, event_mask);
 
 	if (rd->hbw.rr_ar.razwi_happened)
-		gaudi3_handle_razwi_info(hdev, &rd->lbw.adec_ar, "HBW RR AR", eng_id,
-				HL_RAZWI_HBW | HL_RAZWI_RR | HL_RAZWI_READ,
-				event_mask);
+		gaudi3_handle_razwi_info(hdev, &rd->hbw.rr_ar, "HBW RR AR", eng_id,
+					 HL_RAZWI_HBW | HL_RAZWI_RR | HL_RAZWI_READ, event_mask);
 
 	if (rd->hbw.adec_aw.razwi_happened)
-		gaudi3_handle_razwi_info(hdev, &rd->lbw.adec_ar, "HBW ADEC AW", eng_id,
-				HL_RAZWI_HBW | HL_RAZWI_ADDR_DEC | HL_RAZWI_WRITE,
-				event_mask);
+		gaudi3_handle_razwi_info(hdev, &rd->hbw.adec_aw, "HBW ADEC AW", eng_id,
+					 HL_RAZWI_HBW | HL_RAZWI_ADDR_DEC | HL_RAZWI_WRITE,
+					 event_mask);
 
 	if (rd->hbw.adec_ar.razwi_happened)
-		gaudi3_handle_razwi_info(hdev, &rd->lbw.adec_ar, "HBW ADEC AR", eng_id,
-				HL_RAZWI_HBW | HL_RAZWI_ADDR_DEC | HL_RAZWI_READ,
-				event_mask);
+		gaudi3_handle_razwi_info(hdev, &rd->hbw.adec_ar, "HBW ADEC AR", eng_id,
+					 HL_RAZWI_HBW | HL_RAZWI_ADDR_DEC | HL_RAZWI_READ,
+					 event_mask);
 }
 
 static void gaudi3_sei_razwi_handler(struct hl_device *hdev, struct hl_eq_dynamic_entry *eq,
