@@ -3951,6 +3951,8 @@ int gaudi3_set_fixed_properties(struct hl_device *hdev)
 
 	prop->pcie_flush_reg_addr = mmD0_PSOC_TIMESTAMP_BASE + mmTIMESTAMP_CNTCR;
 
+	prop->clk_pll_index = HL_GAUDI3_MME_PLL;
+
 	return 0;
 
 free_hw_queues_props:
