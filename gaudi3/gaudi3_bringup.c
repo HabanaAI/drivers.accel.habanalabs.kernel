@@ -149,6 +149,9 @@
 #define RR_LBW_PRIV_RANGE_SHORT_13_DISABLED_VAL		(0x1FFFF000 - (CFG_BAR_BASE - LBW_BASE))
 #define RR_HBW_PRIV_RANGE_7_DISABLED_VAL		0xFFFFFFFFFFFFC000ULL
 
+#define INT_AGG_SHARED_SEI_INT_MSG_STS_0_PARC_0_S	25
+#define INT_AGG_SHARED_SEI_INT_MSG_STS_0_PARC_0_M	0x2000000
+
 struct qm_sw_event_info {
 	enum hl_agg_component_type comp;
 	u32 instance;
@@ -3246,7 +3249,7 @@ static void gaudi3_cfg_qm_sw_irq(struct hl_device *hdev, int block, int inst,
 	WREG32(qm_reg_base + mmQMAN_GLBL_ERR_CFG, GAUDI3_GLBL_ERR_CFG);
 }
 
-void gaudi3_enable_qm_sw_interrupt_msgs(struct hl_device *hdev)
+static void gaudi3_enable_qm_sw_interrupt_msgs(struct hl_device *hdev)
 {
 	u32 first_qm_reg_base;
 	struct iterate_module_ctx iter_ctx = {
@@ -3255,12 +3258,6 @@ void gaudi3_enable_qm_sw_interrupt_msgs(struct hl_device *hdev)
 	};
 
 	static_assert(ARRAY_SIZE(gaudi3_qm_irq_map_table) == GAUDI3_NUM_OF_SW_QM_INTR);
-
-	if (!hdev->pldm)
-		return;
-
-	if (hdev->fw_components & FW_TYPE_BOOT_CPU)
-		return;
 
 	first_qm_reg_base = mmHD1_SEDMA0_QM_BASE;
 	gaudi3_iterate_edmas(hdev, &iter_ctx);
@@ -3275,15 +3272,12 @@ void gaudi3_enable_qm_sw_interrupt_msgs(struct hl_device *hdev)
 	gaudi3_iterate_rotators(hdev, &iter_ctx);
 }
 
-void gaudi3_enable_interrupt_aggr_msgs(struct hl_device *hdev)
+static void gaudi3_enable_interrupt_aggr_msgs(struct hl_device *hdev)
 {
 	u32 offset, die, intr_agg, irq, i, msix_addr, sts0, sts1, sts2;
 	struct asic_fixed_properties *props = &hdev->asic_prop;
 
-	if (!hdev->pldm || !hdev->enable_intr_aggr)
-		return;
-
-	if (hdev->fw_components & FW_TYPE_BOOT_CPU)
+	if (!hdev->enable_intr_aggr)
 		return;
 
 	/* Enable interrupt messages for all aggregators in CPU and PSOC blocks */
@@ -3436,15 +3430,12 @@ void gaudi3_enable_interrupt_aggr_msgs(struct hl_device *hdev)
 	}
 }
 
-void gaudi3_disable_interrupt_aggr_msgs(struct hl_device *hdev)
+static void gaudi3_disable_interrupt_aggr_msgs(struct hl_device *hdev)
 {
 	struct asic_fixed_properties *props = &hdev->asic_prop;
 	u32 offset, die, intr_agg;
 
-	if (!hdev->pldm || !hdev->enable_intr_aggr)
-		return;
-
-	if (hdev->fw_components & FW_TYPE_BOOT_CPU)
+	if (!hdev->enable_intr_aggr)
 		return;
 
 	/* Disable interrupt messages for all aggregators in CPU and PSOC blocks */
@@ -3493,6 +3484,57 @@ void gaudi3_disable_interrupt_aggr_msgs(struct hl_device *hdev)
 					mmINT_AGG_PSOC_UART_COMB_MSG_CFG + offset, 0x0);
 		}
 	}
+}
+
+/* PARC_SEI[0] is generated due to a boot FSM access to a bad register address (H9-5613) */
+static void gaudi3_clear_parc_sei_interrupt(struct hl_device *hdev)
+{
+	u32 die, offset, reg_base, sei_cause;
+
+	for (die = 0 ; die < hdev->asic_prop.num_of_dies ; ++die) {
+		offset = die * DIE_OFFSET;
+
+		reg_base = mmD0_PARC_GLOBAL_CONF_BASE + offset;
+		sei_cause = RREG32(reg_base + mmPARC_GLOBAL_CONF_SEI_INTR_CTRL_CAUSE);
+		WREG32(reg_base + mmPARC_GLOBAL_CONF_SEI_INTR_CTRL_CLEAR, sei_cause);
+
+		reg_base = mmD0_NRTR0_2CH_CTRL0_LBW_CH_RAZWI_LBW_CH1_BASE + offset;
+		WREG32(reg_base + ADDR_DECODER_AW_OFFSET, 0x1);
+
+		reg_base = mmD0_PARC_MSTR_IF_XRESP_LBW_BASE + offset;
+		WREG32(reg_base + mmMSTR_IF_XRESP_LBW_INTR_CTRL_CLEAR,
+				FIELD_PREP(MSTR_IF_XRESP_LBW_INTR_CTRL_CLEAR_BRESP_ERR_M, 0x1));
+
+		RREG32(hdev->asic_prop.pcie_flush_reg_addr);
+
+		reg_base = mmD0_CPU_INT_AGG_SHARED_SEI_INT_MSG_BASE + offset;
+		WREG32(reg_base + mmINT_AGG_SHARED_SEI_INT_MSG_STS_0,
+				FIELD_PREP(INT_AGG_SHARED_SEI_INT_MSG_STS_0_PARC_0_M, 0x1));
+		WREG32(reg_base + mmINT_AGG_SHARED_SEI_INT_MSG_MSG_PENDING, 0x1);
+	}
+}
+
+static void gaudi3_clear_boot_time_interrupts(struct hl_device *hdev)
+{
+	gaudi3_clear_parc_sei_interrupt(hdev);
+}
+
+void gaudi3_pldm_enable_interrupts(struct hl_device *hdev)
+{
+	if (!hdev->pldm || (hdev->fw_components & FW_TYPE_BOOT_CPU))
+		return;
+
+	gaudi3_clear_boot_time_interrupts(hdev);
+	gaudi3_enable_interrupt_aggr_msgs(hdev);
+	gaudi3_enable_qm_sw_interrupt_msgs(hdev);
+}
+
+void gaudi3_pldm_disable_interrupts(struct hl_device *hdev)
+{
+	if (!hdev->pldm || (hdev->fw_components & FW_TYPE_BOOT_CPU))
+		return;
+
+	gaudi3_disable_interrupt_aggr_msgs(hdev);
 }
 
 static void gaudi3_handle_psoc_aggr(struct hl_device *hdev, u32 intr_aggr_irq, u32 die,

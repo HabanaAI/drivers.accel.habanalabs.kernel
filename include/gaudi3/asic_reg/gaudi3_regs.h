@@ -133,6 +133,7 @@
 #include "farm_regs.h"
 #include "cache_err_regs.h"
 #include "psoc_global_conf2_regs.h"
+#include "parc_global_conf_regs.h"
 
 /* TODO: used for debug, so can be removed once H9-5315 is resolved */
 #include "nrtr_crdt_rrtr_ob_crdt_regs.h"
@@ -165,6 +166,7 @@
 #include "rotator_desc_masks.h"
 #include "mstr_if_axprot_lbw_masks.h"
 #include "mstr_if_axcache_hbw_masks.h"
+#include "mstr_if_xresp_lbw_masks.h"
 #include "cbc_masks.h"
 #include "cbc_user_masks.h"
 #include "psoc_reset_conf_masks.h"

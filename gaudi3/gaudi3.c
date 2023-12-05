@@ -8274,8 +8274,7 @@ static int gaudi3_hw_init(struct hl_device *hdev)
 	if (rc)
 		return rc;
 
-	gaudi3_enable_interrupt_aggr_msgs(hdev);
-	gaudi3_enable_qm_sw_interrupt_msgs(hdev);
+	gaudi3_pldm_enable_interrupts(hdev);
 
 	rc = gaudi3_enable_msix(hdev);
 	if (rc)
@@ -9672,7 +9671,7 @@ static void gaudi3_halt_engines(struct hl_device *hdev, bool hard_reset, bool fw
 	/* Verify that there are no on-the-fly AXI transactions after halting the engines */
 	gaudi3_verify_compute_mstr_if_dbg_counters(hdev);
 
-	gaudi3_disable_interrupt_aggr_msgs(hdev);
+	gaudi3_pldm_disable_interrupts(hdev);
 
 skip_engines:
 	if (hard_reset) {
