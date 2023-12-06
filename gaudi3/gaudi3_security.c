@@ -9,45 +9,10 @@
 #include "gaudi3_cn.h"
 #include "../include/gaudi3/asic_reg/gaudi3_regs.h"
 
-/*
- * Naming conventions for the defines/enum etc. try to follow the SocOnline
- * conventions.
- * Therefore, we have here (for example) both PRIV_SHORT and PRIV_SHORT_13
- * as both are regs (or regs groups) form SocOnline.
- */
-#define RR_LBW_SEC_SHORT_NUM_RANGES	14
-#define RR_LBW_SEC_NUM_RANGES		4
-#define RR_LBW_PRIV_SHORT_NUM_RANGES	13
-#define RR_LBW_PRIV_SHORT_13_NUM_RANGES	1
-#define RR_LBW_PRIV_NUM_RANGES		4
+#define RR_LBW_SEC_SHORT_NUM_RANGES		14
+#define RR_LBW_SEC_NUM_RANGES			4
 
-#define RR_HBW_SEC_NUM_RANGES		8
-#define RR_HBW_PRIV_NUM_RANGES		7
-#define RR_HBW_PRIV_7_NUM_RANGES	1
-
-#define RR_LBW_LONG_ADDR_BYTE_GRANULARITY	8
-
-#define RR_LBW_SHORT_ADDR_MASK_SHORT	GENMASK_ULL(28, 12)
-#define RR_LBW_LONG_ADDR_MASK		GENMASK_ULL(28, 2)
-#define RR_HBW_LO_ADDR_MASK_SHORT	GENMASK_ULL(31, 14)
-
-/* enum for RR LBW ranges types */
-enum rr_lbw_range_type {
-	RR_LBW_RANGE_TYPE_SEC_SHORT,
-	RR_LBW_RANGE_TYPE_SEC,
-	RR_LBW_RANGE_TYPE_PRIV_SHORT,
-	RR_LBW_RANGE_TYPE_PRIV_SHORT_13,
-	RR_LBW_RANGE_TYPE_PRIV,
-	RR_LBW_RANGE_TYPE_NUMBER,
-};
-
-/* enum for RR HBW ranges types */
-enum rr_hbw_range_type {
-	RR_HBW_RANGE_TYPE_SEC,
-	RR_HBW_RANGE_TYPE_PRIV,
-	RR_HBW_RANGE_TYPE_PRIV_7,
-	RR_HBW_RANGE_TYPE_NUMBER,
-};
+#define RR_HBW_SEC_NUM_RANGES			8
 
 struct gaudi3_atypical_pb_blocks {
 	u32 mm_block_base_addr;
@@ -59,66 +24,6 @@ struct gaudi3_atypical_pb_blocks {
 static const struct gaudi3_atypical_pb_blocks gaudi3_pb_hdcr0_sm_objs[2] = {
 	{mmHD0_SYNC_MNGR_OBJS_BASE, SM_OBJS_BLOCK_SIZE, SM_OBJS_SEC_PROT_BITS_0_OFFS, SZ_512},
 	{mmHD0_SYNC_MNGR_OBJS_BASE, SM_OBJS_BLOCK_SIZE, SM_OBJS_SEC_PROT_BITS_1_OFFS, SZ_512}
-};
-
-/**
- * struct rr_range - single RR range configuration
- * @min: min address
- * @max: max address
- * @rd: if true the range config applies to read access
- * @wr: if true the range config applies to write access
- */
-struct rr_range {
-	u64 min;
-	u64 max;
-	bool rd;
-	bool wr;
-};
-
-/**
- * struct rr_lbw_type_prop - properties of RR LBW range type
- * @en_off: offset of first copy of EN reg
- * @min_off: offset of first copy of MIN reg
- * @max_off: offset of first copy of MAX reg
- * @addr_mask: mask for the addresses configured to MIN and MAX
- */
-struct rr_lbw_type_prop {
-	u32 en_off;
-	u32 min_off;
-	u32 max_off;
-	u32 addr_mask;
-};
-
-/**
- * struct rr_hbw_type_prop - properties of RR range type
- * @en_off: offset of first copy of EN reg
- * @min_hi_off: offset of first copy of MIN HI reg
- * @min_lo_off: offset of first copy of MIN LO reg
- * @max_hi_off: offset of first copy of MAX HI reg
- * @max_lo_off: offset of first copy of MAX LO reg
- */
-struct rr_hbw_type_prop {
-	u32 en_off;
-	u32 min_hi_off;
-	u32 min_lo_off;
-	u32 max_hi_off;
-	u32 max_lo_off;
-};
-
-/**
- * struct rr_type_config - configuration data for specific RR LBW or HBW type
- * @lbw_prop: properties of LBW range type
- * @hbw_prop: properties of HBW range type
- * @ranges: array of configuration element
- * @num_ranges: number of configuration elements in ranges
- */
-struct rr_type_config {
-	union {
-		struct rr_lbw_type_prop lbw_prop;
-		struct rr_hbw_type_prop hbw_prop;
-	};
-	struct rr_range *ranges;
-	u8 num_ranges;
 };
 
 /**
@@ -233,39 +138,11 @@ static struct rr_range rr_lbw_sec_ranges[] = {
 	},
 };
 
-/* configuration table for LBW "privileged short" range type */
-static struct rr_range rr_lbw_priv_short_ranges[] = {
-	{
-		.min = mmD0_CPU_TIMESTAMP_BASE,
-		.max = mmD0_CPU_TIMESTAMP_BASE + HL_BLOCK_SIZE,
-		.rd = true,
-		.wr = true
-	},
-};
-
-/* configuration table for LBW "privileged short #13" range type */
-static struct rr_range rr_lbw_priv_short_13_ranges[] = {
-};
-
-/* configuration table for LBW "privileged" range type */
-static struct rr_range rr_lbw_priv_ranges[] = {
-	{
-		.min = mmD0_GIC_BASE,
-		.max = (mmD0_GIC_BASE + mmGIC_DISTRIBUTOR_5_GICD_SETSPI_NSR +
-				RR_LBW_LONG_ADDR_BYTE_GRANULARITY) & RR_LBW_LONG_ADDR_MASK,
-		.rd = true,
-		.wr = true
-	},
-};
-
 /* verify no overflow in the LBW ranges */
 static_assert(ARRAY_SIZE(rr_lbw_sec_short_ranges) <= RR_LBW_SEC_SHORT_NUM_RANGES);
 static_assert(ARRAY_SIZE(rr_lbw_sec_ranges) <= RR_LBW_SEC_NUM_RANGES);
-static_assert(ARRAY_SIZE(rr_lbw_priv_short_ranges) <= RR_LBW_PRIV_SHORT_NUM_RANGES);
-static_assert(ARRAY_SIZE(rr_lbw_priv_short_13_ranges) <= RR_LBW_PRIV_SHORT_13_NUM_RANGES);
-static_assert(ARRAY_SIZE(rr_lbw_priv_ranges) <= RR_LBW_PRIV_NUM_RANGES);
 
-/* complete configuration table for all LBW ranges */
+/* configuration table for LBW ranges */
 static struct rr_type_config rr_lbw_config_array[RR_LBW_RANGE_TYPE_NUMBER] = {
 	[RR_LBW_RANGE_TYPE_SEC_SHORT] = {
 		.ranges = rr_lbw_sec_short_ranges,
@@ -288,34 +165,13 @@ static struct rr_type_config rr_lbw_config_array[RR_LBW_RANGE_TYPE_NUMBER] = {
 		},
 	},
 	[RR_LBW_RANGE_TYPE_PRIV_SHORT] = {
-		.ranges = rr_lbw_priv_short_ranges,
-		.num_ranges = ARRAY_SIZE(rr_lbw_priv_short_ranges),
-		.lbw_prop = {
-			.en_off = RTR_CTRL_RR_LBW_PRIV_RANGE_EN_SHORT_OFFSET,
-			.min_off = RTR_CTRL_RR_LBW_PRIV_RANGE_MIN_SHORT_OFFSET,
-			.max_off = RTR_CTRL_RR_LBW_PRIV_RANGE_MAX_SHORT_OFFSET,
-			.addr_mask = RR_LBW_SHORT_ADDR_MASK_SHORT,
-		},
+		.num_ranges = 0,
 	},
 	[RR_LBW_RANGE_TYPE_PRIV_SHORT_13] = {
-		.ranges = rr_lbw_priv_short_13_ranges,
-		.num_ranges = ARRAY_SIZE(rr_lbw_priv_short_13_ranges),
-		.lbw_prop = {
-			.en_off = RTR_CTRL_RR_LBW_PRIV_RANGE_EN_SHORT_13_OFFSET,
-			.min_off = RTR_CTRL_RR_LBW_PRIV_RANGE_MIN_SHORT_13_OFFSET,
-			.max_off = RTR_CTRL_RR_LBW_PRIV_RANGE_MAX_SHORT_13_OFFSET,
-			.addr_mask = RR_LBW_SHORT_ADDR_MASK_SHORT,
-		},
+		.num_ranges = 0,
 	},
 	[RR_LBW_RANGE_TYPE_PRIV] = {
-		.ranges = rr_lbw_priv_ranges,
-		.num_ranges = ARRAY_SIZE(rr_lbw_priv_ranges),
-		.lbw_prop = {
-			.en_off = RTR_CTRL_RR_LBW_PRIV_RANGE_EN_OFFSET,
-			.min_off = RTR_CTRL_RR_LBW_PRIV_RANGE_MIN_OFFSET,
-			.max_off = RTR_CTRL_RR_LBW_PRIV_RANGE_MAX_OFFSET,
-			.addr_mask = RR_LBW_LONG_ADDR_MASK,
-		},
+		.num_ranges = 0,
 	},
 };
 
@@ -327,20 +183,10 @@ static struct rr_type_config rr_lbw_config_array[RR_LBW_RANGE_TYPE_NUMBER] = {
 static struct rr_range rr_hbw_sec_ranges[] = {
 };
 
-/* configuration table for HBW "privileged" range type */
-static struct rr_range rr_hbw_priv_ranges[] = {
-};
-
-/* configuration table for HBW "privileged #7" range type */
-static struct rr_range rr_hbw_priv_7_ranges[] = {
-};
-
 /* verify no overflow in HBW ranges */
 static_assert(ARRAY_SIZE(rr_hbw_sec_ranges) <= RR_HBW_SEC_NUM_RANGES);
-static_assert(ARRAY_SIZE(rr_hbw_priv_ranges) <= RR_HBW_PRIV_NUM_RANGES);
-static_assert(ARRAY_SIZE(rr_hbw_priv_7_ranges) <= RR_HBW_PRIV_7_NUM_RANGES);
 
-/* complete configuration table for all HBW ranges */
+/* configuration table for HBW ranges */
 static struct rr_type_config rr_hbw_config_array[RR_HBW_RANGE_TYPE_NUMBER] = {
 	[RR_HBW_RANGE_TYPE_SEC] = {
 		.ranges = rr_hbw_sec_ranges,
@@ -354,40 +200,25 @@ static struct rr_type_config rr_hbw_config_array[RR_HBW_RANGE_TYPE_NUMBER] = {
 		},
 	},
 	[RR_HBW_RANGE_TYPE_PRIV] = {
-		.ranges = rr_hbw_priv_ranges,
-		.num_ranges = ARRAY_SIZE(rr_hbw_priv_ranges),
-		.hbw_prop = {
-			.en_off = RTR_CTRL_RR_HBW_PRIV_RANGE_EN_OFFSET,
-			.min_hi_off = RTR_CTRL_RR_HBW_PRIV_RANGE_MIN_HI_OFFSET,
-			.min_lo_off = RTR_CTRL_RR_HBW_PRIV_RANGE_MIN_LO_OFFSET,
-			.max_hi_off = RTR_CTRL_RR_HBW_PRIV_RANGE_MAX_HI_OFFSET,
-			.max_lo_off = RTR_CTRL_RR_HBW_PRIV_RANGE_MAX_LO_OFFSET,
-		},
+		.num_ranges = 0,
 	},
 	[RR_HBW_RANGE_TYPE_PRIV_7] = {
-		.ranges = rr_hbw_priv_7_ranges,
-		.num_ranges = ARRAY_SIZE(rr_hbw_priv_7_ranges),
-		.hbw_prop = {
-			.en_off = RTR_CTRL_RR_HBW_PRIV_RANGE_EN_7_OFFSET,
-			.min_hi_off = RTR_CTRL_RR_HBW_PRIV_RANGE_MIN_HI_7_OFFSET,
-			.min_lo_off = RTR_CTRL_RR_HBW_PRIV_RANGE_MIN_LO_7_OFFSET,
-			.max_hi_off = RTR_CTRL_RR_HBW_PRIV_RANGE_MAX_HI_7_OFFSET,
-			.max_lo_off = RTR_CTRL_RR_HBW_PRIV_RANGE_MAX_LO_7_OFFSET,
-		},
+		.num_ranges = 0,
 	},
 };
 
-static void gaudi3_rtr_ctrl_config_rr(struct hl_device *hdev, int block, int inst, u32 offset,
-					struct iterate_module_ctx *ctx)
+void gaudi3_rtr_ctrl_config_rr(struct hl_device *hdev, int block, int inst, u32 offset,
+				struct iterate_module_ctx *ctx)
 {
+	struct rtr_ctrl_rr_config *rr_config = ctx->data;
+	u8 instance_off, rd_access, wr_access;
 	struct rr_type_config *rr_cfg;
 	struct rr_range *range;
 	int rr_type, range_idx;
-	u8 instance_off, rd_access, wr_access;
 	u32 val;
 
 	/* configure all LBW range types */
-	for (rr_type = 0, rr_cfg = rr_lbw_config_array;
+	for (rr_type = 0, rr_cfg = rr_config->lbw_config_array;
 			rr_type < RR_LBW_RANGE_TYPE_NUMBER; rr_type++, rr_cfg++) {
 		for (range_idx = 0, range = rr_cfg->ranges;
 						range_idx < rr_cfg->num_ranges;
@@ -413,7 +244,7 @@ static void gaudi3_rtr_ctrl_config_rr(struct hl_device *hdev, int block, int ins
 	}
 
 	/* configure all HBW range types */
-	for (rr_type = 0, rr_cfg = rr_hbw_config_array;
+	for (rr_type = 0, rr_cfg = rr_config->hbw_config_array;
 				rr_type < RR_HBW_RANGE_TYPE_NUMBER; rr_type++, rr_cfg++) {
 		for (range_idx = 0, range = rr_cfg->ranges;
 						range_idx < rr_cfg->num_ranges;
@@ -444,8 +275,13 @@ static void gaudi3_rtr_ctrl_config_rr(struct hl_device *hdev, int block, int ins
 
 static void gaudi3_init_lbw_hbw_range_registers(struct hl_device *hdev)
 {
+	struct rtr_ctrl_rr_config rr_config = {
+		.lbw_config_array = rr_lbw_config_array,
+		.hbw_config_array = rr_hbw_config_array
+	};
 	struct iterate_module_ctx ctx = {
 		.fn = gaudi3_rtr_ctrl_config_rr,
+		.data = &rr_config,
 	};
 
 	gaudi3_iterate_rtr_ctrls(hdev, &ctx);

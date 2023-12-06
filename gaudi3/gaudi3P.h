@@ -572,6 +572,100 @@ enum gaudi3_block_types {
 	GAUDI3_BLOCK_TYPE_MAX
 };
 
+#define RR_LBW_LONG_ADDR_BYTE_GRANULARITY	8
+
+#define RR_LBW_SHORT_ADDR_MASK_SHORT		GENMASK_ULL(28, 12)
+#define RR_LBW_LONG_ADDR_MASK			GENMASK_ULL(28, 2)
+#define RR_HBW_LO_ADDR_MASK_SHORT		GENMASK_ULL(31, 14)
+
+/* enum for RR LBW ranges types */
+enum rr_lbw_range_type {
+	RR_LBW_RANGE_TYPE_SEC_SHORT,
+	RR_LBW_RANGE_TYPE_SEC,
+	RR_LBW_RANGE_TYPE_PRIV_SHORT,
+	RR_LBW_RANGE_TYPE_PRIV_SHORT_13,
+	RR_LBW_RANGE_TYPE_PRIV,
+	RR_LBW_RANGE_TYPE_NUMBER,
+};
+
+/* enum for RR HBW ranges types */
+enum rr_hbw_range_type {
+	RR_HBW_RANGE_TYPE_SEC,
+	RR_HBW_RANGE_TYPE_PRIV,
+	RR_HBW_RANGE_TYPE_PRIV_7,
+	RR_HBW_RANGE_TYPE_NUMBER,
+};
+
+/**
+ * struct rr_range - single RR range configuration
+ * @min: min address
+ * @max: max address
+ * @rd: if true the range config applies to read access
+ * @wr: if true the range config applies to write access
+ */
+struct rr_range {
+	u64 min;
+	u64 max;
+	bool rd;
+	bool wr;
+};
+
+/**
+ * struct rr_lbw_type_prop - properties of RR LBW range type
+ * @en_off: offset of first copy of EN reg
+ * @min_off: offset of first copy of MIN reg
+ * @max_off: offset of first copy of MAX reg
+ * @addr_mask: mask for the addresses configured to MIN and MAX
+ */
+struct rr_lbw_type_prop {
+	u32 en_off;
+	u32 min_off;
+	u32 max_off;
+	u32 addr_mask;
+};
+
+/**
+ * struct rr_hbw_type_prop - properties of RR range type
+ * @en_off: offset of first copy of EN reg
+ * @min_hi_off: offset of first copy of MIN HI reg
+ * @min_lo_off: offset of first copy of MIN LO reg
+ * @max_hi_off: offset of first copy of MAX HI reg
+ * @max_lo_off: offset of first copy of MAX LO reg
+ */
+struct rr_hbw_type_prop {
+	u32 en_off;
+	u32 min_hi_off;
+	u32 min_lo_off;
+	u32 max_hi_off;
+	u32 max_lo_off;
+};
+
+/**
+ * struct rr_type_config - configuration data for specific RR LBW or HBW type
+ * @lbw_prop: properties of LBW range type
+ * @hbw_prop: properties of HBW range type
+ * @ranges: array of configuration element
+ * @num_ranges: number of configuration elements in ranges
+ */
+struct rr_type_config {
+	union {
+		struct rr_lbw_type_prop lbw_prop;
+		struct rr_hbw_type_prop hbw_prop;
+	};
+	struct rr_range *ranges;
+	u8 num_ranges;
+};
+
+/**
+ * struct rtr_ctrl_rr_config - complete configuration data for LBW and HBW RR
+ * @lbw_config_array: pointer to array of LBW RR configuration data
+ * @hbw_config_array: pointer to array of HBW RR configuration data
+ */
+struct rtr_ctrl_rr_config {
+	struct rr_type_config *lbw_config_array;
+	struct rr_type_config *hbw_config_array;
+};
+
 extern struct hl_cn_funcs gaudi3_cn_funcs;
 
 /* Gaudi3 declarations for simulator */
@@ -769,6 +863,9 @@ void gaudi3_halt_engines_fw_config(struct hl_device *hdev);
 void gaudi3_set_isolation(struct hl_device *hdev, bool isolate_engines, bool isolate_hbm);
 void gaudi3_cn_ecos_override(struct hl_device *hdev);
 bool gaudi3_get_bfe_status(struct hl_aux_dev *aux_dev, u8 bfe);
+int gaudi3_init_security_privileged(struct hl_device *hdev);
+void gaudi3_rtr_ctrl_config_rr(struct hl_device *hdev, int block, int inst, u32 offset,
+				struct iterate_module_ctx *ctx);
 
 /* Functions exported for FPGA support */
 int gaudi3_early_fini(struct hl_device *hdev);

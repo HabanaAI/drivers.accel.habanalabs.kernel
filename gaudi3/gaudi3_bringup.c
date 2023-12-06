@@ -131,6 +131,13 @@
 				FIELD_PREP(QMAN_GLBL_ERR_CFG_CP_ERR_MSG_EN_M, 0x1) |	\
 				FIELD_PREP(QMAN_GLBL_ERR_CFG_ARC_CQF_ERR_MSG_EN_M, 0x1))
 
+#define RR_LBW_PRIV_SHORT_NUM_RANGES	13
+#define RR_LBW_PRIV_SHORT_13_NUM_RANGES	1
+#define RR_LBW_PRIV_NUM_RANGES		4
+
+#define RR_HBW_PRIV_NUM_RANGES		7
+#define RR_HBW_PRIV_7_NUM_RANGES	1
+
 struct qm_sw_event_info {
 	enum hl_agg_component_type comp;
 	u32 instance;
@@ -7393,4 +7400,157 @@ void gaudi3_dtlb_nrtr_eco_fixup(struct hl_device *hdev)
 
 	ctx.fn = gaudi3_init_dtlb_nrtr_eco_fixup;
 	gaudi3_iterate_nrtr_dtlbs(hdev, &ctx);
+}
+
+/****************************************
+ * Privileged RR LBW configuration tables
+ ****************************************/
+
+/* configuration table for LBW "privileged short" range type */
+static struct rr_range rr_lbw_priv_short_ranges[] = {
+	{
+		.min = mmD0_CPU_TIMESTAMP_BASE,
+		.max = mmD0_CPU_TIMESTAMP_BASE + HL_BLOCK_SIZE,
+		.rd = true,
+		.wr = true
+	},
+};
+
+/* configuration table for LBW "privileged short #13" range type */
+static struct rr_range rr_lbw_priv_short_13_ranges[] = {
+};
+
+/* configuration table for LBW "privileged" range type */
+static struct rr_range rr_lbw_priv_ranges[] = {
+	{
+		.min = mmD0_GIC_BASE,
+		.max = (mmD0_GIC_BASE + mmGIC_DISTRIBUTOR_5_GICD_SETSPI_NSR +
+				RR_LBW_LONG_ADDR_BYTE_GRANULARITY) & RR_LBW_LONG_ADDR_MASK,
+		.rd = true,
+		.wr = true
+	},
+};
+
+/* verify no overflow in the privileged LBW ranges */
+static_assert(ARRAY_SIZE(rr_lbw_priv_short_ranges) <= RR_LBW_PRIV_SHORT_NUM_RANGES);
+static_assert(ARRAY_SIZE(rr_lbw_priv_short_13_ranges) <= RR_LBW_PRIV_SHORT_13_NUM_RANGES);
+static_assert(ARRAY_SIZE(rr_lbw_priv_ranges) <= RR_LBW_PRIV_NUM_RANGES);
+
+/* configuration table for privileged LBW ranges */
+static struct rr_type_config rr_lbw_priv_config_array[RR_LBW_RANGE_TYPE_NUMBER] = {
+	[RR_LBW_RANGE_TYPE_SEC_SHORT] = {
+		.num_ranges = 0,
+	},
+	[RR_LBW_RANGE_TYPE_SEC] = {
+		.num_ranges = 0,
+	},
+	[RR_LBW_RANGE_TYPE_PRIV_SHORT] = {
+		.ranges = rr_lbw_priv_short_ranges,
+		.num_ranges = ARRAY_SIZE(rr_lbw_priv_short_ranges),
+		.lbw_prop = {
+			.en_off = RTR_CTRL_RR_LBW_PRIV_RANGE_EN_SHORT_OFFSET,
+			.min_off = RTR_CTRL_RR_LBW_PRIV_RANGE_MIN_SHORT_OFFSET,
+			.max_off = RTR_CTRL_RR_LBW_PRIV_RANGE_MAX_SHORT_OFFSET,
+			.addr_mask = RR_LBW_SHORT_ADDR_MASK_SHORT,
+		},
+	},
+	[RR_LBW_RANGE_TYPE_PRIV_SHORT_13] = {
+		.ranges = rr_lbw_priv_short_13_ranges,
+		.num_ranges = ARRAY_SIZE(rr_lbw_priv_short_13_ranges),
+		.lbw_prop = {
+			.en_off = RTR_CTRL_RR_LBW_PRIV_RANGE_EN_SHORT_13_OFFSET,
+			.min_off = RTR_CTRL_RR_LBW_PRIV_RANGE_MIN_SHORT_13_OFFSET,
+			.max_off = RTR_CTRL_RR_LBW_PRIV_RANGE_MAX_SHORT_13_OFFSET,
+			.addr_mask = RR_LBW_SHORT_ADDR_MASK_SHORT,
+		},
+	},
+	[RR_LBW_RANGE_TYPE_PRIV] = {
+		.ranges = rr_lbw_priv_ranges,
+		.num_ranges = ARRAY_SIZE(rr_lbw_priv_ranges),
+		.lbw_prop = {
+			.en_off = RTR_CTRL_RR_LBW_PRIV_RANGE_EN_OFFSET,
+			.min_off = RTR_CTRL_RR_LBW_PRIV_RANGE_MIN_OFFSET,
+			.max_off = RTR_CTRL_RR_LBW_PRIV_RANGE_MAX_OFFSET,
+			.addr_mask = RR_LBW_LONG_ADDR_MASK,
+		},
+	},
+};
+
+/****************************************
+ * Privileged RR HBW configuration tables
+ ****************************************/
+
+/* configuration table for HBW "privileged" range type */
+static struct rr_range rr_hbw_priv_ranges[] = {
+};
+
+/* configuration table for HBW "privileged #7" range type */
+static struct rr_range rr_hbw_priv_7_ranges[] = {
+};
+
+/* verify no overflow in privileged HBW ranges */
+static_assert(ARRAY_SIZE(rr_hbw_priv_ranges) <= RR_HBW_PRIV_NUM_RANGES);
+static_assert(ARRAY_SIZE(rr_hbw_priv_7_ranges) <= RR_HBW_PRIV_7_NUM_RANGES);
+
+/* configuration table for privileged HBW ranges */
+static struct rr_type_config rr_hbw_priv_config_array[RR_HBW_RANGE_TYPE_NUMBER] = {
+	[RR_HBW_RANGE_TYPE_SEC] = {
+		.num_ranges = 0,
+	},
+	[RR_HBW_RANGE_TYPE_PRIV] = {
+		.ranges = rr_hbw_priv_ranges,
+		.num_ranges = ARRAY_SIZE(rr_hbw_priv_ranges),
+		.hbw_prop = {
+			.en_off = RTR_CTRL_RR_HBW_PRIV_RANGE_EN_OFFSET,
+			.min_hi_off = RTR_CTRL_RR_HBW_PRIV_RANGE_MIN_HI_OFFSET,
+			.min_lo_off = RTR_CTRL_RR_HBW_PRIV_RANGE_MIN_LO_OFFSET,
+			.max_hi_off = RTR_CTRL_RR_HBW_PRIV_RANGE_MAX_HI_OFFSET,
+			.max_lo_off = RTR_CTRL_RR_HBW_PRIV_RANGE_MAX_LO_OFFSET,
+		},
+	},
+	[RR_HBW_RANGE_TYPE_PRIV_7] = {
+		.ranges = rr_hbw_priv_7_ranges,
+		.num_ranges = ARRAY_SIZE(rr_hbw_priv_7_ranges),
+		.hbw_prop = {
+			.en_off = RTR_CTRL_RR_HBW_PRIV_RANGE_EN_7_OFFSET,
+			.min_hi_off = RTR_CTRL_RR_HBW_PRIV_RANGE_MIN_HI_7_OFFSET,
+			.min_lo_off = RTR_CTRL_RR_HBW_PRIV_RANGE_MIN_LO_7_OFFSET,
+			.max_hi_off = RTR_CTRL_RR_HBW_PRIV_RANGE_MAX_HI_7_OFFSET,
+			.max_lo_off = RTR_CTRL_RR_HBW_PRIV_RANGE_MAX_LO_7_OFFSET,
+		},
+	},
+};
+
+static void gaudi3_init_lbw_hbw_range_registers_privileged(struct hl_device *hdev)
+{
+	struct rtr_ctrl_rr_config rr_config = {
+		.lbw_config_array = rr_lbw_priv_config_array,
+		.hbw_config_array = rr_hbw_priv_config_array
+	};
+	struct iterate_module_ctx ctx = {
+		.fn = gaudi3_rtr_ctrl_config_rr,
+		.data = &rr_config,
+	};
+
+	dev_dbg(hdev->dev, "Configure privileged LBW/HBW RRs\n");
+
+	gaudi3_iterate_rtr_ctrls(hdev, &ctx);
+}
+
+int gaudi3_init_security_privileged(struct hl_device *hdev)
+{
+	int rc;
+
+	if (!hdev->priv_security_enable || hdev->asic_prop.fw_security_enabled)
+		return 0;
+
+	gaudi3_init_lbw_hbw_range_registers_privileged(hdev);
+
+	rc = hl_init_pb_security(hdev, true);
+	if (rc) {
+		dev_err(hdev->dev, "Configuring privileged PBs failed!\n");
+		return rc;
+	}
+
+	return 0;
 }

@@ -1154,6 +1154,18 @@ static void gaudi3_sim_set_isolation(struct hl_device *hdev, bool isolate_engine
 	hl_sim_set_priv_assertions(edev, true);
 }
 
+static int gaudi3_sim_init_security_privileged(struct hl_device *hdev)
+{
+	struct hl_simulator_device *edev = gaudi3_simulator_dev_table[hdev->id];
+	int rc;
+
+	hl_sim_set_priv_assertions(edev, false);
+	rc = gaudi3_init_security_privileged(hdev);
+	hl_sim_set_priv_assertions(edev, true);
+
+	return rc;
+}
+
 static int gaudi3_sim_hw_init(struct hl_device *hdev)
 {
 	struct gaudi3_device *gaudi3 = hdev->asic_specific;
@@ -1165,11 +1177,9 @@ static int gaudi3_sim_hw_init(struct hl_device *hdev)
 	 */
 	gaudi3_sim_set_isolation(hdev, false, false);
 
-	rc = hl_init_pb_security(hdev, true);
-	if (rc) {
-		dev_err(hdev->dev, "Configuring privileged PBs failed!\n");
+	rc = gaudi3_sim_init_security_privileged(hdev);
+	if (rc)
 		return rc;
-	}
 
 	gaudi3_lbw_dup_init(hdev);
 
