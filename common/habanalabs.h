@@ -4987,4 +4987,6 @@ int hl_importer_init(void);
 int hl_importer_exit(void);
 /* END OF IMPORTER CODE */
 
+bool hl_check_fd(struct file *file);
+
 #endif /* HABANALABSP_H_ */

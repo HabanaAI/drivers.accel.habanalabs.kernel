@@ -614,6 +614,11 @@ static const struct drm_driver hl_driver = {
 	.ioctls = hl_drm_ioctls,
 	.num_ioctls = ARRAY_SIZE(hl_drm_ioctls)
 };
+
+bool hl_check_fd(struct file *filep)
+{
+	return (filp->f_op == &hl_fops);
+}
 #endif /* IS_ENABLED(CONFIG_DRM_ACCEL) */
 
 static void set_pci_revision_id(struct hl_device *hdev, enum hl_asic_type asic_type)

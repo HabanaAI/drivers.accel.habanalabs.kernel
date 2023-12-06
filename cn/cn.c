@@ -294,7 +294,7 @@ static int hl_cn_register_cn_user_context(struct hl_aux_dev *aux_dev, int user_f
 	 * closure. This facilitates that CN destroy runs first, followed by compute fini.
 	 */
 	file = fget(user_fd);
-	if (!file) {
+	if (!file || !hl_check_fd(file)) {
 		rc = -EBADF;
 		goto file_err;
 	}

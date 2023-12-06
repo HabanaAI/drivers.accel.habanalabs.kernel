@@ -793,6 +793,11 @@ static const struct file_operations hl_ops = {
 	.unlocked_ioctl = hl_ioctl,
 	.compat_ioctl = hl_ioctl
 };
+
+bool hl_check_fd(struct file *filp)
+{
+	return (filp->f_op == &hl_ops);
+}
 #endif /* !IS_ENABLED(CONFIG_DRM_ACCEL) */
 
 static const struct file_operations hl_ctrl_ops = {
