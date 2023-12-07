@@ -705,6 +705,10 @@ void hl_device_release(struct drm_device *ddev, struct drm_file *file_priv)
 
 	hdev->compute_ctx_in_release = 1;
 
+	/* SW-159137 TODO: remove dbg when issue solved */
+	dev_dbg(hdev->dev, "events when closing device: 0x%llx\n",
+				hpriv->notifier_event.events_mask);
+
 	if (!hl_hpriv_put(hpriv)) {
 		print_device_in_use_info(hdev, "User process closed FD but device still in use");
 		hl_device_reset(hdev, HL_DRV_RESET_HARD);
