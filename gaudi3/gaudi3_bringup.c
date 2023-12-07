@@ -138,6 +138,17 @@
 #define RR_HBW_PRIV_NUM_RANGES		7
 #define RR_HBW_PRIV_7_NUM_RANGES	1
 
+/*
+ * The reset value of RR_LBW_PRIV_RANGE_MAX_SHORT_13, RR_HBW_PRIV_RANGE_MAX_HI_7 and
+ * RR_HBW_PRIV_RANGE_MAX_LO_7 are 0x1FFFF000, 0xFFFFFFFF and 0xFFFFC000, respectively.
+ * The values are configured in both MAX and MIN registers in order to disable these RRs.
+ *
+ * "CFG_BAR_BASE - LBW_BASE" is subtracted from the LBW value, to compensate the addition of the
+ * same value by REG_OFF_TO_LBW_OFF() which is called in gaudi3_rtr_ctrl_config_rr().
+ */
+#define RR_LBW_PRIV_RANGE_SHORT_13_DISABLED_VAL		(0x1FFFF000 - (CFG_BAR_BASE - LBW_BASE))
+#define RR_HBW_PRIV_RANGE_7_DISABLED_VAL		0xFFFFFFFFFFFFC000ULL
+
 struct qm_sw_event_info {
 	enum hl_agg_component_type comp;
 	u32 instance;
@@ -7418,6 +7429,12 @@ static struct rr_range rr_lbw_priv_short_ranges[] = {
 
 /* configuration table for LBW "privileged short #13" range type */
 static struct rr_range rr_lbw_priv_short_13_ranges[] = {
+	{
+		.min = RR_LBW_PRIV_RANGE_SHORT_13_DISABLED_VAL,
+		.max = RR_LBW_PRIV_RANGE_SHORT_13_DISABLED_VAL,
+		.rd = false,
+		.wr = false
+	},
 };
 
 /* configuration table for LBW "privileged" range type */
@@ -7486,6 +7503,12 @@ static struct rr_range rr_hbw_priv_ranges[] = {
 
 /* configuration table for HBW "privileged #7" range type */
 static struct rr_range rr_hbw_priv_7_ranges[] = {
+	{
+		.min = RR_HBW_PRIV_RANGE_7_DISABLED_VAL,
+		.max = RR_HBW_PRIV_RANGE_7_DISABLED_VAL,
+		.rd = false,
+		.wr = false
+	},
 };
 
 /* verify no overflow in privileged HBW ranges */
