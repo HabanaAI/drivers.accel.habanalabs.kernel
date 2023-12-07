@@ -8917,12 +8917,18 @@ int gaudi_ctx_init(struct hl_ctx *ctx)
 
 	rc = gaudi_internal_cb_pool_init(ctx->hdev, ctx);
 	if (rc)
-		return rc;
+		goto cn_ctx_fini;
 
 	rc = gaudi_restore_user_registers(ctx->hdev);
 	if (rc)
-		gaudi_internal_cb_pool_fini(ctx->hdev, ctx);
+		goto internal_cb_pool_fini;
 
+	return 0;
+
+internal_cb_pool_fini:
+	gaudi_internal_cb_pool_fini(ctx->hdev, ctx);
+cn_ctx_fini:
+	gaudi_cn_ctx_fini(ctx);
 	return rc;
 }
 
