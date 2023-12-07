@@ -2366,7 +2366,7 @@ static void gaudi3_init_edma_fw_config(struct hl_device *hdev)
 
 static void gaudi3_init_tpc_cfg_fw_config(struct hl_device *hdev, u32 reg_base)
 {
-	u32 sob_base_hi;
+	u32 sob_base_hi, clk_enable;
 
 	sob_base_hi = upper_32_bits(CFG_BAR_BASE + mmHD0_SYNC_MNGR_OBJS_BASE +
 					mmSOB_OBJS_SOB_OBJ_0_0);
@@ -2380,6 +2380,15 @@ static void gaudi3_init_tpc_cfg_fw_config(struct hl_device *hdev, u32 reg_base)
 	WREG32(reg_base + mmTPC_STALL_ON_ERR, FIELD_PREP(TPC_STALL_ON_ERR_STALL_ENABLE_M, 0x1));
 
 	WREG32(reg_base + mmTPC_TENSOR_SMT_PRIV, 0);
+
+	/* Set Debug clock enable, required for trace block programming.
+	 * BMON HBW programming requires DBG_CLK_OFF bit to be set as 0x0
+	 */
+	clk_enable = FIELD_PREP(TPC_CLK_EN_LBW_CFG_DIS_M, 0x0);
+	clk_enable |= FIELD_PREP(TPC_CLK_EN_DBG_CFG_DIS_M, 0x1);
+	clk_enable |= FIELD_PREP(TPC_CLK_EN_DBG_CLK_OFF_M, 0x0);
+
+	WREG32(reg_base + mmTPC_CLK_EN, clk_enable);
 }
 
 static void gaudi3_init_tpc_smt_fw_config(struct hl_device *hdev, u32 reg_base)
