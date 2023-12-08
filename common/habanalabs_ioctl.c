@@ -951,7 +951,7 @@ static int sec_attest_info(struct hl_fpriv *hpriv, struct hl_info_args *args)
 	if (!sec_attest_info)
 		return -ENOMEM;
 
-	info = kmalloc(sizeof(*info), GFP_KERNEL);
+	info = kzalloc(sizeof(*info), GFP_KERNEL);
 	if (!info) {
 		rc = -ENOMEM;
 		goto free_sec_attest_info;
@@ -973,7 +973,6 @@ static int sec_attest_info(struct hl_fpriv *hpriv, struct hl_info_args *args)
 	memcpy(&info->public_data, &sec_attest_info->public_data, sizeof(info->public_data));
 	memcpy(&info->certificate, &sec_attest_info->certificate, sizeof(info->certificate));
 	memcpy(&info->quote_sig, &sec_attest_info->quote_sig, sizeof(info->quote_sig));
-	memset(&info->pad0, 0, sizeof(info->pad0));
 
 	rc = copy_to_user(out, info,
 				min_t(size_t, max_size, sizeof(*info))) ? -EFAULT : 0;
