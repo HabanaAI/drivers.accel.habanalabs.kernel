@@ -10313,7 +10313,7 @@ static int gaudi3_test_pdma_access(struct hl_device *hdev)
 	job_params.size = test_params.transfer_size;
 	job_params.is_memset = false;
 	snprintf(job_params.job_str, HL_STR_MAX,
-		 "PDMA %u Channels Host --> %s",
+		 "%u PDMA channels Host --> %s",
 		 test_params.num_active_channels,
 		 (test_params.region_type == PCI_REGION_DRAM) ? "DRAM" : "SRAM");
 
@@ -10333,7 +10333,7 @@ static int gaudi3_test_pdma_access(struct hl_device *hdev)
 	job_params.src = test_params.device_va;
 	job_params.dst = test_params.host_va;
 	snprintf(job_params.job_str, HL_STR_MAX,
-		 "PDMA %u Channels %s --> Host",
+		 "%u PDMA channels %s --> Host",
 		 test_params.num_active_channels, is_dram_test ? "DRAM" : "SRAM");
 
 	gaudi3_trigger_all_pdma_channels(hdev, &job_params, &cq_params);
@@ -10351,7 +10351,7 @@ static int gaudi3_test_pdma_access(struct hl_device *hdev)
 	job_params.dst = test_params.device_va;
 	job_params.is_memset = true;
 	snprintf(job_params.job_str, HL_STR_MAX,
-		 "PDMA %u Channels clearing %s test area\n",
+		 "%u PDMA channels clearing %s\n",
 		 test_params.num_active_channels, is_dram_test ? "DRAM" : "SRAM");
 
 	gaudi3_trigger_all_pdma_channels(hdev, &job_params, &cq_params);
