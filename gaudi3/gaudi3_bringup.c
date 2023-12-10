@@ -2383,9 +2383,11 @@ static void gaudi3_init_tpc_cfg_fw_config(struct hl_device *hdev, u32 reg_base)
 
 	/* Set Debug clock enable, required for trace block programming.
 	 * BMON HBW programming requires DBG_CLK_OFF bit to be set as 0x0
+	 *
+	 * TODO: check why DBG_CFG_DIS should be also set to 0x0 (SW-167875).
 	 */
 	clk_enable = FIELD_PREP(TPC_CLK_EN_LBW_CFG_DIS_M, 0x0);
-	clk_enable |= FIELD_PREP(TPC_CLK_EN_DBG_CFG_DIS_M, 0x1);
+	clk_enable |= FIELD_PREP(TPC_CLK_EN_DBG_CFG_DIS_M, 0x0);
 	clk_enable |= FIELD_PREP(TPC_CLK_EN_DBG_CLK_OFF_M, 0x0);
 
 	WREG32(reg_base + mmTPC_CLK_EN, clk_enable);
