@@ -615,7 +615,7 @@ static const struct drm_driver hl_driver = {
 	.num_ioctls = ARRAY_SIZE(hl_drm_ioctls)
 };
 
-bool hl_check_fd(struct file *filep)
+bool hl_check_fd(struct file *filp)
 {
 	return (filp->f_op == &hl_fops);
 }
