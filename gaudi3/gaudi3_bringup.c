@@ -16,7 +16,8 @@
 #define GAUDI3_PLL_TIMEOUT_USEC		10000 /* 10ms */
 
 #define GAUDI3_D2D_DPHY_CTRL_POLL_INTERVAL_USEC	2000000		/* 2sec */
-#define GAUDI3_D2D_DPHY_CTRL_POLL_TIMEOUT_USEC	600000000ULL	/* 600sec */
+#define GAUDI3_D2D_DPHY_CTRL_POLL_TIMEOUT_USEC	6000000ULL	/* 6sec */
+#define GAUDI3_PLDM_D2D_DPHY_CTRL_POLL_TIMEOUT_USEC	600000000ULL	/* 600sec */
 
 #define GAUDI3_EU0_REDUN_CLK_EN		0xffff
 #define GAUDI3_EU1_REDUN_CLK_EN		0xffff
@@ -1667,6 +1668,7 @@ static void gaudi3_set_d2d_dphy_pll_lock_props(struct hl_device *hdev)
 
 static int gaudi3_d2d_psoc_dphy_fsm_init(struct hl_device *hdev)
 {
+	u64 timeout;
 	int rc;
 	u8 die;
 
@@ -1689,6 +1691,10 @@ static int gaudi3_d2d_psoc_dphy_fsm_init(struct hl_device *hdev)
 
 		poll_addr = gaudi3_get_spi_gw_addr(mmD0_PSOC_GLOBAL_CONF_BASE +
 				mmGLOBAL_CONF_DPHY_FSM_STS, die);
+		if (hdev->pldm)
+			timeout = GAUDI3_PLDM_D2D_DPHY_CTRL_POLL_TIMEOUT_USEC;
+		else
+			timeout = GAUDI3_D2D_DPHY_CTRL_POLL_TIMEOUT_USEC;
 
 		rc = hl_poll_timeout_elbi(
 				hdev,
@@ -1696,7 +1702,7 @@ static int gaudi3_d2d_psoc_dphy_fsm_init(struct hl_device *hdev)
 				reg_val,
 				(reg_val & 0x1),
 				GAUDI3_D2D_DPHY_CTRL_POLL_INTERVAL_USEC,
-				GAUDI3_D2D_DPHY_CTRL_POLL_TIMEOUT_USEC);
+				timeout);
 
 		if (rc) {
 			dev_err(hdev->dev, "Failed to get D2D FSM indication DONE on DIE%u (%d)\n",
