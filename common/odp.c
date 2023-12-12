@@ -34,7 +34,9 @@ static_assert(RA_SIMPLE_BACKWARD >= 0);
 static const uint64_t hmm_range_flags[HMM_PFN_FLAG_MAX] = {
 	(1 << 0), /* HMM_PFN_VALID */
 	(1 << 1), /* HMM_PFN_WRITE */
+#ifdef _HAS_HMM_PFN_DEVICE_PRIVATE
 	(1 << 2) /* HMM_PFN_DEVICE_PRIVATE */
+#endif
 };
 static const uint64_t hmm_range_values[HMM_PFN_VALUE_MAX] = {
 	0xfffffffffffffffeULL, /* HMM_PFN_ERROR */

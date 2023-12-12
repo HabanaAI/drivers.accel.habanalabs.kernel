@@ -286,6 +286,10 @@ ifneq ($(shell grep "hmm_pfn_to_page" include/linux/hmm.h > /dev/null 2>&1 && ec
 	ccflags-y += -D_HAS_HMM_PFN_TO_PAGE
 endif
 
+ifneq ($(shell grep "HMM_PFN_DEVICE_PRIVATE" include/linux/hmm.h > /dev/null 2>&1 && echo 1),)
+	ccflags-y += -D_HAS_HMM_PFN_DEVICE_PRIVATE
+endif
+
 ifneq ($(shell grep "bitmap_find_next_zero_area_off" include/linux/bitmap.h > /dev/null 2>&1 && echo 1),)
 	ccflags-y += -D_HAS_BITMAP_FIND_NEXT_ZERO_AREA_OFF
 endif
