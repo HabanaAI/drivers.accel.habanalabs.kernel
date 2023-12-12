@@ -5425,18 +5425,21 @@ err_exit:
 
 int gaudi3_sw_init(struct hl_device *hdev)
 {
+	struct asic_fixed_properties *prop = &hdev->asic_prop;
 	struct gaudi3_device *gaudi3;
 	int rc;
 
 	if (hdev->force_h9_single_die) {
-		hdev->tpc_mask &= BIT(NUM_OF_HDCORES_PER_DIE * NUM_OF_TPC_PER_HDCORE) - 1;
+		prop->tpc_enabled_mask &= BIT(NUM_OF_HDCORES_PER_DIE * NUM_OF_TPC_PER_HDCORE) - 1;
 		hdev->mme_mask &= BIT(NUM_OF_HDCORES_PER_DIE * NUM_OF_MME_PER_HDCORE) - 1;
 		hdev->pdma_ch_mask &= BIT(NUM_OF_PDMA_CH_PER_DIE) - 1;
-		hdev->edma_mask &= BIT((NUM_OF_HDCORES_PER_DIE / 2) * NUM_OF_EDMA_PER_HDCORE) - 1;
-		hdev->decoder_mask &= BIT(NUM_OF_HDCORES_PER_DIE * NUM_OF_DECODER_PER_HDCORE) - 1;
+		prop->edma_enabled_mask &=
+				BIT((NUM_OF_HDCORES_PER_DIE / 2) * NUM_OF_EDMA_PER_HDCORE) - 1;
+		prop->decoder_enabled_mask &=
+				BIT(NUM_OF_HDCORES_PER_DIE * NUM_OF_DECODER_PER_HDCORE) - 1;
 		hdev->sched_arc_mask &= BIT(NUM_OF_HDCORES_PER_DIE * NUM_ARC_SCHED_PER_HDCORE) - 1;
-		hdev->rotator_mask &= BIT((NUM_OF_HDCORES_PER_DIE / 2) * NUM_OF_ROTATOR_PER_HDCORE)
-									- 1;
+		prop->rotator_enabled_mask &=
+				BIT((NUM_OF_HDCORES_PER_DIE / 2) * NUM_OF_ROTATOR_PER_HDCORE) - 1;
 
 		dev_dbg(hdev->dev, "Running in force single die mode, engine masks are:\n");
 		dev_dbg(hdev->dev, "TPC 0x%llX, MME 0x%X, PDMA 0x%llX, EDMA 0x%X\n",
