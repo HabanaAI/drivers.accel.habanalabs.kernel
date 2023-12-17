@@ -12457,6 +12457,11 @@ static void gaudi3_sei_razwi_handler_no_fw(struct hl_device *hdev,
 					event_mask);
 		break;
 
+	case INT_COMP_TYPE_NIC:
+		gaudi3_razwi_handler(hdev, RAZWI_NIC, die, hdcore, initiator_idx, eng_id,
+					event_mask);
+		break;
+
 	case INT_COMP_TYPE_PCIE:
 		gaudi3_razwi_handler(hdev, RAZWI_PIF, die, hdcore, initiator_idx, eng_id,
 					event_mask);
@@ -13820,6 +13825,10 @@ static void gaudi3_sei_razwi_handler(struct hl_device *hdev, struct hl_eq_dynami
 		default:
 			break;
 		}
+		break;
+
+	case INT_COMP_TYPE_NIC:
+		gaudi3_handle_razwi(hdev, &eq->nic_sei_data.rtr_data, eng_id, event_mask);
 		break;
 
 	case INT_COMP_TYPE_PARC:
