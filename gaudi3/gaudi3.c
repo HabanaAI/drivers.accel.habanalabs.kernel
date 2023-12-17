@@ -4435,9 +4435,10 @@ static int gaudi3_memset_device_memory(struct hl_device *hdev, u64 addr, u64 siz
 int gaudi3_scrub_device_dram(struct hl_device *hdev, u64 val)
 {
 	struct asic_fixed_properties *prop = &hdev->asic_prop;
-	u64 size = hdev->pldm ? 0x10000 : prop->dram_size;
+	u64 size;
 	int rc;
 
+	size = hdev->pldm ? 0x10000 : prop->dram_end_address - prop->dram_user_base_address;
 	rc = gaudi3_memset_device_memory(hdev, prop->dram_user_base_address, size, val,
 						"DRAM scrub");
 	if (rc)
