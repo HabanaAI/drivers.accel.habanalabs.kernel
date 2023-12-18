@@ -5914,9 +5914,9 @@ static int gaudi3_config_etr(struct hl_device *hdev, struct hl_ctx *ctx,
 	if (params->output_size >= sizeof(u64))
 		*(u64 *)params->output = 0x0;
 
-	/* on pldm, single die image need to ignore etr configuration on die 1 */
-	if (hdev->pldm && prop->num_of_dies < 2 &&
-		(etr_idx == GAUDI3_D1_PSOC_ETR || etr_idx == GAUDI3_D1_NCH_ETR))
+	/* single die image need to ignore etr configuration on die 1 */
+	if (prop->num_of_dies < 2 &&
+	    (etr_idx == GAUDI3_D1_PSOC_ETR || etr_idx == GAUDI3_D1_NCH_ETR))
 		return 0;
 
 	switch (etr_idx) {
@@ -6086,9 +6086,12 @@ static int gaudi3_fetch_trace(struct hl_device *hdev, struct hl_debug_params *pa
 		return -EINVAL;
 
 	etr_idx = input->etr_id;
+	/* If ETR index is not in range assume trace is stopped for requested ETR
+	 * Good for single die Image.
+	 */
 	if (etr_idx < 0 || etr_idx >= prop->etr_buf_number) {
-		dev_err(hdev->dev, "Invalid buffer ETR number %d\n", input->etr_id);
-		return -EINVAL;
+		*output = HL_DEBUG_FETCH_STATUS_STOPPED;
+		return 0;
 	}
 
 	if (input->buffer_size < half_buf_size)
@@ -6440,6 +6443,9 @@ int gaudi3_debug_coresight(struct hl_device *hdev, struct hl_ctx *ctx, void *dat
 		return -EINVAL;
 	}
 
+	/* need to add dummy read */
+	RREG32(mmD0_PSOC_ETR_BASE + mmETR_RWP);
+
 	return rc;
 }
 
@@ -6451,13 +6457,12 @@ void gaudi3_halt_coresight(struct hl_device *hdev, struct hl_ctx *ctx)
 
 	params.input = &input;
 	/* in pldm attempting to access stubbed etfs can cause problems */
-	if (!hdev->pldm)
-		for (i = GAUDI3_ETF_FIRST ; i <= GAUDI3_ETF_LAST ; i++) {
-			params.reg_idx = i;
-			rc = gaudi3_config_etf(hdev, &params);
-			if (rc)
-				dev_err(hdev->dev, "halt ETF failed, %d/%d\n", rc, i);
-		}
+	for (i = GAUDI3_ETF_FIRST ; i <= GAUDI3_ETF_LAST ; i++) {
+		params.reg_idx = i;
+		rc = gaudi3_config_etf(hdev, &params);
+		if (rc)
+			dev_err(hdev->dev, "halt ETF failed, %d/%d\n", rc, i);
+	}
 
 	/* close all etrs (GAUDI3_NUM_ETR) */
 	for (input.pad = 0 ; input.pad < GAUDI3_NUM_ETR ; input.pad++) {
