@@ -77,8 +77,8 @@ static u64 hl_set_dram_bar(struct hl_device *hdev, u64 addr, struct pci_mem_regi
 		bar_base_addr = addr & ~(prop->dram_pci_bar_size - 0x1ull);
 	else
 		bar_base_addr = region->region_base +
-			DIV_ROUND_DOWN_ULL((addr - region->region_base), prop->dram_pci_bar_size) *
-			prop->dram_pci_bar_size;
+				div64_u64((addr - region->region_base), prop->dram_pci_bar_size) *
+				prop->dram_pci_bar_size;
 
 	old_base = hdev->asic_funcs->set_dram_bar_base(hdev, bar_base_addr);
 
