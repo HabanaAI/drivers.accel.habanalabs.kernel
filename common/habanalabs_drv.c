@@ -1048,29 +1048,29 @@ static void set_driver_behavior_per_device(struct hl_device *hdev)
 		break;
 
 	case ASIC_GAUDI3:
-		hdev->dram_enable = 0;
-		hdev->fw_components = 0;
+		hdev->dram_enable = 1;
+		hdev->fw_components = FW_TYPE_BOOT_CPU | FW_TYPE_PREBOOT_CPU;
 		hdev->security_enable = 1;
-		hdev->tpc_mask = 0;
-		hdev->mme_mask = 0;
+		hdev->tpc_mask = 0xFFFFFFFFFFFFFFFFULL;
+		hdev->mme_mask = 0xFF;
 		hdev->pdma_ch_mask = 0xFFFFFF;
-		hdev->edma_mask = 0x0;
-		hdev->hard_reset_on_fw_events = 0;
-		hdev->decoder_mask = 0;
+		hdev->edma_mask = 0xFF;
+		hdev->hard_reset_on_fw_events = 1;
+		hdev->decoder_mask = 0xFFFF;
 		hdev->dram_binning = 0x0;
 		hdev->edma_binning = 0x0;
 		hdev->tpc_binning = 0x0;
 		hdev->decoder_binning = 0x0;
-		hdev->scrub_arc_dccm = 0;
+		hdev->scrub_arc_dccm = 1;
 		hdev->axi_drain = AXI_DRAIN_SKIP;
-		hdev->fw_communication_enable = 0;
+		hdev->fw_communication_enable = 1;
 		hdev->sched_arc_mask = 0xFFFF;
-		hdev->rotator_mask = 0x0;
+		hdev->rotator_mask = 0xFF;
 		hdev->priv_security_enable = 0;
 		hdev->cache_enable = 1;
 		hdev->ptw_bypass_enable = 1;
 		hdev->rotator_binning = 0;
-		hdev->hbm_compression_enable = 1;
+		hdev->hbm_compression_enable = 0;
 		break;
 
 	case ASIC_GAUDI3_SIM:
