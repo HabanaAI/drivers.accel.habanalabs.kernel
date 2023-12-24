@@ -8144,6 +8144,97 @@ void gaudi3_set_dynamic_dram_properties(struct hl_device *hdev)
 			roundup(prop->reserved_fw_mem_size, prop->dram_page_size);
 }
 
+static void gaudi3_qman_sanity_test(struct hl_device *hdev, int hdcore, int inst, u32 offset,
+					struct iterate_module_ctx *ctx)
+{
+	u32 reg_base = mmHD0_TPC0_QM_BASE + offset, written_val, read_val;
+
+	written_val = FIELD_PREP(QMAN_GLBL_CFG0_CQF_EN_M, 0x1) |
+			FIELD_PREP(QMAN_GLBL_CFG0_ARC_CQF_EN_M, 0x1) |
+			FIELD_PREP(QMAN_GLBL_CFG0_CP_EN_M, 0x1);
+	WREG32(reg_base + mmQMAN_GLBL_CFG0, written_val);
+	read_val = RREG32(reg_base + mmQMAN_GLBL_CFG0);
+	if (read_val != written_val) {
+		dev_err(hdev->dev, "HD%u_TPC%u_QM.GLBL_CFG0: wrote %#x but read %#x\n",
+			hdcore, inst, written_val, read_val);
+		goto err;
+	}
+
+	written_val = 0x0;
+	WREG32(reg_base + mmQMAN_GLBL_CFG0, written_val);
+	read_val = RREG32(reg_base + mmQMAN_GLBL_CFG0);
+	if (read_val != written_val) {
+		dev_err(hdev->dev, "HD%u_TPC%u_QM.GLBL_CFG0: wrote %#x but read %#x\n",
+			hdcore, inst, written_val, read_val);
+		goto err;
+	}
+
+	return;
+
+err:
+	ctx->rc = -EIO;
+}
+
+static int __gaudi3_tpc_unit_reset_workaround(struct hl_device *hdev)
+{
+	struct iterate_module_ctx iter_ctx = { .fn = gaudi3_qman_sanity_test };
+	struct asic_fixed_properties *prop = &hdev->asic_prop;
+	u32 psoc_reset_conf_base;
+	int die;
+
+	/* Configure unit reset to include 32 TPC + 6 TPC_DIV + 2 TPC EXTRA instances per-die */
+	for (die = 0 ; die < prop->num_of_dies; ++die) {
+		psoc_reset_conf_base = mmD0_PSOC_RESET_CONF_BASE + die * DIE_OFFSET;
+		WREG32(psoc_reset_conf_base + mmPSOC_RESET_CONF_TPC_UNIT_RST, 0xFFFFFFFF);
+		WREG32(psoc_reset_conf_base + mmPSOC_RESET_CONF_TPC_DIV_UNIT_RST, 0x3F);
+		WREG32(psoc_reset_conf_base + mmPSOC_RESET_CONF_TPC_ECLS_UNIT_RST, 0x3);
+	}
+
+	RREG32(hdev->asic_prop.pcie_flush_reg_addr);
+
+	/* Perform unit reset (first die1 and then die0, as in soft/hard reset) */
+	for (die = (prop->num_of_dies - 1) ; die >= 0 ; --die) {
+		psoc_reset_conf_base = mmD0_PSOC_RESET_CONF_BASE + die * DIE_OFFSET;
+		WREG32(psoc_reset_conf_base + mmPSOC_RESET_CONF_UNIT_RST_N, 1);
+		usleep_range(1000, 2000);
+		WREG32(psoc_reset_conf_base + mmPSOC_RESET_CONF_UNIT_RST_N, 0);
+		usleep_range(1000, 2000);
+	}
+
+	for (die = 0 ; die < prop->num_of_dies; ++die) {
+		psoc_reset_conf_base = mmD0_PSOC_RESET_CONF_BASE + die * DIE_OFFSET;
+		WREG32(psoc_reset_conf_base + mmPSOC_RESET_CONF_TPC_UNIT_RST, 0x0);
+		WREG32(psoc_reset_conf_base + mmPSOC_RESET_CONF_TPC_DIV_UNIT_RST, 0x0);
+		WREG32(psoc_reset_conf_base + mmPSOC_RESET_CONF_TPC_ECLS_UNIT_RST, 0x0);
+	}
+
+	/* Test access to TPC QM registers */
+	gaudi3_iterate_tpcs(hdev, &iter_ctx);
+
+	return iter_ctx.rc;
+}
+
+static int gaudi3_tpc_unit_reset_workaround(struct hl_device *hdev)
+{
+	u32 i, unit_reset_attempts = 10;
+	int rc = 0;
+
+	if (hdev->pldm)
+		return 0;
+
+	for (i = 0 ; i < unit_reset_attempts ; ++i) {
+		rc = __gaudi3_tpc_unit_reset_workaround(hdev);
+		if (!rc) {
+			dev_dbg(hdev->dev,
+				"the TPC unit reset workaround has succeeded after %u attempt%s\n",
+				i + 1, (i + 1) > 1 ? "s" : "");
+			break;
+		}
+	}
+
+	return rc;
+}
+
 static int gaudi3_hw_init(struct hl_device *hdev)
 {
 	struct gaudi3_device *gaudi3 = hdev->asic_specific;
@@ -8202,6 +8293,11 @@ static int gaudi3_hw_init(struct hl_device *hdev)
 	 * size which is set after cpu init.
 	 */
 	gaudi3_set_dynamic_dram_properties(hdev);
+
+	/* TODO: remove when TPC QM issue is resolved (SIV-3058) */
+	rc = gaudi3_tpc_unit_reset_workaround(hdev);
+	if (rc)
+		dev_err(hdev->dev, "the TPC unit reset workaround has failed\n");
 
 	gaudi3_hw_init_fw_config(hdev);
 

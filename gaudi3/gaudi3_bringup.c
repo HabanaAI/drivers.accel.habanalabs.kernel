@@ -2177,10 +2177,16 @@ void gaudi3_set_isolation(struct hl_device *hdev, bool isolate_engines, bool iso
 
 void gaudi3_init_arc(struct hl_device *hdev, u32 cpu_id)
 {
+	bool force_drv_cfg = false;
 	u32 reg_base, reg_val;
 
+	/* TODO: remove when TPC QM issue is resolved (SIV-3058) */
+	if (hdev->pdev && !hdev->pldm &&
+			(cpu_id >= CPU_ID_TPC_QMAN_ARC0 && cpu_id <= CPU_ID_TPC_QMAN_ARC63))
+		force_drv_cfg = true;
+
 	/* skip arc init if already done by FW */
-	if (hdev->fw_components & FW_TYPE_BOOT_CPU)
+	if ((hdev->fw_components & FW_TYPE_BOOT_CPU) && !force_drv_cfg)
 		return;
 
 	hdev->asic_funcs->set_priv_assertions(hdev, false);
@@ -3113,6 +3119,10 @@ void gaudi3_hw_init_fw_config(struct hl_device *hdev)
 	struct gaudi3_device *gaudi3 = hdev->asic_specific;
 	struct gaudi3_cn_aux_ops *aux_ops = &gaudi3->cn_aux_ops;
 	struct hl_aux_dev *aux_dev = &hdev->cn.cn_aux_dev;
+
+	/* TODO: remove when TPC QM issue is resolved (SIV-3058) */
+	if (hdev->pdev && !hdev->pldm)
+		gaudi3_init_tpc_fw_config(hdev);
 
 	if (hdev->fw_components & FW_TYPE_BOOT_CPU)
 		return;
