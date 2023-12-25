@@ -13416,6 +13416,12 @@ static u32 gaudi3_handle_nic_status_event(struct hl_device *hdev,
 	for (port = 0 ; port < NIC_NUMBER_OF_PORTS ; port++) {
 		if (!(mask & BIT(port)))
 			continue;
+
+		if (!(hdev->cn.ports_mask & BIT(port))) {
+			dev_err(hdev->dev, "port %d is disabled, can't send CN status\n", port);
+			continue;
+		}
+
 		rc = hl_cn_send_status(hdev, port, cmd, period);
 		if (rc)
 			return rc;
