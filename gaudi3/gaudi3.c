@@ -6373,25 +6373,30 @@ static void gaudi3_enable_timestamp(struct hl_device *hdev)
 	struct asic_fixed_properties *prop = &hdev->asic_prop;
 
 	if (prop->num_of_dies == 2) {
-		/* Disable the timestamp counter on die 1*/
+		/* Disable the timestamp counter on die 1 */
 		WREG32(mmD1_PSOC_TIMESTAMP_BASE, 0);
 
 		/* Zero the lower/upper parts of the 64-bit counter */
 		WREG32(mmD1_PSOC_TIMESTAMP_BASE + 0xC, 0);
 		WREG32(mmD1_PSOC_TIMESTAMP_BASE + 0x8, 0);
-
-		/* Enable the counter  on die 1*/
-		WREG32(mmD1_PSOC_TIMESTAMP_BASE, 1);
 	}
 
-	/* Disable the timestamp counter  on die 0*/
+	/* Disable the timestamp counter on die 0 */
 	WREG32(mmD0_PSOC_TIMESTAMP_BASE, 0);
 
 	/* Zero the lower/upper parts of the 64-bit counter */
 	WREG32(mmD0_PSOC_TIMESTAMP_BASE + 0xC, 0);
 	WREG32(mmD0_PSOC_TIMESTAMP_BASE + 0x8, 0);
 
-	/* Enable the counter  on die 0*/
+	/* Dummy Read to flush all writes */
+	RREG32(mmD0_PSOC_TIMESTAMP_BASE + 0x8);
+
+	/* Enable counter together - so that both DIEs timestamps will be as closer as possible */
+	if (prop->num_of_dies == 2) {
+		/* Enable the counter  on die 1 */
+		WREG32(mmD1_PSOC_TIMESTAMP_BASE, 1);
+	}
+	/* Enable the counter  on die 0 */
 	WREG32(mmD0_PSOC_TIMESTAMP_BASE, 1);
 }
 
