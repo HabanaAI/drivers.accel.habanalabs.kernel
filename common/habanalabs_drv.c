@@ -1057,7 +1057,8 @@ static void set_driver_behavior_per_device(struct hl_device *hdev)
 		hdev->mme_mask = 0xFF;
 		hdev->pdma_ch_mask = 0xFFFFFF;
 		hdev->edma_mask = 0xFF;
-		hdev->hard_reset_on_fw_events = 1;
+		/* TODO: enable when SEI interrupts at boot/reset are cleared (SW-169793) */
+		hdev->hard_reset_on_fw_events = 0;
 		hdev->decoder_mask = 0xFFFF;
 		hdev->dram_binning = 0x0;
 		hdev->edma_binning = 0x0;
