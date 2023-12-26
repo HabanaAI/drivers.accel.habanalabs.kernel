@@ -3545,6 +3545,9 @@ void gaudi3_set_dram_binning_masks(struct hl_device *hdev)
 	struct asic_fixed_properties *prop = &hdev->asic_prop;
 	u32 max_hbms, hbm_full_mask;
 
+	if (!hdev->dram_enable)
+		return;
+
 	max_hbms = NUM_HBM_PER_DIE * prop->num_of_dies;
 	hbm_full_mask = GENMASK(max_hbms, 0);
 
@@ -3841,6 +3844,10 @@ int gaudi3_set_fixed_properties(struct hl_device *hdev)
 		prop->dram_user_base_address = 0;
 		prop->dram_supports_virtual_memory = false;
 	}
+
+	rc = hdev->asic_funcs->set_binning_masks(hdev);
+	if (rc)
+		goto free_hw_queues_props;
 
 	if (hdev->pldm)
 		prop->mmu_pgt_size = 0x800000; /* 8MB */
