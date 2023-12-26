@@ -965,6 +965,8 @@ static void set_driver_behavior_per_device(struct hl_device *hdev)
 	if (hdev->bringup_flags_enable)
 		return;
 
+	hdev->cn.skip_phy_init = 0;
+
 	switch (hdev->asic_type) {
 	case ASIC_GAUDI2_SIM:
 	case ASIC_GAUDI2B_SIM:
@@ -1071,6 +1073,7 @@ static void set_driver_behavior_per_device(struct hl_device *hdev)
 		hdev->ptw_bypass_enable = 1;
 		hdev->rotator_binning = 0;
 		hdev->hbm_compression_enable = 0;
+		hdev->cn.skip_phy_init = 1;
 		break;
 
 	case ASIC_GAUDI3_SIM:
@@ -1250,7 +1253,6 @@ static void set_driver_behavior_per_device(struct hl_device *hdev)
 	hdev->bmu_enable = 1;
 	hdev->cn.eth_on_internal = 0;
 	hdev->config_qman_arc_for_stub_mme = 0;
-	hdev->cn.skip_phy_init = 0;
 	hdev->odp_enabled = 1;
 	hdev->pci_rev_id_override = 0;
 	hdev->debug_wreg = 1;
