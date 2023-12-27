@@ -7606,10 +7606,18 @@ int gaudi3_init_security_privileged(struct hl_device *hdev)
 {
 	int rc;
 
-	if (!hdev->priv_security_enable || hdev->asic_prop.fw_security_enabled)
+	/*
+	 * TODO:
+	 * Unify the 2 if statements and place them here once hl_iterate_special_blocks() supports
+	 * single die (SW-169903).
+	 */
+	if (hdev->asic_prop.fw_security_enabled)
 		return 0;
 
 	gaudi3_init_lbw_hbw_range_registers_privileged(hdev);
+
+	if (!hdev->priv_security_enable)
+		return 0;
 
 	rc = hl_init_pb_security(hdev, true);
 	if (rc) {
