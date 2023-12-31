@@ -205,6 +205,7 @@
 #include "sb_masks.h"
 #include "acc_masks.h"
 #include "cache_err_masks.h"
+#include "parc_global_conf_masks.h"
 #include "psoc_global_conf2_masks.h"
 
 #define BMON_BASE_OFFSET		(mmHD0_TPC0_CS_DBG_BMON1_BASE - \

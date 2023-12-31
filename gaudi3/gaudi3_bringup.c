@@ -1517,7 +1517,17 @@ static int gaudi3_init_axi_drain(struct hl_device *hdev)
 		if (rc)
 			return rc;
 
-		/* TDOD: add PSOC axi drain configuration */
+		/* PARC HBW */
+		WREG32(mmD0_PARC_GLOBAL_CONF_BASE + mmPARC_GLOBAL_CONF_MST_HBW_DRAIN_TIMEOUT,
+				HBW_DRAIN_TIMEOUT);
+		RMWREG32(mmD0_PARC_GLOBAL_CONF_BASE + mmPARC_GLOBAL_CONF_MST_HBW_DRAIN_CFG, 0x1,
+				PARC_GLOBAL_CONF_MST_HBW_DRAIN_CFG_EN_M);
+
+		/* PARC LBW */
+		WREG32(mmD0_PARC_GLOBAL_CONF_BASE + mmPARC_GLOBAL_CONF_MST_LBW_DRAIN_TIMEOUT,
+				LBW_DRAIN_TIMEOUT);
+		RMWREG32(mmD0_PARC_GLOBAL_CONF_BASE + mmPARC_GLOBAL_CONF_MST_LBW_DRAIN_CFG, 0x1,
+				PARC_GLOBAL_CONF_MST_LBW_DRAIN_CFG_EN_M);
 
 	} else if (hdev->axi_drain == AXI_DRAIN_DISABLED) {
 		/* PCIE HBW */
@@ -1540,7 +1550,13 @@ static int gaudi3_init_axi_drain(struct hl_device *hdev)
 		if (rc)
 			return rc;
 
-		/* TDOD: add PSOC axi drain configuration */
+		/* PARC HBW */
+		RMWREG32(mmD0_PARC_GLOBAL_CONF_BASE + mmPARC_GLOBAL_CONF_MST_HBW_DRAIN_CFG, 0x0,
+				PARC_GLOBAL_CONF_MST_HBW_DRAIN_CFG_EN_M);
+
+		/* PARC LBW */
+		RMWREG32(mmD0_PARC_GLOBAL_CONF_BASE + mmPARC_GLOBAL_CONF_MST_LBW_DRAIN_CFG, 0x0,
+				PARC_GLOBAL_CONF_MST_LBW_DRAIN_CFG_EN_M);
 	}
 
 	return 0;
