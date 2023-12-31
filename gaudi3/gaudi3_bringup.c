@@ -138,6 +138,9 @@
 #define RR_HBW_PRIV_NUM_RANGES		7
 #define RR_HBW_PRIV_7_NUM_RANGES	1
 
+#define HBW_DRAIN_TIMEOUT		0x1000
+#define LBW_DRAIN_TIMEOUT		0xF000
+
 /*
  * The reset value of RR_LBW_PRIV_RANGE_MAX_SHORT_13, RR_HBW_PRIV_RANGE_MAX_HI_7 and
  * RR_HBW_PRIV_RANGE_MAX_LO_7 are 0x1FFFF000, 0xFFFFFFFF and 0xFFFFC000, respectively.
@@ -1466,58 +1469,74 @@ static void gaudi3_set_pcie_security_level(struct hl_device *hdev)
 
 static int gaudi3_init_axi_drain(struct hl_device *hdev)
 {
+	u32 drain_cfg;
+	u64 addr;
 	int rc;
 
 	/* we don't access DIE1 PCIE_WRAP */
 	if (hdev->axi_drain == AXI_DRAIN_ENABLED) {
-		rc = hl_pci_elbi_write(hdev,
-				CFG_BAR_BASE + mmD0_PCIE_WRAP_BASE + mmPCIE_WRAP_HBW_DRAIN_TIMEOUT,
-				0x1000);
+		/* PCIE HBW */
+		addr = CFG_BAR_BASE + mmD0_PCIE_WRAP_BASE + mmPCIE_WRAP_HBW_DRAIN_TIMEOUT;
+		rc = hl_pci_elbi_write(hdev, addr, HBW_DRAIN_TIMEOUT);
 		if (rc)
 			return rc;
 
-		rc = hl_pci_elbi_write(hdev,
-				CFG_BAR_BASE + mmD0_PCIE_WRAP_BASE + mmPCIE_WRAP_HBW_DRAIN_CFG,
-				FIELD_PREP(PCIE_WRAP_HBW_DRAIN_CFG_EN_M, 0x1));
+		addr = CFG_BAR_BASE + mmD0_PCIE_WRAP_BASE + mmPCIE_WRAP_HBW_RSP_ERR_DRAIN_STAMP;
+		rc = hl_pci_elbi_write(hdev, addr,
+					FIELD_PREP(PCIE_WRAP_HBW_RSP_ERR_DRAIN_STAMP_EN_M, 0x1));
 		if (rc)
 			return rc;
 
-		rc = hl_pci_elbi_write(hdev,
-				CFG_BAR_BASE + mmD0_PCIE_WRAP_BASE +
-					mmPCIE_WRAP_HBW_RSP_ERR_DRAIN_STAMP,
-				FIELD_PREP(PCIE_WRAP_HBW_RSP_ERR_DRAIN_STAMP_EN_M, 0x1));
+		addr = CFG_BAR_BASE + mmD0_PCIE_WRAP_BASE + mmPCIE_WRAP_HBW_DRAIN_CFG;
+		rc = hl_pci_elbi_read(hdev, addr, &drain_cfg);
+		if (rc)
+			return rc;
+		drain_cfg |= FIELD_PREP(PCIE_WRAP_HBW_DRAIN_CFG_EN_M, 0x1);
+		rc = hl_pci_elbi_write(hdev, addr, drain_cfg);
 		if (rc)
 			return rc;
 
-		rc = hl_pci_elbi_write(hdev,
-				CFG_BAR_BASE + mmD0_PCIE_WRAP_BASE + mmPCIE_WRAP_LBW_DRAIN_TIMEOUT,
-				0xF000);
+		/* PCIE LBW */
+		addr = CFG_BAR_BASE + mmD0_PCIE_WRAP_BASE + mmPCIE_WRAP_LBW_DRAIN_TIMEOUT;
+		rc = hl_pci_elbi_write(hdev, addr, LBW_DRAIN_TIMEOUT);
 		if (rc)
 			return rc;
 
-		rc = hl_pci_elbi_write(hdev,
-				CFG_BAR_BASE + mmD0_PCIE_WRAP_BASE + mmPCIE_WRAP_LBW_DRAIN_CFG,
-				FIELD_PREP(PCIE_WRAP_LBW_DRAIN_CFG_EN_M, 0x1));
+		addr = CFG_BAR_BASE + mmD0_PCIE_WRAP_BASE + mmPCIE_WRAP_LBW_RSP_ERR_DRAIN_STAMP;
+		rc = hl_pci_elbi_write(hdev, addr,
+					FIELD_PREP(PCIE_WRAP_LBW_RSP_ERR_DRAIN_STAMP_EN_M, 0x1));
 		if (rc)
 			return rc;
 
-		rc = hl_pci_elbi_write(hdev,
-				CFG_BAR_BASE + mmD0_PCIE_WRAP_BASE +
-					mmPCIE_WRAP_LBW_RSP_ERR_DRAIN_STAMP,
-				FIELD_PREP(PCIE_WRAP_LBW_RSP_ERR_DRAIN_STAMP_EN_M, 0x1));
+		addr = CFG_BAR_BASE + mmD0_PCIE_WRAP_BASE + mmPCIE_WRAP_LBW_DRAIN_CFG;
+		rc = hl_pci_elbi_read(hdev, addr, &drain_cfg);
+		if (rc)
+			return rc;
+		drain_cfg |= FIELD_PREP(PCIE_WRAP_LBW_DRAIN_CFG_EN_M, 0x1);
+		rc = hl_pci_elbi_write(hdev, addr, drain_cfg);
 		if (rc)
 			return rc;
 
 		/* TDOD: add PSOC axi drain configuration */
 
 	} else if (hdev->axi_drain == AXI_DRAIN_DISABLED) {
-		rc = hl_pci_elbi_write(hdev,
-				CFG_BAR_BASE + mmD0_PCIE_WRAP_BASE + mmPCIE_WRAP_HBW_DRAIN_CFG, 0);
+		/* PCIE HBW */
+		addr = CFG_BAR_BASE + mmD0_PCIE_WRAP_BASE + mmPCIE_WRAP_HBW_DRAIN_CFG;
+		rc = hl_pci_elbi_read(hdev, addr, &drain_cfg);
+		if (rc)
+			return rc;
+		drain_cfg &= ~FIELD_PREP(PCIE_WRAP_HBW_DRAIN_CFG_EN_M, 0x1);
+		rc = hl_pci_elbi_write(hdev, addr, drain_cfg);
 		if (rc)
 			return rc;
 
-		rc = hl_pci_elbi_write(hdev,
-				CFG_BAR_BASE + mmD0_PCIE_WRAP_BASE + mmPCIE_WRAP_LBW_DRAIN_CFG, 0);
+		/* PCIE LBW */
+		addr = CFG_BAR_BASE + mmD0_PCIE_WRAP_BASE + mmPCIE_WRAP_LBW_DRAIN_CFG;
+		rc = hl_pci_elbi_read(hdev, addr, &drain_cfg);
+		if (rc)
+			return rc;
+		drain_cfg &= ~FIELD_PREP(PCIE_WRAP_LBW_DRAIN_CFG_EN_M, 0x1);
+		rc = hl_pci_elbi_write(hdev, addr, drain_cfg);
 		if (rc)
 			return rc;
 
