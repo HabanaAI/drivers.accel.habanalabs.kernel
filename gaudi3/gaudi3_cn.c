@@ -6,8 +6,8 @@
  */
 
 #include "gaudi3_cn.h"
-#include "../include/gaudi3/asic_reg/gaudi3_regs.h"
 #include "../include/hw_ip/nic/nic_general.h"
+#include "uapi/drm/habanalabs_accel.h"
 
 bool is_400g_mode(struct hl_device *hdev)
 {
@@ -357,14 +357,20 @@ int gaudi3_cn_set_info(struct hl_device *hdev, bool get_from_fw)
 	}
 
 	switch (serdes_type) {
-	/* TODO: SW-149834 - Handle each serdes type separately */
 	case HLS3_FULLSCALE_IN_SERDES_TYPE:
+		hdev->asic_prop.server_type = HL_SERVER_GAUDI3_HLS3_FULLSCALE_IN;
+		break;
 	case HLS3_FULLSCALE_OUT_SERDES_TYPE:
+		hdev->asic_prop.server_type = HL_SERVER_GAUDI3_HLS3_FULLSCALE_OUT;
+		break;
 	case HLS3_FULL_OAM_3PORTS_SCALE_OUT_SERDES_TYPE:
+		hdev->asic_prop.server_type = HL_SERVER_GAUDI3_HLS3_FULL_OAM_3PORTS_SCALE_OUT;
+		break;
 	case HLS3_FULL_OAM_6PORTS_SCALE_OUT_SERDES_TYPE:
+		hdev->asic_prop.server_type = HL_SERVER_GAUDI3_HLS3_FULL_OAM_6PORTS_SCALE_OUT;
+		break;
 	case HLS3_SINGLEPORT_OAM_FULLSCALE_OUT_SERDES_TYPE:
-	case HLS3_SERDES_TYPE:
-		hdev->asic_prop.server_type = HL_SERVER_GAUDI3_HLS3;
+		hdev->asic_prop.server_type = HL_SERVER_GAUDI3_HLS3_SINGLEPORT_OAM_FULLSCALE_OUT;
 		break;
 	default:
 		hdev->asic_prop.server_type = HL_SERVER_TYPE_UNKNOWN;
