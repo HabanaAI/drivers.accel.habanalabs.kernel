@@ -977,4 +977,12 @@ static inline bool xa_empty(struct xarray *xa)
 struct class *hl_class_create(const char *name);
 #endif
 
+#ifndef _HAS_IRQ_AFFINITY_NEW_INTERFACE
+static inline int
+irq_set_affinity_and_hint(unsigned int irq, const struct cpumask *m)
+{
+	return irq_set_affinity_hint(irq, m);
+}
+#endif /* !_HAS_IRQ_AFFINITY_NEW_INTERFACE */
+
 #endif /* HABANALABS_COMPAT_H_ */

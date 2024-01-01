@@ -413,3 +413,7 @@ endif
 ifneq ($(shell grep "pci_enable_pcie_error_reporting" include/linux/aer.h > /dev/null 2>&1 && echo 1),)
 	ccflags-y += -D_HAS_PCI_ENABLE_PCIE_ERROR_REPORTING
 endif
+
+ifneq ($(shell grep "irq_set_affinity_and_hint" include/linux/interrupt.h > /dev/null 2>&1 && echo 1),)
+	ccflags-y += -D_HAS_IRQ_AFFINITY_NEW_INTERFACE
+endif
