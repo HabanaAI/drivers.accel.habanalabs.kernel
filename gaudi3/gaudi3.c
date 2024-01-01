@@ -13644,9 +13644,11 @@ static void gaudi3_set_reset_flags_and_event_mask(struct hl_device *hdev,
 		compute_reset = true;
 		break;
 	case INT_COMP_TYPE_NIC:
-		/* NIC SPI events are not errors. */
-		/* TODO: re-enable when NIC SEI interrupt after reset is cleared (SW-151293) */
-		if (0 && agg_grp_type == INT_GRP_TYPE_SEI) {
+		/* NIC SPI events are not errors.
+		 * As to the PLDM exception, see H9-5611
+		 */
+		/* TODO - SW-169793: Validate that this doesn't happen on ASIC */
+		if (agg_grp_type == INT_GRP_TYPE_SEI && !hdev->pldm) {
 			*event_mask = HL_NOTIFIER_EVENT_USER_ENGINE_ERR;
 			hard_reset = true;
 		}
