@@ -140,55 +140,78 @@ static void gaudi2_cn_set_hw_cap(struct hl_device *hdev, bool enable)
 		gaudi2->hw_cap_initialized &= ~HW_CAP_NIC_DRV;
 }
 
-static uint64_t gaudi2_cn_override_ports_ext_mask(struct hl_device *hdev)
+/**
+ * gaudi2_cn_override_ports_ext_mask() - Returns the external ports mask.
+ * @hdev: Hl device whose external ports mask to return.
+ * @ports_ext_mask: Out, the external ports mask.
+ *
+ * Return: 0 on success, negative error code otherwise.
+ */
+static int gaudi2_cn_override_ports_ext_mask(struct hl_device *hdev, uint64_t *ports_ext_mask)
 {
 	/* For asic type GAUDI2B, the external ports mask shouldn't be changed */
-	if (hdev->asic_type == ASIC_GAUDI2B)
-		return hdev->cn.ports_ext_mask;
+	if (hdev->asic_type == ASIC_GAUDI2B) {
+		*ports_ext_mask = hdev->cn.ports_ext_mask;
+		return 0;
+	}
 
 	/* If we are running on a PCI card, all the ports should be set as external */
-	if (hdev->card_type == cpucp_card_type_pci)
-		return hdev->cn.ports_mask;
+	if (hdev->card_type == cpucp_card_type_pci) {
+		*ports_ext_mask = hdev->cn.ports_mask;
+		return 0;
+	}
 
 	switch (hdev->gaudi2_setup_type) {
 	case GAUDI2_SETUP_TYPE_HLS2:
 		/* For HLS2 setup type, the external ports mask shouldn't be changed */
-		return hdev->cn.ports_ext_mask;
+		*ports_ext_mask = hdev->cn.ports_ext_mask;
+		return 0;
 	case GAUDI2_SETUP_TYPE_HL225_S_EXT_LB:
 	case GAUDI2_SETUP_TYPE_HL325_S_EXT_LB:
 		/* For the above setup types, all the ports should be set as external */
-		return hdev->cn.ports_mask;
+		*ports_ext_mask = hdev->cn.ports_mask;
+		return 0;
 	case GAUDI2_SETUP_TYPE_HLS3:
 		/* For HLS3 setup type, the external ports mask is determined according to the
 		 * card location.
 		 */
 		switch (hdev->cn.card_location) {
 		case 0:
-			return 0x27FC00;
+			*ports_ext_mask = 0x27FC00;
+			return 0;
 		case 1:
-			return 0xC003FC;
+			*ports_ext_mask = 0xC003FC;
+			return 0;
 		case 2:
-			return 0xC003FC;
+			*ports_ext_mask = 0xC003FC;
+			return 0;
 		case 3:
-			return 0x27FC00;
+			*ports_ext_mask = 0x27FC00;
+			return 0;
 		case 4:
-			return 0x3FF000;
+			*ports_ext_mask = 0x3FF000;
+			return 0;
 		case 5:
-			return 0x0003FF;
+			*ports_ext_mask = 0x0003FF;
+			return 0;
 		case 6:
-			return 0x0003FF;
+			*ports_ext_mask = 0x0003FF;
+			return 0;
 		case 7:
-			return 0x3FF000;
+			*ports_ext_mask = 0x3FF000;
+			return 0;
 		default:
 			dev_dbg(hdev->dev, "Invalid card location %u\n", hdev->cn.card_location);
+			break;
 		}
 
 		break;
 	default:
 		dev_dbg(hdev->dev, "Invalid gaudi2_setup_type %u\n", hdev->gaudi2_setup_type);
+		break;
 	}
 
-	return hdev->cn.ports_ext_mask;
+	return -EINVAL;
 }
 
 static int gaudi2_cn_check_oui_prefix_validity(u8 *mac_addr)
@@ -347,7 +370,9 @@ int gaudi2_cn_set_info(struct hl_device *hdev, bool get_from_fw)
 		hdev->cn.auto_neg_mask &= ~hdev->cn.ports_ext_mask;
 	}
 
-	hdev->cn.ports_ext_mask = gaudi2_cn_override_ports_ext_mask(hdev);
+	rc = gaudi2_cn_override_ports_ext_mask(hdev, &hdev->cn.ports_ext_mask);
+	if (rc)
+		return rc;
 
 	if (hdev->card_type == cpucp_card_type_pci ||
 			hdev->gaudi2_setup_type != GAUDI2_SETUP_TYPE_HLS2)
