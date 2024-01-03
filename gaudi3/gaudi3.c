@@ -9940,11 +9940,19 @@ err_unreserve_va:
 	return rc;
 }
 
-static u32 gaudi3_err_cause_iterator(struct hl_device *hdev, u32 err_msk,
-					const char * const *err_tbl, char *initiator, char *type)
+static u32 __gaudi3_err_cause_iterator(struct hl_device *hdev, u32 err_msk,
+					const char * const *err_tbl, size_t err_tbl_size,
+					char *initiator, char *type)
 {
-	u32 err_idx = 0, err_cnt = 0;
+	u32 err_idx = 0, err_cnt = 0, err_tbl_mask = GENMASK(err_tbl_size - 1, 0);
 	char type_str[32] = "";
+
+	if (err_msk & ~err_tbl_mask)
+		dev_err_ratelimited(hdev->dev,
+				"error cause is %#x while error strings table has %zu entries (mask %#x)\n",
+				err_msk, err_tbl_size, err_tbl_mask);
+
+	err_msk &= err_tbl_mask;
 
 	if (type)
 		snprintf(type_str, sizeof(type_str), "%s ", type);
@@ -9962,16 +9970,21 @@ static u32 gaudi3_err_cause_iterator(struct hl_device *hdev, u32 err_msk,
 	return err_cnt;
 }
 
+#define gaudi3_err_cause_iterator(hdev, err_msk, err_tbl, initiator, type) \
+		__gaudi3_err_cause_iterator((hdev), (err_msk), (err_tbl), ARRAY_SIZE(err_tbl), \
+						(initiator), (type))
+
 static u32 gaudi3_handle_err_cause_reg(struct hl_device *hdev, u64 err_cause_reg, bool clear_err,
-					const char * const *err_tbl, char *initiator, char *type,
-					u32 err_ignore_msk)
+					const char * const *err_tbl, size_t err_tbl_size,
+					char *initiator, char *type, u32 err_ignore_msk)
 {
 	u32 err_cause_val = RREG32(err_cause_reg) & (~err_ignore_msk), err_cnt = 0;
 
 	if (!err_cause_val)
 		return 0;
 
-	err_cnt = gaudi3_err_cause_iterator(hdev, err_cause_val, err_tbl, initiator, type);
+	err_cnt = __gaudi3_err_cause_iterator(hdev, err_cause_val, err_tbl, err_tbl_size, initiator,
+						type);
 
 	if (clear_err)
 		WREG32(err_cause_reg, err_cause_val);
@@ -9995,8 +10008,8 @@ static void gaudi3_pdma_print_ch_sei_err(struct hl_device *hdev, u32 ch_idx)
 			"PDMA group=%u, PDMA channel (in group)=%u", grp_idx, ch_idx_in_grp);
 
 	gaudi3_handle_err_cause_reg(hdev, ch_err_cause_addr, false,
-			gaudi3_pdma_sei_err_cause, pdma_channel_name, "SEI",
-			ch_err_ignore_mask);
+				gaudi3_pdma_sei_err_cause, ARRAY_SIZE(gaudi3_pdma_sei_err_cause),
+				pdma_channel_name, "SEI", ch_err_ignore_mask);
 }
 
 static void gaudi3_pdma_print_ch_status(struct hl_device *hdev, u32 ch_idx)
