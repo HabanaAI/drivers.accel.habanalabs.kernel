@@ -3519,6 +3519,7 @@ void hl_enable_err_info_capture(struct hl_error_info *captured_err_info)
 
 void hl_init_cpu_for_irq(struct hl_device *hdev)
 {
+#ifdef CONFIG_NUMA
 	struct cpumask *available_mask = &hdev->irq_affinity_mask;
 	int numa_node = hdev->pdev->dev.numa_node, i;
 	static struct cpumask cpu_mask;
@@ -3534,6 +3535,7 @@ void hl_init_cpu_for_irq(struct hl_device *hdev)
 	/* Remove HT siblings */
 	for_each_cpu(i, &cpu_mask)
 		cpumask_set_cpu(cpumask_first(topology_sibling_cpumask(i)), available_mask);
+#endif
 }
 
 void hl_set_irq_affinity(struct hl_device *hdev, int irq)
