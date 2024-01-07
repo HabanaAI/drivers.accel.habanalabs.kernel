@@ -1146,9 +1146,6 @@ static void gaudi3_sim_set_isolation(struct hl_device *hdev, bool isolate_engine
 {
 	struct hl_simulator_device *edev = gaudi3_simulator_dev_table[hdev->id];
 
-	/* This redundant call is necessary because isolation depends on ASIC masks */
-	hdev->asic_funcs->set_binning_masks(hdev);
-
 	hl_sim_set_priv_assertions(edev, false);
 	gaudi3_set_isolation(hdev, isolate_engines, isolate_nic_and_hbm);
 	hl_sim_set_priv_assertions(edev, true);

@@ -3152,8 +3152,6 @@ void gaudi3_hw_init_fw_config(struct hl_device *hdev)
 	if (hdev->fw_components & FW_TYPE_BOOT_CPU)
 		return;
 
-	hdev->asic_funcs->set_binning_masks(hdev);
-
 	gaudi3_print_sol_config_version(hdev);
 	gaudi3_reset_config(hdev);
 	gaudi3_init_cslice(hdev);
