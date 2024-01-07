@@ -455,14 +455,14 @@ static struct hl_automated_pb_cfg gaudi3_priv_pb_cfg[] = GAUDI3_PRIV_PROTBITS_CF
  * Part of PSOC blocks cannot be accessed through PCIe, so need to skip.
  */
 static const int gaudi3_iterator_skip_block_types[] = {
-		GAUDI3_BLOCK_TYPE_ARC_FARM,
-		GAUDI3_BLOCK_TYPE_EU_BIST,
-		GAUDI3_BLOCK_TYPE_PSOC
+	GAUDI3_BLOCK_TYPE_ARC_FARM,
+	GAUDI3_BLOCK_TYPE_EU_BIST,
+	GAUDI3_BLOCK_TYPE_PSOC
 };
 
 static const struct range gaudi3_iterator_skip_special_blocks_ranges[] = {
-		/* DBG regions */
-		{mmHD0_TPC0_CS_DBG_ROM_TABLE_BASE, mmHD7_SCD_FUNNEL_BASE}
+	/* DBG regions */
+	{mmHD0_TPC0_CS_DBG_ROM_TABLE_BASE, mmHD7_SCD_FUNNEL_BASE}
 };
 
 /*
@@ -470,11 +470,13 @@ static const struct range gaudi3_iterator_skip_special_blocks_ranges[] = {
  * we don't want the automation to touch it.
  */
 static const struct range gaudi3_iterator_skip_pb_blocks_ranges[] = {
-		/* DBG regions */
-		{mmHD0_TPC0_CS_DBG_ROM_TABLE_BASE, mmHD7_SCD_FUNNEL_BASE},
-		/* KDMA channel */
-		{mmD0_SPDMA0_CH0_A_BASE, mmD0_SPDMA0_CH0_A_BASE},
-		{mmD0_SPDMA0_CH0_B_BASE, mmD0_SPDMA0_CH0_B_BASE}
+	/* DBG regions */
+	{mmHD0_TPC0_CS_DBG_ROM_TABLE_BASE, mmHD7_SCD_FUNNEL_BASE},
+	/* KDMA channel */
+	{mmD0_SPDMA0_CH0_A_BASE, mmD0_SPDMA0_CH0_A_BASE},
+	{mmD0_SPDMA0_CH0_B_BASE, mmD0_SPDMA0_CH0_B_BASE},
+	/* DIE1 PCIE/PIF */
+	{mmD1_PCIE_BMU_BASE, mmD1_PIF_DUMMY_LBW_BASE}
 };
 
 const u32 gaudi3_arc_blocks_bases[NUM_ACTIVE_ARCS] = {
