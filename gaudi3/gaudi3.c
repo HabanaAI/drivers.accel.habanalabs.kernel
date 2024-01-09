@@ -3791,7 +3791,7 @@ int gaudi3_set_fixed_properties(struct hl_device *hdev)
 	prop->dmmu.hop_table_size = HOP_TABLE_SIZE_1K_PTE;
 	prop->dmmu.hop0_tables_total_size = HOP0_1K_PTE_TABLES_TOTAL_SIZE;
 	prop->dmmu.last_mask = LAST_MASK;
-	prop->dmmu.host_resident = true; /* Support only host resident */
+	prop->dmmu.host_resident = false;
 
 	/* set the default supported pages mask. later user will also be able to configure it */
 	if (hdev->hmmu_supported_pages_mask)
@@ -3799,7 +3799,7 @@ int gaudi3_set_fixed_properties(struct hl_device *hdev)
 	else
 		prop->dmmu.supported_pages_mask = HMMU_DEFAULT_PAGE_SIZE_MASK;
 	prop->dmmu.page_size = BIT_ULL(__ffs(prop->dmmu.supported_pages_mask));
-	prop->dmmu.pgt_size = (hdev->pldm) ? 0x800000 : MMU_PAGE_TABLES_SIZE;
+	prop->dmmu.pgt_size = (hdev->pldm) ? 0x800000 : HMMU_PAGE_TABLES_SIZE;
 
 	/* bind HMMU props to the mmu_info structure */
 	hdev->hmmu_info.prop = &prop->dmmu;
@@ -3854,7 +3854,7 @@ int gaudi3_set_fixed_properties(struct hl_device *hdev)
 	if (hdev->pldm)
 		prop->mmu_pgt_size = 0x800000; /* 8MB */
 	else
-		prop->mmu_pgt_size = MMU_PAGE_TABLES_SIZE;
+		prop->mmu_pgt_size = PMMU_PAGE_TABLES_SIZE;
 
 	prop->mmu_pte_size = HL_PTE_SIZE;
 	prop->mmu_hop_table_size = HOP_TABLE_SIZE_512_PTE;
@@ -3952,7 +3952,18 @@ int gaudi3_set_fixed_properties(struct hl_device *hdev)
 	prop->reset_poll_timeout_us = hdev->pldm ? GAUDI3_PLDM_PREBOOT_RESET_POLL_TIMEOUT_USEC
 						: GAUDI3_RESET_POLL_TIMEOUT_USEC;
 
-	prop->nic_drv_size = NIC_DRV_SIZE;
+	prop->nic_drv_size = NIC_DRV_SIZE - HMMU_PAGE_TABLES_SIZE;
+
+	/*
+	 * We need to set mmu_pgt_addr here as it will be used in mmu init.
+	 * Currently FW is not using any HBM region, the reserved size is always 0.
+	 * So we dont need to wait for the cpu init.
+	 * To support reserving HBM for FW in the future, we'll keep calling
+	 * gaudi3_set_dynamic_dram_properties also in hw_init as we only get
+	 * the needed size at cpu_init.
+	 */
+	gaudi3_set_dynamic_dram_properties(hdev);
+
 	prop->macro_cfg_size = NIC_OFFSET;
 	prop->clk = GAUDI3_NIC_CLK_FREQ / USEC_PER_SEC;
 	cn_prop->status_packet_size = sizeof(struct cpucp_nic_status);
@@ -5625,7 +5636,7 @@ static int gaudi3_pmmu_update_hop0_addr(struct hl_device *hdev, bool host_reside
 			hop0_addr = hdev->mmu_priv.hr.mmu_asid_hop0[asid].phys_addr;
 		else
 			hop0_addr = prop->mmu_pgt_addr +
-					(asid * prop->mmu_hop_table_size);
+					(asid * prop->dmmu.hop_table_size);
 
 		rc = gaudi3_pmmu_update_asid_hop0_addr(hdev, asid, hop0_addr);
 		if (rc) {
@@ -5709,7 +5720,7 @@ static void gaudi3_hmmu_update_hop0_addr(struct hl_device *hdev)
 		max_asid = min((u32) 8, max_asid);
 
 	for (asid = 0 ; asid < max_asid ; asid++) {
-		u64 hop0_addr = hdev->hmmu_info.priv.hr.mmu_asid_hop0[asid].phys_addr;
+		u64 hop0_addr = prop->mmu_pgt_addr + asid * prop->dmmu.hop_table_size;
 		u32 hop0_pa_31_13 =
 			FIELD_GET(STLB_ASID_TBL_LSB_PA_31_13_M, lower_32_bits(hop0_addr));
 
@@ -8138,10 +8149,12 @@ void gaudi3_set_dynamic_dram_properties(struct hl_device *hdev)
 	if (!hdev->dram_enable)
 		return;
 
-	hbm_nic_base_offset = roundup(prop->reserved_fw_mem_size, prop->dram_page_size);
+	hbm_nic_base_offset = prop->dmmu.pgt_size +
+				roundup(prop->reserved_fw_mem_size, prop->dram_page_size);
 	hbm_etr_offset = roundup(hbm_nic_base_offset + prop->nic_drv_size,
 			prop->dram_page_size);
 	prop->etr_bufs_dram_phys_base = prop->dram_base_address + hbm_etr_offset;
+
 	prop->etr_buf_dram_size_aligned = roundup(prop->etr_buf_dram_size, prop->dram_page_size);
 	etr_total_bufs_size = prop->etr_buf_dram_size_aligned * prop->etr_buf_number;
 	hbm_user_base_offset = roundup(hbm_etr_offset + etr_total_bufs_size,
@@ -8153,8 +8166,11 @@ void gaudi3_set_dynamic_dram_properties(struct hl_device *hdev)
 	 */
 	prop->dram_user_base_address = prop->dram_base_address +
 			roundup(hbm_user_base_offset, prop->dram_page_size);
-	prop->nic_drv_addr = DRAM_PHYS_BASE +
+
+	prop->mmu_pgt_addr = DRAM_PHYS_BASE +
 			roundup(prop->reserved_fw_mem_size, prop->dram_page_size);
+
+	prop->nic_drv_addr = prop->mmu_pgt_addr + prop->dmmu.pgt_size;
 }
 
 static int gaudi3_hw_init(struct hl_device *hdev)
@@ -14768,6 +14784,33 @@ static void gaudi3_set_priv_assertions(struct hl_device *hdev, bool enable)
 {
 }
 
+static u64 gaudi3_read_pte(struct hl_device *hdev, u64 addr)
+{
+	u64 val;
+	int rc;
+
+	if (hdev->reset_info.hard_reset_pending)
+		return U64_MAX;
+
+	rc = hdev->asic_funcs->access_dev_mem(hdev, PCI_REGION_DRAM, addr, &val, DEBUGFS_READ64);
+	if (rc)
+		dev_err(hdev->dev, "failed to read pte\n");
+
+	return val;
+}
+
+static void gaudi3_write_pte(struct hl_device *hdev, u64 addr, u64 val)
+{
+	int rc;
+
+	if (hdev->reset_info.hard_reset_pending)
+		return;
+
+	rc = hdev->asic_funcs->access_dev_mem(hdev, PCI_REGION_DRAM, addr, &val, DEBUGFS_WRITE64);
+	if (rc)
+		dev_err(hdev->dev, "failed to write pte\n");
+}
+
 static const struct hl_asic_funcs gaudi3_funcs = {
 	.early_init = gaudi3_early_init,
 	.early_fini = gaudi3_early_fini,
@@ -14805,8 +14848,8 @@ static const struct hl_asic_funcs gaudi3_funcs = {
 	.add_device_attr = gaudi3_add_device_attr,
 	.handle_eqe = NULL,
 	.get_events_stat = gaudi3_get_events_stat,
-	.read_pte = NULL,
-	.write_pte = NULL,
+	.read_pte = gaudi3_read_pte,
+	.write_pte = gaudi3_write_pte,
 	.mmu_invalidate_cache = gaudi3_mmu_invalidate_cache,
 	.mmu_invalidate_cache_range = gaudi3_mmu_invalidate_cache_range,
 	.mmu_prefetch_cache_range = gaudi3_mmu_prefetch_cache_range,

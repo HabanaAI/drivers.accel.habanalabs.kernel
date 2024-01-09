@@ -338,43 +338,6 @@ not_mapped:
 	return -EINVAL;
 }
 
-/*
- * looking at HMMU specs we can see that code -> order (size) mapping is:
- * code		order	(size)
- * 0x0		20	(1M)
- * 0x1		21	(2M)
- * ...
- * 0xB		31	(2G)
- *
- * Note that 0x7 (i.e. 128MB page) is reserved but is already checked
- * in the flow so allowing it here to be more efficient.
- */
-static u64 hl_mmu_v3_hr_page_map_code_to_size(u32 code)
-{
-	u8 order = code + PAGE_SHIFT_1MB;
-
-	return BIT_ULL(order);
-}
-
-/* see doc of hl_mmu_v3_hr_page_map_code_to_size */
-static u32 hl_mmu_v3_hr_page_map_size_to_code(u64 size)
-{
-	u8 order = __ffs(size);
-
-	return order - PAGE_SHIFT_1MB;
-}
-
-static inline bool hl_mmu_v3_hr_is_valid_page_code(u8 code)
-{
-	return (code != TLB_PAGE_SIZE_INVALID) &&
-			(code <= HOP1_TLB_PAGE_SIZE_2G);
-}
-
-static inline bool hl_mmu_v3_hr_is_hop2_page_code(u32 code)
-{
-	return (code < HOP1_TLB_PAGE_SIZE_256M);
-}
-
 static int hl_mmu_v3_hr_map_page_in_chunks(struct hl_ctx *ctx, u64 virt_addr, u64 phys_addr,
 						u32 page_size)
 {
@@ -382,9 +345,9 @@ static int hl_mmu_v3_hr_map_page_in_chunks(struct hl_ctx *ctx, u64 virt_addr, u6
 	u64 mem_chunk_size;
 	int i, rc;
 
-	tlb_page_size_code = hl_mmu_v3_hr_page_map_size_to_code(page_size);
+	tlb_page_size_code = hl_mmu_v3_page_map_size_to_code(page_size);
 
-	if (hl_mmu_v3_hr_is_hop2_page_code(tlb_page_size_code)) {
+	if (hl_mmu_v3_is_hop2_page_code(tlb_page_size_code)) {
 		num_ptes = page_size >> PAGE_SHIFT_1MB;
 		mem_chunk_size = PAGE_SIZE_1MB;
 	} else {
@@ -470,7 +433,7 @@ static int hl_mmu_v3_hr_unmap(struct hl_ctx *ctx, u64 virt_addr, bool is_dram_ad
 
 	tlb_page_size_code = FIELD_GET(TLB_PAGE_SIZE_MASK, last_pte);
 
-	if (!hl_mmu_v3_hr_is_valid_page_code(tlb_page_size_code)) {
+	if (!hl_mmu_v3_is_valid_page_code(tlb_page_size_code)) {
 		dev_err(ctx->hdev->dev, "Invalid TLB page size: %u\n", tlb_page_size_code);
 		return -EFAULT;
 	}
@@ -479,8 +442,8 @@ static int hl_mmu_v3_hr_unmap(struct hl_ctx *ctx, u64 virt_addr, bool is_dram_ad
 	 * page size below 256MB is divided to 1MB bytes pages while page size from 256MB on
 	 * is divided to 256MB pages
 	 */
-	page_size = hl_mmu_v3_hr_page_map_code_to_size(tlb_page_size_code);
-	if (hl_mmu_v3_hr_is_hop2_page_code(tlb_page_size_code)) {
+	page_size = hl_mmu_v3_page_map_code_to_size(tlb_page_size_code);
+	if (hl_mmu_v3_is_hop2_page_code(tlb_page_size_code)) {
 		num_ptes = page_size >> PAGE_SHIFT_1MB;
 		mem_chunk_size = PAGE_SIZE_1MB;
 	} else {

@@ -4459,6 +4459,7 @@ void hl_mmu_v1_set_funcs(struct hl_device *hdev, struct hl_mmu_funcs *mmu);
 void hl_mmu_v2_set_funcs(struct hl_device *hdev, struct hl_mmu_funcs *mmu);
 void hl_mmu_v2_hr_set_funcs(struct hl_device *hdev, struct hl_mmu_funcs *mmu);
 void hl_mmu_v3_hr_set_funcs(struct hl_device *hdev, struct hl_mmu_funcs *mmu);
+void hl_mmu_v3_set_funcs(struct hl_device *hdev, struct hl_mmu_funcs *mmu);
 int hl_mmu_va_to_pa(struct hl_ctx *ctx, u64 virt_addr, u64 *phys_addr);
 int hl_mmu_get_tlb_info(struct hl_ctx *ctx, u64 virt_addr,
 			struct hl_mmu_hop_info *hops);
@@ -4481,6 +4482,13 @@ u64 hl_mmu_dr_alloc_hop(struct hl_ctx *ctx);
 void hl_mmu_dr_flush(struct hl_ctx *ctx);
 int hl_mmu_dr_init(struct hl_device *hdev);
 void hl_mmu_dr_fini(struct hl_device *hdev);
+u64 hl_mmu_v3_page_map_code_to_size(u32 code);
+u32 hl_mmu_v3_page_map_size_to_code(u64 size);
+bool hl_mmu_v3_is_valid_page_code(u8 code);
+bool hl_mmu_v3_is_hop2_page_code(u32 code);
+int hl_mmu_v2_ctx_init(struct hl_ctx *ctx);
+void hl_mmu_v2_ctx_fini(struct hl_ctx *ctx);
+int hl_mmu_v2_get_tlb_info(struct hl_ctx *ctx, u64 virt_addr, struct hl_mmu_hop_info *hops);
 
 int hl_fw_version_cmp(struct hl_device *hdev, u32 major, u32 minor, u32 subminor);
 int hl_fw_load_fw_to_device(struct hl_device *hdev, const char *fw_name,

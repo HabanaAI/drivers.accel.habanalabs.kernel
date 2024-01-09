@@ -1415,11 +1415,24 @@ static void gaudi3_sim_dma_unmap_page(struct hl_device *hdev, dma_addr_t addr,
 
 static u64 gaudi3_sim_read_pte(struct hl_device *hdev, u64 addr)
 {
-	return 0;
+	u64 val;
+
+	if (hdev->reset_info.hard_reset_pending)
+		return U64_MAX;
+
+	hl_sim_read_dram(gaudi3_simulator_dev_table[hdev->id],
+			 &val, (addr - DRAM_PHYS_BASE), sizeof(val));
+
+	return val;
 }
 
 static void gaudi3_sim_write_pte(struct hl_device *hdev, u64 addr, u64 val)
 {
+	if (hdev->reset_info.hard_reset_pending)
+		return;
+
+	hl_sim_write_dram(gaudi3_simulator_dev_table[hdev->id],
+			  (addr - DRAM_PHYS_BASE), &val, sizeof(val));
 }
 
 static int gaudi3_sim_suspend(struct hl_device *hdev)

@@ -221,7 +221,8 @@ static_assert(IS_POWER_OF_2(ETR_BUF_SIZE));
 /* TODO: SW-153130 - remove once SW-153128 is done */
 #define NIC_DRV_SIZE		0x20000000				/* 512MB */
 
-#define MMU_PAGE_TABLES_SIZE	0x0C000000				/* 192MB */
+#define PMMU_PAGE_TABLES_SIZE	0x0C000000				/* 192MB */
+#define HMMU_PAGE_TABLES_SIZE	0x500000				/* 5MB */
 
 #define MAX_FAULTY_HBMS		1
 
