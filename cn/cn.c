@@ -265,6 +265,14 @@ static void hl_cn_wreg(struct hl_aux_dev *aux_dev, u32 reg, u32 val)
 	return hdev->asic_funcs->wreg(hdev, reg, val);
 }
 
+static int hl_cn_get_reg_pcie_addr(struct hl_aux_dev *aux_dev, u32 reg, u64 *pci_addr)
+{
+	struct hl_cn *cn = container_of(aux_dev, struct hl_cn, cn_aux_dev);
+	struct hl_device *hdev = container_of(cn, struct hl_device, cn);
+
+	return hdev->asic_funcs->get_reg_pcie_addr(hdev, reg, pci_addr);
+}
+
 static void hl_cn_set_priv_assertions(struct hl_aux_dev *aux_dev, bool enable)
 {
 	struct hl_cn *cn = container_of(aux_dev, struct hl_cn, cn_aux_dev);
@@ -586,6 +594,7 @@ static int hl_cn_aux_data_init(struct hl_device *hdev)
 	aux_ops->dram_writel = hl_cn_dram_writel;
 	aux_ops->rreg = hl_cn_rreg;
 	aux_ops->wreg = hl_cn_wreg;
+	aux_ops->get_reg_pcie_addr = hl_cn_get_reg_pcie_addr;
 	aux_ops->set_priv_assertions = hl_cn_set_priv_assertions;
 	aux_ops->register_cn_user_context = hl_cn_register_cn_user_context;
 	aux_ops->deregister_cn_user_context = hl_cn_deregister_cn_user_context;

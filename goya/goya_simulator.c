@@ -1342,6 +1342,11 @@ static int goya_sim_pll_info_get(struct hl_device *hdev, u32 pll_index,
 	return 0;
 }
 
+static int goya_sim_get_reg_pcie_addr(struct hl_device *hdev, u32 reg, u64 *pci_addr)
+{
+	return -EINVAL;
+}
+
 static const struct hl_asic_funcs goya_sim_funcs = {
 	.early_init = goya_sim_early_init,
 	.early_fini = goya_sim_early_fini,
@@ -1400,6 +1405,7 @@ static const struct hl_asic_funcs goya_sim_funcs = {
 	.init_iatu = NULL,
 	.rreg = goya_sim_rreg,
 	.wreg = goya_sim_wreg,
+	.get_reg_pcie_addr = goya_sim_get_reg_pcie_addr,
 	.halt_coresight = goya_sim_halt_coresight,
 	.ctx_init = goya_ctx_init,
 	.ctx_fini = goya_ctx_fini,

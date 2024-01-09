@@ -1738,6 +1738,11 @@ static bool gaudi2_sim_is_device_idle(struct hl_device *hdev, u64 *mask_arr, u8 
 	return gaudi2_is_device_idle(hdev, mask_arr, mask_len, e);
 }
 
+static int gaudi2_sim_get_reg_pcie_addr(struct hl_device *hdev, u32 reg, u64 *pci_addr)
+{
+	return -EINVAL;
+}
+
 static const struct hl_asic_funcs gaudi2_sim_funcs = {
 	.early_init = gaudi2_sim_early_init,
 	.early_fini = gaudi2_sim_early_fini,
@@ -1797,6 +1802,7 @@ static const struct hl_asic_funcs gaudi2_sim_funcs = {
 	.init_iatu = NULL,
 	.rreg = gaudi2_sim_rreg,
 	.wreg = gaudi2_sim_wreg,
+	.get_reg_pcie_addr = gaudi2_sim_get_reg_pcie_addr,
 	.halt_coresight = gaudi2_halt_coresight,
 	.ctx_init = gaudi2_ctx_init,
 	.ctx_fini = gaudi2_ctx_fini,

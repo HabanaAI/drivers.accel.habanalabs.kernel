@@ -9746,6 +9746,15 @@ void gaudi_set_priv_assertions(struct hl_device *hdev, bool enable)
 {
 }
 
+static int gaudi_get_reg_pcie_addr(struct hl_device *hdev, u32 reg, u64 *pci_addr)
+{
+	if (pci_resource_len(hdev->pdev, CFG_BAR_ID) < reg)
+		return -EINVAL;
+
+	*pci_addr = pci_resource_start(hdev->pdev, CFG_BAR_ID) + reg;
+	return 0;
+}
+
 static const struct hl_asic_funcs gaudi_funcs = {
 	.early_init = gaudi_early_init,
 	.early_fini = gaudi_early_fini,
@@ -9805,6 +9814,7 @@ static const struct hl_asic_funcs gaudi_funcs = {
 	.init_iatu = gaudi_init_iatu,
 	.rreg = hl_rreg,
 	.wreg = hl_wreg,
+	.get_reg_pcie_addr = gaudi_get_reg_pcie_addr,
 	.halt_coresight = gaudi_halt_coresight,
 	.ctx_init = gaudi_ctx_init,
 	.ctx_fini = gaudi_ctx_fini,

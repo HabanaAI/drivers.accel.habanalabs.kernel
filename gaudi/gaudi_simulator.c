@@ -1539,6 +1539,11 @@ static int gaudi_sim_pll_info_get(struct hl_device *hdev, u32 pll_index,
 	return 0;
 }
 
+static int gaudi_sim_get_reg_pcie_addr(struct hl_device *hdev, u32 reg, u64 *pci_addr)
+{
+	return -EINVAL;
+}
+
 static const struct hl_asic_funcs gaudi_sim_funcs = {
 	.early_init = gaudi_sim_early_init,
 	.early_fini = gaudi_sim_early_fini,
@@ -1597,6 +1602,7 @@ static const struct hl_asic_funcs gaudi_sim_funcs = {
 	.init_iatu = NULL,
 	.rreg = gaudi_sim_rreg,
 	.wreg = gaudi_sim_wreg,
+	.get_reg_pcie_addr = gaudi_sim_get_reg_pcie_addr,
 	.halt_coresight = gaudi_sim_halt_coresight,
 	.ctx_init = gaudi_ctx_init,
 	.ctx_fini = gaudi_ctx_fini,

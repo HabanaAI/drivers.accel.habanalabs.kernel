@@ -12279,6 +12279,16 @@ static void gaudi2_write_pte(struct hl_device *hdev, u64 addr, u64 val)
 	writeq(val, hdev->pcie_bar[DRAM_BAR_ID] + (addr - gaudi2->dram_bar_cur_addr));
 }
 
+static int gaudi2_get_reg_pcie_addr(struct hl_device *hdev, u32 reg, u64 *pci_addr)
+{
+	if (pci_resource_len(hdev->pdev, SRAM_CFG_BAR_ID) < reg)
+		return -EINVAL;
+
+	*pci_addr = pci_resource_start(hdev->pdev, SRAM_CFG_BAR_ID) + reg;
+	return 0;
+}
+
+
 static const struct hl_asic_funcs gaudi2_funcs = {
 	.early_init = gaudi2_early_init,
 	.early_fini = gaudi2_early_fini,
@@ -12337,6 +12347,7 @@ static const struct hl_asic_funcs gaudi2_funcs = {
 	.init_iatu = gaudi2_init_iatu,
 	.rreg = hl_rreg,
 	.wreg = hl_wreg,
+	.get_reg_pcie_addr = gaudi2_get_reg_pcie_addr,
 	.irq_vector = gaudi2_irq_vector,
 	.halt_coresight = gaudi2_halt_coresight,
 	.ctx_init = gaudi2_ctx_init,

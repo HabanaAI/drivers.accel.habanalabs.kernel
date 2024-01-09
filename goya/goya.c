@@ -5506,6 +5506,15 @@ void goya_set_priv_assertions(struct hl_device *hdev, bool enable)
 {
 }
 
+static int goya_get_reg_pcie_addr(struct hl_device *hdev, u32 reg, u64 *pci_addr)
+{
+	if (pci_resource_len(hdev->pdev, SRAM_CFG_BAR_ID) < reg)
+		return -EINVAL;
+
+	*pci_addr = pci_resource_start(hdev->pdev, SRAM_CFG_BAR_ID) + reg;
+	return 0;
+}
+
 static const struct hl_asic_funcs goya_funcs = {
 	.early_init = goya_early_init,
 	.early_fini = goya_early_fini,
@@ -5564,6 +5573,7 @@ static const struct hl_asic_funcs goya_funcs = {
 	.init_iatu = goya_init_iatu,
 	.rreg = hl_rreg,
 	.wreg = hl_wreg,
+	.get_reg_pcie_addr = goya_get_reg_pcie_addr,
 	.halt_coresight = goya_halt_coresight,
 	.ctx_init = goya_ctx_init,
 	.ctx_fini = goya_ctx_fini,
