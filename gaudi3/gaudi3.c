@@ -3741,13 +3741,6 @@ int gaudi3_set_fixed_properties(struct hl_device *hdev)
 	/* Note that SRAM memory might be used before operating as a cache */
 	sram_start_offset = prop->num_of_dies == 1 ?
 			SRAM_MODE_0_SINGLE_DIE_OFFSET : SRAM_MODE_0_DOUBLE_DIE_OFFSET;
-	/* TODO - remove after power on
-	 * If we run without preboot and without hbm, we will need to use sram.
-	 * Since sram is configured to daul die by preboot, and we run without preboot, we need
-	 * to set sram as in single die. Skip for simulator.
-	 */
-	if (!(hdev->fw_components & FW_TYPE_PREBOOT_CPU) && !hdev->dram_enable && hdev->pdev)
-		sram_start_offset = SRAM_MODE_0_SINGLE_DIE_OFFSET;
 
 	prop->sram_base_address = SRAM_BASE_ADDR + sram_start_offset;
 	prop->sram_size = SRAM_SIZE - sram_start_offset;
