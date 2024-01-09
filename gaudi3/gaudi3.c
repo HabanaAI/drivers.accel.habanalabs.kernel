@@ -13476,7 +13476,18 @@ static int gaudi3_handle_msg_event(struct hl_device *hdev,
 		return gaudi3_handle_nic_status_event(hdev, eq_dynamic_entry);
 	case EQ_EVENT_HEARTBEAT:
 		return gaudi3_handle_eq_heartbeat_event(hdev, eq_dynamic_entry);
+	case EQ_EVENT_PWR_MODE_0:
+	case EQ_EVENT_PWR_MODE_1:
+	case EQ_EVENT_PWR_MODE_2:
+	case EQ_EVENT_PWR_MODE_3:
+	case EQ_EVENT_PWR_BRK_ENTRY:
+	case EQ_EVENT_PWR_BRK_EXIT:
+	case EQ_EVENT_CPLD_RESET_REASON:
+	case EQ_EVENT_CPLD_SHUTDOWN:
+		dev_dbg(hdev->dev, "unhandled msg event %d\n", event_type);
+		return 0;
 	default:
+		dev_err(hdev->dev, "undefined msg event %d\n", event_type);
 		return 0;
 	}
 }
