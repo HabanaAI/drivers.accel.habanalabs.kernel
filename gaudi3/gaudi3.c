@@ -14742,6 +14742,17 @@ static int gaudi3_access_dev_mem(struct hl_device *hdev, enum pci_region region_
 	return hl_access_dev_mem(hdev, region_type, addr, val, acc_type);
 }
 
+static int gaudi3_pll_info_get(struct hl_device *hdev, u32 pll_index, u16 *pll_freq_arr)
+{
+	if (pll_index >= HL_GAUDI3_PLL_MAX)
+		return -EINVAL;
+
+	if (hdev->pldm)
+		return gaudi3_pldm_pll_info_get(hdev, pll_index, pll_freq_arr);
+
+	return hl_fw_cpucp_pll_info_get(hdev, pll_index, pll_freq_arr);
+}
+
 void gaudi3_fw_security_emulation_init(struct hl_device *hdev)
 {
 }

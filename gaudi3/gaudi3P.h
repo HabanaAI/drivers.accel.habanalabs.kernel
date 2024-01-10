@@ -866,6 +866,7 @@ bool gaudi3_get_bfe_status(struct hl_aux_dev *aux_dev, u8 bfe);
 int gaudi3_init_security_privileged(struct hl_device *hdev);
 void gaudi3_rtr_ctrl_config_rr(struct hl_device *hdev, int block, int inst, u32 offset,
 				struct iterate_module_ctx *ctx);
+int gaudi3_pldm_pll_info_get(struct hl_device *hdev, u32 pll_index, u16 *pll_freq_arr);
 
 /* Functions exported for FPGA support */
 int gaudi3_early_fini(struct hl_device *hdev);
@@ -890,7 +891,6 @@ void gaudi3_halt_coresight(struct hl_device *hdev, struct hl_ctx *ctx);
 int gaudi3_init_security(struct hl_device *hdev);
 int gaudi3_set_engine_cores(struct hl_device *hdev, u32 *core_ids,
 				u32 num_cores, u32 core_command);
-int gaudi3_pll_info_get(struct hl_device *hdev, u32 pll_index, u16 *pll_freq_arr);
 int gaudi3_eq_enable_msix(struct hl_device *hdev);
 void gaudi3_eq_disable_msix(struct hl_device *hdev);
 int gaudi3_set_engines(struct hl_device *hdev, u32 *engine_ids,

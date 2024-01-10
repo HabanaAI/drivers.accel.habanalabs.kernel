@@ -7364,12 +7364,9 @@ static int calculate_pll_freq(struct hl_device *hdev, u64 pll_base_address, u16 
 	return 0;
 }
 
-int gaudi3_pll_info_get(struct hl_device *hdev, u32 pll_index, u16 *pll_freq_arr)
+int gaudi3_pldm_pll_info_get(struct hl_device *hdev, u32 pll_index, u16 *pll_freq_arr)
 {
 	int index;
-
-	if (pll_index >= HL_GAUDI3_PLL_MAX)
-		return -EINVAL;
 
 	index = gaudi3_map_pll_index_to_pll_offset_index(pll_index);
 	if (index < 0 || index >= GAUDI3_PLL_MAX)
