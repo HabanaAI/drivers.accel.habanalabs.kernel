@@ -71,7 +71,6 @@
 #include "gaudi3P.h"
 #include "gaudi3_cn.h"
 #include "gaudi3_masks.h"
-#include "gaudi3_coresight_regs.h"
 #include "../include/gaudi3/gaudi3_special_blocks.h"
 #include "../include/gaudi3/gaudi3_sec_protbits_configs.h"
 #include "../include/gaudi3/gaudi3_priv_protbits_configs.h"
@@ -5302,11 +5301,12 @@ int gaudi3_cpucp_info_get(struct hl_device *hdev)
 {
 	struct gaudi3_device *gaudi3 = hdev->asic_specific;
 	int rc;
+	bool use_fw_nic_info = !hdev->ignore_fw_nic_info;
 
 	if (!(gaudi3->hw_cap_initialized & HW_CAP_CPU_Q)) {
 		/* Skip for hard or device release reset flow. No need to repopulate. */
 		if (!hdev->reset_info.in_reset) {
-			if (!hdev->pdev && !hdev->ignore_fw_nic_info) {
+			if (!hdev->pdev && use_fw_nic_info) {
 				struct hl_cn_cpucp_info *cn_cpucp_info =
 						&hdev->asic_prop.cn_props.cpucp_info;
 
@@ -5334,6 +5334,8 @@ int gaudi3_cpucp_info_get(struct hl_device *hdev)
 		return 0;
 	}
 
+	/* By this point we definitely have an ARC with FW */
+
 	rc = gaudi3_cpucp_handshake_info_get(hdev);
 	if (rc)
 		return rc;
@@ -5342,23 +5344,21 @@ int gaudi3_cpucp_info_get(struct hl_device *hdev)
 	if (!hdev->pdev && hdev->hl_chip_info->info)
 		hl_hwmon_release_resources(hdev);
 
-	/*
-	 * In case of ASIC and reading from FW,
-	 * repopulate post hard reset since device CPU has been reset.
-	 * For other cases (simulator or need to ignore F/W),
-	 * no need to repopulate.
+	/**
+	 * If reading information from FW, repopulate post hard reset since device CPU has been
+	 * reset.
 	 */
-	if (hdev->pdev && !hdev->ignore_fw_nic_info) {
-		rc = gaudi3_cn_set_info(hdev, true);
-	} else if (!hdev->reset_info.in_reset) {
-		/* Override info from module param. */
-		if (!hdev->ignore_fw_nic_info)
-			hdev->card_type = le32_to_cpu(hdev->asic_prop.cpucp_info.card_type);
+	 /**
+	  * TODO - SW-171234: The description up here doesn't match the code, I tried not breaking
+	  *		      the code's logic to prevent problems but this should be investigated.
+	  */
+	if (use_fw_nic_info && !hdev->reset_info.in_reset)
+		hdev->card_type = le32_to_cpu(hdev->asic_prop.cpucp_info.card_type);
 
-		rc = gaudi3_cn_set_info(hdev, false);
-	}
+	if (use_fw_nic_info || !hdev->reset_info.in_reset)
+		return gaudi3_cn_set_info(hdev, use_fw_nic_info);
 
-	return rc;
+	return 0;
 }
 
 int gaudi3_page_fault_queue_sw_init(struct hl_device *hdev)
