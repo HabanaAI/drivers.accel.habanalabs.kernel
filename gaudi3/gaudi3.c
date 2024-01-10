@@ -12549,7 +12549,7 @@ static void gaudi3_sei_razwi_handler_no_fw(struct hl_device *hdev,
 					event_mask);
 		break;
 	default:
-		dev_err(hdev->dev, "Component type %u doesn't have razwi handler\n",
+		dev_err(hdev->dev, "Component type %u doesn't have a razwi handler\n",
 			agg_component_type);
 		break;
 	}
@@ -14085,7 +14085,7 @@ static void gaudi3_sei_razwi_handler(struct hl_device *hdev, struct hl_eq_dynami
 		break;
 
 	default:
-		dev_err(hdev->dev, "Component type %u doesn't have razwi handler\n",
+		dev_err(hdev->dev, "Component type %u doesn't have a razwi handler\n",
 			agg_component_type);
 		break;
 	}
@@ -14572,6 +14572,8 @@ static u32 gaudi3_handle_sei_event(struct hl_device *hdev,
 						eng_id, event_mask);
 		break;
 	default:
+		dev_err(hdev->dev, "SEI event handling for component type %u is missing\n",
+			agg_component_type);
 		break;
 	}
 
@@ -14632,6 +14634,8 @@ static u32 gaudi3_handle_spi_event(struct hl_device *hdev,
 		err_cnt = handle_tpc_spi_events(hdev, data_size, &eq_dynamic_entry->tpc_spi_data);
 		break;
 	default:
+		dev_err(hdev->dev, "SPI event handling for component type %u is missing\n",
+			agg_component_type);
 		break;
 	}
 
@@ -14685,6 +14689,7 @@ static int gaudi3_handle_hw_event(struct hl_device *hdev,
 		err_cnt = gaudi3_handle_spi_event(hdev, eq_dynamic_entry, reset_flags, event_mask);
 		break;
 	default:
+		dev_dbg(hdev->dev, "Unexpected HW event group type %u\n", agg_grp_type);
 		break;
 	}
 
