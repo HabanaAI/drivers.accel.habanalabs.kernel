@@ -13480,14 +13480,23 @@ static int gaudi3_handle_msg_event(struct hl_device *hdev,
 	case EQ_EVENT_PWR_MODE_1:
 	case EQ_EVENT_PWR_MODE_2:
 	case EQ_EVENT_PWR_MODE_3:
+		dev_info(hdev->dev, "EQ_EVENT_PWR_MODE_%d event received\n",
+					event_type - EQ_EVENT_PWR_MODE_0);
+		return 0;
 	case EQ_EVENT_PWR_BRK_ENTRY:
+		dev_info(hdev->dev, "EQ_EVENT_PWR_BRK_ENTRY event received\n");
+		return 0;
 	case EQ_EVENT_PWR_BRK_EXIT:
+		dev_info(hdev->dev, "EQ_EVENT_PWR_BRK_EXIT event received\n");
+		return 0;
 	case EQ_EVENT_CPLD_RESET_REASON:
+		dev_info(hdev->dev, "unhandled EQ_EVENT_CPLD_RESET_REASON event received\n");
+		return 0;
 	case EQ_EVENT_CPLD_SHUTDOWN:
-		dev_dbg(hdev->dev, "unhandled msg event %d\n", event_type);
+		dev_info(hdev->dev, "EQ_EVENT_CPLD_SHUTDOWN event received\n");
 		return 0;
 	default:
-		dev_err(hdev->dev, "undefined msg event %d\n", event_type);
+		dev_err(hdev->dev, "undefined msg event %d received\n", event_type);
 		return 0;
 	}
 }
