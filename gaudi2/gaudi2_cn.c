@@ -391,11 +391,11 @@ static int gaudi2_cn_pre_core_init(struct hl_device *hdev)
 
 static bool gaudi2_cn_can_unset_asid_cfg(struct hl_aux_dev *aux_dev)
 {
-	struct hl_cn *cn = container_of(aux_dev, struct hl_cn, cn_aux_dev);
-	struct hl_device *hdev = container_of(cn, struct hl_device, cn);
-
-	/* For FW below 1.8 there is no option to unset the ASID. */
-	return !gaudi2_is_fw_ver_below_1_8(hdev);
+	/*
+	 * TODO: FSW-2697 after removing the usage of the aux function from NIC side
+	 * it can be removed from here as well
+	 */
+	return true;
 }
 
 static char *gaudi2_cn_get_event_name(struct hl_aux_dev *aux_dev, u16 event_type)
