@@ -7486,6 +7486,9 @@ void gaudi3_dtlb_nrtr_eco_fixup(struct hl_device *hdev)
 {
 	struct iterate_module_ctx ctx = {};
 
+	if (!hdev->pldm  && hdev->fw_components & FW_TYPE_PREBOOT_CPU)
+		return;
+
 	ctx.fn = gaudi3_init_dtlb_nrtr_eco_fixup;
 	gaudi3_iterate_nrtr_dtlbs(hdev, &ctx);
 }
