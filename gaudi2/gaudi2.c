@@ -7739,8 +7739,9 @@ static bool gaudi2_get_nic_idle_status(struct hl_device *hdev, u64 *mask_arr, u8
 
 		/* SW-146391: For debug, not for upstream. */
 		if (!e && !is_eng_idle)
-			dev_info(hdev->dev, "NIC%u qm_glbl_sts0:0x%x qm_cgm_sts:0x%x\n",
-					i, qm_glbl_sts0, qm_cgm_sts);
+			dev_info(hdev->dev,
+				"NIC%u qm_glbl_sts0:%#x qm_glbl_sts1:%#x qm_cgm_sts:%#x\n",
+				i, qm_glbl_sts0, qm_glbl_sts1, qm_cgm_sts);
 
 		if (e)
 			hl_engine_data_sprintf(e, nic_fmt, i, is_eng_idle ? "Y" : "N",
