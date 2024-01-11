@@ -5301,37 +5301,34 @@ int gaudi3_cpucp_info_get(struct hl_device *hdev)
 {
 	struct gaudi3_device *gaudi3 = hdev->asic_specific;
 	int rc;
-	bool use_fw_nic_info = !hdev->ignore_fw_nic_info;
+	const bool use_fw_nic_info = !hdev->ignore_fw_nic_info;
 
 	if (!(gaudi3->hw_cap_initialized & HW_CAP_CPU_Q)) {
 		/* Skip for hard or device release reset flow. No need to repopulate. */
-		if (!hdev->reset_info.in_reset) {
-			if (!hdev->pdev && use_fw_nic_info) {
-				struct hl_cn_cpucp_info *cn_cpucp_info =
-						&hdev->asic_prop.cn_props.cpucp_info;
+		if (hdev->reset_info.in_reset)
+			return 0;
 
-				/* Assume HLS3 connections */
-				if (hdev->cn.lanes_per_port == PORT_LANES_2) {
-					cn_cpucp_info->link_ext_mask[0] =
-							GAUDI3_HLS3_EXTERN_PORTS_MASK_200G;
-					cn_cpucp_info->link_mask[0] = GAUDI3_PORTS_MASK_200G;
-				} else {
-					cn_cpucp_info->link_ext_mask[0] =
-							GAUDI3_HLS3_EXTERN_PORTS_MASK_400G_48TB;
-					cn_cpucp_info->link_mask[0] = GAUDI3_PORTS_MASK_400G;
-				}
+		if (!hdev->pdev && use_fw_nic_info) {
+			struct hl_cn_cpucp_info *cn_cpucp_info =
+				&hdev->asic_prop.cn_props.cpucp_info;
 
-				hdev->cn.ports_ext_mask &= cn_cpucp_info->link_ext_mask[0];
-				hdev->cn.ports_mask &= cn_cpucp_info->link_mask[0];
-				hdev->cn.auto_neg_mask &= cn_cpucp_info->auto_neg_mask[0];
+			/* Assume HLS3 connections */
+			if (hdev->cn.lanes_per_port == PORT_LANES_2) {
+				cn_cpucp_info->link_ext_mask[0] =
+					GAUDI3_HLS3_EXTERN_PORTS_MASK_200G;
+				cn_cpucp_info->link_mask[0] = GAUDI3_PORTS_MASK_200G;
+			} else {
+				cn_cpucp_info->link_ext_mask[0] =
+					GAUDI3_HLS3_EXTERN_PORTS_MASK_400G_48TB;
+				cn_cpucp_info->link_mask[0] = GAUDI3_PORTS_MASK_400G;
 			}
 
-			rc = gaudi3_cn_set_info(hdev, false);
-			if (rc)
-				return rc;
+			hdev->cn.ports_ext_mask &= cn_cpucp_info->link_ext_mask[0];
+			hdev->cn.ports_mask &= cn_cpucp_info->link_mask[0];
+			hdev->cn.auto_neg_mask &= cn_cpucp_info->auto_neg_mask[0];
 		}
 
-		return 0;
+		return gaudi3_cn_set_info(hdev, false);
 	}
 
 	/* By this point we definitely have an ARC with FW */
@@ -5345,17 +5342,23 @@ int gaudi3_cpucp_info_get(struct hl_device *hdev)
 		hl_hwmon_release_resources(hdev);
 
 	/**
+	 * TODO - SW-171234: The description up here doesn't match the code, I tried not breaking
+	 *		      the code's logic to prevent problems but this should be investigated.
+	 */
+
+	/**
 	 * If reading information from FW, repopulate post hard reset since device CPU has been
 	 * reset.
 	 */
-	 /**
-	  * TODO - SW-171234: The description up here doesn't match the code, I tried not breaking
-	  *		      the code's logic to prevent problems but this should be investigated.
-	  */
 	if (use_fw_nic_info && !hdev->reset_info.in_reset)
 		hdev->card_type = le32_to_cpu(hdev->asic_prop.cpucp_info.card_type);
 
-	if (use_fw_nic_info || !hdev->reset_info.in_reset)
+	/**
+	 * TODO - SW-171315: Due to a bug in FW/SIM+ARC we're failing to poll cpucp info after a
+	 * soft reset, temporarily disabling the polling after reset when running on simulator.
+	 * To revert, change if to `(use_fw_nic_info || !hdev->reset_info.in_reset)`.
+	 */
+	if ((use_fw_nic_info && hdev->pdev) || !hdev->reset_info.in_reset)
 		return gaudi3_cn_set_info(hdev, use_fw_nic_info);
 
 	return 0;
