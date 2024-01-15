@@ -6817,7 +6817,7 @@ static void gaudi2_init_sft_hbw_mstr_if_cfg(struct hl_device *hdev, u64 base, vo
  * As both HMMU and EDMA shares the same MSTR_IF then these configs will block the EDMA access
  * as well.
  */
-void gaudi2_hmmu_pcie_sft_config(struct hl_device *hdev)
+static void gaudi2_hmmu_pcie_sft_config(struct hl_device *hdev)
 {
 	struct dup_block_ctx sft_ctx = {
 		.blocks = NUM_OF_DCORES,
@@ -6828,9 +6828,6 @@ void gaudi2_hmmu_pcie_sft_config(struct hl_device *hdev)
 		.instance_cfg_fn = &gaudi2_init_sft_hbw_mstr_if_cfg,
 		.data = NULL,
 	};
-
-	if (hdev->asic_prop.fw_security_enabled)
-		return;
 
 	/* Init DCOREs SFT RTR HBW MSTR_IF */
 	gaudi2_init_blocks(hdev, &sft_ctx);

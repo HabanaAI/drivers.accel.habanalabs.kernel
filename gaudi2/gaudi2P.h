@@ -825,7 +825,6 @@ int gaudi2_set_engine_cores(struct hl_device *hdev, u32 *core_ids,
 			u32 num_cores, u32 core_command);
 int gaudi2_set_engines(struct hl_device *hdev, u32 *engine_ids,
 					u32 num_engines, u32 engine_command);
-void gaudi2_hmmu_pcie_sft_config(struct hl_device *hdev);
 
 /* Bringup functions (w/o F/W support) */
 void gaudi2_cn_quiescence_phy_no_fw(struct hl_device *hdev);

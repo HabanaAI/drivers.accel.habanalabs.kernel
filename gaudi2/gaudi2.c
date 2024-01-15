@@ -6561,13 +6561,6 @@ static int gaudi2_hw_init(struct hl_device *hdev)
 	if (rc)
 		return rc;
 
-	/*
-	 * TODO - SW-167626:
-	 * Till we have those configs in FW let driver do them if we're not running
-	 * on secured device, in order to catch jobs that might has EDMA access to pcie.
-	 */
-	gaudi2_hmmu_pcie_sft_config(hdev);
-
 	gaudi2_init_pdma(hdev);
 	gaudi2_init_edma(hdev);
 	gaudi2_init_sm(hdev);
