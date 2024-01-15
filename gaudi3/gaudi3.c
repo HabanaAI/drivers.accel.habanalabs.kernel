@@ -142,7 +142,7 @@ MODULE_FIRMWARE(GAUDI3_BOOT_FIT_FILE);
 /* we can invalidate at most 256MB at once */
 #define RANGE_INV_MAX_MEM_SIZE	(256 * 1024 * 1024)
 
-#define RAZWI_LBW_OFFSET	0x0300007FE0000000ull
+#define LBW_TO_FULL_DEV_VA_OFFSET	0x0300007FE0000000ull
 
 #define VCMD_SW_IRQ_MASK	(VSI_CMD_SWREG17_SW_IRQ_ENDCMD_M | \
 					VSI_CMD_SWREG17_SW_IRQ_BUSERR_M | \
@@ -12058,7 +12058,7 @@ static bool gaudi3_razwi_status(struct hl_device *hdev, struct razwi_initiator_i
 		base = initiator->lbw_razwi_info_base;
 		bw_type = "LBW";
 		flags = HL_RAZWI_LBW;
-		razwi_offset = RAZWI_LBW_OFFSET;
+		razwi_offset = LBW_TO_FULL_DEV_VA_OFFSET;
 	}
 
 	switch (type) {
@@ -13302,8 +13302,8 @@ static u32 gaudi3_handle_pcie_spi_drain(struct hl_device *hdev,
 		err_num++;
 		dev_err_ratelimited(
 				hdev->dev, "PCIE SPI LBW drain error WR 0x%llX, RD 0x%llX\n",
-				le64_to_cpu(dc->drain_wr_addr_lbw),
-				le64_to_cpu(dc->drain_rd_addr_lbw));
+				LBW_TO_FULL_DEV_VA_OFFSET + le64_to_cpu(dc->drain_wr_addr_lbw),
+				LBW_TO_FULL_DEV_VA_OFFSET + le64_to_cpu(dc->drain_rd_addr_lbw));
 	}
 
 	if (cause & (PCIE_WRAP_AXI_DRAIN_IND_HBW_AXI_DRAIN_IND_M |
