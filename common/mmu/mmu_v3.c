@@ -115,14 +115,13 @@ err:
 }
 
 /**
- * unmap_single_pte() - unmap single page pointed by PTE
+ * hl_v3_unmap_single_pte() - unmap single page pointed by PTE
  * @ctx: pointer to the context structure to initialize.
  * @virt_addr: virtual address to the mapped page.
- * @last_pte: pointer to hold value of last PTE (if non NULL)
  *
  * @return 0 on success, otherwise non zero error code.
  */
-static int unmap_single_pte(struct hl_ctx *ctx, u64 virt_addr, u64 *last_pte)
+static int hl_v3_unmap_single_pte(struct hl_ctx *ctx, u64 virt_addr)
 {
 	u64 curr_pte, hop_pte_phys_addr[MMU_ARCH_3_HOPS] = { 0 },
 				hop_addr[MMU_ARCH_3_HOPS] = { 0 };
@@ -167,9 +166,6 @@ static int unmap_single_pte(struct hl_ctx *ctx, u64 virt_addr, u64 *last_pte)
 			break;
 		}
 	}
-
-	if (last_pte)
-		*last_pte = curr_pte;
 
 	for (i = hop_last ; i > 0 ; i--) {
 		hl_mmu_dr_clear_pte(ctx, hop_pte_phys_addr[i]);
@@ -224,132 +220,6 @@ inline bool hl_mmu_v3_is_hop2_page_code(u32 code)
 	return (code < HOP1_TLB_PAGE_SIZE_256M);
 }
 
-static int hl_mmu_v3_map_page_in_chunks(struct hl_ctx *ctx, u64 virt_addr, u64 phys_addr,
-								u32 page_size)
-{
-	u8 num_ptes, tlb_page_size_code;
-	u64 mem_chunk_size;
-	int i, rc;
-
-	tlb_page_size_code = hl_mmu_v3_page_map_size_to_code(page_size);
-
-	if (hl_mmu_v3_is_hop2_page_code(tlb_page_size_code)) {
-		num_ptes = page_size >> PAGE_SHIFT_1MB;
-		mem_chunk_size = PAGE_SIZE_1MB;
-	} else {
-		num_ptes = page_size >> PAGE_SHIFT_256MB;
-		mem_chunk_size = PAGE_SIZE_256MB;
-	}
-
-	/*
-	 * HOP2 basic page size is 1M and HOP1 basic page size is 256M.
-	 * for 32MB page 32 PTEs, each pointing to 1MB section, will be created in HOP2 and
-	 * for 1GB page 4 PTEs, each pointing to 256MB section, will be created in HOP1.
-	 * In both cases the TLB page size "hint" will create only single TLB entry.
-	 */
-	for (i = 0; i < num_ptes; i++) {
-		rc = hl_mmu_v3_create_single_pte(ctx, virt_addr, phys_addr, tlb_page_size_code);
-		if (rc)
-			goto unmap;
-
-		/* increment to map the next 1MB page */
-		virt_addr += mem_chunk_size;
-		phys_addr += mem_chunk_size;
-	}
-
-	return 0;
-
-unmap:
-	while (i > 0) {
-		/* go back to the former successful mapping */
-		i--;
-		virt_addr -= mem_chunk_size;
-		if (unmap_single_pte(ctx, virt_addr, NULL))
-			break;
-	}
-
-	return rc;
-}
-
-/**
- * hl_mmu_v3_map - add mapping for virtual address
- *
- * @ctx: pointer to the context structure
- * @virt_addr: the virtual address to map to
- * @phys_addr: the physical address to map
- * @page_size: page size
- * @is_dram_addr: true is DRAM address, otherwise false
- *
- * @return 0 on success otherwise non-zero error code
- */
-static int hl_mmu_v3_map(struct hl_ctx *ctx, u64 virt_addr, u64 phys_addr,
-				u32 page_size, bool is_dram_addr)
-{
-	u64 supported_pages_mask = ctx->hdev->asic_prop.dmmu.supported_pages_mask;
-
-	if (!(page_size & supported_pages_mask)) {
-		dev_err(ctx->hdev->dev,
-				"%x page size not supported (supported_pages_mask: %llx)\n",
-				page_size, supported_pages_mask);
-		return -EINVAL;
-	}
-
-	return hl_mmu_v3_map_page_in_chunks(ctx, virt_addr, phys_addr, page_size);
-}
-
-/**
- * hl_mmu_v3_unmap - unmap virtual address from page tables
- *
- * @ctx: pointer to the context structure
- * @virt_addr: the virtual address to unmap
- * @is_dram_addr: true is DRAM address, otherwise false
- *
- * @return 0 on success otherwise non-zero error code
- */
-static int hl_mmu_v3_unmap(struct hl_ctx *ctx, u64 virt_addr, bool is_dram_addr)
-{
-	u64 last_pte, mem_chunk_size, page_size;
-	u8 tlb_page_size_code, num_ptes;
-	int i, rc;
-
-	/* first, unmap the first PTE and get BTW the PTE value to determine mapped page size */
-	rc = unmap_single_pte(ctx, virt_addr, &last_pte);
-	if (rc)
-		return rc;
-
-	tlb_page_size_code = FIELD_GET(TLB_PAGE_SIZE_MASK, last_pte);
-
-	if (!hl_mmu_v3_is_valid_page_code(tlb_page_size_code)) {
-		dev_err(ctx->hdev->dev, "Invalid TLB page size: %u\n", tlb_page_size_code);
-		return -EFAULT;
-	}
-
-	/*
-	 * page size below 256MB is divided to 1MB bytes pages while page size from 256MB on
-	 * is divided to 256MB pages
-	 */
-	page_size = hl_mmu_v3_page_map_code_to_size(tlb_page_size_code);
-	if (hl_mmu_v3_is_hop2_page_code(tlb_page_size_code)) {
-		num_ptes = page_size >> PAGE_SHIFT_1MB;
-		mem_chunk_size = PAGE_SIZE_1MB;
-	} else {
-		num_ptes = page_size >> PAGE_SHIFT_256MB;
-		mem_chunk_size = PAGE_SIZE_256MB;
-	}
-
-	/* unmap the last 31 PTEs */
-	for (i = 1; i < num_ptes; i++) {
-		/* increment to map the next 1MB page */
-		virt_addr += mem_chunk_size;
-
-		rc = unmap_single_pte(ctx, virt_addr, NULL);
-		if (rc)
-			return rc;
-	}
-
-	return 0;
-}
-
 /**
  * hl_mmu_v3_swap_out - marks all mapping of the given ctx as swapped out
  *
@@ -386,10 +256,12 @@ void hl_mmu_v3_set_funcs(struct hl_device *hdev, struct hl_mmu_funcs *mmu)
 	mmu->fini = hl_mmu_dr_fini;
 	mmu->ctx_init = hl_mmu_v2_ctx_init;
 	mmu->ctx_fini = hl_mmu_v2_ctx_fini;
-	mmu->map = hl_mmu_v3_map;
-	mmu->unmap = hl_mmu_v3_unmap;
+	mmu->map_page = hl_mmu_map_page_by_multiple_ptes;
+	mmu->unmap_page = hl_mmu_unmap_page_by_multiple_ptes;
 	mmu->flush = hl_mmu_dr_flush;
 	mmu->swap_out = hl_mmu_v3_swap_out;
 	mmu->swap_in = hl_mmu_v3_swap_in;
 	mmu->get_tlb_info = hl_mmu_v2_get_tlb_info;
+	mmu->map_page_pte = hl_mmu_v3_create_single_pte;
+	mmu->unmap_page_pte = hl_v3_unmap_single_pte;
 }

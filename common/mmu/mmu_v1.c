@@ -217,7 +217,7 @@ static void hl_mmu_v1_ctx_fini(struct hl_ctx *ctx)
 }
 
 static int hl_mmu_v1_unmap(struct hl_ctx *ctx,
-				u64 virt_addr, bool is_dram_addr)
+				u64 virt_addr, u32 page_size, bool is_dram_addr)
 {
 	u64 hop_addr[MMU_V1_MAX_HOPS] = {0}, hop_pte_addr[MMU_V1_MAX_HOPS] = {0}, curr_pte = 0;
 	struct hl_device *hdev = ctx->hdev;
@@ -541,8 +541,8 @@ void hl_mmu_v1_set_funcs(struct hl_device *hdev, struct hl_mmu_funcs *mmu)
 	mmu->fini = hl_mmu_dr_fini;
 	mmu->ctx_init = hl_mmu_v1_ctx_init;
 	mmu->ctx_fini = hl_mmu_v1_ctx_fini;
-	mmu->map = hl_mmu_v1_map;
-	mmu->unmap = hl_mmu_v1_unmap;
+	mmu->map_page = hl_mmu_v1_map;
+	mmu->unmap_page = hl_mmu_v1_unmap;
 	mmu->flush = hl_mmu_dr_flush;
 	mmu->swap_out = hl_mmu_v1_swap_out;
 	mmu->swap_in = hl_mmu_v1_swap_in;

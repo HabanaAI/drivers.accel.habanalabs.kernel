@@ -113,7 +113,7 @@ static void hl_mmu_v2_hr_ctx_fini(struct hl_ctx *ctx)
 }
 
 static int _hl_mmu_v2_hr_unmap(struct hl_ctx *ctx,
-				u64 virt_addr, bool is_dram_addr)
+				u64 virt_addr, u32 page_size, bool is_dram_addr)
 {
 	u64 curr_pte, scrambled_virt_addr, hop_pte_phys_addr[MMU_ARCH_6_HOPS] = { 0 };
 	struct pgt_info *hops_pgt_info[MMU_ARCH_6_HOPS] = { NULL };
@@ -386,8 +386,8 @@ void hl_mmu_v2_hr_set_funcs(struct hl_device *hdev, struct hl_mmu_funcs *mmu)
 	mmu->fini = hl_mmu_v2_hr_fini;
 	mmu->ctx_init = hl_mmu_v2_hr_ctx_init;
 	mmu->ctx_fini = hl_mmu_v2_hr_ctx_fini;
-	mmu->map = _hl_mmu_v2_hr_map;
-	mmu->unmap = _hl_mmu_v2_hr_unmap;
+	mmu->map_page = _hl_mmu_v2_hr_map;
+	mmu->unmap_page = _hl_mmu_v2_hr_unmap;
 	mmu->flush = hl_mmu_hr_flush;
 	mmu->swap_out = hl_mmu_v2_hr_swap_out;
 	mmu->swap_in = hl_mmu_v2_hr_swap_in;

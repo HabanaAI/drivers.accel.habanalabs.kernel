@@ -302,7 +302,7 @@ int hl_mmu_unmap_page(struct hl_ctx *ctx, u64 virt_addr, u32 page_size, bool flu
 	real_virt_addr = virt_addr;
 
 	for (i = 0 ; i < npages ; i++) {
-		rc = mmu_funcs->unmap(ctx, real_virt_addr, is_dram_addr);
+		rc = mmu_funcs->unmap_page(ctx, real_virt_addr, page_size, is_dram_addr);
 		if (rc)
 			break;
 
@@ -387,7 +387,7 @@ int hl_mmu_map_page(struct hl_ctx *ctx, u64 virt_addr, u64 phys_addr, u32 page_s
 	real_phys_addr = phys_addr;
 
 	for (i = 0 ; i < npages ; i++) {
-		rc = mmu_funcs->map(ctx, real_virt_addr, real_phys_addr, real_page_size,
+		rc = mmu_funcs->map_page(ctx, real_virt_addr, real_phys_addr, real_page_size,
 										is_dram_addr);
 		if (rc)
 			goto err;
@@ -407,7 +407,7 @@ int hl_mmu_map_page(struct hl_ctx *ctx, u64 virt_addr, u64 phys_addr, u32 page_s
 err:
 	real_virt_addr = virt_addr;
 	for (i = 0 ; i < mapped_cnt ; i++) {
-		if (mmu_funcs->unmap(ctx, real_virt_addr, is_dram_addr))
+		if (mmu_funcs->unmap_page(ctx, real_virt_addr, page_size, is_dram_addr))
 			dev_warn_ratelimited(hdev->dev,
 				"failed to unmap va: 0x%llx\n", real_virt_addr);
 
@@ -1503,4 +1503,131 @@ void hl_mmu_dr_fini(struct hl_device *hdev)
 	 * example if we fail during hard reset code at certain points
 	 */
 	hdev->mmu_priv.dr.mmu_shadow_hop0 = NULL;
+}
+
+static int hl_mmu_map_page_using_multiple_ptes(struct hl_ctx *ctx, u64 virt_addr, u64 phys_addr,
+						u32 page_size, bool is_dram_addr)
+{
+	u8 num_ptes, tlb_page_size_code, pgt_residency;
+	struct hl_mmu_properties *mmu_prop;
+	struct hl_mmu_funcs *mmu_funcs;
+	u64 mem_chunk_size;
+	int i, rc;
+
+	tlb_page_size_code = hl_mmu_v3_page_map_size_to_code(page_size);
+
+	if (hl_mmu_v3_is_hop2_page_code(tlb_page_size_code)) {
+		num_ptes = page_size >> PAGE_SHIFT_1MB;
+		mem_chunk_size = PAGE_SIZE_1MB;
+	} else {
+		num_ptes = page_size >> PAGE_SHIFT_256MB;
+		mem_chunk_size = PAGE_SIZE_256MB;
+	}
+
+	mmu_prop = hl_mmu_get_prop(ctx->hdev, page_size, is_dram_addr);
+	pgt_residency = mmu_prop->host_resident ? MMU_HR_PGT : MMU_DR_PGT;
+	mmu_funcs = hl_mmu_get_funcs(ctx->hdev, pgt_residency, is_dram_addr);
+
+	/*
+	 * HOP2 basic page size is 1M and HOP1 basic page size is 256M.
+	 * for 32MB page 32 PTEs, each pointing to 1MB section, will be created in HOP2 and
+	 * for 1GB page 4 PTEs, each pointing to 256MB section, will be created in HOP1.
+	 * In both cases the TLB page size "hint" will create only single TLB entry.
+	 */
+	for (i = 0; i < num_ptes; i++) {
+		rc = mmu_funcs->map_page_pte(ctx, virt_addr, phys_addr, tlb_page_size_code);
+		if (rc)
+			goto unmap;
+
+		/* increment to map the next 1MB page */
+		virt_addr += mem_chunk_size;
+		phys_addr += mem_chunk_size;
+	}
+
+	return 0;
+
+unmap:
+	while (i > 0) {
+		/* go back to the former successful mapping */
+		i--;
+		virt_addr -= mem_chunk_size;
+		if (mmu_funcs->unmap_page_pte(ctx, virt_addr))
+			break;
+	}
+
+	return rc;
+}
+
+/**
+ * hl_mmu_map_page_by_multiple_ptes - add mapping for virtual address by multiple ptes.
+ *
+ * @ctx: pointer to the context structure
+ * @virt_addr: the virtual address to map to
+ * @phys_addr: the physical address to map
+ * @page_size: page size
+ * @is_dram_addr: true is DRAM address, otherwise false
+ *
+ * @return 0 on success otherwise non-zero error code
+ */
+int hl_mmu_map_page_by_multiple_ptes(struct hl_ctx *ctx, u64 virt_addr, u64 phys_addr,
+							u32 page_size, bool is_dram_addr)
+{
+	u64 supported_pages_mask = ctx->hdev->asic_prop.dmmu.supported_pages_mask;
+
+	if (!(page_size & supported_pages_mask)) {
+		dev_err(ctx->hdev->dev,
+				"%x page size not supported (supported_pages_mask: %llx)\n",
+				page_size, supported_pages_mask);
+		return -EINVAL;
+	}
+
+	return hl_mmu_map_page_using_multiple_ptes(ctx, virt_addr, phys_addr, page_size,
+								is_dram_addr);
+}
+
+/**
+ * hl_mmu_unmap_page_by_multiple_ptes - unmap a page which was mapped by multiple PTEs.
+ *
+ * @ctx: pointer to the context structure
+ * @virt_addr: the virtual address to unmap
+ * @page_size: MMU page size
+ * @is_dram_addr: true is DRAM address, otherwise false
+ *
+ * @return 0 on success otherwise non-zero error code
+ */
+int hl_mmu_unmap_page_by_multiple_ptes(struct hl_ctx *ctx, u64 virt_addr, u32 page_size,
+							bool is_dram_addr)
+{
+	struct hl_mmu_properties *mmu_prop;
+	struct hl_mmu_funcs *mmu_funcs;
+	u8 num_ptes, pgt_residency;
+	u64 mem_chunk_size;
+	int i, rc;
+
+	mmu_prop = hl_mmu_get_prop(ctx->hdev, page_size, is_dram_addr);
+	pgt_residency = mmu_prop->host_resident ? MMU_HR_PGT : MMU_DR_PGT;
+	mmu_funcs = hl_mmu_get_funcs(ctx->hdev, pgt_residency, is_dram_addr);
+
+	/*
+	 * page size below 256MB is divided to 1MB bytes pages while page size from 256MB on
+	 * is divided to 256MB pages
+	 */
+	if (hl_mmu_v3_is_hop2_page_code(hl_mmu_v3_page_map_size_to_code(page_size))) {
+		num_ptes = page_size >> PAGE_SHIFT_1MB;
+		mem_chunk_size = PAGE_SIZE_1MB;
+	} else {
+		num_ptes = page_size >> PAGE_SHIFT_256MB;
+		mem_chunk_size = PAGE_SIZE_256MB;
+	}
+
+	for (i = 0; i < num_ptes; i++) {
+		rc = mmu_funcs->unmap_page_pte(ctx, virt_addr);
+		if (rc)
+			return rc;
+
+		/* increment to unmap the next chunk */
+		virt_addr += mem_chunk_size;
+	}
+
+	return 0;
 }

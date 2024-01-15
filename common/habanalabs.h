@@ -3190,8 +3190,8 @@ struct hl_hr_mmu_funcs {
  * @fini: release the MMU module.
  * @ctx_init: Initialize a context for using the MMU module.
  * @ctx_fini: disable a ctx from using the mmu module.
- * @map: maps a virtual address to physical address for a context.
- * @unmap: unmap a virtual address of a context.
+ * @map_page: maps a virtual address to physical address for a context.
+ * @unmap_page: unmap a virtual address of a context.
  * @flush: flush all writes from all cores to reach device MMU.
  * @swap_out: marks all mapping of the given context as swapped out.
  * @swap_in: marks all mapping of the given context as swapped in.
@@ -3199,20 +3199,25 @@ struct hl_hr_mmu_funcs {
  *                created in order to translate the giver virtual address to a
  *                physical one.
  * @hr_funcs: functions specific to host resident MMU.
+ * @map_page_pte: function used when a page is mapped by multiple PTEs.
+ * @unmap_page_pte: function used to unmap the page which is mapped by multiple PTEs.
  */
 struct hl_mmu_funcs {
 	int (*init)(struct hl_device *hdev);
 	void (*fini)(struct hl_device *hdev);
 	int (*ctx_init)(struct hl_ctx *ctx);
 	void (*ctx_fini)(struct hl_ctx *ctx);
-	int (*map)(struct hl_ctx *ctx, u64 virt_addr, u64 phys_addr, u32 page_size,
+	int (*map_page)(struct hl_ctx *ctx, u64 virt_addr, u64 phys_addr, u32 page_size,
 				bool is_dram_addr);
-	int (*unmap)(struct hl_ctx *ctx, u64 virt_addr, bool is_dram_addr);
+	int (*unmap_page)(struct hl_ctx *ctx, u64 virt_addr, u32 page_size, bool is_dram_addr);
 	void (*flush)(struct hl_ctx *ctx);
 	void (*swap_out)(struct hl_ctx *ctx);
 	void (*swap_in)(struct hl_ctx *ctx);
 	int (*get_tlb_info)(struct hl_ctx *ctx, u64 virt_addr, struct hl_mmu_hop_info *hops);
 	struct hl_hr_mmu_funcs hr_funcs;
+	int (*map_page_pte)(struct hl_ctx *ctx, u64 virt_addr, u64 phys_addr,
+								u8 tlb_page_size_code);
+	int (*unmap_page_pte)(struct hl_ctx *ctx, u64 virt_addr);
 };
 
 /**
@@ -4489,8 +4494,11 @@ bool hl_mmu_v3_is_hop2_page_code(u32 code);
 int hl_mmu_v2_ctx_init(struct hl_ctx *ctx);
 void hl_mmu_v2_ctx_fini(struct hl_ctx *ctx);
 int hl_mmu_v2_get_tlb_info(struct hl_ctx *ctx, u64 virt_addr, struct hl_mmu_hop_info *hops);
-
 int hl_fw_version_cmp(struct hl_device *hdev, u32 major, u32 minor, u32 subminor);
+int hl_mmu_map_page_by_multiple_ptes(struct hl_ctx *ctx, u64 virt_addr, u64 phys_addr,
+					u32 page_size, bool is_dram_addr);
+int hl_mmu_unmap_page_by_multiple_ptes(struct hl_ctx *ctx, u64 virt_addr, u32 page_size,
+					bool is_dram_addr);
 int hl_fw_load_fw_to_device(struct hl_device *hdev, const char *fw_name,
 				void __iomem *dst, u32 src_offset, u32 size);
 int hl_fw_send_pci_access_msg(struct hl_device *hdev, u32 opcode, u64 value);
