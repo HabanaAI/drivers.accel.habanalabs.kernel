@@ -3967,7 +3967,7 @@ int gaudi3_set_fixed_properties(struct hl_device *hdev)
 	cn_prop->max_num_of_ports = NIC_NUMBER_OF_PORTS;
 
 	prop->pcie_flush_reg_addr = mmD0_PSOC_TIMESTAMP_BASE + mmTIMESTAMP_CNTCR;
-
+	prop->supports_advanced_cpucp_rc = true;
 	prop->clk_pll_index = HL_GAUDI3_MME_PLL;
 
 	return 0;
