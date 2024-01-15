@@ -3857,15 +3857,12 @@ int gaudi3_set_fixed_properties(struct hl_device *hdev)
 		prop->mmu_pgt_size = PMMU_PAGE_TABLES_SIZE;
 
 	prop->mmu_pte_size = HL_PTE_SIZE;
-	prop->mmu_hop_table_size = HOP_TABLE_SIZE_512_PTE;
-	prop->mmu_hop0_tables_total_size = HOP0_512_PTE_TABLES_TOTAL_SIZE;
-
 	hdev->pmmu_huge_range = true;
 	prop->pmmu.host_resident = 1; /* Support only host resident */
 	prop->pmmu.num_hops = MMU_ARCH_6_HOPS;
 	prop->pmmu.last_mask = LAST_MASK;
-	prop->pmmu.hop_table_size = prop->mmu_hop_table_size;
-	prop->pmmu.hop0_tables_total_size = prop->mmu_hop0_tables_total_size;
+	prop->pmmu.hop_table_size = HOP_TABLE_SIZE_512_PTE;
+	prop->pmmu.hop0_tables_total_size = HOP0_512_PTE_TABLES_TOTAL_SIZE;
 
 	prop->hints_host_reserved_va_range.start_addr =	RESERVED_VA_RANGE_FOR_ARC_ON_HOST_START;
 	prop->hints_host_reserved_va_range.end_addr = RESERVED_VA_RANGE_FOR_ARC_ON_HOST_END;

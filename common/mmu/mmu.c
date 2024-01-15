@@ -671,7 +671,6 @@ int hl_mmu_if_set_funcs(struct hl_device *hdev)
 	case ASIC_GAUDI3_SIM_SINGLE_DIE_ARC:
 	case ASIC_GAUDI3:
 	case ASIC_GAUDI3_SINGLE_DIE:
-		/* MMUs in Gaudi3 are always host resident */
 		hl_mmu_v2_hr_set_funcs(hdev, &hdev->mmu_func[MMU_HR_PGT]);
 		/*
 		 * Gaudi3 HMMU funcs are not set under the hdev but rather in an HMMU specific
@@ -1423,7 +1422,7 @@ u64 hl_mmu_dr_alloc_hop(struct hl_ctx *ctx)
 
 shadow_err:
 	gen_pool_free(hdev->mmu_priv.dr.mmu_pgt_pool,
-			phys_addr, prop->mmu_hop_table_size);
+			phys_addr, prop->dmmu.hop_table_size);
 pool_add_err:
 	kfree(pgt_info);
 
@@ -1455,7 +1454,7 @@ int hl_mmu_dr_init(struct hl_device *hdev)
 	int rc;
 
 	hdev->mmu_priv.dr.mmu_pgt_pool =
-			gen_pool_create(__ffs(prop->mmu_hop_table_size), -1);
+			gen_pool_create(__ffs(prop->dmmu.hop_table_size), -1);
 
 	if (!hdev->mmu_priv.dr.mmu_pgt_pool) {
 		dev_err(hdev->dev, "Failed to create page gen pool\n");

@@ -1205,7 +1205,7 @@ static int gaudi_sim_mmu_init(struct hl_device *hdev)
 
 	for (i = 0 ; i < prop->max_asid ; i++) {
 		hop0_addr = prop->mmu_pgt_addr +
-				(i * prop->mmu_hop_table_size);
+				(i * prop->dmmu.hop_table_size);
 
 		rc = gaudi_mmu_update_asid_hop0_addr(hdev, i, hop0_addr);
 		if (rc) {
