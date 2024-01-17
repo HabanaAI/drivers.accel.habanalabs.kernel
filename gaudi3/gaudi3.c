@@ -198,11 +198,7 @@ MODULE_FIRMWARE(GAUDI3_BOOT_FIT_FILE);
  * detect the exact initiator for the page fault. So print the list of possibilities.
  */
 
-#define HL_STR_DEC_SM_ARC(hd) "GAUDI3_HDCORE" #hd "_ENGINE_ID_DEC_0/"	\
-				"GAUDI3_HDCORE" #hd "_ENGINE_ID_DEC_1/"	\
-				"GAUDI3_HDCORE" #hd "_ENGINE_ID_SM/"	\
-				"GAUDI3_HDCORE" #hd "_ENGINE_ID_ARCF_0/"\
-				"GAUDI3_HDCORE" #hd "_ENGINE_ID_ARCF_1"
+#define HL_STR_DEC_SM_ARC(hd) "GAUDI3_HDCORE" #hd "_ENGINE_ID_{DEC_0,DEC_1,SM,ARCF_0,ARCF_1}"
 
 const char *gaud3_engine_id_dec_sm_arc_str[] = {
 	HL_STR_DEC_SM_ARC(0),
