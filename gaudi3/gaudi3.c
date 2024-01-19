@@ -13896,6 +13896,8 @@ static void gaudi3_sei_razwi_handler(struct hl_device *hdev, struct hl_eq_dynami
 {
 	enum hl_agg_component_type agg_component_type = eq->agg_hdr.int_comp_type;
 	u16 eng_id = eq_agg_header_to_engine_id(&eq->agg_hdr);
+	struct hl_eq_spdma_data *spdma_data;
+	u32 spdma_id;
 
 	if (!(hdev->fw_components & FW_TYPE_BOOT_CPU))
 		return gaudi3_sei_razwi_handler_no_fw(hdev, &eq->agg_hdr, event_mask);
@@ -14021,26 +14023,17 @@ static void gaudi3_sei_razwi_handler(struct hl_device *hdev, struct hl_eq_dynami
 		break;
 
 	case INT_COMP_TYPE_PDMA:
-		gaudi3_handle_razwi(hdev, &eq->pdma_sei_data.spdma_data[SPDMA_ID0].rtr_data, eng_id,
-					event_mask);
-		gaudi3_handle_razwi_mstr_if(
-			hdev,
-			&eq->pdma_sei_data.spdma_data[SPDMA_ID0].mstr_if_data[SPDMA_MAIN_MSTR_IF],
-			eng_id, event_mask);
-		gaudi3_handle_razwi_mstr_if(
-			hdev,
-			&eq->pdma_sei_data.spdma_data[SPDMA_ID0].mstr_if_data[SPDMA_DUP_MSTR_IF],
-			eng_id, event_mask);
-		gaudi3_handle_razwi(hdev, &eq->pdma_sei_data.spdma_data[SPDMA_ID0].rtr_data,
-				    eng_id + NUM_OF_PDMA_CH_PER_GRP, event_mask);
-		gaudi3_handle_razwi_mstr_if(
-			hdev,
-			&eq->pdma_sei_data.spdma_data[SPDMA_ID0].mstr_if_data[SPDMA_MAIN_MSTR_IF],
-			eng_id + NUM_OF_PDMA_CH_PER_GRP, event_mask);
-		gaudi3_handle_razwi_mstr_if(
-			hdev,
-			&eq->pdma_sei_data.spdma_data[SPDMA_ID0].mstr_if_data[SPDMA_DUP_MSTR_IF],
-			eng_id + NUM_OF_PDMA_CH_PER_GRP, event_mask);
+		for (spdma_id = SPDMA_ID0 ; spdma_id < SPDMA_ID_MAX ; ++spdma_id) {
+			spdma_data =  &eq->pdma_sei_data.spdma_data[spdma_id];
+			eng_id += spdma_id * NUM_OF_PDMA_CH_PER_GRP;
+			gaudi3_handle_razwi(hdev, &spdma_data->rtr_data, eng_id, event_mask);
+			gaudi3_handle_razwi_mstr_if(hdev,
+						&spdma_data->mstr_if_data[SPDMA_MAIN_MSTR_IF],
+						eng_id, event_mask);
+			gaudi3_handle_razwi_mstr_if(hdev,
+						&spdma_data->mstr_if_data[SPDMA_DUP_MSTR_IF],
+						eng_id, event_mask);
+		}
 		break;
 
 	case INT_COMP_TYPE_PSOC:
