@@ -166,6 +166,7 @@
 #include "rotator_desc_masks.h"
 #include "mstr_if_axprot_lbw_masks.h"
 #include "mstr_if_axcache_hbw_masks.h"
+#include "mstr_if_xresp_hbw_masks.h"
 #include "mstr_if_xresp_lbw_masks.h"
 #include "cbc_masks.h"
 #include "cbc_user_masks.h"

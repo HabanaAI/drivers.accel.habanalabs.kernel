@@ -13841,19 +13841,19 @@ static void gaudi3_handle_razwi_mstr_if(struct hl_device *hdev, struct hl_eq_raz
 	u32 intr_cause;
 
 	if (rd->rr.lbw.aw.razwi_happened)
-		gaudi3_handle_razwi_info(hdev, &rd->rr.lbw.aw, "MSTR-IF LBW RR AW", eng_id,
+		gaudi3_handle_razwi_info(hdev, &rd->rr.lbw.aw, "MSTR_IF LBW RR AW", eng_id,
 					 HL_RAZWI_LBW | HL_RAZWI_RR | HL_RAZWI_WRITE, event_mask);
 
 	if (rd->rr.lbw.ar.razwi_happened)
-		gaudi3_handle_razwi_info(hdev, &rd->rr.lbw.ar, "MSTR-IF LBW RR AR", eng_id,
+		gaudi3_handle_razwi_info(hdev, &rd->rr.lbw.ar, "MSTR_IF LBW RR AR", eng_id,
 					 HL_RAZWI_LBW | HL_RAZWI_RR | HL_RAZWI_READ, event_mask);
 
 	if (rd->rr.hbw.aw.razwi_happened)
-		gaudi3_handle_razwi_info(hdev, &rd->rr.hbw.aw, "MSTR-IF HBW RR AW", eng_id,
+		gaudi3_handle_razwi_info(hdev, &rd->rr.hbw.aw, "MSTR_IF HBW RR AW", eng_id,
 					 HL_RAZWI_HBW | HL_RAZWI_RR | HL_RAZWI_WRITE, event_mask);
 
 	if (rd->rr.hbw.ar.razwi_happened)
-		gaudi3_handle_razwi_info(hdev, &rd->rr.hbw.ar, "MSTR-IF HBW RR AR", eng_id,
+		gaudi3_handle_razwi_info(hdev, &rd->rr.hbw.ar, "MSTR_IF HBW RR AR", eng_id,
 					 HL_RAZWI_HBW | HL_RAZWI_RR | HL_RAZWI_READ, event_mask);
 
 	if (rd->isec.aw.razwi_happened)
@@ -13885,14 +13885,16 @@ static void gaudi3_handle_razwi_mstr_if(struct hl_device *hdev, struct hl_eq_raz
 					 eng_id, HL_RAZWI_HBW | HL_RAZWI_READ, event_mask);
 
 	intr_cause = lower_32_bits(le64_to_cpu(rd->xresp.hbw.intr_cause_data));
-	if (intr_cause)
-		dev_err(hdev->dev, "%s RAZWI happened: cause 0x%llX", "MSTR-IF XRESP HBW",
-			__le64_to_cpu(rd->xresp.hbw.intr_cause_data));
+	if (FIELD_GET(MSTR_IF_XRESP_HBW_INTR_CTRL_CAUSE_BRESP_ERR_M, intr_cause))
+		dev_err(hdev->dev, "MSTR_IF XRESP HBW RAZWI happened: BRESP_ERR\n");
+	if (FIELD_GET(MSTR_IF_XRESP_HBW_INTR_CTRL_CAUSE_RRESP_ERR_M, intr_cause))
+		dev_err(hdev->dev, "MSTR_IF XRESP HBW RAZWI happened: RRESP_ERR\n");
 
 	intr_cause = lower_32_bits(le64_to_cpu(rd->xresp.lbw.intr_cause_data));
-	if (intr_cause)
-		dev_err(hdev->dev, "%s RAZWI happened: cause 0x%llX", "MSTR-IF XRESP LBW",
-			__le64_to_cpu(rd->xresp.lbw.intr_cause_data));
+	if (FIELD_GET(MSTR_IF_XRESP_LBW_INTR_CTRL_CAUSE_BRESP_ERR_M, intr_cause))
+		dev_err(hdev->dev, "MSTR_IF XRESP LBW RAZWI happened: BRESP_ERR\n");
+	if (FIELD_GET(MSTR_IF_XRESP_LBW_INTR_CTRL_CAUSE_RRESP_ERR_M, intr_cause))
+		dev_err(hdev->dev, "MSTR_IF XRESP LBW RAZWI happened: RRESP_ERR\n");
 }
 
 static void gaudi3_sei_razwi_handler(struct hl_device *hdev, struct hl_eq_dynamic_entry *eq,
