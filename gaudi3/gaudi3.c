@@ -13838,6 +13838,8 @@ static void gaudi3_handle_razwi(struct hl_device *hdev, struct hl_eq_razwi_rtr_d
 static void gaudi3_handle_razwi_mstr_if(struct hl_device *hdev, struct hl_eq_razwi_mstr_if_data *rd,
 					u16 eng_id, u64 *event_mask)
 {
+	u32 intr_cause;
+
 	if (rd->rr.lbw.aw.razwi_happened)
 		gaudi3_handle_razwi_info(hdev, &rd->rr.lbw.aw, "MSTR-IF LBW RR AW", eng_id,
 					 HL_RAZWI_LBW | HL_RAZWI_RR | HL_RAZWI_WRITE, event_mask);
@@ -13882,11 +13884,13 @@ static void gaudi3_handle_razwi_mstr_if(struct hl_device *hdev, struct hl_eq_raz
 		gaudi3_handle_razwi_info(hdev, &rd->illegal_txn.hbw.ar, "ILLEGAL TXN HBW AR",
 					 eng_id, HL_RAZWI_HBW | HL_RAZWI_READ, event_mask);
 
-	if (rd->xresp.hbw.intr_cause_data)
+	intr_cause = lower_32_bits(le64_to_cpu(rd->xresp.hbw.intr_cause_data));
+	if (intr_cause)
 		dev_err(hdev->dev, "%s RAZWI happened: cause 0x%llX", "MSTR-IF XRESP HBW",
 			__le64_to_cpu(rd->xresp.hbw.intr_cause_data));
 
-	if (rd->xresp.lbw.intr_cause_data)
+	intr_cause = lower_32_bits(le64_to_cpu(rd->xresp.lbw.intr_cause_data));
+	if (intr_cause)
 		dev_err(hdev->dev, "%s RAZWI happened: cause 0x%llX", "MSTR-IF XRESP LBW",
 			__le64_to_cpu(rd->xresp.lbw.intr_cause_data));
 }
