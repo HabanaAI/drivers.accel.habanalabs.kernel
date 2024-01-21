@@ -91,7 +91,8 @@ static int gaudi3_cn_override_ports_ext_mask(struct hl_device *hdev,
 					     uint64_t *ports_ext_mask)
 {
 	/* If we are running on a PCI card, all the ports should be set as external */
-	if (hdev->card_type == cpucp_card_type_pci || is_400g_mode(hdev)) {
+	/* TODO: SW-166512 - remove the pldm check */
+	if (hdev->card_type == cpucp_card_type_pci || is_400g_mode(hdev) || hdev->pldm) {
 		*ports_ext_mask = hdev->cn.ports_mask;
 		return 0;
 	}
