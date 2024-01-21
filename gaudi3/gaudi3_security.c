@@ -327,8 +327,8 @@ static inline void gaudi3_init_range_registers(struct hl_device *hdev)
 }
 
 static const u32 gaudi3_pb_kdma[] = {
-	mmD0_SPDMA0_CH0_A_PQM_CH_BASE,
-	mmD0_SPDMA0_CH0_B_PQM_CH_BASE,
+	mmD1_SPDMA1_CH5_A_PQM_CH_BASE,
+	mmD1_SPDMA1_CH5_B_PQM_CH_BASE,
 };
 
 static const u32 gaudi3_pb_hdcr0_sm_glbl[] = {
@@ -499,7 +499,7 @@ static int gaudi3_init_protection_bits(struct hl_device *hdev)
 
 	dev_dbg(hdev->dev, "Configure protection bits\n");
 
-	/* KDMA (D0_SPDMA0_CH0_A) */
+	/* KDMA (D1_SPDMA1_CH5_A) */
 	rc |= hl_init_pb(hdev, HL_PB_SHARED, HL_PB_NA,
 			HL_PB_SINGLE_INSTANCE, HL_PB_NA,
 			gaudi3_pb_kdma, ARRAY_SIZE(gaudi3_pb_kdma),

@@ -72,7 +72,7 @@
 #define HW_CAP_MMU_MASK			(HW_CAP_PMMU | HW_CAP_HMMU_MASK)
 #define HW_CAP_SCRAMBLER_MASK		(HW_CAP_HBM_SCRAMBLER_MASK | HW_CAP_SRAM_SCRAMBLER_MASK)
 
-#define KDMA_CH_ID			0
+#define KDMA_CH_ID			23
 
 /* In Gaudi3, there are two separated identical groups of SOBs/MONs under the same SM block */
 #define HDCORE_NUM_OF_SOB_PER_GRP	8192

@@ -471,8 +471,8 @@ static const struct range gaudi3_iterator_skip_pb_blocks_ranges[] = {
 	/* DBG regions */
 	{mmHD0_TPC0_CS_DBG_ROM_TABLE_BASE, mmHD7_SCD_FUNNEL_BASE},
 	/* KDMA channel */
-	{mmD0_SPDMA0_CH0_A_BASE, mmD0_SPDMA0_CH0_A_BASE},
-	{mmD0_SPDMA0_CH0_B_BASE, mmD0_SPDMA0_CH0_B_BASE},
+	{mmD1_SPDMA1_CH5_A_BASE, mmD1_SPDMA1_CH5_A_BASE},
+	{mmD1_SPDMA1_CH5_B_BASE, mmD1_SPDMA1_CH5_B_BASE},
 	/* DIE1 PCIE/PIF */
 	{mmD1_PCIE_BMU_BASE, mmD1_PIF_DUMMY_LBW_BASE}
 };
@@ -10443,7 +10443,7 @@ static int gaudi3_test_kdma_access(struct hl_device *hdev)
 
 	/* prepare JOB params */
 
-	/* KDMA is the 1st channel in the 1st PDMA group */
+	/* KDMA is the last channel in the last PDMA group (in the second DIE) */
 	job_params.ch_idx = KDMA_CH_ID;
 	job_params.ch_reg_base = gaudi3_pdma_get_ch_reg_base(hdev, KDMA_CH_ID);
 	job_params.src = host_mem_dma_addr;
