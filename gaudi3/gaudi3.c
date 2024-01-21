@@ -5296,9 +5296,12 @@ static int gaudi3_cpucp_handshake_info_get(struct hl_device *hdev)
 
 int gaudi3_cpucp_info_get(struct hl_device *hdev)
 {
-	struct gaudi3_device *gaudi3 = hdev->asic_specific;
-	int rc;
+
 	const bool use_fw_nic_info = !hdev->ignore_fw_nic_info;
+	struct asic_fixed_properties *prop = &hdev->asic_prop;
+	struct gaudi3_device *gaudi3 = hdev->asic_specific;
+	long max_power;
+	int rc;
 
 	if (!(gaudi3->hw_cap_initialized & HW_CAP_CPU_Q)) {
 		/* Skip for hard or device release reset flow. No need to repopulate. */
@@ -5333,6 +5336,12 @@ int gaudi3_cpucp_info_get(struct hl_device *hdev)
 	rc = gaudi3_cpucp_handshake_info_get(hdev);
 	if (rc)
 		return rc;
+
+	max_power = hl_fw_get_max_power(hdev);
+	if (max_power < 0)
+		return max_power;
+
+	prop->max_power_default = (u64) max_power;
 
 	/* Make sure we don't expose HWMON for simulator */
 	if (!hdev->pdev && hdev->hl_chip_info->info)
