@@ -13282,23 +13282,23 @@ static u32 gaudi3_handle_pcie_spi_drain(struct hl_device *hdev,
 					struct hl_eq_pcie_drain_ind_data *dc,
 					u32 *reset_flags, u64 *event_mask)
 {
-	u64 cause = le64_to_cpu(dc->intr_cause.intr_cause_data);
+	u64 cause = le64_to_cpu(dc->intr_cause.intr_cause_data), wr_addr, rd_addr;
 	u32 err_num = 0;
 
 	if (cause & (PCIE_WRAP_AXI_DRAIN_IND_LBW_AXI_DRAIN_IND_M |
 			PCIE_WRAP_AXI_DRAIN_IND_LBW_AXI_DRAIN_BP_IND_M)) {
 		err_num++;
-		dev_err_ratelimited(
-				hdev->dev, "PCIE SPI LBW drain error WR 0x%llX, RD 0x%llX\n",
-				LBW_TO_FULL_DEV_VA_OFFSET + le64_to_cpu(dc->drain_wr_addr_lbw),
-				LBW_TO_FULL_DEV_VA_OFFSET + le64_to_cpu(dc->drain_rd_addr_lbw));
+		wr_addr = le64_to_cpu(dc->drain_wr_addr_lbw);
+		rd_addr = le64_to_cpu(dc->drain_rd_addr_lbw);
+		dev_err_ratelimited(hdev->dev, "PCIE SPI LBW drain error WR 0x%llX, RD 0x%llX\n",
+				wr_addr ? LBW_TO_FULL_DEV_VA_OFFSET + wr_addr : wr_addr,
+				rd_addr ? LBW_TO_FULL_DEV_VA_OFFSET + rd_addr : rd_addr);
 	}
 
 	if (cause & (PCIE_WRAP_AXI_DRAIN_IND_HBW_AXI_DRAIN_IND_M |
 			PCIE_WRAP_AXI_DRAIN_IND_HBW_AXI_DRAIN_BP_IND_M)) {
 		err_num++;
-		dev_err_ratelimited(
-				hdev->dev, "PCIE SPI HBW drain error WR 0x%llX, RD 0x%llX\n",
+		dev_err_ratelimited(hdev->dev, "PCIE SPI HBW drain error WR 0x%llX, RD 0x%llX\n",
 				le64_to_cpu(dc->drain_wr_addr_hbw),
 				le64_to_cpu(dc->drain_rd_addr_hbw));
 	}
