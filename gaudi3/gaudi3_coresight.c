@@ -6886,7 +6886,7 @@ static int gaudi3_sample_spmu(struct hl_device *hdev, struct hl_debug_params *pa
 
 	/* read the shadow registers */
 	for (i = 0 ; i < events_num ; i++)
-		output[i] = RREG32(base_reg + mmCS_DBG_TPC_EML_EML_SPMU_PMEVCNTR0_EL0 + i * 4);
+		output[i] = RREG32(base_reg + mmCS_DBG_TPC_EML_EML_SPMU_PMEVCNTR0_EL0 + i * 8);
 
 	return 0;
 }
