@@ -3144,9 +3144,6 @@ static int gaudi2_cpucp_info_get(struct hl_device *hdev)
 	else if (!hdev->reset_info.in_reset)
 		rc = gaudi2_cn_set_info(hdev, false);
 
-	/* TODO temporary disable EQ heartbeat check till this issue is resolved SW-163643 */
-	prop->cpucp_info.eq_health_check_supported = false;
-
 	return rc;
 }
 
