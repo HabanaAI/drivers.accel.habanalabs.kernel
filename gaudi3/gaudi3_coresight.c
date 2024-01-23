@@ -6340,13 +6340,14 @@ static int gaudi3_config_spmu(struct hl_device *hdev, struct hl_debug_params *pa
 		WREG32(base_reg + mmCS_DBG_TPC_EML_EML_SPMU_PMCR_EL0, 0x41013046);
 		WREG32(base_reg + mmCS_DBG_TPC_EML_EML_SPMU_PMCR_EL0, 0x41013040);
 
-		/* dummy read for pldm to flush outstanding writes */
-		if (hdev->pldm) {
-			/* sleep is required for previous write(s) to complete for NIC SPMU */
-			if (gaudi3_reg_is_nic_spmu(params->reg_idx))
-				msleep(2000);
-			RREG32(base_reg);
-		}
+		/* sleep is required for previous write(s) to complete for NIC SPMU */
+		if (hdev->pldm && gaudi3_reg_is_nic_spmu(params->reg_idx))
+			msleep(2000);
+
+		/* Flush reset value to SPMU registers prior configuring otherwise configuration
+		 * might timeout.
+		 */
+		RREG32(base_reg);
 
 		for (i = 0 ; i < input->event_types_num ; i++)
 			WREG32(base_reg + mmCS_DBG_TPC_EML_EML_SPMU_PMEVTYPER0_EL0 + i * 4,
@@ -6358,7 +6359,8 @@ static int gaudi3_config_spmu(struct hl_device *hdev, struct hl_debug_params *pa
 		WREG32(base_reg + mmCS_DBG_TPC_EML_EML_SPMU_TRC_EN_HOST, input->trc_en_host_val);
 
 		WREG32(base_reg + mmCS_DBG_TPC_EML_EML_SPMU_PMCR_EL0, 0x41013041);
-
+		/* Flush enable mode */
+		RREG32(base_reg);
 		/*
 		 * set enabled events mask based on input->event_types_num
 		 */
@@ -6374,6 +6376,8 @@ static int gaudi3_config_spmu(struct hl_device *hdev, struct hl_debug_params *pa
 		cycle_cnt_idx = output_arr_len - 1;
 
 		WREG32(base_reg + mmCS_DBG_TPC_EML_EML_SPMU_PMCR_EL0, 0x41013040);
+		/* Flush disable value to SPMU registers otherwise writes might timeout. */
+		RREG32(base_reg);
 
 		if (output && output_arr_len > 2) {
 
