@@ -4656,6 +4656,12 @@ void hl_capture_engine_err(struct hl_device *hdev, u16 engine_id, u16 error_coun
 void hl_enable_err_info_capture(struct hl_error_info *captured_err_info);
 void hl_init_cpu_for_irq(struct hl_device *hdev);
 void hl_set_irq_affinity(struct hl_device *hdev, int irq);
+int hl_get_hw_block_handle(struct hl_device *hdev, u64 address,
+				u64 *handle, u32 *size);
+int map_device_va(struct hl_ctx *ctx, struct hl_mem_in *args, u64 *device_addr);
+int unmap_device_va(struct hl_ctx *ctx, struct hl_mem_in *args, bool ctx_free);
+int map_device_va_from_dmabuf_fd(struct hl_ctx *ctx, struct hl_mem_in *args,
+				u64 *device_addr);
 int __hl_mmap(struct hl_fpriv *hpriv, struct vm_area_struct *vma);
 
 #ifdef CONFIG_DEBUG_FS
@@ -4841,12 +4847,6 @@ int hl_wait_ioctl(struct drm_device *ddev, void *data, struct drm_file *file_pri
 int hl_mem_ioctl(struct drm_device *ddev, void *data, struct drm_file *file_priv);
 int hl_debug_ioctl(struct drm_device *ddev, void *data, struct drm_file *file_priv);
 int hl_nic_ioctl(struct drm_device *ddev, void *data, struct drm_file *file_priv);
-int map_device_va(struct hl_ctx *ctx, struct hl_mem_in *args, u64 *device_addr);
-int hl_get_hw_block_handle(struct hl_device *hdev, u64 address,
-				u64 *handle, u32 *size);
-int unmap_device_va(struct hl_ctx *ctx, struct hl_mem_in *args, bool ctx_free);
-int map_device_va_from_dmabuf_fd(struct hl_ctx *ctx, struct hl_mem_in *args,
-				u64 *device_addr);
 
 /* SIMULATOR CODE */
 #include <linux/kfifo.h>
