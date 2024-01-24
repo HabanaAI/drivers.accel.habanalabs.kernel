@@ -1835,7 +1835,6 @@ struct engines_data {
  * @get_sob_addr: get SOB base address offset.
  * @set_pci_memory_regions: setting properties of PCI memory regions
  * @get_stream_master_qid_arr: get pointer to stream masters QID array
- * @cn_funcs: ASIC specific CN functions.
  * @check_if_razwi_happened: check if there was a razwi due to RR violation.
  * @alloc_irq_vectors: allocate multiple IRQs for a device
  * @free_irq_vectors: free previously allocated IRQs for a device
@@ -1851,6 +1850,7 @@ struct engines_data {
  * @set_dram_properties: set DRAM related properties.
  * @set_priv_assertions: enable/disable privilege assertions.
  * @set_binning_masks: set binning/enable masks for all relevant components.
+ * @cn_funcs: ASIC specific CN functions.
  */
 struct hl_asic_funcs {
 	int (*early_init)(struct hl_device *hdev);
@@ -1983,7 +1983,6 @@ struct hl_asic_funcs {
 	u32 (*get_sob_addr)(struct hl_device *hdev, u32 sob_id);
 	void (*set_pci_memory_regions)(struct hl_device *hdev);
 	u32* (*get_stream_master_qid_arr)(void);
-	struct hl_cn_funcs *cn_funcs;
 	void (*check_if_razwi_happened)(struct hl_device *hdev);
 	int (*alloc_irq_vectors)(struct hl_device *hdev, unsigned int min_vecs,
 					unsigned int max_vecs, unsigned int flags);
@@ -2010,6 +2009,7 @@ struct hl_asic_funcs {
 	int (*set_dram_properties)(struct hl_device *hdev);
 	void (*set_priv_assertions)(struct hl_device *hdev, bool enable);
 	int (*set_binning_masks)(struct hl_device *hdev);
+	struct hl_cn_funcs *cn_funcs;
 };
 
 
