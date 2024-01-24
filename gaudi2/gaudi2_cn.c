@@ -70,31 +70,31 @@ void gaudi2_cn_disable_interrupts(struct hl_device *hdev)
 	if (hdev->pldm)
 		gaudi2_disable_nic_interrupts_cpu_if(hdev);
 
-	/* Disable interrupts of all NICs */
-	if (hdev->cn.ports_mask) {
-		/* we only need the port number for NIC_WREG32 */
-		for (port = 0 ; port < NIC_NUMBER_OF_PORTS ; port++) {
-			NIC_WREG32(mmNIC0_QPC0_EVENT_QUE_CFG, 0);
-			NIC_WREG32(mmNIC0_QPC0_INTERRUPT_EN, 0);
-			NIC_WREG32(mmNIC0_QPC0_INTERRUPT_MASK, 0xFFFFFFFF);
+	if (!hdev->cn.ports_mask)
+		return;
 
-			/* This registers needs to be configured only in case of PLDM */
-			if (hdev->pldm) {
-				NIC_WREG32(mmNIC0_QPC0_INTERRUPT_RESP_ERR_MASK, 0xFFFFFFFF);
-				NIC_WREG32(mmNIC0_TXE0_INTERRUPT_MASK, 0xFFFFFFFF);
-				NIC_WREG32(mmNIC0_RXE0_SPI_INTR_MASK, 0xFFFFFFFF);
-				NIC_WREG32(mmNIC0_RXE0_SEI_INTR_MASK, 0xFFFFFFFF);
-				NIC_WREG32(mmNIC0_TXS0_INTERRUPT_MASK, 0xFFFFFFFF);
-			}
+	/* we only need the port number for NIC_WREG32 */
+	for (port = 0 ; port < NIC_NUMBER_OF_PORTS ; port++) {
+		NIC_WREG32(mmNIC0_QPC0_EVENT_QUE_CFG, 0);
+		NIC_WREG32(mmNIC0_QPC0_INTERRUPT_EN, 0);
+		NIC_WREG32(mmNIC0_QPC0_INTERRUPT_MASK, 0xFFFFFFFF);
 
-			/* WA for H/W bug H6-3339 - mask the link UP interrupt */
-			NIC_MACRO_WREG32(mmNIC0_PHY_PHY_LINK_STS_INTR, 0x1);
+		/* This registers needs to be configured only in case of PLDM */
+		if (hdev->pldm) {
+			NIC_WREG32(mmNIC0_QPC0_INTERRUPT_RESP_ERR_MASK, 0xFFFFFFFF);
+			NIC_WREG32(mmNIC0_TXE0_INTERRUPT_MASK, 0xFFFFFFFF);
+			NIC_WREG32(mmNIC0_RXE0_SPI_INTR_MASK, 0xFFFFFFFF);
+			NIC_WREG32(mmNIC0_RXE0_SEI_INTR_MASK, 0xFFFFFFFF);
+			NIC_WREG32(mmNIC0_TXS0_INTERRUPT_MASK, 0xFFFFFFFF);
 		}
 
-		/* flush */
-		port = 0;
-		NIC_RREG32(mmNIC0_QPC0_EVENT_QUE_CFG);
+		/* WA for H/W bug H6-3339 - mask the link UP interrupt */
+		NIC_MACRO_WREG32(mmNIC0_PHY_PHY_LINK_STS_INTR, 0x1);
 	}
+
+	/* flush */
+	port = 0;
+	NIC_RREG32(mmNIC0_QPC0_EVENT_QUE_CFG);
 }
 
 /**

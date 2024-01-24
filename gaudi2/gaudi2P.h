@@ -15,7 +15,6 @@
 #include <linux/habanalabs/hl_boot_if.h>
 #include "../include/gaudi2/gaudi2.h"
 #include "../include/gaudi2/gaudi2_packets.h"
-#include <linux/netdevice.h>
 #include "../include/gaudi2/gaudi2_fw_if.h"
 #include "../include/gaudi2/gaudi2_coresight.h"
 #include "../include/gaudi2/gaudi2_async_events.h"

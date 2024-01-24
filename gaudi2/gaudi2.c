@@ -83,7 +83,6 @@ MODULE_FIRMWARE(GAUDI2_LINUX_FW_FILE);
 #define GAUDI2_NUM_OF_AXI_DRAIN_ERR_CAUSE	2
 #define GAUDI2_NUM_OF_HBM_MC_SPI_CAUSE		5
 
-
 #define GAUDI2_MMU_CACHE_INV_TIMEOUT_USEC	(MMU_CONFIG_TIMEOUT_USEC * 10)
 #define GAUDI2_PLDM_MMU_TIMEOUT_USEC		(MMU_CONFIG_TIMEOUT_USEC * 200)
 #define GAUDI2_ARB_WDT_TIMEOUT			(0x1000000)
@@ -9070,7 +9069,6 @@ static int gaudi2_handle_qm_sei_err(struct hl_device *hdev, u16 event_type,
 	if (extended_err_check) {
 		/* check if RAZWI happened */
 		gaudi2_ack_module_razwi_event_handler(hdev, module, 0, 0, event_mask);
-
 		hl_check_for_glbl_errors(hdev);
 	}
 
@@ -11391,6 +11389,7 @@ put_ctx:
 
 	return rc;
 }
+
 static int gaudi2_internal_cb_pool_init(struct hl_device *hdev, struct hl_ctx *ctx)
 {
 	struct gaudi2_device *gaudi2 = hdev->asic_specific;
