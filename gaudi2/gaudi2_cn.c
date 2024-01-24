@@ -405,6 +405,39 @@ static int gaudi2_cn_poll_mem(struct hl_aux_dev *aux_dev, u32 *addr, u32 *val,
 					HL_DEVICE_TIMEOUT_USEC, true);
 }
 
+static void *gaudi2_cn_dma_alloc_coherent(struct hl_aux_dev *aux_dev, size_t size,
+					  dma_addr_t *dma_handle, gfp_t flag)
+{
+	return hl_cn_dma_alloc_coherent(aux_dev, size, dma_handle, flag);
+}
+
+static void gaudi2_cn_dma_free_coherent(struct hl_aux_dev *aux_dev, size_t size, void *cpu_addr,
+					dma_addr_t dma_handle)
+{
+	hl_cn_dma_free_coherent(aux_dev, size, cpu_addr, dma_handle);
+}
+
+static void *gaudi2_cn_dma_pool_zalloc(struct hl_aux_dev *aux_dev, size_t size, gfp_t mem_flags,
+				       dma_addr_t *dma_handle)
+{
+	return hl_cn_dma_pool_zalloc(aux_dev, size, mem_flags, dma_handle);
+}
+
+static void gaudi2_cn_dma_pool_free(struct hl_aux_dev *aux_dev, void *vaddr, dma_addr_t dma_addr)
+{
+	hl_cn_dma_pool_free(aux_dev, vaddr, dma_addr);
+}
+
+static int gaudi2_cn_get_hw_block_handle(struct hl_aux_dev *aux_dev, u64 address, u64 *handle)
+{
+	return hl_cn_get_hw_block_handle(aux_dev, address, handle);
+}
+
+static int gaudi2_cn_user_mmap(struct hl_aux_dev *aux_dev, struct vm_area_struct *vma)
+{
+	return hl_cn_user_mmap(aux_dev, vma);
+}
+
 static void gaudi2_cn_set_cn_data(struct hl_device *hdev)
 {
 	struct gaudi2_device *gaudi2 = hdev->asic_specific;
@@ -433,6 +466,12 @@ static void gaudi2_cn_set_cn_data(struct hl_device *hdev)
 	/* cn2accel */
 	gaudi2_aux_ops->get_event_name = gaudi2_cn_get_event_name;
 	gaudi2_aux_ops->poll_mem = gaudi2_cn_poll_mem;
+	gaudi2_aux_ops->dma_alloc_coherent = gaudi2_cn_dma_alloc_coherent;
+	gaudi2_aux_ops->dma_free_coherent = gaudi2_cn_dma_free_coherent;
+	gaudi2_aux_ops->dma_pool_zalloc = gaudi2_cn_dma_pool_zalloc;
+	gaudi2_aux_ops->dma_pool_free = gaudi2_cn_dma_pool_free;
+	gaudi2_aux_ops->get_hw_block_handle = gaudi2_cn_get_hw_block_handle;
+	gaudi2_aux_ops->user_mmap = gaudi2_cn_user_mmap;
 }
 
 void gaudi2_cn_compute_reset_prepare(struct hl_device *hdev)

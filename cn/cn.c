@@ -126,7 +126,7 @@ static void hl_cn_device_reset(struct hl_aux_dev *aux_dev)
 	hl_device_reset(hdev, HL_DRV_RESET_HARD);
 }
 
-static void *hl_cn_dma_alloc_coherent(struct hl_aux_dev *aux_dev, size_t size,
+void *hl_cn_dma_alloc_coherent(struct hl_aux_dev *aux_dev, size_t size,
 					dma_addr_t *dma_handle, gfp_t flag)
 {
 	struct hl_cn *cn = container_of(aux_dev, struct hl_cn, cn_aux_dev);
@@ -135,7 +135,7 @@ static void *hl_cn_dma_alloc_coherent(struct hl_aux_dev *aux_dev, size_t size,
 	return hl_asic_dma_alloc_coherent(hdev, size, dma_handle, flag);
 }
 
-static void hl_cn_dma_free_coherent(struct hl_aux_dev *aux_dev, size_t size, void *cpu_addr,
+void hl_cn_dma_free_coherent(struct hl_aux_dev *aux_dev, size_t size, void *cpu_addr,
 					dma_addr_t dma_handle)
 {
 	struct hl_cn *cn = container_of(aux_dev, struct hl_cn, cn_aux_dev);
@@ -144,7 +144,7 @@ static void hl_cn_dma_free_coherent(struct hl_aux_dev *aux_dev, size_t size, voi
 	hl_asic_dma_free_coherent(hdev, size, cpu_addr, dma_handle);
 }
 
-static void *hl_cn_dma_pool_zalloc(struct hl_aux_dev *aux_dev, size_t size, gfp_t mem_flags,
+void *hl_cn_dma_pool_zalloc(struct hl_aux_dev *aux_dev, size_t size, gfp_t mem_flags,
 					dma_addr_t *dma_handle)
 {
 	struct hl_cn *cn = container_of(aux_dev, struct hl_cn, cn_aux_dev);
@@ -153,7 +153,7 @@ static void *hl_cn_dma_pool_zalloc(struct hl_aux_dev *aux_dev, size_t size, gfp_
 	return hl_asic_dma_pool_zalloc(hdev, size, mem_flags, dma_handle);
 }
 
-static void hl_cn_dma_pool_free(struct hl_aux_dev *aux_dev, void *vaddr, dma_addr_t dma_addr)
+void hl_cn_dma_pool_free(struct hl_aux_dev *aux_dev, void *vaddr, dma_addr_t dma_addr)
 {
 	struct hl_cn *cn = container_of(aux_dev, struct hl_cn, cn_aux_dev);
 	struct hl_device *hdev = container_of(cn, struct hl_device, cn);
@@ -199,7 +199,7 @@ static void hl_cn_vm_unreserve_dva_block(struct hl_aux_dev *aux_dev, u64 vm_hand
 	hl_unreserve_va_block(hdev, cn->ctx, dva, size);
 }
 
-static int hl_cn_get_hw_block_handle(struct hl_aux_dev *aux_dev, u64 address, u64 *handle)
+int hl_cn_get_hw_block_handle(struct hl_aux_dev *aux_dev, u64 address, u64 *handle)
 {
 	struct hl_cn *cn = container_of(aux_dev, struct hl_cn, cn_aux_dev);
 	struct hl_device *hdev = container_of(cn, struct hl_device, cn);
@@ -216,7 +216,7 @@ static int hl_cn_dma_mmap(struct hl_aux_dev *aux_dev, struct vm_area_struct *vma
 	return hdev->asic_funcs->mmap(hdev, vma, cpu_addr, dma_addr, size);
 }
 
-static int hl_cn_user_mmap(struct hl_aux_dev *aux_dev, struct vm_area_struct *vma)
+int hl_cn_user_mmap(struct hl_aux_dev *aux_dev, struct vm_area_struct *vma)
 {
 	struct hl_cn *cn = container_of(aux_dev, struct hl_cn, cn_aux_dev);
 

@@ -501,6 +501,48 @@ static void gaudi_cn_reset_mac_stats(struct hl_aux_dev *aux_dev, u32 port)
 			rc);
 }
 
+static void *gaudi_cn_dma_alloc_coherent(struct hl_aux_dev *aux_dev, size_t size,
+					  dma_addr_t *dma_handle, gfp_t flag)
+{
+	return hl_cn_dma_alloc_coherent(aux_dev, size, dma_handle, flag);
+}
+
+static void gaudi_cn_dma_free_coherent(struct hl_aux_dev *aux_dev, size_t size, void *cpu_addr,
+					dma_addr_t dma_handle)
+{
+	hl_cn_dma_free_coherent(aux_dev, size, cpu_addr, dma_handle);
+}
+
+static void *gaudi_cn_dma_pool_zalloc(struct hl_aux_dev *aux_dev, size_t size, gfp_t mem_flags,
+				       dma_addr_t *dma_handle)
+{
+	return hl_cn_dma_pool_zalloc(aux_dev, size, mem_flags, dma_handle);
+}
+
+static void gaudi_cn_dma_pool_free(struct hl_aux_dev *aux_dev, void *vaddr, dma_addr_t dma_addr)
+{
+	hl_cn_dma_pool_free(aux_dev, vaddr, dma_addr);
+}
+
+static int gaudi_cn_get_hw_block_handle(struct hl_aux_dev *aux_dev, u64 address, u64 *handle)
+{
+	return hl_cn_get_hw_block_handle(aux_dev, address, handle);
+}
+
+static int gaudi_cn_dma_mmap(struct hl_aux_dev *aux_dev, struct vm_area_struct *vma, void *cpu_addr,
+				dma_addr_t dma_addr, size_t size)
+{
+	struct hl_cn *cn = container_of(aux_dev, struct hl_cn, cn_aux_dev);
+	struct hl_device *hdev = container_of(cn, struct hl_device, cn);
+
+	return hdev->asic_funcs->mmap(hdev, vma, cpu_addr, dma_addr, size);
+}
+
+static int gaudi_cn_user_mmap(struct hl_aux_dev *aux_dev, struct vm_area_struct *vma)
+{
+	return hl_cn_user_mmap(aux_dev, vma);
+}
+
 static void gaudi_cn_set_cn_data(struct hl_device *hdev)
 {
 	struct asic_fixed_properties *prop = &hdev->asic_prop;
@@ -544,6 +586,13 @@ static void gaudi_cn_set_cn_data(struct hl_device *hdev)
 	gaudi_aux_ops->read_mac_cnt = gaudi_cn_read_mac_cnt;
 	gaudi_aux_ops->reset_mac_stats = gaudi_cn_reset_mac_stats;
 	gaudi_aux_ops->sim_init_props = gaudi_sim_cn_early_init_props_ext;
+	gaudi_aux_ops->dma_alloc_coherent = gaudi_cn_dma_alloc_coherent;
+	gaudi_aux_ops->dma_free_coherent = gaudi_cn_dma_free_coherent;
+	gaudi_aux_ops->dma_pool_zalloc = gaudi_cn_dma_pool_zalloc;
+	gaudi_aux_ops->dma_pool_free = gaudi_cn_dma_pool_free;
+	gaudi_aux_ops->get_hw_block_handle = gaudi_cn_get_hw_block_handle;
+	gaudi_aux_ops->dma_mmap = gaudi_cn_dma_mmap;
+	gaudi_aux_ops->user_mmap = gaudi_cn_user_mmap;
 }
 
 static void gaudi_cn_post_send_status(struct hl_device *hdev, u32 port)

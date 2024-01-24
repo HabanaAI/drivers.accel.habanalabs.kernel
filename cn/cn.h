@@ -125,6 +125,15 @@ int hl_cn_get_port_statistics(struct hl_device *hdev, u32 port,
 				struct hl_cn_port_statistics *out);
 int hl_cn_check_ib_driver(struct hl_device *hdev);
 int hl_cn_cpucp_info_get(struct hl_device *hdev);
+void *hl_cn_dma_alloc_coherent(struct hl_aux_dev *aux_dev, size_t size, dma_addr_t *dma_handle,
+			       gfp_t flag);
+void hl_cn_dma_free_coherent(struct hl_aux_dev *aux_dev, size_t size, void *cpu_addr,
+			     dma_addr_t dma_handle);
+void *hl_cn_dma_pool_zalloc(struct hl_aux_dev *aux_dev, size_t size, gfp_t mem_flags,
+			    dma_addr_t *dma_handle);
+void hl_cn_dma_pool_free(struct hl_aux_dev *aux_dev, void *vaddr, dma_addr_t dma_addr);
+int hl_cn_get_hw_block_handle(struct hl_aux_dev *aux_dev, u64 address, u64 *handle);
+int hl_cn_user_mmap(struct hl_aux_dev *aux_dev, struct vm_area_struct *vma);
 
 #ifndef _HAS_AUX_BUS_H
 extern int hl_cn_probe(struct hl_aux_dev *aux_dev);

@@ -461,6 +461,39 @@ static bool gaudi3_cn_is_fw_security_enabled(struct hl_aux_dev *aux_dev)
 	return hdev->asic_prop.fw_security_enabled;
 }
 
+static void *gaudi3_cn_dma_alloc_coherent(struct hl_aux_dev *aux_dev, size_t size,
+					  dma_addr_t *dma_handle, gfp_t flag)
+{
+	return hl_cn_dma_alloc_coherent(aux_dev, size, dma_handle, flag);
+}
+
+static void gaudi3_cn_dma_free_coherent(struct hl_aux_dev *aux_dev, size_t size, void *cpu_addr,
+					dma_addr_t dma_handle)
+{
+	hl_cn_dma_free_coherent(aux_dev, size, cpu_addr, dma_handle);
+}
+
+static void *gaudi3_cn_dma_pool_zalloc(struct hl_aux_dev *aux_dev, size_t size, gfp_t mem_flags,
+				       dma_addr_t *dma_handle)
+{
+	return hl_cn_dma_pool_zalloc(aux_dev, size, mem_flags, dma_handle);
+}
+
+static void gaudi3_cn_dma_pool_free(struct hl_aux_dev *aux_dev, void *vaddr, dma_addr_t dma_addr)
+{
+	hl_cn_dma_pool_free(aux_dev, vaddr, dma_addr);
+}
+
+static int gaudi3_cn_get_hw_block_handle(struct hl_aux_dev *aux_dev, u64 address, u64 *handle)
+{
+	return hl_cn_get_hw_block_handle(aux_dev, address, handle);
+}
+
+static int gaudi3_cn_user_mmap(struct hl_aux_dev *aux_dev, struct vm_area_struct *vma)
+{
+	return hl_cn_user_mmap(aux_dev, vma);
+}
+
 static void gaudi3_cn_set_cn_data(struct hl_device *hdev)
 {
 	struct gaudi3_device *gaudi3 = hdev->asic_specific;
@@ -492,6 +525,12 @@ static void gaudi3_cn_set_cn_data(struct hl_device *hdev)
 	gaudi3_aux_ops->is_preboot_fw_enabled = gaudi3_cn_is_preboot_fw_enabled;
 	gaudi3_aux_ops->is_full_fw_enabled = gaudi3_cn_is_full_fw_enabled;
 	gaudi3_aux_ops->is_fw_security_enabled = gaudi3_cn_is_fw_security_enabled;
+	gaudi3_aux_ops->dma_alloc_coherent = gaudi3_cn_dma_alloc_coherent;
+	gaudi3_aux_ops->dma_free_coherent = gaudi3_cn_dma_free_coherent;
+	gaudi3_aux_ops->dma_pool_zalloc = gaudi3_cn_dma_pool_zalloc;
+	gaudi3_aux_ops->dma_pool_free = gaudi3_cn_dma_pool_free;
+	gaudi3_aux_ops->get_hw_block_handle = gaudi3_cn_get_hw_block_handle;
+	gaudi3_aux_ops->user_mmap = gaudi3_cn_user_mmap;
 }
 
 /**
