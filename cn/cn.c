@@ -212,15 +212,6 @@ int hl_cn_get_hw_block_handle(struct hl_aux_dev *aux_dev, u64 address, u64 *hand
 	return hl_get_hw_block_handle(hdev, address, handle, NULL);
 }
 
-static int hl_cn_dma_mmap(struct hl_aux_dev *aux_dev, struct vm_area_struct *vma, void *cpu_addr,
-				dma_addr_t dma_addr, size_t size)
-{
-	struct hl_cn *cn = container_of(aux_dev, struct hl_cn, cn_aux_dev);
-	struct hl_device *hdev = container_of(cn, struct hl_device, cn);
-
-	return hdev->asic_funcs->mmap(hdev, vma, cpu_addr, dma_addr, size);
-}
-
 int hl_cn_user_mmap(struct hl_aux_dev *aux_dev, struct vm_area_struct *vma)
 {
 	struct hl_cn *cn = container_of(aux_dev, struct hl_cn, cn_aux_dev);
@@ -584,17 +575,10 @@ static int hl_cn_aux_data_init(struct hl_device *hdev)
 	aux_ops->spmu_config = hl_cn_spmu_config;
 	aux_ops->spmu_sample = hl_cn_spmu_sample;
 	aux_ops->device_reset = hl_cn_device_reset;
-	aux_ops->dma_alloc_coherent = hl_cn_dma_alloc_coherent;
-	aux_ops->dma_free_coherent = hl_cn_dma_free_coherent;
-	aux_ops->dma_pool_zalloc = hl_cn_dma_pool_zalloc;
-	aux_ops->dma_pool_free = hl_cn_dma_pool_free;
 	aux_ops->map_vmalloc_range = hl_cn_map_vmalloc_range;
 	aux_ops->unmap_vmalloc_range = hl_cn_unmap_vmalloc_range;
 	aux_ops->vm_reserve_dva_block = hl_cn_vm_reserve_dva_block;
 	aux_ops->vm_unreserve_dva_block = hl_cn_vm_unreserve_dva_block;
-	aux_ops->get_hw_block_handle = hl_cn_get_hw_block_handle;
-	aux_ops->dma_mmap = hl_cn_dma_mmap;
-	aux_ops->user_mmap = hl_cn_user_mmap;
 	aux_ops->dram_readl = hl_cn_dram_readl;
 	aux_ops->dram_writel = hl_cn_dram_writel;
 	aux_ops->rreg = hl_cn_rreg;
