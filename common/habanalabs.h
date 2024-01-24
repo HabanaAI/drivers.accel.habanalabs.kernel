@@ -3524,7 +3524,7 @@ struct hl_reset_info {
 };
 
 /**
- * struct @hl_page_fault_queue - habanalabs page fault queue data structure
+ * struct hl_page_fault_queue - habanalabs page fault queue data structure
  * @back_ptr: back pointer to owning hl_device
  * @host_virt: pointer to the queue host base address
  * @host_dma: the bus address behind host_phys
