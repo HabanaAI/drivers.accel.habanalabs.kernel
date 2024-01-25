@@ -813,7 +813,8 @@ void hl_check_for_glbl_errors_from_fw(struct hl_device *hdev, struct hl_eq_glbl_
 				dev_err_ratelimited(hdev->dev,
 						"%s, addr %#llx\n",
 						hl_glbl_error_cause[i],
-						prop->cfg_base_address + block_addr +
+						((u64)upper_32_bits(prop->cfg_base_address) << 32) +
+							block_addr +
 							FIELD_GET(HL_GLBL_ERR_ADDRESS_MASK, addr));
 		}
 	}
