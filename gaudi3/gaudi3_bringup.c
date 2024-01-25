@@ -2240,14 +2240,14 @@ void gaudi3_init_arc(struct hl_device *hdev, u32 cpu_id)
 	WREG32(reg_base + mmQMAN_ARC_AUX_ARC_LBU_AWCACHE_OVR, reg_val);
 	WREG32(reg_base + mmQMAN_ARC_AUX_CBU_EARLY_BRESP_EN, 0x0);
 
-	/* Initialize AxCACHE bits for scheduler ARCs */
-	if (cpu_id < CPU_ID_SCHED_MAX) {
-		reg_val = FIELD_PREP(QMAN_ARC_AUX_CBU_AXCACHE_OVR_CBU_READ_M, AXCACHE_NO_ALLOC) |
+	/* Initialize AxCACHE bits */
+	reg_val = FIELD_PREP(QMAN_ARC_AUX_CBU_AXCACHE_OVR_CBU_READ_M, AXCACHE_NO_ALLOC) |
 			FIELD_PREP(QMAN_ARC_AUX_CBU_AXCACHE_OVR_CBU_WRITE_M, AXCACHE_NO_ALLOC) |
 			FIELD_PREP(QMAN_ARC_AUX_CBU_AXCACHE_OVR_CBU_RD_EN_M, 0xF) |
 			FIELD_PREP(QMAN_ARC_AUX_CBU_AXCACHE_OVR_CBU_WR_EN_M, 0xF);
-		WREG32(reg_base + mmQMAN_ARC_AUX_CBU_AXCACHE_OVR, reg_val);
+	WREG32(reg_base + mmQMAN_ARC_AUX_CBU_AXCACHE_OVR, reg_val);
 
+	if (cpu_id < CPU_ID_SCHED_MAX) {
 		reg_val = FIELD_PREP(ARC_AF_ENG_SB_ARCACHE_ARCACHE_M, AXCACHE_NO_ALLOC);
 		reg_base = gaudi3_sched_arc_af_blocks_bases[cpu_id];
 		WREG32(reg_base + mmARC_AF_ENG_SB_ARCACHE, reg_val);
