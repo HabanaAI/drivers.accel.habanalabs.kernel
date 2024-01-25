@@ -13,8 +13,7 @@
 struct hl_device;
 
 /* special blocks */
-#define HL_MAX_NUM_OF_GLBL_ERR_CAUSE		10
-#define HL_GLBL_ERR_ADDRESS_MASK		GENMASK(11, 0)
+#define HL_GLBL_ERR_ADDRESS_MASK	GENMASK(11, 0)
 /* Number of GLBL_PRIV registers per 4K block for protection bit configuration */
 #define HL_PROT_BITS_REGS_NUM		32
 /* GLBL_PRIV/GLBL_SEC register value to specify all bits as protected */

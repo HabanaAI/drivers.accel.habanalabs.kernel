@@ -190,6 +190,8 @@ MODULE_FIRMWARE(GAUDI3_BOOT_FIT_FILE);
 						MC_CMN_INTR_SEI1_STATUS_BIST_FAIL_3_S | \
 						MC_CMN_INTR_SEI1_STATUS_BIST_FAIL_3_M)
 
+#define GAUDI3_GLBL_ERR_MAX_CAUSE_NUM		25
+
 #define HL_STR(e) #e
 
 /*
@@ -5099,7 +5101,7 @@ static int gaudi3_special_blocks_config(struct hl_device *hdev)
 	struct asic_fixed_properties *prop = &hdev->asic_prop;
 	int i, rc;
 
-	prop->glbl_err_cause_num = HL_MAX_NUM_OF_GLBL_ERR_CAUSE;
+	prop->glbl_err_max_cause_num = GAUDI3_GLBL_ERR_MAX_CAUSE_NUM;
 	prop->num_of_special_blocks = ARRAY_SIZE(gaudi3_special_blocks);
 
 	prop->special_blocks = kmalloc_array(prop->num_of_special_blocks,
