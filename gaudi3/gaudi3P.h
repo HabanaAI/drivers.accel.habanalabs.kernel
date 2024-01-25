@@ -113,7 +113,13 @@
 #define GAUDI3_PLDM_BOOT_FIT_REQ_TIMEOUT_USEC	1800000000	/* 1800s */
 #define GAUDI3_BOOT_FIT_FILE	"habanalabs/gaudi3/gaudi3-boot-fit.itb"
 
-#define AXCACHE_DO_NOT_SKIP_CACHE	0x2
+/*
+ * AxCACHE[0] - WT/WB indication (not used in H9)
+ * AxCACHE[1] - Skip cache indication (0: skip, 1: do not skip))
+ * AxCACHE[2] - allocH indication
+ * AxCACHE[3] - allocD indication
+ */
+#define AXCACHE_NO_ALLOC		0x3
 
 #define GAUDI3_ARC_PCI_MSB_ADDR(addr)	(((addr) & GENMASK_ULL(49, 28)) >> 28)
 
