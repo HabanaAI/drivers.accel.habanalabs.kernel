@@ -3790,7 +3790,7 @@ int gaudi3_set_fixed_properties(struct hl_device *hdev)
 	else
 		prop->dmmu.supported_pages_mask = HMMU_DEFAULT_PAGE_SIZE_MASK;
 	prop->dmmu.page_size = BIT_ULL(__ffs(prop->dmmu.supported_pages_mask));
-	prop->dmmu.pgt_size = (hdev->pldm) ? 0x800000 : HMMU_PAGE_TABLES_SIZE;
+	prop->dmmu.pgt_size = HMMU_PAGE_TABLES_SIZE;
 
 	/* bind HMMU props to the mmu_info structure */
 	hdev->hmmu_info.prop = &prop->dmmu;
