@@ -2862,18 +2862,20 @@ static int hl_fw_dynamic_init_cpu(struct hl_device *hdev,
 			goto protocol_err;
 	}
 
+	rc = hl_fw_dynamic_request_descriptor(hdev, fw_loader, sizeof(struct lkd_msg_comms));
+	if (rc)
+		goto protocol_err;
+
+	if (hdev->asic_prop.support_dynamic_resereved_fw_size)
+		hdev->asic_prop.reserved_fw_mem_size =
+				le32_to_cpu(fw_loader->dynamic_loader.comm_desc.rsvd_mem_size_mb);
+
 	if (!(hdev->fw_components & FW_TYPE_BOOT_CPU)) {
 		struct lkd_fw_binning_info *binning_info;
-
-		rc = hl_fw_dynamic_request_descriptor(hdev, fw_loader,
-							sizeof(struct lkd_msg_comms));
-		if (rc)
-			goto protocol_err;
 
 		/* read preboot version */
 		rc = hl_fw_dynamic_read_device_fw_version(hdev, FW_COMP_PREBOOT,
 				fw_loader->dynamic_loader.comm_desc.cur_fw_ver);
-
 		if (rc)
 			return rc;
 
@@ -2900,11 +2902,6 @@ static int hl_fw_dynamic_init_cpu(struct hl_device *hdev,
 					hdev->tpc_binning, hdev->dram_binning, hdev->edma_binning,
 					hdev->decoder_binning, hdev->mme_binning,
 					hdev->rotator_binning);
-		}
-
-		if (hdev->asic_prop.support_dynamic_resereved_fw_size) {
-			hdev->asic_prop.reserved_fw_mem_size =
-				le32_to_cpu(fw_loader->dynamic_loader.comm_desc.rsvd_mem_size_mb);
 		}
 
 		return 0;
