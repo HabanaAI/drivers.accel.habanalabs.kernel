@@ -11,6 +11,11 @@
 #include "../include/common/pci_ids.h"
 #include <linux/file.h>
 
+#ifndef _HAS_AUX_BUS_H
+#define HL_CN_NAME		"habanalabs_cn"
+#define HL_IB_NAME		"habanalabs_ib"
+#endif
+
 static int hl_cn_send_empty_status(struct hl_device *hdev, int port)
 {
 	struct hl_cn_funcs *cn_funcs = hdev->asic_funcs->cn_funcs;
@@ -1084,8 +1089,7 @@ int hl_cn_check_ib_driver(struct hl_device *hdev)
 			return 0;
 	}
 
-	dev_err(hdev->dev, "habanalabs_ib module is not found. Maybe %s module is unloaded?\n",
-		HL_IB_NAME);
+	dev_err(hdev->dev, "%s module is not found. Maybe it is unloaded?\n", HL_IB_NAME);
 	return -ENODEV;
 #else
 	return 0;
