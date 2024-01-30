@@ -790,7 +790,7 @@ struct hl_cn_properties {
  * @hard_reset_sleep_ms: sleep time in ms for hard reset
  * @soft_reset_sleep_ms: sleep time in mms for soft reset
  * @reset_poll_timeout_us: timeout in us for poll reset indication
- * @reserved_fw_mem_size: size in MB of dram memory reserved for FW.
+ * @reserved_fw_mem_size: size of dram memory reserved for FW.
  * @pcie_flush_reg_addr: this address is used for pcie flush operation.
  * @collective_first_sob: first sync object available for collective use
  * @collective_first_mon: first monitor available for collective use
