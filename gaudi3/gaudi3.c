@@ -10824,10 +10824,114 @@ void gaudi3_set_pci_memory_regions(struct hl_device *hdev)
 	region->used = 1;
 }
 
-int gaudi3_debugfs_read_dma(struct hl_device *hdev, u64 addr, u32 size,
-			void *blob_addr)
+int gaudi3_debugfs_read_dma(struct hl_device *hdev, u64 addr, u32 size, void *blob_addr)
 {
-	return -EPERM;
+	struct gaudi3_pdma_job_params job_params = {};
+	dma_addr_t host_mem_dma_addr;
+	void *host_mem_virtual_addr;
+	u64 reserved_va_base;
+	struct hl_ctx *ctx;
+	u32 pos, size_left;
+	int rc = 0;
+
+	/* Fetch the ctx */
+	ctx = hl_get_compute_ctx(hdev);
+	if (!ctx) {
+		dev_err(hdev->dev, "No ctx available\n");
+		return -EINVAL;
+	}
+
+	/* Allocate coherent buffer in host memory */
+	host_mem_virtual_addr = hl_asic_dma_alloc_coherent(hdev, SZ_2M, &host_mem_dma_addr,
+							   GFP_KERNEL);
+	if (!host_mem_virtual_addr) {
+		rc = -ENOMEM;
+		goto put_ctx;
+	}
+
+	/* Reserve vmem block on asic side */
+	reserved_va_base = hl_reserve_va_block(hdev, ctx, HL_VA_RANGE_TYPE_HOST, SZ_2M,
+						HL_MMU_VA_ALIGNMENT_NOT_NEEDED);
+	if (!reserved_va_base) {
+		dev_err(hdev->dev, "Failed to reserve vmem on asic\n");
+		rc = -ENOMEM;
+		goto free_data_buffer;
+	}
+
+	/* Map asic side */
+	mutex_lock(&hdev->mmu_lock);
+
+	rc = hl_mmu_map_contiguous(ctx, reserved_va_base, host_mem_dma_addr, SZ_2M);
+	if (rc) {
+		dev_err(hdev->dev, "Failed to map asic side");
+		goto unreserve_va;
+	}
+
+	rc = hl_mmu_invalidate_cache_range(hdev, false,
+			MMU_OP_USERPTR | MMU_OP_SKIP_LOW_CACHE_INV,
+			ctx->asid, reserved_va_base, SZ_2M);
+	if (rc)	{
+		hl_mmu_unmap_contiguous(ctx, reserved_va_base, SZ_2M);
+		goto unreserve_va;
+	}
+
+	mutex_unlock(&hdev->mmu_lock);
+
+	/* Prepare PDMA job params */
+	job_params.ch_idx = KDMA_CH_ID;
+	job_params.ch_reg_base = gaudi3_pdma_get_ch_reg_base(hdev, KDMA_CH_ID);
+	job_params.src = addr;
+	job_params.dst = reserved_va_base;
+	job_params.size = SZ_2M;
+	job_params.is_memset = false;
+
+	/* Configure PDMA channel to HBW access and disable MMU bypass */
+	gaudi3_config_pdma_ch_bw_access(hdev, job_params.ch_reg_base, false);
+	gaudi3_config_pdma_ch_mmu_mode(hdev, job_params.ch_reg_base, false, ctx->asid);
+
+	pos = 0;
+	size_left = size;
+
+	while (size_left > 0) {
+		if (size_left < SZ_2M)
+			job_params.size = size_left;
+
+		rc = gaudi3_trigger_pdma_job_and_wait_for_cq_completion(hdev, &job_params);
+		if (rc)
+			break;
+
+		memcpy(blob_addr + pos, host_mem_virtual_addr, job_params.size);
+
+		if (size_left <= SZ_2M)
+			break;
+
+		pos += SZ_2M;
+		job_params.src += SZ_2M;
+		size_left -= SZ_2M;
+	}
+
+	/* Configure PDMA channel to LBW access and enable MMU bypass */
+	gaudi3_config_pdma_ch_bw_access(hdev, job_params.ch_reg_base, true);
+	gaudi3_config_pdma_ch_mmu_mode(hdev, job_params.ch_reg_base, true, HL_KERNEL_ASID_ID);
+
+	mutex_lock(&hdev->mmu_lock);
+
+	rc = hl_mmu_unmap_contiguous(ctx, reserved_va_base, SZ_2M);
+	if (rc)
+		goto unreserve_va;
+
+	rc = hl_mmu_invalidate_cache_range(hdev, false, MMU_OP_USERPTR,
+				      ctx->asid, reserved_va_base, SZ_2M);
+
+unreserve_va:
+	mutex_unlock(&hdev->mmu_lock);
+	hl_unreserve_va_block(hdev, ctx, reserved_va_base, SZ_2M);
+free_data_buffer:
+	hl_asic_dma_free_coherent(hdev, SZ_2M, host_mem_virtual_addr, host_mem_dma_addr);
+put_ctx:
+	hl_ctx_put(ctx);
+
+	return rc;
 }
 
 void gaudi3_add_device_attr(struct hl_device *hdev, struct attribute_group *dev_clk_attr_grp,
