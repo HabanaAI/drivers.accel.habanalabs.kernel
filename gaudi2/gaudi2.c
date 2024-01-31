@@ -2424,9 +2424,6 @@ int gaudi2_set_fixed_properties(struct hl_device *hdev)
 	u32 num_sync_stream_queues = 0;
 	int i, rc;
 
-	static_assert(NIC_DRV_MAX_CQS_NUM >= GAUDI2_NIC_MAX_CQS_NUM);
-	static_assert(NIC_DRV_NUM_DB_FIFOS >= GAUDI2_NIC_NUM_DB_FIFOS);
-
 	prop->max_queues = GAUDI2_QUEUE_ID_SIZE;
 	prop->hw_queues_props = kcalloc(prop->max_queues, sizeof(struct hw_queue_properties),
 					GFP_KERNEL);

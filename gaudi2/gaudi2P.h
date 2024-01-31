@@ -117,10 +117,6 @@
 #define HMMU_PAGE_TABLES_SIZE			SZ_1M
 
 #define NIC_NUMBER_OF_PORTS			NIC_NUMBER_OF_ENGINES
-/* TODO: SW-153130 - remove once SW-153128 is done */
-#define GAUDI2_NIC_MAX_CQS_NUM			16
-/* TODO: SW-153130 - remove once SW-153128 is done */
-#define GAUDI2_NIC_NUM_DB_FIFOS			32
 
 #define NUMBER_OF_PCIE_DEC			2
 #define PCIE_DEC_SHIFT				8
