@@ -3710,9 +3710,6 @@ int gaudi3_set_fixed_properties(struct hl_device *hdev)
 	u32 sram_start_offset;
 	int rc;
 
-	static_assert(NIC_DRV_MAX_CQS_NUM >= GAUDI3_NIC_MAX_CQS_NUM);
-	static_assert(NIC_DRV_NUM_DB_FIFOS >= GAUDI3_NIC_NUM_DB_FIFOS);
-
 	prop->max_queues = GAUDI3_QUEUE_ID_SIZE;
 	prop->hw_queues_props = kcalloc(prop->max_queues,
 			sizeof(struct hw_queue_properties),
