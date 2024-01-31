@@ -32,7 +32,7 @@ habanalabs-$(CONFIG_DEBUG_FS) += common/debugfs.o
 
 include $(src)/common/Makefile.compat
 
-ccflags-y += $(HL_CFLAGS) -Werror
+ccflags-y += $(HL_CFLAGS) -Werror -Wmaybe-uninitialized
 
 habanalabs-y += common/simulator.o common/habanalabs_compat.o \
 		common/importer_drv.o common/habanalabs_compat_accel.o
