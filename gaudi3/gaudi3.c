@@ -3755,8 +3755,7 @@ int gaudi3_set_fixed_properties(struct hl_device *hdev)
 
 	prop->supports_engine_modes = true;
 
-	strncpy(prop->cpucp_info.card_name, GAUDI3_DEFAULT_CARD_NAME,
-			CARD_NAME_MAX_LEN);
+	strscpy(prop->cpucp_info.card_name, GAUDI3_DEFAULT_CARD_NAME, CARD_NAME_MAX_LEN);
 
 	prop->fw_cpu_boot_dev_sts0_valid = false;
 	prop->fw_cpu_boot_dev_sts1_valid = false;
@@ -4421,7 +4420,7 @@ static int gaudi3_memset_device_memory(struct hl_device *hdev, u64 addr, u64 siz
 	job_params.dst = addr;
 	/* When memset is set, set value written in source registers */
 	job_params.src = val;
-	strncpy(job_params.job_str, desc, HL_STR_MAX - 1);
+	strscpy(job_params.job_str, desc, HL_STR_MAX - 1);
 
 	while ((size > U32_MAX) && !rc) {
 		job_params.size = U32_MAX;
@@ -5280,7 +5279,7 @@ static int gaudi3_cpucp_handshake_info_get(struct hl_device *hdev)
 		return rc;
 
 	if (!strlen(prop->cpucp_info.card_name))
-		strncpy(prop->cpucp_info.card_name, GAUDI3_DEFAULT_CARD_NAME, CARD_NAME_MAX_LEN);
+		strscpy(prop->cpucp_info.card_name, GAUDI3_DEFAULT_CARD_NAME, CARD_NAME_MAX_LEN);
 
 	/* Overwrite binning masks with the actual binning values from F/W */
 	hdev->dram_binning = prop->cpucp_info.dram_binning_mask;
