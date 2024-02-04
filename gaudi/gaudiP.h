@@ -590,7 +590,7 @@ u32 *gaudi_get_stream_master_qid_arr(void);
 int gaudi_set_dram_properties(struct hl_device *hdev);
 void gaudi_set_priv_assertions(struct hl_device *hdev, bool enable);
 int gaudi_set_binning_masks(struct hl_device *hdev);
-void gaudi_sim_cn_early_init_props_ext(struct hl_cn_sim_properties *cn_prop);
+void gaudi_sim_cn_early_init_props_ext(struct gaudi_cn_sim_properties *cn_prop);
 void gaudi_sim_cn_early_init_props_ext_tmp(struct gaudi_cn_sim_properties *cn_prop);
 
 /* CN functions */

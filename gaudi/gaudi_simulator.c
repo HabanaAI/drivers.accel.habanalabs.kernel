@@ -869,7 +869,7 @@ static void gaudi_sim_notify_reset(struct hl_device *hdev)
 
 /* All the code below this point is the gaudi simulator device implementation */
 
-void gaudi_sim_cn_early_init_props_ext(struct hl_cn_sim_properties *cn_prop)
+void gaudi_sim_cn_early_init_props_ext(struct gaudi_cn_sim_properties *cn_prop)
 {
 	cn_prop->nic_drv_addr = GAUDI_SIM_NIC_DRV_ADDR;
 	cn_prop->nic_drv_size = GAUDI_SIM_NIC_DRV_SIZE;
