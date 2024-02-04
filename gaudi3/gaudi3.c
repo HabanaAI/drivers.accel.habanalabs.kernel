@@ -3704,6 +3704,7 @@ int gaudi3_set_binning_masks(struct hl_device *hdev)
 
 int gaudi3_set_fixed_properties(struct hl_device *hdev)
 {
+	u64 hbm_offset, hbm_fw_mem_size, hbm_mmu_pgt_size, hbm_nic_mem_size, hbm_etr_mem_size;
 	struct asic_fixed_properties *prop = &hdev->asic_prop;
 	struct hl_cn_properties *cn_prop = &prop->cn_props;
 	struct hw_queue_properties *q_props;
@@ -3936,18 +3937,6 @@ int gaudi3_set_fixed_properties(struct hl_device *hdev)
 	prop->reset_poll_timeout_us = hdev->pldm ? GAUDI3_PLDM_PREBOOT_RESET_POLL_TIMEOUT_USEC
 						: GAUDI3_RESET_POLL_TIMEOUT_USEC;
 
-	prop->nic_drv_size = NIC_DRV_SIZE - HMMU_PAGE_TABLES_SIZE;
-
-	/*
-	 * We need to set mmu_pgt_addr here as it will be used in mmu init.
-	 * Currently FW is not using any HBM region, the reserved size is always 0.
-	 * So we dont need to wait for the cpu init.
-	 * To support reserving HBM for FW in the future, we'll keep calling
-	 * gaudi3_set_dynamic_dram_properties also in hw_init as we only get
-	 * the needed size at cpu_init.
-	 */
-	gaudi3_set_dynamic_dram_properties(hdev);
-
 	prop->macro_cfg_size = NIC_OFFSET;
 	prop->clk = GAUDI3_NIC_CLK_FREQ / USEC_PER_SEC;
 	cn_prop->status_packet_size = sizeof(struct cpucp_nic_status);
@@ -3956,6 +3945,31 @@ int gaudi3_set_fixed_properties(struct hl_device *hdev)
 	prop->pcie_flush_reg_addr = mmD0_PSOC_TIMESTAMP_BASE + mmTIMESTAMP_CNTCR;
 	prop->supports_advanced_cpucp_rc = true;
 	prop->clk_pll_index = HL_GAUDI3_MME_PLL;
+
+	/* Reserved HBM memory for FW */
+	hbm_offset = 0x0;
+	hbm_fw_mem_size = FW_RESERVED_HBM_SIZE;
+
+	/* Reserved HBM memory for HMMU page table */
+	hbm_offset = roundup(hbm_offset + hbm_fw_mem_size, prop->dram_page_size);
+	prop->mmu_pgt_addr = prop->dram_base_address + hbm_offset;
+	hbm_mmu_pgt_size = prop->dmmu.pgt_size;
+
+	/* Reserved HBM memory for NIC */
+	hbm_offset += hbm_mmu_pgt_size;
+	prop->nic_drv_addr = prop->dram_base_address + hbm_offset;
+	prop->nic_drv_size = NIC_DRV_SIZE - hbm_mmu_pgt_size;
+	hbm_nic_mem_size = prop->nic_drv_size;
+
+	/* Reserved HBM memory for ETR */
+	hbm_offset = roundup(hbm_offset + hbm_nic_mem_size, prop->dram_page_size);
+	prop->etr_bufs_dram_phys_base = prop->dram_base_address + hbm_offset;
+	prop->etr_buf_dram_size_aligned = roundup(prop->etr_buf_dram_size, prop->dram_page_size);
+	hbm_etr_mem_size = prop->etr_buf_dram_size_aligned * prop->etr_buf_number;
+
+	/* User's HBM memory */
+	hbm_offset = roundup(hbm_offset + hbm_etr_mem_size, prop->dram_page_size);
+	prop->dram_user_base_address = prop->dram_base_address + hbm_offset;
 
 	return 0;
 
@@ -8139,39 +8153,6 @@ static uint64_t gaudi3_set_hbm_bar_base(struct hl_device *hdev, u64 addr)
 	return old_addr;
 }
 
-void gaudi3_set_dynamic_dram_properties(struct hl_device *hdev)
-{
-	u64 hbm_nic_base_offset = 0, hbm_etr_offset = 0, hbm_user_base_offset,
-			etr_total_bufs_size;
-	struct asic_fixed_properties *prop = &hdev->asic_prop;
-
-	if (!hdev->dram_enable)
-		return;
-
-	hbm_nic_base_offset = prop->dmmu.pgt_size +
-				roundup(prop->reserved_fw_mem_size, prop->dram_page_size);
-	hbm_etr_offset = roundup(hbm_nic_base_offset + prop->nic_drv_size,
-			prop->dram_page_size);
-	prop->etr_bufs_dram_phys_base = prop->dram_base_address + hbm_etr_offset;
-
-	prop->etr_buf_dram_size_aligned = roundup(prop->etr_buf_dram_size, prop->dram_page_size);
-	etr_total_bufs_size = prop->etr_buf_dram_size_aligned * prop->etr_buf_number;
-	hbm_user_base_offset = roundup(hbm_etr_offset + etr_total_bufs_size,
-			prop->dram_page_size);
-	/*
-	 * for proper MMU mapping user base address should be aligned
-	 * to DRAM page size (do the alignment w.o. bits 63:48 since
-	 * they are not used in the MMU translation)
-	 */
-	prop->dram_user_base_address = prop->dram_base_address +
-			roundup(hbm_user_base_offset, prop->dram_page_size);
-
-	prop->mmu_pgt_addr = DRAM_PHYS_BASE +
-			roundup(prop->reserved_fw_mem_size, prop->dram_page_size);
-
-	prop->nic_drv_addr = prop->mmu_pgt_addr + prop->dmmu.pgt_size;
-}
-
 static int gaudi3_hw_init(struct hl_device *hdev)
 {
 	struct gaudi3_device *gaudi3 = hdev->asic_specific;
@@ -8224,12 +8205,6 @@ static int gaudi3_hw_init(struct hl_device *hdev)
 		dev_err(hdev->dev, "failed to initialize CPU\n");
 		return rc;
 	}
-
-	/* Most of dram properties are set in gaudi3_set_fixed_properties. Addresses which depends
-	 * on user base address, are set here, because user base address depends on FW HBM region
-	 * size which is set after cpu init.
-	 */
-	gaudi3_set_dynamic_dram_properties(hdev);
 
 	gaudi3_hw_init_fw_config(hdev);
 

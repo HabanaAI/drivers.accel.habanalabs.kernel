@@ -225,6 +225,8 @@ static_assert(IS_POWER_OF_2(ETR_BUF_SIZE));
 #define PMMU_PAGE_TABLES_SIZE	0x0C000000				/* 192MB */
 #define HMMU_PAGE_TABLES_SIZE	0x500000				/* 5MB */
 
+#define FW_RESERVED_HBM_SIZE	SZ_32M
+
 #define MAX_FAULTY_HBMS		1
 
 extern const char *gaudi3_engine_id_str[];

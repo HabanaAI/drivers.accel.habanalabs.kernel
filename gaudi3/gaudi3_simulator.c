@@ -1191,12 +1191,6 @@ static int gaudi3_sim_hw_init(struct hl_device *hdev)
 		return rc;
 	}
 
-	/* Most of dram properties are set in gaudi3_set_fixed_properties. Addresses which depends
-	 * on user base address, are set here, because user base address depends on FW HBM region
-	 * size which is set after cpu init.
-	 */
-	gaudi3_set_dynamic_dram_properties(hdev);
-
 	if (hdev->cache_enable) {
 		rc = gaudi3_set_cache_mode(hdev);
 		if (rc) {
