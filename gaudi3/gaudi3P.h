@@ -463,6 +463,16 @@ struct gaudi3_pldm_msix_info {
 };
 
 /**
+ * struct gaudi3_eq_work - EQ handling work info.
+ * @work: work object to be queued on the EQ workqueue.
+ * @hdev: pointer to the device structure.
+ */
+struct gaudi3_eq_work {
+	struct work_struct work;
+	struct hl_device *hdev;
+};
+
+/**
  * struct gaudi3_device - ASIC specific manage structure.
  * @cpucp_info_get: get information on device from CPU-CP
  * @mapped_blocks: Array that holds the base address and size of all blocks
@@ -475,6 +485,7 @@ struct gaudi3_pldm_msix_info {
  * @kdma_lock_mutex: Lock protecting the access to the KDMA engine
  * @qmans_test_info: Information used by the driver when testing the QMANs.
  * @pldm_msix_info: information used by the driver MSIX interrupts when running on Palladium.
+ * @eq_work: EQ handling work info.
  * @hw_cap_initialized: This field contains a bit per H/W component. When that component is
  *                      initialized, that bit is set by the driver to signal we can use this
  *                      component in later code paths. Each bit is cleared upon reset of its
@@ -525,6 +536,7 @@ struct gaudi3_device {
 	struct mutex				kdma_lock_mutex;
 	struct gaudi3_qmans_test_info		qmans_test_info[GAUDI3_NUM_TESTED_QMANS];
 	struct gaudi3_pldm_msix_info		pldm_msix_info[GAUDI3_NUM_OF_PLDM_INTR];
+	struct gaudi3_eq_work			eq_work;
 	u64					hw_cap_initialized;
 	u64					hw_cap_pdma_initialized;
 	u64					hw_cap_tpc_initialized;

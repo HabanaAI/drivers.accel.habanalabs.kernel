@@ -2533,6 +2533,8 @@ static int gaudi3_test_qmans_get_sob_for_engine(struct hl_device *hdev,
 						enum gaudi3_engine_id engine_id,
 						struct gaudi3_sob_info *sob);
 
+static void gaudi3_eq_handler(struct work_struct *work);
+
 void gaudi3_iterate_edmas(struct hl_device *hdev, struct iterate_module_ctx *ctx)
 {
 	u32 hdcore_array[] = {1, 3, 4, 6}, hdcore_index, inst, edma_id, offset;
@@ -5484,6 +5486,9 @@ int gaudi3_sw_init(struct hl_device *hdev)
 
 	mutex_init(&gaudi3->kdma_lock_mutex);
 
+	INIT_WORK(&gaudi3->eq_work.work, gaudi3_eq_handler);
+	gaudi3->eq_work.hdev = hdev;
+
 	hdev->asic_prop.supports_compute_reset = true;
 	gaudi3->cpucp_info_get = gaudi3_cpucp_info_get;
 	hdev->asic_specific = gaudi3;
@@ -7678,21 +7683,21 @@ static void gaudi3_etrs_disable_msix(struct hl_device *hdev)
 		gaudi3_etr_disable_msix(hdev, etr_idx);
 }
 
-static irqreturn_t gaudi3_eq_irq_handler(int irq, void *arg)
+static void gaudi3_eq_handler(struct work_struct *work)
 {
+	struct gaudi3_eq_work *eq_work = container_of(work, struct gaudi3_eq_work, work);
 	struct hl_eq_dynamic_entry *eq_entry, *eq_base;
-	struct hl_device *hdev;
+	struct hl_device *hdev = eq_work->hdev;
+	struct hl_eq *eq = &hdev->event_queue;
 	u16 cur_eqe_index;
-	struct hl_eq *eq;
 	bool entry_ready;
 	u32 ctl;
 
-	eq = arg;
-	hdev = eq->hdev;
 	eq_base = eq->kernel_address;
 
 	while (true) {
-		ctl = le32_to_cpu(eq_base[eq->ci].hdr.ctl);
+		eq_entry = &eq_base[eq->ci];
+		ctl = le32_to_cpu(eq_entry->hdr.ctl);
 
 		entry_ready = !!FIELD_GET(EQ_CTL_READY_MASK, ctl);
 		if (!entry_ready)
@@ -7700,21 +7705,21 @@ static irqreturn_t gaudi3_eq_irq_handler(int irq, void *arg)
 
 		cur_eqe_index = FIELD_GET(EQ_CTL_INDEX_MASK, ctl);
 		if (((eq->prev_eqe_index + 1) & EQ_CTL_INDEX_MASK) != cur_eqe_index) {
-			dev_dbg(hdev->dev,
-				"EQE %#x in queue is ready but index does not match %d!=%d",
-				ctl, (eq->prev_eqe_index + 1) & EQ_CTL_INDEX_MASK, cur_eqe_index);
+			dev_err_ratelimited(hdev->dev,
+					"eqe %#x in queue is ready but index does not match %d!=%d",
+					ctl,
+					(eq->prev_eqe_index + 1) & EQ_CTL_INDEX_MASK,
+					cur_eqe_index);
 			break;
 		}
 
 		eq->prev_eqe_index++;
 
-		eq_entry = &eq_base[eq->ci];
-
 		/* Make sure we read EQ entry contents after we've checked the ownership bit */
 		dma_rmb();
 
 		if (hdev->disabled && !hdev->reset_info.in_compute_reset)
-			dev_warn(hdev->dev, "Device disabled but received an EQ event\n");
+			dev_dbg_ratelimited(hdev->dev, "Device disabled. Discard eqe %#x.\n", ctl);
 		else
 			gaudi3_handle_eqe(hdev, eq_entry);
 
@@ -7722,10 +7727,25 @@ static irqreturn_t gaudi3_eq_irq_handler(int irq, void *arg)
 		eq_entry->hdr.ctl = cpu_to_le32(ctl & ~EQ_CTL_READY_MASK);
 
 		eq->ci = hl_eq_inc_ptr(eq->ci);
-
 		hdev->asic_funcs->update_eq_ci(hdev, eq->ci);
 	}
+}
 
+static irqreturn_t gaudi3_eq_irq_handler(int irq, void *arg)
+{
+	struct gaudi3_eq_work *eq_work;
+	struct gaudi3_device *gaudi3;
+	struct hl_device *hdev = arg;
+
+	if (hdev->disabled && !hdev->reset_info.in_compute_reset) {
+		dev_warn_ratelimited(hdev->dev, "Device disabled but received an EQ event\n");
+		goto out;
+	}
+
+	gaudi3 = hdev->asic_specific;
+	eq_work = &gaudi3->eq_work;
+	queue_work(hdev->eq_wq, &eq_work->work);
+out:
 	return IRQ_HANDLED;
 }
 
@@ -7738,15 +7758,14 @@ int gaudi3_eq_enable_msix(struct hl_device *hdev)
 	if (irq < 0)
 		return irq;
 
-	return request_threaded_irq(irq, NULL, gaudi3_eq_irq_handler, IRQF_ONESHOT,
-					gaudi3_irq_name(irq_nr), &hdev->event_queue);
+	return request_irq(irq, gaudi3_eq_irq_handler, 0, gaudi3_irq_name(irq_nr), hdev);
 }
 
 void gaudi3_eq_disable_msix(struct hl_device *hdev)
 {
 	int irq = hl_irq_vector(hdev, GAUDI3_IRQ_NUM_EVENT_QUEUE);
 
-	free_irq(irq, &hdev->event_queue);
+	free_irq(irq, hdev);
 }
 
 static int gaudi3_eq_error_enable_msix(struct hl_device *hdev)
