@@ -4836,9 +4836,6 @@ int gaudi3_late_init(struct hl_device *hdev)
 
 	gaudi3_user_mapped_blocks_init(hdev);
 
-	rc = gaudi3_etr_buf_store_late_init(hdev);
-	if (rc)
-		return rc;
 
 	rc = gaudi3_fetch_psoc_frequency(hdev);
 	if (rc) {
@@ -4852,7 +4849,7 @@ int gaudi3_late_init(struct hl_device *hdev)
 		return rc;
 	}
 
-	return 0;
+	return gaudi3_etr_buf_store_late_init(hdev);
 }
 
 void gaudi3_late_fini(struct hl_device *hdev)
@@ -7358,16 +7355,12 @@ void gaudi3_etr_buf_store_sw_fini(struct hl_device *hdev)
 	for (etr_idx = 0 ; etr_idx < prop->etr_buf_number ; ++etr_idx) {
 		list_for_each_entry_safe(buf, tmp, &store->etr_tracer[etr_idx].bufs, list_link) {
 			list_del(&buf->list_link);
-			gaudi3_etr_buf_store_unmap_host_buf(hdev, buf);
 			gaudi3_etr_buf_store_free_host_buf(hdev, buf);
 		}
-
-		gaudi3_etr_buf_store_unmap_device_buf(hdev, &store->etr_tracer[etr_idx]);
 	}
 
 	list_for_each_entry_safe(buf, tmp, &store->free_bufs, list_link) {
 		list_del(&buf->list_link);
-		gaudi3_etr_buf_store_unmap_host_buf(hdev, buf);
 		gaudi3_etr_buf_store_free_host_buf(hdev, buf);
 	}
 
