@@ -2214,20 +2214,6 @@ void gaudi3_init_arc(struct hl_device *hdev, u32 cpu_id)
 {
 	u32 reg_base, reg_val;
 
-	/* TODO: remove when AxCACHE bits for engine ARCs are initialized in FW (SW-172985) */
-	if ((hdev->fw_components & FW_TYPE_BOOT_CPU) && (cpu_id >= CPU_ID_SCHED_MAX)) {
-		hdev->asic_funcs->set_priv_assertions(hdev, false);
-
-		reg_base = gaudi3_arc_blocks_bases[cpu_id];
-		reg_val = FIELD_PREP(QMAN_ARC_AUX_CBU_AXCACHE_OVR_CBU_READ_M, AXCACHE_NO_ALLOC) |
-			FIELD_PREP(QMAN_ARC_AUX_CBU_AXCACHE_OVR_CBU_WRITE_M, AXCACHE_NO_ALLOC) |
-			FIELD_PREP(QMAN_ARC_AUX_CBU_AXCACHE_OVR_CBU_RD_EN_M, 0xF) |
-			FIELD_PREP(QMAN_ARC_AUX_CBU_AXCACHE_OVR_CBU_WR_EN_M, 0xF);
-		WREG32(reg_base + mmQMAN_ARC_AUX_CBU_AXCACHE_OVR, reg_val);
-
-		hdev->asic_funcs->set_priv_assertions(hdev, true);
-	}
-
 	/* skip arc init if already done by FW */
 	if (hdev->fw_components & FW_TYPE_BOOT_CPU)
 		return;
