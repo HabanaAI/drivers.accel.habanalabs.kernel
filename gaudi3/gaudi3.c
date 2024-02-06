@@ -4819,10 +4819,6 @@ int gaudi3_late_init(struct hl_device *hdev)
 {
 	int rc;
 
-	/* TODO: remove once updated HBW drain timeout values are set in FW (SW-172371) */
-	WREG32(mmD0_PCIE_WRAP_BASE + mmPCIE_WRAP_HBW_DRAIN_TIMEOUT, 0x8000);
-	WREG32(mmD0_PARC_GLOBAL_CONF_BASE + mmPARC_GLOBAL_CONF_MST_HBW_DRAIN_TIMEOUT, 0x8000);
-
 	rc = hl_fw_send_pci_access_msg(hdev, CPUCP_PACKET_ENABLE_PCI_ACCESS, 0x0);
 	if (rc) {
 		dev_err(hdev->dev, "Failed to enable PCI access from CPU\n");
