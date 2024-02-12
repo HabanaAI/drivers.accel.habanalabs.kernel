@@ -2533,8 +2533,6 @@ static int gaudi3_test_qmans_get_sob_for_engine(struct hl_device *hdev,
 						enum gaudi3_engine_id engine_id,
 						struct gaudi3_sob_info *sob);
 
-static void gaudi3_eq_handler(struct work_struct *work);
-
 void gaudi3_iterate_edmas(struct hl_device *hdev, struct iterate_module_ctx *ctx)
 {
 	u32 hdcore_array[] = {1, 3, 4, 6}, hdcore_index, inst, edma_id, offset;
@@ -7683,7 +7681,7 @@ static void gaudi3_etrs_disable_msix(struct hl_device *hdev)
 		gaudi3_etr_disable_msix(hdev, etr_idx);
 }
 
-static void gaudi3_eq_handler(struct work_struct *work)
+void gaudi3_eq_handler(struct work_struct *work)
 {
 	struct gaudi3_eq_work *eq_work = container_of(work, struct gaudi3_eq_work, work);
 	struct hl_eq_dynamic_entry *eq_entry, *eq_base;

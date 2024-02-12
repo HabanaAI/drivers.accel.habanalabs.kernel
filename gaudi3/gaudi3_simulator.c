@@ -981,6 +981,9 @@ static int gaudi3_sim_sw_init(struct hl_device *hdev)
 
 	mutex_init(&gaudi3->kdma_lock_mutex);
 
+	INIT_WORK(&gaudi3->eq_work.work, gaudi3_eq_handler);
+	gaudi3->eq_work.hdev = hdev;
+
 	rc = gaudi3_alloc_cpu_accessible_dma_mem(hdev);
 	if (rc)
 		goto free_gaudi3_device;
