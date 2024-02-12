@@ -247,6 +247,39 @@ static int gaudi3_cn_override_ports_ext_mask(struct hl_device *hdev,
 		/* For the above setup types, all the ports should be set as external */
 		*ports_ext_mask = hdev->cn.ports_mask;
 		return 0;
+	case GAUDI3_SETUP_TYPE_HLB325:
+		switch (hdev->cn.card_location) {
+		case 0:
+			*ports_ext_mask = 0x320000;
+			return 0;
+		case 1:
+			*ports_ext_mask = 0x000320;
+			return 0;
+		case 2:
+			*ports_ext_mask = 0x000320;
+			return 0;
+		case 3:
+			*ports_ext_mask = 0x320000;
+			return 0;
+		case 4:
+			*ports_ext_mask = 0x08C000;
+			return 0;
+		case 5:
+			*ports_ext_mask = 0x00008C;
+			return 0;
+		case 6:
+			*ports_ext_mask = 0x00008C;
+			return 0;
+		case 7:
+			*ports_ext_mask = 0x08C000;
+			return 0;
+		default:
+			dev_err(hdev->dev, "Invalid card location %u\n",
+				hdev->cn.card_location);
+			break;
+		}
+
+		break;
 	default:
 		dev_err(hdev->dev, "Invalid gaudi3_setup_type %u\n", hdev->gaudi3_setup_type);
 		break;
