@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0
 /*
- * Copyright 2023 HabanaLabs, Ltd.
+ * Copyright 2024 HabanaLabs, Ltd.
  * All Rights Reserved.
  */
 
@@ -19,7 +19,8 @@
 #define QOS_VERSION		"0.1"
 #define CACHE_VERSION		"0.7"
 #define MC_VERSION		"0.2"
-#define SOL_CONFIG_VERSION		"1.20"
+#define AXIOVRD_VERSION		"0.2"
+#define SOL_CONFIG_VERSION		"1.22"
 
 static void gaudi3_init_n2r_credits_d2d(struct hl_device *hdev)
 {
@@ -3522,6 +3523,525 @@ static void gaudi3_init_mc_d2d_7_hbm(struct hl_device *hdev)
 	gaudi3_init_mc_d2d_7_hbm_mc(hdev);
 }
 
+static void gaudi3_init_axiovrd_single_die_tpc_block(struct hl_device *hdev,
+			int block, int inst, u32 offset, struct iterate_module_ctx *ctx)
+{
+	offset += 0xE00D000;
+	WREG32(offset + 0x640, 0x3333);
+	RREG32(0xc489000);
+}
+
+static void gaudi3_init_axiovrd_d2d_8_hbm_tpc_block(struct hl_device *hdev,
+			int block, int inst, u32 offset, struct iterate_module_ctx *ctx)
+{
+	offset += 0xE00D000;
+	WREG32(offset + 0x640, 0x3333);
+	RREG32(0xc489000);
+}
+
+static void gaudi3_init_axiovrd_d2d_7_hbm_tpc_block(struct hl_device *hdev,
+			int block, int inst, u32 offset, struct iterate_module_ctx *ctx)
+{
+	offset += 0xE00D000;
+	WREG32(offset + 0x640, 0x3333);
+	RREG32(0xc489000);
+}
+
+static void gaudi3_init_axiovrd_single_die_mme_block(struct hl_device *hdev,
+			int block, int inst, u32 offset, struct iterate_module_ctx *ctx)
+{
+	offset -= 0x560;
+	WREG32(offset + 0x640, 0x3333);
+	RREG32(0xc489000);
+}
+
+static void gaudi3_init_axiovrd_d2d_8_hbm_mme_block(struct hl_device *hdev,
+			int block, int inst, u32 offset, struct iterate_module_ctx *ctx)
+{
+	offset -= 0x560;
+	WREG32(offset + 0x640, 0x3333);
+	RREG32(0xc489000);
+}
+
+static void gaudi3_init_axiovrd_d2d_7_hbm_mme_block(struct hl_device *hdev,
+			int block, int inst, u32 offset, struct iterate_module_ctx *ctx)
+{
+	offset -= 0x560;
+	WREG32(offset + 0x640, 0x3333);
+	RREG32(0xc489000);
+}
+
+static void gaudi3_init_axiovrd_single_die_nic_cntrl_block(struct hl_device *hdev,
+			int block, int inst, u32 offset, struct iterate_module_ctx *ctx)
+{
+	offset += 0xD038000;
+	WREG32(offset + 0x640, 0x3333);
+	RREG32(0xc489000);
+}
+
+static void gaudi3_init_axiovrd_d2d_8_hbm_nic_cntrl_block(struct hl_device *hdev,
+			int block, int inst, u32 offset, struct iterate_module_ctx *ctx)
+{
+	offset += 0xD038000;
+	WREG32(offset + 0x640, 0x3333);
+	RREG32(0xc489000);
+}
+
+static void gaudi3_init_axiovrd_d2d_7_hbm_nic_cntrl_block(struct hl_device *hdev,
+			int block, int inst, u32 offset, struct iterate_module_ctx *ctx)
+{
+	offset += 0xD038000;
+	WREG32(offset + 0x640, 0x3333);
+	RREG32(0xc489000);
+}
+
+static void gaudi3_init_axiovrd_single_die_nic_data_block(struct hl_device *hdev,
+			int block, int inst, u32 offset, struct iterate_module_ctx *ctx)
+{
+	offset += 0xD039000;
+	WREG32(offset + 0x640, 0x3333);
+	RREG32(0xc489000);
+}
+
+static void gaudi3_init_axiovrd_d2d_8_hbm_nic_data_block(struct hl_device *hdev,
+			int block, int inst, u32 offset, struct iterate_module_ctx *ctx)
+{
+	offset += 0xD039000;
+	WREG32(offset + 0x640, 0x3333);
+	RREG32(0xc489000);
+}
+
+static void gaudi3_init_axiovrd_d2d_7_hbm_nic_data_block(struct hl_device *hdev,
+			int block, int inst, u32 offset, struct iterate_module_ctx *ctx)
+{
+	offset += 0xD039000;
+	WREG32(offset + 0x640, 0x3333);
+	RREG32(0xc489000);
+}
+
+static void gaudi3_init_axiovrd_single_die_pdma_block(struct hl_device *hdev,
+			int block, int inst, u32 offset, struct iterate_module_ctx *ctx)
+{
+	offset += 0xC54D000;
+	WREG32(offset + 0x640, 0x3333);
+	RREG32(0xc489000);
+}
+
+static void gaudi3_init_axiovrd_d2d_8_hbm_pdma_block(struct hl_device *hdev,
+			int block, int inst, u32 offset, struct iterate_module_ctx *ctx)
+{
+	offset += 0xC54D000;
+	WREG32(offset + 0x640, 0x3333);
+	RREG32(0xc489000);
+}
+
+static void gaudi3_init_axiovrd_d2d_7_hbm_pdma_block(struct hl_device *hdev,
+			int block, int inst, u32 offset, struct iterate_module_ctx *ctx)
+{
+	offset += 0xC54D000;
+	WREG32(offset + 0x640, 0x3333);
+	RREG32(0xc489000);
+}
+
+static void gaudi3_init_axiovrd_single_die_sedma_master_if_block(struct hl_device *hdev,
+			int block, int inst, u32 offset, struct iterate_module_ctx *ctx)
+{
+	offset += 0xE50E000;
+	WREG32(offset + 0x640, 0x3333);
+	RREG32(0xc489000);
+}
+
+static void gaudi3_init_axiovrd_d2d_8_hbm_sedma_master_if_block(struct hl_device *hdev,
+			int block, int inst, u32 offset, struct iterate_module_ctx *ctx)
+{
+	offset += 0xE50E000;
+	WREG32(offset + 0x640, 0x3333);
+	RREG32(0xc489000);
+}
+
+static void gaudi3_init_axiovrd_d2d_7_hbm_sedma_master_if_block(struct hl_device *hdev,
+			int block, int inst, u32 offset, struct iterate_module_ctx *ctx)
+{
+	offset += 0xE50E000;
+	WREG32(offset + 0x640, 0x3333);
+	RREG32(0xc489000);
+}
+
+static void gaudi3_init_axiovrd_single_die_vdec_block(struct hl_device *hdev,
+			int block, int inst, u32 offset, struct iterate_module_ctx *ctx)
+{
+	offset += 0xE125000;
+	WREG32(offset + 0x640, 0x3333);
+	RREG32(0xc489000);
+}
+
+static void gaudi3_init_axiovrd_d2d_8_hbm_vdec_block(struct hl_device *hdev,
+			int block, int inst, u32 offset, struct iterate_module_ctx *ctx)
+{
+	offset += 0xE125000;
+	WREG32(offset + 0x640, 0x3333);
+	RREG32(0xc489000);
+}
+
+static void gaudi3_init_axiovrd_d2d_7_hbm_vdec_block(struct hl_device *hdev,
+			int block, int inst, u32 offset, struct iterate_module_ctx *ctx)
+{
+	offset += 0xE125000;
+	WREG32(offset + 0x640, 0x3333);
+	RREG32(0xc489000);
+}
+
+static void gaudi3_init_axiovrd_single_die_rot_block(struct hl_device *hdev,
+			int block, int inst, u32 offset, struct iterate_module_ctx *ctx)
+{
+	offset += 0xE551000;
+	WREG32(offset + 0x640, 0x3333);
+	RREG32(0xc489000);
+}
+
+static void gaudi3_init_axiovrd_d2d_8_hbm_rot_block(struct hl_device *hdev,
+			int block, int inst, u32 offset, struct iterate_module_ctx *ctx)
+{
+	offset += 0xE551000;
+	WREG32(offset + 0x640, 0x3333);
+	RREG32(0xc489000);
+}
+
+static void gaudi3_init_axiovrd_d2d_7_hbm_rot_block(struct hl_device *hdev,
+			int block, int inst, u32 offset, struct iterate_module_ctx *ctx)
+{
+	offset += 0xE551000;
+	WREG32(offset + 0x640, 0x3333);
+	RREG32(0xc489000);
+}
+
+static void gaudi3_init_axiovrd_single_die_arc_farm_block(
+			struct hl_device *hdev, u64 offset)
+{
+	WREG32(offset + 0x640, 0x3333);
+	RREG32(0xc489000);
+}
+
+static void gaudi3_init_axiovrd_d2d_8_hbm_arc_farm_block(
+			struct hl_device *hdev, u64 offset)
+{
+	WREG32(offset + 0x640, 0x3333);
+	RREG32(0xc489000);
+}
+
+static void gaudi3_init_axiovrd_d2d_7_hbm_arc_farm_block(
+			struct hl_device *hdev, u64 offset)
+{
+	WREG32(offset + 0x640, 0x3333);
+	RREG32(0xc489000);
+}
+
+static void gaudi3_init_axiovrd_single_die_pcie_block(
+			struct hl_device *hdev, u64 offset)
+{
+	WREG32(offset + 0x640, 0x3333);
+	RREG32(0xc489000);
+}
+
+static void gaudi3_init_axiovrd_d2d_8_hbm_pcie_block(
+			struct hl_device *hdev, u64 offset)
+{
+	WREG32(offset + 0x640, 0x3333);
+	RREG32(0xc489000);
+}
+
+static void gaudi3_init_axiovrd_d2d_7_hbm_pcie_block(
+			struct hl_device *hdev, u64 offset)
+{
+	WREG32(offset + 0x640, 0x3333);
+	RREG32(0xc489000);
+}
+
+static void gaudi3_init_axiovrd_single_die_tpc(struct hl_device *hdev)
+{
+	struct iterate_module_ctx ctx = {};
+
+	ctx.fn = gaudi3_init_axiovrd_single_die_tpc_block;
+	gaudi3_iterate_tpcs(hdev, &ctx);
+}
+
+static void gaudi3_init_axiovrd_d2d_8_hbm_tpc(struct hl_device *hdev)
+{
+	struct iterate_module_ctx ctx = {};
+
+	ctx.fn = gaudi3_init_axiovrd_d2d_8_hbm_tpc_block;
+	gaudi3_iterate_tpcs(hdev, &ctx);
+}
+
+static void gaudi3_init_axiovrd_d2d_7_hbm_tpc(struct hl_device *hdev)
+{
+	struct iterate_module_ctx ctx = {};
+
+	ctx.fn = gaudi3_init_axiovrd_d2d_7_hbm_tpc_block;
+	gaudi3_iterate_tpcs(hdev, &ctx);
+}
+
+static void gaudi3_init_axiovrd_single_die_mme(struct hl_device *hdev)
+{
+	struct iterate_module_ctx ctx = {};
+
+	ctx.fn = gaudi3_init_axiovrd_single_die_mme_block;
+	gaudi3_iterate_mmes_v3_mstr_ifs(hdev, &ctx);
+}
+
+static void gaudi3_init_axiovrd_d2d_8_hbm_mme(struct hl_device *hdev)
+{
+	struct iterate_module_ctx ctx = {};
+
+	ctx.fn = gaudi3_init_axiovrd_d2d_8_hbm_mme_block;
+	gaudi3_iterate_mmes_v3_mstr_ifs(hdev, &ctx);
+}
+
+static void gaudi3_init_axiovrd_d2d_7_hbm_mme(struct hl_device *hdev)
+{
+	struct iterate_module_ctx ctx = {};
+
+	ctx.fn = gaudi3_init_axiovrd_d2d_7_hbm_mme_block;
+	gaudi3_iterate_mmes_v3_mstr_ifs(hdev, &ctx);
+}
+
+static void gaudi3_init_axiovrd_single_die_nic_cntrl(struct hl_device *hdev)
+{
+	struct iterate_module_ctx ctx = {};
+
+	ctx.fn = gaudi3_init_axiovrd_single_die_nic_cntrl_block;
+	gaudi3_iterate_nics(hdev, &ctx);
+}
+
+static void gaudi3_init_axiovrd_d2d_8_hbm_nic_cntrl(struct hl_device *hdev)
+{
+	struct iterate_module_ctx ctx = {};
+
+	ctx.fn = gaudi3_init_axiovrd_d2d_8_hbm_nic_cntrl_block;
+	gaudi3_iterate_nics(hdev, &ctx);
+}
+
+static void gaudi3_init_axiovrd_d2d_7_hbm_nic_cntrl(struct hl_device *hdev)
+{
+	struct iterate_module_ctx ctx = {};
+
+	ctx.fn = gaudi3_init_axiovrd_d2d_7_hbm_nic_cntrl_block;
+	gaudi3_iterate_nics(hdev, &ctx);
+}
+
+static void gaudi3_init_axiovrd_single_die_nic_data(struct hl_device *hdev)
+{
+	struct iterate_module_ctx ctx = {};
+
+	ctx.fn = gaudi3_init_axiovrd_single_die_nic_data_block;
+	gaudi3_iterate_nics(hdev, &ctx);
+}
+
+static void gaudi3_init_axiovrd_d2d_8_hbm_nic_data(struct hl_device *hdev)
+{
+	struct iterate_module_ctx ctx = {};
+
+	ctx.fn = gaudi3_init_axiovrd_d2d_8_hbm_nic_data_block;
+	gaudi3_iterate_nics(hdev, &ctx);
+}
+
+static void gaudi3_init_axiovrd_d2d_7_hbm_nic_data(struct hl_device *hdev)
+{
+	struct iterate_module_ctx ctx = {};
+
+	ctx.fn = gaudi3_init_axiovrd_d2d_7_hbm_nic_data_block;
+	gaudi3_iterate_nics(hdev, &ctx);
+}
+
+static void gaudi3_init_axiovrd_single_die_pdma(struct hl_device *hdev)
+{
+	struct iterate_module_ctx ctx = {};
+
+	ctx.fn = gaudi3_init_axiovrd_single_die_pdma_block;
+	gaudi3_iterate_pdma_grps(hdev, &ctx);
+}
+
+static void gaudi3_init_axiovrd_d2d_8_hbm_pdma(struct hl_device *hdev)
+{
+	struct iterate_module_ctx ctx = {};
+
+	ctx.fn = gaudi3_init_axiovrd_d2d_8_hbm_pdma_block;
+	gaudi3_iterate_pdma_grps(hdev, &ctx);
+}
+
+static void gaudi3_init_axiovrd_d2d_7_hbm_pdma(struct hl_device *hdev)
+{
+	struct iterate_module_ctx ctx = {};
+
+	ctx.fn = gaudi3_init_axiovrd_d2d_7_hbm_pdma_block;
+	gaudi3_iterate_pdma_grps(hdev, &ctx);
+}
+
+static void gaudi3_init_axiovrd_single_die_sedma_master_if(struct hl_device *hdev)
+{
+	struct iterate_module_ctx ctx = {};
+
+	ctx.fn = gaudi3_init_axiovrd_single_die_sedma_master_if_block;
+	gaudi3_iterate_edmas(hdev, &ctx);
+}
+
+static void gaudi3_init_axiovrd_d2d_8_hbm_sedma_master_if(struct hl_device *hdev)
+{
+	struct iterate_module_ctx ctx = {};
+
+	ctx.fn = gaudi3_init_axiovrd_d2d_8_hbm_sedma_master_if_block;
+	gaudi3_iterate_edmas(hdev, &ctx);
+}
+
+static void gaudi3_init_axiovrd_d2d_7_hbm_sedma_master_if(struct hl_device *hdev)
+{
+	struct iterate_module_ctx ctx = {};
+
+	ctx.fn = gaudi3_init_axiovrd_d2d_7_hbm_sedma_master_if_block;
+	gaudi3_iterate_edmas(hdev, &ctx);
+}
+
+static void gaudi3_init_axiovrd_single_die_vdec(struct hl_device *hdev)
+{
+	struct iterate_module_ctx ctx = {};
+
+	ctx.fn = gaudi3_init_axiovrd_single_die_vdec_block;
+	gaudi3_iterate_decoders(hdev, &ctx);
+}
+
+static void gaudi3_init_axiovrd_d2d_8_hbm_vdec(struct hl_device *hdev)
+{
+	struct iterate_module_ctx ctx = {};
+
+	ctx.fn = gaudi3_init_axiovrd_d2d_8_hbm_vdec_block;
+	gaudi3_iterate_decoders(hdev, &ctx);
+}
+
+static void gaudi3_init_axiovrd_d2d_7_hbm_vdec(struct hl_device *hdev)
+{
+	struct iterate_module_ctx ctx = {};
+
+	ctx.fn = gaudi3_init_axiovrd_d2d_7_hbm_vdec_block;
+	gaudi3_iterate_decoders(hdev, &ctx);
+}
+
+static void gaudi3_init_axiovrd_single_die_rot(struct hl_device *hdev)
+{
+	struct iterate_module_ctx ctx = {};
+
+	ctx.fn = gaudi3_init_axiovrd_single_die_rot_block;
+	gaudi3_iterate_rotators(hdev, &ctx);
+}
+
+static void gaudi3_init_axiovrd_d2d_8_hbm_rot(struct hl_device *hdev)
+{
+	struct iterate_module_ctx ctx = {};
+
+	ctx.fn = gaudi3_init_axiovrd_d2d_8_hbm_rot_block;
+	gaudi3_iterate_rotators(hdev, &ctx);
+}
+
+static void gaudi3_init_axiovrd_d2d_7_hbm_rot(struct hl_device *hdev)
+{
+	struct iterate_module_ctx ctx = {};
+
+	ctx.fn = gaudi3_init_axiovrd_d2d_7_hbm_rot_block;
+	gaudi3_iterate_rotators(hdev, &ctx);
+}
+
+static void gaudi3_init_axiovrd_single_die_arc_farm(struct hl_device *hdev)
+{
+	gaudi3_init_axiovrd_single_die_arc_farm_block(hdev, 0xE30C000);
+	gaudi3_init_axiovrd_single_die_arc_farm_block(hdev, 0xE70C000);
+	gaudi3_init_axiovrd_single_die_arc_farm_block(hdev, 0xEB0C000);
+	gaudi3_init_axiovrd_single_die_arc_farm_block(hdev, 0xEF0C000);
+	gaudi3_init_axiovrd_single_die_arc_farm_block(hdev, 0xF30C000);
+	gaudi3_init_axiovrd_single_die_arc_farm_block(hdev, 0xF70C000);
+	gaudi3_init_axiovrd_single_die_arc_farm_block(hdev, 0xFB0C000);
+	gaudi3_init_axiovrd_single_die_arc_farm_block(hdev, 0xFF0C000);
+}
+
+static void gaudi3_init_axiovrd_d2d_8_hbm_arc_farm(struct hl_device *hdev)
+{
+	gaudi3_init_axiovrd_d2d_8_hbm_arc_farm_block(hdev, 0xE30C000);
+	gaudi3_init_axiovrd_d2d_8_hbm_arc_farm_block(hdev, 0xE70C000);
+	gaudi3_init_axiovrd_d2d_8_hbm_arc_farm_block(hdev, 0xEB0C000);
+	gaudi3_init_axiovrd_d2d_8_hbm_arc_farm_block(hdev, 0xEF0C000);
+	gaudi3_init_axiovrd_d2d_8_hbm_arc_farm_block(hdev, 0xF30C000);
+	gaudi3_init_axiovrd_d2d_8_hbm_arc_farm_block(hdev, 0xF70C000);
+	gaudi3_init_axiovrd_d2d_8_hbm_arc_farm_block(hdev, 0xFB0C000);
+	gaudi3_init_axiovrd_d2d_8_hbm_arc_farm_block(hdev, 0xFF0C000);
+}
+
+static void gaudi3_init_axiovrd_d2d_7_hbm_arc_farm(struct hl_device *hdev)
+{
+	gaudi3_init_axiovrd_d2d_7_hbm_arc_farm_block(hdev, 0xE30C000);
+	gaudi3_init_axiovrd_d2d_7_hbm_arc_farm_block(hdev, 0xE70C000);
+	gaudi3_init_axiovrd_d2d_7_hbm_arc_farm_block(hdev, 0xEB0C000);
+	gaudi3_init_axiovrd_d2d_7_hbm_arc_farm_block(hdev, 0xEF0C000);
+	gaudi3_init_axiovrd_d2d_7_hbm_arc_farm_block(hdev, 0xF30C000);
+	gaudi3_init_axiovrd_d2d_7_hbm_arc_farm_block(hdev, 0xF70C000);
+	gaudi3_init_axiovrd_d2d_7_hbm_arc_farm_block(hdev, 0xFB0C000);
+	gaudi3_init_axiovrd_d2d_7_hbm_arc_farm_block(hdev, 0xFF0C000);
+}
+
+static void gaudi3_init_axiovrd_single_die_pcie(struct hl_device *hdev)
+{
+	gaudi3_init_axiovrd_single_die_pcie_block(hdev, 0xC415000);
+}
+
+static void gaudi3_init_axiovrd_d2d_8_hbm_pcie(struct hl_device *hdev)
+{
+	gaudi3_init_axiovrd_d2d_8_hbm_pcie_block(hdev, 0xC415000);
+}
+
+static void gaudi3_init_axiovrd_d2d_7_hbm_pcie(struct hl_device *hdev)
+{
+	gaudi3_init_axiovrd_d2d_7_hbm_pcie_block(hdev, 0xC415000);
+}
+
+static void gaudi3_init_axiovrd_single_die(struct hl_device *hdev)
+{
+	gaudi3_init_axiovrd_single_die_tpc(hdev);
+	gaudi3_init_axiovrd_single_die_mme(hdev);
+	gaudi3_init_axiovrd_single_die_nic_cntrl(hdev);
+	gaudi3_init_axiovrd_single_die_nic_data(hdev);
+	gaudi3_init_axiovrd_single_die_pdma(hdev);
+	gaudi3_init_axiovrd_single_die_sedma_master_if(hdev);
+	gaudi3_init_axiovrd_single_die_vdec(hdev);
+	gaudi3_init_axiovrd_single_die_rot(hdev);
+	gaudi3_init_axiovrd_single_die_arc_farm(hdev);
+	gaudi3_init_axiovrd_single_die_pcie(hdev);
+}
+
+static void gaudi3_init_axiovrd_d2d_8_hbm(struct hl_device *hdev)
+{
+	gaudi3_init_axiovrd_d2d_8_hbm_tpc(hdev);
+	gaudi3_init_axiovrd_d2d_8_hbm_mme(hdev);
+	gaudi3_init_axiovrd_d2d_8_hbm_nic_cntrl(hdev);
+	gaudi3_init_axiovrd_d2d_8_hbm_nic_data(hdev);
+	gaudi3_init_axiovrd_d2d_8_hbm_pdma(hdev);
+	gaudi3_init_axiovrd_d2d_8_hbm_sedma_master_if(hdev);
+	gaudi3_init_axiovrd_d2d_8_hbm_vdec(hdev);
+	gaudi3_init_axiovrd_d2d_8_hbm_rot(hdev);
+	gaudi3_init_axiovrd_d2d_8_hbm_arc_farm(hdev);
+	gaudi3_init_axiovrd_d2d_8_hbm_pcie(hdev);
+}
+
+static void gaudi3_init_axiovrd_d2d_7_hbm(struct hl_device *hdev)
+{
+	gaudi3_init_axiovrd_d2d_7_hbm_tpc(hdev);
+	gaudi3_init_axiovrd_d2d_7_hbm_mme(hdev);
+	gaudi3_init_axiovrd_d2d_7_hbm_nic_cntrl(hdev);
+	gaudi3_init_axiovrd_d2d_7_hbm_nic_data(hdev);
+	gaudi3_init_axiovrd_d2d_7_hbm_pdma(hdev);
+	gaudi3_init_axiovrd_d2d_7_hbm_sedma_master_if(hdev);
+	gaudi3_init_axiovrd_d2d_7_hbm_vdec(hdev);
+	gaudi3_init_axiovrd_d2d_7_hbm_rot(hdev);
+	gaudi3_init_axiovrd_d2d_7_hbm_arc_farm(hdev);
+	gaudi3_init_axiovrd_d2d_7_hbm_pcie(hdev);
+}
+
 void gaudi3_init_n2r_credits(struct hl_device *hdev)
 {
 	dev_dbg(hdev->dev, "N2R_CREDITS version: %s\n", N2R_CREDITS_VERSION);
@@ -3641,6 +4161,18 @@ void gaudi3_init_mc(struct hl_device *hdev)
 		gaudi3_init_mc_d2d_7_hbm(hdev);
 	else
 		gaudi3_init_mc_single_die(hdev);
+}
+
+void gaudi3_init_axiovrd(struct hl_device *hdev)
+{
+	dev_dbg(hdev->dev, "AXIOVRD version: %s\n", AXIOVRD_VERSION);
+
+	if (hdev->asic_prop.num_functional_hbms == 8)
+		gaudi3_init_axiovrd_d2d_8_hbm(hdev);
+	else if (hdev->asic_prop.num_functional_hbms == 7)
+		gaudi3_init_axiovrd_d2d_7_hbm(hdev);
+	else
+		gaudi3_init_axiovrd_single_die(hdev);
 }
 
 void gaudi3_print_sol_config_version(struct hl_device *hdev)
