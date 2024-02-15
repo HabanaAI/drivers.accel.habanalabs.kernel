@@ -9350,6 +9350,10 @@ static int gaudi2_handle_mme_err(struct hl_device *hdev, u8 mme_index, u16 event
 		}
 	}
 
+	/* TODO - debug print, need to be removed once SW-175140 will be resolved */
+	if (!error_count)
+		dev_err(hdev->dev, "cause reg 0x%X = 0x%X\n", sts_addr, sts_val);
+
 	/* check if RAZWI happened */
 	for (i = MME_WRITE ; i < MME_INITIATORS_MAX ; i++)
 		gaudi2_ack_module_razwi_event_handler(hdev, RAZWI_MME, mme_index, i, event_mask);
