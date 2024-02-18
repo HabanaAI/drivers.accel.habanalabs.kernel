@@ -15,10 +15,10 @@
 #define SPMU_DATA_LEN				(SPMU_MAX_COUNTERS + 2)
 
 static struct hl_cn_stat gaudi3_cn_spmu_stats[] = {
-	{"spmu_req_out_of_range_psn", 5},
-	{"spmu_req_unset_psn", 6},
-	{"spmu_res_duplicate_psn", 10},
-	{"spmu_res_out_of_sequence_psn", 11}
+	{"spmu_req_out_of_range_psn", 17},
+	{"spmu_req_unset_psn", 18},
+	{"spmu_res_duplicate_psn", 22},
+	{"spmu_res_out_of_sequence_psn", 23}
 };
 
 static size_t gaudi3_cn_spmu_stats_len = ARRAY_SIZE(gaudi3_cn_spmu_stats);
