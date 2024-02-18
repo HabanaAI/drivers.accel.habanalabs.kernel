@@ -56,7 +56,7 @@ struct hl_ctx;
  * @is_initialized: is device initialized.
  */
 struct hl_cn {
-	struct hl_aux_dev	cn_aux_dev;
+	struct hbl_aux_dev	cn_aux_dev;
 	struct hl_ctx		*ctx;
 	struct mutex		hw_access_lock;
 	u64			ports_mask;
@@ -69,11 +69,11 @@ struct hl_cn {
 	u8			is_initialized;
 
 	/* Parameters for bring-up (not to be upstreamed) */
-	u64				auto_neg_mask;
-	u8				load_fw;
-	u8				lanes_per_port;
-	u8				skip_phy_init;
-	u8				eth_on_internal;
+	u64			auto_neg_mask;
+	u8			load_fw;
+	u8			lanes_per_port;
+	u8			skip_phy_init;
+	u8			eth_on_internal;
 };
 
 /**
@@ -85,7 +85,7 @@ struct hl_cn {
  * @post_send_status: ASIC-specific handler for post sending status packet to FW.
  */
 struct hl_cn_port_funcs {
-	void (*spmu_get_stats_info)(struct hl_device *hdev, u32 port, struct hl_cn_stat **stats,
+	void (*spmu_get_stats_info)(struct hl_device *hdev, u32 port, struct hbl_cn_stat **stats,
 					u32 *n_stats);
 	int (*spmu_config)(struct hl_device *hdev, u32 port, u32 num_event_types, u32 event_types[],
 				bool enable);
@@ -122,32 +122,34 @@ void hl_cn_synchronize_irqs(struct hl_device *hdev);
 int hl_cn_mmap(struct hl_device *hdev, u32 asid, struct vm_area_struct *vma);
 int hl_cn_get_port_state(struct hl_device *hdev, u32 port, bool *up);
 int hl_cn_get_port_statistics(struct hl_device *hdev, u32 port,
-				struct hl_cn_port_statistics *out);
+				struct hbl_cn_port_statistics *out);
 int hl_cn_check_ib_driver(struct hl_device *hdev);
 int hl_cn_cpucp_info_get(struct hl_device *hdev);
-void *hl_cn_dma_alloc_coherent(struct hl_aux_dev *aux_dev, size_t size, dma_addr_t *dma_handle,
+void *hl_cn_dma_alloc_coherent(struct hbl_aux_dev *aux_dev, size_t size, dma_addr_t *dma_handle,
 			       gfp_t flag);
-void hl_cn_dma_free_coherent(struct hl_aux_dev *aux_dev, size_t size, void *cpu_addr,
+void hl_cn_dma_free_coherent(struct hbl_aux_dev *aux_dev, size_t size, void *cpu_addr,
 			     dma_addr_t dma_handle);
-void *hl_cn_dma_pool_zalloc(struct hl_aux_dev *aux_dev, size_t size, gfp_t mem_flags,
+void *hl_cn_dma_pool_zalloc(struct hbl_aux_dev *aux_dev, size_t size, gfp_t mem_flags,
 			    dma_addr_t *dma_handle);
-void hl_cn_dma_pool_free(struct hl_aux_dev *aux_dev, void *vaddr, dma_addr_t dma_addr);
-int hl_cn_get_hw_block_handle(struct hl_aux_dev *aux_dev, u64 address, u64 *handle);
-int hl_cn_user_mmap(struct hl_aux_dev *aux_dev, struct vm_area_struct *vma);
-void hl_cn_spmu_get_stats_info(struct hl_aux_dev *aux_dev, u32 port, struct hl_cn_stat **stats,
+void hl_cn_dma_pool_free(struct hbl_aux_dev *aux_dev, void *vaddr, dma_addr_t dma_addr);
+int hl_cn_get_hw_block_handle(struct hbl_aux_dev *aux_dev, u64 address, u64 *handle);
+int hl_cn_user_mmap(struct hbl_aux_dev *aux_dev, struct vm_area_struct *vma);
+void hl_cn_spmu_get_stats_info(struct hbl_aux_dev *aux_dev, u32 port, struct hbl_cn_stat **stats,
 				u32 *n_stats);
-int hl_cn_spmu_config(struct hl_aux_dev *aux_dev, u32 port, u32 num_event_types, u32 event_types[],
+int hl_cn_spmu_config(struct hbl_aux_dev *aux_dev, u32 port, u32 num_event_types, u32 event_types[],
 			bool enable);
-int hl_cn_spmu_sample(struct hl_aux_dev *aux_dev, u32 port, u32 num_out_data, u64 out_data[]);
-int hl_cn_poll_reg(struct hl_aux_dev *aux_dev, u32 reg, u64 timeout_us, hl_cn_poll_cond_func func,
+int hl_cn_spmu_sample(struct hbl_aux_dev *aux_dev, u32 port, u32 num_out_data, u64 out_data[]);
+int hl_cn_poll_reg(struct hbl_aux_dev *aux_dev, u32 reg, u64 timeout_us, hbl_cn_poll_cond_func func,
 			void *arg);
-int hl_cn_send_cpu_message(struct hl_aux_dev *aux_dev, u32 *msg, u16 len, u32 timeout, u64 *result);
-void hl_cn_set_priv_assertions(struct hl_aux_dev *aux_dev, bool enable);
-void hl_cn_post_send_status(struct hl_aux_dev *aux_dev, u32 port);
+int hl_cn_send_cpu_message(struct hbl_aux_dev *aux_dev, u32 *msg, u16 len, u32 timeout,
+				u64 *result);
+void hl_cn_set_priv_assertions(struct hbl_aux_dev *aux_dev, bool enable);
+void hl_cn_post_send_status(struct hbl_aux_dev *aux_dev, u32 port);
+
 
 #ifndef _HAS_AUX_BUS_H
-extern int hl_cn_probe(struct hl_aux_dev *aux_dev);
-extern void hl_cn_remove(struct hl_aux_dev *aux_dev);
+extern int hbl_cn_probe(struct hbl_aux_dev *aux_dev);
+extern void hbl_cn_remove(struct hbl_aux_dev *aux_dev);
 #endif
 
 #endif /* CN_H_ */

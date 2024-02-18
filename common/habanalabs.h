@@ -652,7 +652,7 @@ struct hl_mem_block_info {
  * @max_num_of_ports: maximum number of ports supported by ASIC.
  */
 struct hl_cn_properties {
-	struct hl_cn_cpucp_info cpucp_info;
+	struct hbl_cn_cpucp_info cpucp_info;
 	u32 status_packet_size;
 	u8 max_num_of_ports;
 };

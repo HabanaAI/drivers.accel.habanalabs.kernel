@@ -594,7 +594,7 @@ void gaudi_sim_cn_early_init_props_ext(struct gaudi_cn_sim_properties *cn_prop);
 
 /* CN functions */
 void gaudi_cn_handle_qp_err(struct hl_device *hdev, u16 event_type);
-void gaudi_cn_spmu_get_stats_info(struct hl_device *hdev, u32 port, struct hl_cn_stat **stats,
+void gaudi_cn_spmu_get_stats_info(struct hl_device *hdev, u32 port, struct hbl_cn_stat **stats,
 					u32 *n_stats);
 int gaudi_cn_spmu_config(struct hl_device *hdev, u32 port, u32 num_event_types, u32 event_types[],
 				bool enable);

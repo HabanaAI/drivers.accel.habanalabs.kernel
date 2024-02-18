@@ -23,14 +23,14 @@
 #define PMCCNTSR_L			0x618	/* Cycle Counter Snapshot */
 #define PMCCNTSR_H			0x61c	/* Cycle Counter Snapshot */
 
-static struct hl_cn_stat gaudi_nic0_spmu_stats[] = {
+static struct hbl_cn_stat gaudi_nic0_spmu_stats[] = {
 	{"bad_format", 1},
 	{"requester_psn_out_of_range", 6},
 	{"responder_duplicate_psn", 9},
 	{"responder_out_of_sequence_psn", 10}
 };
 
-static struct hl_cn_stat gaudi_nic1_spmu_stats[] = {
+static struct hbl_cn_stat gaudi_nic1_spmu_stats[] = {
 	{"bad_format", 13},
 	{"requester_psn_out_of_range", 18},
 	{"responder_duplicate_psn", 21},
@@ -950,7 +950,7 @@ static int gaudi_sample_spmu(struct hl_device *hdev,
 	return 0;
 }
 
-void gaudi_cn_spmu_get_stats_info(struct hl_device *hdev, u32 port, struct hl_cn_stat **stats,
+void gaudi_cn_spmu_get_stats_info(struct hl_device *hdev, u32 port, struct hbl_cn_stat **stats,
 					u32 *n_stats)
 {
 	if (!hdev->supports_coresight) {

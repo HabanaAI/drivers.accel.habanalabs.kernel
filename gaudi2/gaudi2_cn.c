@@ -22,7 +22,7 @@ static bool gaudi2_cn_get_hw_cap(struct hl_device *hdev);
 int gaudi2_cn_handle_sw_error_event(struct hl_device *hdev, u16 event_type, u8 macro_index,
 					struct hl_eq_nic_intr_cause *nic_intr_cause)
 {
-	struct hl_aux_dev *aux_dev = &hdev->cn.cn_aux_dev;
+	struct hbl_aux_dev *aux_dev = &hdev->cn.cn_aux_dev;
 	struct gaudi2_device *gaudi2 = hdev->asic_specific;
 	struct gaudi2_cn_aux_ops *aux_ops = &gaudi2->cn_aux_ops;
 	u32 error_count = 0;
@@ -39,7 +39,7 @@ int gaudi2_cn_handle_axi_error_response_event(struct hl_device *hdev, u16 event_
 						u8 macro_index,
 						struct hl_eq_nic_intr_cause *nic_intr_cause)
 {
-	struct hl_aux_dev *aux_dev = &hdev->cn.cn_aux_dev;
+	struct hbl_aux_dev *aux_dev = &hdev->cn.cn_aux_dev;
 	struct gaudi2_device *gaudi2 = hdev->asic_specific;
 	struct gaudi2_cn_aux_ops *aux_ops = &gaudi2->cn_aux_ops;
 	u32 error_count = 0;
@@ -236,9 +236,9 @@ static int gaudi2_cn_check_oui_prefix_validity(u8 *mac_addr)
 
 int gaudi2_cn_set_info(struct hl_device *hdev, bool get_from_fw)
 {
-	struct hl_cn_cpucp_info *cn_cpucp_info = &hdev->asic_prop.cn_props.cpucp_info;
+	struct hbl_cn_cpucp_info *cn_cpucp_info = &hdev->asic_prop.cn_props.cpucp_info;
 	struct cpucp_info *cpucp_info = &hdev->asic_prop.cpucp_info;
-	struct hl_cn_cpucp_mac_addr *mac_arr = cn_cpucp_info->mac_addrs;
+	struct hbl_cn_cpucp_mac_addr *mac_arr = cn_cpucp_info->mac_addrs;
 	struct hl_cn *cn = &hdev->cn;
 	u32 card_location, serdes_type = MAX_NUM_SERDES_TYPE;
 	u8 mac[ETH_ALEN], *mac_addr;
@@ -389,14 +389,14 @@ static int gaudi2_cn_pre_core_init(struct hl_device *hdev)
 	return 0;
 }
 
-static char *gaudi2_cn_get_event_name(struct hl_aux_dev *aux_dev, u16 event_type)
+static char *gaudi2_cn_get_event_name(struct hbl_aux_dev *aux_dev, u16 event_type)
 {
 	return gaudi2_irq_map_table[event_type].valid ? gaudi2_irq_map_table[event_type].name :
 			"N/A Event";
 }
 
-static int gaudi2_cn_poll_mem(struct hl_aux_dev *aux_dev, u32 *addr, u32 *val,
-				hl_cn_poll_cond_func func)
+static int gaudi2_cn_poll_mem(struct hbl_aux_dev *aux_dev, u32 *addr, u32 *val,
+				hbl_cn_poll_cond_func func)
 {
 	struct hl_cn *cn = container_of(aux_dev, struct hl_cn, cn_aux_dev);
 	struct hl_device *hdev = container_of(cn, struct hl_device, cn);
@@ -405,35 +405,35 @@ static int gaudi2_cn_poll_mem(struct hl_aux_dev *aux_dev, u32 *addr, u32 *val,
 					HL_DEVICE_TIMEOUT_USEC, true);
 }
 
-static void *gaudi2_cn_dma_alloc_coherent(struct hl_aux_dev *aux_dev, size_t size,
+static void *gaudi2_cn_dma_alloc_coherent(struct hbl_aux_dev *aux_dev, size_t size,
 					  dma_addr_t *dma_handle, gfp_t flag)
 {
 	return hl_cn_dma_alloc_coherent(aux_dev, size, dma_handle, flag);
 }
 
-static void gaudi2_cn_dma_free_coherent(struct hl_aux_dev *aux_dev, size_t size, void *cpu_addr,
+static void gaudi2_cn_dma_free_coherent(struct hbl_aux_dev *aux_dev, size_t size, void *cpu_addr,
 					dma_addr_t dma_handle)
 {
 	hl_cn_dma_free_coherent(aux_dev, size, cpu_addr, dma_handle);
 }
 
-static void *gaudi2_cn_dma_pool_zalloc(struct hl_aux_dev *aux_dev, size_t size, gfp_t mem_flags,
+static void *gaudi2_cn_dma_pool_zalloc(struct hbl_aux_dev *aux_dev, size_t size, gfp_t mem_flags,
 				       dma_addr_t *dma_handle)
 {
 	return hl_cn_dma_pool_zalloc(aux_dev, size, mem_flags, dma_handle);
 }
 
-static void gaudi2_cn_dma_pool_free(struct hl_aux_dev *aux_dev, void *vaddr, dma_addr_t dma_addr)
+static void gaudi2_cn_dma_pool_free(struct hbl_aux_dev *aux_dev, void *vaddr, dma_addr_t dma_addr)
 {
 	hl_cn_dma_pool_free(aux_dev, vaddr, dma_addr);
 }
 
-static int gaudi2_cn_get_hw_block_handle(struct hl_aux_dev *aux_dev, u64 address, u64 *handle)
+static int gaudi2_cn_get_hw_block_handle(struct hbl_aux_dev *aux_dev, u64 address, u64 *handle)
 {
 	return hl_cn_get_hw_block_handle(aux_dev, address, handle);
 }
 
-static int gaudi2_cn_user_mmap(struct hl_aux_dev *aux_dev, struct vm_area_struct *vma)
+static int gaudi2_cn_user_mmap(struct hbl_aux_dev *aux_dev, struct vm_area_struct *vma)
 {
 	return hl_cn_user_mmap(aux_dev, vma);
 }
@@ -443,10 +443,10 @@ static void gaudi2_cn_set_cn_data(struct hl_device *hdev)
 	struct gaudi2_device *gaudi2 = hdev->asic_specific;
 	struct gaudi2_cn_aux_data *gaudi2_aux_data;
 	struct gaudi2_cn_aux_ops *gaudi2_aux_ops;
-	struct hl_cn_aux_data *aux_data;
-	struct hl_cn_aux_ops *aux_ops;
+	struct hbl_cn_aux_data *aux_data;
+	struct hbl_cn_aux_ops *aux_ops;
 	struct hl_cn *cn = &hdev->cn;
-	struct hl_aux_dev *aux_dev;
+	struct hbl_aux_dev *aux_dev;
 
 	aux_dev = &cn->cn_aux_dev;
 	aux_data = aux_dev->aux_data;
@@ -486,7 +486,7 @@ void gaudi2_cn_compute_reset_prepare(struct hl_device *hdev)
 	struct gaudi2_device *gaudi2 = hdev->asic_specific;
 	struct gaudi2_cn_aux_ops *gaudi2_aux_ops;
 	struct hl_cn *cn = &hdev->cn;
-	struct hl_aux_dev *aux_dev;
+	struct hbl_aux_dev *aux_dev;
 
 	aux_dev = &cn->cn_aux_dev;
 	gaudi2_aux_ops = &gaudi2->cn_aux_ops;
@@ -500,7 +500,7 @@ void gaudi2_cn_compute_reset_late_init(struct hl_device *hdev)
 	struct gaudi2_device *gaudi2 = hdev->asic_specific;
 	struct gaudi2_cn_aux_ops *gaudi2_aux_ops;
 	struct hl_cn *cn = &hdev->cn;
-	struct hl_aux_dev *aux_dev;
+	struct hbl_aux_dev *aux_dev;
 
 	aux_dev = &cn->cn_aux_dev;
 	gaudi2_aux_ops = &gaudi2->cn_aux_ops;

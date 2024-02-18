@@ -774,7 +774,7 @@ static int cn_statistics(struct hl_fpriv *hpriv, struct hl_info_args *args)
 	u32 max_size = args->return_size;
 	struct hl_info_habana_link_counters stat = {};
 	void __user *out = (void __user *) (uintptr_t) args->return_pointer;
-	struct hl_cn_port_statistics core_stats = {};
+	struct hbl_cn_port_statistics core_stats = {};
 	int rc;
 
 	if ((!max_size) || (!out))

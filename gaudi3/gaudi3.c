@@ -5236,7 +5236,7 @@ int gaudi3_cpucp_info_get(struct hl_device *hdev)
 			return 0;
 
 		if (!hdev->pdev && use_fw_nic_info) {
-			struct hl_cn_cpucp_info *cn_cpucp_info =
+			struct hbl_cn_cpucp_info *cn_cpucp_info =
 				&hdev->asic_prop.cn_props.cpucp_info;
 
 			/* Assume HLS3 connections */
@@ -13422,7 +13422,7 @@ static u32 gaudi3_handle_nic_spi(struct hl_device *hdev, u32 macro_index, u16 da
 {
 	struct gaudi3_device *gaudi3 = hdev->asic_specific;
 	struct gaudi3_cn_aux_ops *aux_ops = &gaudi3->cn_aux_ops;
-	struct hl_aux_dev *aux_dev = &hdev->cn.cn_aux_dev;
+	struct hbl_aux_dev *aux_dev = &hdev->cn.cn_aux_dev;
 	int rc;
 
 	rc = gaudi3_validate_eqe_data_size(hdev, data_size, sizeof(*nic_spi_data));
@@ -14208,7 +14208,7 @@ static u32 gaudi3_handle_nic_sei_err_event(struct hl_device *hdev, u16 data_size
 						   u32 macro_index,
 						   struct hl_eq_nic_sei_data *nic_sei_data)
 {
-	struct hl_aux_dev *aux_dev = &hdev->cn.cn_aux_dev;
+	struct hbl_aux_dev *aux_dev = &hdev->cn.cn_aux_dev;
 	struct gaudi3_device *gaudi3 = hdev->asic_specific;
 	struct gaudi3_cn_aux_ops *aux_ops = &gaudi3->cn_aux_ops;
 	int rc;

@@ -813,7 +813,7 @@ void gaudi3_cn_quiescence(struct hl_device *hdev);
 void gaudi3_cn_compute_reset_prepare(struct hl_device *hdev);
 void gaudi3_cn_compute_reset_late_init(struct hl_device *hdev);
 
-void gaudi3_cn_spmu_get_stats_info(struct hl_device *hdev, u32 port, struct hl_cn_stat **stats,
+void gaudi3_cn_spmu_get_stats_info(struct hl_device *hdev, u32 port, struct hbl_cn_stat **stats,
 					u32 *n_stats);
 int gaudi3_cn_spmu_config(struct hl_device *hdev, u32 port, u32 num_event_types, u32 event_types[],
 				bool enable);
@@ -874,7 +874,7 @@ void gaudi3_pdma_print_debug_info(struct hl_device *hdev, u32 ch_idx);
 void gaudi3_halt_engines_fw_config(struct hl_device *hdev);
 void gaudi3_set_isolation(struct hl_device *hdev, bool isolate_engines, bool isolate_hbm);
 void gaudi3_cn_ecos_override(struct hl_device *hdev);
-bool gaudi3_get_bfe_status(struct hl_aux_dev *aux_dev, u8 bfe);
+bool gaudi3_get_bfe_status(struct hbl_aux_dev *aux_dev, u8 bfe);
 int gaudi3_init_security_privileged(struct hl_device *hdev);
 void gaudi3_rtr_ctrl_config_rr(struct hl_device *hdev, int block, int inst, u32 offset,
 				struct iterate_module_ctx *ctx);

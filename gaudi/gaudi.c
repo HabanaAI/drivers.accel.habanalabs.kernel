@@ -2048,7 +2048,7 @@ irqreturn_t gaudi_irq_handler_single(int irq, void *arg)
 	struct hl_device *hdev = arg;
 	struct gaudi_device *gaudi = hdev->asic_specific;
 	struct gaudi_cn_aux_ops *aux_ops = &gaudi->cn_aux_ops;
-	struct hl_aux_dev *aux_dev = &hdev->cn.cn_aux_dev;
+	struct hbl_aux_dev *aux_dev = &hdev->cn.cn_aux_dev;
 	int i;
 
 	if (hdev->disabled)

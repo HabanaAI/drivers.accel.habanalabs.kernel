@@ -818,7 +818,7 @@ static struct rotator_err_ctx_id_reg {
 				ROTATOR_COORD_NUM_ERR_CONTEXT_ID_COORD_M}
 };
 
-bool gaudi3_get_bfe_status(struct hl_aux_dev *aux_dev, u8 bfe)
+bool gaudi3_get_bfe_status(struct hbl_aux_dev *aux_dev, u8 bfe)
 {
 	struct hl_cn *cn = container_of(aux_dev, struct hl_cn, cn_aux_dev);
 	struct hl_device *hdev = container_of(cn, struct hl_device, cn);
@@ -3186,7 +3186,7 @@ void gaudi3_hw_init_fw_config(struct hl_device *hdev)
 {
 	struct gaudi3_device *gaudi3 = hdev->asic_specific;
 	struct gaudi3_cn_aux_ops *aux_ops = &gaudi3->cn_aux_ops;
-	struct hl_aux_dev *aux_dev = &hdev->cn.cn_aux_dev;
+	struct hbl_aux_dev *aux_dev = &hdev->cn.cn_aux_dev;
 
 	/* TODO: remove when regulators configuration is updated in FW (SW-175925) */
 	gaudi3_disable_regulators(hdev);
