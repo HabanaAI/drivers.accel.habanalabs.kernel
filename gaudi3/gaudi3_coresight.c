@@ -5859,7 +5859,7 @@ static void gaudi3_ac_start(struct hl_device *hdev, u32 etr_idx)
 		pkt.index = etr_idx;
 		pkt.pkt_subidx = AC_OP_START;
 		rc = hdev->asic_funcs->send_cpu_message(hdev, (u32 *) &pkt, sizeof(pkt), 0, NULL);
-		if (rc)
+		if (rc != -EAGAIN)
 			dev_err(hdev->dev, "failed to send AC start msg (err = %d)\n", rc);
 	} else {
 		gaudi3_ac_start_no_fw(hdev, etr_idx);
@@ -5881,7 +5881,7 @@ static void gaudi3_ac_stop(struct hl_device *hdev, u32 etr_idx)
 		pkt.index = etr_idx;
 		pkt.pkt_subidx = AC_OP_STOP;
 		rc = hdev->asic_funcs->send_cpu_message(hdev, (u32 *) &pkt, sizeof(pkt), 0, NULL);
-		if (rc)
+		if (rc != -EAGAIN)
 			dev_err(hdev->dev, "failed to send AC stop msg (err = %d)\n", rc);
 	} else {
 		gaudi3_ac_stop_no_fw(hdev, etr_idx);

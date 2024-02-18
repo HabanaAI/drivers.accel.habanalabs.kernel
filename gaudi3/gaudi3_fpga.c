@@ -325,15 +325,7 @@ static int gaudi3_fpga_hw_fini(struct hl_device *hdev, bool hard_reset, bool fw_
 
 static int gaudi3_fpga_late_init(struct hl_device *hdev)
 {
-	int rc;
-
-	rc = hl_fw_send_pci_access_msg(hdev, CPUCP_PACKET_ENABLE_PCI_ACCESS, 0x0);
-	if (rc) {
-		dev_err(hdev->dev, "Failed to enable PCI access from CPU\n");
-		return rc;
-	}
-
-	return 0;
+	return hl_fw_send_pci_access_msg(hdev, CPUCP_PACKET_ENABLE_PCI_ACCESS, 0x0);
 }
 
 static void gaudi3_fpga_halt_engines(struct hl_device *hdev, bool hard_reset, bool fw_reset)

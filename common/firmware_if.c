@@ -379,43 +379,63 @@ int hl_fw_load_fw_to_device(struct hl_device *hdev, const char *fw_name,
 int hl_fw_send_pci_access_msg(struct hl_device *hdev, u32 opcode, u64 value)
 {
 	struct cpucp_packet pkt = {};
+	int rc;
 
 	pkt.ctl = cpu_to_le32(opcode << CPUCP_PKT_CTL_OPCODE_SHIFT);
 	pkt.value = cpu_to_le64(value);
 
-	return hdev->asic_funcs->send_cpu_message(hdev, (u32 *) &pkt, sizeof(pkt), 0, NULL);
+	rc = hdev->asic_funcs->send_cpu_message(hdev, (u32 *) &pkt, sizeof(pkt), 0, NULL);
+	if (rc)
+		dev_err(hdev->dev, "Failed to disable FW's PCI access\n");
+
+	return rc;
 }
 
+/**
+ * hl_fw_send_cpu_message() - send CPU message to the device.
+ *
+ * @hdev: pointer to hl_device structure.
+ * @hw_queue_id: HW queue ID
+ * @msg: raw data of the message/packet
+ * @size: size of @msg in bytes
+ * @timeout_us: timeout in usec to wait for CPU reply on the message
+ * @result: return code reported by FW
+ *
+ * send message to the device CPU.
+ *
+ * Return: 0 on success, non-zero for failure.
+ *     -ENOMEM: memory allocation failure
+ *     -EAGAIN: CU is disabled (try again when enabled)
+ *     -ETIMEDOUT: timeout waiting for FW response
+ *     -EIO: protocol error
+ */
 int hl_fw_send_cpu_message(struct hl_device *hdev, u32 hw_queue_id, u32 *msg,
-				u16 len, u32 timeout, u64 *result)
+				u16 size, u32 timeout_us, u64 *result)
 {
 	struct hl_hw_queue *queue = &hdev->kernel_queues[hw_queue_id];
 	struct asic_fixed_properties *prop = &hdev->asic_prop;
+	u32 tmp, expected_ack_val, pi, opcode;
 	struct cpucp_packet *pkt;
 	dma_addr_t pkt_dma_addr;
 	struct hl_bd *sent_bd;
-	u32 tmp, expected_ack_val, pi, opcode;
-	int rc;
+	int rc = 0, fw_rc;
 
-	pkt = hl_cpu_accessible_dma_pool_alloc(hdev, len, &pkt_dma_addr);
+	pkt = hl_cpu_accessible_dma_pool_alloc(hdev, size, &pkt_dma_addr);
 	if (!pkt) {
-		dev_err(hdev->dev,
-			"Failed to allocate DMA memory for packet to CPU\n");
+		dev_err(hdev->dev, "Failed to allocate DMA memory for packet to CPU\n");
 		return -ENOMEM;
 	}
 
-	memcpy(pkt, msg, len);
+	memcpy(pkt, msg, size);
 
 	mutex_lock(&hdev->send_cpu_message_lock);
 
 	/* CPU-CP messages can be sent during soft-reset */
-	if (hdev->disabled && !hdev->reset_info.in_compute_reset) {
-		rc = 0;
+	if (hdev->disabled && !hdev->reset_info.in_compute_reset)
 		goto out;
-	}
 
 	if (hdev->device_cpu_disabled) {
-		rc = -EIO;
+		rc = -EAGAIN;
 		goto out;
 	}
 
@@ -431,7 +451,7 @@ int hl_fw_send_cpu_message(struct hl_device *hdev, u32 hw_queue_id, u32 *msg,
 	 * Which means that we don't need to lock the access to the entire H/W
 	 * queues module when submitting a JOB to the CPU queue.
 	 */
-	hl_hw_queue_submit_bd(hdev, queue, hl_queue_inc_ptr(queue->pi), len, pkt_dma_addr);
+	hl_hw_queue_submit_bd(hdev, queue, hl_queue_inc_ptr(queue->pi), size, pkt_dma_addr);
 
 	if (prop->fw_app_cpu_boot_dev_sts0 & CPU_BOOT_DEV_STS0_PKT_PI_ACK_EN)
 		expected_ack_val = queue->pi;
@@ -440,7 +460,7 @@ int hl_fw_send_cpu_message(struct hl_device *hdev, u32 hw_queue_id, u32 *msg,
 
 	rc = hl_poll_timeout_memory(hdev, &pkt->fence, tmp,
 				(tmp == expected_ack_val), 1000,
-				timeout, true);
+				timeout_us, true);
 
 	hl_hw_queue_inc_ci_kernel(hdev, hw_queue_id);
 
@@ -459,8 +479,8 @@ int hl_fw_send_cpu_message(struct hl_device *hdev, u32 hw_queue_id, u32 *msg,
 
 	tmp = le32_to_cpu(pkt->ctl);
 
-	rc = (tmp & CPUCP_PKT_CTL_RC_MASK) >> CPUCP_PKT_CTL_RC_SHIFT;
-	if (rc) {
+	fw_rc = (tmp & CPUCP_PKT_CTL_RC_MASK) >> CPUCP_PKT_CTL_RC_SHIFT;
+	if (fw_rc) {
 		opcode = (tmp & CPUCP_PKT_CTL_OPCODE_MASK) >> CPUCP_PKT_CTL_OPCODE_SHIFT;
 
 		if (!prop->supports_advanced_cpucp_rc) {
@@ -469,7 +489,7 @@ int hl_fw_send_cpu_message(struct hl_device *hdev, u32 hw_queue_id, u32 *msg,
 			goto scrub_descriptor;
 		}
 
-		switch (rc) {
+		switch (fw_rc) {
 		case cpucp_packet_invalid:
 			dev_err(hdev->dev,
 				"CPU packet %d is not supported by F/W\n", opcode);
@@ -494,7 +514,7 @@ int hl_fw_send_cpu_message(struct hl_device *hdev, u32 hw_queue_id, u32 *msg,
 
 		/* propagate the return code from the f/w to the callers who want to check it */
 		if (result)
-			*result = rc;
+			*result = fw_rc;
 
 		rc = -EIO;
 
@@ -514,7 +534,7 @@ scrub_descriptor:
 out:
 	mutex_unlock(&hdev->send_cpu_message_lock);
 
-	hl_cpu_accessible_dma_pool_free(hdev, len, pkt);
+	hl_cpu_accessible_dma_pool_free(hdev, size, pkt);
 
 	return rc;
 }
@@ -584,7 +604,7 @@ int hl_fw_unmask_irq_arr(struct hl_device *hdev, const u32 *irq_arr,
 int hl_fw_test_cpu_queue(struct hl_device *hdev)
 {
 	struct cpucp_packet test_pkt = {};
-	u64 result;
+	u64 result = 0;
 	int rc;
 
 	test_pkt.ctl = cpu_to_le32(CPUCP_PACKET_TEST <<
@@ -663,7 +683,7 @@ int hl_fw_send_psoc_wd_disable_msg(struct hl_device *hdev, bool disable)
 	pkt.ctl = cpu_to_le32(CPUCP_PACKET_WD_DISABLE << CPUCP_PKT_CTL_OPCODE_SHIFT);
 	pkt.value = cpu_to_le64(disable);
 	rc = hdev->asic_funcs->send_cpu_message(hdev, (u32 *) &pkt, sizeof(pkt), 0, NULL);
-	if (rc)
+	if (rc != -EAGAIN)
 		dev_err(hdev->dev, "failed to psoc watchdog disable msg(val: %u)\n", disable);
 
 	return rc;
@@ -672,7 +692,7 @@ int hl_fw_send_psoc_wd_disable_msg(struct hl_device *hdev, bool disable)
 int hl_fw_send_heartbeat(struct hl_device *hdev)
 {
 	struct cpucp_packet hb_pkt;
-	u64 result;
+	u64 result = 0;
 	int rc;
 
 	memset(&hb_pkt, 0, sizeof(hb_pkt));
@@ -942,7 +962,7 @@ static int hl_fw_send_msi_info_msg(struct hl_device *hdev)
 {
 	struct cpucp_array_data_packet *pkt;
 	size_t total_pkt_size, data_size;
-	u64 result;
+	u64 result = 0;
 	int rc;
 
 	/* skip sending this info for unsupported ASICs */
@@ -1033,11 +1053,10 @@ int hl_fw_get_eeprom_data(struct hl_device *hdev, void *data, size_t max_size)
 
 	rc = hdev->asic_funcs->send_cpu_message(hdev, (u32 *) &pkt, sizeof(pkt),
 			HL_CPUCP_EEPROM_TIMEOUT_USEC, &result);
-
 	if (rc) {
-		dev_err(hdev->dev,
-			"Failed to handle CPU-CP EEPROM packet, error %d\n",
-			rc);
+		if (rc != -EAGAIN)
+			dev_err(hdev->dev,
+				"Failed to handle CPU-CP EEPROM packet, error %d\n", rc);
 		goto out;
 	}
 
@@ -1078,7 +1097,9 @@ int hl_fw_get_monitor_dump(struct hl_device *hdev, void *data)
 	rc = hdev->asic_funcs->send_cpu_message(hdev, (u32 *) &pkt, sizeof(pkt),
 							HL_CPUCP_MON_DUMP_TIMEOUT_USEC, &result);
 	if (rc) {
-		dev_err(hdev->dev, "Failed to handle CPU-CP monitor-dump packet, error %d\n", rc);
+		if (rc != -EAGAIN)
+			dev_err(hdev->dev,
+				"Failed to handle CPU-CP monitor-dump packet, error %d\n", rc);
 		goto out;
 	}
 
@@ -1132,8 +1153,9 @@ int hl_fw_cpucp_pci_counters_get(struct hl_device *hdev,
 	rc = hdev->asic_funcs->send_cpu_message(hdev, (u32 *) &pkt, sizeof(pkt),
 					HL_CPUCP_INFO_TIMEOUT_USEC, &result);
 	if (rc) {
-		dev_err(hdev->dev,
-			"Failed to handle CPU-CP PCI info pkt, error %d\n", rc);
+		if (rc != -EAGAIN)
+			dev_err(hdev->dev,
+				"Failed to handle CPU-CP PCI info pkt, error %d\n", rc);
 		return rc;
 	}
 	counters->rx_throughput = result;
@@ -1147,8 +1169,9 @@ int hl_fw_cpucp_pci_counters_get(struct hl_device *hdev,
 	rc = hdev->asic_funcs->send_cpu_message(hdev, (u32 *) &pkt, sizeof(pkt),
 					HL_CPUCP_INFO_TIMEOUT_USEC, &result);
 	if (rc) {
-		dev_err(hdev->dev,
-			"Failed to handle CPU-CP PCI info pkt, error %d\n", rc);
+		if (rc != -EAGAIN)
+			dev_err(hdev->dev,
+				"Failed to handle CPU-CP PCI info pkt, error %d\n", rc);
 		return rc;
 	}
 	counters->tx_throughput = result;
@@ -1161,8 +1184,9 @@ int hl_fw_cpucp_pci_counters_get(struct hl_device *hdev,
 	rc = hdev->asic_funcs->send_cpu_message(hdev, (u32 *) &pkt, sizeof(pkt),
 			HL_CPUCP_INFO_TIMEOUT_USEC, &result);
 	if (rc) {
-		dev_err(hdev->dev,
-			"Failed to handle CPU-CP PCI info pkt, error %d\n", rc);
+		if (rc != -EAGAIN)
+			dev_err(hdev->dev,
+				"Failed to handle CPU-CP PCI info pkt, error %d\n", rc);
 		return rc;
 	}
 	counters->replay_cnt = (u32) result;
@@ -1182,9 +1206,9 @@ int hl_fw_cpucp_total_energy_get(struct hl_device *hdev, u64 *total_energy)
 	rc = hdev->asic_funcs->send_cpu_message(hdev, (u32 *) &pkt, sizeof(pkt),
 					HL_CPUCP_INFO_TIMEOUT_USEC, &result);
 	if (rc) {
-		dev_err(hdev->dev,
-			"Failed to handle CpuCP total energy pkt, error %d\n",
-				rc);
+		if (rc != -EAGAIN)
+			dev_err(hdev->dev,
+				"Failed to handle CpuCP total energy pkt, error %d\n", rc);
 		return rc;
 	}
 
@@ -1260,7 +1284,8 @@ int hl_fw_cpucp_pll_info_get(struct hl_device *hdev, u32 pll_index,
 	rc = hdev->asic_funcs->send_cpu_message(hdev, (u32 *) &pkt, sizeof(pkt),
 			HL_CPUCP_INFO_TIMEOUT_USEC, &result);
 	if (rc) {
-		dev_err(hdev->dev, "Failed to read PLL info, error %d\n", rc);
+		if (rc != -EAGAIN)
+			dev_err(hdev->dev, "Failed to read PLL info, error %d\n", rc);
 		return rc;
 	}
 
@@ -1287,7 +1312,8 @@ int hl_fw_cpucp_power_get(struct hl_device *hdev, u64 *power)
 	rc = hdev->asic_funcs->send_cpu_message(hdev, (u32 *) &pkt, sizeof(pkt),
 			HL_CPUCP_INFO_TIMEOUT_USEC, &result);
 	if (rc) {
-		dev_err(hdev->dev, "Failed to read power, error %d\n", rc);
+		if (rc != -EAGAIN)
+			dev_err(hdev->dev, "Failed to read power, error %d\n", rc);
 		return rc;
 	}
 
@@ -1324,8 +1350,9 @@ int hl_fw_dram_replaced_row_get(struct hl_device *hdev,
 	rc = hdev->asic_funcs->send_cpu_message(hdev, (u32 *) &pkt, sizeof(pkt),
 					HL_CPUCP_INFO_TIMEOUT_USEC, &result);
 	if (rc) {
-		dev_err(hdev->dev,
-			"Failed to handle CPU-CP replaced rows info pkt, error %d\n", rc);
+		if (rc != -EAGAIN)
+			dev_err(hdev->dev,
+				"Failed to handle CPU-CP replaced rows info pkt, error %d\n", rc);
 		goto out;
 	}
 
@@ -1350,7 +1377,8 @@ int hl_fw_dram_pending_row_get(struct hl_device *hdev, u32 *pend_rows_num)
 
 	rc = hdev->asic_funcs->send_cpu_message(hdev, (u32 *) &pkt, sizeof(pkt), 0, &result);
 	if (rc) {
-		dev_err(hdev->dev,
+		if (rc != -EAGAIN)
+			dev_err(hdev->dev,
 				"Failed to handle CPU-CP pending rows info pkt, error %d\n", rc);
 		goto out;
 	}
@@ -3334,10 +3362,10 @@ long hl_fw_get_frequency(struct hl_device *hdev, u32 pll_index, bool curr)
 	pkt.pll_index = cpu_to_le32((u32)used_pll_idx);
 
 	rc = hdev->asic_funcs->send_cpu_message(hdev, (u32 *) &pkt, sizeof(pkt), 0, &result);
-
 	if (rc) {
-		dev_err(hdev->dev, "Failed to get frequency of PLL %d, error %d\n",
-			used_pll_idx, rc);
+		if (rc != -EAGAIN)
+			dev_err(hdev->dev, "Failed to get frequency of PLL %d, error %d\n",
+				used_pll_idx, rc);
 		return rc;
 	}
 
@@ -3361,8 +3389,7 @@ void hl_fw_set_frequency(struct hl_device *hdev, u32 pll_index, u64 freq)
 	pkt.value = cpu_to_le64(freq);
 
 	rc = hdev->asic_funcs->send_cpu_message(hdev, (u32 *) &pkt, sizeof(pkt), 0, NULL);
-
-	if (rc)
+	if (rc != -EAGAIN)
 		dev_err(hdev->dev, "Failed to set frequency to PLL %d, error %d\n",
 			used_pll_idx, rc);
 }
@@ -3378,9 +3405,9 @@ long hl_fw_get_max_power(struct hl_device *hdev)
 	pkt.ctl = cpu_to_le32(CPUCP_PACKET_MAX_POWER_GET << CPUCP_PKT_CTL_OPCODE_SHIFT);
 
 	rc = hdev->asic_funcs->send_cpu_message(hdev, (u32 *) &pkt, sizeof(pkt), 0, &result);
-
 	if (rc) {
-		dev_err(hdev->dev, "Failed to get max power, error %d\n", rc);
+		if (rc != -EAGAIN)
+			dev_err(hdev->dev, "Failed to get max power, error %d\n", rc);
 		return rc;
 	}
 
@@ -3402,8 +3429,7 @@ void hl_fw_set_max_power(struct hl_device *hdev)
 	pkt.value = cpu_to_le64(hdev->max_power);
 
 	rc = hdev->asic_funcs->send_cpu_message(hdev, (u32 *) &pkt, sizeof(pkt), 0, NULL);
-
-	if (rc)
+	if (rc != -EAGAIN)
 		dev_err(hdev->dev, "Failed to set max power, error %d\n", rc);
 }
 
@@ -3481,11 +3507,11 @@ static int hl_fw_get_sec_attest_data(struct hl_device *hdev, u32 packet_id, void
 	pkt.data_max_size = cpu_to_le32(size);
 	pkt.nonce = cpu_to_le32(nonce);
 
-	rc = hdev->asic_funcs->send_cpu_message(hdev, (u32 *) &pkt, sizeof(pkt),
-					timeout, NULL);
+	rc = hdev->asic_funcs->send_cpu_message(hdev, (u32 *) &pkt, sizeof(pkt), timeout, NULL);
 	if (rc) {
-		dev_err(hdev->dev,
-			"Failed to handle CPU-CP pkt %u, error %d\n", packet_id, rc);
+		if (rc != -EAGAIN)
+			dev_err(hdev->dev,
+				"Failed to handle CPU-CP pkt %u, error %d\n", packet_id, rc);
 		goto out;
 	}
 
@@ -3527,10 +3553,12 @@ int hl_fw_send_generic_request(struct hl_device *hdev, enum hl_passthrough_type 
 
 	rc = hdev->asic_funcs->send_cpu_message(hdev, (u32 *)&pkt, sizeof(pkt),
 						HL_CPUCP_INFO_TIMEOUT_USEC, &result);
-	if (rc)
-		dev_err(hdev->dev, "failed to send CPUCP data of generic fw pkt\n");
-	else
+	if (rc) {
+		if (rc != -EAGAIN)
+			dev_err(hdev->dev, "failed to send CPUCP data of generic fw pkt\n");
+	} else {
 		dev_dbg(hdev->dev, "generic pkt was successful, result: 0x%llx\n", result);
+	}
 
 	*size = (u32)result;
 
