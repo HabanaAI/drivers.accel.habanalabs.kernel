@@ -190,7 +190,7 @@ enum scheduler_type_t {
 /**
  * Total number of Fence counters per scheduler instance
  */
-#define SCHED_ARC_GLOBAL_FENCE_COUNTERS_COUNT	32
+#define SCHED_ARC_GLOBAL_FENCE_COUNTERS_COUNT	64
 
 /**
  * Size of the DCCM CCB buffer in bytes. All the commands in the CCB

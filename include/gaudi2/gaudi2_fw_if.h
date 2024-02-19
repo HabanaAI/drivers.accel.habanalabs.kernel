@@ -45,6 +45,13 @@
 #define GAUDI2_ARM_RX_MB_OFFSET		(GAUDI2_ARM_RX_MB_ADDR - \
 					GAUDI2_SP_SRAM_BASE_ADDR)
 
+#define POWER_MODE_LEVELS	{	\
+	150000,		/* 00 */	\
+	250000,		/* 01 */	\
+	400000,		/* 10 */	\
+	/* 11: Normal mode */		\
+}
+
 enum gaudi2_fw_status {
 	GAUDI2_PID_STATUS_UP = 0x1,	/* PID on ARC0 is up */
 	GAUDI2_ARM_STATUS_UP = 0x2,	/* ARM Linux Boot complete */
@@ -60,10 +67,8 @@ struct gaudi2_cold_rst_data {
 			u32 efuse_read_flag: 1;
 			u32 spsram_init_done : 1;
 			u32 fake_security_enable : 1;
-			u32 fake_sig_validation_en : 1;
 			u32 bist_skip_enable : 1;
-			u32 reserved1 : 1;
-			u32 fake_bis_compliant : 1;
+			__le32 reserved1 : 3;
 			u32 wd_rst_cause_arm : 1;
 			u32 wd_rst_cause_arcpid : 1;
 			u32 reserved : 21;
@@ -103,5 +108,23 @@ struct gaudi2_redundancy_ctx {
 	__u8 mme_pe_iso[GAUDI2_NUM_MME];
 	__le32 full_hbm_mode;	/* true on full (non binning hbm)*/
 } __packed;
+
+struct gaudi2_boot_if_fifo_msg {
+	union {
+		struct {
+			__u8 boot_status;		/* boot progress status value */
+			__u8 rsvd0;
+			__u8 is_status : 1;		/* new value in boot_status */
+			__u8 err_set : 1;		/* set err bits */
+			__u8 err_clr : 1;		/* clear err bits */
+			__u8 dev_sts_set : 1;	/* set dev_sts bits */
+			__u8 dev_sts_clr : 1;	/* clear dev_sts bits */
+			__u8 rsvd1 : 3;
+			__u8 rsvd2 : 7;
+			__u8 rsvd_fifo_no_ovrd : 1;	/* special rsvd bit - do not change */
+		} __packed;
+		__le32 msg_val;
+	};
+};
 
 #endif /* GAUDI2_FW_IF_H */
