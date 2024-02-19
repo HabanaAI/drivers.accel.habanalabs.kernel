@@ -166,6 +166,7 @@ void hl_cn_dma_pool_free(struct hl_aux_dev *aux_dev, void *vaddr, dma_addr_t dma
 	hl_asic_dma_pool_free(hdev, vaddr, dma_addr);
 }
 
+/* TODO: FSW-217 - remove these two */
 static int hl_cn_map_vmalloc_range(struct hl_aux_dev *aux_dev, u64 vmalloc_va, u64 device_va,
 					u64 size)
 {
@@ -179,6 +180,26 @@ static int hl_cn_unmap_vmalloc_range(struct hl_aux_dev *aux_dev, u64 device_va)
 	struct hl_cn *cn = container_of(aux_dev, struct hl_cn, cn_aux_dev);
 
 	return hl_unmap_vmalloc_range(cn->ctx, device_va);
+}
+
+static int hl_cn_vm_dev_mmu_map(struct hl_aux_dev *aux_dev, u64 vm_handle,
+				enum hl_cn_mem_type mem_type, u64 addr, u64 dva, size_t size)
+{
+	struct hl_cn *cn = container_of(aux_dev, struct hl_cn, cn_aux_dev);
+
+	return hl_map_vmalloc_range(cn->ctx, addr, dva, size);
+}
+
+static void hl_cn_vm_dev_mmu_unmap(struct hl_aux_dev *aux_dev, u64 vm_handle, u64 dva, size_t size)
+{
+	struct hl_cn *cn = container_of(aux_dev, struct hl_cn, cn_aux_dev);
+	struct hl_device *hdev = container_of(cn, struct hl_device, cn);
+	int rc;
+
+	rc = hl_unmap_vmalloc_range(cn->ctx, dva);
+	if (rc)
+		dev_crit(hdev->dev, "Failed to unmap dva 0x%llx with size 0x%lx, err %d\n", dva,
+				size, rc);
 }
 
 static int hl_cn_vm_reserve_dva_block(struct hl_aux_dev *aux_dev, u64 vm_handle, u64 size, u64 *dva)
@@ -577,6 +598,8 @@ static int hl_cn_aux_data_init(struct hl_device *hdev)
 	aux_ops->device_reset = hl_cn_device_reset;
 	aux_ops->map_vmalloc_range = hl_cn_map_vmalloc_range;
 	aux_ops->unmap_vmalloc_range = hl_cn_unmap_vmalloc_range;
+	aux_ops->vm_dev_mmu_map = hl_cn_vm_dev_mmu_map;
+	aux_ops->vm_dev_mmu_unmap = hl_cn_vm_dev_mmu_unmap;
 	aux_ops->vm_reserve_dva_block = hl_cn_vm_reserve_dva_block;
 	aux_ops->vm_unreserve_dva_block = hl_cn_vm_unreserve_dva_block;
 	aux_ops->dram_readl = hl_cn_dram_readl;
