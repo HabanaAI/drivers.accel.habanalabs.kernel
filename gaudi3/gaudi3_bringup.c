@@ -5484,10 +5484,10 @@ static void gaudi3_cn_get_spi_event_data(struct hl_device *hdev,
 	rxb_core_spi_intr_mask = NIC_RREG32(mmD0_NIC0_RXB_CORE_BASE + mmNIC_RXB_CORE_SPI_INTR_MASK);
 	rxb_core_spi_intr_cause = rxb_core_spi_intr_cause & ~rxb_core_spi_intr_mask;
 
-	spi_data->qpc_cause.intr_cause_data = cpu_to_le64(qpc_intr_cause);
-	spi_data->rxb_core_cause.intr_cause_data = cpu_to_le64(rxb_core_spi_intr_cause);
-	spi_data->rxe_cause_0.intr_cause_data = cpu_to_le64(rxe_spi_intr_cause_0);
-	spi_data->rxe_cause_1.intr_cause_data = cpu_to_le64(rxe_spi_intr_cause_1);
+	spi_data->sw_err_data.qpc_cause.intr_cause_data = cpu_to_le64(qpc_intr_cause);
+	spi_data->sw_err_data.rxb_core_cause.intr_cause_data = cpu_to_le64(rxb_core_spi_intr_cause);
+	spi_data->sw_err_data.rxe_cause_0.intr_cause_data = cpu_to_le64(rxe_spi_intr_cause_0);
+	spi_data->sw_err_data.rxe_cause_1.intr_cause_data = cpu_to_le64(rxe_spi_intr_cause_1);
 }
 
 static void gaudi3_cn_clear_spi_event(struct hl_device *hdev,
@@ -5500,7 +5500,8 @@ static void gaudi3_cn_clear_spi_event(struct hl_device *hdev,
 	first_port = macro_index * NIC_PORTS_PER_MACRO;
 	last_port = (macro_index + 1) * NIC_PORTS_PER_MACRO - 1;
 
-	qpc_intr_cause = lower_32_bits(le64_to_cpu(spi_data->qpc_cause.intr_cause_data));
+	qpc_intr_cause =
+		lower_32_bits(le64_to_cpu(spi_data->sw_err_data.qpc_cause.intr_cause_data));
 
 	for (port = first_port; port <= last_port; port++) {
 		/* check that port is indeed enabled in the macro */
@@ -5517,11 +5518,11 @@ static void gaudi3_cn_clear_spi_event(struct hl_device *hdev,
 
 	port = first_port;
 	rxb_core_spi_intr_cause =
-			lower_32_bits(le64_to_cpu(spi_data->rxb_core_cause.intr_cause_data));
+		lower_32_bits(le64_to_cpu(spi_data->sw_err_data.rxb_core_cause.intr_cause_data));
 	rxe_spi_intr_cause_0 =
-			lower_32_bits(le64_to_cpu(spi_data->rxe_cause_0.intr_cause_data));
+		lower_32_bits(le64_to_cpu(spi_data->sw_err_data.rxe_cause_0.intr_cause_data));
 	rxe_spi_intr_cause_1 =
-			lower_32_bits(le64_to_cpu(spi_data->rxe_cause_1.intr_cause_data));
+		lower_32_bits(le64_to_cpu(spi_data->sw_err_data.rxe_cause_1.intr_cause_data));
 
 	/* RXE SPI interrupts are packet caused interrupts and are not severe,
 	 * no need to perform port reset on them, they should be print for debug purpose.
