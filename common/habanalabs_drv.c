@@ -351,7 +351,7 @@ MODULE_PARM_DESC(bfe_bmc_enable,
 
 module_param(bfe_nic_load_fw, int, 0444);
 MODULE_PARM_DESC(bfe_nic_load_fw,
-	"Load NIC PHY F/W (0 = no, 1 = yes, default no)");
+	"Load NIC PHY F/W (0 = no, 1 = yes, 2 = decide whether to load the FW or not depending on the existing conditions, default no)");
 
 module_param(bfe_rl_enable, int, 0444);
 MODULE_PARM_DESC(bfe_rl_enable,
