@@ -101,7 +101,7 @@ struct hl_fpriv;
 
 #define HL_DEVICE_TIMEOUT_USEC		1000000 /* 1 s */
 
-#define HL_HEARTBEAT_PER_USEC		5000000 /* 5 s */
+#define HL_HEARTBEAT_PER_USEC		10000000 /* 10 s */
 
 #define HL_MON_THREAD_TIMEOUT_MSEC	1000 /* 1s */
 
@@ -3600,6 +3600,16 @@ struct hl_etr_buf_store {
 };
 
 /**
+ * struct eq_heartbeat_debug_info - stores debug info to be used upon heartbeat failure.
+ * @heartbeat_event_counter: number of heartbeat events received.
+ * @cpu_queue_id: used to read the queue pi/ci
+ */
+struct eq_heartbeat_debug_info {
+	u32 heartbeat_event_counter;
+	u32 cpu_queue_id;
+};
+
+/**
  * struct hl_device - habanalabs device structure.
  * @pdev: pointer to PCI device, can be NULL in case of simulator device.
  * @pcie_bar_phys: array of available PCIe bars physical addresses.
@@ -3700,6 +3710,7 @@ struct hl_etr_buf_store {
  * @dbg_binning_conf: holds the binning masks needed by fw_binning_set debugfs node
  * @etr_buf_store: datastructure holding the descriptors of all the full etr
  *                 buffers in the system, ready to be fetched by the user
+ * @heartbeat_debug_info: counters used to debug hearbeat failures.
  * @irq_affinity_mask: mask of available CPU cores for user and decoder interrupt handling.
  * @stream_master_qid_arr: pointer to array with QIDs of master streams.
  * @fw_inner_major_ver: the major of current loaded preboot inner version.
@@ -3925,6 +3936,8 @@ struct hl_device {
 	struct lkd_fw_binning_info	dbg_binning_conf;
 
 	struct hl_etr_buf_store		etr_buf_store;
+
+	struct eq_heartbeat_debug_info	heartbeat_debug_info;
 
 	cpumask_t			irq_affinity_mask;
 
