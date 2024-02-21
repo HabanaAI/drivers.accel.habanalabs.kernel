@@ -3139,11 +3139,37 @@ void gaudi3_fabric_serialization_init_fw_config(struct hl_device *hdev)
 	WREG32(mmD0_PCIE_WRAP_BASE + mmPCIE_WRAP_DUMMY_LBW_REGION_RESP, 0x0);
 }
 
+#define MSTR_IF_AXUSER_HBW_OFFSET		(mmHD0_MME0_WB_MSTR_IF_AXUSER_HBW_BASE & 0xFFF)
+#define MSTR_IF_LAT_REGU_HBW_OFFSET		(mmHD0_MME0_WB_MSTR_IF_LAT_REGU_HBW_BASE & 0xFFF)
+#define mmMSTR_IF_V3_LAT_REGU_HBW_REGULATOR_EN	0x0
+#define MSTR_IF_TEL_REGU_HBW_OFFSET		(mmHD0_MME0_WB_MSTR_IF_TEL_REGU_HBW_BASE & 0xFFF)
+#define mmMSTR_IF_V3_TEL_REGU_HBW_REGULATOR_EN	0x0
+
+static void gaudi3_disable_mme_mstr_if_regulators(struct hl_device *hdev, int block, int inst,
+							u32 offset, struct iterate_module_ctx *ctx)
+{
+	offset -= MSTR_IF_AXUSER_HBW_OFFSET;
+	WREG32(offset + MSTR_IF_LAT_REGU_HBW_OFFSET + mmMSTR_IF_V3_LAT_REGU_HBW_REGULATOR_EN, 0x0);
+	WREG32(offset + MSTR_IF_TEL_REGU_HBW_OFFSET + mmMSTR_IF_V3_TEL_REGU_HBW_REGULATOR_EN, 0x0);
+}
+
+static void gaudi3_disable_mme_regulators(struct hl_device *hdev)
+{
+	struct iterate_module_ctx ctx = {
+		.fn = gaudi3_disable_mme_mstr_if_regulators
+	};
+
+	gaudi3_iterate_mmes_v3_mstr_ifs(hdev, &ctx);
+}
+
 void gaudi3_hw_init_fw_config(struct hl_device *hdev)
 {
 	struct gaudi3_device *gaudi3 = hdev->asic_specific;
 	struct gaudi3_cn_aux_ops *aux_ops = &gaudi3->cn_aux_ops;
 	struct hl_aux_dev *aux_dev = &hdev->cn.cn_aux_dev;
+
+	/* TODO: remove when MME regulators are disabled in FW (SW-175925) */
+	gaudi3_disable_mme_regulators(hdev);
 
 	if (hdev->fw_components & FW_TYPE_BOOT_CPU)
 		return;
