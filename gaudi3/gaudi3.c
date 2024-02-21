@@ -5546,6 +5546,8 @@ int gaudi3_sw_init(struct hl_device *hdev)
 	if (rc)
 		goto page_fault_queue_sw_fini;
 
+	hdev->heartbeat_debug_info.cpu_queue_id = GAUDI3_QUEUE_ID_CPU_PQ;
+
 	return 0;
 
 page_fault_queue_sw_fini:
@@ -13564,6 +13566,7 @@ static u32 gaudi3_handle_nic_status_event(struct hl_device *hdev,
 static u32 gaudi3_handle_eq_heartbeat_event(struct hl_device *hdev,
 				struct hl_eq_dynamic_entry *eq_dynamic_entry)
 {
+	hdev->heartbeat_debug_info.heartbeat_event_counter++;
 	hdev->eq_heartbeat_received = true;
 
 	return 0;
