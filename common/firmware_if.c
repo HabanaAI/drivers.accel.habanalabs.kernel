@@ -405,7 +405,7 @@ int hl_fw_send_pci_access_msg(struct hl_device *hdev, u32 opcode, u64 value)
  *
  * Return: 0 on success, non-zero for failure.
  *     -ENOMEM: memory allocation failure
- *     -EAGAIN: CU is disabled (try again when enabled)
+ *     -EAGAIN: CPU is disabled (try again when enabled)
  *     -ETIMEDOUT: timeout waiting for FW response
  *     -EIO: protocol error
  */
@@ -683,7 +683,7 @@ int hl_fw_send_psoc_wd_disable_msg(struct hl_device *hdev, bool disable)
 	pkt.ctl = cpu_to_le32(CPUCP_PACKET_WD_DISABLE << CPUCP_PKT_CTL_OPCODE_SHIFT);
 	pkt.value = cpu_to_le64(disable);
 	rc = hdev->asic_funcs->send_cpu_message(hdev, (u32 *) &pkt, sizeof(pkt), 0, NULL);
-	if (rc != -EAGAIN)
+	if (rc && rc != -EAGAIN)
 		dev_err(hdev->dev, "failed to psoc watchdog disable msg(val: %u)\n", disable);
 
 	return rc;
@@ -3389,7 +3389,7 @@ void hl_fw_set_frequency(struct hl_device *hdev, u32 pll_index, u64 freq)
 	pkt.value = cpu_to_le64(freq);
 
 	rc = hdev->asic_funcs->send_cpu_message(hdev, (u32 *) &pkt, sizeof(pkt), 0, NULL);
-	if (rc != -EAGAIN)
+	if (rc && rc != -EAGAIN)
 		dev_err(hdev->dev, "Failed to set frequency to PLL %d, error %d\n",
 			used_pll_idx, rc);
 }
@@ -3429,7 +3429,7 @@ void hl_fw_set_max_power(struct hl_device *hdev)
 	pkt.value = cpu_to_le64(hdev->max_power);
 
 	rc = hdev->asic_funcs->send_cpu_message(hdev, (u32 *) &pkt, sizeof(pkt), 0, NULL);
-	if (rc != -EAGAIN)
+	if (rc && rc != -EAGAIN)
 		dev_err(hdev->dev, "Failed to set max power, error %d\n", rc);
 }
 

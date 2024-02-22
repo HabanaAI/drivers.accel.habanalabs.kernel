@@ -611,7 +611,7 @@ int hl_set_temperature(struct hl_device *hdev,
 
 	rc = hdev->asic_funcs->send_cpu_message(hdev, (u32 *) &pkt, sizeof(pkt),
 						0, NULL);
-	if (rc != -EAGAIN)
+	if (rc && rc != -EAGAIN)
 		dev_err_ratelimited(hdev->dev,
 			"Failed to set temperature of sensor %d, error %d\n",
 			sensor_index, rc);
@@ -755,7 +755,7 @@ void hl_set_pwm_info(struct hl_device *hdev, int sensor_index, u32 attr,
 
 	rc = hdev->asic_funcs->send_cpu_message(hdev, (u32 *) &pkt, sizeof(pkt),
 						0, NULL);
-	if (rc != -EAGAIN)
+	if (rc && rc != -EAGAIN)
 		dev_err_ratelimited(hdev->dev,
 			"Failed to set pwm info to sensor %d, error %d\n",
 			sensor_index, rc);
@@ -777,7 +777,7 @@ int hl_set_voltage(struct hl_device *hdev,
 
 	rc = hdev->asic_funcs->send_cpu_message(hdev, (u32 *) &pkt, sizeof(pkt),
 						0, NULL);
-	if (rc != -EAGAIN)
+	if (rc && rc != -EAGAIN)
 		dev_err_ratelimited(hdev->dev,
 			"Failed to set voltage of sensor %d, error %d\n",
 			sensor_index, rc);
@@ -800,7 +800,7 @@ int hl_set_current(struct hl_device *hdev,
 	pkt.value = __cpu_to_le64(value);
 
 	rc = hdev->asic_funcs->send_cpu_message(hdev, (u32 *) &pkt, sizeof(pkt), 0, NULL);
-	if (rc != -EAGAIN)
+	if (rc && rc != -EAGAIN)
 		dev_err_ratelimited(hdev->dev,
 			"Failed to set current of sensor %d, error %d\n",
 			sensor_index, rc);
@@ -830,7 +830,7 @@ int hl_set_power(struct hl_device *hdev,
 
 	rc = hdev->asic_funcs->send_cpu_message(hdev, (u32 *) &pkt, sizeof(pkt),
 						0, NULL);
-	if (rc != -EAGAIN)
+	if (rc && rc != -EAGAIN)
 		dev_err_ratelimited(hdev->dev,
 			"Failed to set power of sensor %d, error %d\n",
 			sensor_index, rc);
