@@ -4080,6 +4080,11 @@ struct hl_device {
 	u8				gaudi3_setup_type;
 };
 
+#define HL_PARENT_DEV(hdev) \
+	((hdev)->pdev ? &(hdev)->pdev->dev : \
+			((hdev)->sdev ? (hdev)->sdev : \
+					NULL))
+
 /* Retrieve PCI device name in case of a PCI device or simulator device name for a simulator */
 #define HL_PARENT_DEV_NAME(hdev) \
 	((hdev)->pdev ? dev_name(&(hdev)->pdev->dev) : \

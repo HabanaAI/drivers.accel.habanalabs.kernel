@@ -125,7 +125,7 @@ int hl_pci_elbi_read(struct hl_device *hdev, u64 addr, u32 *data)
 		pci_read_config_dword(pdev, mmPCI_CONFIG_ELBI_DATA, data);
 
 		if (unlikely(trace_habanalabs_elbi_read_enabled() && hdev->debug_rreg))
-			trace_habanalabs_elbi_read(hdev->dev, (u32) addr, val);
+			trace_habanalabs_elbi_read(HL_PARENT_DEV(hdev), (u32) addr, val);
 
 		return 0;
 	}
@@ -188,7 +188,7 @@ int hl_pci_elbi_write(struct hl_device *hdev, u64 addr, u32 data)
 
 	if ((val & PCI_CONFIG_ELBI_STS_MASK) == PCI_CONFIG_ELBI_STS_DONE) {
 		if (unlikely(trace_habanalabs_elbi_write_enabled() && hdev->debug_wreg))
-			trace_habanalabs_elbi_write(hdev->dev, (u32) addr, val);
+			trace_habanalabs_elbi_write(HL_PARENT_DEV(hdev), (u32) addr, val);
 		return 0;
 	}
 

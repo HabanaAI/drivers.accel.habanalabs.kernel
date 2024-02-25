@@ -536,7 +536,8 @@ hl_sim_rreg_try_c2h:
 	kfree(msg);
 
 	if (unlikely(trace_habanalabs_rreg32_enabled() && hdev->debug_rreg))
-		trace_habanalabs_rreg32(hdev->dev, reg_addr - prop->cfg_base_address, val);
+		trace_habanalabs_rreg32(HL_PARENT_DEV(hdev), reg_addr - prop->cfg_base_address,
+					val);
 
 	return val;
 }
@@ -582,7 +583,8 @@ void hl_sim_wreg(struct hl_device *hdev, u64 reg_addr, struct hl_simulator_devic
 	}
 
 	if (unlikely(trace_habanalabs_wreg32_enabled() && hdev->debug_wreg))
-		trace_habanalabs_wreg32(hdev->dev, reg_addr - prop->cfg_base_address, val);
+		trace_habanalabs_wreg32(HL_PARENT_DEV(hdev), reg_addr - prop->cfg_base_address,
+					val);
 }
 
 void hl_sim_notify_reset(struct hl_device *hdev, struct hl_simulator_device *edev)
