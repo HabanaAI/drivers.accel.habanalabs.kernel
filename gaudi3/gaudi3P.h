@@ -820,7 +820,6 @@ void gaudi3_cn_spmu_get_stats_info(struct hl_device *hdev, u32 port, struct hl_c
 int gaudi3_cn_spmu_config(struct hl_device *hdev, u32 port, u32 num_event_types, u32 event_types[],
 				bool enable);
 int gaudi3_cn_spmu_sample(struct hl_device *hdev, u32 port, u32 num_out_data, u64 out_data[]);
-int gaudi3_cn_ack_spmu_bmon_interrupt(struct hl_device *hdev, int nic_macro_idx);
 int gaudi3_scheduler_submit_buf(struct hl_device *hdev, u32 cpu_id, u32 queue_id, void *buf,
 					u32 len);
 bool gaudi3_is_valid_dram_page_size(u32 page_size);

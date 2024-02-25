@@ -13511,8 +13511,9 @@ static u32 gaudi3_handle_nic_spi(struct hl_device *hdev, u32 macro_index, u16 da
 		return 0;
 
 	if (nic_spi_data->spi_type == NIC_SPI_BMON_SPMU)
-		return gaudi3_cn_handle_bmon_spmu_event(hdev, macro_index);
-	else if (aux_ops->spi_event_handler)
+		return gaudi3_cn_handle_bmon_spmu_event(hdev);
+
+	if (aux_ops->spi_event_handler)
 		/* NIC_SPI_SW_ERROR */
 		return aux_ops->spi_event_handler(aux_dev, nic_spi_data, macro_index);
 

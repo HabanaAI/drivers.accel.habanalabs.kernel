@@ -5501,8 +5501,7 @@ static u32 nic_special_regs_base[] = {
 };
 
 static void gaudi3_cn_get_spi_event_data(struct hl_device *hdev,
-				  struct hl_eq_nic_spi_data *spi_data,
-				  u32 macro_index)
+					 struct hl_eq_nic_sw_err_data *sw_err_data, u32 macro_index)
 {
 	u32 rxe_spi_intr_cause_0, rxe_spi_intr_cause_1, rxb_core_spi_intr_cause,
 		rxe_spi_intr_mask_0, rxe_spi_intr_mask_1, rxb_core_spi_intr_mask,
@@ -5522,15 +5521,14 @@ static void gaudi3_cn_get_spi_event_data(struct hl_device *hdev,
 	rxb_core_spi_intr_mask = NIC_RREG32(mmD0_NIC0_RXB_CORE_BASE + mmNIC_RXB_CORE_SPI_INTR_MASK);
 	rxb_core_spi_intr_cause = rxb_core_spi_intr_cause & ~rxb_core_spi_intr_mask;
 
-	spi_data->sw_err_data.qpc_cause.intr_cause_data = cpu_to_le64(qpc_intr_cause);
-	spi_data->sw_err_data.rxb_core_cause.intr_cause_data = cpu_to_le64(rxb_core_spi_intr_cause);
-	spi_data->sw_err_data.rxe_cause_0.intr_cause_data = cpu_to_le64(rxe_spi_intr_cause_0);
-	spi_data->sw_err_data.rxe_cause_1.intr_cause_data = cpu_to_le64(rxe_spi_intr_cause_1);
+	sw_err_data->qpc_cause.intr_cause_data = cpu_to_le64(qpc_intr_cause);
+	sw_err_data->rxb_core_cause.intr_cause_data = cpu_to_le64(rxb_core_spi_intr_cause);
+	sw_err_data->rxe_cause_0.intr_cause_data = cpu_to_le64(rxe_spi_intr_cause_0);
+	sw_err_data->rxe_cause_1.intr_cause_data = cpu_to_le64(rxe_spi_intr_cause_1);
 }
 
 static void gaudi3_cn_clear_spi_event(struct hl_device *hdev,
-			       struct hl_eq_nic_spi_data *spi_data,
-			       u32 macro_index)
+				      struct hl_eq_nic_sw_err_data *sw_err_data, u32 macro_index)
 {
 	u32 rxe_spi_intr_cause_0, rxe_spi_intr_cause_1, rxb_core_spi_intr_cause,
 		qpc_intr_cause, port, first_port, last_port;
@@ -5539,7 +5537,7 @@ static void gaudi3_cn_clear_spi_event(struct hl_device *hdev,
 	last_port = (macro_index + 1) * NIC_PORTS_PER_MACRO - 1;
 
 	qpc_intr_cause =
-		lower_32_bits(le64_to_cpu(spi_data->sw_err_data.qpc_cause.intr_cause_data));
+		lower_32_bits(le64_to_cpu(sw_err_data->qpc_cause.intr_cause_data));
 
 	for (port = first_port; port <= last_port; port++) {
 		/* check that port is indeed enabled in the macro */
@@ -5556,11 +5554,11 @@ static void gaudi3_cn_clear_spi_event(struct hl_device *hdev,
 
 	port = first_port;
 	rxb_core_spi_intr_cause =
-		lower_32_bits(le64_to_cpu(spi_data->sw_err_data.rxb_core_cause.intr_cause_data));
+		lower_32_bits(le64_to_cpu(sw_err_data->rxb_core_cause.intr_cause_data));
 	rxe_spi_intr_cause_0 =
-		lower_32_bits(le64_to_cpu(spi_data->sw_err_data.rxe_cause_0.intr_cause_data));
+		lower_32_bits(le64_to_cpu(sw_err_data->rxe_cause_0.intr_cause_data));
 	rxe_spi_intr_cause_1 =
-		lower_32_bits(le64_to_cpu(spi_data->sw_err_data.rxe_cause_1.intr_cause_data));
+		lower_32_bits(le64_to_cpu(sw_err_data->rxe_cause_1.intr_cause_data));
 
 	/* RXE SPI interrupts are packet caused interrupts and are not severe,
 	 * no need to perform port reset on them, they should be print for debug purpose.
@@ -5692,6 +5690,7 @@ static void gaudi3_cn_clear_sei_error_event(struct hl_device *hdev,
 	if (txe_intr_cause)
 		NIC_WREG32(mmD0_NIC0_TXE_BASE + mmNIC_TXE_INTERRUPT_CLR, txe_intr_cause);
 }
+
 /* SHARED_NIC_EVENT */
 static void handle_and_clear_nic_events(struct hl_device *hdev, u32 die,
 					enum err_grp type, u32 sts, u32 sts_idx, u32 idx,
@@ -5730,12 +5729,18 @@ static void handle_and_clear_nic_events(struct hl_device *hdev, u32 die,
 		eq_dynamic_entry->nic_spi_data.spi_type = idx & 0x1;
 		eq_dynamic_entry->hdr.size = cpu_to_le16(sizeof(struct hl_eq_nic_spi_data));
 		unmask_event_in_aggr = true;
-		/* TODO: SW-163409 get cause & clear interrupt(s) for NIC_SPI_BMON_SPMU */
-		if (eq_dynamic_entry->nic_spi_data.spi_type != NIC_SPI_BMON_SPMU) {
+		if (eq_dynamic_entry->nic_spi_data.spi_type == NIC_SPI_BMON_SPMU) {
+			offset = (die * NIC_DIE_OFFSET) + (instance * NIC_OFFSET);
+
+			process_spmu_bmon_spi_interrupt(
+				hdev, &eq_dynamic_entry->nic_spi_data.spmu_bmon_data,
+				offset + mmD0_NIC0_CS_DBG_SPMU_BASE,
+				offset + mmD0_NIC0_CS_DBG_BMON0_BASE, NUM_OF_BMONS);
+		} else {
 			macro_index = die * NIC_NUM_MACROS_PER_DIE + instance;
-			gaudi3_cn_get_spi_event_data(hdev, &eq_dynamic_entry->nic_spi_data,
-						     macro_index);
-			gaudi3_cn_clear_spi_event(hdev, &eq_dynamic_entry->nic_spi_data,
+			gaudi3_cn_get_spi_event_data(
+				hdev, &eq_dynamic_entry->nic_spi_data.sw_err_data, macro_index);
+			gaudi3_cn_clear_spi_event(hdev, &eq_dynamic_entry->nic_spi_data.sw_err_data,
 						  macro_index);
 		}
 		break;

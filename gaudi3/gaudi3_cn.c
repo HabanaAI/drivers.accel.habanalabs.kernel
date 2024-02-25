@@ -660,23 +660,11 @@ void gaudi3_cn_quiescence(struct hl_device *hdev)
 	gaudi3_cn_disable_nics_interrupts(hdev);
 }
 
-u32 gaudi3_cn_handle_bmon_spmu_event(struct hl_device *hdev, u32 macro_index)
+u32 gaudi3_cn_handle_bmon_spmu_event(struct hl_device *hdev)
 {
-	int rc;
-
-	/* For this point a profiler is not configuring the BMON and SPMU block and
-	 * therefore we can't deduce which port and entity triggered the interrupt.
-	 * So for now we only clear all interrupt registers to prevent interrupt flood
-	 */
-	rc = gaudi3_cn_ack_spmu_bmon_interrupt(hdev, macro_index);
-	if (rc) {
-		dev_err_ratelimited(hdev->dev,
-				"failed to ack nic-macro %d SPMU/BMON interrupt(rc %d)\n",
-				macro_index, rc);
-		return 0;
-	}
-
-	return 1;
+	/* We're not supposed to get this event, however it should be safe to ignore */
+	dev_dbg_ratelimited(hdev->dev, "Got an SPI BMON SPMU event");
+	return 0;
 }
 
 void gaudi3_cn_compute_reset_prepare(struct hl_device *hdev)
