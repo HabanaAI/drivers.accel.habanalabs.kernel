@@ -89,7 +89,9 @@
 
 #define NIC_MAX_NUM_OF_ENGINES	NIC_MAX_NUM_OF_MACROS
 
-#define NIC_MAX_NUM_OF_PORTS   (NIC_MAX_NUM_OF_ENGINES * NIC_MAC_NUM_OF_LANES)
+#define NIC_MAX_NUM_OF_PORTS	(NIC_MAX_NUM_OF_ENGINES * NIC_MAC_NUM_OF_LANES)
+
+#define NIC_MAX_FIFO_RINGS	24
 
 #define HMMU_TLB_MAX_SUPPORTED_PAGE_TYPES	3
 
@@ -146,22 +148,23 @@
 
 #define NIC_MAC_NUM_OF_LANES	4
 
+#define NIC_MAC_LANES_START	0
+
 #define NIC_CACHE_LINE_SIZE	128
+
+#define NIC_SEND_WQE_SIZE	32
+
+#define NIC_RECV_WQE_SIZE	16
 
 /* we support 1MB, 32MB and 1GB pages */
 #define DEV_MEM_ALLOC_NUM_SUPPORTED_PAGE_SIZES	3
 
-/* Defines for external components (not to be upstreamed) - START */
-#define NIC_SEND_WQE_SIZE		32
-#define NIC_SEND_WQE_SIZE_MULTI_STRIDE	64
-
-#define NIC_RECV_WQE_SIZE	16
-
 #define DB_FIFO_ELEMENT_SIZE	4
+
+#define NIC_HW_MAX_QP_NUM	(1 << 24) /* 16M (per nic) */
 
 #define NIC_MIN_CONN_ID		1
 
 #define NIC_MAX_CONN_ID		((1 << 15) - 1) /* 32K QPs */
-/* Defines for external components (not to be upstreamed) - END */
 
 #endif /* GAUDI3_H */

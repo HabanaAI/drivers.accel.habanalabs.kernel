@@ -138,7 +138,7 @@ static int gaudi3_cn_override_ports_ext_mask(struct hl_device *hdev,
 			break;
 		case HLS3_FULL_OAM_3PORTS_SCALE_OUT_SERDES_TYPE:
 		fallthrough;
-		case HLB325_FULL_OAM_3PORTS_SCALE_OUT:
+		case HLB325_FULL_OAM_3PORTS_SCALE_OUT_SERDES_TYPE:
 			switch (hdev->cn.card_location) {
 			case 0:
 				*ports_ext_mask = 0x320000;
@@ -401,7 +401,7 @@ int gaudi3_cn_set_info(struct hl_device *hdev, bool get_from_fw)
 		break;
 	case HLS3_FULL_OAM_3PORTS_SCALE_OUT_SERDES_TYPE:
 	fallthrough;
-	case HLB325_FULL_OAM_3PORTS_SCALE_OUT:
+	case HLB325_FULL_OAM_3PORTS_SCALE_OUT_SERDES_TYPE:
 		hdev->asic_prop.server_type = HL_SERVER_GAUDI3_HLS3_FULL_OAM_3PORTS_SCALE_OUT;
 		break;
 	case HLS3_FULL_OAM_6PORTS_SCALE_OUT_SERDES_TYPE:
