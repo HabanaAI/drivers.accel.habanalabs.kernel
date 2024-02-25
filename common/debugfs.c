@@ -1901,7 +1901,7 @@ void hl_debugfs_add_device(struct hl_device *hdev)
 #ifndef _HAS_DEBUGFS_ROOT_IN_DRM_DEVICE
 	sprintf(name, "%d", hdev->cdev_idx);
 	dev_entry->accel_symlink =
-			debugfs_create_symlink(HL_DEV_NAME(hdev), dev_entry->root->d_parent, name);
+		debugfs_create_symlink(HL_PARENT_DEV_NAME(hdev), dev_entry->root->d_parent, name);
 #endif
 }
 #else
@@ -1912,12 +1912,13 @@ void hl_debugfs_add_device(struct hl_device *hdev)
 
 	dev_entry->root = debugfs_create_dir(dev_name(hdev->dev), hl_debug_root);
 
-	dev_entry->accel_root = debugfs_create_dir(HL_DEV_NAME(hdev), hl_accel_get_debugfs_root());
+	dev_entry->accel_root =
+			debugfs_create_dir(HL_PARENT_DEV_NAME(hdev), hl_accel_get_debugfs_root());
 
 	/* TODO: remove symlink when all use the device-name named directory (SW-143101) */
 	sprintf(name, "%d", hdev->cdev_idx);
 	dev_entry->accel_symlink =
-		debugfs_create_symlink(name, hl_accel_get_debugfs_root(), HL_DEV_NAME(hdev));
+		debugfs_create_symlink(name, hl_accel_get_debugfs_root(), HL_PARENT_DEV_NAME(hdev));
 
 	add_files_to_device(hdev, dev_entry, dev_entry->root);
 	add_files_to_device(hdev, dev_entry, dev_entry->accel_root);

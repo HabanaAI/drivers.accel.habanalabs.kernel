@@ -471,7 +471,7 @@ static ssize_t parent_device_show(struct device *dev, struct device_attribute *a
 {
 	struct hl_device *hdev = dev_get_drvdata(dev);
 
-	return sprintf(buf, "%s\n", HL_DEV_NAME(hdev));
+	return sprintf(buf, "%s\n", HL_PARENT_DEV_NAME(hdev));
 }
 
 static DEVICE_ATTR_RO(armcp_kernel_ver);

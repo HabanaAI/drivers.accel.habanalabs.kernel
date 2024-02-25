@@ -2065,7 +2065,7 @@ kill_processes:
 			if (hdev->device_fini_pending) {
 				dev_crit(hdev->dev,
 					"%s Failed to kill all open processes, stopping hard reset\n",
-					HL_DEV_NAME(hdev));
+					HL_PARENT_DEV_NAME(hdev));
 				goto out_err;
 			}
 
@@ -2076,7 +2076,7 @@ kill_processes:
 		if (rc) {
 			dev_crit(hdev->dev,
 				"%s Failed to kill all open processes, stopping hard reset\n",
-				HL_DEV_NAME(hdev));
+				HL_PARENT_DEV_NAME(hdev));
 			goto out_err;
 		}
 
@@ -2138,7 +2138,7 @@ kill_processes:
 								HL_DRV_RESET_HEARTBEAT)) {
 			dev_crit(hdev->dev,
 				"%s Consecutive fatal errors, stopping hard reset\n",
-				HL_DEV_NAME(hdev));
+				HL_PARENT_DEV_NAME(hdev));
 			rc = -EIO;
 			goto out_err;
 		}
@@ -2146,7 +2146,7 @@ kill_processes:
 		if (hdev->kernel_ctx) {
 			dev_crit(hdev->dev,
 				"%s kernel ctx was alive during hard reset, something is terribly wrong\n",
-				HL_DEV_NAME(hdev));
+				HL_PARENT_DEV_NAME(hdev));
 			rc = -EBUSY;
 			goto out_err;
 		}
@@ -2275,10 +2275,12 @@ kill_processes:
 
 	if (hard_reset)
 		dev_info(hdev->dev,
-			 "Successfully finished resetting the %s device\n", HL_DEV_NAME(hdev));
+			"Successfully finished resetting the %s device\n",
+			HL_PARENT_DEV_NAME(hdev));
 	else
 		dev_dbg(hdev->dev,
-			"Successfully finished resetting the %s device\n", HL_DEV_NAME(hdev));
+			"Successfully finished resetting the %s device\n",
+			HL_PARENT_DEV_NAME(hdev));
 
 	if (hard_reset) {
 		hdev->reset_info.hard_reset_cnt++;
@@ -2313,10 +2315,10 @@ out_err:
 	if (hdev->simulator_crashed) {
 		dev_err(hdev->dev,
 			"%s simulator was closed during reset, aborting execution\n",
-									HL_DEV_NAME(hdev));
+			HL_PARENT_DEV_NAME(hdev));
 	} else if (hard_reset) {
 		dev_err(hdev->dev,
-			"%s Failed to reset! Device is NOT usable\n", HL_DEV_NAME(hdev));
+			"%s Failed to reset! Device is NOT usable\n", HL_PARENT_DEV_NAME(hdev));
 		hdev->reset_info.hard_reset_cnt++;
 	} else {
 		if (reset_upon_device_release) {
@@ -3043,7 +3045,7 @@ int hl_device_init(struct hl_device *hdev)
 	}
 
 	dev_notice(hdev->dev,
-		"Successfully added device %s to habanalabs driver\n", HL_DEV_NAME(hdev));
+		"Successfully added device %s to habanalabs driver\n", HL_PARENT_DEV_NAME(hdev));
 
 	/* After initialization is done, we are ready to receive events from
 	 * the F/W. We can't do it before because we will ignore events and if
@@ -3106,7 +3108,7 @@ out_disabled:
 	}
 
 	pr_err("Failed to initialize accel%d. Device %s is NOT usable!\n",
-		hdev->cdev_idx, HL_DEV_NAME(hdev));
+		hdev->cdev_idx, HL_PARENT_DEV_NAME(hdev));
 
 	return rc;
 }
@@ -3126,7 +3128,7 @@ void hl_device_fini(struct hl_device *hdev)
 	u64 reset_sec;
 	int i, rc;
 
-	dev_info(hdev->dev, "Removing device %s\n", HL_DEV_NAME(hdev));
+	dev_info(hdev->dev, "Removing device %s\n", HL_PARENT_DEV_NAME(hdev));
 
 	hdev->device_fini_pending = 1;
 	flush_delayed_work(&hdev->device_reset_work.reset_work);
@@ -3164,7 +3166,7 @@ void hl_device_fini(struct hl_device *hdev)
 		if (ktime_compare(ktime_get(), timeout) > 0) {
 			dev_crit(hdev->dev,
 				"%s Failed to remove device because reset function did not finish\n",
-				HL_DEV_NAME(hdev));
+				HL_PARENT_DEV_NAME(hdev));
 			return;
 		}
 	}

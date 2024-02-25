@@ -4080,10 +4080,11 @@ struct hl_device {
 	u8				gaudi3_setup_type;
 };
 
-/* Retrieve PCI device name in case of a PCI device or dev name in simulator */
-#define HL_DEV_NAME(hdev)	\
-		((hdev)->pdev ? dev_name(&(hdev)->pdev->dev) : \
-		((hdev)->sdev ? dev_name((hdev)->sdev) : "NA-DEVICE"))
+/* Retrieve PCI device name in case of a PCI device or simulator device name for a simulator */
+#define HL_PARENT_DEV_NAME(hdev) \
+	((hdev)->pdev ? dev_name(&(hdev)->pdev->dev) : \
+			((hdev)->sdev ? dev_name((hdev)->sdev) : \
+					"NA-DEVICE"))
 
 /**
  * struct hl_cs_irq_info - IRQ info structure for CS completion interrupt.
