@@ -545,16 +545,17 @@ static void print_idle_status_mask(struct hl_device *hdev, const char *message,
 {
 	if (idle_mask[3])
 		dev_err(hdev->dev, "%s %s (mask %#llx_%016llx_%016llx_%016llx)\n",
-			hdev->asic_name, message, idle_mask[3], idle_mask[2], idle_mask[1],
-			idle_mask[0]);
+			HL_PARENT_DEV_NAME(hdev), message,
+			idle_mask[3], idle_mask[2], idle_mask[1], idle_mask[0]);
 	else if (idle_mask[2])
 		dev_err(hdev->dev, "%s %s (mask %#llx_%016llx_%016llx)\n",
-			hdev->asic_name, message, idle_mask[2], idle_mask[1], idle_mask[0]);
+			HL_PARENT_DEV_NAME(hdev), message,
+			idle_mask[2], idle_mask[1], idle_mask[0]);
 	else if (idle_mask[1])
 		dev_err(hdev->dev, "%s %s (mask %#llx_%016llx)\n",
-			hdev->asic_name, message, idle_mask[1], idle_mask[0]);
+			HL_PARENT_DEV_NAME(hdev), message, idle_mask[1], idle_mask[0]);
 	else
-		dev_err(hdev->dev, "%s %s (mask %#llx)\n", hdev->asic_name, message,
+		dev_err(hdev->dev, "%s %s (mask %#llx)\n", HL_PARENT_DEV_NAME(hdev), message,
 			idle_mask[0]);
 }
 
