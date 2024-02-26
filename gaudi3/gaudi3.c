@@ -12379,13 +12379,8 @@ static u16 eq_agg_header_to_engine_id(struct hl_agg_eq_header *agg_hdr)
 
 	switch (agg_component_type) {
 	case INT_COMP_TYPE_ARC_FARM:
-		/*
-		 * TODO:
-		 * The ARC_FARM interrupts are for the 2 ARC blocks per hdcore.
-		 * Need to get the actual ARC based on the interrupt data, instead of arbitrarily
-		 * selecting the first one (SW-121023).
-		 */
-		engine_id = GAUDI3_HDCORE0_ENGINE_ID_ARCF_0 + hdcore * NUM_ARC_SCHED_PER_HDCORE;
+		engine_id = GAUDI3_HDCORE0_ENGINE_ID_ARCF_0 + hdcore * NUM_ARC_SCHED_PER_HDCORE +
+				instance;
 		break;
 
 	case INT_COMP_TYPE_DEC:
@@ -12397,24 +12392,13 @@ static u16 eq_agg_header_to_engine_id(struct hl_agg_eq_header *agg_hdr)
 		/*
 		 * There are EDMA blocks only in HD 1/3/4/6, so need to divide hdcore by 2 to get
 		 * the suitable engine id ([0] = HD1, [1] = HD3, [2] = HD4, [3] = HD6).
-		 *
-		 * TODO:
-		 * The EDMA interrupts are for the 2 EDMA blocks per hdcore.
-		 * Need to set the actual EDMA based on the interrupt data, instead of
-		 * arbitrarily selecting the first one (SW-121023).
 		 */
 		engine_id = GAUDI3_HDCORE1_ENGINE_ID_EDMA_0 +
 				(hdcore / 2) * NUM_OF_EDMA_PER_HDCORE + instance;
 		break;
 
 	case INT_COMP_TYPE_EDUP:
-		/*
-		 * TODO:
-		 * There is currently no engine IDs for the ARC_DUP_ENG blocks, so use for now the
-		 * corresponding ARC_FARM engine ID.
-		 * Modify when dedicated ARC_DUP_ENG engines IDs are added (SW-121023).
-		 */
-		engine_id = GAUDI3_HDCORE0_ENGINE_ID_ARCF_0 + hdcore * NUM_ARC_SCHED_PER_HDCORE;
+		engine_id = GAUDI3_HDCORE0_ENGINE_ID_EDUP + hdcore;
 		break;
 
 	case INT_COMP_TYPE_MME:
@@ -12426,13 +12410,8 @@ static u16 eq_agg_header_to_engine_id(struct hl_agg_eq_header *agg_hdr)
 		break;
 
 	case INT_COMP_TYPE_PDMA:
-		/*
-		 * TODO:
-		 * The PDMA interrupts are for the 2 PDMA blocks per die.
-		 * Need to get the actual PDMA based on the interrupt data, instead of arbitrarily
-		 * selecting the first one (SW-121023).
-		 */
-		engine_id = GAUDI3_DIE0_ENGINE_ID_PDMA_0_CH_0 + die * NUM_OF_PDMA_CH_PER_DIE;
+		engine_id = GAUDI3_DIE0_ENGINE_ID_PDMA_0_CH_0 + die * NUM_OF_PDMA_CH_PER_DIE +
+				instance;
 		break;
 
 	case INT_COMP_TYPE_ROT:
@@ -12483,12 +12462,6 @@ static void gaudi3_sei_razwi_handler_no_fw(struct hl_device *hdev,
 		break;
 
 	case INT_COMP_TYPE_ARC_FARM:
-		/*
-		 * TODO:
-		 * The ARC_FARM SEI interrupt is for the 2 ARC blocks per hdcore.
-		 * Need to check the actual ARC based on the interrupt data, instead of checking
-		 * both (SW-121023).
-		 */
 		gaudi3_razwi_handler(hdev, RAZWI_ARC_FARM, die, hdcore, 0, eng_id, event_mask);
 		gaudi3_razwi_handler(hdev, RAZWI_ARC_FARM, die, hdcore, 1, eng_id + 1, event_mask);
 		break;
@@ -12499,12 +12472,6 @@ static void gaudi3_sei_razwi_handler_no_fw(struct hl_device *hdev,
 		break;
 
 	case INT_COMP_TYPE_EDMA:
-		/*
-		 * TODO:
-		 * The EDMA SEI interrupt is for the 2 EDMA blocks per hdcore.
-		 * Need to check the actual EDMA based on the interrupt data, instead of checking
-		 * both (SW-121023).
-		 */
 		gaudi3_razwi_handler(hdev, RAZWI_EDMA, die, hdcore, 0, eng_id, event_mask);
 		gaudi3_razwi_handler(hdev, RAZWI_EDMA, die, hdcore, 1, eng_id + 1, event_mask);
 		break;
@@ -12525,12 +12492,6 @@ static void gaudi3_sei_razwi_handler_no_fw(struct hl_device *hdev,
 		break;
 
 	case INT_COMP_TYPE_PDMA:
-		/*
-		 * TODO:
-		 * The PDMA SEI interrupt is for the 2 PDMA blocks per die.
-		 * Need to check the actual PDMA based on the interrupt data, instead of checking
-		 * both (SW-121023).
-		 */
 		gaudi3_razwi_handler(hdev, RAZWI_PDMA, die, hdcore, 0, eng_id, event_mask);
 		gaudi3_razwi_handler(hdev, RAZWI_PDMA, die, hdcore, 1,
 					eng_id + NUM_OF_PDMA_CH_PER_GRP, event_mask);
@@ -12663,10 +12624,11 @@ int gaudi3_get_monitor_dump(struct hl_device *hdev, void *data)
 }
 
 static u32 gaudi3_handle_pdma_sei_err(struct hl_device *hdev, u16 data_size,
-						struct hl_eq_pdma_sei_data *eqd)
+						struct hl_eq_dynamic_entry *eq_dynamic_entry)
 {
+	struct hl_eq_pdma_sei_data *eqd = &eq_dynamic_entry->pdma_sei_data;
 	struct asic_fixed_properties *prop = &hdev->asic_prop;
-	u32 err_cnt = 0, err_msk;
+	u32 err_cnt = 0, err_cnt_per_grp = 0, err_msk;
 	char pdma_channel_name[20];
 	int i, j, rc;
 
@@ -12679,8 +12641,17 @@ static u32 gaudi3_handle_pdma_sei_err(struct hl_device *hdev, u16 data_size,
 		snprintf(pdma_channel_name, sizeof(pdma_channel_name) - 1, "PDMA_CMN_%d", i);
 		err_msk = lower_32_bits(le64_to_cpu(
 				eqd->spdma_data[i].cmn_b_cause.intr_cause_data));
-		err_cnt += gaudi3_err_cause_iterator(hdev, err_msk,
+		err_cnt_per_grp = gaudi3_err_cause_iterator(hdev, err_msk,
 				gaudi3_pdma_cmn_sei_err_cause, pdma_channel_name, "SEI");
+
+		/* Find set channel bit if common error found */
+		if (err_cnt_per_grp > 0) {
+			eq_dynamic_entry->agg_hdr.comp_instance = i * prop->pdma_grp_ch_max - 1;
+			while (err_msk > 0) {
+				eq_dynamic_entry->agg_hdr.comp_instance += 1;
+				err_msk >>= 1;
+			}
+		}
 
 		/* Loop on all channels in group */
 		for (j = 0 ; j < prop->pdma_grp_ch_max ; j++) {
@@ -12718,9 +12689,11 @@ static int gaudi3_validate_eqe_data_size(struct hl_device *hdev, u16 actual_size
 }
 
 static u32 gaudi3_handle_arc_farm_sei_err(struct hl_device *hdev, u16 data_size,
-					struct hl_eq_arcfarm_sei_data *arcfarm_sei_data)
+					struct hl_eq_dynamic_entry *eq_dynamic_entry)
 {
+	struct hl_eq_arcfarm_sei_data *arcfarm_sei_data = &eq_dynamic_entry->arcfarm_sei_data;
 	u32 err_cnt = 0;
+	bool err_arc1;
 	int rc;
 
 	rc = gaudi3_validate_eqe_data_size(hdev, data_size, sizeof(*arcfarm_sei_data));
@@ -12728,16 +12701,20 @@ static u32 gaudi3_handle_arc_farm_sei_err(struct hl_device *hdev, u16 data_size,
 		return 0;
 
 	err_cnt = gaudi3_err_cause_iterator(hdev,
+		lower_32_bits(le64_to_cpu(arcfarm_sei_data->arc1_wrapper_cause.intr_cause_data)),
+					gaudi3_qm_arc_aux_sei_intr_cause, "ARC1", "SEI");
+
+	err_arc1 = (err_cnt > 0);
+
+	err_cnt += gaudi3_err_cause_iterator(hdev,
 		lower_32_bits(le64_to_cpu(arcfarm_sei_data->arc0_wrapper_cause.intr_cause_data)),
 					gaudi3_qm_arc_aux_sei_intr_cause, "ARC0", "SEI");
 
 	err_cnt += gaudi3_err_cause_iterator(hdev,
-		lower_32_bits(le64_to_cpu(arcfarm_sei_data->arc1_wrapper_cause.intr_cause_data)),
-					gaudi3_qm_arc_aux_sei_intr_cause, "ARC1", "SEI");
-
-	err_cnt += gaudi3_err_cause_iterator(hdev,
 		lower_32_bits(le64_to_cpu(arcfarm_sei_data->internal_cause.intr_cause_data)),
 					gaudi3_arc_farm_sei_err_cause, "ARC_FARM", "SEI");
+
+	eq_dynamic_entry->agg_hdr.comp_instance = err_arc1 ? 1 : 0;
 
 	return err_cnt;
 }
@@ -12827,14 +12804,16 @@ static u32 gaudi3_handle_qm_sei_err(struct hl_device *hdev, struct hl_eq_qm_sei_
 }
 
 static u32 gaudi3_handle_edma_sei_err(struct hl_device *hdev, u16 data_size,
-					struct hl_eq_edma_sei_data *edma_sei_data, u16 eng_id,
-					u64 *event_mask)
+				      struct hl_eq_dynamic_entry *eq_dynamic_entry, u16 eng_id,
+				      u64 *event_mask)
 {
-	u32 instance, channel, chn_data_idx, err_num = 0, err_mask, err_num_tmp;
+	u32 instance, channel, chn_data_idx, err_num = 0, err_mask, err_num_tmp, acc_err_num = 0;
 	struct hl_eq_edma_chn_data *edma_chn_data;
+	struct hl_eq_edma_sei_data *edma_sei_data;
 	char buf[32];
 	int rc;
 
+	edma_sei_data = &eq_dynamic_entry->edma_sei_data;
 	rc = gaudi3_validate_eqe_data_size(hdev, data_size, sizeof(*edma_sei_data));
 	if (rc)
 		return 0;
@@ -12855,11 +12834,16 @@ static u32 gaudi3_handle_edma_sei_err(struct hl_device *hdev, u16 data_size,
 		}
 
 		snprintf(buf, sizeof(buf), "EDMA%u", instance);
+		/* end_id is initially set to first instance of edma and needs to be updated */
 		err_num += gaudi3_handle_qm_sei_err(hdev, &edma_sei_data->qm_data[instance], buf,
-							eng_id, event_mask);
+						    eng_id + instance, event_mask);
+		if (err_num > 0)
+			eq_dynamic_entry->agg_hdr.comp_instance = instance;
+		acc_err_num += err_num;
+		err_num = 0;
 	}
 
-	return err_num;
+	return acc_err_num;
 }
 
 static u32 handle_tpc_events(struct hl_device *hdev, struct hl_eq_tpc_data *tpc_data,
@@ -14504,8 +14488,7 @@ static u32 gaudi3_handle_sei_event(struct hl_device *hdev,
 
 	switch (agg_component_type) {
 	case INT_COMP_TYPE_ARC_FARM:
-		err_cnt = gaudi3_handle_arc_farm_sei_err(hdev, data_size,
-							&eq_dynamic_entry->arcfarm_sei_data);
+		err_cnt = gaudi3_handle_arc_farm_sei_err(hdev, data_size, eq_dynamic_entry);
 		break;
 	case INT_COMP_TYPE_CPU:
 		err_cnt = gaudi3_handle_cpu_sei_err(hdev, data_size,
@@ -14528,9 +14511,8 @@ static u32 gaudi3_handle_sei_event(struct hl_device *hdev,
 							&eq_dynamic_entry->razwi_with_intr_cause);
 		break;
 	case INT_COMP_TYPE_EDMA:
-		err_cnt = gaudi3_handle_edma_sei_err(hdev, data_size,
-							&eq_dynamic_entry->edma_sei_data, eng_id,
-							event_mask);
+		err_cnt = gaudi3_handle_edma_sei_err(hdev, data_size, eq_dynamic_entry, eng_id,
+						     event_mask);
 		break;
 	case INT_COMP_TYPE_EDUP:
 		err_cnt = gaudi3_handle_edup_sei_err(hdev, data_size,
@@ -14560,8 +14542,7 @@ static u32 gaudi3_handle_sei_event(struct hl_device *hdev,
 							&eq_dynamic_entry->pcie_sei_data);
 		break;
 	case INT_COMP_TYPE_PDMA:
-		err_cnt = gaudi3_handle_pdma_sei_err(hdev, data_size,
-							&eq_dynamic_entry->pdma_sei_data);
+		err_cnt = gaudi3_handle_pdma_sei_err(hdev, data_size, eq_dynamic_entry);
 		break;
 	case INT_COMP_TYPE_PLL:
 		err_cnt = gaudi3_handle_pll_sei_err(hdev, data_size,
