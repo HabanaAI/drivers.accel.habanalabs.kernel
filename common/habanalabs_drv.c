@@ -178,6 +178,9 @@ static int bfe_nic_enable_h9_phy_mac_hang_eco = 1;
 static int bfe_heartbeat_reset_enable = 1;
 static int bfe_glbl_errors_read_enable = 1;
 
+/* TODO: remove when regulators configuration is updated in FW (SW-175925) */
+static int bfe_disable_h9_regulartors;
+
 /* module parameters */
 
 module_param(timeout_locked, int, 0444);
@@ -547,6 +550,11 @@ MODULE_PARM_DESC(bfe_heartbeat_reset_enable,
 module_param(bfe_glbl_errors_read_enable, int, 0444);
 MODULE_PARM_DESC(bfe_glbl_errors_read_enable,
 	"Enable global errors read iterator (0 - disabled, 1 - enabled, default 1)");
+
+module_param(bfe_disable_h9_regulartors, int, 0444);
+MODULE_PARM_DESC(bfe_disable_h9_regulartors,
+	"Disable MME/TPC regulators on a H9 device (0 = no, 1 = yes, default no)");
+
 
 #define PCI_IDS_GOYA			0x0001
 
@@ -1382,6 +1390,7 @@ static void copy_bfe_params_to_device(struct hl_device *hdev)
 	hdev->nic_enable_h9_phy_mac_hang_eco = bfe_nic_enable_h9_phy_mac_hang_eco;
 	hdev->heartbeat_reset_enable = bfe_heartbeat_reset_enable;
 	hdev->glbl_errors_read_enable = bfe_glbl_errors_read_enable;
+	hdev->disable_h9_regulartors = bfe_disable_h9_regulartors;
 
 	/* Debug feature:
 	 * Store a copy of binning information to override f/w binning configuration later
