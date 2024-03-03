@@ -2686,10 +2686,6 @@ struct hl_debugfs_entry {
  */
 struct hl_dbg_device_entry {
 	struct dentry			*root;
-#if !IS_ENABLED(CONFIG_DRM_ACCEL)
-	/** @accel_root: accel root dentry. */
-	struct dentry			*accel_root;
-#endif
 	struct dentry			*accel_symlink;
 	struct hl_device		*hdev;
 	struct hl_debugfs_entry		*entry_arr;
@@ -3630,10 +3626,8 @@ struct eq_heartbeat_debug_info {
  * @drm: related DRM device.
  * @hclass: pointer to the habanalabs class.
  * @cdev_ctrl: char device for control operations only (INFO IOCTL)
- * @accel_cdev_ctrl: accel char device for control operations only (INFO IOCTL)
  * @dev: related kernel basic device structure.
  * @dev_ctrl: related kernel device structure for the control device
- * @accel_dev_ctrl: related kernel device structure for the accel control device
  * @sdev: pointer to simulator device, NULL in case of PCI device.
  * @work_heartbeat: delayed work for CPU-CP is-alive check.
  * @work_no_fw_monitor: monitor work when running without firmware.
@@ -3847,18 +3841,8 @@ struct hl_device {
 	struct cdev			cdev;
 #endif
 	struct cdev			cdev_ctrl;
-#if !IS_ENABLED(CONFIG_DRM_ACCEL)
-	/** @accel_cdev: accel related char device. */
-	struct cdev			accel_cdev;
-#endif
-	struct cdev			accel_cdev_ctrl;
 	struct device			*dev;
 	struct device			*dev_ctrl;
-#if !IS_ENABLED(CONFIG_DRM_ACCEL)
-	/** @accel_dev: accel related kernel basic device structure. */
-	struct device			*accel_dev;
-#endif
-	struct device			*accel_dev_ctrl;
 	struct device			*sdev;
 	struct delayed_work		work_heartbeat;
 	struct delayed_work		work_no_fw_monitor;
@@ -4701,10 +4685,6 @@ void hl_handle_clk_change_event(struct hl_device *hdev, u16 event_type, u64 *eve
 
 #ifdef CONFIG_DEBUG_FS
 
-#if !IS_ENABLED(CONFIG_DRM_ACCEL)
-void hl_debugfs_init(void);
-void hl_debugfs_fini(void);
-#endif
 int hl_debugfs_device_init(struct hl_device *hdev);
 void hl_debugfs_device_fini(struct hl_device *hdev);
 void hl_debugfs_add_device(struct hl_device *hdev);
@@ -4728,16 +4708,6 @@ void hl_debugfs_set_state_dump(struct hl_device *hdev, char *data,
 					unsigned long length);
 
 #else
-
-#if !IS_ENABLED(CONFIG_DRM_ACCEL)
-static inline void __init hl_debugfs_init(void)
-{
-}
-
-static inline void hl_debugfs_fini(void)
-{
-}
-#endif /* !IS_ENABLED(CONFIG_DRM_ACCEL) */
 
 static inline int hl_debugfs_device_init(struct hl_device *hdev)
 {

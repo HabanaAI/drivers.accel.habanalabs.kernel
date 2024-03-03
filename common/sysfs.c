@@ -621,45 +621,25 @@ int hl_sysfs_init(struct hl_device *hdev)
 
 	hdev->asic_funcs->add_device_attr(hdev, &hl_dev_clks_attr_group, &hl_dev_vrm_attr_group);
 
-	rc = device_add_groups(hdev->dev, hl_dev_attr_groups);
+	rc = hl_accel_device_add_groups(hdev->dev, hl_dev_attr_groups);
 	if (rc) {
-		dev_err(hdev->dev,
-			"Failed to add groups to device, error %d\n", rc);
+		dev_err(hdev->dev, "Failed to add groups to device, error %d\n", rc);
 		return rc;
-	}
-
-	rc = hl_accel_device_add_groups(hdev->accel_dev, hl_dev_attr_groups);
-	if (rc) {
-		dev_err(hdev->accel_dev,
-			"Failed to add groups to device, error %d\n", rc);
-		goto remove_groups;
 	}
 
 	if (!hdev->asic_prop.allow_inference_soft_reset)
 		return 0;
 
-	rc = device_add_groups(hdev->dev, hl_dev_inference_attr_groups);
+	rc = hl_accel_device_add_groups(hdev->dev, hl_dev_inference_attr_groups);
 	if (rc) {
-		dev_err(hdev->dev,
-			"Failed to add groups to device, error %d\n", rc);
-		goto remove_accel_groups;
-	}
-
-	rc = hl_accel_device_add_groups(hdev->accel_dev, hl_dev_inference_attr_groups);
-	if (rc) {
-		dev_err(hdev->accel_dev,
-			"Failed to add groups to device, error %d\n", rc);
-		goto remove_inference_groups;
+		dev_err(hdev->dev, "Failed to add groups to device, error %d\n", rc);
+		goto remove_groups;
 	}
 
 	return 0;
 
-remove_inference_groups:
-	device_remove_groups(hdev->dev, hl_dev_inference_attr_groups);
-remove_accel_groups:
-	hl_accel_device_remove_groups(hdev->accel_dev, hl_dev_attr_groups);
 remove_groups:
-	device_remove_groups(hdev->dev, hl_dev_attr_groups);
+	hl_accel_device_remove_groups(hdev->dev, hl_dev_attr_groups);
 	return rc;
 }
 #endif /* IS_ENABLED(CONFIG_DRM_ACCEL) */
@@ -677,13 +657,11 @@ void hl_sysfs_fini(struct hl_device *hdev)
 #else
 void hl_sysfs_fini(struct hl_device *hdev)
 {
-	device_remove_groups(hdev->dev, hl_dev_attr_groups);
-	hl_accel_device_remove_groups(hdev->accel_dev, hl_dev_attr_groups);
+	hl_accel_device_remove_groups(hdev->dev, hl_dev_attr_groups);
 
 	if (!hdev->asic_prop.allow_inference_soft_reset)
 		return;
 
-	device_remove_groups(hdev->dev, hl_dev_inference_attr_groups);
-	hl_accel_device_remove_groups(hdev->accel_dev, hl_dev_inference_attr_groups);
+	hl_accel_device_remove_groups(hdev->dev, hl_dev_inference_attr_groups);
 }
 #endif /* IS_ENABLED(CONFIG_DRM_ACCEL) */

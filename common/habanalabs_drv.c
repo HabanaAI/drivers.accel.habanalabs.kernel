@@ -2264,19 +2264,11 @@ static int __init hl_init(void)
 		goto remove_major;
 	}
 
-#if !IS_ENABLED(CONFIG_DRM_ACCEL)
-	hl_debugfs_init();
-#endif
-
 	hl_enable_trace_events();
 
 	rc = hl_accel_init();
 	if (rc)
-#if IS_ENABLED(CONFIG_DRM_ACCEL)
 		goto destroy_class;
-#else
-		goto remove_debugfs;
-#endif
 
 	/* SIMULATOR CODE */
 	rc = hl_sim_init(hl_class, hl_major, &hl_devs_idr, &hl_devs_idr_lock);
@@ -2332,12 +2324,7 @@ remove_sim:
 /* END OF SIMULATOR CODE */
 remove_accel:
 	hl_accel_exit();
-#if !IS_ENABLED(CONFIG_DRM_ACCEL)
-remove_debugfs:
-	hl_debugfs_fini();
-#else
 destroy_class:
-#endif
 	class_destroy(hl_class);
 remove_major:
 	unregister_chrdev_region(MKDEV(hl_major, 0), HL_MAX_MINORS);
@@ -2376,14 +2363,6 @@ skip_pci:
 	if (enable_events_tracing)
 		ssleep(5);
 
-#if !IS_ENABLED(CONFIG_DRM_ACCEL)
-	/*
-	 * Removing debugfs must be after all devices or simulator devices
-	 * have been removed because otherwise we get a bug in the
-	 * debugfs module for referencing NULL objects
-	 */
-	hl_debugfs_fini();
-#endif
 	class_destroy(hl_class);
 	unregister_chrdev_region(MKDEV(hl_major, 0), HL_MAX_MINORS);
 
