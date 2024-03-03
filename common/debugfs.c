@@ -1913,17 +1913,11 @@ void hl_debugfs_add_device(struct hl_device *hdev)
 void hl_debugfs_add_device(struct hl_device *hdev)
 {
 	struct hl_dbg_device_entry *dev_entry = &hdev->hl_debugfs;
-	char name[64];
 
 	dev_entry->root = debugfs_create_dir(dev_name(hdev->dev), hl_debug_root);
 
 	dev_entry->accel_root =
 			debugfs_create_dir(HL_PARENT_DEV_NAME(hdev), hl_accel_get_debugfs_root());
-
-	/* TODO: remove symlink when all use the device-name named directory (SW-143101) */
-	sprintf(name, "%d", hdev->cdev_idx);
-	dev_entry->accel_symlink =
-		debugfs_create_symlink(name, hl_accel_get_debugfs_root(), HL_PARENT_DEV_NAME(hdev));
 
 	add_files_to_device(hdev, dev_entry, dev_entry->root);
 	add_files_to_device(hdev, dev_entry, dev_entry->accel_root);
@@ -1949,7 +1943,6 @@ void hl_debugfs_remove_device(struct hl_device *hdev)
 {
 	struct hl_dbg_device_entry *entry = &hdev->hl_debugfs;
 
-	debugfs_remove(entry->accel_symlink);
 	debugfs_remove_recursive(entry->root);
 	debugfs_remove_recursive(entry->accel_root);
 }
