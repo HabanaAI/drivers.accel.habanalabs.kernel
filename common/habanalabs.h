@@ -4036,6 +4036,7 @@ struct hl_device {
 	u32				mme_mask;
 	u32				edma_mask;
 	u32				usr_hbm_pll_freq;
+	u32				serdes_type;
 	u8				mmu_huge_page_opt;
 	u8				reset_pcilink;
 	u8				config_pll;
@@ -4092,6 +4093,7 @@ struct hl_device {
 	u8				glbl_errors_read_enable;
 	u8				gaudi3_setup_type;
 	u8				disable_h9_regulartors;
+	u8				card_location_override;
 };
 
 #define HL_PARENT_DEV(hdev) \

@@ -88,6 +88,8 @@ static ulong enable_events_tracing;
 static char *tracefs_mnt = "/sys/kernel/debug/tracing";
 static int ignore_eeprom_errors;
 static int gaudi3_setup_type;
+static int serdes_type = 0xFFFF;
+static int card_location = 8;
 
 /* Parameters for bring-up/debugging */
 static int pldm;
@@ -254,6 +256,14 @@ MODULE_PARM_DESC(ignore_eeprom_errors,
 module_param(gaudi3_setup_type, int, 0444);
 MODULE_PARM_DESC(gaudi3_setup_type,
 	"The type of setup according to which the gaudi3 PHY should be configured (0 - HLS3, 1 - HL325-S with external loopbacks, default 0)");
+
+module_param(serdes_type, int, 0444);
+MODULE_PARM_DESC(serdes_type,
+	"The type of SerDes according to which the external port mask is configured ([0-0xFFFF] - for supported values description refer cpucp_if.h, default 0xFFFF - unknown type)");
+
+module_param(card_location, int, 0444);
+MODULE_PARM_DESC(card_location,
+	"The card location index inside the BMC, this affects the external port mask configuration ([0 - 7] - supported slot range, default 0 - disable)");
 
 /* Bring-Up flags */
 module_param(pldm, int, 0444);
@@ -1305,6 +1315,8 @@ static void copy_kernel_module_params_to_device(struct hl_device *hdev)
 	hdev->gaudi2_setup_type = gaudi2_setup_type;
 	hdev->ignore_eeprom_errors = ignore_eeprom_errors;
 	hdev->gaudi3_setup_type = gaudi3_setup_type;
+	hdev->serdes_type = serdes_type;
+	hdev->card_location_override = card_location;
 }
 
 static void copy_bfe_params_to_device(struct hl_device *hdev)

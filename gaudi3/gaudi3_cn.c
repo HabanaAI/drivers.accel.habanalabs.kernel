@@ -384,7 +384,13 @@ int gaudi3_cn_set_info(struct hl_device *hdev, bool get_from_fw)
 						PSOC_BOOT_CONF_BOOT_STRAP_PINS_H_DIE_ID_M);
 			serdes_type >>= (PSOC_BOOT_CONF_BOOT_STRAP_PINS_H_DIE_ID_S + 1);
 		} else {
-			dev_warn(hdev->dev, "can't read card location as FW security is enabled\n");
+			if (hdev->ignore_fw_nic_info) {
+				serdes_type = hdev->serdes_type;
+				cn->card_location = hdev->card_location_override;
+			} else {
+				dev_warn(hdev->dev,
+					 "can't read card location as FW security is enabled\n");
+			}
 		}
 
 		rc = gaudi3_cn_override_ports_ext_mask(hdev, serdes_type, &hdev->cn.ports_ext_mask);
