@@ -12260,7 +12260,7 @@ static int gaudi2_get_reg_pcie_addr(struct hl_device *hdev, u32 reg, u64 *pci_ad
 	if (pci_resource_len(hdev->pdev, SRAM_CFG_BAR_ID) < offset)
 		return -EINVAL;
 
-	*pci_addr = pci_resource_start(hdev->pdev, SRAM_CFG_BAR_ID) + offset;
+	*pci_addr = offset;
 	return 0;
 }
 

@@ -14899,7 +14899,7 @@ static int gaudi3_get_reg_pcie_addr(struct hl_device *hdev, u32 reg, u64 *pci_ad
 	if (pci_resource_len(hdev->pdev, CFG_BAR_ID) < reg)
 		return -EINVAL;
 
-	*pci_addr = pci_resource_start(hdev->pdev, CFG_BAR_ID) + reg;
+	*pci_addr = reg;
 	return 0;
 }
 
