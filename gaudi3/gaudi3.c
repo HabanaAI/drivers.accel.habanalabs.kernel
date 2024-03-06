@@ -14765,16 +14765,21 @@ static int gaudi3_handle_hw_event(struct hl_device *hdev,
 static void gaudi3_notifier_events_and_device_reset(struct hl_device *hdev, u32 reset_flags,
 							u64 event_mask, u16 event_id)
 {
-	bool skip_reset_on_fw_events = (!hdev->hard_reset_on_fw_events &&
-						!(reset_flags & HL_DRV_RESET_BYPASS_REQ_TO_FW));
+	bool skip_reset_on_fw_events, hard_reset;
 
 	if (reset_flags || event_mask)
 		dev_dbg(hdev->dev, "reset_flags %#x, event_mask %#llx\n", reset_flags, event_mask);
 
+	skip_reset_on_fw_events = (!hdev->hard_reset_on_fw_events &&
+					!(reset_flags & HL_DRV_RESET_BYPASS_REQ_TO_FW));
 	if (!reset_flags || skip_reset_on_fw_events)
 		goto skip_device_reset;
 
 	hl_device_cond_reset(hdev, reset_flags, event_mask);
+
+	hard_reset = !!(reset_flags & HL_DRV_RESET_HARD);
+	if (!hard_reset && event_id != U16_MAX)
+		hl_fw_unmask_irq(hdev, event_id);
 
 	return;
 
