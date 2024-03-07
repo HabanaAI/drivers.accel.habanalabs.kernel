@@ -750,7 +750,7 @@ static int cn_link_state_info(struct hl_fpriv *hpriv, struct hl_info_args *args)
 {
 	struct hl_device *hdev = hpriv->hdev;
 	u32 max_size = args->return_size;
-	struct hl_info_habana_link_state link_state_info = {0};
+	struct hl_info_habana_link_state link_state_info = {};
 	void __user *out = (void __user *) (uintptr_t) args->return_pointer;
 	bool up;
 	int rc;
@@ -772,9 +772,9 @@ static int cn_statistics(struct hl_fpriv *hpriv, struct hl_info_args *args)
 {
 	struct hl_device *hdev = hpriv->hdev;
 	u32 max_size = args->return_size;
-	struct hl_info_habana_link_counters stat = {0};
+	struct hl_info_habana_link_counters stat = {};
 	void __user *out = (void __user *) (uintptr_t) args->return_pointer;
-	struct hl_cn_port_statistics core_stats = {0};
+	struct hl_cn_port_statistics core_stats = {};
 	int rc;
 
 	if ((!max_size) || (!out))
