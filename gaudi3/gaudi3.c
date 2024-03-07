@@ -3947,30 +3947,33 @@ int gaudi3_set_fixed_properties(struct hl_device *hdev)
 	prop->clk_pll_index = HL_GAUDI3_MME_PLL;
 	prop->fw_event_queue_size = GAUDI3_EQ_SIZE_IN_BYTES;
 
-	/* Reserved HBM memory for FW */
-	hbm_offset = 0x0;
-	hbm_fw_mem_size = FW_RESERVED_HBM_SIZE;
+	/* HBM memory reservation */
+	if (hdev->dram_enable) {
+		/* FW */
+		hbm_offset = 0x0;
+		hbm_fw_mem_size = FW_RESERVED_HBM_SIZE;
 
-	/* Reserved HBM memory for HMMU page table */
-	hbm_offset = roundup(hbm_offset + hbm_fw_mem_size, prop->dram_page_size);
-	prop->mmu_pgt_addr = prop->dram_base_address + hbm_offset;
-	hbm_mmu_pgt_size = prop->dmmu.pgt_size;
+		/* HMMU page table + NIC */
+		hbm_offset = roundup(hbm_offset + hbm_fw_mem_size, prop->dram_page_size);
+		prop->mmu_pgt_addr = prop->dram_base_address + hbm_offset;
+		hbm_mmu_pgt_size = prop->dmmu.pgt_size;
 
-	/* Reserved HBM memory for NIC */
-	hbm_offset += hbm_mmu_pgt_size;
-	prop->nic_drv_addr = prop->dram_base_address + hbm_offset;
-	prop->nic_drv_size = NIC_DRV_SIZE - hbm_mmu_pgt_size;
-	hbm_nic_mem_size = prop->nic_drv_size;
+		hbm_offset += hbm_mmu_pgt_size;
+		prop->nic_drv_addr = prop->dram_base_address + hbm_offset;
+		prop->nic_drv_size = NIC_DRV_SIZE - hbm_mmu_pgt_size;
+		hbm_nic_mem_size = prop->nic_drv_size;
 
-	/* Reserved HBM memory for ETR */
-	hbm_offset = roundup(hbm_offset + hbm_nic_mem_size, prop->dram_page_size);
-	prop->etr_bufs_dram_phys_base = prop->dram_base_address + hbm_offset;
-	prop->etr_buf_dram_size_aligned = roundup(prop->etr_buf_dram_size, prop->dram_page_size);
-	hbm_etr_mem_size = prop->etr_buf_dram_size_aligned * prop->etr_buf_number;
+		/* ETR */
+		hbm_offset = roundup(hbm_offset + hbm_nic_mem_size, prop->dram_page_size);
+		prop->etr_bufs_dram_phys_base = prop->dram_base_address + hbm_offset;
+		prop->etr_buf_dram_size_aligned = roundup(prop->etr_buf_dram_size,
+								prop->dram_page_size);
+		hbm_etr_mem_size = prop->etr_buf_dram_size_aligned * prop->etr_buf_number;
 
-	/* User's HBM memory */
-	hbm_offset = roundup(hbm_offset + hbm_etr_mem_size, prop->dram_page_size);
-	prop->dram_user_base_address = prop->dram_base_address + hbm_offset;
+		/* User memory */
+		hbm_offset = roundup(hbm_offset + hbm_etr_mem_size, prop->dram_page_size);
+		prop->dram_user_base_address = prop->dram_base_address + hbm_offset;
+	}
 
 	return 0;
 
