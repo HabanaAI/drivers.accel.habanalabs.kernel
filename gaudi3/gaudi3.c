@@ -13704,7 +13704,10 @@ static void gaudi3_set_reset_flags_and_event_mask(struct hl_device *hdev,
 		break;
 	case INT_COMP_TYPE_MC:
 		*event_mask = HL_NOTIFIER_EVENT_CRITICL_HW_ERR;
-		hard_reset = true;
+		if (hdev->asic_prop.fw_security_enabled)
+			fw_reset = true;
+		else
+			hard_reset = true;
 		break;
 	case INT_COMP_TYPE_CPU:
 	case INT_COMP_TYPE_PARC:
