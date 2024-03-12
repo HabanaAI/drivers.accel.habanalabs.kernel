@@ -13603,6 +13603,12 @@ static int gaudi3_handle_msg_event(struct hl_device *hdev,
 	case EQ_EVENT_CPLD_SHUTDOWN:
 		dev_info(hdev->dev, "EQ_EVENT_CPLD_SHUTDOWN event received\n");
 		break;
+	case EQ_EVENT_POWER_EVT_START:
+	case EQ_EVENT_POWER_EVT_END:
+	case EQ_EVENT_THERMAL_EVT_START:
+	case EQ_EVENT_THERMAL_EVT_END:
+		hl_handle_clk_change_event(hdev, event_type, event_mask);
+		break;
 	default:
 		dev_err(hdev->dev, "undefined msg event %d received\n", event_type);
 		rc = -EINVAL;
