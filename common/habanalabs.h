@@ -4690,6 +4690,7 @@ int unmap_device_va(struct hl_ctx *ctx, struct hl_mem_in *args, bool ctx_free);
 int map_device_va_from_dmabuf_fd(struct hl_ctx *ctx, struct hl_mem_in *args,
 				u64 *device_addr);
 int __hl_mmap(struct hl_fpriv *hpriv, struct vm_area_struct *vma);
+void hl_eq_heartbeat_event_handle(struct hl_device *hdev);
 
 #ifdef CONFIG_DEBUG_FS
 
