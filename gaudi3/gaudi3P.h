@@ -335,7 +335,7 @@ extern struct gaudi3_etr_ac_config gaudi3_etr_ac_config[GAUDI3_NUM_ETR];
 /* User interrupt count is aligned with HW CQ count.
  * We have 64 CQ's per hdcore.
  */
-#define GAUDI3_NUM_USER_INTERRUPTS 512
+#define GAUDI3_NUM_USER_INTERRUPTS 256
 
 /* PLDM interrupts: CPU/PSOC interrupt aggregators and QM SW interrupts */
 #define CPU_INTR_AGGR_NUM_OF_HDCORE_AGGR	4
