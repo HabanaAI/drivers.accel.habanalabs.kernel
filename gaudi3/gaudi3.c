@@ -13539,15 +13539,15 @@ static void gaudi3_handle_ecc_event(struct hl_device *hdev, struct hl_eq_ecc_dat
 }
 
 static u32 gaudi3_handle_nic_status_event(struct hl_device *hdev,
-				struct hl_eq_dynamic_entry *eq_dynamic_entry)
+					struct hl_eq_nic_sts_req_data *nic_sts_req_data)
 {
 	u8 cmd, period;
 	u64 mask;
 	int port, rc;
 
-	cmd = eq_dynamic_entry->nic_sts_req_data.cmd;
-	mask = le64_to_cpu(eq_dynamic_entry->nic_sts_req_data.port_en_mask);
-	period = eq_dynamic_entry->nic_sts_req_data.period;
+	cmd = nic_sts_req_data->cmd;
+	mask = le64_to_cpu(nic_sts_req_data->port_en_mask);
+	period = nic_sts_req_data->period;
 
 	for (port = 0 ; port < NIC_NUMBER_OF_PORTS ; port++) {
 		if (!(mask & BIT(port)))
@@ -13566,20 +13566,12 @@ static u32 gaudi3_handle_nic_status_event(struct hl_device *hdev,
 	return 0;
 }
 
-static u32 gaudi3_handle_eq_heartbeat_event(struct hl_device *hdev,
-				struct hl_eq_dynamic_entry *eq_dynamic_entry)
-{
-	hdev->heartbeat_debug_info.heartbeat_event_counter++;
-	hdev->eq_heartbeat_received = true;
-
-	return 0;
-}
-
 static int gaudi3_handle_msg_event(struct hl_device *hdev,
 				struct hl_eq_dynamic_entry *eq_dynamic_entry, u32 *reset_flags,
 				u64 *event_mask)
 {
 	u16 event_type;
+	int rc = 0;
 	u32 ctl;
 
 	ctl = le32_to_cpu(eq_dynamic_entry->hdr.ctl);
@@ -13587,32 +13579,37 @@ static int gaudi3_handle_msg_event(struct hl_device *hdev,
 
 	switch (event_type) {
 	case EQ_EVENT_NIC_STS_REQUEST:
-		return gaudi3_handle_nic_status_event(hdev, eq_dynamic_entry);
+		rc = gaudi3_handle_nic_status_event(hdev, &eq_dynamic_entry->nic_sts_req_data);
+		break;
 	case EQ_EVENT_HEARTBEAT:
-		return gaudi3_handle_eq_heartbeat_event(hdev, eq_dynamic_entry);
+		hl_eq_heartbeat_event_handle(hdev);
+		break;
 	case EQ_EVENT_PWR_MODE_0:
 	case EQ_EVENT_PWR_MODE_1:
 	case EQ_EVENT_PWR_MODE_2:
 	case EQ_EVENT_PWR_MODE_3:
 		dev_info(hdev->dev, "EQ_EVENT_PWR_MODE_%d event received\n",
 					event_type - EQ_EVENT_PWR_MODE_0);
-		return 0;
+		break;
 	case EQ_EVENT_PWR_BRK_ENTRY:
 		dev_info(hdev->dev, "EQ_EVENT_PWR_BRK_ENTRY event received\n");
-		return 0;
+		break;
 	case EQ_EVENT_PWR_BRK_EXIT:
 		dev_info(hdev->dev, "EQ_EVENT_PWR_BRK_EXIT event received\n");
-		return 0;
+		break;
 	case EQ_EVENT_CPLD_RESET_REASON:
 		dev_info(hdev->dev, "unhandled EQ_EVENT_CPLD_RESET_REASON event received\n");
-		return 0;
+		break;
 	case EQ_EVENT_CPLD_SHUTDOWN:
 		dev_info(hdev->dev, "EQ_EVENT_CPLD_SHUTDOWN event received\n");
-		return 0;
+		break;
 	default:
 		dev_err(hdev->dev, "undefined msg event %d received\n", event_type);
-		return 0;
+		rc = -EINVAL;
+		break;
 	}
+
+	return rc;
 }
 
 static const char *gaudi3_get_interrupt_grp_name(u8 int_grp_type)
