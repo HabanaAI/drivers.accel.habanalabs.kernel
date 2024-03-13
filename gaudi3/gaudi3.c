@@ -8339,8 +8339,6 @@ void gaudi3_send_hard_reset_cmd(struct hl_device *hdev)
 		msleep(GAUDI3_CPU_RESET_WAIT_MSEC);
 	}
 
-	/* TODO: SW-108036 Enable firmware reset code when gaudi3_irq_map_table is added */
-
 	/*
 	 * When working with preboot (without Linux/Boot fit) we can
 	 * communicate only using the COMMS commands to issue halt/reset.
