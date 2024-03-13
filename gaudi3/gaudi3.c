@@ -3945,6 +3945,7 @@ int gaudi3_set_fixed_properties(struct hl_device *hdev)
 	prop->pcie_flush_reg_addr = mmD0_PSOC_TIMESTAMP_BASE + mmTIMESTAMP_CNTCR;
 	prop->supports_advanced_cpucp_rc = true;
 	prop->clk_pll_index = HL_GAUDI3_MME_PLL;
+	prop->fw_event_queue_size = GAUDI3_EQ_SIZE_IN_BYTES;
 
 	/* Reserved HBM memory for FW */
 	hbm_offset = 0x0;
