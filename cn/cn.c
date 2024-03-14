@@ -471,12 +471,15 @@ static int hl_cn_get_asic_type(struct hl_device *hdev, enum hl_cn_asic_type *asi
 	case ASIC_GAUDI2_SIM:
 	case ASIC_GAUDI2B_SIM:
 	case ASIC_GAUDI2C_SIM:
+	case ASIC_GAUDI2D_SIM:
 	case ASIC_GAUDI2_SIM_ARC:
 	case ASIC_GAUDI2B_SIM_ARC:
 	case ASIC_GAUDI2C_SIM_ARC:
+	case ASIC_GAUDI2D_SIM_ARC:
 	case ASIC_GAUDI2:
 	case ASIC_GAUDI2B:
 	case ASIC_GAUDI2C:
+	case ASIC_GAUDI2D:
 		*asic_type = HL_ASIC_GAUDI2;
 		break;
 	case ASIC_GAUDI3:

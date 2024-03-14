@@ -657,6 +657,10 @@ static void set_pci_revision_id(struct hl_device *hdev, enum hl_asic_type asic_t
 		case ASIC_GAUDI2C_SIM_ARC:
 			hdev->pci_revision_id = REV_ID_C;
 			break;
+		case ASIC_GAUDI2D_SIM:
+		case ASIC_GAUDI2D_SIM_ARC:
+			hdev->pci_revision_id = REV_ID_D;
+			break;
 		default:
 			hdev->pci_revision_id = REV_ID_A;
 		}
@@ -702,6 +706,9 @@ static enum hl_asic_type get_asic_type(struct hl_device *hdev)
 			break;
 		case REV_ID_C:
 			asic_type = ASIC_GAUDI2C;
+			break;
+		case REV_ID_D:
+			asic_type = ASIC_GAUDI2D;
 			break;
 		default:
 			break;
@@ -751,12 +758,15 @@ static bool is_cpu_queue_enabled(struct hl_device *hdev)
 	case ASIC_GAUDI2:
 	case ASIC_GAUDI2B:
 	case ASIC_GAUDI2C:
+	case ASIC_GAUDI2D:
 	case ASIC_GAUDI2_SIM:
 	case ASIC_GAUDI2B_SIM:
 	case ASIC_GAUDI2C_SIM:
+	case ASIC_GAUDI2D_SIM:
 	case ASIC_GAUDI2_SIM_ARC:
 	case ASIC_GAUDI2B_SIM_ARC:
 	case ASIC_GAUDI2C_SIM_ARC:
+	case ASIC_GAUDI2D_SIM_ARC:
 		enabled = !!(hdev->fw_components & FW_TYPE_BOOT_CPU);
 		break;
 	default:
@@ -958,6 +968,9 @@ static u32 get_dev_nic_ports_mask(struct hl_device *hdev)
 	case ASIC_GAUDI2C_SIM:
 	case ASIC_GAUDI2C_SIM_ARC:
 	case ASIC_GAUDI2C:
+	case ASIC_GAUDI2D_SIM:
+	case ASIC_GAUDI2D_SIM_ARC:
+	case ASIC_GAUDI2D:
 		/* 24 ports are supported */
 		mask = 0xFFFFFF;
 		break;
@@ -989,6 +1002,7 @@ static void set_driver_behavior_per_device(struct hl_device *hdev)
 	case ASIC_GAUDI2_SIM:
 	case ASIC_GAUDI2B_SIM:
 	case ASIC_GAUDI2C_SIM:
+	case ASIC_GAUDI2D_SIM:
 		hdev->dram_enable = 1;
 		hdev->fw_components = 0;
 		hdev->security_enable = 1;
@@ -1016,6 +1030,7 @@ static void set_driver_behavior_per_device(struct hl_device *hdev)
 	case ASIC_GAUDI2_SIM_ARC:
 	case ASIC_GAUDI2B_SIM_ARC:
 	case ASIC_GAUDI2C_SIM_ARC:
+	case ASIC_GAUDI2D_SIM_ARC:
 		hdev->dram_enable = 1;
 		hdev->fw_components = 0;
 		hdev->security_enable = 1;
@@ -1043,6 +1058,7 @@ static void set_driver_behavior_per_device(struct hl_device *hdev)
 	case ASIC_GAUDI2:
 	case ASIC_GAUDI2B:
 	case ASIC_GAUDI2C:
+	case ASIC_GAUDI2D:
 		hdev->dram_enable = 1;
 		hdev->fw_components = FW_TYPE_ALL_TYPES;
 		hdev->security_enable = 1;
@@ -1427,6 +1443,7 @@ static void fixup_fw_components_param(struct hl_device *hdev)
 	case ASIC_GAUDI2_SIM:
 	case ASIC_GAUDI2B_SIM:
 	case ASIC_GAUDI2C_SIM:
+	case ASIC_GAUDI2D_SIM:
 	case ASIC_GAUDI3_SIM:
 	case ASIC_GAUDI3_SIM_SINGLE_DIE:
 		/* Enforce running without F/W for non SIM_ARC simulators */
@@ -1461,12 +1478,15 @@ static void fixup_device_params_per_asic(struct hl_device *hdev, int timeout)
 	case ASIC_GAUDI2_SIM:
 	case ASIC_GAUDI2B_SIM:
 	case ASIC_GAUDI2C_SIM:
+	case ASIC_GAUDI2D_SIM:
 	case ASIC_GAUDI2_SIM_ARC:
 	case ASIC_GAUDI2B_SIM_ARC:
 	case ASIC_GAUDI2C_SIM_ARC:
+	case ASIC_GAUDI2D_SIM_ARC:
 	case ASIC_GAUDI2:
 	case ASIC_GAUDI2B:
 	case ASIC_GAUDI2C:
+	case ASIC_GAUDI2D:
 		/* TODO: remove this workaround after f/w fix the boot bug which cause us
 		 * to fail on reading ELBI. I keep an option for the user to force not to skip
 		 * for any strange reason he might have.

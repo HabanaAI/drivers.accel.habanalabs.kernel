@@ -1452,9 +1452,11 @@ struct hl_dec {
  * @ASIC_GAUDI2_SIM: Gaudi2 device simulator.
  * @ASIC_GAUDI2B_SIM: Gaudi2B device simulator.
  * @ASIC_GAUDI2C_SIM: Gaudi2C device simulator.
+ * @ASIC_GAUDI2D_SIM: Gaudi2D device simulator.
  * @ASIC_GAUDI2_SIM_ARC: Gaudi2 device simulator with arc support.
  * @ASIC_GAUDI2B_SIM_ARC: Gaudi2B device simulator with arc support.
  * @ASIC_GAUDI2C_SIM_ARC: Gaudi2C device simulator with arc support.
+ * @ASIC_GAUDI2D_SIM_ARC: Gaudi2D device simulator with arc support.
  * @ASIC_GAUDI3_SIM: Gaudi3 device simulator.
  * @ASIC_GAUDI3_SIM_ARC: Gaudi3 device simulator with arc support.
  * @ASIC_GAUDI3_SIM_SINGLE_DIE: Single die gaudi3 device simulator.
@@ -1468,6 +1470,7 @@ struct hl_dec {
  * @ASIC_GAUDI2: Gaudi2 device.
  * @ASIC_GAUDI2B: Gaudi2B device.
  * @ASIC_GAUDI2C: Gaudi2C device.
+ * @ASIC_GAUDI2D: Gaudi2D device.
  * @ASIC_GAUDI3: Gaudi3 device.
  * @ASIC_GAUDI3_SINGLE_DIE: Gaudi3 stream single die device.
  * @ASIC_GAUDI3_FPGA: Gaudi3 device FPGA.
@@ -1480,9 +1483,11 @@ enum hl_asic_type {
 	ASIC_GAUDI2_SIM,
 	ASIC_GAUDI2B_SIM,
 	ASIC_GAUDI2C_SIM,
+	ASIC_GAUDI2D_SIM,
 	ASIC_GAUDI2_SIM_ARC,
 	ASIC_GAUDI2B_SIM_ARC,
 	ASIC_GAUDI2C_SIM_ARC,
+	ASIC_GAUDI2D_SIM_ARC,
 	ASIC_GAUDI3_SIM,
 	ASIC_GAUDI3_SIM_ARC,
 	ASIC_GAUDI3_SIM_SINGLE_DIE,
@@ -1496,6 +1501,7 @@ enum hl_asic_type {
 	ASIC_GAUDI2,
 	ASIC_GAUDI2B,
 	ASIC_GAUDI2C,
+	ASIC_GAUDI2D,
 	ASIC_GAUDI3,
 	ASIC_GAUDI3_SINGLE_DIE,
 	ASIC_GAUDI3_FPGA,

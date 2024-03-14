@@ -53,6 +53,8 @@ enum hlv_sim_dev_types {
 	HLV_SIM_GAUDI2B_ARC = 12,
 	HLV_SIM_GAUDI2C = 13,
 	HLV_SIM_GAUDI2C_ARC = 14,
+	HLV_SIM_GAUDI2D = 15,
+	HLV_SIM_GAUDI2D_ARC = 16,
 };
 
 struct hlv_sim_devtype_minor_args {
