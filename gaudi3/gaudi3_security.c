@@ -26,14 +26,6 @@ static const struct gaudi3_atypical_pb_blocks gaudi3_pb_hdcr0_sm_objs[2] = {
 	{mmHD0_SYNC_MNGR_OBJS_BASE, SM_OBJS_BLOCK_SIZE, SM_OBJS_SEC_PROT_BITS_1_OFFS, SZ_512}
 };
 
-/**
- * struct dtlb_rr_cfg_data - configuration data for DTLB RR
- * @rr_glbl_pa_end0: bits 20-39 of last DRAM phys addr
- */
-struct dtlb_rr_cfg_data {
-	u32 rr_glbl_pa_end0;
-};
-
 /*****************************
  * RR LBW configuration tables
  *****************************/
@@ -285,32 +277,6 @@ static void gaudi3_init_lbw_hbw_range_registers(struct hl_device *hdev)
 	};
 
 	gaudi3_iterate_rtr_ctrls(hdev, &ctx);
-}
-
-static void gaudi3_init_dtlb_pa_range_registers(struct hl_device *hdev, int block, int inst,
-							u32 offset, struct iterate_module_ctx *ctx)
-{
-	struct dtlb_rr_cfg_data *cfg_data = ctx->data;
-
-	/* set bits 20-39 of DRAM phys end address */
-	WREG32(offset + mmDTLB_RR_GLBL_PA_END0, cfg_data->rr_glbl_pa_end0);
-}
-
-static void gaudi3_init_pa_range_registers(struct hl_device *hdev)
-{
-	struct asic_fixed_properties *prop = &hdev->asic_prop;
-	struct dtlb_rr_cfg_data cfg_data;
-	struct iterate_module_ctx ctx;
-	u64 dram_last_addr;
-
-	dram_last_addr = prop->dram_end_address - 1;
-
-	/* extract bits 20-39 (inclusive) from DRAM last address */
-	cfg_data.rr_glbl_pa_end0 = lower_32_bits((dram_last_addr & GENMASK_ULL(39, 20)) >> 20);
-
-	ctx.fn = gaudi3_init_dtlb_pa_range_registers;
-	ctx.data = &cfg_data;
-	gaudi3_iterate_dtlbs(hdev, &ctx);
 }
 
 /**

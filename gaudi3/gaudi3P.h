@@ -795,8 +795,6 @@ void gaudi3_iterate_mmes_v3_mstr_ifs(struct hl_device *hdev, struct iterate_modu
 void gaudi3_iterate_rotators(struct hl_device *hdev, struct iterate_module_ctx *ctx);
 void gaudi3_iterate_decoders(struct hl_device *hdev, struct iterate_module_ctx *ctx);
 void gaudi3_iterate_nics(struct hl_device *hdev, struct iterate_module_ctx *ctx);
-void gaudi3_iterate_dtlbs(struct hl_device *hdev, struct iterate_module_ctx *ctx);
-void gaudi3_iterate_nrtr_dtlbs(struct hl_device *hdev, struct iterate_module_ctx *ctx);
 void gaudi3_iterate_rtr_ctrls(struct hl_device *hdev, struct iterate_module_ctx *ctx);
 void gaudi3_iterate_cache_slices(struct hl_device *hdev, struct iterate_module_ctx *ctx);
 void gaudi3_iterate_rrtrs(struct hl_device *hdev, struct iterate_module_ctx *ctx);
@@ -881,6 +879,9 @@ int gaudi3_init_security_privileged(struct hl_device *hdev);
 void gaudi3_rtr_ctrl_config_rr(struct hl_device *hdev, int block, int inst, u32 offset,
 				struct iterate_module_ctx *ctx);
 int gaudi3_pldm_pll_info_get(struct hl_device *hdev, u32 pll_index, u16 *pll_freq_arr);
+void gaudi3_iterate_dtlbs(struct hl_device *hdev, struct iterate_module_ctx *ctx);
+void gaudi3_iterate_nrtr_dtlbs(struct hl_device *hdev, struct iterate_module_ctx *ctx);
+void gaudi3_init_pa_range_registers(struct hl_device *hdev);
 
 /* Functions exported for FPGA support */
 int gaudi3_early_fini(struct hl_device *hdev);
