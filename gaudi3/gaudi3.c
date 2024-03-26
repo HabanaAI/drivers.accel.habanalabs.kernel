@@ -13483,6 +13483,26 @@ static u32 gaudi3_handle_nic_status_event(struct hl_device *hdev,
 	return 0;
 }
 
+static void gaudi3_handle_eq_cpld_reset_reason_event(struct hl_device *hdev,
+				struct hl_eq_cpld_reset_reason *cpld_reset_reason, u64 *event_mask)
+{
+	u8 *reg = cpld_reset_reason->reg, offset;
+	char tmp_buf[128];
+	int i;
+
+	/* Exit silently if last power down has no fault */
+	if (reg[0]) {
+		offset = snprintf(tmp_buf, 128, "cpld reset reason: 0x%x", reg[0]);
+
+		for (i = 1; i < CPLD_RESET_REASON_MAX_REGS; i++)
+			offset += snprintf(tmp_buf + offset, 128 - offset, ", 0x%x", reg[i]);
+
+		snprintf(tmp_buf + offset, 128 - offset, "\n");
+		dev_info(hdev->dev, tmp_buf);
+		*event_mask |= HL_NOTIFIER_EVENT_GENERAL_HW_ERR;
+	}
+}
+
 static int gaudi3_handle_msg_event(struct hl_device *hdev,
 				struct hl_eq_dynamic_entry *eq_dynamic_entry, u32 *reset_flags,
 				u64 *event_mask)
@@ -13515,7 +13535,8 @@ static int gaudi3_handle_msg_event(struct hl_device *hdev,
 		dev_info(hdev->dev, "EQ_EVENT_PWR_BRK_EXIT event received\n");
 		break;
 	case EQ_EVENT_CPLD_RESET_REASON:
-		dev_info(hdev->dev, "unhandled EQ_EVENT_CPLD_RESET_REASON event received\n");
+		gaudi3_handle_eq_cpld_reset_reason_event(hdev,
+				&eq_dynamic_entry->cpld_reset_reason, event_mask);
 		break;
 	case EQ_EVENT_CPLD_SHUTDOWN:
 		dev_info(hdev->dev, "EQ_EVENT_CPLD_SHUTDOWN event received\n");
