@@ -47,26 +47,52 @@ KERNELDIR := /lib/modules/$(KVERSION)/build
 SRC_DIR ?= $(shell pwd)
 GIT_SHA ?= $(shell git --git-dir=${HABANALABS_ROOT}/.git rev-parse --short HEAD)
 DEBUG_CFLAGS += -g -DDEBUG
+KVERSION_MAJOR := $(shell uname -r | awk -F'[.-]' '{print $$1}')
+KVERSION_MINOR := $(shell uname -r | awk -F'[.-]' '{print $$2}')
+KVERSION_REV := $(shell uname -r | awk -F'[.-]' '{print $$3}')
 
-DRV_CFLAGS_MODULE="-DHL_DRIVER_GIT_SHA=$(GIT_SHA)"
+RUN_ALL_EXTRA_WARNINGS := W=1
+SELECTED_EXTRA_WARNINGS :=
+ifeq ($(KVERSION_MAJOR),5)
+ifeq ($(KVERSION_MINOR),10)
+ifeq ($(shell test $(KVERSION_REV) -ge 210; echo $$?),0)
+RUN_ALL_EXTRA_WARNINGS :=
+SELECTED_EXTRA_WARNINGS := -Wextra -Wunused -Wno-unused-parameter
+SELECTED_EXTRA_WARNINGS += -Wmissing-declarations
+SELECTED_EXTRA_WARNINGS += -Wmissing-format-attribute
+SELECTED_EXTRA_WARNINGS += -Wmissing-prototypes
+SELECTED_EXTRA_WARNINGS += -Wold-style-definition
+SELECTED_EXTRA_WARNINGS += -Wmissing-include-dirs
+SELECTED_EXTRA_WARNINGS += $(call cc-option, -Wunused-but-set-variable)
+SELECTED_EXTRA_WARNINGS += $(call cc-option, -Wunused-const-variable)
+SELECTED_EXTRA_WARNINGS += $(call cc-option, -Wpacked-not-aligned)
+SELECTED_EXTRA_WARNINGS += $(call cc-option, -Wstringop-truncation)
+# The following turn off the warnings enabled by -Wextra
+SELECTED_EXTRA_WARNINGS += -Wno-missing-field-initializers
+SELECTED_EXTRA_WARNINGS += -Wno-sign-compare
+SELECTED_EXTRA_WARNINGS += -Wno-type-limits
+endif
+endif
+endif
+DRV_CFLAGS_MODULE="-DHL_DRIVER_GIT_SHA=$(GIT_SHA) $(SELECTED_EXTRA_WARNINGS)"
 
 default:
-	$(MAKE) CFLAGS_MODULE=$(DRV_CFLAGS_MODULE) -C $(KERNELDIR) M=$(SRC_DIR) W=1 modules
+	$(MAKE) CFLAGS_MODULE=$(DRV_CFLAGS_MODULE) -C $(KERNELDIR) M=$(SRC_DIR) $(RUN_ALL_EXTRA_WARNINGS) modules
 
 debug:
-	$(MAKE) EXTRA_CFLAGS="$(DEBUG_CFLAGS)" CFLAGS_MODULE=$(DRV_CFLAGS_MODULE) -C $(KERNELDIR) M=$(SRC_DIR) W=1 modules
+	$(MAKE) EXTRA_CFLAGS="$(DEBUG_CFLAGS)" CFLAGS_MODULE=$(DRV_CFLAGS_MODULE) -C $(KERNELDIR) M=$(SRC_DIR) $(RUN_ALL_EXTRA_WARNINGS) modules
 
 custom:
-	$(MAKE) CFLAGS_MODULE=$(DRV_CFLAGS_MODULE) -C $(CUSTOMKERNELDIR) M=$(SRC_DIR) W=1 modules
+	$(MAKE) CFLAGS_MODULE=$(DRV_CFLAGS_MODULE) -C $(CUSTOMKERNELDIR) M=$(SRC_DIR) $(RUN_ALL_EXTRA_WARNINGS) modules
 
 debug_custom:
-	$(MAKE) EXTRA_CFLAGS="$(DEBUG_CFLAGS)" CFLAGS_MODULE=$(DRV_CFLAGS_MODULE) -C $(CUSTOMKERNELDIR) M=$(SRC_DIR) W=1 modules
+	$(MAKE) EXTRA_CFLAGS="$(DEBUG_CFLAGS)" CFLAGS_MODULE=$(DRV_CFLAGS_MODULE) -C $(CUSTOMKERNELDIR) M=$(SRC_DIR) $(RUN_ALL_EXTRA_WARNINGS) modules
 
 importer:
-	$(MAKE) CFLAGS_MODULE="$(DRV_CFLAGS_MODULE) -D__IMPORTER" -C $(KERNELDIR) M=$(SRC_DIR) W=1 modules
+	$(MAKE) CFLAGS_MODULE="$(DRV_CFLAGS_MODULE) -D__IMPORTER" -C $(KERNELDIR) M=$(SRC_DIR) $(RUN_ALL_EXTRA_WARNINGS) modules
 
 custom_importer:
-	$(MAKE) CFLAGS_MODULE="$(DRV_CFLAGS_MODULE) -D__IMPORTER" -C $(CUSTOMKERNELDIR) M=$(SRC_DIR) W=1 modules
+	$(MAKE) CFLAGS_MODULE="$(DRV_CFLAGS_MODULE) -D__IMPORTER" -C $(CUSTOMKERNELDIR) M=$(SRC_DIR) $(RUN_ALL_EXTRA_WARNINGS) modules
 
 clean:
 	$(MAKE) -C $(KERNELDIR) M=$(SRC_DIR) clean
