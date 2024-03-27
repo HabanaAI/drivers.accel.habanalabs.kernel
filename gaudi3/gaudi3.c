@@ -13704,16 +13704,26 @@ static u32 gaudi3_handle_derr_event(struct hl_device *hdev,
 }
 
 static u32 gaudi3_cs_sei_err_cause_iterator(struct hl_device *hdev,
-						struct hl_eq_cs_sei_data *sei_data)
+						struct hl_eq_cs_sei_data *sei_data,
+						u32 *reset_flags, u64 *event_mask)
 {
 	u32 cause = lower_32_bits(le64_to_cpu(sei_data->cause.intr_cause_data));
 	int i, err_count = 0;
+
+	/* SEI interrupt due to only dropped maintenance commands is not considered an error */
+	if (cause == CACHE_MAIN_SEI_CAUSE_REG_MAINT_CMD_LOST_M) {
+		*reset_flags = 0x0;
+		*event_mask = 0x0;
+	}
 
 	for (i = 0 ; i < 32 && cause ; i++) {
 		switch (BIT(i) & cause) {
 		case 0:
 			/* no error */
 			continue;
+		case CACHE_MAIN_SEI_CAUSE_REG_MAINT_CMD_LOST_M:
+			dev_info_ratelimited(hdev->dev, "CS SEI: %s\n", gaudi3_cs_sei_err_cause[i]);
+			break;
 		case CACHE_MAIN_SEI_CAUSE_REG_C2M_R_SLV_ERR_ORIG_WRITE_M:
 			dev_err_ratelimited(hdev->dev, "CS SEI error: %s, addr 0x%llx\n",
 					    gaudi3_cs_sei_err_cause[i],
@@ -13772,7 +13782,8 @@ static u32 gaudi3_cs_sei_err_cause_iterator(struct hl_device *hdev,
 }
 
 static u32 gaudi3_handle_cs_sei_err(struct hl_device *hdev, u16 data_size,
-					struct hl_eq_cs_sei_data *sei_data)
+					struct hl_eq_cs_sei_data *sei_data,
+					u32 *reset_flags, u64 *event_mask)
 {
 	int rc;
 
@@ -13780,8 +13791,7 @@ static u32 gaudi3_handle_cs_sei_err(struct hl_device *hdev, u16 data_size,
 	if (rc)
 		return 0;
 
-
-	return gaudi3_cs_sei_err_cause_iterator(hdev, sei_data);
+	return gaudi3_cs_sei_err_cause_iterator(hdev, sei_data, reset_flags, event_mask);
 }
 
 static int gaudi3_validate_eq_agg_header(struct hl_device *hdev, struct hl_agg_eq_header *agg_hdr)
@@ -14502,7 +14512,8 @@ static u32 gaudi3_handle_sei_event(struct hl_device *hdev,
 							&eq_dynamic_entry->cpu_sei_data);
 		break;
 	case INT_COMP_TYPE_CS:
-		err_cnt = gaudi3_handle_cs_sei_err(hdev, data_size, &eq_dynamic_entry->cs_sei_data);
+		err_cnt = gaudi3_handle_cs_sei_err(hdev, data_size, &eq_dynamic_entry->cs_sei_data,
+							reset_flags, event_mask);
 		break;
 	case INT_COMP_TYPE_D2D_MAC:
 		err_cnt = gaudi3_handle_d2d_mac_sei_err(hdev, data_size,
