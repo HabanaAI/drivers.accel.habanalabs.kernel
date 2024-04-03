@@ -11717,13 +11717,26 @@ static int gaudi3_invalidate_all_cs(struct hl_device *hdev)
 	if (!hdev->cache_enable)
 		return 0;
 
+	ctx.fn = gaudi3_cs_invalidation_poll_status;
+	gaudi3_iterate_cache_slices(hdev, &ctx);
+	if (ctx.rc) {
+		dev_err(hdev->dev,
+			"Error %d while waiting for CS blocks to be idle before invalidation\n",
+			ctx.rc);
+		return ctx.rc;
+	}
+
 	ctx.fn = gaudi3_trigger_cs_invalidation;
 	gaudi3_iterate_cache_slices(hdev, &ctx);
 
 	ctx.fn = gaudi3_cs_invalidation_poll_status;
 	gaudi3_iterate_cache_slices(hdev, &ctx);
-	if (ctx.rc)
+	if (ctx.rc) {
+		dev_err(hdev->dev,
+			"Error %d while waiting for CS blocks invalidation to complete\n",
+			ctx.rc);
 		return ctx.rc;
+	}
 
 	return 0;
 }
