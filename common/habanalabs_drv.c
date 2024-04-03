@@ -795,7 +795,7 @@ int hl_device_open(struct drm_device *ddev, struct drm_file *file_priv)
 	kref_init(&hpriv->refcount);
 
 	hl_ctx_mgr_init(&hpriv->ctx_mgr);
-	hl_mem_mgr_init(hpriv->hdev->dev, &hpriv->mem_mgr);
+	hl_mem_mgr_init(hpriv->hdev, &hpriv->mem_mgr);
 
 	hpriv->taskpid = get_task_pid(current, PIDTYPE_PID);
 

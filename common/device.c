@@ -754,6 +754,7 @@ int __hl_mmap(struct hl_fpriv *hpriv, struct vm_area_struct *vma)
 {
 	struct hl_device *hdev = hpriv->hdev;
 	unsigned long vm_pgoff;
+	int rc = -EINVAL;
 
 	if (!hdev) {
 		pr_err_ratelimited("Trying to mmap after device was removed! Please close FD\n");
@@ -765,16 +766,23 @@ int __hl_mmap(struct hl_fpriv *hpriv, struct vm_area_struct *vma)
 	switch (vm_pgoff & HL_MMAP_TYPE_MASK) {
 	case HL_MMAP_TYPE_BLOCK:
 		vma->vm_pgoff = HL_MMAP_OFFSET_VALUE_GET(vm_pgoff);
-		return hl_hw_block_mmap(hpriv, vma);
-
-	case HL_MMAP_TYPE_CN_MEM:
-		return hl_cn_mmap(hdev, hpriv->ctx->asid, vma);
+		rc = hl_hw_block_mmap(hpriv, vma);
+		break;
 
 	case HL_MMAP_TYPE_CB:
 	case HL_MMAP_TYPE_TS_BUFF:
-		return hl_mem_mgr_mmap(&hpriv->mem_mgr, vma, NULL);
+		rc = hl_mem_mgr_mmap(&hpriv->mem_mgr, vma, NULL);
+		break;
+
+	/* gaudi1 only */
+	case HL_MMAP_TYPE_CN_MEM:
+		return hl_cn_mmap(hdev, hpriv->ctx->asid, vma);
 	}
-	return -EINVAL;
+
+	if (rc == 0)
+		atomic_inc(&hdev->mapped_resource_cnt);
+
+	return rc;
 }
 
 /*
@@ -1214,7 +1222,7 @@ static int device_early_init(struct hl_device *hdev)
 	if (rc)
 		goto free_chip_info;
 
-	hl_mem_mgr_init(hdev->dev, &hdev->kernel_mem_mgr);
+	hl_mem_mgr_init(hdev, &hdev->kernel_mem_mgr);
 
 	snprintf(workq_name, 32, "hl%u_device_reset", hdev->cdev_idx);
 	hdev->reset_wq = create_singlethread_workqueue(workq_name);

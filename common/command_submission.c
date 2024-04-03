@@ -3284,7 +3284,7 @@ static int ts_get_and_handle_kernel_record(struct hl_device *hdev, struct hl_ctx
 	bool need_lock = false;
 	int rc;
 
-	rc = validate_and_get_ts_record(data->buf->mmg->dev, ts_buff, data->ts_offset,
+	rc = validate_and_get_ts_record(data->buf->mmg->hdev->dev, ts_buff, data->ts_offset,
 									&req_offset_record);
 	if (rc)
 		return rc;

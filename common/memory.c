@@ -1966,6 +1966,7 @@ static void hw_block_vm_close(struct vm_area_struct *vma)
 	mutex_lock(&ctx->hw_block_list_lock);
 	list_del(&lnode->node);
 	mutex_unlock(&ctx->hw_block_list_lock);
+	atomic_dec(&ctx->hdev->mapped_resource_cnt);
 	hl_ctx_put(ctx);
 	kfree(lnode);
 	vma->vm_private_data = NULL;
@@ -2762,8 +2763,9 @@ static int allocate_timestamps_buffers(struct hl_fpriv *hpriv, struct hl_mem_in 
 	struct hl_mmap_mem_buf *buf;
 
 	if (args->num_of_elements > TS_MAX_ELEMENTS_NUM) {
-		dev_err(mmg->dev, "Num of elements exceeds Max allowed number (0x%x > 0x%x)\n",
-				args->num_of_elements, TS_MAX_ELEMENTS_NUM);
+		dev_err(mmg->hdev->dev,
+			"Num of elements exceeds Max allowed number (0x%x > 0x%x)\n",
+			args->num_of_elements, TS_MAX_ELEMENTS_NUM);
 		return -EINVAL;
 	}
 

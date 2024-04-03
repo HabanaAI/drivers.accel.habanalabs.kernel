@@ -741,6 +741,8 @@ static int open_stats_info(struct hl_fpriv *hpriv, struct hl_info_args *args)
 	open_stats_info.open_counter = hdev->open_counter;
 	open_stats_info.is_compute_ctx_active = hdev->is_compute_ctx_active;
 	open_stats_info.compute_ctx_in_release = hdev->compute_ctx_in_release;
+	open_stats_info.compute_ctx_has_mapped_resources =
+		atomic_read(&hdev->mapped_resource_cnt) > 0;
 
 	return copy_to_user(out, &open_stats_info,
 		min((size_t) max_size, sizeof(open_stats_info))) ? -EFAULT : 0;

@@ -1075,12 +1075,12 @@ struct hl_mmap_mem_buf;
 
 /**
  * struct hl_mem_mgr - describes unified memory manager for mappable memory chunks.
- * @dev: back pointer to the owning device
+ * @dev: back pointer to the owning hl_device
  * @lock: protects handles
  * @handles: an idr holding all active handles to the memory buffers in the system.
  */
 struct hl_mem_mgr {
-	struct device *dev;
+	struct hl_device *hdev;
 	spinlock_t lock;
 	struct idr handles;
 };
@@ -3763,6 +3763,7 @@ struct eq_heartbeat_debug_info {
  * @tpc_binning: contains mask of tpc engines that is received from the f/w which indicates which
  *               tpc engines are binned-out
  * @dmabuf_export_cnt: number of dma-buf exporting.
+ * @mapped_resource_cnt: number of mapped resources.
  * @card_type: Various ASICs have several card types. This indicates the card
  *             type of the current device.
  * @major: habanalabs kernel driver major.
@@ -3969,6 +3970,7 @@ struct hl_device {
 	u64				dram_binning;
 	u64				tpc_binning;
 	atomic_t			dmabuf_export_cnt;
+	atomic_t			mapped_resource_cnt;
 	enum cpucp_card_types		card_type;
 	u32				major;
 	u32				accel_major;
@@ -4646,11 +4648,10 @@ int hl_alloc_irq_vectors(struct hl_device *hdev, unsigned int min_vecs,
 void hl_free_irq_vectors(struct hl_device *hdev);
 int hl_irq_vector(struct hl_device *hdev, unsigned int nr);
 
-void hl_mem_mgr_init(struct device *dev, struct hl_mem_mgr *mmg);
+void hl_mem_mgr_init(struct hl_device *hdev, struct hl_mem_mgr *mmg);
 void hl_mem_mgr_fini(struct hl_mem_mgr *mmg, struct hl_mem_mgr_fini_stats *stats);
 void hl_mem_mgr_idr_destroy(struct hl_mem_mgr *mmg);
-int hl_mem_mgr_mmap(struct hl_mem_mgr *mmg, struct vm_area_struct *vma,
-		    void *args);
+int hl_mem_mgr_mmap(struct hl_mem_mgr *mmg, struct vm_area_struct *vma, void *args);
 struct hl_mmap_mem_buf *hl_mmap_mem_buf_get(struct hl_mem_mgr *mmg,
 						   u64 handle);
 int hl_mmap_mem_buf_put_handle(struct hl_mem_mgr *mmg, u64 handle);
