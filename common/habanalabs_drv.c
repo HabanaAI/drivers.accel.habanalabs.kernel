@@ -180,7 +180,7 @@ static int bfe_nic_enable_h9_phy_mac_hang_eco = 1;
 static int bfe_heartbeat_reset_enable = 1;
 static int bfe_glbl_errors_read_enable = 1;
 
-/* TODO: remove when regulators configuration is updated in FW (SW-175925) */
+/* TODO: remove when regulators configuration is updated in FW (SW-181200) */
 static int bfe_disable_h9_regulartors;
 
 /* module parameters */

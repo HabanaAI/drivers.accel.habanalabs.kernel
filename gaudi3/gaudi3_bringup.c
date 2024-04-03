@@ -3188,7 +3188,7 @@ void gaudi3_hw_init_fw_config(struct hl_device *hdev)
 	struct gaudi3_cn_aux_ops *aux_ops = &gaudi3->cn_aux_ops;
 	struct hbl_aux_dev *aux_dev = &hdev->cn.cn_aux_dev;
 
-	/* TODO: remove when regulators configuration is updated in FW (SW-175925) */
+	/* TODO: remove when regulators configuration is updated in FW (SW-181200) */
 	gaudi3_disable_regulators(hdev);
 
 	if (hdev->fw_components & FW_TYPE_BOOT_CPU)
