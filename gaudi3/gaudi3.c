@@ -11690,21 +11690,18 @@ static void gaudi3_trigger_cs_invalidation(struct hl_device *hdev, int block, in
 static void gaudi3_cs_invalidation_poll_status(struct hl_device *hdev, int block, int inst,
 						u32 offset, struct iterate_module_ctx *ctx)
 {
+	u32 val, mask = CACHE_MAINT_STATUS_NUM_ONGOING_M | CACHE_MAINT_STATUS_NUM_ONGOING_PRIV_M;
 	u64 timeout_us;
-	u32 val;
 
 	timeout_us = hdev->pldm ? GAUDI3_PLDM_CS_INVALIDATION_TIMEOUT_USEC :
 					GAUDI3_CS_INVALIDATION_TIMEOUT_USEC;
 
-	/*
-	 * wait till no more on-going invalidations and no dropped
-	 * jobs (which indicates some error)
-	 */
+	/* Wait until there are no ongoing maintenance commands */
 	ctx->rc = hl_poll_timeout(
 			hdev,
 			offset + CS_MAINT_BASE_OFFSET + mmCACHE_MAINT_STATUS,
 			val,
-			(val == 0x0),
+			((val & mask) == 0x0),
 			100,
 			timeout_us);
 
