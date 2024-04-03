@@ -11706,8 +11706,7 @@ static void gaudi3_cs_invalidation_poll_status(struct hl_device *hdev, int block
 			timeout_us);
 
 	if (ctx->rc)
-		dev_err(hdev->dev, "CS invalidation (%#llx) still busy\n",
-			offset + CS_MAINT_BASE_OFFSET + mmCACHE_MAINT_STATUS);
+		dev_err(hdev->dev, "CS invalidation still busy (%#x)\n", val);
 }
 
 static int gaudi3_invalidate_all_cs(struct hl_device *hdev)
