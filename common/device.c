@@ -1478,22 +1478,6 @@ static int device_late_init(struct hl_device *hdev)
 
 	hdev->high_pll = hdev->asic_prop.high_pll;
 
-	if (hdev->heartbeat) {
-		hdev->heartbeat_debug_info.heartbeat_event_counter = 0;
-
-		/*
-		 * Before scheduling the heartbeat driver will check if eq event has received.
-		 * for the first schedule we need to set the indication as true then for the next
-		 * one this indication will be true only if eq event was sent by FW.
-		 */
-		hdev->eq_heartbeat_received = true;
-
-		INIT_DELAYED_WORK(&hdev->work_heartbeat, hl_device_heartbeat);
-
-		schedule_delayed_work(&hdev->work_heartbeat,
-				usecs_to_jiffies(HL_HEARTBEAT_PER_USEC));
-	}
-
 	if (!hdev->cpu_queues_enable && hdev->pdev) {
 		INIT_DELAYED_WORK(&hdev->work_no_fw_monitor, hl_no_fw_monitor);
 		schedule_delayed_work(&hdev->work_no_fw_monitor,
@@ -3065,6 +3049,26 @@ int hl_device_init(struct hl_device *hdev)
 		dev_err(hdev->dev, "Failed to initialize hwmon\n");
 		rc = 0;
 		goto out_disabled;
+	}
+
+	/* Scheduling the EQ heartbeat thread must come after driver is done with all
+	 * initializations, as we want to make sure the FW gets enough time to be prepared
+	 * to respond to heartbeat packets.
+	 */
+	if (hdev->heartbeat) {
+		hdev->heartbeat_debug_info.heartbeat_event_counter = 0;
+
+		/*
+		 * Before scheduling the heartbeat driver will check if eq event has received.
+		 * for the first schedule we need to set the indication as true then for the next
+		 * one this indication will be true only if eq event was sent by FW.
+		 */
+		hdev->eq_heartbeat_received = true;
+
+		INIT_DELAYED_WORK(&hdev->work_heartbeat, hl_device_heartbeat);
+
+		schedule_delayed_work(&hdev->work_heartbeat,
+				usecs_to_jiffies(HL_HEARTBEAT_PER_USEC));
 	}
 
 	dev_notice(hdev->dev,
