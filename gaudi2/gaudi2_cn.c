@@ -472,6 +472,13 @@ static void gaudi2_cn_set_cn_data(struct hl_device *hdev)
 	gaudi2_aux_ops->dma_pool_free = gaudi2_cn_dma_pool_free;
 	gaudi2_aux_ops->get_hw_block_handle = gaudi2_cn_get_hw_block_handle;
 	gaudi2_aux_ops->user_mmap = gaudi2_cn_user_mmap;
+	gaudi2_aux_ops->spmu_get_stats_info = hl_cn_spmu_get_stats_info;
+	gaudi2_aux_ops->spmu_config = hl_cn_spmu_config;
+	gaudi2_aux_ops->spmu_sample = hl_cn_spmu_sample;
+	gaudi2_aux_ops->set_priv_assertions = hl_cn_set_priv_assertions;
+	gaudi2_aux_ops->poll_reg = hl_cn_poll_reg;
+	gaudi2_aux_ops->send_cpu_message = hl_cn_send_cpu_message;
+	gaudi2_aux_ops->post_send_status = hl_cn_post_send_status;
 }
 
 void gaudi2_cn_compute_reset_prepare(struct hl_device *hdev)
