@@ -134,6 +134,16 @@ void *hl_cn_dma_pool_zalloc(struct hl_aux_dev *aux_dev, size_t size, gfp_t mem_f
 void hl_cn_dma_pool_free(struct hl_aux_dev *aux_dev, void *vaddr, dma_addr_t dma_addr);
 int hl_cn_get_hw_block_handle(struct hl_aux_dev *aux_dev, u64 address, u64 *handle);
 int hl_cn_user_mmap(struct hl_aux_dev *aux_dev, struct vm_area_struct *vma);
+void hl_cn_spmu_get_stats_info(struct hl_aux_dev *aux_dev, u32 port, struct hl_cn_stat **stats,
+				u32 *n_stats);
+int hl_cn_spmu_config(struct hl_aux_dev *aux_dev, u32 port, u32 num_event_types, u32 event_types[],
+			bool enable);
+int hl_cn_spmu_sample(struct hl_aux_dev *aux_dev, u32 port, u32 num_out_data, u64 out_data[]);
+int hl_cn_poll_reg(struct hl_aux_dev *aux_dev, u32 reg, u64 timeout_us, hl_cn_poll_cond_func func,
+			void *arg);
+int hl_cn_send_cpu_message(struct hl_aux_dev *aux_dev, u32 *msg, u16 len, u32 timeout, u64 *result);
+void hl_cn_set_priv_assertions(struct hl_aux_dev *aux_dev, bool enable);
+void hl_cn_post_send_status(struct hl_aux_dev *aux_dev, u32 port);
 
 #ifndef _HAS_AUX_BUS_H
 extern int hl_cn_probe(struct hl_aux_dev *aux_dev);

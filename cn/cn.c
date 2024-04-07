@@ -93,36 +93,6 @@ static void hl_cn_hw_access_unlock(struct hl_aux_dev *aux_dev)
 	mutex_unlock(&hdev->cn.hw_access_lock);
 }
 
-static void hl_cn_spmu_get_stats_info(struct hl_aux_dev *aux_dev, u32 port,
-					struct hl_cn_stat **stats, u32 *n_stats)
-{
-	struct hl_cn *cn = container_of(aux_dev, struct hl_cn, cn_aux_dev);
-	struct hl_device *hdev = container_of(cn, struct hl_device, cn);
-	struct hl_cn_port_funcs *port_funcs = hdev->asic_funcs->cn_funcs->port_funcs;
-
-	port_funcs->spmu_get_stats_info(hdev, port, stats, n_stats);
-}
-
-static int hl_cn_spmu_config(struct hl_aux_dev *aux_dev, u32 port, u32 num_event_types,
-				u32 event_types[], bool enable)
-{
-	struct hl_cn *cn = container_of(aux_dev, struct hl_cn, cn_aux_dev);
-	struct hl_device *hdev = container_of(cn, struct hl_device, cn);
-	struct hl_cn_port_funcs *port_funcs = hdev->asic_funcs->cn_funcs->port_funcs;
-
-	return port_funcs->spmu_config(hdev, port, num_event_types, event_types, enable);
-}
-
-static int hl_cn_spmu_sample(struct hl_aux_dev *aux_dev, u32 port, u32 num_out_data,
-				u64 out_data[])
-{
-	struct hl_cn *cn = container_of(aux_dev, struct hl_cn, cn_aux_dev);
-	struct hl_device *hdev = container_of(cn, struct hl_device, cn);
-	struct hl_cn_port_funcs *port_funcs = hdev->asic_funcs->cn_funcs->port_funcs;
-
-	return port_funcs->spmu_sample(hdev, port, num_out_data, out_data);
-}
-
 static void hl_cn_device_reset(struct hl_aux_dev *aux_dev)
 {
 	struct hl_cn *cn = container_of(aux_dev, struct hl_cn, cn_aux_dev);
@@ -224,6 +194,70 @@ int hl_cn_user_mmap(struct hl_aux_dev *aux_dev, struct vm_area_struct *vma)
 	return __hl_mmap(cn->ctx->hpriv, vma);
 }
 
+void hl_cn_spmu_get_stats_info(struct hl_aux_dev *aux_dev, u32 port, struct hl_cn_stat **stats,
+				u32 *n_stats)
+{
+	struct hl_cn *cn = container_of(aux_dev, struct hl_cn, cn_aux_dev);
+	struct hl_device *hdev = container_of(cn, struct hl_device, cn);
+	struct hl_cn_port_funcs *port_funcs = hdev->asic_funcs->cn_funcs->port_funcs;
+
+	port_funcs->spmu_get_stats_info(hdev, port, stats, n_stats);
+}
+
+int hl_cn_spmu_config(struct hl_aux_dev *aux_dev, u32 port, u32 num_event_types, u32 event_types[],
+			bool enable)
+{
+	struct hl_cn *cn = container_of(aux_dev, struct hl_cn, cn_aux_dev);
+	struct hl_device *hdev = container_of(cn, struct hl_device, cn);
+	struct hl_cn_port_funcs *port_funcs = hdev->asic_funcs->cn_funcs->port_funcs;
+
+	return port_funcs->spmu_config(hdev, port, num_event_types, event_types, enable);
+}
+
+int hl_cn_spmu_sample(struct hl_aux_dev *aux_dev, u32 port, u32 num_out_data, u64 out_data[])
+{
+	struct hl_cn *cn = container_of(aux_dev, struct hl_cn, cn_aux_dev);
+	struct hl_device *hdev = container_of(cn, struct hl_device, cn);
+	struct hl_cn_port_funcs *port_funcs = hdev->asic_funcs->cn_funcs->port_funcs;
+
+	return port_funcs->spmu_sample(hdev, port, num_out_data, out_data);
+}
+
+int hl_cn_poll_reg(struct hl_aux_dev *aux_dev, u32 reg, u64 timeout_us, hl_cn_poll_cond_func func,
+			void *arg)
+{
+	struct hl_cn *cn = container_of(aux_dev, struct hl_cn, cn_aux_dev);
+	struct hl_device *hdev = container_of(cn, struct hl_device, cn);
+	u32 val;
+
+	return hl_poll_timeout(hdev, reg, val, func(val, arg), 1000, timeout_us);
+}
+
+int hl_cn_send_cpu_message(struct hl_aux_dev *aux_dev, u32 *msg, u16 len, u32 timeout, u64 *result)
+{
+	struct hl_cn *cn = container_of(aux_dev, struct hl_cn, cn_aux_dev);
+	struct hl_device *hdev = container_of(cn, struct hl_device, cn);
+
+	return hdev->asic_funcs->send_cpu_message(hdev, msg, len, timeout, result);
+}
+
+void hl_cn_set_priv_assertions(struct hl_aux_dev *aux_dev, bool enable)
+{
+	struct hl_cn *cn = container_of(aux_dev, struct hl_cn, cn_aux_dev);
+	struct hl_device *hdev = container_of(cn, struct hl_device, cn);
+
+	hdev->asic_funcs->set_priv_assertions(hdev, enable);
+}
+
+void hl_cn_post_send_status(struct hl_aux_dev *aux_dev, u32 port)
+{
+	struct hl_cn *cn = container_of(aux_dev, struct hl_cn, cn_aux_dev);
+	struct hl_device *hdev = container_of(cn, struct hl_device, cn);
+	struct hl_cn_port_funcs *port_funcs = hdev->asic_funcs->cn_funcs->port_funcs;
+
+	port_funcs->post_send_status(hdev, port);
+}
+
 static u32 hl_cn_dram_readl(struct hl_aux_dev *aux_dev, u64 addr)
 {
 	struct hl_cn *cn = container_of(aux_dev, struct hl_cn, cn_aux_dev);
@@ -272,14 +306,6 @@ static int hl_cn_get_reg_pcie_addr(struct hl_aux_dev *aux_dev, u32 reg, u64 *pci
 	struct hl_device *hdev = container_of(cn, struct hl_device, cn);
 
 	return hdev->asic_funcs->get_reg_pcie_addr(hdev, reg, pci_addr);
-}
-
-static void hl_cn_set_priv_assertions(struct hl_aux_dev *aux_dev, bool enable)
-{
-	struct hl_cn *cn = container_of(aux_dev, struct hl_cn, cn_aux_dev);
-	struct hl_device *hdev = container_of(cn, struct hl_device, cn);
-
-	hdev->asic_funcs->set_priv_assertions(hdev, enable);
 }
 
 static int hl_cn_register_cn_user_context(struct hl_aux_dev *aux_dev, int user_fd,
@@ -388,16 +414,6 @@ static int hl_cn_get_vm_info(struct hl_aux_dev *aux_dev, u64 vm_handle,
 	return 0;
 }
 
-static int hl_cn_poll_reg(struct hl_aux_dev *aux_dev, u32 reg, u64 timeout_us,
-				hl_cn_poll_cond_func func, void *arg)
-{
-	struct hl_cn *cn = container_of(aux_dev, struct hl_cn, cn_aux_dev);
-	struct hl_device *hdev = container_of(cn, struct hl_device, cn);
-	u32 val;
-
-	return hl_poll_timeout(hdev, reg, val, func(val, arg), 1000, timeout_us);
-}
-
 static void hl_cn_get_cpucp_info(struct hl_aux_dev *aux_dev,
 					struct hl_cn_cpucp_info *hl_cn_cpucp_info)
 {
@@ -437,24 +453,6 @@ static void hl_cn_cpucp_info_le_to_cpu(struct cpucp_nic_info *cpucp_nic_info,
 
 	memcpy(hl_cn_cpucp_info->qsfp_eeprom, cpucp_nic_info->qsfp_eeprom,
 		sizeof(cpucp_nic_info->qsfp_eeprom));
-}
-
-static int hl_cn_send_cpu_message(struct hl_aux_dev *aux_dev, u32 *msg, u16 len, u32 timeout,
-					u64 *result)
-{
-	struct hl_cn *cn = container_of(aux_dev, struct hl_cn, cn_aux_dev);
-	struct hl_device *hdev = container_of(cn, struct hl_device, cn);
-
-	return hdev->asic_funcs->send_cpu_message(hdev, msg, len, timeout, result);
-}
-
-static void hl_cn_post_send_status(struct hl_aux_dev *aux_dev, u32 port)
-{
-	struct hl_cn *cn = container_of(aux_dev, struct hl_cn, cn_aux_dev);
-	struct hl_device *hdev = container_of(cn, struct hl_device, cn);
-	struct hl_cn_port_funcs *port_funcs = hdev->asic_funcs->cn_funcs->port_funcs;
-
-	port_funcs->post_send_status(hdev, port);
 }
 
 static int hl_cn_get_asic_type(struct hl_device *hdev, enum hl_cn_asic_type *asic_type)
