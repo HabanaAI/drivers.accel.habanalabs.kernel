@@ -3642,9 +3642,7 @@ int gaudi3_set_fixed_properties(struct hl_device *hdev)
 	q_props[GAUDI3_QUEUE_ID_CPU_PQ].driver_only = 1;
 	q_props[GAUDI3_QUEUE_ID_CPU_PQ].cb_alloc_flags = CB_ALLOC_KERNEL;
 
-	prop->num_of_dies = ((hdev->asic_type == ASIC_GAUDI3_SINGLE_DIE) ||
-			     (hdev->asic_type == ASIC_GAUDI3_SIM_SINGLE_DIE) ||
-			     (hdev->asic_type == ASIC_GAUDI3_SIM_SINGLE_DIE_ARC)) ? 1 : 2;
+	prop->num_of_dies = MAX_NUM_OF_DIES;
 	prop->num_of_hdcores = prop->num_of_dies * NUM_OF_HDCORES_PER_DIE;
 
 	prop->pdma_ch_max = prop->num_of_dies * NUM_OF_PDMA_CH_PER_DIE;
@@ -3652,8 +3650,7 @@ int gaudi3_set_fixed_properties(struct hl_device *hdev)
 	prop->pdma_grp_ch_max = NUM_OF_PDMA_CH_PER_GRP;
 
 	/* Note that SRAM memory might be used before operating as a cache */
-	sram_start_offset = prop->num_of_dies == 1 ?
-			SRAM_MODE_0_SINGLE_DIE_OFFSET : SRAM_MODE_0_DOUBLE_DIE_OFFSET;
+	sram_start_offset = SRAM_MODE_0_DOUBLE_DIE_OFFSET;
 
 	prop->sram_base_address = SRAM_BASE_ADDR + sram_start_offset;
 	prop->sram_size = SRAM_SIZE - sram_start_offset;
@@ -5372,29 +5369,8 @@ err_exit:
 
 int gaudi3_sw_init(struct hl_device *hdev)
 {
-	struct asic_fixed_properties *prop = &hdev->asic_prop;
 	struct gaudi3_device *gaudi3;
 	int rc;
-
-	if (hdev->force_h9_single_die) {
-		prop->tpc_enabled_mask &= BIT(NUM_OF_HDCORES_PER_DIE * NUM_OF_TPC_PER_HDCORE) - 1;
-		hdev->mme_mask &= BIT(NUM_OF_HDCORES_PER_DIE * NUM_OF_MME_PER_HDCORE) - 1;
-		hdev->pdma_ch_mask &= BIT(NUM_OF_PDMA_CH_PER_DIE) - 1;
-		prop->edma_enabled_mask &=
-				BIT((NUM_OF_HDCORES_PER_DIE / 2) * NUM_OF_EDMA_PER_HDCORE) - 1;
-		prop->decoder_enabled_mask &=
-				BIT(NUM_OF_HDCORES_PER_DIE * NUM_OF_DECODER_PER_HDCORE) - 1;
-		hdev->sched_arc_mask &= BIT(NUM_OF_HDCORES_PER_DIE * NUM_ARC_SCHED_PER_HDCORE) - 1;
-		prop->rotator_enabled_mask &=
-				BIT((NUM_OF_HDCORES_PER_DIE / 2) * NUM_OF_ROTATOR_PER_HDCORE) - 1;
-
-		dev_dbg(hdev->dev, "Running in force single die mode, engine masks are:\n");
-		dev_dbg(hdev->dev, "TPC 0x%llX, MME 0x%X, PDMA 0x%llX, EDMA 0x%X\n",
-				hdev->tpc_mask, hdev->mme_mask, hdev->pdma_ch_mask,
-				hdev->edma_mask);
-		dev_dbg(hdev->dev, "Decoder 0x%X, Sched Arcs 0x%llX, Rotator 0x%X\n",
-				hdev->decoder_mask, hdev->sched_arc_mask, hdev->rotator_mask);
-	}
 
 	/* Allocate device structure */
 	gaudi3 = kzalloc(sizeof(*gaudi3), GFP_KERNEL);
@@ -6316,15 +6292,11 @@ void gaudi3_init_decoder(struct hl_device *hdev)
 
 static void gaudi3_enable_timestamp(struct hl_device *hdev)
 {
-	struct asic_fixed_properties *prop = &hdev->asic_prop;
-
 	/* Disable the timestamp counter on die 1 */
-	if (prop->num_of_dies == 2) {
-		WREG32(mmD1_PSOC_TIMESTAMP_BASE, 0);
+	WREG32(mmD1_PSOC_TIMESTAMP_BASE, 0);
 
-		/* Dummy Read to flush all writes */
-		RREG32(mmD1_PSOC_TIMESTAMP_BASE);
-	}
+	/* Dummy Read to flush all writes */
+	RREG32(mmD1_PSOC_TIMESTAMP_BASE);
 
 	/* Disable the timestamp counter on die 0 */
 	WREG32(mmD0_PSOC_TIMESTAMP_BASE, 0);
@@ -6333,13 +6305,11 @@ static void gaudi3_enable_timestamp(struct hl_device *hdev)
 	RREG32(mmD0_PSOC_TIMESTAMP_BASE);
 
 	/* Zero the lower/upper parts of the 64-bit counter */
-	if (prop->num_of_dies == 2) {
-		WREG32(mmD1_PSOC_TIMESTAMP_BASE + 0x8, 0);
-		WREG32(mmD1_PSOC_TIMESTAMP_BASE + 0xC, 0);
+	WREG32(mmD1_PSOC_TIMESTAMP_BASE + 0x8, 0);
+	WREG32(mmD1_PSOC_TIMESTAMP_BASE + 0xC, 0);
 
-		/* Dummy Read to flush all writes */
-		RREG32(mmD1_PSOC_TIMESTAMP_BASE + 0x8);
-	}
+	/* Dummy Read to flush all writes */
+	RREG32(mmD1_PSOC_TIMESTAMP_BASE + 0x8);
 
 	/* Zero the lower/upper parts of the 64-bit counter */
 	WREG32(mmD0_PSOC_TIMESTAMP_BASE + 0x8, 0);
@@ -6350,16 +6320,14 @@ static void gaudi3_enable_timestamp(struct hl_device *hdev)
 
 	/* Enable counter together - so that both DIEs timestamps will be as closer as possible */
 
-	/* Enable the counter  on die 1 */
-	if (prop->num_of_dies == 2)
-		WREG32(mmD1_PSOC_TIMESTAMP_BASE, 1);
+	/* Enable the counter on die 1 */
+	WREG32(mmD1_PSOC_TIMESTAMP_BASE, 1);
 
 	/* Enable the counter  on die 0 */
 	WREG32(mmD0_PSOC_TIMESTAMP_BASE, 1);
 
 	/* Dummy Read to flush all writes */
-	if (prop->num_of_dies == 2)
-		RREG32(mmD1_PSOC_TIMESTAMP_BASE);
+	RREG32(mmD1_PSOC_TIMESTAMP_BASE);
 
 	/* Dummy Read to flush all writes */
 	RREG32(mmD0_PSOC_TIMESTAMP_BASE);
@@ -6367,12 +6335,9 @@ static void gaudi3_enable_timestamp(struct hl_device *hdev)
 
 static void gaudi3_disable_timestamp(struct hl_device *hdev)
 {
-	struct asic_fixed_properties *prop = &hdev->asic_prop;
+	/* Disable the timestamp counter on die 1*/
+	WREG32(mmD1_PSOC_TIMESTAMP_BASE, 0);
 
-	if (prop->num_of_dies == 2) {
-		/* Disable the timestamp counter on die 1*/
-		WREG32(mmD1_PSOC_TIMESTAMP_BASE, 0);
-	}
 	/* Disable the timestamp counter on die 0*/
 	WREG32(mmD0_PSOC_TIMESTAMP_BASE, 0);
 }
@@ -11765,9 +11730,6 @@ void gaudi3_hw_queues_unlock(struct hl_device *hdev)
 
 u32 gaudi3_get_pci_id(struct hl_device *hdev)
 {
-	if (hdev->force_h9_single_die)
-		return PCI_IDS_GAUDI3_SINGLE_DIE;
-
 	return hdev->pdev->device;
 }
 

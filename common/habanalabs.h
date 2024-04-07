@@ -720,8 +720,8 @@ struct hl_cn_properties {
  * @nic_drv_size: driver size reserved for NIC driver on DRAM.
  * @macro_cfg_size: the size of the macro configuration space.
  * @etr_buf_number: total number of ETR bufs in DRAM, varies per number of dies
- * @pdma_ch_max: single/dual die dependent max num of PDMA channels.
- * @pdma_grp_max: single/dual die dependent max num of PDMA groups (SPDMAs).
+ * @pdma_ch_max: max num of PDMA channels.
+ * @pdma_grp_max: num of PDMA groups (SPDMAs).
  * @pdma_grp_ch_max: max num of channels within each PDMA group (SPDMAs).
  * @clk_pll_index: clock PLL index that specify which PLL determines the clock
  *                 we display to the user
@@ -1471,8 +1471,6 @@ struct hl_dec {
  * @ASIC_GAUDI2D_SIM_ARC: Gaudi2D device simulator with arc support.
  * @ASIC_GAUDI3_SIM: Gaudi3 device simulator.
  * @ASIC_GAUDI3_SIM_ARC: Gaudi3 device simulator with arc support.
- * @ASIC_GAUDI3_SIM_SINGLE_DIE: Single die gaudi3 device simulator.
- * @ASIC_GAUDI3_SIM_SINGLE_DIE_ARC: Single die gaudi3 device simulator with arc support.
  * @ASIC_GAUDI3_HL_338_SIM: Gaudi3 HL-338 device simulator.
  * @ASIC_GAUDI3_HL_338_SIM_ARC: Gaudi3 HL-338 device simulator with arc support.
  * @ASIC_LAST_SIM: last ASIC type simulator.
@@ -1486,7 +1484,6 @@ struct hl_dec {
  * @ASIC_GAUDI2C: Gaudi2C device.
  * @ASIC_GAUDI2D: Gaudi2D device.
  * @ASIC_GAUDI3: Gaudi3 device.
- * @ASIC_GAUDI3_SINGLE_DIE: Gaudi3 stream single die device.
  * @ASIC_GAUDI3_FPGA: Gaudi3 device FPGA.
  * @ASIC_GAUDI3_HL_338: Gaudi3 HL-338 device.
  */
@@ -1505,8 +1502,6 @@ enum hl_asic_type {
 	ASIC_GAUDI2D_SIM_ARC,
 	ASIC_GAUDI3_SIM,
 	ASIC_GAUDI3_SIM_ARC,
-	ASIC_GAUDI3_SIM_SINGLE_DIE,
-	ASIC_GAUDI3_SIM_SINGLE_DIE_ARC,
 	ASIC_GAUDI3_HL_338_SIM,
 	ASIC_GAUDI3_HL_338_SIM_ARC,
 	ASIC_LAST_SIM,
@@ -1520,7 +1515,6 @@ enum hl_asic_type {
 	ASIC_GAUDI2C,
 	ASIC_GAUDI2D,
 	ASIC_GAUDI3,
-	ASIC_GAUDI3_SINGLE_DIE,
 	ASIC_GAUDI3_FPGA,
 	ASIC_GAUDI3_HL_338,
 };
@@ -4092,7 +4086,6 @@ struct hl_device {
 	u8				hbm_compression_enable;
 	u8				nic_enable_h9_rx_drop_eco;
 	u8				enable_h9_cache_eta_eco;
-	u8				force_h9_single_die;
 	u8				nic_enable_h9_qp_doorbells_eco;
 	u8				nic_enable_h9_cc_msg_drops_eco;
 	u8				nic_enable_h9_remote_pi_update_eco;

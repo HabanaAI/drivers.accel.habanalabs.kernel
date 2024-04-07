@@ -5914,11 +5914,6 @@ static int gaudi3_config_etr(struct hl_device *hdev, struct hl_ctx *ctx,
 	if (params->output_size >= sizeof(u64))
 		*(u64 *)params->output = 0x0;
 
-	/* single die image need to ignore etr configuration on die 1 */
-	if (prop->num_of_dies < 2 &&
-	    (etr_idx == GAUDI3_D1_PSOC_ETR || etr_idx == GAUDI3_D1_NCH_ETR))
-		return 0;
-
 	switch (etr_idx) {
 	case GAUDI3_D0_PSOC_ETR:
 		base_reg = mmD0_PSOC_ETR_BASE;
@@ -6086,9 +6081,8 @@ static int gaudi3_fetch_trace(struct hl_device *hdev, struct hl_debug_params *pa
 		return -EINVAL;
 
 	etr_idx = input->etr_id;
-	/* If ETR index is not in range assume trace is stopped for requested ETR
-	 * Good for single die Image.
-	 */
+
+	/* If ETR index is not in range assume trace is stopped for requested ETR */
 	if (etr_idx < 0 || etr_idx >= prop->etr_buf_number) {
 		*output = HL_DEBUG_FETCH_STATUS_STOPPED;
 		return 0;
@@ -6481,17 +6475,12 @@ static int gaudi3_coresight_set_disabled_components(struct hl_device *hdev,
 					u32 die_index, u32 unit_count, u64 enabled_mask,
 					const struct component_config_offsets *binning_table)
 {
-	struct asic_fixed_properties *prop = &hdev->asic_prop;
 	u64 disabled_mask, full_mask;
 	u32 component_idx;
 
 	/* in case no unit - no need to do work */
 	if (!unit_count)
 		return 0;
-
-	/* in case of single die - disable all second die components */
-	if (prop->num_of_dies == 1 && die_index == 1)
-		enabled_mask = 0x0;
 
 	full_mask = GENMASK_ULL(unit_count - 1, 0);
 
@@ -6716,10 +6705,7 @@ int gaudi3_coresight_init(struct hl_device *hdev)
 		/* Set D2D disable components */
 		half_size = CS_DBG_D2D_MAC_ID_SIZE >> 1;
 
-		if (prop->num_of_dies == MAX_NUM_OF_DIES)
-			enabled_mask = GENMASK_ULL(half_size - 1, 0);
-		else
-			enabled_mask = 0x0;
+		enabled_mask = GENMASK_ULL(half_size - 1, 0);
 
 		ret = gaudi3_coresight_set_disabled_components(hdev, die_index, half_size,
 					enabled_mask, gaudi3_d2d_mac_coresight_cfg_table);
@@ -6816,36 +6802,6 @@ int gaudi3_coresight_init(struct hl_device *hdev)
 		if (ret) {
 			dev_err(hdev->dev, "Failed to set disabled cs_dbg units for edma coresight\n");
 			return ret;
-		}
-	}
-
-	if (prop->num_of_dies < MAX_NUM_OF_DIES) {
-		u32 idx;
-
-		for (idx = GAUDI3_FUNNEL_FIRST; idx < (GAUDI3_FUNNEL_LAST + 1); idx++) {
-			bool bBlockAccess = false;
-
-			if (idx >= GAUDI3_FUNNEL_D1_NRTR0 && idx < GAUDI3_FUNNEL_HD0_STLB_0)
-				bBlockAccess = true;
-
-			if (idx >= GAUDI3_FUNNEL_HD4_STLB_0)
-				bBlockAccess = true;
-
-			if (bBlockAccess)
-				debug_funnel_regs[idx] = 0x0;
-		}
-
-		for (idx = GAUDI3_ETF_FIRST; idx < (GAUDI3_ETF_LAST + 1); idx++) {
-			bool bBlockAccess = false;
-
-			if (idx >= GAUDI3_ETF_D1_D2D_MAC0_DBG && idx <= GAUDI3_ETF_D1_CPU_1)
-				bBlockAccess = true;
-
-			if (idx >= GAUDI3_ETF_HD4_STLB_CS_DBG)
-				bBlockAccess = true;
-
-			if (bBlockAccess)
-				debug_etf_regs[idx] = 0x0;
 		}
 	}
 

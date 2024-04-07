@@ -22,8 +22,7 @@
 
 #define GAUDI3_DEFAULT_CARD_NAME	"GAUDI3"
 
-#define HW_CAP_PDMA_MASK		(hdev->asic_prop.num_of_dies == 1 ? \
-					GENMASK(11, 0) : GENMASK(23, 0))
+#define HW_CAP_PDMA_MASK		GENMASK(23, 0)
 
 #define HW_CAP_TPC_SHIFT		0
 #define HW_CAP_TPC_MASK			GENMASK_ULL(63, 0)
@@ -162,7 +161,7 @@
  */
 #define REG_OFF_TO_LBW_OFF(reg_off)	lower_32_bits((reg_off) + CFG_BAR_BASE - LBW_BASE)
 
-#define NIC_NUM_OF_DIES			hdev->asic_prop.num_of_dies
+#define NIC_NUM_OF_DIES			MAX_NUM_OF_DIES
 #define NIC_NUMBER_OF_MACROS		(NIC_NUM_MACROS_PER_DIE * NIC_NUM_OF_DIES)
 #define NIC_NUMBER_OF_ENGINES		NIC_NUMBER_OF_MACROS
 #define NIC_MAX_NUM_OF_LANES		(NIC_MAX_NUM_OF_MACROS * NIC_MAC_LANES)

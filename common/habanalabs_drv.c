@@ -167,7 +167,6 @@ static uint bfe_rotator_binning;
 static int bfe_hbm_compression_enable;
 static int bfe_nic_enable_h9_rx_drop_eco = 1;
 static int bfe_enable_h9_cache_eta_eco = 1;
-static int bfe_force_h9_single_die;
 static int bfe_nic_enable_h9_qp_doorbells_eco = 1;
 static int bfe_nic_enable_h9_cc_msg_drops_eco = 1;
 static int bfe_nic_enable_h9_remote_pi_update_eco = 1;
@@ -513,10 +512,6 @@ module_param(bfe_enable_h9_cache_eta_eco, int, 0444);
 MODULE_PARM_DESC(bfe_enable_h9_cache_eta_eco,
 	"Enable H9 Cache ETA ECO (0 - disabled, 1 - enabled, default 1)");
 
-module_param(bfe_force_h9_single_die, int, 0444);
-MODULE_PARM_DESC(bfe_force_h9_single_die,
-	"Force H9 device to work in single-die mode (0 - disabled, 1 - enabled, default 0)");
-
 module_param(bfe_nic_enable_h9_qp_doorbells_eco, int, 0444);
 MODULE_PARM_DESC(bfe_nic_enable_h9_qp_doorbells_eco,
 	"Enable H9-4960 ECO, fixes unexpectedly doorbells for QPs with no work in QPC (0 - disabled, 1 - enabled, default 1)");
@@ -577,7 +572,6 @@ MODULE_PARM_DESC(bfe_disable_h9_regulartors,
 #define PCI_IDS_GAUDI2			0x1020
 
 #define PCI_IDS_GAUDI3			0x1060
-#define PCI_IDS_GAUDI3_SINGLE_DIE	0x1062
 #define PCI_IDS_GAUDI3_HL_338		0x1063
 
 #define PCI_IDS_GAUDI3_FPGA		0xFF0D
@@ -590,7 +584,6 @@ static const struct pci_device_id ids[] = {
 	{ PCI_DEVICE(PCI_VENDOR_ID_HABANALABS, PCI_IDS_GAUDI_HL2000M_SEC), },
 	{ PCI_DEVICE(PCI_VENDOR_ID_HABANALABS, PCI_IDS_GAUDI2), },
 	{ PCI_DEVICE(PCI_VENDOR_ID_HABANALABS, PCI_IDS_GAUDI3), },
-	{ PCI_DEVICE(PCI_VENDOR_ID_HABANALABS, PCI_IDS_GAUDI3_SINGLE_DIE), },
 	{ PCI_DEVICE(PCI_VENDOR_ID_HABANALABS, PCI_IDS_GAUDI3_HL_338), },
 	{ PCI_DEVICE(PCI_VENDOR_ID_HABANALABS, PCI_IDS_GAUDI3_FPGA), },
 	{ 0, }
@@ -717,13 +710,7 @@ static enum hl_asic_type get_asic_type(struct hl_device *hdev)
 		}
 		break;
 	case PCI_IDS_GAUDI3:
-		if (hdev->force_h9_single_die)
-			asic_type = ASIC_GAUDI3_SINGLE_DIE;
-		else
-			asic_type = ASIC_GAUDI3;
-		break;
-	case PCI_IDS_GAUDI3_SINGLE_DIE:
-		asic_type = ASIC_GAUDI3_SINGLE_DIE;
+		asic_type = ASIC_GAUDI3;
 		break;
 	case PCI_IDS_GAUDI3_HL_338:
 		asic_type = ASIC_GAUDI3_HL_338;
@@ -755,12 +742,10 @@ static bool is_cpu_queue_enabled(struct hl_device *hdev)
 
 	switch (hdev->asic_type) {
 	case ASIC_GAUDI3:
-	case ASIC_GAUDI3_SINGLE_DIE:
 	case ASIC_GAUDI3_FPGA:
 	case ASIC_GAUDI3_HL_338:
 	case ASIC_GAUDI3_SIM:
 	case ASIC_GAUDI3_SIM_ARC:
-	case ASIC_GAUDI3_SIM_SINGLE_DIE_ARC:
 	case ASIC_GAUDI3_HL_338_SIM:
 	case ASIC_GAUDI3_HL_338_SIM_ARC:
 	case ASIC_GAUDI2:
@@ -960,15 +945,7 @@ static u32 get_dev_nic_ports_mask(struct hl_device *hdev)
 	case ASIC_GAUDI3_SIM_ARC:
 	case ASIC_GAUDI3_HL_338_SIM:
 	case ASIC_GAUDI3_HL_338_SIM_ARC:
-		if (hdev->force_h9_single_die)
-			mask = (nic_lanes_per_port == PORT_LANES_4) ? 0x3F : 0xFFF;
-		else
-			mask = (nic_lanes_per_port == PORT_LANES_4) ? 0xFFF : 0xFFFFFF;
-		break;
-	case ASIC_GAUDI3_SINGLE_DIE:
-	case ASIC_GAUDI3_SIM_SINGLE_DIE:
-	case ASIC_GAUDI3_SIM_SINGLE_DIE_ARC:
-		mask = (nic_lanes_per_port == PORT_LANES_4) ? 0x3F : 0xFFF;
+		mask = (nic_lanes_per_port == PORT_LANES_4) ? 0xFFF : 0xFFFFFF;
 		break;
 	case ASIC_GAUDI2_SIM:
 	case ASIC_GAUDI2_SIM_ARC:
@@ -1174,56 +1151,6 @@ static void set_driver_behavior_per_device(struct hl_device *hdev)
 		hdev->hbm_compression_enable = 1;
 		break;
 
-	case ASIC_GAUDI3_SIM_SINGLE_DIE:
-		hdev->dram_enable = 1;
-		hdev->fw_components = 0;
-		hdev->security_enable = 0;
-		hdev->tpc_mask = 0xFFFFFFFF;
-		hdev->mme_mask = 0xF;
-		hdev->pdma_ch_mask = 0xFFF;
-		hdev->edma_mask = 0xF;
-		hdev->hard_reset_on_fw_events = 0;
-		hdev->decoder_mask = 0xFF;
-		hdev->dram_binning = 0x0;
-		hdev->edma_binning = 0x0;
-		hdev->tpc_binning = 0x0;
-		hdev->decoder_binning = 0x0;
-		hdev->scrub_arc_dccm = 1;
-		hdev->axi_drain = AXI_DRAIN_SKIP;
-		hdev->fw_communication_enable = 0;
-		hdev->sched_arc_mask = 0xFF;
-		hdev->rotator_mask = 0xF;
-		hdev->priv_security_enable = 0;
-		hdev->cache_enable = 1;
-		hdev->rotator_binning = 0;
-		hdev->hbm_compression_enable = 1;
-		break;
-
-	case ASIC_GAUDI3_SIM_SINGLE_DIE_ARC:
-		hdev->dram_enable = 1;
-		hdev->fw_components = FW_TYPE_BOOT_CPU | FW_TYPE_PREBOOT_CPU;
-		hdev->security_enable = 0;
-		hdev->tpc_mask = 0xFFFFFFFF;
-		hdev->mme_mask = 0xF;
-		hdev->pdma_ch_mask = 0xFFF;
-		hdev->edma_mask = 0xF;
-		hdev->hard_reset_on_fw_events = 1;
-		hdev->decoder_mask = 0xFF;
-		hdev->dram_binning = 0x0;
-		hdev->edma_binning = 0x0;
-		hdev->tpc_binning = 0x0;
-		hdev->decoder_binning = 0x0;
-		hdev->scrub_arc_dccm = 1;
-		hdev->axi_drain = AXI_DRAIN_SKIP;
-		hdev->fw_communication_enable = 1;
-		hdev->sched_arc_mask = 0xFF;
-		hdev->rotator_mask = 0xF;
-		hdev->priv_security_enable = 0;
-		hdev->cache_enable = 1;
-		hdev->rotator_binning = 0;
-		hdev->hbm_compression_enable = 1;
-		break;
-
 	case ASIC_GAUDI3_FPGA:
 		hdev->dram_enable = 1;
 		hdev->fw_components = FW_TYPE_BOOT_CPU | FW_TYPE_PREBOOT_CPU;
@@ -1421,7 +1348,6 @@ static void copy_bfe_params_to_device(struct hl_device *hdev)
 	hdev->hbm_compression_enable = bfe_hbm_compression_enable;
 	hdev->nic_enable_h9_rx_drop_eco = bfe_nic_enable_h9_rx_drop_eco;
 	hdev->enable_h9_cache_eta_eco = bfe_enable_h9_cache_eta_eco;
-	hdev->force_h9_single_die = bfe_force_h9_single_die;
 	hdev->nic_enable_h9_qp_doorbells_eco = bfe_nic_enable_h9_qp_doorbells_eco;
 	hdev->nic_enable_h9_cc_msg_drops_eco = bfe_nic_enable_h9_cc_msg_drops_eco;
 	hdev->nic_enable_h9_remote_pi_update_eco = bfe_nic_enable_h9_remote_pi_update_eco;
@@ -1459,7 +1385,6 @@ static void fixup_fw_components_param(struct hl_device *hdev)
 	case ASIC_GAUDI2C_SIM:
 	case ASIC_GAUDI2D_SIM:
 	case ASIC_GAUDI3_SIM:
-	case ASIC_GAUDI3_SIM_SINGLE_DIE:
 		/* Enforce running without F/W for non SIM_ARC simulators */
 		hdev->fw_components = FW_TYPE_NONE;
 		break;
@@ -1470,8 +1395,6 @@ static void fixup_fw_components_param(struct hl_device *hdev)
 
 static void fixup_device_params_per_asic(struct hl_device *hdev, int timeout)
 {
-	bool single_die_asic = false;
-
 	switch (hdev->asic_type) {
 	case ASIC_GAUDI:
 	case ASIC_GAUDI_HL2000M:
@@ -1512,11 +1435,6 @@ static void fixup_device_params_per_asic(struct hl_device *hdev, int timeout)
 
 		break;
 
-	case ASIC_GAUDI3_SIM_SINGLE_DIE:
-	case ASIC_GAUDI3_SIM_SINGLE_DIE_ARC:
-	case ASIC_GAUDI3_SINGLE_DIE:
-		single_die_asic = true;
-		fallthrough;
 	case ASIC_GAUDI3_SIM:
 	case ASIC_GAUDI3_SIM_ARC:
 	case ASIC_GAUDI3:
@@ -1530,19 +1448,6 @@ static void fixup_device_params_per_asic(struct hl_device *hdev, int timeout)
 			hdev->dram_enable = 0;
 		else if (!hdev->dram_enable)
 			hdev->cache_enable = 0;
-
-		if (single_die_asic || hdev->force_h9_single_die) {
-			if (hdev->glbl_errors_read_enable) {
-				pr_err("Read global err is disabled, as it isn't supported on single-die mode\n");
-				hdev->glbl_errors_read_enable = false;
-			}
-
-			if (hdev->security_enable || hdev->priv_security_enable) {
-				pr_err("Security is disabled (sec/priv) as it isn't supported on single-die mode\n");
-				hdev->security_enable = false;
-				hdev->priv_security_enable = false;
-			}
-		}
 		break;
 
 	case ASIC_GAUDI3_FPGA:

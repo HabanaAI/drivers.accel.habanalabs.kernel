@@ -932,9 +932,6 @@ static int gaudi3_init_pll(struct hl_device *hdev,
 		WREG32(reg_base + mmPLL_CTRL_DIV_SEL_0 + i * 4, pll_params->div_sel[i]);
 	}
 
-	if (hdev->asic_prop.num_of_dies != MAX_NUM_OF_DIES)
-		return 0;
-
 	/********************************************
 	 * Configure DIE1 PLLs with ELBI using SPI GW
 	 ********************************************/
@@ -1812,9 +1809,6 @@ static int gaudi3_d2d_init(struct hl_device *hdev)
 	struct gaudi3_device *gaudi3 = hdev->asic_specific;
 	int rc = 0;
 
-	if (hdev->asic_prop.num_of_dies != MAX_NUM_OF_DIES)
-		return 0;
-
 	/* simulator does not support the D2D PHY init code */
 	if (!hdev->pdev)
 		return 0;
@@ -1909,9 +1903,6 @@ static void gaudi3_set_edma_isolation(struct hl_device *hdev, bool isolate)
 		edma_iso |= BIT(1);
 	WREG32(mmD0_PSOC_BOOT_CONF_BASE + mmPSOC_BOOT_CONF_EDMA_ISO, edma_iso);
 
-	if (prop->num_of_dies == 1)
-		return;
-
 	/* DIE1 EDMA_ISO:
 	 * Bit[0] - HD6_EDMA{0,1}
 	 * Bit[1] - HD4_EDMA{0,1}
@@ -1962,9 +1953,6 @@ static void gaudi3_set_tpc_isolation(struct hl_device *hdev, bool isolate)
 	 */
 	WREG32(mmD0_PSOC_BOOT_CONF_BASE + mmPSOC_BOOT_CONF_TPC_ISO_H, 0x3);
 
-	if (prop->num_of_dies == 1)
-		return;
-
 	/* DIE1 TPC_ISO_L:
 	 *  Bit[0]  - HD7_TPC7 ... Bit[7]  - HD7_TPC0
 	 *  Bit[8]  - HD6_TPC7 ... Bit[15] - HD6_TPC0
@@ -2007,9 +1995,6 @@ static void gaudi3_set_mme_isolation(struct hl_device *hdev, bool isolate)
 	mme_iso = ~hdev->mme_mask & 0xF;
 	WREG32(mmD0_PSOC_BOOT_CONF_BASE + mmPSOC_BOOT_CONF_MME_ISO, mme_iso);
 
-	if (prop->num_of_dies == 1)
-		return;
-
 	/* DIE1 MME_ISO:
 	 * Bit[0] - HD7_MME ... Bit[3] - HD4_MME
 	 */
@@ -2040,9 +2025,6 @@ static void gaudi3_set_rotator_isolation(struct hl_device *hdev, bool isolate)
 	 */
 	rot_iso = rot_disabled_mask & 0xF;
 	WREG32(mmD0_PSOC_BOOT_CONF_BASE + mmPSOC_BOOT_CONF_ROT_ISO, rot_iso);
-
-	if (prop->num_of_dies == 1)
-		return;
 
 	/* get only rotator bits relevant for DIE1 */
 	rot_disabled_mask = FIELD_GET(0xF0, rot_disabled_mask);
@@ -2093,9 +2075,6 @@ static void gaudi3_set_decoder_isolation(struct hl_device *hdev, bool isolate)
 	}
 	WREG32(mmD0_PSOC_BOOT_CONF_BASE + mmPSOC_BOOT_CONF_VDEC_ISO, vdec_iso);
 
-	if (prop->num_of_dies == 1)
-		return;
-
 	/* DIE1 VDEC_ISO:
 	 * Bit[0] - HD7_VDEC0
 	 * Bit[1] - HD5_VDEC0
@@ -2138,9 +2117,6 @@ static void gaudi3_set_nic_isolation(struct hl_device *hdev, bool isolate)
 	}
 	WREG32(mmD0_PSOC_BOOT_CONF_BASE + mmPSOC_BOOT_CONF_NIC_ISO, nic_iso);
 
-	if (prop->num_of_dies == 1)
-		return;
-
 	/* DIE1 NIC_ISO:
 	 * Bit[0] - D1_NIC0 ... Bit[5] - D1_NIC5
 	 */
@@ -2172,9 +2148,6 @@ static void gaudi3_set_hbm_isolation(struct hl_device *hdev, bool isolate)
 	 */
 	hbm_iso = ~lower_32_bits(prop->dram_enabled_mask) & 0xF;
 	WREG32(mmD0_PSOC_BOOT_CONF_BASE + mmPSOC_BOOT_CONF_HBM_ISO, hbm_iso);
-
-	if (prop->num_of_dies == 1)
-		return;
 
 	/* DIE1 HBM_ISO:
 	 * Bit[0] - HBM7 ... Bit[3] - HBM4
@@ -2908,8 +2881,7 @@ static void gaudi3_dtlb_init(struct hl_device *hdev, int block, int inst, u32 of
 	 *  to support this we use a bit in the spare register of DTLB so that
 	 *  we can increase NUM_HBM to 8 and stay on same SRAM space.
 	 */
-	if (hdev->asic_prop.num_of_dies == MAX_NUM_OF_DIES)
-		RMWREG32(offset + DTLB_SPECIAL_GLBL_SPARE_0_OFFSET, 0x1, 0x1);
+	RMWREG32(offset + DTLB_SPECIAL_GLBL_SPARE_0_OFFSET, 0x1, 0x1);
 }
 
 static void gaudi3_hdcore_stlb_init_fw_config(struct hl_device *hdev)
@@ -3275,14 +3247,13 @@ void gaudi3_execute_reset_no_fw(struct hl_device *hdev, bool hard_reset)
 		d0_reset_reg = mmD0_PSOC_RESET_CONF_BASE + mmPSOC_RESET_CONF_SOFT_RST;
 	}
 
-	if (hdev->asic_prop.num_of_dies == MAX_NUM_OF_DIES) {
-		/* generate reset in DIE1 */
-		WREG32(d0_reset_reg + DIE_OFFSET, 0x1);
+	/* generate reset in DIE1 */
+	WREG32(d0_reset_reg + DIE_OFFSET, 0x1);
 
-		/* sleep to make sure that DIE1 started its reset before resetting DIE0 */
-		usleep_range(1000, 1500);
-	}
+	/* sleep to make sure that DIE1 started its reset before resetting DIE0 */
+	usleep_range(1000, 1500);
 
+	/* generate reset in DIE0 */
 	WREG32(d0_reset_reg, 0x1);
 
 	dev_dbg(hdev->dev, "Driver issued %s reset command\n", hard_reset ? "HARD" : "SOFT");
@@ -7687,18 +7658,10 @@ int gaudi3_init_security_privileged(struct hl_device *hdev)
 {
 	int rc;
 
-	/*
-	 * TODO:
-	 * Unify the 2 if statements and place them here once hl_iterate_special_blocks() supports
-	 * single die (SW-169903).
-	 */
-	if (hdev->asic_prop.fw_security_enabled)
+	if (!hdev->priv_security_enable || hdev->asic_prop.fw_security_enabled)
 		return 0;
 
 	gaudi3_init_lbw_hbw_range_registers_privileged(hdev);
-
-	if (!hdev->priv_security_enable)
-		return 0;
 
 	rc = hl_init_pb_security(hdev, true);
 	if (rc) {
