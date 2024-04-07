@@ -4666,16 +4666,6 @@ static int gaudi2_enable_msix(struct hl_device *hdev)
 		goto free_tpc_irq;
 	}
 
-	/* TODO: SW-177833 remove once runtime starts using new interrupt - 127 */
-	irq = pci_irq_vector(hdev->pdev, GAUDI2_IRQ_NUM_UNEXPECTED_ERROR_OLD);
-	rc = request_threaded_irq(irq, NULL, hl_irq_user_interrupt_thread_handler, IRQF_ONESHOT,
-					gaudi2_irq_name(GAUDI2_IRQ_NUM_UNEXPECTED_ERROR),
-					&hdev->unexpected_error_interrupt);
-	if (rc) {
-		dev_err(hdev->dev, "Failed to request IRQ %d", irq);
-		goto free_tpc_irq;
-	}
-
 	for (i = GAUDI2_IRQ_NUM_USER_FIRST, j = prop->user_dec_intr_count, user_irq_init_cnt = 0;
 			user_irq_init_cnt < prop->user_interrupt_count;
 			i++, j++, user_irq_init_cnt++) {
@@ -4712,10 +4702,6 @@ free_user_irq:
 		free_irq(irq, &hdev->user_interrupt[j]);
 	}
 	irq = pci_irq_vector(hdev->pdev, GAUDI2_IRQ_NUM_UNEXPECTED_ERROR);
-	free_irq(irq, &hdev->unexpected_error_interrupt);
-
-	/* TODO: SW-177833 remove once runtime starts using new interrupt - 127 */
-	irq = pci_irq_vector(hdev->pdev, GAUDI2_IRQ_NUM_UNEXPECTED_ERROR_OLD);
 	free_irq(irq, &hdev->unexpected_error_interrupt);
 free_tpc_irq:
 	irq = pci_irq_vector(hdev->pdev, GAUDI2_IRQ_NUM_TPC_ASSERT);
@@ -4756,9 +4742,6 @@ static void gaudi2_sync_irqs(struct hl_device *hdev)
 	synchronize_irq(pci_irq_vector(hdev->pdev, GAUDI2_IRQ_NUM_TPC_ASSERT));
 	synchronize_irq(pci_irq_vector(hdev->pdev, GAUDI2_IRQ_NUM_UNEXPECTED_ERROR));
 
-	/* TODO: SW-177833 remove once runtime starts using new interrupt - 127 */
-	synchronize_irq(pci_irq_vector(hdev->pdev, GAUDI2_IRQ_NUM_UNEXPECTED_ERROR_OLD));
-
 	for (i = GAUDI2_IRQ_NUM_USER_FIRST, j = 0 ; j < hdev->asic_prop.user_interrupt_count;
 										i++, j++) {
 		irq = pci_irq_vector(hdev->pdev, i);
@@ -4790,10 +4773,6 @@ static void gaudi2_disable_msix(struct hl_device *hdev)
 	free_irq(irq, &hdev->tpc_interrupt);
 
 	irq = pci_irq_vector(hdev->pdev, GAUDI2_IRQ_NUM_UNEXPECTED_ERROR);
-	free_irq(irq, &hdev->unexpected_error_interrupt);
-
-	/* TODO: SW-177833 remove once runtime starts using new interrupt - 127 */
-	irq = pci_irq_vector(hdev->pdev, GAUDI2_IRQ_NUM_UNEXPECTED_ERROR_OLD);
 	free_irq(irq, &hdev->unexpected_error_interrupt);
 
 	for (i = GAUDI2_IRQ_NUM_USER_FIRST, j = prop->user_dec_intr_count, k = 0;
