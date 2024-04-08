@@ -578,6 +578,7 @@ MODULE_PARM_DESC(bfe_disable_h9_regulartors,
 
 #define PCI_IDS_GAUDI3			0x1060
 #define PCI_IDS_GAUDI3_SINGLE_DIE	0x1062
+#define PCI_IDS_GAUDI3_HL_338		0x1063
 
 #define PCI_IDS_GAUDI3_FPGA		0xFF0D
 
@@ -590,6 +591,7 @@ static const struct pci_device_id ids[] = {
 	{ PCI_DEVICE(PCI_VENDOR_ID_HABANALABS, PCI_IDS_GAUDI2), },
 	{ PCI_DEVICE(PCI_VENDOR_ID_HABANALABS, PCI_IDS_GAUDI3), },
 	{ PCI_DEVICE(PCI_VENDOR_ID_HABANALABS, PCI_IDS_GAUDI3_SINGLE_DIE), },
+	{ PCI_DEVICE(PCI_VENDOR_ID_HABANALABS, PCI_IDS_GAUDI3_HL_338), },
 	{ PCI_DEVICE(PCI_VENDOR_ID_HABANALABS, PCI_IDS_GAUDI3_FPGA), },
 	{ 0, }
 };
@@ -723,6 +725,9 @@ static enum hl_asic_type get_asic_type(struct hl_device *hdev)
 	case PCI_IDS_GAUDI3_SINGLE_DIE:
 		asic_type = ASIC_GAUDI3_SINGLE_DIE;
 		break;
+	case PCI_IDS_GAUDI3_HL_338:
+		asic_type = ASIC_GAUDI3_HL_338;
+		break;
 	case PCI_IDS_GAUDI3_FPGA:
 		asic_type = ASIC_GAUDI3_FPGA;
 		break;
@@ -752,6 +757,7 @@ static bool is_cpu_queue_enabled(struct hl_device *hdev)
 	case ASIC_GAUDI3:
 	case ASIC_GAUDI3_SINGLE_DIE:
 	case ASIC_GAUDI3_FPGA:
+	case ASIC_GAUDI3_HL_338:
 	case ASIC_GAUDI3_SIM:
 	case ASIC_GAUDI3_SIM_ARC:
 	case ASIC_GAUDI3_SIM_SINGLE_DIE_ARC:
@@ -947,6 +953,7 @@ static u32 get_dev_nic_ports_mask(struct hl_device *hdev)
 
 	switch (asic_type) {
 	case ASIC_GAUDI3:
+	case ASIC_GAUDI3_HL_338:
 	case ASIC_GAUDI3_SIM:
 	case ASIC_GAUDI3_SIM_ARC:
 		if (hdev->force_h9_single_die)
@@ -1084,6 +1091,7 @@ static void set_driver_behavior_per_device(struct hl_device *hdev)
 		break;
 
 	case ASIC_GAUDI3:
+	case ASIC_GAUDI3_HL_338:
 		hdev->dram_enable = 1;
 		hdev->fw_components = FW_TYPE_BOOT_CPU | FW_TYPE_PREBOOT_CPU;
 		hdev->security_enable = 1;
@@ -1506,6 +1514,7 @@ static void fixup_device_params_per_asic(struct hl_device *hdev, int timeout)
 	case ASIC_GAUDI3_SIM:
 	case ASIC_GAUDI3_SIM_ARC:
 	case ASIC_GAUDI3:
+	case ASIC_GAUDI3_HL_338:
 		/* DRAM cannot be used if SRAM is enabled
 		 * Cache cannot be used if DRAM is disabled
 		 */

@@ -674,6 +674,7 @@ int hl_mmu_if_set_funcs(struct hl_device *hdev)
 	case ASIC_GAUDI3_SIM_SINGLE_DIE_ARC:
 	case ASIC_GAUDI3:
 	case ASIC_GAUDI3_SINGLE_DIE:
+	case ASIC_GAUDI3_HL_338:
 		hl_mmu_v2_hr_set_funcs(hdev, &hdev->mmu_func[MMU_HR_PGT]);
 		/*
 		 * Gaudi3 HMMU funcs are not set under the hdev but rather in an HMMU specific

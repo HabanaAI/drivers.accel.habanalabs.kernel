@@ -331,6 +331,9 @@ static ssize_t device_type_show(struct device *dev,
 	case ASIC_GAUDI3_FPGA:
 		str = "GAUDI3 FPGA";
 		break;
+	case ASIC_GAUDI3_HL_338:
+		str = "GAUDI3 HL-338";
+		break;
 	default:
 		dev_err(hdev->dev, "Unrecognized ASIC type %d\n",
 				hdev->asic_type);

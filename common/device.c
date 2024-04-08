@@ -1140,6 +1140,11 @@ static int device_early_init(struct hl_device *hdev)
 		strscpy(hdev->asic_name, "GAUDI3 FPGA",
 				sizeof(hdev->asic_name));
 		break;
+	case ASIC_GAUDI3_HL_338:
+		gaudi3_fpga_set_asic_funcs(hdev);
+		strscpy(hdev->asic_name, "GAUDI3 HL-338",
+				sizeof(hdev->asic_name));
+		break;
 	default:
 		dev_err(hdev->dev, "Unrecognized ASIC type %d\n",
 			hdev->asic_type);

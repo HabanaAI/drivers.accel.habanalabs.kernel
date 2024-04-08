@@ -1486,6 +1486,7 @@ struct hl_dec {
  * @ASIC_GAUDI3: Gaudi3 device.
  * @ASIC_GAUDI3_SINGLE_DIE: Gaudi3 stream single die device.
  * @ASIC_GAUDI3_FPGA: Gaudi3 device FPGA.
+ * @ASIC_GAUDI3_HL_338: Gaudi3 HL-338 device.
  */
 enum hl_asic_type {
 	ASIC_INVALID,
@@ -1517,6 +1518,7 @@ enum hl_asic_type {
 	ASIC_GAUDI3,
 	ASIC_GAUDI3_SINGLE_DIE,
 	ASIC_GAUDI3_FPGA,
+	ASIC_GAUDI3_HL_338,
 };
 
 struct hl_cs_parser;
