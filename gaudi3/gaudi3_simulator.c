@@ -1456,6 +1456,10 @@ static u32 gaudi3_sim_get_pci_id(struct hl_device *hdev)
 		fallthrough;
 	case ASIC_GAUDI3_SIM_SINGLE_DIE_ARC:
 		return PCI_IDS_GAUDI3_ARC_SIMULATOR;
+	case ASIC_GAUDI3_HL_338_SIM:
+		return PCI_IDS_GAUDI3_HL_338_SIMULATOR;
+	case ASIC_GAUDI3_HL_338_SIM_ARC:
+		return PCI_IDS_GAUDI3_HL_338_ARC_SIMULATOR;
 	default:
 		return PCI_IDS_GAUDI3_SIMULATOR;
 	}

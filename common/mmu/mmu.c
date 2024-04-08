@@ -672,6 +672,8 @@ int hl_mmu_if_set_funcs(struct hl_device *hdev)
 	case ASIC_GAUDI3_SIM_ARC:
 	case ASIC_GAUDI3_SIM_SINGLE_DIE:
 	case ASIC_GAUDI3_SIM_SINGLE_DIE_ARC:
+	case ASIC_GAUDI3_HL_338_SIM:
+	case ASIC_GAUDI3_HL_338_SIM_ARC:
 	case ASIC_GAUDI3:
 	case ASIC_GAUDI3_SINGLE_DIE:
 	case ASIC_GAUDI3_HL_338:

@@ -295,6 +295,10 @@ static ssize_t device_type_show(struct device *dev,
 	case ASIC_GAUDI3_SIM_SINGLE_DIE_ARC:
 		str = "GAUDI3 Simulator Single die";
 		break;
+	case ASIC_GAUDI3_HL_338_SIM:
+	case ASIC_GAUDI3_HL_338_SIM_ARC:
+		str = "GAUDI3 HL-338 Simulator";
+		break;
 	case ASIC_GOYA:
 		str = "GOYA";
 		break;

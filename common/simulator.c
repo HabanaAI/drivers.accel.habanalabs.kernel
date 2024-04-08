@@ -378,6 +378,14 @@ static int hl_sim_set_devtype_get_minor_ioctl(struct hl_sim_mode_device *sdev,
 		sim_start_args.virt_dev_type = ASIC_GAUDI3_SIM_SINGLE_DIE_ARC;
 		simulator_start = gaudi3_simulator_start;
 		break;
+	case HLV_SIM_GAUDI3_HL_338:
+		sim_start_args.virt_dev_type = ASIC_GAUDI3_HL_338_SIM;
+		simulator_start = gaudi3_simulator_start;
+		break;
+	case HLV_SIM_GAUDI3_HL_338_ARC:
+		sim_start_args.virt_dev_type = ASIC_GAUDI3_HL_338_SIM_ARC;
+		simulator_start = gaudi3_simulator_start;
+		break;
 	default:
 		pr_err("invalid simulator device type in ioctl %d\n",
 			args->devtype_or_minor);
@@ -976,6 +984,8 @@ static void hl_sim_destroy_devices(struct hl_sim_mode_device *sdev)
 		case ASIC_GAUDI3_SIM_ARC:
 		case ASIC_GAUDI3_SIM_SINGLE_DIE:
 		case ASIC_GAUDI3_SIM_SINGLE_DIE_ARC:
+		case ASIC_GAUDI3_HL_338_SIM:
+		case ASIC_GAUDI3_HL_338_SIM_ARC:
 			gaudi3_simulator_stop(minor);
 			break;
 		default:

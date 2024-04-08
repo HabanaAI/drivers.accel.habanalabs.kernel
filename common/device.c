@@ -1087,6 +1087,12 @@ static int device_early_init(struct hl_device *hdev)
 		strscpy(hdev->asic_name, "GAUDI3 SIM Single die",
 						sizeof(hdev->asic_name));
 		break;
+	case ASIC_GAUDI3_HL_338_SIM:
+	case ASIC_GAUDI3_HL_338_SIM_ARC:
+		gaudi3_sim_set_asic_funcs(hdev);
+		strscpy(hdev->asic_name, "GAUDI3 HL-338 SIM",
+						sizeof(hdev->asic_name));
+		break;
 	case ASIC_GOYA:
 		goya_set_asic_funcs(hdev);
 		strscpy(hdev->asic_name, "GOYA", sizeof(hdev->asic_name));
