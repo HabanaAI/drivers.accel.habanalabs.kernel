@@ -1672,6 +1672,14 @@ static const char * const gaudi3_mme_sbte_intr_cause[] = {
 	"NUM_ERR",
 };
 
+static const char * const gaudi3_apb_arb_intr_cause[] = {
+	"APB Arbiter timeout interrupt",
+};
+
+static const char * const gaudi3_axi_split_intr_cause[] = {
+	"axi_split sei interrupt",
+};
+
 /* mmACC_INTR_CAUSE */
 static const char * const gaudi3_mme_acc_intr_cause[] = {
 /* SEI */
@@ -1948,6 +1956,10 @@ static const char * const gaudi3_mc_cmn_sei1_cause[] = {
 	"bist_fail_1",
 	"bist_fail_2",
 	"bist_fail_3"
+};
+
+static const char * const gaudi3_spi_nch_etr_full_intr_cause[] = {
+	"ETR Full interrupt",
 };
 
 struct gaudi3_dup_grp_info {
@@ -12936,6 +12948,22 @@ static u32 gaudi3_handle_mme_acc_event(struct hl_device *hdev, struct hl_eq_mme_
 	return err_num;
 }
 
+static u32 gaudi3_handle_nch_spi(struct hl_device *hdev, u32 die, u16 data_size,
+					struct hl_eq_intr_cause *cause)
+{
+	u32 cause_data, err_num = 0;
+	int rc;
+
+	rc = gaudi3_validate_eqe_data_size(hdev, data_size, sizeof(struct hl_eq_intr_cause));
+	if (rc)
+		return 0;
+
+	cause_data = le64_to_cpu(cause->intr_cause_data);
+	err_num = gaudi3_err_cause_iterator(hdev, cause_data, gaudi3_spi_nch_etr_full_intr_cause,
+								"NCH", "SPI");
+	return err_num;
+}
+
 static u32 gaudi3_handle_mme_spi_events(struct hl_device *hdev, u16 data_size,
 					struct hl_eq_mme_spi_data *spi_data)
 {
@@ -13015,6 +13043,38 @@ static u32 gaudi3_handle_mme_sei_err(struct hl_device *hdev, u16 data_size,
 	default:
 		break;
 	}
+
+	return err_num;
+}
+
+static u32 gaudi3_handle_nch_sei_err(struct hl_device *hdev, u16 data_size, u32 die,
+					struct hl_eq_nch_sei_data *sei_data, u64 *event_mask)
+{
+	u32 cause, err_num = 0;
+	int rc;
+
+	rc = gaudi3_validate_eqe_data_size(hdev, data_size, sizeof(struct hl_eq_nch_sei_data));
+	if (rc)
+		return 0;
+
+	cause = le64_to_cpu(sei_data->xresp_lbw.intr_cause_data);
+	if (cause & MSTR_IF_V1_XRESP_LBW_INTR_CTRL_CAUSE_BRESP_ERR_M)
+		dev_err_ratelimited(hdev->dev, "nch lbw write err\n");
+	if (cause & MSTR_IF_V1_XRESP_LBW_INTR_CTRL_CAUSE_RRESP_ERR_M)
+		dev_err_ratelimited(hdev->dev, "nch lbw read err\n");
+
+	cause = le64_to_cpu(sei_data->xresp_hbw.intr_cause_data);
+	if (cause & MSTR_IF_V1_XRESP_HBW_INTR_CTRL_CAUSE_BRESP_ERR_M)
+		dev_err_ratelimited(hdev->dev, "nch hbw write err\n");
+	if (cause & MSTR_IF_V1_XRESP_HBW_INTR_CTRL_CAUSE_RRESP_ERR_M)
+		dev_err_ratelimited(hdev->dev, "nch hbw read err\n");
+
+	cause = le64_to_cpu(sei_data->apb_arb.intr_cause_data);
+	err_num = gaudi3_err_cause_iterator(hdev, cause, gaudi3_apb_arb_intr_cause, "NCH", "SEI");
+
+	cause = le64_to_cpu(sei_data->axi_split.intr_cause_data);
+	err_num += gaudi3_err_cause_iterator(hdev, cause, gaudi3_axi_split_intr_cause,
+				"NCH", "SEI");
 
 	return err_num;
 }
@@ -14016,6 +14076,11 @@ static void gaudi3_sei_razwi_handler(struct hl_device *hdev, struct hl_eq_dynami
 			break;
 		}
 		break;
+	case INT_COMP_TYPE_NCH:
+		gaudi3_handle_razwi(hdev, &eq->nch_sei_data.rtr_data, eng_id, event_mask);
+		gaudi3_handle_razwi_mstr_if(hdev, &eq->nch_sei_data.mstr_if_data, eng_id,
+								event_mask);
+		break;
 
 	case INT_COMP_TYPE_NIC:
 		gaudi3_handle_razwi(hdev, &eq->nic_sei_data.rtr_data, eng_id, event_mask);
@@ -14428,6 +14493,9 @@ static void gaudi3_check_for_glbl_errors(struct hl_device *hdev,
 	case INT_COMP_TYPE_MME:
 		glbl_err_data = &eq_dynamic_entry->mme_sei_data.glbl_err_data;
 		break;
+	case INT_COMP_TYPE_NCH:
+		glbl_err_data = &eq_dynamic_entry->nch_sei_data.glbl_err_data;
+		break;
 	case INT_COMP_TYPE_NIC:
 		glbl_err_data = &eq_dynamic_entry->nic_sei_data.glbl_err_data;
 		break;
@@ -14526,6 +14594,11 @@ static u32 gaudi3_handle_sei_event(struct hl_device *hdev,
 							&eq_dynamic_entry->mme_sei_data, eng_id,
 							event_mask);
 		break;
+	case INT_COMP_TYPE_NCH:
+		err_cnt = gaudi3_handle_nch_sei_err(hdev, data_size, die,
+							&eq_dynamic_entry->nch_sei_data,
+							event_mask);
+		break;
 	case INT_COMP_TYPE_NIC:
 		macro_index = die * NIC_NUM_MACROS_PER_DIE + instance;
 		err_cnt = gaudi3_handle_nic_sei_err_event(hdev, data_size, macro_index,
@@ -14603,6 +14676,10 @@ static u32 gaudi3_handle_spi_event(struct hl_device *hdev,
 	case INT_COMP_TYPE_MME:
 		err_cnt = gaudi3_handle_mme_spi_events(hdev, data_size,
 							&eq_dynamic_entry->mme_spi_data);
+		break;
+	case INT_COMP_TYPE_NCH:
+		err_cnt = gaudi3_handle_nch_spi(hdev, die,
+						data_size, &eq_dynamic_entry->intr_cause);
 		break;
 	case INT_COMP_TYPE_NIC:
 		err_cnt = gaudi3_handle_nic_spi(hdev, die * NIC_NUM_MACROS_PER_DIE + instance,
