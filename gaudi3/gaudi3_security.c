@@ -514,6 +514,9 @@ int gaudi3_init_security(struct hl_device *hdev)
 {
 	int rc;
 
+	/* TODO - remove once SW-181592 is resolved */
+	return 0;
+
 	if (!hdev->security_enable)
 		return 0;
 
