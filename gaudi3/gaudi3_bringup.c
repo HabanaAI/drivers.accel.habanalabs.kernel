@@ -2975,7 +2975,7 @@ static void gaudi3_ac_add_instruction(struct hl_device *hdev, u32 etr_idx,
 
 static void gaudi3_ac_program(struct hl_device *hdev, u32 etr_idx)
 {
-	u32 doorbell, poll_mask, rwp, rwp_msb_mask;
+	u32 doorbell, poll_mask, rwp, rwp_msb_mask, buf_size;
 	u64 ac_off, etr_off;
 	u8 i = 0;
 
@@ -2987,8 +2987,11 @@ static void gaudi3_ac_program(struct hl_device *hdev, u32 etr_idx)
 			mmAUTONOMOUS_CONTROL_POLLING_MASK + ac_off;
 	rwp = CFG_BAR_BASE - LBW_BASE + mmD0_NCH_ETR_BASE + mmETR_RWP + etr_off;
 
+	/* read buffer size from ETR config */
+	buf_size = RREG32(mmD0_NCH_ETR_BASE + mmETR_RSZ + etr_off);
+
 	/* This assumes etr_buf_dram_size is power of 2 */
-	rwp_msb_mask = hdev->asic_prop.etr_buf_dram_size >> 1;
+	rwp_msb_mask = buf_size >> 1;
 
 	/*
 	 * Observing the buffer write pointer, we are waiting for an MSB flip.
@@ -3023,17 +3026,12 @@ static void gaudi3_ac_program(struct hl_device *hdev, u32 etr_idx)
 				AUTONOMOUS_CONTROL_CTRL_NUM_CMD_M);
 }
 
-static void gaudi3_ac_program_all(struct hl_device *hdev)
-{
-	u32 etr_idx;
-
-	for (etr_idx = 0; etr_idx < hdev->asic_prop.etr_buf_number; ++etr_idx)
-		gaudi3_ac_program(hdev, etr_idx);
-}
-
 void gaudi3_ac_start_no_fw(struct hl_device *hdev, u32 etr_idx)
 {
 	u64 base = gaudi3_etr_ac_config[etr_idx].ac_off;
+
+	/* program ac before enable */
+	gaudi3_ac_program(hdev, etr_idx);
 
 	RMWREG32(mmD0_NCH_AC_BASE + mmAUTONOMOUS_CONTROL_CTRL + base, 1,
 			AUTONOMOUS_CONTROL_CTRL_EN_M);
@@ -3190,7 +3188,6 @@ void gaudi3_hw_init_fw_config(struct hl_device *hdev)
 	gaudi3_init_regulators(hdev);
 	gaudi3_init_interrupt_coalescing(hdev);
 	gaudi3_init_mmu_fw_config(hdev);
-	gaudi3_ac_program_all(hdev);
 	gaudi3_enable_ptw_bypass(hdev);
 	gaudi3_init_qos(hdev);
 	if (aux_ops->sei_err_event_handler)
