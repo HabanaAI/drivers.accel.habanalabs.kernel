@@ -19,6 +19,7 @@
 #include <linux/dma-mapping.h>
 #include <linux/poll.h>
 #include <linux/etherdevice.h>
+#include <linux/eventfd.h>
 #ifdef _HAS_GEN_POOL_CHUNK_WITH_ATOMIC_LONG
 #include <linux/genalloc.h>
 #endif
@@ -984,5 +985,10 @@ irq_set_affinity_and_hint(unsigned int irq, const struct cpumask *m)
 	return irq_set_affinity_hint(irq, m);
 }
 #endif /* !_HAS_IRQ_AFFINITY_NEW_INTERFACE */
+
+#ifndef _HAS_EVENTFD_SIGNAL_SINGLE_PARAM
+#define eventfd_signal hl_eventfd_signal
+void hl_eventfd_signal(struct eventfd_ctx *ctx);
+#endif
 
 #endif /* HABANALABS_COMPAT_H_ */

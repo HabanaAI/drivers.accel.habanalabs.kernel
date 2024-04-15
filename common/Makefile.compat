@@ -417,3 +417,7 @@ endif
 ifneq ($(shell grep "irq_set_affinity_and_hint" include/linux/interrupt.h > /dev/null 2>&1 && echo 1),)
 	ccflags-y += -D_HAS_IRQ_AFFINITY_NEW_INTERFACE
 endif
+
+ifneq ($(shell grep "void eventfd_signal" include/linux/eventfd.h > /dev/null 2>&1 && echo 1),)
+	ccflags-y += -D_HAS_EVENTFD_SIGNAL_SINGLE_PARAM
+endif

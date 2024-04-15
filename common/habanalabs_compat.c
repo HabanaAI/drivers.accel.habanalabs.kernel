@@ -1671,3 +1671,11 @@ struct class *hl_class_create(const char *name)
 	return __class_create(THIS_MODULE, name, &__key);
 }
 #endif
+
+#ifndef _HAS_EVENTFD_SIGNAL_SINGLE_PARAM
+#undef eventfd_signal
+void hl_eventfd_signal(struct eventfd_ctx *ctx)
+{
+	eventfd_signal(ctx, 1);
+}
+#endif

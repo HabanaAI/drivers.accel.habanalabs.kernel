@@ -2418,16 +2418,11 @@ device_reset:
 static void hl_notifier_event_send(struct hl_device *hdev,
 			struct hl_notifier_event *notifier_event, u64 event_mask)
 {
-	u64 n;
-
 	mutex_lock(&notifier_event->lock);
 	notifier_event->events_mask |= event_mask;
 
-	if (notifier_event->eventfd) {
-		n = eventfd_signal(notifier_event->eventfd, 1);
-		if (n != 1)
-			dev_err(hdev->dev, "eventfd signal failed, incremented by %llu\n", n);
-	}
+	if (notifier_event->eventfd)
+		eventfd_signal(notifier_event->eventfd);
 
 	mutex_unlock(&notifier_event->lock);
 }
