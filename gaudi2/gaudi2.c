@@ -10842,19 +10842,11 @@ void gaudi2_handle_eqe(struct hl_device *hdev, struct hl_eq_entry *eq_entry)
 	}
 
 	/* Send unmask irq only for interrupts not classified as MSG */
-	if (!gaudi2_irq_map_table[event_type].msg) {
-		/* TODO remove this debug when SW-159137 is solved */
-		dev_dbg(hdev->dev, "call hl_fw_unmask_irq event_type=%u event_mask=0x%llx\n",
-				event_type, event_mask);
+	if (!gaudi2_irq_map_table[event_type].msg)
 		hl_fw_unmask_irq(hdev, event_type);
-	}
 
-	if (event_mask) {
-		/* TODO remove this debug when SW-159137 is solved */
-		dev_dbg(hdev->dev, "call notifier user event_type=%u, event_mask=0x%llx\n",
-			event_type, event_mask);
+	if (event_mask)
 		hl_notifier_event_send_all(hdev, event_mask);
-	}
 
 	return;
 
@@ -10870,9 +10862,6 @@ reset_device:
 		hl_handle_critical_hw_err(hdev, event_type, &event_mask);
 
 	event_mask |= HL_NOTIFIER_EVENT_DEVICE_RESET;
-	/* TODO remove this debug when SW-159137 is solved */
-	dev_dbg(hdev->dev, "do cond reset with event_type=0x%x, event_mask 0x%llx\n",
-				event_type, event_mask);
 	hl_device_cond_reset(hdev, reset_flags, event_mask);
 }
 

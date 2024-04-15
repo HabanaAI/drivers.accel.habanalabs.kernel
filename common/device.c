@@ -718,10 +718,6 @@ void hl_device_release(struct drm_device *ddev, struct drm_file *file_priv)
 
 	hdev->compute_ctx_in_release = 1;
 
-	/* SW-159137 TODO: remove dbg when issue solved */
-	dev_dbg(hdev->dev, "events when closing device: 0x%llx\n",
-				hpriv->notifier_event.events_mask);
-
 	if (!hl_hpriv_put(hpriv)) {
 		print_device_in_use_info(hdev, &mm_fini_stats,
 				"User process closed FD but device still in use");
@@ -2431,9 +2427,6 @@ static void hl_notifier_event_send(struct hl_device *hdev,
 		n = eventfd_signal(notifier_event->eventfd, 1);
 		if (n != 1)
 			dev_err(hdev->dev, "eventfd signal failed, incremented by %llu\n", n);
-	} else { /* TODO: this debug can be removed when SW-159137 is solved" */
-		dev_dbg(hdev->dev, "no eventfd is registered, events_mask=0x%llx\n",
-				notifier_event->events_mask);
 	}
 
 	mutex_unlock(&notifier_event->lock);
