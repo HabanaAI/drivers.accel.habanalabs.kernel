@@ -550,7 +550,6 @@ int gaudi_pci_bars_map(struct hl_device *hdev);
 void gaudi_pqe_write(struct hl_device *hdev, __le64 *pqe, struct hl_bd *bd);
 void gaudi_hw_queues_lock(struct hl_device *hdev);
 void gaudi_hw_queues_unlock(struct hl_device *hdev);
-u32 gaudi_get_pci_id(struct hl_device *hdev);
 void gaudi_mmu_prepare(struct hl_device *hdev, u32 asid);
 int gaudi_mmu_clear_pgt_range(struct hl_device *hdev);
 int gaudi_ctx_init(struct hl_ctx *ctx);

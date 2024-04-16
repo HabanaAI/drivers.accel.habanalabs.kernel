@@ -9,6 +9,7 @@
 #include "../include/gaudi3/asic_reg/gaudi3_regs.h"
 #include "../include/hw_ip/mmu/mmu_general.h"
 #include "../include/gaudi3/gaudi3_reg_map.h"
+#include "../include/common/pci_ids.h"
 
 #include <linux/pci.h>
 #include <linux/slab.h>
@@ -68,6 +69,7 @@ static int gaudi3_fpga_set_fixed_properties(struct hl_device *hdev)
 	/* no need in CB pool in FPGA */
 	prop->cb_pool_cb_cnt = 0;
 	prop->cb_pool_cb_size = 0;
+	prop->pci_id = hdev->pdev ? hdev->pdev->device : PCI_IDS_INVALID;
 
 	return 0;
 }
@@ -488,7 +490,6 @@ static const struct hl_asic_funcs gaudi3_fpga_funcs = {
 	.compute_reset_late_init = gaudi3_fpga_compute_reset_late_init,
 	.hw_queues_lock = gaudi3_hw_queues_lock,
 	.hw_queues_unlock = gaudi3_hw_queues_unlock,
-	.get_pci_id = gaudi3_get_pci_id,
 	.get_eeprom_data = gaudi3_get_eeprom_data,
 	.get_monitor_dump = gaudi3_get_monitor_dump,
 	.send_cpu_message = gaudi3_fpga_send_cpu_message,

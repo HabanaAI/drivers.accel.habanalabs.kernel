@@ -885,6 +885,7 @@ static int goya_sim_set_fixed_properties(struct hl_device *hdev)
 
 	prop->cb_pool_cb_cnt = GOYA_SIM_CB_POOL_CB_CNT;
 	prop->cb_pool_cb_size = GOYA_SIM_CB_POOL_CB_SIZE;
+	prop->pci_id = PCI_IDS_GOYA_SIMULATOR;
 
 	return 0;
 }
@@ -1291,11 +1292,6 @@ static void goya_sim_hw_queues_unlock(struct hl_device *hdev)
 	mutex_unlock(&goya->hw_queues_lock_mutex);
 }
 
-static u32 goya_sim_get_pci_id(struct hl_device *hdev)
-{
-	return PCI_IDS_GOYA_SIMULATOR;
-}
-
 static int goya_sim_get_eeprom_data(struct hl_device *hdev, void *data,
 		size_t max_size)
 {
@@ -1394,7 +1390,6 @@ static const struct hl_asic_funcs goya_sim_funcs = {
 	.compute_reset_late_init = goya_sim_compute_reset_late_init,
 	.hw_queues_lock = goya_sim_hw_queues_lock,
 	.hw_queues_unlock = goya_sim_hw_queues_unlock,
-	.get_pci_id = goya_sim_get_pci_id,
 	.get_eeprom_data = goya_sim_get_eeprom_data,
 	.get_monitor_dump = goya_get_monitor_dump,
 	.send_cpu_message = goya_send_cpu_message,

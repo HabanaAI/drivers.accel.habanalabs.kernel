@@ -898,7 +898,6 @@ void gaudi3_dma_pool_free(struct hl_device *hdev, void *vaddr,
 			dma_addr_t dma_addr);
 void gaudi3_add_device_attr(struct hl_device *hdev, struct attribute_group *dev_clk_attr_grp,
 			struct attribute_group *dev_vrm_attr_grp);
-u32 gaudi3_get_pci_id(struct hl_device *hdev);
 int gaudi3_coresight_init(struct hl_device *hdev);
 int gaudi3_debug_coresight(struct hl_device *hdev, struct hl_ctx *ctx, void *data);
 void gaudi3_halt_coresight(struct hl_device *hdev, struct hl_ctx *ctx);

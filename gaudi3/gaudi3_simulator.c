@@ -869,6 +869,22 @@ static int gaudi3_sim_set_binning_masks(struct hl_device *hdev)
 
 /* All the code below this point is the gaudi3 simulator device implementation */
 
+static u32 gaudi3_sim_get_pci_id(struct hl_device *hdev)
+{
+	switch (hdev->asic_type) {
+	case ASIC_GAUDI3_SIM:
+		return PCI_IDS_GAUDI3_SIMULATOR;
+	case ASIC_GAUDI3_SIM_ARC:
+		return PCI_IDS_GAUDI3_ARC_SIMULATOR;
+	case ASIC_GAUDI3_HL_338_SIM:
+		return PCI_IDS_GAUDI3_HL_338_SIMULATOR;
+	case ASIC_GAUDI3_HL_338_SIM_ARC:
+		return PCI_IDS_GAUDI3_HL_338_ARC_SIMULATOR;
+	default:
+		return PCI_IDS_GAUDI3_SIMULATOR;
+	}
+}
+
 static int gaudi3_sim_set_fixed_properties(struct hl_device *hdev)
 {
 	struct hl_simulator_device *edev = gaudi3_simulator_dev_table[hdev->id];
@@ -905,6 +921,7 @@ static int gaudi3_sim_set_fixed_properties(struct hl_device *hdev)
 	}
 
 	prop->support_glbl_priv_fetch = true;
+	prop->pci_id = gaudi3_sim_get_pci_id(hdev);
 
 	return 0;
 }
@@ -1439,22 +1456,6 @@ static int gaudi3_sim_resume(struct hl_device *hdev)
 	return 0;
 }
 
-static u32 gaudi3_sim_get_pci_id(struct hl_device *hdev)
-{
-	switch (hdev->asic_type) {
-	case ASIC_GAUDI3_SIM:
-		return PCI_IDS_GAUDI3_SIMULATOR;
-	case ASIC_GAUDI3_SIM_ARC:
-		return PCI_IDS_GAUDI3_ARC_SIMULATOR;
-	case ASIC_GAUDI3_HL_338_SIM:
-		return PCI_IDS_GAUDI3_HL_338_SIMULATOR;
-	case ASIC_GAUDI3_HL_338_SIM_ARC:
-		return PCI_IDS_GAUDI3_HL_338_ARC_SIMULATOR;
-	default:
-		return PCI_IDS_GAUDI3_SIMULATOR;
-	}
-}
-
 static int gaudi3_sim_get_eeprom_data(struct hl_device *hdev, void *data,
 		size_t max_size)
 {
@@ -1619,7 +1620,6 @@ static const struct hl_asic_funcs gaudi3_sim_funcs = {
 	.compute_reset_late_init = gaudi3_compute_reset_late_init,
 	.hw_queues_lock = gaudi3_hw_queues_lock,
 	.hw_queues_unlock = gaudi3_hw_queues_unlock,
-	.get_pci_id = gaudi3_sim_get_pci_id,
 	.get_eeprom_data = gaudi3_sim_get_eeprom_data,
 	.get_monitor_dump = gaudi3_get_monitor_dump,
 	.send_cpu_message = gaudi3_send_cpu_message,

@@ -136,7 +136,7 @@ static int hw_ip_info(struct hl_device *hdev, struct hl_info_args *args)
 	dram_kmd_size = (prop->dram_user_base_address -
 				prop->dram_base_address);
 
-	hw_ip.device_id = hdev->asic_funcs->get_pci_id(hdev);
+	hw_ip.device_id = prop->pci_id;
 	hw_ip.sram_base_address = prop->sram_user_base_address;
 	hw_ip.dram_base_address =
 			prop->dram_supports_virtual_memory ?

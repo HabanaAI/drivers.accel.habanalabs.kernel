@@ -971,6 +971,30 @@ static void gaudi2_sim_notify_reset(struct hl_device *hdev)
 
 /* All the code below this point is the gaudi2 sim device implementation */
 
+static u32 gaudi2_sim_get_pci_id(struct hl_device *hdev)
+{
+	switch (hdev->asic_type) {
+	case ASIC_GAUDI2_SIM:
+		return PCI_IDS_GAUDI2_SIMULATOR;
+	case ASIC_GAUDI2B_SIM:
+		return PCI_IDS_GAUDI2B_SIMULATOR;
+	case ASIC_GAUDI2C_SIM:
+		return PCI_IDS_GAUDI2C_SIMULATOR;
+	case ASIC_GAUDI2D_SIM:
+		return PCI_IDS_GAUDI2D_SIMULATOR;
+	case ASIC_GAUDI2_SIM_ARC:
+		return PCI_IDS_GAUDI2_ARC_SIMULATOR;
+	case ASIC_GAUDI2B_SIM_ARC:
+		return PCI_IDS_GAUDI2B_ARC_SIMULATOR;
+	case ASIC_GAUDI2C_SIM_ARC:
+		return PCI_IDS_GAUDI2C_ARC_SIMULATOR;
+	case ASIC_GAUDI2D_SIM_ARC:
+		return PCI_IDS_GAUDI2D_ARC_SIMULATOR;
+	default:
+		return PCI_IDS_GAUDI2_SIMULATOR;
+	}
+}
+
 static int gaudi2_sim_set_fixed_properties(struct hl_device *hdev)
 {
 	struct hl_simulator_device *edev = gaudi2_simulator_dev_table[hdev->id];
@@ -1021,6 +1045,8 @@ static int gaudi2_sim_set_fixed_properties(struct hl_device *hdev)
 			edma_idx++;
 		}
 	}
+
+	prop->pci_id = gaudi2_sim_get_pci_id(hdev);
 
 	return 0;
 }
@@ -1599,30 +1625,6 @@ static void gaudi2_sim_hw_queues_unlock(struct hl_device *hdev)
 	mutex_unlock(&gaudi2->hw_queues_lock_mutex);
 }
 
-static u32 gaudi2_sim_get_pci_id(struct hl_device *hdev)
-{
-	switch (hdev->asic_type) {
-	case ASIC_GAUDI2_SIM:
-		return PCI_IDS_GAUDI2_SIMULATOR;
-	case ASIC_GAUDI2B_SIM:
-		return PCI_IDS_GAUDI2B_SIMULATOR;
-	case ASIC_GAUDI2C_SIM:
-		return PCI_IDS_GAUDI2C_SIMULATOR;
-	case ASIC_GAUDI2D_SIM:
-		return PCI_IDS_GAUDI2D_SIMULATOR;
-	case ASIC_GAUDI2_SIM_ARC:
-		return PCI_IDS_GAUDI2_ARC_SIMULATOR;
-	case ASIC_GAUDI2B_SIM_ARC:
-		return PCI_IDS_GAUDI2B_ARC_SIMULATOR;
-	case ASIC_GAUDI2C_SIM_ARC:
-		return PCI_IDS_GAUDI2C_ARC_SIMULATOR;
-	case ASIC_GAUDI2D_SIM_ARC:
-		return PCI_IDS_GAUDI2D_ARC_SIMULATOR;
-	default:
-		return PCI_IDS_GAUDI2_SIMULATOR;
-	}
-}
-
 static int gaudi2_sim_get_eeprom_data(struct hl_device *hdev, void *data,
 		size_t max_size)
 {
@@ -1795,7 +1797,6 @@ static const struct hl_asic_funcs gaudi2_sim_funcs = {
 	.compute_reset_late_init = gaudi2_compute_reset_late_init,
 	.hw_queues_lock = gaudi2_sim_hw_queues_lock,
 	.hw_queues_unlock = gaudi2_sim_hw_queues_unlock,
-	.get_pci_id = gaudi2_sim_get_pci_id,
 	.get_eeprom_data = gaudi2_sim_get_eeprom_data,
 	.get_monitor_dump = gaudi2_get_monitor_dump,
 	.send_cpu_message = gaudi2_send_cpu_message,

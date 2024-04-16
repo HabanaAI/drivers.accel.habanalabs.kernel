@@ -10,6 +10,7 @@
 #include "../include/hw_ip/mmu/mmu_v1_0.h"
 #include "../include/goya/asic_reg/goya_masks.h"
 #include "../include/goya/goya_reg_map.h"
+#include "../include/common/pci_ids.h"
 
 #include <linux/module.h>
 #include <linux/pci.h>
@@ -484,18 +485,13 @@ int goya_set_fixed_properties(struct hl_device *hdev)
 	prop->fw_cpu_boot_dev_sts1_valid = false;
 	prop->hard_reset_done_by_fw = false;
 	prop->gic_interrupts_enable = true;
-
 	prop->server_type = HL_SERVER_TYPE_UNKNOWN;
-
 	prop->clk_pll_index = HL_GOYA_MME_PLL;
-
 	prop->use_get_power_for_reset_history = true;
-
 	prop->configurable_stop_on_err = true;
-
 	prop->set_max_power_on_device_init = true;
-
 	prop->dma_mask = 48;
+	prop->pci_id = hdev->pdev ? hdev->pdev->device : PCI_IDS_INVALID;
 
 	return 0;
 }
@@ -5237,11 +5233,6 @@ static void goya_hw_queues_unlock(struct hl_device *hdev)
 	spin_unlock(&goya->hw_queues_lock);
 }
 
-static u32 goya_get_pci_id(struct hl_device *hdev)
-{
-	return hdev->pdev->device;
-}
-
 static int goya_get_eeprom_data(struct hl_device *hdev, void *data,
 				size_t max_size)
 {
@@ -5553,7 +5544,6 @@ static const struct hl_asic_funcs goya_funcs = {
 	.compute_reset_late_init = goya_compute_reset_late_init,
 	.hw_queues_lock = goya_hw_queues_lock,
 	.hw_queues_unlock = goya_hw_queues_unlock,
-	.get_pci_id = goya_get_pci_id,
 	.get_eeprom_data = goya_get_eeprom_data,
 	.get_monitor_dump = goya_get_monitor_dump,
 	.send_cpu_message = goya_send_cpu_message,

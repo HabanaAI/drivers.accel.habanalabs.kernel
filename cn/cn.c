@@ -533,7 +533,7 @@ static int hl_cn_aux_data_init(struct hl_device *hdev)
 	aux_data->ext_ports_mask = cn->eth_ports_mask;
 	aux_data->auto_neg_mask = hdev->cn.auto_neg_mask;
 	aux_data->vendor_id = PCI_VENDOR_ID_HABANALABS;
-	aux_data->pci_id = hdev->asic_funcs->get_pci_id(hdev);
+	aux_data->pci_id = asic_props->pci_id;
 	aux_data->minor = hdev->id;
 	aux_data->fw_ver = asic_props->cpucp_info.cpucp_version;
 	aux_data->nic_drv_addr = asic_props->nic_drv_addr;

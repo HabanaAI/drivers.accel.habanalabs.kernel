@@ -869,6 +869,14 @@ static void gaudi_sim_notify_reset(struct hl_device *hdev)
 
 /* All the code below this point is the gaudi simulator device implementation */
 
+static u32 gaudi_sim_get_pci_id(struct hl_device *hdev)
+{
+	if (hdev->asic_type == ASIC_GAUDI_HL2000M_SIM)
+		return PCI_IDS_GAUDI_HL2000M_SIMULATOR;
+
+	return PCI_IDS_GAUDI_SIMULATOR;
+}
+
 void gaudi_sim_cn_early_init_props_ext(struct gaudi_cn_sim_properties *cn_prop)
 {
 	cn_prop->nic_drv_addr = GAUDI_SIM_NIC_DRV_ADDR;
@@ -910,6 +918,7 @@ static int gaudi_sim_set_fixed_properties(struct hl_device *hdev)
 	prop->cb_pool_cb_size = GAUDI_SIM_CB_POOL_CB_SIZE;
 	prop->nic_drv_addr = GAUDI_SIM_NIC_DRV_ADDR;
 	prop->nic_drv_size = GAUDI_SIM_NIC_DRV_SIZE;
+	prop->pci_id = gaudi_sim_get_pci_id(hdev);
 
 	return 0;
 }
@@ -1474,14 +1483,6 @@ static void gaudi_sim_hw_queues_unlock(struct hl_device *hdev)
 	mutex_unlock(&gaudi->hw_queues_lock_mutex);
 }
 
-static u32 gaudi_sim_get_pci_id(struct hl_device *hdev)
-{
-	if (hdev->asic_type == ASIC_GAUDI_HL2000M_SIM)
-		return PCI_IDS_GAUDI_HL2000M_SIMULATOR;
-
-	return PCI_IDS_GAUDI_SIMULATOR;
-}
-
 static int gaudi_sim_get_eeprom_data(struct hl_device *hdev, void *data,
 		size_t max_size)
 {
@@ -1591,7 +1592,6 @@ static const struct hl_asic_funcs gaudi_sim_funcs = {
 	.compute_reset_late_init = gaudi_compute_reset_late_init,
 	.hw_queues_lock = gaudi_sim_hw_queues_lock,
 	.hw_queues_unlock = gaudi_sim_hw_queues_unlock,
-	.get_pci_id = gaudi_sim_get_pci_id,
 	.get_eeprom_data = gaudi_sim_get_eeprom_data,
 	.get_monitor_dump = gaudi_get_monitor_dump,
 	.send_cpu_message = gaudi_send_cpu_message,

@@ -3889,6 +3889,8 @@ int gaudi3_set_fixed_properties(struct hl_device *hdev)
 		prop->dram_user_base_address = prop->dram_base_address + hbm_offset;
 	}
 
+	prop->pci_id = hdev->pdev ? hdev->pdev->device : PCI_IDS_INVALID;
+
 	return 0;
 
 free_hw_queues_props:
@@ -11728,11 +11730,6 @@ void gaudi3_hw_queues_unlock(struct hl_device *hdev)
 {
 }
 
-u32 gaudi3_get_pci_id(struct hl_device *hdev)
-{
-	return hdev->pdev->device;
-}
-
 int gaudi3_send_cpu_message(struct hl_device *hdev, u32 *msg, u16 len,
 					u32 timeout, u64 *result)
 {
@@ -14857,7 +14854,6 @@ static const struct hl_asic_funcs gaudi3_funcs = {
 	.compute_reset_late_init = gaudi3_compute_reset_late_init,
 	.hw_queues_lock = gaudi3_hw_queues_lock,
 	.hw_queues_unlock = gaudi3_hw_queues_unlock,
-	.get_pci_id = gaudi3_get_pci_id,
 	.get_eeprom_data = gaudi3_get_eeprom_data,
 	.get_monitor_dump = gaudi3_get_monitor_dump,
 	.send_cpu_message = gaudi3_send_cpu_message,

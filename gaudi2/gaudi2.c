@@ -17,6 +17,7 @@
 #include "../include/gaudi2/gaudi2_reg_map.h"
 #include "../include/gaudi2/gaudi2_async_ids_map_extended.h"
 #include "../include/gaudi2/arc/gaudi2_arc_common_packets.h"
+#include "../include/common/pci_ids.h"
 
 #include <linux/module.h>
 #include <linux/pci.h>
@@ -2626,7 +2627,7 @@ int gaudi2_set_fixed_properties(struct hl_device *hdev)
 
 	prop->pcie_flush_reg_addr = mmPSOC_TIMESTAMP_CNTCR;
 	prop->supports_advanced_cpucp_rc = true;
-
+	prop->pci_id = hdev->pdev ? hdev->pdev->device : PCI_IDS_INVALID;
 	return 0;
 
 free_qprops:
@@ -7955,11 +7956,6 @@ void gaudi2_init_cn(struct hl_device *hdev)
 	}
 }
 
-u32 gaudi2_get_pci_id(struct hl_device *hdev)
-{
-	return hdev->pdev->device;
-}
-
 int gaudi2_get_eeprom_data(struct hl_device *hdev, void *data, size_t max_size)
 {
 	struct gaudi2_device *gaudi2 = hdev->asic_specific;
@@ -12295,7 +12291,6 @@ static const struct hl_asic_funcs gaudi2_funcs = {
 	.compute_reset_late_init = gaudi2_compute_reset_late_init,
 	.hw_queues_lock = gaudi2_hw_queues_lock,
 	.hw_queues_unlock = gaudi2_hw_queues_unlock,
-	.get_pci_id = gaudi2_get_pci_id,
 	.get_eeprom_data = gaudi2_get_eeprom_data,
 	.get_monitor_dump = gaudi2_get_monitor_dump,
 	.send_cpu_message = gaudi2_send_cpu_message,

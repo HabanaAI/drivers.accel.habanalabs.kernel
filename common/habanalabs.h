@@ -794,6 +794,7 @@ struct hl_cn_properties {
  * @pcie_flush_reg_addr: this address is used for pcie flush operation.
  * @fw_event_queue_size: queue size for events from CPU-CP.
  *                       A value of 0 means using the default HL_EQ_SIZE_IN_BYTES value.
+ * @pci_id: PCI ID
  * @collective_first_sob: first sync object available for collective use
  * @collective_first_mon: first monitor available for collective use
  * @sync_stream_first_sob: first sync object available for sync stream use
@@ -958,6 +959,7 @@ struct asic_fixed_properties {
 	u32				reserved_fw_mem_size;
 	u32				pcie_flush_reg_addr;
 	u32				fw_event_queue_size;
+	u32				pci_id;
 	u16				collective_first_sob;
 	u16				collective_first_mon;
 	u16				sync_stream_first_sob;
@@ -1796,7 +1798,6 @@ struct engines_data {
  * @compute_reset_late_init: perform certain actions needed after a compute reset
  * @hw_queues_lock: acquire H/W queues lock.
  * @hw_queues_unlock: release H/W queues lock.
- * @get_pci_id: retrieve PCI ID.
  * @get_eeprom_data: retrieve EEPROM data from F/W.
  * @get_monitor_dump: retrieve monitor registers dump from F/W.
  * @send_cpu_message: send message to F/W. If the message is timedout, the
@@ -1950,7 +1951,6 @@ struct hl_asic_funcs {
 	int (*compute_reset_late_init)(struct hl_device *hdev);
 	void (*hw_queues_lock)(struct hl_device *hdev);
 	void (*hw_queues_unlock)(struct hl_device *hdev);
-	u32 (*get_pci_id)(struct hl_device *hdev);
 	int (*get_eeprom_data)(struct hl_device *hdev, void *data, size_t max_size);
 	int (*get_monitor_dump)(struct hl_device *hdev, void *data);
 	int (*send_cpu_message)(struct hl_device *hdev, u32 *msg,

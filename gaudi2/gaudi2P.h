@@ -787,7 +787,6 @@ void *gaudi2_dma_pool_zalloc(struct hl_device *hdev, size_t size, gfp_t mem_flag
 void gaudi2_dma_pool_free(struct hl_device *hdev, void *vaddr, dma_addr_t dma_addr);
 void gaudi2_hw_queues_lock(struct hl_device *hdev);
 void gaudi2_hw_queues_unlock(struct hl_device *hdev);
-u32 gaudi2_get_pci_id(struct hl_device *hdev);
 void gaudi2_enable_events_from_fw(struct hl_device *hdev);
 void gaudi2_init_firmware_loader(struct hl_device *hdev);
 int gaudi2_init_cpu(struct hl_device *hdev);

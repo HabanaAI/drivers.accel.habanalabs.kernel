@@ -13,6 +13,7 @@
 #include "../include/gaudi/gaudi_fw_if.h"
 #include "../include/gaudi/gaudi_reg_map.h"
 #include "../include/gaudi/gaudi_async_ids_map_extended.h"
+#include "../include/common/pci_ids.h"
 
 #include <linux/module.h>
 #include <linux/pci.h>
@@ -709,6 +710,7 @@ int gaudi_set_fixed_properties(struct hl_device *hdev)
 	prop->nic_drv_addr = NIC_DRV_ADDR;
 	prop->nic_drv_size = NIC_DRV_SIZE;
 	prop->macro_cfg_size = mmNIC1_QM0_GLBL_CFG0 - mmNIC0_QM0_GLBL_CFG0;
+	prop->pci_id = hdev->pdev ? hdev->pdev->device : PCI_IDS_INVALID;
 	cn_prop->status_packet_size = NIC_STATUS_PACKET_SIZE;
 	cn_prop->max_num_of_ports = NIC_NUMBER_OF_PORTS;
 
@@ -8668,11 +8670,6 @@ void gaudi_hw_queues_unlock(struct hl_device *hdev)
 	spin_unlock(&gaudi->hw_queues_lock);
 }
 
-u32 gaudi_get_pci_id(struct hl_device *hdev)
-{
-	return hdev->pdev->device;
-}
-
 int gaudi_get_eeprom_data(struct hl_device *hdev, void *data, size_t max_size)
 {
 	struct gaudi_device *gaudi = hdev->asic_specific;
@@ -9794,7 +9791,6 @@ static const struct hl_asic_funcs gaudi_funcs = {
 	.compute_reset_late_init = gaudi_compute_reset_late_init,
 	.hw_queues_lock = gaudi_hw_queues_lock,
 	.hw_queues_unlock = gaudi_hw_queues_unlock,
-	.get_pci_id = gaudi_get_pci_id,
 	.get_eeprom_data = gaudi_get_eeprom_data,
 	.get_monitor_dump = gaudi_get_monitor_dump,
 	.send_cpu_message = gaudi_send_cpu_message,
