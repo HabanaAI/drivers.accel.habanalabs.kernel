@@ -34,7 +34,8 @@
 #define GAUDI3_FPGA_DRAM_SIZE		0x200000000ull  /* 8GB  */
 
 #define GAUDI3_FPGA_SRAM_BASE		(GAUDI3_FPGA_DRAM_BASE + GAUDI3_FPGA_DRAM_SIZE)
-#define GAUDI3_FPGA_SRAM_USR_BASE	(GAUDI3_FPGA_SRAM_BASE + SRAM_MODE_0_SINGLE_DIE_OFFSET)
+#define GAUDI3_FPGA_SRAM_MODE_0_OFFSET	0xD000000ull
+#define GAUDI3_FPGA_SRAM_USR_BASE	(GAUDI3_FPGA_SRAM_BASE + GAUDI3_FPGA_SRAM_MODE_0_OFFSET)
 
 #define GAUDI3_FPGA_SRAM_SIZE			0x600000ull	/* 6MB  */
 #define GAUDI3_FPGA_WAIT_FOR_BL_TIMEOUT_USEC	15000000	/* 15s */
@@ -206,7 +207,7 @@ static void gaudi3_fpga_set_pci_memory_regions(struct hl_device *hdev)
 	region = &hdev->pci_mem_region[PCI_REGION_SRAM];
 	region->region_base = GAUDI3_FPGA_SRAM_USR_BASE;
 	region->region_size = GAUDI3_FPGA_SRAM_SIZE;
-	region->offset_in_bar = GAUDI3_FPGA_DRAM_SIZE + SRAM_MODE_0_SINGLE_DIE_OFFSET;
+	region->offset_in_bar = GAUDI3_FPGA_DRAM_SIZE + GAUDI3_FPGA_SRAM_MODE_0_OFFSET;
 	region->bar_size = prop->dram_pci_bar_size;
 	region->bar_id = SRAM_DRAM_BAR_ID;
 	region->used = 1;

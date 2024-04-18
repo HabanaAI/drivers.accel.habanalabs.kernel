@@ -3650,7 +3650,7 @@ int gaudi3_set_fixed_properties(struct hl_device *hdev)
 	prop->pdma_grp_ch_max = NUM_OF_PDMA_CH_PER_GRP;
 
 	/* Note that SRAM memory might be used before operating as a cache */
-	sram_start_offset = SRAM_MODE_0_DOUBLE_DIE_OFFSET;
+	sram_start_offset = SRAM_MODE_0_OFFSET;
 
 	prop->sram_base_address = SRAM_BASE_ADDR + sram_start_offset;
 	prop->sram_size = SRAM_SIZE - sram_start_offset;

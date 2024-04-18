@@ -136,6 +136,9 @@
 #define NUM_OF_CBC_RANGES			4
 #define NUM_OF_CBC_INVALIDATION_REGS_SETS	5
 
+#define SRAM_MODE_0_OFFSET	0xA000000ull
+
+/* TODO: remove once these 2 defines are not used (SW-170094) */
 #define SRAM_MODE_0_DOUBLE_DIE_OFFSET	0xA000000ull
 #define SRAM_MODE_0_SINGLE_DIE_OFFSET	0xD000000ull
 
