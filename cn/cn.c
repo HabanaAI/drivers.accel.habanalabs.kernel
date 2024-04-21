@@ -915,56 +915,19 @@ int hl_cn_control(struct hl_device *hdev, u32 op, void *input,	void *output, str
 int hl_cn_ctx_init(struct hl_ctx *ctx)
 {
 	struct hl_device *hdev = ctx->hdev;
-	struct hl_cn_funcs *cn_funcs = hdev->asic_funcs->cn_funcs;
-	struct hl_cn *cn = &hdev->cn;
-	struct hbl_aux_dev *aux_dev = &cn->cn_aux_dev;
-	struct hbl_cn_aux_ops *aux_ops;
-	int rc;
 
-	aux_ops = aux_dev->aux_ops;
-
-	if (!cn_funcs->get_hw_cap(hdev))
+	if (!hdev->asic_funcs->cn_funcs->get_hw_cap(hdev))
 		return 0;
 
-	/* must be done before calling CN ctx_init as it might be used there */
-	cn->ctx = ctx;
-
-	/* Used for non-IB flow only (not to be upstreamed) */
-	if (aux_ops->ctx_init) {
-		rc = aux_ops->ctx_init(aux_dev, ctx->asid);
-		if (rc) {
-			cn->ctx = NULL;
-			return rc;
-		}
-	}
+	/* save this ctx for future usage */
+	hdev->cn.ctx = ctx;
 
 	return 0;
 }
 
 void hl_cn_ctx_fini(struct hl_ctx *ctx)
 {
-	struct hl_device *hdev = ctx->hdev;
-	struct hl_cn *cn = &hdev->cn;
-	struct hbl_aux_dev *aux_dev = &cn->cn_aux_dev;
-	struct hbl_cn_aux_ops *aux_ops;
-
-	aux_ops = aux_dev->aux_ops;
-
-	/* Check the context pointer instead of the capability bit because the CN ctx_fini should
-	 * be called even if the ports are stopped.
-	 */
-	if (!cn->ctx)
-		return;
-
-	/* Used for non-IB flow only (not to be upstreamed) */
-	/* No need to check for NULL pointer because here the context is not NULL so we can be sure
-	 * that the aux_ops pointer is not NULL either.
-	 */
-	if (aux_ops->ctx_fini)
-		aux_ops->ctx_fini(aux_dev, ctx->asid);
-
-	/* must be done after calling CN ctx_fini as it might be used there */
-	cn->ctx = NULL;
+	ctx->hdev->cn.ctx = NULL;
 }
 
 int hl_cn_send_status(struct hl_device *hdev, int port, u8 cmd, u8 period)
