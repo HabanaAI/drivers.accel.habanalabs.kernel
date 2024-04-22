@@ -10,13 +10,6 @@
 #include "../include/gaudi2/gaudi2_async_ids_map_extended.h"
 #include "../include/hw_ip/nic/nic_general.h"
 
-enum gaudi2_setup_type {
-	GAUDI2_SETUP_TYPE_HLS2,
-	GAUDI2_SETUP_TYPE_HL225_S_EXT_LB,
-	GAUDI2_SETUP_TYPE_HL325_S_EXT_LB,
-	GAUDI2_SETUP_TYPE_HLS3
-};
-
 static bool gaudi2_cn_get_hw_cap(struct hl_device *hdev);
 
 int gaudi2_cn_handle_sw_error_event(struct hl_device *hdev, u16 event_type, u8 macro_index,
@@ -470,6 +463,7 @@ static void gaudi2_cn_set_cn_data(struct hl_device *hdev)
 	gaudi2_aux_data->irq_num_port_base = GAUDI2_IRQ_NUM_NIC_PORT_FIRST;
 	gaudi2_aux_data->sob_id_base = GAUDI2_RESERVED_SOB_NIC_PORT_FIRST;
 	gaudi2_aux_data->sob_inc_cfg_val = GAUDI2_SOB_INCREMENT_BY_ONE;
+	gaudi2_aux_data->setup_type = hdev->gaudi2_setup_type;
 
 	/* cn2accel */
 	gaudi2_aux_ops->get_event_name = gaudi2_cn_get_event_name;

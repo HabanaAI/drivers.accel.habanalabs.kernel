@@ -575,7 +575,6 @@ static int hl_cn_aux_data_init(struct hl_device *hdev)
 	aux_data->cpucp_checkers_shift = NIC_CHECKERS_CHECK_SHIFT;
 	aux_data->num_of_dies = hdev->asic_prop.num_of_dies;
 
-	aux_data->gaudi2_setup_type = hdev->gaudi2_setup_type;
 	aux_data->gaudi3_setup_type = hdev->gaudi3_setup_type;
 
 	rc = hl_cn_get_asic_type(hdev, &aux_data->asic_type);
