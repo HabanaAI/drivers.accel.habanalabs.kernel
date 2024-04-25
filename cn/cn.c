@@ -581,9 +581,6 @@ static int hl_cn_aux_data_init(struct hl_device *hdev)
 	aux_ops->device_operational = hl_cn_device_operational;
 	aux_ops->hw_access_lock = hl_cn_hw_access_lock;
 	aux_ops->hw_access_unlock = hl_cn_hw_access_unlock;
-	aux_ops->spmu_get_stats_info = hl_cn_spmu_get_stats_info;
-	aux_ops->spmu_config = hl_cn_spmu_config;
-	aux_ops->spmu_sample = hl_cn_spmu_sample;
 	aux_ops->device_reset = hl_cn_device_reset;
 	aux_ops->vm_dev_mmu_map = hl_cn_vm_dev_mmu_map;
 	aux_ops->vm_dev_mmu_unmap = hl_cn_vm_dev_mmu_unmap;
@@ -594,7 +591,6 @@ static int hl_cn_aux_data_init(struct hl_device *hdev)
 	aux_ops->rreg = hl_cn_rreg;
 	aux_ops->wreg = hl_cn_wreg;
 	aux_ops->get_reg_pcie_addr = hl_cn_get_reg_pcie_addr;
-	aux_ops->set_priv_assertions = hl_cn_set_priv_assertions;
 	aux_ops->register_cn_user_context = hl_cn_register_cn_user_context;
 	aux_ops->deregister_cn_user_context = hl_cn_deregister_cn_user_context;
 	aux_ops->vm_create = hl_cn_vm_create;
@@ -602,8 +598,6 @@ static int hl_cn_aux_data_init(struct hl_device *hdev)
 	aux_ops->get_vm_info = hl_cn_get_vm_info;
 	aux_ops->poll_reg = hl_cn_poll_reg;
 	aux_ops->get_cpucp_info = hl_cn_get_cpucp_info;
-	aux_ops->send_cpu_message = hl_cn_send_cpu_message;
-	aux_ops->post_send_status = hl_cn_post_send_status;
 
 	cn_funcs->set_cn_data(hdev);
 
