@@ -885,17 +885,12 @@ void hl_cn_stop(struct hl_device *hdev)
 void hl_cn_hard_reset_prepare(struct hl_device *hdev)
 {
 	struct hl_cn_funcs *cn_funcs = hdev->asic_funcs->cn_funcs;
-	struct hbl_aux_dev *aux_dev = &hdev->cn.cn_aux_dev;
-	struct hbl_cn_aux_ops *aux_ops;
-
-	aux_ops = aux_dev->aux_ops;
 
 	if (!cn_funcs->get_hw_cap(hdev))
 		return;
 
-	if (aux_ops->ports_stop_prepare)
-		aux_ops->ports_stop_prepare(aux_dev, hdev->reset_info.fw_reset,
-						hdev->device_fini_pending);
+	cn_funcs->port_funcs->ports_stop_prepare(hdev, hdev->reset_info.fw_reset,
+							hdev->device_fini_pending);
 }
 
 int hl_cn_control(struct hl_device *hdev, u32 op, void *input,	void *output, struct hl_ctx *ctx)
@@ -975,10 +970,6 @@ void hl_cn_ctx_fini(struct hl_ctx *ctx)
 int hl_cn_send_status(struct hl_device *hdev, int port, u8 cmd, u8 period)
 {
 	struct hl_cn_funcs *cn_funcs = hdev->asic_funcs->cn_funcs;
-	struct hbl_aux_dev *aux_dev = &hdev->cn.cn_aux_dev;
-	struct hbl_cn_aux_ops *aux_ops;
-
-	aux_ops = aux_dev->aux_ops;
 
 	if (!cn_funcs->get_hw_cap(hdev)) {
 		if (cmd != HBL_CN_STATUS_PERIODIC_STOP)
@@ -986,10 +977,7 @@ int hl_cn_send_status(struct hl_device *hdev, int port, u8 cmd, u8 period)
 		return 0;
 	}
 
-	if (aux_ops->send_port_cpucp_status)
-		return aux_ops->send_port_cpucp_status(aux_dev, port, cmd, period);
-
-	return -EFAULT;
+	return cn_funcs->port_funcs->send_port_cpucp_status(hdev, port, cmd, period);
 }
 
 void hl_cn_synchronize_irqs(struct hl_device *hdev)
@@ -1045,18 +1033,11 @@ int hl_cn_get_port_statistics(struct hl_device *hdev, u32 port,
 				struct hbl_cn_port_statistics *out)
 {
 	struct hl_cn_funcs *cn_funcs = hdev->asic_funcs->cn_funcs;
-	struct hbl_aux_dev *aux_dev = &hdev->cn.cn_aux_dev;
-	struct hbl_cn_aux_ops *aux_ops;
-
-	aux_ops = aux_dev->aux_ops;
 
 	if (!cn_funcs->get_hw_cap(hdev))
 		return -EFAULT;
 
-	if (aux_ops->get_port_statistics)
-		return aux_ops->get_port_statistics(aux_dev, port, out);
-
-	return -EFAULT;
+	return cn_funcs->port_funcs->get_port_statistics(hdev, port, out);
 }
 
 #ifdef _HAS_AUX_BUS_H
