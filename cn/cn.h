@@ -83,6 +83,9 @@ struct hl_cn {
  * @spmu_config: config the SPMU.
  * @spmu_sample: read the SPMU counters.
  * @post_send_status: ASIC-specific handler for post sending status packet to FW.
+ * @ports_stop_prepare: prepare the ports for a stop.
+ * @send_port_cpucp_status: Send port status to FW.
+ * @get_port_statistics: Get port statistics.
  */
 struct hl_cn_port_funcs {
 	void (*spmu_get_stats_info)(struct hl_device *hdev, u32 port, struct hbl_cn_stat **stats,
@@ -91,6 +94,10 @@ struct hl_cn_port_funcs {
 				bool enable);
 	int (*spmu_sample)(struct hl_device *hdev, u32 port, u32 num_out_data, u64 out_data[]);
 	void (*post_send_status)(struct hl_device *hdev, u32 port);
+	void (*ports_stop_prepare)(struct hl_device *hdev, bool fw_reset, bool in_teardown);
+	int (*send_port_cpucp_status)(struct hl_device *hdev, u32 port, u8 cmd, u8 period);
+	int (*get_port_statistics)(struct hl_device *hdev, u32 port,
+				   struct hbl_cn_port_statistics *out);
 };
 
 /**
