@@ -606,11 +606,54 @@ static void gaudi_cn_post_send_status(struct hl_device *hdev, u32 port)
 	hl_fw_unmask_irq(hdev, GAUDI_EVENT_STATUS_NIC0_ENG0 + port);
 }
 
+static void gaudi_cn_ports_stop_prepare(struct hl_device *hdev, bool fw_reset, bool in_teardown)
+{
+	struct gaudi_device *gaudi = hdev->asic_specific;
+	struct gaudi_cn_aux_ops *gaudi_aux_ops;
+	struct hl_cn *cn = &hdev->cn;
+	struct hbl_aux_dev *aux_dev;
+
+	aux_dev = &cn->cn_aux_dev;
+	gaudi_aux_ops = &gaudi->cn_aux_ops;
+
+	gaudi_aux_ops->ports_stop_prepare(aux_dev, fw_reset, in_teardown);
+}
+
+static int gaudi_cn_send_port_cpucp_status(struct hl_device *hdev, u32 port, u8 cmd, u8 period)
+{
+	struct gaudi_device *gaudi = hdev->asic_specific;
+	struct gaudi_cn_aux_ops *gaudi_aux_ops;
+	struct hl_cn *cn = &hdev->cn;
+	struct hbl_aux_dev *aux_dev;
+
+	aux_dev = &cn->cn_aux_dev;
+	gaudi_aux_ops = &gaudi->cn_aux_ops;
+
+	return gaudi_aux_ops->send_port_cpucp_status(aux_dev, port, cmd, period);
+}
+
+static int gaudi_cn_get_port_statistics(struct hl_device *hdev, u32 port,
+					struct hbl_cn_port_statistics *out)
+{
+	struct gaudi_device *gaudi = hdev->asic_specific;
+	struct gaudi_cn_aux_ops *gaudi_aux_ops;
+	struct hl_cn *cn = &hdev->cn;
+	struct hbl_aux_dev *aux_dev;
+
+	aux_dev = &cn->cn_aux_dev;
+	gaudi_aux_ops = &gaudi->cn_aux_ops;
+
+	return gaudi_aux_ops->get_port_statistics(aux_dev, port, out);
+}
+
 static struct hl_cn_port_funcs gaudi_cn_port_funcs = {
 	.spmu_get_stats_info = gaudi_cn_spmu_get_stats_info,
 	.spmu_config = gaudi_cn_spmu_config,
 	.spmu_sample = gaudi_cn_spmu_sample,
 	.post_send_status = gaudi_cn_post_send_status,
+	.ports_stop_prepare = gaudi_cn_ports_stop_prepare,
+	.send_port_cpucp_status = gaudi_cn_send_port_cpucp_status,
+	.get_port_statistics = gaudi_cn_get_port_statistics,
 };
 
 struct hl_cn_funcs gaudi_cn_funcs = {
