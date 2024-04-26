@@ -68,75 +68,75 @@ static struct hl_pci_link_monitor hl_pci_mon;
 #define HL_DEFAULT_TIMEOUT_LOCKED	30	/* 30 seconds */
 #define GAUDI_DEFAULT_TIMEOUT_LOCKED	600	/* 10 minutes */
 
-static int timeout_locked = HL_DEFAULT_TIMEOUT_LOCKED;
-static int reset_on_lockup = 1;
-static int memory_scrub;
+static uint timeout_locked = HL_DEFAULT_TIMEOUT_LOCKED;
+static bool reset_on_lockup = true;
+static bool memory_scrub;
 static ulong boot_error_status_mask = ULONG_MAX;
 
 /* Parameters that don't need bringup_flags_enable but are not upstreamed */
-static int low_freq;
-static int card_type = cpucp_card_type_pmc;
+static bool low_freq;
+static uint card_type = cpucp_card_type_pmc;
 static uint nic_ports_mask = GENMASK(23, 0);
 static uint nic_ports_ext_mask = GENMASK(23, 0);
 static uint nic_auto_neg_mask = GENMASK(23, 0);
-static int ignore_fw_nic_info;
-static int nic_lanes_per_port = PORT_LANES_2;
-static int skip_iatu_for_unsecured_device;
-static int reset_upon_device_release = 1;
-static int gaudi2_setup_type;
+static bool ignore_fw_nic_info;
+static uint nic_lanes_per_port = PORT_LANES_2;
+static uint skip_iatu_for_unsecured_device;
+static bool reset_upon_device_release = true;
+static uint gaudi2_setup_type;
 static ulong enable_events_tracing;
 static char *tracefs_mnt = "/sys/kernel/debug/tracing";
-static int ignore_eeprom_errors;
-static int gaudi3_setup_type;
-static int serdes_type = 0xFFFF;
-static int card_location = 8;
+static bool ignore_eeprom_errors;
+static uint gaudi3_setup_type;
+static uint serdes_type = 0xFFFF;
+static uint card_location = 8;
 
 /* Parameters for bring-up/debugging */
-static int pldm;
-static int bringup_flags_enable;
-static int bfe_gaudi_huge_page_optimization = 1;
-static int bfe_clock_gating = 1;
+static bool pldm;
+static bool bringup_flags_enable;
+static bool bfe_gaudi_huge_page_optimization = true;
+static bool bfe_clock_gating = true;
 static uint bfe_mme_mask = 0x3;
 static ulong bfe_tpc_mask = 0x3FF;
 static uint bfe_decoder_mask = 0x3FF;
 static uint bfe_rotator_mask = 0x3;
 static uint bfe_pdma_ch_mask = 0xFFF;
 static uint bfe_edma_mask = 0xF;
-static int bfe_dram_enable = 1;
-static int bfe_reset_pcilink;
-static int bfe_config_pll;
+static bool bfe_dram_enable = true;
+static bool bfe_reset_pcilink;
+static bool bfe_config_pll;
 static ulong bfe_fw_components = FW_TYPE_ALL_TYPES;
-static int bfe_fw_communication_enable = 1;
-static int bfe_heartbeat = 1;
-static int bfe_axi_drain = AXI_DRAIN_SKIP;
-static int bfe_security_enable = 1;
-static int bfe_sram_scrambler_enable = 1;
-static int bfe_dram_scrambler_enable = 1;
-static int bfe_hbm_ecc_enable = 1;
-static int bfe_compatibility_mode;
-static int bfe_hard_reset_on_fw_events = 1;
-static int bfe_bmc_enable = 1;
-static int bfe_nic_load_fw;
-static int bfe_rl_enable = 1;
-static int bfe_sram_binning;
+static bool bfe_fw_communication_enable = true;
+static bool bfe_heartbeat = true;
+static uint bfe_axi_drain = AXI_DRAIN_SKIP;
+static bool bfe_security_enable = true;
+static bool bfe_sram_scrambler_enable = true;
+static bool bfe_dram_scrambler_enable = true;
+static bool bfe_hbm_ecc_enable = true;
+static bool bfe_compatibility_mode;
+static bool bfe_hard_reset_on_fw_events = true;
+static bool bfe_bmc_enable = true;
+static uint bfe_nic_load_fw;
+static bool bfe_rl_enable = true;
+static uint bfe_sram_binning;
 static ulong bfe_tpc_binning = 0x1000000; /* 25th tpc is binned by default */
 static ulong bfe_dram_binning;
 static uint bfe_edma_binning;
 static uint bfe_decoder_binning = 0x200; /* 10th decoder is binned by default */
-static int bfe_reset_on_preboot_fail = 1;
-static int bfe_force_driver_clock_gating;
-static int bfe_pll_async_if_enable;
-static int bfe_bootfit_relocatable;
-static int bfe_reset_if_device_not_idle = 1;
-static int bfe_hbm_pll_freq = 1600;
-static int bfe_half_nominal_pll_mode;
-static int bfe_scrub_arc_dccm;
-static int bfe_skip_cluster_config = 1;
-static int bfe_fw_cfg_skip;
-static int bfe_bmu_enable = 1;
-static int bfe_nic_eth_on_internal;
-static int bfe_config_qman_arc_for_stub_mme;
-static int bfe_skip_nic_phy_init;
+static bool bfe_reset_on_preboot_fail = true;
+static bool bfe_force_driver_clock_gating;
+static bool bfe_pll_async_if_enable;
+static bool bfe_bootfit_relocatable;
+static bool bfe_reset_if_device_not_idle = true;
+static uint bfe_hbm_pll_freq = 1600;
+static bool bfe_half_nominal_pll_mode;
+static bool bfe_scrub_arc_dccm;
+static bool bfe_skip_cluster_config = true;
+static bool bfe_fw_cfg_skip;
+static bool bfe_bmu_enable = true;
+static bool bfe_nic_eth_on_internal;
+static bool bfe_config_qman_arc_for_stub_mme;
+static bool bfe_skip_nic_phy_init;
 /*
  * The debug_[rw]reg control on tracing LBW RW
  * The logic is as follow
@@ -149,50 +149,50 @@ static int bfe_skip_nic_phy_init;
  * In which case the user should load LKD with  bfe_debug_[rw]reg = 0
  * and wrap the specific code with hdev->debug_[rw]reg = 1 and 0.
  */
-static int bfe_debug_rreg = 1;
-static int bfe_debug_wreg = 1;
+static bool bfe_debug_rreg = true;
+static bool bfe_debug_wreg = true;
 static ulong bfe_sched_arc_mask = 0xFFFF;
-static int bfe_enable_odp = 1;
-static int bfe_cache_enable;
-static int bfe_enable_intr_aggr;
-static int bfe_halt_eng_upon_fw_events;
+static bool bfe_enable_odp = true;
+static bool bfe_cache_enable;
+static bool bfe_enable_intr_aggr;
+static bool bfe_halt_eng_upon_fw_events;
 static ulong bfe_hmmu_supported_pages_mask;
 static ulong bfe_hmmu_default_page_size;
-static int bfe_priv_security_enable;
+static bool bfe_priv_security_enable;
 static uint bfe_mme_row_repair_l;
 static uint bfe_mme_row_repair_h;
-static int bfe_pci_rev_id;
-static int bfe_ptw_bypass_enable = 1;
+static bool bfe_pci_rev_id;
+static bool bfe_ptw_bypass_enable = true;
 static uint bfe_rotator_binning;
-static int bfe_hbm_compression_enable;
-static int bfe_nic_enable_h9_rx_drop_eco = 1;
-static int bfe_enable_h9_cache_eta_eco = 1;
-static int bfe_nic_enable_h9_qp_doorbells_eco = 1;
-static int bfe_nic_enable_h9_cc_msg_drops_eco = 1;
-static int bfe_nic_enable_h9_remote_pi_update_eco = 1;
-static int bfe_nic_enable_h9_rxb_mem_deadlock_eco = 1;
-static int bfe_nic_enable_h9_single_qp_perf_fix_eco = 1;
-static int bfe_nic_enable_h9_sal_override_eco = 1;
-static int bfe_nic_enable_h9_sack_deadlock_eco = 1;
-static int bfe_nic_enable_h9_txe_buff_alloc_eco = 1;
-static int bfe_nic_enable_h9_phy_mac_hang_eco = 1;
-static int bfe_heartbeat_reset_enable = 1;
-static int bfe_glbl_errors_read_enable = 1;
+static bool bfe_hbm_compression_enable;
+static bool bfe_nic_enable_h9_rx_drop_eco = true;
+static bool bfe_enable_h9_cache_eta_eco = true;
+static bool bfe_nic_enable_h9_qp_doorbells_eco = true;
+static bool bfe_nic_enable_h9_cc_msg_drops_eco = true;
+static bool bfe_nic_enable_h9_remote_pi_update_eco = true;
+static bool bfe_nic_enable_h9_rxb_mem_deadlock_eco = true;
+static bool bfe_nic_enable_h9_single_qp_perf_fix_eco = true;
+static bool bfe_nic_enable_h9_sal_override_eco = true;
+static bool bfe_nic_enable_h9_sack_deadlock_eco = true;
+static bool bfe_nic_enable_h9_txe_buff_alloc_eco = true;
+static bool bfe_nic_enable_h9_phy_mac_hang_eco = true;
+static bool bfe_heartbeat_reset_enable = true;
+static bool bfe_glbl_errors_read_enable = true;
 
 /* TODO: remove when regulators configuration is updated in FW (SW-181200) */
-static int bfe_disable_h9_regulartors;
+static bool bfe_disable_h9_regulartors;
 
 /* module parameters */
 
-module_param(timeout_locked, int, 0444);
+module_param(timeout_locked, uint, 0444);
 MODULE_PARM_DESC(timeout_locked,
 	"Device lockup timeout in seconds (0 = disabled, default 30s)");
 
-module_param(reset_on_lockup, int, 0444);
+module_param(reset_on_lockup, bool, 0444);
 MODULE_PARM_DESC(reset_on_lockup,
 	"Do device reset on lockup (0 = no, 1 = yes, default yes)");
 
-module_param(memory_scrub, int, 0444);
+module_param(memory_scrub, bool, 0444);
 MODULE_PARM_DESC(memory_scrub,
 	"Scrub device memory in various states (0 = no, 1 = yes, default no)");
 
@@ -201,11 +201,11 @@ MODULE_PARM_DESC(boot_error_status_mask,
 	"Mask of the error status during device CPU boot (If bitX is cleared then error X is masked. Default all 1's)");
 
 /* flags not upstreamed */
-module_param(low_freq, int, 0444);
+module_param(low_freq, bool, 0444);
 MODULE_PARM_DESC(low_freq,
 	"Enable low PLL frequency mode (0 = no, 1 = yes, default no)");
 
-module_param(card_type, int, 0444);
+module_param(card_type, uint, 0444);
 MODULE_PARM_DESC(card_type,
 	"Card type (0 = PCI, 1 = PMC, default PMC)");
 
@@ -221,7 +221,7 @@ module_param(nic_auto_neg_mask, uint, 0444);
 MODULE_PARM_DESC(nic_auto_neg_mask,
 	"NIC Autoneg mask, 1 bit per NIC port (0 = none, default enable Autoneg on all ports)");
 
-module_param(ignore_fw_nic_info, uint, 0444);
+module_param(ignore_fw_nic_info, bool, 0444);
 MODULE_PARM_DESC(ignore_fw_nic_info,
 	"Ignore NIC info from FW (0 = no, 1 = yes, default no)");
 
@@ -233,11 +233,11 @@ module_param(skip_iatu_for_unsecured_device, uint, 0444);
 MODULE_PARM_DESC(skip_iatu_for_unsecured_device,
 	"Skip the initialization of iATU for unsecured device and assume the F/W has done it (0 = no, 1 = yes, 2 = force no for Gaudi2, default yes for Gaudi2, no for all the rest)");
 
-module_param(reset_upon_device_release, int, 0444);
+module_param(reset_upon_device_release, bool, 0444);
 MODULE_PARM_DESC(reset_upon_device_release,
 	"Enable reset upon device release, relevant for GAUDI2 and later (0 = no, 1 = yes, default yes)");
 
-module_param(gaudi2_setup_type, int, 0444);
+module_param(gaudi2_setup_type, uint, 0444);
 MODULE_PARM_DESC(gaudi2_setup_type,
 	"The type of setup according to which the gaudi2 PHY should be configured (0 - HLS2, 1 - HL225-S with external loopbacks, 2 - HL325-S with external loopbacks, 3 - HLS3, default 0)");
 
@@ -248,36 +248,36 @@ MODULE_PARM_DESC(enable_events_tracing,
 module_param(tracefs_mnt, charp, 0444);
 MODULE_PARM_DESC(tracefs_mnt, "string representing full path to tracefs mount point. default /sys/kernel/debug/tracing");
 
-module_param(ignore_eeprom_errors, int, 0444);
+module_param(ignore_eeprom_errors, bool, 0444);
 MODULE_PARM_DESC(ignore_eeprom_errors,
 	"Ignore eeprom errors (0 - disabled, 1 - enabled, default 0)");
 
-module_param(gaudi3_setup_type, int, 0444);
+module_param(gaudi3_setup_type, uint, 0444);
 MODULE_PARM_DESC(gaudi3_setup_type,
 	"The type of setup according to which the gaudi3 PHY should be configured (0 - HLS3, 1 - HL325-S with external loopbacks, default 0)");
 
-module_param(serdes_type, int, 0444);
+module_param(serdes_type, uint, 0444);
 MODULE_PARM_DESC(serdes_type,
 	"The type of SerDes according to which the external port mask is configured ([0-0xFFFF] - for supported values description refer cpucp_if.h, default 0xFFFF - unknown type)");
 
-module_param(card_location, int, 0444);
+module_param(card_location, uint, 0444);
 MODULE_PARM_DESC(card_location,
 	"The card location index inside the BMC, this affects the external port mask configuration ([0 - 7] - supported slot range, default 0 - disable)");
 
 /* Bring-Up flags */
-module_param(pldm, int, 0444);
+module_param(pldm, bool, 0444);
 MODULE_PARM_DESC(pldm,
 	"Palladium (0 = no, 1 = yes, default no)");
 
-module_param(bringup_flags_enable, int, 0444);
+module_param(bringup_flags_enable, bool, 0444);
 MODULE_PARM_DESC(bringup_flags_enable,
 	"Enable bring-up flags (0 = no, 1 = yes, default no)");
 
-module_param(bfe_gaudi_huge_page_optimization, int, 0444);
+module_param(bfe_gaudi_huge_page_optimization, bool, 0444);
 MODULE_PARM_DESC(bfe_gaudi_huge_page_optimization,
 	"GAUDI MMU huge page optimization enabled (0 = no, 1 = yes, default yes)");
 
-module_param(bfe_clock_gating, int, 0444);
+module_param(bfe_clock_gating, bool, 0444);
 MODULE_PARM_DESC(bfe_clock_gating,
 	"Enable clock gating (0 = disabled, 1 = enabled, default enabled, N/A for GOYA/GAUDI, N/A when f/w is loaded)");
 
@@ -305,15 +305,15 @@ module_param(bfe_edma_mask, uint, 0444);
 MODULE_PARM_DESC(bfe_edma_mask,
 	"EDMA mask, 1 bit per EDMA instance (0 = none, default ALL EDMAs enabled). Relevant to Gaudi3 and later");
 
-module_param(bfe_dram_enable, int, 0444);
+module_param(bfe_dram_enable, bool, 0444);
 MODULE_PARM_DESC(bfe_dram_enable,
 	"DRAM enabled (0 = no, 1 = yes, default yes)");
 
-module_param(bfe_reset_pcilink, int, 0444);
+module_param(bfe_reset_pcilink, bool, 0444);
 MODULE_PARM_DESC(bfe_reset_pcilink,
 	"Reset PCIe link before init (0 = no, 1 = yes, default no)");
 
-module_param(bfe_config_pll, int, 0444);
+module_param(bfe_config_pll, bool, 0444);
 MODULE_PARM_DESC(bfe_config_pll,
 	"Configure PLL (0 = no, 1 = yes, default no)");
 
@@ -321,55 +321,55 @@ module_param(bfe_fw_components, ulong, 0444);
 MODULE_PARM_DESC(bfe_fw_components,
 	"Bitmask for various firmwares indication (values in enum hl_fw_types, default FW_TYPE_ALL_TYPES)");
 
-module_param(bfe_fw_communication_enable, int, 0444);
+module_param(bfe_fw_communication_enable, bool, 0444);
 MODULE_PARM_DESC(bfe_fw_communication_enable,
 	"Enable communication with the firmware (0 = no, 1 = yes, default yes)");
 
-module_param(bfe_heartbeat, int, 0444);
+module_param(bfe_heartbeat, bool, 0444);
 MODULE_PARM_DESC(bfe_heartbeat,
 	"Enable device CPU heartbeat check (0 = no, 1 = yes, default yes)");
 
-module_param(bfe_axi_drain, int, 0444);
+module_param(bfe_axi_drain, uint, 0444);
 MODULE_PARM_DESC(bfe_axi_drain,
 	"Enable/Skip AXI drain (values in enum hl_axi_drain_mode, default AXI_DRAIN_SKIP)");
 
-module_param(bfe_security_enable, int, 0444);
+module_param(bfe_security_enable, bool, 0444);
 MODULE_PARM_DESC(bfe_security_enable,
 	"Enable security (0 = no, 1 = yes, default yes)");
 
-module_param(bfe_sram_scrambler_enable, int, 0444);
+module_param(bfe_sram_scrambler_enable, bool, 0444);
 MODULE_PARM_DESC(bfe_sram_scrambler_enable,
 	"Enable SRAM scrambler (0 = no, 1 = yes, default yes)");
 
-module_param(bfe_dram_scrambler_enable, int, 0444);
+module_param(bfe_dram_scrambler_enable, bool, 0444);
 MODULE_PARM_DESC(bfe_dram_scrambler_enable,
 	"Enable DRAM scrambler (0 = no, 1 = yes, default yes)");
 
-module_param(bfe_hbm_ecc_enable, int, 0444);
+module_param(bfe_hbm_ecc_enable, bool, 0444);
 MODULE_PARM_DESC(bfe_hbm_ecc_enable,
 	"Enable HBM ECC (0 = no, 1 = yes, default yes)");
 
-module_param(bfe_compatibility_mode, int, 0444);
+module_param(bfe_compatibility_mode, bool, 0444);
 MODULE_PARM_DESC(bfe_compatibility_mode,
 	"Enable compatibility mode (0 = no, 1 = yes, default no)");
 
-module_param(bfe_hard_reset_on_fw_events, int, 0444);
+module_param(bfe_hard_reset_on_fw_events, bool, 0444);
 MODULE_PARM_DESC(bfe_hard_reset_on_fw_events,
 	"Perform hard-reset on relevant F/W events (0 = no, 1 = yes, default yes)");
 
-module_param(bfe_bmc_enable, int, 0444);
+module_param(bfe_bmc_enable, bool, 0444);
 MODULE_PARM_DESC(bfe_bmc_enable,
 	"BMC enable (0 = no, 1 = yes, default yes)");
 
-module_param(bfe_nic_load_fw, int, 0444);
+module_param(bfe_nic_load_fw, uint, 0444);
 MODULE_PARM_DESC(bfe_nic_load_fw,
 	"Load NIC PHY F/W (0 = no, 1 = yes, 2 = decide whether to load the FW or not depending on the existing conditions, default no)");
 
-module_param(bfe_rl_enable, int, 0444);
+module_param(bfe_rl_enable, bool, 0444);
 MODULE_PARM_DESC(bfe_rl_enable,
 	"Enable rate limiters in compatibility mode (0 = no, 1 = yes, default yes)");
 
-module_param(bfe_sram_binning, int, 0444);
+module_param(bfe_sram_binning, uint, 0444);
 MODULE_PARM_DESC(bfe_sram_binning,
 	"Categorize SRAM functionality (0 = fully functional, 1 = lower-half is not functional, 2 = upper-half is not functional, default 0)");
 
@@ -389,85 +389,85 @@ module_param(bfe_edma_binning, uint, 0444);
 MODULE_PARM_DESC(bfe_edma_binning,
 	"EDMA binning mask, 1 bit per DMA instance (0 = functional, 1 = binned), maximum 1");
 
-module_param(bfe_reset_on_preboot_fail, int, 0444);
+module_param(bfe_reset_on_preboot_fail, bool, 0444);
 MODULE_PARM_DESC(bfe_reset_on_preboot_fail,
 	"Reset on preboot version read fail (0 = no, 1 = yes, default yes)");
 
-module_param(bfe_force_driver_clock_gating, int, 0444);
+module_param(bfe_force_driver_clock_gating, bool, 0444);
 MODULE_PARM_DESC(bfe_force_driver_clock_gating,
 	"Force the driver to configure even if F/W should do it (0 = no, 1 = yes, default no)");
 
-module_param(bfe_pll_async_if_enable, int, 0444);
+module_param(bfe_pll_async_if_enable, bool, 0444);
 MODULE_PARM_DESC(bfe_pll_async_if_enable,
 	"Set PLL through async IF (0 = no, 1 = yes, default no)");
 
-module_param(bfe_bootfit_relocatable, int, 0444);
+module_param(bfe_bootfit_relocatable, bool, 0444);
 MODULE_PARM_DESC(bfe_bootfit_relocatable,
 	"If Boot Fit is relocatable it will be copied out of SRAM after booting (0 = no, 1 = yes, default no)");
 
-module_param(bfe_reset_if_device_not_idle, int, 0444);
+module_param(bfe_reset_if_device_not_idle, bool, 0444);
 MODULE_PARM_DESC(bfe_reset_if_device_not_idle,
 	"Perform reset if device is not idle upon user FD close (0 = no, 1 = yes, default yes)");
 
-module_param(bfe_hbm_pll_freq, int, 0444);
+module_param(bfe_hbm_pll_freq, uint, 0444);
 MODULE_PARM_DESC(bfe_hbm_pll_freq,
 	"Recommended frequency for the HBM in MHz (possible values: 1200, 1600, 1800, Default=1600");
 
-module_param(bfe_half_nominal_pll_mode, int, 0444);
+module_param(bfe_half_nominal_pll_mode, bool, 0444);
 MODULE_PARM_DESC(bfe_half_nominal_pll_mode,
 	"Configures the MSS pll in half of nominal mode (0 = no, 1 = yes, default no)");
 
-module_param(bfe_nic_eth_on_internal, int, 0444);
+module_param(bfe_nic_eth_on_internal, bool, 0444);
 MODULE_PARM_DESC(bfe_nic_eth_on_internal,
 	"Enable Ethernet capabilities on internal NIC ports (0 = no, 1 = yes, default no)");
 
-module_param(bfe_scrub_arc_dccm, int, 0444);
+module_param(bfe_scrub_arc_dccm, bool, 0444);
 MODULE_PARM_DESC(bfe_scrub_arc_dccm,
 	"scrub ARC dccm upon soft/hard reset (0 = no, 1 = yes, default no)");
 
-module_param(bfe_skip_cluster_config, int, 0444);
+module_param(bfe_skip_cluster_config, bool, 0444);
 MODULE_PARM_DESC(bfe_skip_cluster_config,
 	"skip implicit binning/isolation of faulty HBM cluster's components (0 = no, 1 = yes, default no)");
 
-module_param(bfe_config_qman_arc_for_stub_mme, int, 0444);
+module_param(bfe_config_qman_arc_for_stub_mme, bool, 0444);
 MODULE_PARM_DESC(bfe_config_qman_arc_for_stub_mme,
 	"Configure ARC and QMAN for stubbed MME (0 = no, 1 = yes, default no)");
 
-module_param(bfe_fw_cfg_skip, int, 0444);
+module_param(bfe_fw_cfg_skip, bool, 0444);
 MODULE_PARM_DESC(bfe_fw_cfg_skip,
 	"instruct FW to skip all configurations performed by uboot (0 = no, 1 = yes, default no)");
 
-module_param(bfe_bmu_enable, int, 0444);
+module_param(bfe_bmu_enable, bool, 0444);
 MODULE_PARM_DESC(bfe_bmu_enable,
 	"use BMU (Bar Mapping Unit), relevant for Gaudi3 or later (0 = no, 1 = yes, default yes)");
 
-module_param(bfe_skip_nic_phy_init, uint, 0444);
+module_param(bfe_skip_nic_phy_init, bool, 0444);
 MODULE_PARM_DESC(bfe_skip_nic_phy_init,
 	"Avoid writing/reading PHY registers, relevant for Gaudi2 or later (0 = no, 1 = yes, default no)");
 
-module_param(bfe_debug_rreg, int, 0444);
+module_param(bfe_debug_rreg, bool, 0444);
 MODULE_PARM_DESC(bfe_debug_rreg, "Debug all reads from registers (0 = no, 1 = yes, default no)");
 
-module_param(bfe_debug_wreg, int, 0444);
+module_param(bfe_debug_wreg, bool, 0444);
 MODULE_PARM_DESC(bfe_debug_wreg, "Debug all writes to registers (0 = no, 1 = yes, default no)");
 
 module_param(bfe_sched_arc_mask, ulong, 0444);
 MODULE_PARM_DESC(bfe_sched_arc_mask,
 	"Scheduler arcs mask relevant for Gaudi2 or later, 1 bit per scheduler arc (0 = none, default: All Enabled)");
 
-module_param(bfe_enable_odp, int, 0444);
+module_param(bfe_enable_odp, bool, 0444);
 MODULE_PARM_DESC(bfe_enable_odp,
 	"Flag to enable or disable ODP hardware support (0 - ODP disabled, 1 - ODP enabled, default 1)");
 
-module_param(bfe_cache_enable, int, 0444);
+module_param(bfe_cache_enable, bool, 0444);
 MODULE_PARM_DESC(bfe_cache_enable,
 	"Enable cache mode instead of sram, relevant for Gaudi3 or later (0 = no, 1 = yes, default no)");
 
-module_param(bfe_enable_intr_aggr, int, 0444);
+module_param(bfe_enable_intr_aggr, bool, 0444);
 MODULE_PARM_DESC(bfe_enable_intr_aggr,
 	"Enable interrupt aggregators messages, relevant for Gaudi3 or later (0 = no, 1 = yes, default no)");
 
-module_param(bfe_halt_eng_upon_fw_events, int, 0444);
+module_param(bfe_halt_eng_upon_fw_events, bool, 0444);
 MODULE_PARM_DESC(bfe_halt_eng_upon_fw_events,
 	"Perform halt engines upon FW events (0 = no, 1 = yes, default no), supported in gaudi2");
 
@@ -479,7 +479,7 @@ module_param(bfe_hmmu_default_page_size, ulong, 0444);
 MODULE_PARM_DESC(bfe_hmmu_default_page_size,
 	"Set default HMMU page size (must be value supported by HMMU, 0 mean use defined default, default 0)");
 
-module_param(bfe_priv_security_enable, int, 0444);
+module_param(bfe_priv_security_enable, bool, 0444);
 MODULE_PARM_DESC(bfe_priv_security_enable,
 	"Enable privileged PB security & assert upon invalid access. Relevant only for GaudiX devices (0 = no, 1 = yes, default no)");
 
@@ -489,74 +489,74 @@ MODULE_PARM_DESC(bfe_mme_row_repair_l, "MME row repair mask lower 32 bits, defau
 module_param(bfe_mme_row_repair_h, uint, 0444);
 MODULE_PARM_DESC(bfe_mme_row_repair_h, "MME row repair mask higher 32 bits, default 0");
 
-module_param(bfe_pci_rev_id, int, 0444);
-MODULE_PARM_DESC(bfe_pci_rev_id, "Override PCI revision ID, (0 means do not override, default 0)");
+module_param(bfe_pci_rev_id, bool, 0444);
+MODULE_PARM_DESC(bfe_pci_rev_id, "Override PCI revision ID (0 = do not override, 1 = override, default no)");
 
-module_param(bfe_ptw_bypass_enable, int, 0444);
+module_param(bfe_ptw_bypass_enable, bool, 0444);
 MODULE_PARM_DESC(bfe_ptw_bypass_enable,
-	"Flag to enable or disable PTW bypass support(0 - disabled, 1 - enabled, default 1)");
+	"Flag to enable or disable PTW bypass support (0 - disabled, 1 - enabled, default 1)");
 
 module_param(bfe_rotator_binning, uint, 0444);
 MODULE_PARM_DESC(bfe_rotator_binning,
-	"Rotator binning mask, 1 bit per rotator instance(relevant for Gaudi3 and above), default 0");
+	"Rotator binning mask, 1 bit per rotator instance (relevant for Gaudi3 and above), default 0");
 
-module_param(bfe_hbm_compression_enable, int, 0444);
+module_param(bfe_hbm_compression_enable, bool, 0444);
 MODULE_PARM_DESC(bfe_hbm_compression_enable,
 	"Enable HBM compression, relevant for Gaudi3 or later (0 = no, 1 = yes, default no)");
 
-module_param(bfe_nic_enable_h9_rx_drop_eco, int, 0444);
+module_param(bfe_nic_enable_h9_rx_drop_eco, bool, 0444);
 MODULE_PARM_DESC(bfe_nic_enable_h9_rx_drop_eco,
 	"Enable H9-5384 ECO, which avoids packet drops in RXB (0 - disabled, 1 - enabled, default 1)");
 
-module_param(bfe_enable_h9_cache_eta_eco, int, 0444);
+module_param(bfe_enable_h9_cache_eta_eco, bool, 0444);
 MODULE_PARM_DESC(bfe_enable_h9_cache_eta_eco,
 	"Enable H9 Cache ETA ECO (0 - disabled, 1 - enabled, default 1)");
 
-module_param(bfe_nic_enable_h9_qp_doorbells_eco, int, 0444);
+module_param(bfe_nic_enable_h9_qp_doorbells_eco, bool, 0444);
 MODULE_PARM_DESC(bfe_nic_enable_h9_qp_doorbells_eco,
 	"Enable H9-4960 ECO, fixes unexpectedly doorbells for QPs with no work in QPC (0 - disabled, 1 - enabled, default 1)");
 
-module_param(bfe_nic_enable_h9_cc_msg_drops_eco, int, 0444);
+module_param(bfe_nic_enable_h9_cc_msg_drops_eco, bool, 0444);
 MODULE_PARM_DESC(bfe_nic_enable_h9_cc_msg_drops_eco,
 	"Enable H9-5456 ECO, fixes message drops in CC mode when SACK enabled (0 - disabled, 1 - enabled, default 1)");
 
-module_param(bfe_nic_enable_h9_remote_pi_update_eco, int, 0444);
+module_param(bfe_nic_enable_h9_remote_pi_update_eco, bool, 0444);
 MODULE_PARM_DESC(bfe_nic_enable_h9_remote_pi_update_eco,
 	"Enable H9-5490 ECO, fixes remote PI wrong update on wraparound (0 - disabled, 1 - enabled, default 1)");
 
-module_param(bfe_nic_enable_h9_rxb_mem_deadlock_eco, int, 0444);
+module_param(bfe_nic_enable_h9_rxb_mem_deadlock_eco, bool, 0444);
 MODULE_PARM_DESC(bfe_nic_enable_h9_rxb_mem_read_deadlock_eco,
 	"Enable H9-5454 ECO, fixes RXB memory read deadlock (0 - disabled, 1 - enabled, default 1)");
 
-module_param(bfe_nic_enable_h9_single_qp_perf_fix_eco, int, 0444);
+module_param(bfe_nic_enable_h9_single_qp_perf_fix_eco, bool, 0444);
 MODULE_PARM_DESC(bfe_nic_enable_h9_single_qp_perf_fix_eco,
 	"Enable H9-5216 ECO, fixes single QP performance (0 - disabled, 1 - enabled, default 1)");
 
-module_param(bfe_nic_enable_h9_sal_override_eco, int, 0444);
+module_param(bfe_nic_enable_h9_sal_override_eco, bool, 0444);
 MODULE_PARM_DESC(bfe_nic_enable_h9_sal_override_eco,
 	"Enable H9-5499 ECO, fixes SAL override issue (0 - disabled, 1 - enabled, default 1)");
 
-module_param(bfe_nic_enable_h9_sack_deadlock_eco, int, 0444);
+module_param(bfe_nic_enable_h9_sack_deadlock_eco, bool, 0444);
 MODULE_PARM_DESC(bfe_nic_enable_h9_sack_deadlock_eco,
 	"Enable H9-5457 ECO, fixes SACK deadlock (0 - disabled, 1 - enabled, default 1)");
 
-module_param(bfe_nic_enable_h9_txe_buff_alloc_eco, int, 0444);
+module_param(bfe_nic_enable_h9_txe_buff_alloc_eco, bool, 0444);
 MODULE_PARM_DESC(bfe_nic_enable_h9_txe_buff_alloc_eco,
 	"Enable H9-5471 ECO, fixes TXE buff allocation issue (0 - disabled, 1 - enabled, default 1)");
 
-module_param(bfe_nic_enable_h9_phy_mac_hang_eco, int, 0444);
+module_param(bfe_nic_enable_h9_phy_mac_hang_eco, bool, 0444);
 MODULE_PARM_DESC(bfe_nic_enable_h9_phy_mac_hang_eco,
 	"Enable H9-5194 ECO, fixes PHY-MAC hang issue (0 - disabled, 1 - enabled, default 1)");
 
-module_param(bfe_heartbeat_reset_enable, int, 0444);
+module_param(bfe_heartbeat_reset_enable, bool, 0444);
 MODULE_PARM_DESC(bfe_heartbeat_reset_enable,
 	"Enable hard-reset after heartbeat failure (0 - disabled, 1 - enabled, default 1)");
 
-module_param(bfe_glbl_errors_read_enable, int, 0444);
+module_param(bfe_glbl_errors_read_enable, bool, 0444);
 MODULE_PARM_DESC(bfe_glbl_errors_read_enable,
 	"Enable global errors read iterator (0 - disabled, 1 - enabled, default 1)");
 
-module_param(bfe_disable_h9_regulartors, int, 0444);
+module_param(bfe_disable_h9_regulartors, bool, 0444);
 MODULE_PARM_DESC(bfe_disable_h9_regulartors,
 	"Disable MME/TPC regulators on a H9 device (0 = no, 1 = yes, default no)");
 
@@ -1284,7 +1284,7 @@ static void copy_bfe_params_to_device(struct hl_device *hdev)
 	hdev->pldm = pldm;
 	hdev->bringup_flags_enable = bringup_flags_enable;
 	if (hdev->pldm)
-		hdev->bringup_flags_enable = 1;
+		hdev->bringup_flags_enable = true;
 
 	if (!hdev->bringup_flags_enable)
 		return;
@@ -1409,7 +1409,7 @@ static void fixup_device_params_per_asic(struct hl_device *hdev, int timeout)
 			hdev->timeout_jiffies = msecs_to_jiffies(GAUDI_DEFAULT_TIMEOUT_LOCKED *
 										MSEC_PER_SEC);
 
-		hdev->reset_upon_device_release = 0;
+		hdev->reset_upon_device_release = false;
 		break;
 
 	case ASIC_GAUDI2_SIM:
@@ -1454,7 +1454,7 @@ static void fixup_device_params_per_asic(struct hl_device *hdev, int timeout)
 		hdev->mmu_disable = true;
 		break;
 	default:
-		hdev->reset_upon_device_release = 0;
+		hdev->reset_upon_device_release = false;
 		break;
 	}
 }
