@@ -1806,9 +1806,9 @@ struct engines_data {
  *                    then the timeout is the default timeout for the specific
  *                    ASIC
  * @get_hw_state: retrieve the H/W state
- * @cn_init: init the CN H/W and I/F. This should be called in the final satge
- *            of the init flow, as we must not have anything that might fail
- *            during its initialization after the CN init.
+ * @cn_init: init the CN H/W and I/F. This should be called in the final stage
+ *           of the init flow, as we must not have anything that might fail
+ *           during its initialization after the CN init.
  * @cn_fini: perform CN cleanup.
  * @cn_control: Perform CN related operations.
  * @pci_bars_map: Map PCI BARs.
