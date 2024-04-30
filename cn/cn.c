@@ -75,22 +75,22 @@ static bool hl_cn_device_operational(struct hbl_aux_dev *aux_dev)
 	return hl_device_operational(hdev, NULL);
 }
 
-static void hl_cn_hw_access_lock(struct hbl_aux_dev *aux_dev)
-	__acquires(&hdev->cn.hw_access_lock)
+static void hl_cn_device_lock(struct hbl_aux_dev *aux_dev)
+	__acquires(&hdev->cn.device_lock)
 {
 	struct hl_cn *cn = container_of(aux_dev, struct hl_cn, cn_aux_dev);
 	struct hl_device *hdev = container_of(cn, struct hl_device, cn);
 
-	mutex_lock(&hdev->cn.hw_access_lock);
+	mutex_lock(&hdev->cn.device_lock);
 }
 
-static void hl_cn_hw_access_unlock(struct hbl_aux_dev *aux_dev)
-	__releases(&hdev->cn.hw_access_lock)
+static void hl_cn_device_unlock(struct hbl_aux_dev *aux_dev)
+	__releases(&hdev->cn.device_lock)
 {
 	struct hl_cn *cn = container_of(aux_dev, struct hl_cn, cn_aux_dev);
 	struct hl_device *hdev = container_of(cn, struct hl_device, cn);
 
-	mutex_unlock(&hdev->cn.hw_access_lock);
+	mutex_unlock(&hdev->cn.device_lock);
 }
 
 static void hl_cn_device_reset(struct hbl_aux_dev *aux_dev)
@@ -260,7 +260,7 @@ void hl_cn_post_send_status(struct hbl_aux_dev *aux_dev, u32 port)
 	port_funcs->post_send_status(hdev, port);
 }
 
-static u32 hl_cn_dram_readl(struct hbl_aux_dev *aux_dev, u64 addr)
+static u32 hl_cn_read_mem(struct hbl_aux_dev *aux_dev, u64 addr)
 {
 	struct hl_cn *cn = container_of(aux_dev, struct hl_cn, cn_aux_dev);
 	struct hl_device *hdev = container_of(cn, struct hl_device, cn);
@@ -274,7 +274,7 @@ static u32 hl_cn_dram_readl(struct hbl_aux_dev *aux_dev, u64 addr)
 	return val;
 }
 
-static void hl_cn_dram_writel(struct hbl_aux_dev *aux_dev, u32 val, u64 addr)
+static void hl_cn_write_mem(struct hbl_aux_dev *aux_dev, u32 val, u64 addr)
 {
 	struct hl_cn *cn = container_of(aux_dev, struct hl_cn, cn_aux_dev);
 	struct hl_device *hdev = container_of(cn, struct hl_device, cn);
@@ -579,15 +579,19 @@ static int hl_cn_aux_data_init(struct hl_device *hdev)
 
 	/* set cn -> accel ops */
 	aux_ops->device_operational = hl_cn_device_operational;
-	aux_ops->hw_access_lock = hl_cn_hw_access_lock;
-	aux_ops->hw_access_unlock = hl_cn_hw_access_unlock;
+	aux_ops->hw_access_lock = hl_cn_device_lock;
+	aux_ops->hw_access_unlock = hl_cn_device_unlock;
+	aux_ops->device_lock = hl_cn_device_lock;
+	aux_ops->device_unlock = hl_cn_device_unlock;
 	aux_ops->device_reset = hl_cn_device_reset;
 	aux_ops->vm_dev_mmu_map = hl_cn_vm_dev_mmu_map;
 	aux_ops->vm_dev_mmu_unmap = hl_cn_vm_dev_mmu_unmap;
 	aux_ops->vm_reserve_dva_block = hl_cn_vm_reserve_dva_block;
 	aux_ops->vm_unreserve_dva_block = hl_cn_vm_unreserve_dva_block;
-	aux_ops->dram_readl = hl_cn_dram_readl;
-	aux_ops->dram_writel = hl_cn_dram_writel;
+	aux_ops->dram_readl = hl_cn_read_mem;
+	aux_ops->dram_writel = hl_cn_write_mem;
+	aux_ops->read_mem = hl_cn_read_mem;
+	aux_ops->write_mem = hl_cn_write_mem;
 	aux_ops->rreg = hl_cn_rreg;
 	aux_ops->wreg = hl_cn_wreg;
 	aux_ops->get_reg_pcie_addr = hl_cn_get_reg_pcie_addr;

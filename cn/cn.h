@@ -41,7 +41,7 @@ struct hl_ctx;
  * struct hl_cn - habanalabs CN common structure.
  * @cn_aux_dev: pointer to CN auxiliary device structure.
  * @ctx: compute user context.
- * @hw_access_lock: protects the HW access from CN flows.
+ * @device_lock: protects the HW access from CN flows.
  * @ports_mask: contains mask of the CN ports that are enabled, as received from the f/w. This
  *              field can contain different values based on the server type
  * @ports_ext_mask: contains mask of the CN ports that are external (used for scale-out), as
@@ -63,7 +63,7 @@ struct hl_ctx;
 struct hl_cn {
 	struct hbl_aux_dev	cn_aux_dev;
 	struct hl_ctx		*ctx;
-	struct mutex		hw_access_lock;
+	struct mutex		device_lock;
 	u64			ports_mask;
 	u64			ports_ext_mask;
 	u64			auto_neg_mask;

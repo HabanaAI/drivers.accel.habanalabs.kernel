@@ -1249,7 +1249,7 @@ static int device_early_init(struct hl_device *hdev)
 	INIT_LIST_HEAD(&hdev->fpriv_ctrl_list);
 	mutex_init(&hdev->fpriv_list_lock);
 	mutex_init(&hdev->fpriv_ctrl_list_lock);
-	mutex_init(&hdev->cn.hw_access_lock);
+	mutex_init(&hdev->cn.device_lock);
 	mutex_init(&hdev->clk_throttling.lock);
 
 	return 0;
@@ -1294,7 +1294,7 @@ static void device_early_fini(struct hl_device *hdev)
 	mutex_destroy(&hdev->debug_lock);
 	mutex_destroy(&hdev->send_cpu_message_lock);
 
-	mutex_destroy(&hdev->cn.hw_access_lock);
+	mutex_destroy(&hdev->cn.device_lock);
 	mutex_destroy(&hdev->fpriv_list_lock);
 	mutex_destroy(&hdev->fpriv_ctrl_list_lock);
 
@@ -1583,8 +1583,8 @@ static void take_release_locks(struct hl_device *hdev)
 	mutex_unlock(&hdev->fpriv_ctrl_list_lock);
 
 	/* Flush CN flows */
-	mutex_lock(&hdev->cn.hw_access_lock);
-	mutex_unlock(&hdev->cn.hw_access_lock);
+	mutex_lock(&hdev->cn.device_lock);
+	mutex_unlock(&hdev->cn.device_lock);
 }
 
 static void hl_release_pending_etr_buf_store_threads(struct hl_device *hdev)
