@@ -711,6 +711,11 @@ int gaudi_set_fixed_properties(struct hl_device *hdev)
 	prop->nic_drv_size = NIC_DRV_SIZE;
 	prop->macro_cfg_size = mmNIC1_QM0_GLBL_CFG0 - mmNIC0_QM0_GLBL_CFG0;
 	prop->pci_id = hdev->pdev ? hdev->pdev->device : PCI_IDS_INVALID;
+	prop->signal_cb_size = sizeof(struct packet_msg_short) + sizeof(struct packet_msg_prot) * 2;
+	prop->wait_cb_size =
+		sizeof(struct packet_msg_short) * 4 +
+		sizeof(struct packet_fence) +
+		sizeof(struct packet_msg_prot) * 2;
 	cn_prop->status_packet_size = NIC_STATUS_PACKET_SIZE;
 	cn_prop->max_num_of_ports = NIC_NUMBER_OF_PORTS;
 
@@ -8940,19 +8945,6 @@ u32 gaudi_get_queue_id_for_cq(struct hl_device *hdev, u32 cq_idx)
 	return gaudi_cq_assignment[cq_idx];
 }
 
-u32 gaudi_get_signal_cb_size(struct hl_device *hdev)
-{
-	return sizeof(struct packet_msg_short) +
-			sizeof(struct packet_msg_prot) * 2;
-}
-
-u32 gaudi_get_wait_cb_size(struct hl_device *hdev)
-{
-	return sizeof(struct packet_msg_short) * 4 +
-			sizeof(struct packet_fence) +
-			sizeof(struct packet_msg_prot) * 2;
-}
-
 u32 gaudi_get_sob_addr(struct hl_device *hdev, u32 sob_id)
 {
 	return mmSYNC_MNGR_W_S_SYNC_MNGR_OBJS_SOB_OBJ_0 + (sob_id * 4);
@@ -9810,8 +9802,6 @@ static const struct hl_asic_funcs gaudi_funcs = {
 	.get_queue_id_for_cq = gaudi_get_queue_id_for_cq,
 	.load_firmware_to_device = gaudi_load_firmware_to_device,
 	.load_boot_fit_to_device = gaudi_load_boot_fit_to_device,
-	.get_signal_cb_size = gaudi_get_signal_cb_size,
-	.get_wait_cb_size = gaudi_get_wait_cb_size,
 	.gen_signal_cb = gaudi_gen_signal_cb,
 	.gen_wait_cb = gaudi_gen_wait_cb,
 	.reset_sob = gaudi_reset_sob,

@@ -276,8 +276,6 @@ int goya_mmu_invalidate_cache(struct hl_device *hdev, bool is_hard, u32 flags);
 int goya_mmu_invalidate_cache_range(struct hl_device *hdev, bool is_hard,
 					u32 flags, u32 asid, u64 va, u64 size);
 
-u32 goya_get_signal_cb_size(struct hl_device *hdev);
-u32 goya_get_wait_cb_size(struct hl_device *hdev);
 u32 goya_gen_signal_cb(struct hl_device *hdev, void *data, u16 sob_id,
 		u32 size, bool eb);
 u32 goya_gen_wait_cb(struct hl_device *hdev,

@@ -70,7 +70,6 @@ static int gaudi3_fpga_set_fixed_properties(struct hl_device *hdev)
 	/* no need in CB pool in FPGA */
 	prop->cb_pool_cb_cnt = 0;
 	prop->cb_pool_cb_size = 0;
-	prop->pci_id = hdev->pdev ? hdev->pdev->device : PCI_IDS_INVALID;
 
 	return 0;
 }
@@ -508,8 +507,6 @@ static const struct hl_asic_funcs gaudi3_fpga_funcs = {
 	.get_queue_id_for_cq = gaudi3_get_queue_id_for_cq,
 	.load_firmware_to_device = NULL,
 	.load_boot_fit_to_device = gaudi3_fpga_load_boot_fit_to_device,
-	.get_signal_cb_size = NULL,
-	.get_wait_cb_size = NULL,
 	.gen_signal_cb = NULL,
 	.gen_wait_cb = NULL,
 	.reset_sob = NULL,

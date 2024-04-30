@@ -3898,6 +3898,8 @@ int gaudi3_set_fixed_properties(struct hl_device *hdev)
 	}
 
 	prop->pci_id = hdev->pdev ? hdev->pdev->device : PCI_IDS_INVALID;
+	prop->signal_cb_size = 0;
+	prop->wait_cb_size = 0;
 
 	return 0;
 

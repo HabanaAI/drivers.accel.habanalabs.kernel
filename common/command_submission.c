@@ -1962,9 +1962,9 @@ static int cs_ioctl_signal_wait_create_jobs(struct hl_device *hdev,
 	}
 
 	if (cs->type == CS_TYPE_WAIT)
-		cb_size = hdev->asic_funcs->get_wait_cb_size(hdev);
+		cb_size = hdev->asic_prop.wait_cb_size;
 	else
-		cb_size = hdev->asic_funcs->get_signal_cb_size(hdev);
+		cb_size = hdev->asic_prop.signal_cb_size;
 
 	cb = hl_cb_kernel_create(hdev, cb_size, q_type == QUEUE_TYPE_HW);
 	if (!cb) {

@@ -568,8 +568,6 @@ int gaudi_block_mmap(struct hl_device *hdev, struct vm_area_struct *vma,
 			u32 block_id, u32 block_size);
 
 irqreturn_t gaudi_irq_handler_single(int irq, void *arg);
-u32 gaudi_get_signal_cb_size(struct hl_device *hdev);
-u32 gaudi_get_wait_cb_size(struct hl_device *hdev);
 u32 gaudi_gen_signal_cb(struct hl_device *hdev, void *data, u16 sob_id,
 		u32 size, bool eb);
 u32 gaudi_gen_wait_cb(struct hl_device *hdev,

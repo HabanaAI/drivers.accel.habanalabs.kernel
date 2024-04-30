@@ -795,6 +795,8 @@ struct hl_cn_properties {
  * @fw_event_queue_size: queue size for events from CPU-CP.
  *                       A value of 0 means using the default HL_EQ_SIZE_IN_BYTES value.
  * @pci_id: PCI ID
+ * @signal_cb_size: signal CB size.
+ * @wait_cb_size: wait CB size.
  * @collective_first_sob: first sync object available for collective use
  * @collective_first_mon: first monitor available for collective use
  * @sync_stream_first_sob: first sync object available for sync stream use
@@ -960,6 +962,8 @@ struct asic_fixed_properties {
 	u32				pcie_flush_reg_addr;
 	u32				fw_event_queue_size;
 	u32				pci_id;
+	u32				signal_cb_size;
+	u32				wait_cb_size;
 	u16				collective_first_sob;
 	u16				collective_first_mon;
 	u16				sync_stream_first_sob;
@@ -1823,8 +1827,6 @@ struct engines_data {
  * @get_queue_id_for_cq: Get the H/W queue id related to the given CQ index.
  * @load_firmware_to_device: load the firmware to the device's memory
  * @load_boot_fit_to_device: load boot fit to device's memory
- * @get_signal_cb_size: Get signal CB size.
- * @get_wait_cb_size: Get wait CB size.
  * @gen_signal_cb: Generate a signal CB.
  * @gen_wait_cb: Generate a wait CB.
  * @reset_sob: Reset a SOB.
@@ -1971,8 +1973,6 @@ struct hl_asic_funcs {
 	u32 (*get_queue_id_for_cq)(struct hl_device *hdev, u32 cq_idx);
 	int (*load_firmware_to_device)(struct hl_device *hdev);
 	int (*load_boot_fit_to_device)(struct hl_device *hdev);
-	u32 (*get_signal_cb_size)(struct hl_device *hdev);
-	u32 (*get_wait_cb_size)(struct hl_device *hdev);
 	u32 (*gen_signal_cb)(struct hl_device *hdev, void *data, u16 sob_id,
 			u32 size, bool eb);
 	u32 (*gen_wait_cb)(struct hl_device *hdev,

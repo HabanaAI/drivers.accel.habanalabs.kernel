@@ -723,8 +723,6 @@ int gaudi2_ctx_init(struct hl_ctx *ctx);
 void gaudi2_ctx_fini(struct hl_ctx *ctx);
 int gaudi2_pre_schedule_cs(struct hl_cs *cs);
 u32 gaudi2_get_queue_id_for_cq(struct hl_device *hdev, u32 cq_idx);
-u32 gaudi2_get_signal_cb_size(struct hl_device *hdev);
-u32 gaudi2_get_wait_cb_size(struct hl_device *hdev);
 u32 gaudi2_gen_signal_cb(struct hl_device *hdev, void *data, u16 sob_id, u32 size, bool eb);
 u32 gaudi2_gen_wait_cb(struct hl_device *hdev, struct hl_gen_wait_properties *prop);
 u32 gaudi2_get_sob_addr(struct hl_device *hdev, u32 sob_id);

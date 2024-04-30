@@ -492,6 +492,8 @@ int goya_set_fixed_properties(struct hl_device *hdev)
 	prop->set_max_power_on_device_init = true;
 	prop->dma_mask = 48;
 	prop->pci_id = hdev->pdev ? hdev->pdev->device : PCI_IDS_INVALID;
+	prop->signal_cb_size = 0;
+	prop->wait_cb_size = 0;
 
 	return 0;
 }
@@ -5283,16 +5285,6 @@ u32 goya_get_queue_id_for_cq(struct hl_device *hdev, u32 cq_idx)
 	return cq_idx;
 }
 
-u32 goya_get_signal_cb_size(struct hl_device *hdev)
-{
-	return 0;
-}
-
-u32 goya_get_wait_cb_size(struct hl_device *hdev)
-{
-	return 0;
-}
-
 u32 goya_gen_signal_cb(struct hl_device *hdev, void *data, u16 sob_id,
 		u32 size, bool eb)
 {
@@ -5562,8 +5554,6 @@ static const struct hl_asic_funcs goya_funcs = {
 	.get_queue_id_for_cq = goya_get_queue_id_for_cq,
 	.load_firmware_to_device = goya_load_firmware_to_device,
 	.load_boot_fit_to_device = goya_load_boot_fit_to_device,
-	.get_signal_cb_size = goya_get_signal_cb_size,
-	.get_wait_cb_size = goya_get_wait_cb_size,
 	.gen_signal_cb = goya_gen_signal_cb,
 	.gen_wait_cb = goya_gen_wait_cb,
 	.reset_sob = goya_reset_sob,

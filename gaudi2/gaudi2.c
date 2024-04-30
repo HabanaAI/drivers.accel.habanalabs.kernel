@@ -2225,16 +2225,6 @@ static bool gaudi2_get_mme_idle_status(struct hl_device *hdev, u64 *mask_arr, u8
 static bool gaudi2_get_edma_idle_status(struct hl_device *hdev, u64 *mask_arr, u8 mask_len,
 		struct engines_data *e);
 
-u32 gaudi2_get_signal_cb_size(struct hl_device *hdev)
-{
-	return sizeof(struct packet_msg_short);
-}
-
-u32 gaudi2_get_wait_cb_size(struct hl_device *hdev)
-{
-	return sizeof(struct packet_msg_short) * 4 + sizeof(struct packet_fence);
-}
-
 void gaudi2_iterate_tpcs(struct hl_device *hdev, struct iterate_module_ctx *ctx)
 {
 	struct asic_fixed_properties *prop = &hdev->asic_prop;
@@ -2628,6 +2618,8 @@ int gaudi2_set_fixed_properties(struct hl_device *hdev)
 	prop->pcie_flush_reg_addr = mmPSOC_TIMESTAMP_CNTCR;
 	prop->supports_advanced_cpucp_rc = true;
 	prop->pci_id = hdev->pdev ? hdev->pdev->device : PCI_IDS_INVALID;
+	prop->signal_cb_size = sizeof(struct packet_msg_short);
+	prop->wait_cb_size = sizeof(struct packet_msg_short) * 4 + sizeof(struct packet_fence);
 	return 0;
 
 free_qprops:
@@ -11372,8 +11364,7 @@ static int gaudi2_internal_cb_pool_init(struct hl_device *hdev, struct hl_ctx *c
 	if (!hdev->internal_cb_pool_virt_addr)
 		return -ENOMEM;
 
-	min_alloc_order = ilog2(min(gaudi2_get_signal_cb_size(hdev),
-					gaudi2_get_wait_cb_size(hdev)));
+	min_alloc_order = ilog2(min(hdev->asic_prop.signal_cb_size, hdev->asic_prop.wait_cb_size));
 
 	hdev->internal_cb_pool = gen_pool_create(min_alloc_order, -1);
 	if (!hdev->internal_cb_pool) {
@@ -12310,8 +12301,6 @@ static const struct hl_asic_funcs gaudi2_funcs = {
 	.get_queue_id_for_cq = gaudi2_get_queue_id_for_cq,
 	.load_firmware_to_device = NULL,
 	.load_boot_fit_to_device = NULL,
-	.get_signal_cb_size = gaudi2_get_signal_cb_size,
-	.get_wait_cb_size = gaudi2_get_wait_cb_size,
 	.gen_signal_cb = gaudi2_gen_signal_cb,
 	.gen_wait_cb = gaudi2_gen_wait_cb,
 	.reset_sob = gaudi2_reset_sob,
