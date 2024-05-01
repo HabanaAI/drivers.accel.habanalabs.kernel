@@ -47,13 +47,18 @@ struct hl_ctx;
  * @ports_ext_mask: contains mask of the CN ports that are external (used for scale-out), as
  *                  received from the f/w. This field can contain different values based on the
  *                  server type.
+ * @auto_neg_mask: mask of ports with Autonegotiation enabled.
  * @eth_ports_mask: Ethernet ports enable mask.
  * @ctx_registered: is user context registered.
  * @card_location: the OAM number in the HLS (relevant for PMC card type).
+ * @lanes_per_port: number of physical lanes per port.
  * @use_fw_serdes_info: true if NIC should use serdes values from F/W, false if CN should use hard
  *                      coded values.
  * @is_cn_aux_dev_initialized: true if the CN auxiliary device is initialized.
  * @is_initialized: is device initialized.
+ * @load_fw: load PHY FW from ASIC path.
+ * @skip_phy_init: skip PHY init phase.
+ * @eth_on_internal: set internal ports as Ethernet ports.
  */
 struct hl_cn {
 	struct hbl_aux_dev	cn_aux_dev;
@@ -61,17 +66,15 @@ struct hl_cn {
 	struct mutex		hw_access_lock;
 	u64			ports_mask;
 	u64			ports_ext_mask;
+	u64			auto_neg_mask;
 	u64			eth_ports_mask;
 	atomic_t		ctx_registered;
 	u32			card_location;
+	u8			lanes_per_port;
 	u8			use_fw_serdes_info;
 	u8			is_cn_aux_dev_initialized;
 	u8			is_initialized;
-
-	/* Parameters for bring-up (not to be upstreamed) */
-	u64			auto_neg_mask;
 	u8			load_fw;
-	u8			lanes_per_port;
 	u8			skip_phy_init;
 	u8			eth_on_internal;
 };

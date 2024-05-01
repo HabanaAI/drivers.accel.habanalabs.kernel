@@ -803,9 +803,9 @@ int hl_cn_init(struct hl_device *hdev)
 	if (hdev->reset_info.in_reset)
 		return hl_cn_reopen(hdev);
 
-	hdev->cn.ports_mask &= GENMASK(cn_props->max_num_of_ports - 1, 0);
-	hdev->cn.ports_ext_mask &= hdev->cn.ports_mask;
-	hdev->cn.auto_neg_mask &= hdev->cn.ports_mask;
+	cn->ports_mask &= GENMASK(cn_props->max_num_of_ports - 1, 0);
+	cn->ports_ext_mask &= cn->ports_mask;
+	cn->auto_neg_mask &= cn->ports_mask;
 
 	/* check if the NIC is enabled */
 	if (!hdev->cn.ports_mask)
