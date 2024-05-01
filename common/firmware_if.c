@@ -704,12 +704,10 @@ int hl_fw_send_heartbeat(struct hl_device *hdev)
 	int rc;
 
 	memset(&hb_pkt, 0, sizeof(hb_pkt));
-	hb_pkt.ctl = cpu_to_le32(CPUCP_PACKET_TEST <<
-					CPUCP_PKT_CTL_OPCODE_SHIFT);
+	hb_pkt.ctl = cpu_to_le32(CPUCP_PACKET_TEST << CPUCP_PKT_CTL_OPCODE_SHIFT);
 	hb_pkt.value = cpu_to_le64(CPUCP_PACKET_FENCE_VAL);
 
-	rc = hdev->asic_funcs->send_cpu_message(hdev, (u32 *) &hb_pkt,
-						sizeof(hb_pkt), 0, &result);
+	rc = hdev->asic_funcs->send_cpu_message(hdev, (u32 *) &hb_pkt, sizeof(hb_pkt), 0, &result);
 
 	if ((rc) || (result != CPUCP_PACKET_FENCE_VAL))
 		return -EIO;
@@ -719,6 +717,8 @@ int hl_fw_send_heartbeat(struct hl_device *hdev)
 		dev_warn(hdev->dev, "FW reported EQ fault during heartbeat\n");
 		rc = -EIO;
 	}
+
+	hdev->heartbeat_debug_info.last_pq_heartbeat_ts = ktime_get_real_seconds();
 
 	return rc;
 }

@@ -3620,10 +3620,13 @@ struct hl_etr_buf_store {
 
 /**
  * struct eq_heartbeat_debug_info - stores debug info to be used upon heartbeat failure.
+ * @last_pq_heartbeat_ts: timestamp of the last test packet that was sent to FW.
+ *                        This packet is the trigger in FW to send the EQ heartbeat event.
  * @heartbeat_event_counter: number of heartbeat events received.
  * @cpu_queue_id: used to read the queue pi/ci
  */
 struct eq_heartbeat_debug_info {
+	time64_t last_pq_heartbeat_ts;
 	u32 heartbeat_event_counter;
 	u32 cpu_queue_id;
 };

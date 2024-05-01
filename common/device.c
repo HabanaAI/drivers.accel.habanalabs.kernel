@@ -1333,11 +1333,26 @@ static bool is_pci_link_healthy(struct hl_device *hdev)
 	return (device_id == hdev->pdev->device);
 }
 
+static void stringify_time_of_last_pq_heartbeat(struct hl_device *hdev, char *time_str, size_t size)
+{
+	time64_t seconds = hdev->heartbeat_debug_info.last_pq_heartbeat_ts;
+	struct tm tm;
+
+	if (!seconds)
+		return;
+
+	time64_to_tm(seconds, 0, &tm);
+
+	snprintf(time_str, size, "%ld-%02d-%02d %02d:%02d:%02d (UTC)",
+		tm.tm_year + 1900, tm.tm_mon, tm.tm_mday, tm.tm_hour, tm.tm_min, tm.tm_sec);
+}
+
 static bool hl_device_eq_heartbeat_received(struct hl_device *hdev)
 {
 	struct eq_heartbeat_debug_info *heartbeat_debug_info = &hdev->heartbeat_debug_info;
 	u32 cpu_q_id = heartbeat_debug_info->cpu_queue_id, pq_pi_mask = (HL_QUEUE_LENGTH << 1) - 1;
 	struct asic_fixed_properties *prop = &hdev->asic_prop;
+	char time_str[64] = "N/A";
 
 	if (!prop->cpucp_info.eq_health_check_supported)
 		return true;
@@ -1345,13 +1360,15 @@ static bool hl_device_eq_heartbeat_received(struct hl_device *hdev)
 	if (!hdev->eq_heartbeat_received) {
 		dev_err(hdev->dev, "EQ heartbeat event was not received!\n");
 
+		stringify_time_of_last_pq_heartbeat(hdev, time_str, sizeof(time_str));
 		dev_err(hdev->dev,
-			"Heartbeat events counter: %u, EQ CI: %u, PQ PI: %u, PQ CI: %u (%u)\n",
-			heartbeat_debug_info->heartbeat_event_counter,
+			"EQ: {CI %u, HB counter %u}, PQ: {PI: %u, CI: %u (%u), last HB time: %s}\n",
 			hdev->event_queue.ci,
+			heartbeat_debug_info->heartbeat_event_counter,
 			hdev->kernel_queues[cpu_q_id].pi,
 			atomic_read(&hdev->kernel_queues[cpu_q_id].ci),
-			atomic_read(&hdev->kernel_queues[cpu_q_id].ci) & pq_pi_mask);
+			atomic_read(&hdev->kernel_queues[cpu_q_id].ci) & pq_pi_mask,
+			time_str);
 
 		hl_eq_dump(hdev, &hdev->event_queue);
 
@@ -1883,12 +1900,18 @@ static void handle_reset_trigger(struct hl_device *hdev, u32 flags)
 	}
 }
 
+static void reset_heartbeat_debug_info(struct hl_device *hdev)
+{
+	hdev->heartbeat_debug_info.last_pq_heartbeat_ts = 0;
+	hdev->heartbeat_debug_info.heartbeat_event_counter = 0;
+}
+
 static inline void device_heartbeat_schedule(struct hl_device *hdev)
 {
 	if (!hdev->heartbeat)
 		return;
 
-	hdev->heartbeat_debug_info.heartbeat_event_counter = 0;
+	reset_heartbeat_debug_info(hdev);
 
 	/*
 	 * Before scheduling the heartbeat driver will check if eq event has received.
