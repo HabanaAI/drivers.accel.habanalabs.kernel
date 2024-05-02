@@ -574,6 +574,7 @@ static void gaudi_cn_set_cn_data(struct hl_device *hdev)
 					!!(secured_sts & CPU_BOOT_DEV_STS0_FW_NIC_STAT_XPCS91_EN);
 	gaudi_aux_data->stat_ext_secured_read =
 					!!(secured_sts & CPU_BOOT_DEV_STS0_FW_NIC_STAT_EXT_EN);
+	gaudi_aux_data->mmap_type_flag = HL_MMAP_TYPE_CN_MEM;
 
 	gaudi_aux_ops->map_device_va = gaudi_cn_map_device_va;
 	gaudi_aux_ops->unmap_device_va = gaudi_cn_unmap_device_va;
