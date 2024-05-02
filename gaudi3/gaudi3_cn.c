@@ -9,6 +9,9 @@
 #include "../include/hw_ip/nic/nic_general.h"
 #include "uapi/drm/habanalabs_accel.h"
 
+#define NIC_DEFAULT_COLL_LAG_SIZE	0x3
+#define NIC_HL338_COLL_LAG_SIZE		0x6
+
 bool is_400g_mode(struct hl_device *hdev)
 {
 	return hdev->cn.lanes_per_port == PORT_LANES_4;
@@ -237,6 +240,42 @@ static int gaudi3_cn_override_ports_ext_mask(struct hl_device *hdev,
 			}
 
 			break;
+		case HL338_SERDES_TYPE:
+			/* TODO SW-180818 - get the correct masks.
+			 * Currently, for debug purposes, we set ports 18,19,20 for all cards.
+			 */
+			switch (hdev->cn.card_location) {
+			case 0:
+				*ports_ext_mask = 0x1C0000;
+				return 0;
+			case 1:
+				*ports_ext_mask = 0x1C0000;
+				return 0;
+			case 2:
+				*ports_ext_mask = 0x1C0000;
+				return 0;
+			case 3:
+				*ports_ext_mask = 0x1C0000;
+				return 0;
+			case 4:
+				*ports_ext_mask = 0x1C0000;
+				return 0;
+			case 5:
+				*ports_ext_mask = 0x1C0000;
+				return 0;
+			case 6:
+				*ports_ext_mask = 0x1C0000;
+				return 0;
+			case 7:
+				*ports_ext_mask = 0x1C0000;
+				return 0;
+			default:
+				dev_err(hdev->dev, "Invalid card location %u\n",
+					hdev->cn.card_location);
+				break;
+			}
+
+			break;
 		default:
 			dev_err(hdev->dev, "Invalid serdes_type %u\n", serdes_type);
 			break;
@@ -416,6 +455,9 @@ int gaudi3_cn_set_info(struct hl_device *hdev, bool get_from_fw)
 	case HLS3_SINGLEPORT_OAM_FULLSCALE_OUT_SERDES_TYPE:
 		hdev->asic_prop.server_type = HL_SERVER_GAUDI3_HLS3_SINGLEPORT_OAM_FULLSCALE_OUT;
 		break;
+	case HL338_SERDES_TYPE:
+		hdev->asic_prop.server_type = HL_SERVER_GAUDI3_HL338;
+		break;
 	default:
 		hdev->asic_prop.server_type = HL_SERVER_TYPE_UNKNOWN;
 		/* TODO: SW-166512 - remove the pldm check */
@@ -556,6 +598,8 @@ static void gaudi3_cn_set_cn_data(struct hl_device *hdev)
 	gaudi3_aux_data->cfg_base_address = hdev->asic_prop.cfg_base_address;
 	gaudi3_aux_data->lbw_base_address = LBW_BASE;
 	gaudi3_aux_data->irq_num_port_base = GAUDI3_IRQ_NUM_NIC_PORT_FIRST;
+	gaudi3_aux_data->coll_lag_size = hdev->asic_prop.server_type == HL_SERVER_GAUDI3_HL338 ?
+					NIC_HL338_COLL_LAG_SIZE : NIC_DEFAULT_COLL_LAG_SIZE;
 	gaudi3_aux_data->enable_h9_rx_drop_eco = hdev->nic_enable_h9_rx_drop_eco;
 
 	gaudi3_aux_ops->irq_vector = gaudi3_cn_irq_vector;
