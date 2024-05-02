@@ -426,11 +426,6 @@ static void gaudi2_cn_dma_pool_free(struct hbl_aux_dev *aux_dev, void *vaddr, dm
 	hl_cn_dma_pool_free(aux_dev, vaddr, dma_addr);
 }
 
-static int gaudi2_cn_get_hw_block_handle(struct hbl_aux_dev *aux_dev, u64 address, u64 *handle)
-{
-	return hl_cn_get_hw_block_handle(aux_dev, address, handle);
-}
-
 static int gaudi2_cn_user_mmap(struct hbl_aux_dev *aux_dev, struct vm_area_struct *vma)
 {
 	return hl_cn_user_mmap(aux_dev, vma);
@@ -468,7 +463,6 @@ static void gaudi2_cn_set_cn_data(struct hl_device *hdev)
 	gaudi2_aux_ops->dma_free_coherent = gaudi2_cn_dma_free_coherent;
 	gaudi2_aux_ops->dma_pool_zalloc = gaudi2_cn_dma_pool_zalloc;
 	gaudi2_aux_ops->dma_pool_free = gaudi2_cn_dma_pool_free;
-	gaudi2_aux_ops->get_hw_block_handle = gaudi2_cn_get_hw_block_handle;
 	gaudi2_aux_ops->user_mmap = gaudi2_cn_user_mmap;
 	gaudi2_aux_ops->spmu_get_stats_info = hl_cn_spmu_get_stats_info;
 	gaudi2_aux_ops->spmu_config = hl_cn_spmu_config;
