@@ -41,7 +41,7 @@
 enum hlv_sim_dev_types {
 	HLV_SIM_GOYA = 1,
 	HLV_SIM_GAUDI = 2,
-	HLV_SIM_GRECO = 3,
+	HLV_SIM_RESERVED = 3,
 	HLV_SIM_GAUDI2 = 4,
 	HLV_SIM_GAUDI_HL2000M = 5,
 	HLV_SIM_GAUDI3 = 6,
