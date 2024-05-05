@@ -45,7 +45,9 @@ else
 KVERSION ?= $(shell uname -r)
 KERNELDIR := /lib/modules/$(KVERSION)/build
 SRC_DIR ?= $(shell pwd)
-GIT_SHA ?= $(shell git --git-dir=${HABANALABS_ROOT}/.git rev-parse --short HEAD)
+GIT_LOCAL_CHANGES_STR := $(shell cd ${HABANALABS_ROOT}; if [ -n "$$(git status --porcelain 2> /dev/null | grep "^[[:space:]]*M ")" ]; then echo "+"; fi)
+GIT_SHA ?= $(shell git --git-dir=${HABANALABS_ROOT}/.git rev-parse --short HEAD 2> /dev/null)
+GIT_SHA_DRV_STR := $(shell echo "${GIT_SHA}${GIT_LOCAL_CHANGES_STR}")
 DEBUG_CFLAGS += -g -DDEBUG
 KVERSION_MAJOR := $(shell uname -r | awk -F'[.-]' '{print $$1}')
 KVERSION_MINOR := $(shell uname -r | awk -F'[.-]' '{print $$2}')
@@ -74,7 +76,7 @@ SELECTED_EXTRA_WARNINGS += -Wno-type-limits
 endif
 endif
 endif
-DRV_CFLAGS_MODULE="-DHL_DRIVER_GIT_SHA=$(GIT_SHA) $(SELECTED_EXTRA_WARNINGS)"
+DRV_CFLAGS_MODULE="-DHL_DRIVER_GIT_SHA=$(GIT_SHA_DRV_STR) $(SELECTED_EXTRA_WARNINGS)"
 
 default:
 	$(MAKE) CFLAGS_MODULE=$(DRV_CFLAGS_MODULE) -C $(KERNELDIR) M=$(SRC_DIR) $(RUN_ALL_EXTRA_WARNINGS) modules
