@@ -9,8 +9,9 @@
 #include "../include/hw_ip/nic/nic_general.h"
 #include "uapi/drm/habanalabs_accel.h"
 
-#define NIC_DEFAULT_COLL_LAG_SIZE	0x3
-#define NIC_HL338_COLL_LAG_SIZE		0x6
+#define GAUDI3_DEFAULT_COLL_LAG_SIZE		0x3
+#define GAUDI3_HL338_COLL_LAG_SIZE		0x6
+#define GAUDI3_HL338_SCALE_OUT_COLL_LAG_SIZE	0x3
 
 bool is_400g_mode(struct hl_device *hdev)
 {
@@ -584,6 +585,7 @@ static void gaudi3_cn_set_cn_data(struct hl_device *hdev)
 	struct hbl_cn_aux_ops *aux_ops;
 	struct hl_cn *cn = &hdev->cn;
 	struct hbl_aux_dev *aux_dev;
+	bool hl338_server;
 
 	aux_dev = &cn->cn_aux_dev;
 	aux_data = aux_dev->aux_data;
@@ -592,14 +594,17 @@ static void gaudi3_cn_set_cn_data(struct hl_device *hdev)
 	gaudi3_aux_ops = &gaudi3->cn_aux_ops;
 	aux_ops = aux_dev->aux_ops;
 	aux_ops->asic_ops = gaudi3_aux_ops;
+	hl338_server = hdev->asic_prop.server_type == HL_SERVER_GAUDI3_HL338;
 
 	gaudi3_aux_data->msix_enabled = !!(gaudi3->hw_cap_initialized & HW_CAP_MSIX);
 	gaudi3_aux_data->num_of_hdcores = hdev->asic_prop.num_of_hdcores;
 	gaudi3_aux_data->cfg_base_address = hdev->asic_prop.cfg_base_address;
 	gaudi3_aux_data->lbw_base_address = LBW_BASE;
 	gaudi3_aux_data->irq_num_port_base = GAUDI3_IRQ_NUM_NIC_PORT_FIRST;
-	gaudi3_aux_data->coll_lag_size = hdev->asic_prop.server_type == HL_SERVER_GAUDI3_HL338 ?
-					NIC_HL338_COLL_LAG_SIZE : NIC_DEFAULT_COLL_LAG_SIZE;
+	gaudi3_aux_data->coll_lag_size = hl338_server ?
+			GAUDI3_HL338_COLL_LAG_SIZE : GAUDI3_DEFAULT_COLL_LAG_SIZE;
+	gaudi3_aux_data->scale_out_coll_lag_size = hl338_server ?
+			GAUDI3_HL338_SCALE_OUT_COLL_LAG_SIZE : GAUDI3_DEFAULT_COLL_LAG_SIZE;
 	gaudi3_aux_data->enable_h9_rx_drop_eco = hdev->nic_enable_h9_rx_drop_eco;
 
 	gaudi3_aux_ops->irq_vector = gaudi3_cn_irq_vector;
