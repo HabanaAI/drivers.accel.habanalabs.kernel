@@ -1333,9 +1333,11 @@ static bool is_pci_link_healthy(struct hl_device *hdev)
 	return (device_id == hdev->pdev->device);
 }
 
-static void stringify_time_of_last_pq_heartbeat(struct hl_device *hdev, char *time_str, size_t size)
+static void stringify_time_of_last_heartbeat(struct hl_device *hdev, char *time_str, size_t size,
+						bool is_pq_hb)
 {
-	time64_t seconds = hdev->heartbeat_debug_info.last_pq_heartbeat_ts;
+	time64_t seconds = is_pq_hb ? hdev->heartbeat_debug_info.last_pq_heartbeat_ts :
+				hdev->heartbeat_debug_info.last_recv_eq_heartbeat_ts;
 	struct tm tm;
 
 	if (!seconds)
@@ -1352,7 +1354,7 @@ static bool hl_device_eq_heartbeat_received(struct hl_device *hdev)
 	struct eq_heartbeat_debug_info *heartbeat_debug_info = &hdev->heartbeat_debug_info;
 	u32 cpu_q_id = heartbeat_debug_info->cpu_queue_id, pq_pi_mask = (HL_QUEUE_LENGTH << 1) - 1;
 	struct asic_fixed_properties *prop = &hdev->asic_prop;
-	char time_str[64] = "N/A";
+	char pq_time_str[64] = "N/A", eq_time_str[64] = "N/A";
 
 	if (!prop->cpucp_info.eq_health_check_supported)
 		return true;
@@ -1360,15 +1362,17 @@ static bool hl_device_eq_heartbeat_received(struct hl_device *hdev)
 	if (!hdev->eq_heartbeat_received) {
 		dev_err(hdev->dev, "EQ heartbeat event was not received!\n");
 
-		stringify_time_of_last_pq_heartbeat(hdev, time_str, sizeof(time_str));
+		stringify_time_of_last_heartbeat(hdev, pq_time_str, sizeof(pq_time_str), true);
+		stringify_time_of_last_heartbeat(hdev, eq_time_str, sizeof(eq_time_str), false);
 		dev_err(hdev->dev,
-			"EQ: {CI %u, HB counter %u}, PQ: {PI: %u, CI: %u (%u), last HB time: %s}\n",
+			"EQ: {CI %u, HB counter %u, last HB time: %s}, PQ: {PI: %u, CI: %u (%u), last HB time: %s}\n",
 			hdev->event_queue.ci,
 			heartbeat_debug_info->heartbeat_event_counter,
+			eq_time_str,
 			hdev->kernel_queues[cpu_q_id].pi,
 			atomic_read(&hdev->kernel_queues[cpu_q_id].ci),
 			atomic_read(&hdev->kernel_queues[cpu_q_id].ci) & pq_pi_mask,
-			time_str);
+			pq_time_str);
 
 		hl_eq_dump(hdev, &hdev->event_queue);
 
@@ -1903,6 +1907,7 @@ static void handle_reset_trigger(struct hl_device *hdev, u32 flags)
 static void reset_heartbeat_debug_info(struct hl_device *hdev)
 {
 	hdev->heartbeat_debug_info.last_pq_heartbeat_ts = 0;
+	hdev->heartbeat_debug_info.last_recv_eq_heartbeat_ts = 0;
 	hdev->heartbeat_debug_info.heartbeat_event_counter = 0;
 }
 
@@ -3532,6 +3537,7 @@ void hl_set_irq_affinity(struct hl_device *hdev, int irq)
 void hl_eq_heartbeat_event_handle(struct hl_device *hdev)
 {
 	hdev->heartbeat_debug_info.heartbeat_event_counter++;
+	hdev->heartbeat_debug_info.last_recv_eq_heartbeat_ts = ktime_get_real_seconds();
 	hdev->eq_heartbeat_received = true;
 }
 
