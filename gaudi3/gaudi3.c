@@ -4195,7 +4195,7 @@ static int gaudi3_wait_for_cq_completion(struct hl_device *hdev,
 			polling_addr,
 			status,
 			(status == 1),
-			1000,
+			250,
 			cq_params->timeout_usec,
 			true);
 
