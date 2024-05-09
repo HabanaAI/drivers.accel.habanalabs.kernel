@@ -474,12 +474,12 @@ int hl_fw_send_cpu_message(struct hl_device *hdev, u32 hw_queue_id, u32 *msg,
 		} else {
 			struct hl_bd *bd = queue->kernel_address;
 
-			bd += hl_pi_2_offset(queue->pi);
+			bd += hl_pi_2_offset(pi);
 
 			dev_err(hdev->dev, "Device CPU packet timeout (status = 0x%x)\n"
-					"Pkt info: dma_addr: 0x%llx, kernel_addr: %p, len:0x%x, ctl: 0x%x, ptr:0x%llx, dram_bd:%u\n",
-					tmp, pkt_dma_addr, (void *)pkt, bd->len, bd->ctl, bd->ptr,
-					queue->dram_bd);
+				"Pkt info[%u]: dma_addr: 0x%llx, kernel_addr: %p, len:0x%x, ctl: 0x%x, ptr:0x%llx, dram_bd:%u\n",
+				tmp, pi, pkt_dma_addr, (void *)pkt, bd->len, bd->ctl, bd->ptr,
+				queue->dram_bd);
 		}
 		hdev->device_cpu_disabled = true;
 		goto out;
