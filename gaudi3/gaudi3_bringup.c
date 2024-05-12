@@ -3190,7 +3190,7 @@ void gaudi3_hw_init_fw_config(struct hl_device *hdev)
 	gaudi3_init_mmu_fw_config(hdev);
 	gaudi3_enable_ptw_bypass(hdev);
 	gaudi3_init_qos(hdev);
-	if (aux_ops->sei_err_event_handler)
+	if (aux_ops->restore_dynamic_cfg_soft_reset_fw)
 		aux_ops->restore_dynamic_cfg_soft_reset_fw(aux_dev);
 
 	if (hdev->cache_enable)
