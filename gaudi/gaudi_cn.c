@@ -20,7 +20,8 @@ void gaudi_cn_handle_qp_err(struct hl_device *hdev, u16 event_type)
 	aux_dev = &cn->cn_aux_dev;
 	gaudi_aux_ops = &gaudi->cn_aux_ops;
 
-	gaudi_aux_ops->handle_qp_err(aux_dev, event_type - GAUDI_EVENT_NIC0_QP0);
+	if (gaudi_aux_ops->handle_qp_err)
+		gaudi_aux_ops->handle_qp_err(aux_dev, event_type - GAUDI_EVENT_NIC0_QP0);
 }
 
 int gaudi_cn_ctx_init(struct hl_ctx *ctx)
@@ -617,7 +618,8 @@ static void gaudi_cn_ports_stop_prepare(struct hl_device *hdev, bool fw_reset, b
 	aux_dev = &cn->cn_aux_dev;
 	gaudi_aux_ops = &gaudi->cn_aux_ops;
 
-	gaudi_aux_ops->ports_stop_prepare(aux_dev, fw_reset, in_teardown);
+	if (gaudi_aux_ops->ports_stop_prepare)
+		gaudi_aux_ops->ports_stop_prepare(aux_dev, fw_reset, in_teardown);
 }
 
 static int gaudi_cn_send_port_cpucp_status(struct hl_device *hdev, u32 port, u8 cmd, u8 period)
@@ -630,7 +632,10 @@ static int gaudi_cn_send_port_cpucp_status(struct hl_device *hdev, u32 port, u8 
 	aux_dev = &cn->cn_aux_dev;
 	gaudi_aux_ops = &gaudi->cn_aux_ops;
 
-	return gaudi_aux_ops->send_port_cpucp_status(aux_dev, port, cmd, period);
+	if (gaudi_aux_ops->send_port_cpucp_status)
+		return gaudi_aux_ops->send_port_cpucp_status(aux_dev, port, cmd, period);
+
+	return -ENODEV;
 }
 
 static int gaudi_cn_get_port_statistics(struct hl_device *hdev, u32 port,
@@ -644,7 +649,10 @@ static int gaudi_cn_get_port_statistics(struct hl_device *hdev, u32 port,
 	aux_dev = &cn->cn_aux_dev;
 	gaudi_aux_ops = &gaudi->cn_aux_ops;
 
-	return gaudi_aux_ops->get_port_statistics(aux_dev, port, out);
+	if (gaudi_aux_ops->get_port_statistics)
+		return gaudi_aux_ops->get_port_statistics(aux_dev, port, out);
+
+	return -ENODEV;
 }
 
 static struct hl_cn_port_funcs gaudi_cn_port_funcs = {
