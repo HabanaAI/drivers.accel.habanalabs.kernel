@@ -11,7 +11,6 @@
 #include "gaudi2P.h"
 #include "../include/gaudi2/asic_reg/gaudi2_regs.h"
 
-/* Parameters for bring-up (not to be upstreamed) */
 #define NIC_MAX_RC_MTU		SZ_8K
 /* This is the max frame length the H/W supports (Tx/Rx) */
 #define NIC_MAX_RDMA_HDRS	128
