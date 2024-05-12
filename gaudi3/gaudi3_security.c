@@ -514,10 +514,11 @@ int gaudi3_init_security(struct hl_device *hdev)
 {
 	int rc;
 
-	/* TODO - remove once SW-181592 is resolved */
-	return 0;
-
-	if (!hdev->security_enable)
+	/* SW-181592: By default, a secured FW enables ISEC security which
+	 * prevents the driver from accessing and configuring PB registers,
+	 * so there's no point in trying and configure them.
+	 */
+	if (!hdev->security_enable || hdev->asic_prop.fw_security_enabled)
 		return 0;
 
 	rc = gaudi3_init_protection_bits(hdev);
