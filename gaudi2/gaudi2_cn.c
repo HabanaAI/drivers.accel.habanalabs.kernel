@@ -27,10 +27,9 @@ int gaudi2_cn_handle_sw_error_event(struct hl_device *hdev, u16 event_type, u8 m
 	struct gaudi2_cn_aux_ops *aux_ops = &gaudi2->cn_aux_ops;
 	u32 error_count = 0;
 
-	if (aux_ops->sw_err_event_handler) {
+	if (aux_ops->sw_err_event_handler)
 		error_count = aux_ops->sw_err_event_handler(aux_dev, event_type, macro_index,
 								nic_intr_cause);
-	}
 
 	return error_count;
 }
@@ -44,11 +43,10 @@ int gaudi2_cn_handle_axi_error_response_event(struct hl_device *hdev, u16 event_
 	struct gaudi2_cn_aux_ops *aux_ops = &gaudi2->cn_aux_ops;
 	u32 error_count = 0;
 
-	if (aux_ops->axi_error_response_event_handler) {
+	if (aux_ops->axi_error_response_event_handler)
 		error_count = aux_ops->axi_error_response_event_handler(aux_dev, event_type,
 									macro_index,
 									nic_intr_cause);
-	}
 
 	return error_count;
 }
@@ -516,42 +514,49 @@ static void gaudi2_cn_post_send_status(struct hl_device *hdev, u32 port)
 
 static void gaudi2_cn_ports_stop_prepare(struct hl_device *hdev, bool fw_reset, bool in_teardown)
 {
-	struct gaudi2_device *gaudi = hdev->asic_specific;
+	struct gaudi2_device *gaudi2 = hdev->asic_specific;
 	struct gaudi2_cn_aux_ops *gaudi2_aux_ops;
 	struct hl_cn *cn = &hdev->cn;
 	struct hbl_aux_dev *aux_dev;
 
 	aux_dev = &cn->cn_aux_dev;
-	gaudi2_aux_ops = &gaudi->cn_aux_ops;
+	gaudi2_aux_ops = &gaudi2->cn_aux_ops;
 
-	gaudi2_aux_ops->ports_stop_prepare(aux_dev, fw_reset, in_teardown);
+	if (gaudi2_aux_ops->ports_stop_prepare)
+		gaudi2_aux_ops->ports_stop_prepare(aux_dev, fw_reset, in_teardown);
 }
 
 static int gaudi2_cn_send_port_cpucp_status(struct hl_device *hdev, u32 port, u8 cmd, u8 period)
 {
-	struct gaudi2_device *gaudi = hdev->asic_specific;
+	struct gaudi2_device *gaudi2 = hdev->asic_specific;
 	struct gaudi2_cn_aux_ops *gaudi2_aux_ops;
 	struct hl_cn *cn = &hdev->cn;
 	struct hbl_aux_dev *aux_dev;
 
 	aux_dev = &cn->cn_aux_dev;
-	gaudi2_aux_ops = &gaudi->cn_aux_ops;
+	gaudi2_aux_ops = &gaudi2->cn_aux_ops;
 
-	return gaudi2_aux_ops->send_port_cpucp_status(aux_dev, port, cmd, period);
+	if (gaudi2_aux_ops->send_port_cpucp_status)
+		return gaudi2_aux_ops->send_port_cpucp_status(aux_dev, port, cmd, period);
+
+	return -ENODEV;
 }
 
 static int gaudi2_cn_get_port_statistics(struct hl_device *hdev, u32 port,
 						struct hbl_cn_port_statistics *out)
 {
-	struct gaudi2_device *gaudi = hdev->asic_specific;
+	struct gaudi2_device *gaudi2 = hdev->asic_specific;
 	struct gaudi2_cn_aux_ops *gaudi2_aux_ops;
 	struct hl_cn *cn = &hdev->cn;
 	struct hbl_aux_dev *aux_dev;
 
 	aux_dev = &cn->cn_aux_dev;
-	gaudi2_aux_ops = &gaudi->cn_aux_ops;
+	gaudi2_aux_ops = &gaudi2->cn_aux_ops;
 
-	return gaudi2_aux_ops->get_port_statistics(aux_dev, port, out);
+	if (gaudi2_aux_ops->get_port_statistics)
+		return gaudi2_aux_ops->get_port_statistics(aux_dev, port, out);
+
+	return -ENODEV;
 }
 
 static struct hl_cn_port_funcs gaudi2_cn_port_funcs = {
