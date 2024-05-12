@@ -600,7 +600,6 @@ static int hl_cn_aux_data_init(struct hl_device *hdev)
 	aux_ops->vm_create = hl_cn_vm_create;
 	aux_ops->vm_destroy = hl_cn_vm_destroy;
 	aux_ops->get_vm_info = hl_cn_get_vm_info;
-	aux_ops->poll_reg = hl_cn_poll_reg;
 	aux_ops->get_cpucp_info = hl_cn_get_cpucp_info;
 
 	cn_funcs->set_cn_data(hdev);
