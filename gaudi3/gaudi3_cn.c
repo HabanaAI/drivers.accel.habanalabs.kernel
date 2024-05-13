@@ -469,10 +469,13 @@ int gaudi3_cn_set_info(struct hl_device *hdev, bool get_from_fw)
 		break;
 	}
 
-	if (hdev->card_type == cpucp_card_type_pci ||
+	if (hdev->card_type == cpucp_card_type_pci || is_400g_mode(hdev) ||
 	    hdev->gaudi3_setup_type != GAUDI3_SETUP_TYPE_HLS3) {
-		/* PCI card is a testing card so set all ports as external */
-		if (hdev->card_type == cpucp_card_type_pci)
+		/* Set all ports as external in case of the following:
+		 * 1. PCI card, which is a testing card.
+		 * 2. 400G mode.
+		 */
+		if (hdev->card_type == cpucp_card_type_pci || is_400g_mode(hdev))
 			hdev->cn.ports_ext_mask = hdev->cn.ports_mask;
 		hdev->cn.auto_neg_mask &= ~hdev->cn.ports_ext_mask;
 	}
