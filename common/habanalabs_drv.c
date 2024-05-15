@@ -1935,6 +1935,10 @@ static void hl_pci_reset_prepare(struct pci_dev *pdev)
 		return;
 
 	hdev->disabled = true;
+
+	/* Stop the NIC to avoid any new accesses to the H/W */
+	hl_cn_hard_reset_prepare(hdev);
+	hl_cn_stop(hdev);
 }
 
 static void hl_pci_reset_done(struct pci_dev *pdev)
