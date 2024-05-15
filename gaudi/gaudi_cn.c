@@ -539,11 +539,6 @@ static int gaudi_cn_dma_mmap(struct hbl_aux_dev *aux_dev, struct vm_area_struct 
 	return hdev->asic_funcs->mmap(hdev, vma, cpu_addr, dma_addr, size);
 }
 
-static int gaudi_cn_user_mmap(struct hbl_aux_dev *aux_dev, struct vm_area_struct *vma)
-{
-	return hl_cn_user_mmap(aux_dev, vma);
-}
-
 static void gaudi_cn_set_cn_data(struct hl_device *hdev)
 {
 	struct asic_fixed_properties *prop = &hdev->asic_prop;
@@ -594,7 +589,6 @@ static void gaudi_cn_set_cn_data(struct hl_device *hdev)
 	gaudi_aux_ops->dma_pool_free = gaudi_cn_dma_pool_free;
 	gaudi_aux_ops->get_hw_block_handle = gaudi_cn_get_hw_block_handle;
 	gaudi_aux_ops->dma_mmap = gaudi_cn_dma_mmap;
-	gaudi_aux_ops->user_mmap = gaudi_cn_user_mmap;
 	gaudi_aux_ops->spmu_get_stats_info = hl_cn_spmu_get_stats_info;
 	gaudi_aux_ops->spmu_config = hl_cn_spmu_config;
 	gaudi_aux_ops->spmu_sample = hl_cn_spmu_sample;
