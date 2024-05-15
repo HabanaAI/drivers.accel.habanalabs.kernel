@@ -599,6 +599,7 @@ static void gaudi3_cn_set_cn_data(struct hl_device *hdev)
 	gaudi3_aux_data->scale_out_coll_lag_size = hl338_server ?
 			GAUDI3_HL338_SCALE_OUT_COLL_LAG_SIZE : GAUDI3_DEFAULT_COLL_LAG_SIZE;
 	gaudi3_aux_data->enable_h9_rx_drop_eco = hdev->nic_enable_h9_rx_drop_eco;
+	gaudi3_aux_data->setup_type = hdev->gaudi3_setup_type;
 
 	gaudi3_aux_ops->irq_vector = gaudi3_cn_irq_vector;
 	gaudi3_aux_ops->get_bfe_status = gaudi3_get_bfe_status;
