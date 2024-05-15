@@ -27,12 +27,6 @@ struct hl_ctx;
 #define NIC_MAC_LANE_3			3U
 #define NIC_MAC_LANES			4U
 
-#define QPC_REQ_BURST_SIZE		16
-
-#define NIC_QPC_INV_USEC		1000000 /* 1s */
-#define NIC_SIM_QPC_INV_USEC		(NIC_QPC_INV_USEC * 5)
-#define NIC_PLDM_QPC_INV_USEC		(NIC_QPC_INV_USEC * 10)
-
 #define NIC_MACRO_CFG_SIZE		hdev->asic_prop.macro_cfg_size
 #define NIC_MACRO_CFG_BASE(port)	(NIC_MACRO_CFG_SIZE * ((port) >> 1))
 #define NIC_MACRO_WREG32(reg, val)	WREG32(NIC_MACRO_CFG_BASE(port) + (reg), (val))
