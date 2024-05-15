@@ -750,7 +750,7 @@ out:
 	return 0;
 }
 
-int __hl_mmap(struct hl_fpriv *hpriv, struct vm_area_struct *vma)
+static int __hl_mmap(struct hl_fpriv *hpriv, struct vm_area_struct *vma)
 {
 	struct hl_device *hdev = hpriv->hdev;
 	unsigned long vm_pgoff;

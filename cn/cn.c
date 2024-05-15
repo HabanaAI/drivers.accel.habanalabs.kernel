@@ -189,13 +189,6 @@ int hl_cn_get_hw_block_handle(struct hbl_aux_dev *aux_dev, u64 address, u64 *han
 	return hl_get_hw_block_handle(hdev, address, handle, NULL);
 }
 
-int hl_cn_user_mmap(struct hbl_aux_dev *aux_dev, struct vm_area_struct *vma)
-{
-	struct hl_cn *cn = container_of(aux_dev, struct hl_cn, cn_aux_dev);
-
-	return __hl_mmap(cn->ctx->hpriv, vma);
-}
-
 void hl_cn_spmu_get_stats_info(struct hbl_aux_dev *aux_dev, u32 port, struct hbl_cn_stat **stats,
 				u32 *n_stats)
 {
