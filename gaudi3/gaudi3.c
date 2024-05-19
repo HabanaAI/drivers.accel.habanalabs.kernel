@@ -11054,8 +11054,8 @@ static void gaudi3_is_pdma_group_idle(struct hl_device *hdev, int die, int inst,
 					struct iterate_module_ctx *ctx)
 {
 	u32 reg_base, pqm_glbl_sts, pqm_cgm_sts, dma_status, ch_sts, ch_id;
-	bool is_pqm_idle = true, is_dma_idle = true, is_idle;
-	const char *format = "%-5d%-6d%-9s%#-14x%#-13x%#x\n";
+	bool is_pqm_idle = true, is_dma_idle = true, is_idle, dma_axi_cnt;
+	const char *format = "%-5d%-6d%-9s%#-14x%#-13x%#-12x%d\n";
 	struct gaudi3_idle_data *idle_data = ctx->data;
 	long eng_id_base;
 
@@ -11079,7 +11079,19 @@ static void gaudi3_is_pdma_group_idle(struct hl_device *hdev, int die, int inst,
 	if (FIELD_GET(PDMA_CMN_B_DMA_STATUS_IDLE_M, dma_status) != 0x0)
 		is_dma_idle = false;
 
-	is_idle = (is_pqm_idle && is_dma_idle);
+	/* H9-5532: engine completion queue is not taken into account
+	 * in the DMA idle signal logic, so we W/A it simply by taking
+	 * into account, as well, the outgoing AXI count (both R/W).
+	 */
+	reg_base = mmD0_SPDMA0_MSTR_IF_DBG_LBW_BASE + offset;
+	dma_axi_cnt = RREG32(reg_base + mmMSTR_IF_DBG_LBW_TRAN_AW_CNT) +
+			RREG32(reg_base + mmMSTR_IF_DBG_LBW_TRAN_W_CNT);
+
+	reg_base = mmD0_SPDMA0_MSTR_IF_DBG_HBW_BASE + offset;
+	dma_axi_cnt += RREG32(reg_base + mmMSTR_IF_DBG_HBW_TRAN_AW_CNT) +
+			RREG32(reg_base + mmMSTR_IF_DBG_HBW_TRAN_W_CNT);
+
+	is_idle = (is_pqm_idle && is_dma_idle && !dma_axi_cnt);
 
 	if (idle_data->mask && !is_idle) {
 		eng_id_base = GAUDI3_DIE0_ENGINE_ID_PDMA_0_CH_0 +
@@ -11095,15 +11107,16 @@ static void gaudi3_is_pdma_group_idle(struct hl_device *hdev, int die, int inst,
 
 	if (idle_data->e)
 		hl_engine_data_sprintf(idle_data->e, format, die, inst, is_idle ? "Y" : "N",
-					pqm_glbl_sts, pqm_cgm_sts, dma_status);
+					pqm_glbl_sts, pqm_cgm_sts, dma_status, dma_axi_cnt);
 
 	*idle_data->is_idle &= is_idle;
 }
 
 static void gaudi3_get_pdma_idle_status(struct hl_device *hdev, struct gaudi3_idle_data *idle_data)
 {
-	const char *header = "\nDIE  PDMA  is_idle  PQM_GLBL_STS  PQM_CGM_STS  DMA_STATUS\n"
-				"---  ----  -------  ------------  -----------  ----------\n";
+	const char *header =
+			"\nDIE  PDMA  is_idle  PQM_GLBL_STS  PQM_CGM_STS  DMA_STATUS  DMA_AXI_CNT\n"
+			"---  ----  -------  ------------  -----------  ----------  -----------\n";
 	struct iterate_module_ctx iter_ctx = {
 		.fn = gaudi3_is_pdma_group_idle,
 		.data = idle_data
