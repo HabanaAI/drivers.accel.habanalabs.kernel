@@ -93,14 +93,6 @@ static void hl_cn_device_unlock(struct hbl_aux_dev *aux_dev)
 	mutex_unlock(&hdev->cn.device_lock);
 }
 
-static void hl_cn_device_reset(struct hbl_aux_dev *aux_dev)
-{
-	struct hl_cn *cn = container_of(aux_dev, struct hl_cn, cn_aux_dev);
-	struct hl_device *hdev = container_of(cn, struct hl_device, cn);
-
-	hl_device_reset(hdev, HL_DRV_RESET_HARD);
-}
-
 void *hl_cn_dma_alloc_coherent(struct hbl_aux_dev *aux_dev, size_t size,
 					dma_addr_t *dma_handle, gfp_t flag)
 {
@@ -575,7 +567,6 @@ static int hl_cn_aux_data_init(struct hl_device *hdev)
 	aux_ops->hw_access_unlock = hl_cn_device_unlock;
 	aux_ops->device_lock = hl_cn_device_lock;
 	aux_ops->device_unlock = hl_cn_device_unlock;
-	aux_ops->device_reset = hl_cn_device_reset;
 	aux_ops->vm_dev_mmu_map = hl_cn_vm_dev_mmu_map;
 	aux_ops->vm_dev_mmu_unmap = hl_cn_vm_dev_mmu_unmap;
 	aux_ops->vm_reserve_dva_block = hl_cn_vm_reserve_dva_block;
