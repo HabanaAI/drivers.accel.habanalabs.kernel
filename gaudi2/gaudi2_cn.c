@@ -426,6 +426,26 @@ static void gaudi2_cn_dma_pool_free(struct hbl_aux_dev *aux_dev, void *vaddr, dm
 	hl_cn_dma_pool_free(aux_dev, vaddr, dma_addr);
 }
 
+static int gaudi2_cn_get_tx_swap_map(struct hbl_aux_dev *aux_dev, u16 *tx_swap_map,
+					u32 tx_swap_map_size)
+{
+	struct hl_cn *cn = container_of(aux_dev, struct hl_cn, cn_aux_dev);
+	struct hl_device *hdev = container_of(cn, struct hl_device, cn);
+	struct hbl_cn_cpucp_info *cn_cpucp_info;
+
+	cn_cpucp_info = &hdev->asic_prop.cn_props.cpucp_info;
+
+	if (tx_swap_map_size > CPUCP_MAX_NICS) {
+		dev_dbg(hdev->dev, "tx_swap_map_size (%d) > %d\n", tx_swap_map_size,
+			CPUCP_MAX_NICS);
+		return -EINVAL;
+	}
+
+	memcpy(tx_swap_map, cn_cpucp_info->tx_swap_map, sizeof(*tx_swap_map) * tx_swap_map_size);
+
+	return 0;
+}
+
 static void gaudi2_cn_set_cn_data(struct hl_device *hdev)
 {
 	struct gaudi2_device *gaudi2 = hdev->asic_specific;
@@ -465,6 +485,7 @@ static void gaudi2_cn_set_cn_data(struct hl_device *hdev)
 	gaudi2_aux_ops->poll_reg = hl_cn_poll_reg;
 	gaudi2_aux_ops->send_cpu_message = hl_cn_send_cpu_message;
 	gaudi2_aux_ops->post_send_status = hl_cn_post_send_status;
+	gaudi2_aux_ops->get_tx_swap_map = gaudi2_cn_get_tx_swap_map;
 }
 
 void gaudi2_cn_compute_reset_prepare(struct hl_device *hdev)
