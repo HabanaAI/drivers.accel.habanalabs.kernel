@@ -5846,7 +5846,7 @@ static int gaudi3_is_ac_started(struct hl_device *hdev, u32 etr_idx)
 	return store->etr_tracer[etr_idx].ac_started;
 }
 
-static void gaudi3_ac_start(struct hl_device *hdev, u32 etr_idx)
+static void gaudi3_ac_start(struct hl_device *hdev, u32 etr_idx, u32 buf_size)
 {
 	struct hl_etr_buf_store *store = &hdev->etr_buf_store;
 	struct cpucp_packet pkt;
@@ -5858,11 +5858,12 @@ static void gaudi3_ac_start(struct hl_device *hdev, u32 etr_idx)
 		pkt.ctl = cpu_to_le32(CPUCP_PACKET_AC_CONTROL << CPUCP_PKT_CTL_OPCODE_SHIFT);
 		pkt.index = etr_idx;
 		pkt.pkt_subidx = AC_OP_START;
+		pkt.value = cpu_to_le64(buf_size);
 		rc = hdev->asic_funcs->send_cpu_message(hdev, (u32 *) &pkt, sizeof(pkt), 0, NULL);
 		if (rc && rc != -EAGAIN)
 			dev_err(hdev->dev, "failed to send AC start msg (err = %d)\n", rc);
 	} else {
-		gaudi3_ac_start_no_fw(hdev, etr_idx);
+		gaudi3_ac_start_no_fw(hdev, etr_idx, buf_size);
 	}
 
 	store->etr_tracer[etr_idx].ac_started = 1;
@@ -6025,7 +6026,7 @@ static int gaudi3_config_etr(struct hl_device *hdev, struct hl_ctx *ctx,
 		WREG32(base_reg + mmETR_CTL, 1);
 
 		if (ac_mode)
-			gaudi3_ac_start(hdev, etr_idx);
+			gaudi3_ac_start(hdev, etr_idx, input->buffer_size);
 	} else {
 		WREG32(base_reg + mmETR_BUFWM, 0);
 		WREG32(base_reg + mmETR_RSZ, 0x400);

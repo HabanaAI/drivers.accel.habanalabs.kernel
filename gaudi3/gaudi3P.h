@@ -917,7 +917,7 @@ u32 gaudi3_handle_axi_drain(struct hl_device *hdev, bool *pci_link_error);
 void gaudi3_cn_macros_fw_config(struct hl_device *hdev);
 void gaudi3_cn_restore_dynamic_cfg_soft_reset_fw(struct hl_device *hdev);
 void gaudi3_dtlb_nrtr_eco_fixup(struct hl_device *hdev);
-void gaudi3_ac_start_no_fw(struct hl_device *hdev, u32 etr_idx);
+void gaudi3_ac_start_no_fw(struct hl_device *hdev, u32 etr_idx, u32 buf_size);
 void gaudi3_ac_stop_no_fw(struct hl_device *hdev, u32 etr_idx);
 
 #endif /* GAUDI3P_H_ */
