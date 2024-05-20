@@ -16,6 +16,10 @@
 #define HL_IB_NAME		"habanalabs_ib"
 #endif
 
+
+static_assert(HBL_CN_AUX_MAX_NICS == CPUCP_MAX_NICS);
+static_assert(HBL_CN_AUX_MODULE_EEPROM_MAX_LEN == CPUCP_NIC_QSFP_EEPROM_MAX_LEN);
+
 static int hl_cn_send_empty_status(struct hl_device *hdev, int port)
 {
 	struct hl_cn_funcs *cn_funcs = hdev->asic_funcs->cn_funcs;
@@ -413,6 +417,27 @@ static void hl_cn_get_cpucp_info(struct hbl_aux_dev *aux_dev,
 	memcpy(hl_cn_cpucp_info, cn_cpucp_info, sizeof(*cn_cpucp_info));
 }
 
+static void hl_cn_get_ports_info(struct hbl_aux_dev *aux_dev,
+					struct hbl_cn_aux_ports_info *hbl_cn_aux_ports_info)
+{
+	struct hl_cn *cn = container_of(aux_dev, struct hl_cn, cn_aux_dev);
+	struct hl_device *hdev = container_of(cn, struct hl_device, cn);
+	struct hbl_cn_cpucp_info *cn_cpucp_info;
+
+	cn_cpucp_info = &hdev->asic_prop.cn_props.cpucp_info;
+
+	memcpy(hbl_cn_aux_ports_info->mac_addrs, cn_cpucp_info->mac_addrs,
+	       sizeof(hbl_cn_aux_ports_info->mac_addrs));
+	memcpy(hbl_cn_aux_ports_info->module_eeprom, cn_cpucp_info->qsfp_eeprom,
+	       sizeof(hbl_cn_aux_ports_info->module_eeprom));
+
+	hbl_cn_aux_ports_info->ports_mask = cn_cpucp_info->link_mask[0];
+	hbl_cn_aux_ports_info->ports_pol_tx_mask = cn_cpucp_info->pol_tx_mask[0];
+	hbl_cn_aux_ports_info->ports_pol_rx_mask = cn_cpucp_info->pol_rx_mask[0];
+	hbl_cn_aux_ports_info->ports_ext_mask = cn_cpucp_info->link_ext_mask[0];
+	hbl_cn_aux_ports_info->ports_auto_neg_mask = cn_cpucp_info->auto_neg_mask[0];
+}
+
 static void hl_cn_cpucp_info_le_to_cpu(struct cpucp_nic_info *cpucp_nic_info,
 					struct hbl_cn_cpucp_info *hbl_cn_cpucp_info)
 {
@@ -584,6 +609,7 @@ static int hl_cn_aux_data_init(struct hl_device *hdev)
 	aux_ops->vm_destroy = hl_cn_vm_destroy;
 	aux_ops->get_vm_info = hl_cn_get_vm_info;
 	aux_ops->get_cpucp_info = hl_cn_get_cpucp_info;
+	aux_ops->get_ports_info = hl_cn_get_ports_info;
 
 	cn_funcs->set_cn_data(hdev);
 
