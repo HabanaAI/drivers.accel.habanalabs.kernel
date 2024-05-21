@@ -3682,7 +3682,6 @@ int gaudi3_set_fixed_properties(struct hl_device *hdev)
 
 	prop->fw_cpu_boot_dev_sts0_valid = false;
 	prop->fw_cpu_boot_dev_sts1_valid = false;
-	prop->hard_reset_done_by_fw = false;
 	prop->supports_user_set_page_size = true;
 
 	prop->pcie_dbi_base_address = CFG_BAR_BASE + mmD0_PCIE_DBI_SNPS_BASE;
@@ -8237,28 +8236,21 @@ void gaudi3_send_hard_reset_cmd(struct hl_device *hdev)
 	}
 
 	/*
-	 * When working with preboot (without Linux/Boot fit) we can
-	 * communicate only using the COMMS commands to issue halt/reset.
+	 * When working with preboot (without a boot fit) we can communicate only using the COMMS
+	 * commands to issue halt/reset.
 	 *
-	 * For the case in which we are working with Linux/Bootfit this is a hail-mary
-	 * attempt to revive the card in the small chance that the f/w has
-	 * experienced a watchdog event, which caused it to return back to preboot.
-	 * In that case, triggering reset through GIC won't help. We need to
-	 * trigger the reset as if Linux wasn't loaded.
+	 * For the case in which we are working with a boot fit, this is a hail-mary attempt to
+	 * revive the card in the small chance that the f/w has experienced a watchdog event, which
+	 * caused it to return back to preboot.
+	 * In that case, triggering reset using PSOC ARC interrupt won't help, and we need to
+	 * trigger the reset as if boot fit wasn't loaded.
 	 *
-	 * We do it only if the reset cause was HB, because that would be the
-	 * indication of such an event.
-	 *
-	 * In case watchdog hasn't expired but we still got HB, then this won't
-	 * do any damage.
+	 * We do it only if the reset cause was HB, because that would be the indication of such an
+	 * event.
+	 * In case watchdog hasn't expired but we still got HB, then this won't do any damage.
 	 */
-
-	if (heartbeat_reset || preboot_only) {
-		if (hdev->asic_prop.hard_reset_done_by_fw)
-			hl_fw_ask_hard_reset_without_linux(hdev);
-		else
-			hl_fw_ask_halt_machine_without_linux(hdev);
-	}
+	if (heartbeat_reset || preboot_only)
+		hl_fw_ask_hard_reset_without_linux(hdev);
 }
 
 /**
@@ -8270,7 +8262,7 @@ void gaudi3_send_hard_reset_cmd(struct hl_device *hdev)
  */
 static void gaudi3_execute_hard_reset(struct hl_device *hdev)
 {
-	if (!hdev->asic_prop.hard_reset_done_by_fw) {
+	if (!(hdev->fw_components & FW_TYPE_PREBOOT_CPU)) {
 		gaudi3_execute_reset_no_fw(hdev, true);
 		return;
 	}
