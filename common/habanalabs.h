@@ -854,6 +854,9 @@ struct hl_cn_properties {
  * @support_dynamic_resereved_fw_size: true if we support dynamic reserved size for fw.
  * @support_glbl_priv_fetch: true if device support special blocks iterator used to retrieve
  *				special block GLBL_PRIV registers.
+ * @pci_memory_regions_remapped_by_fw: true if BMU was remmapped by FW in runtime,
+ *				and different BMU mapping is used for boot phase
+ *				and runtime phase.
  */
 struct asic_fixed_properties {
 	struct hw_queue_properties	*hw_queues_props;
@@ -1007,6 +1010,7 @@ struct asic_fixed_properties {
 	u8				supports_engine_modes;
 	u8				support_dynamic_resereved_fw_size;
 	u8				support_glbl_priv_fetch;
+	u8				pci_memory_regions_remapped_by_fw;
 };
 
 /**

@@ -4075,6 +4075,22 @@ done:
 	return rc;
 }
 
+static void gaudi3_remap_pci_memory_regions(struct hl_device *hdev)
+{
+	struct asic_fixed_properties *prop = &hdev->asic_prop;
+	struct pci_mem_region *region;
+
+	if (prop->pci_memory_regions_remapped_by_fw) {
+		/* SRAM Disable */
+		region = &hdev->pci_mem_region[PCI_REGION_SRAM];
+		region->used = 0;
+
+		/* DRAM */
+		region = &hdev->pci_mem_region[PCI_REGION_DRAM];
+		region->offset_in_bar = 0;
+	}
+}
+
 static int gaudi3_init_iatu(struct hl_device *hdev)
 {
 	struct hl_outbound_pci_region outbound_region;
@@ -7944,6 +7960,8 @@ int gaudi3_init_cpu(struct hl_device *hdev)
 	rc = hl_fw_init_cpu(hdev);
 	if (rc)
 		return rc;
+
+	gaudi3_remap_pci_memory_regions(hdev);
 
 	gaudi3->hw_cap_initialized |= HW_CAP_CPU;
 

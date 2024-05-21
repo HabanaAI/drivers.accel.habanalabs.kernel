@@ -2514,6 +2514,9 @@ static void hl_fw_boot_fit_update_state(struct hl_device *hdev,
 		prop->hard_reset_done_by_fw = !!(prop->fw_bootfit_cpu_boot_dev_sts0 &
 							CPU_BOOT_DEV_STS0_FW_HARD_RST_EN);
 
+		prop->pci_memory_regions_remapped_by_fw =
+			!!(prop->fw_bootfit_cpu_boot_dev_sts0 & CPU_BOOT_DEV_STS0_BMU_REMAP_EN);
+
 		dev_dbg(hdev->dev, "Firmware boot CPU status0 %#x\n",
 					prop->fw_bootfit_cpu_boot_dev_sts0);
 	}
@@ -2677,8 +2680,9 @@ static int hl_fw_dynamic_wait_pll_reinit(struct hl_device *hdev,
 	return 0;
 }
 
-static int hl_fw_dynamic_wait_for_linux_active(struct hl_device *hdev,
-						struct fw_load_mgr *fw_loader)
+static int hl_fw_dynamic_wait_for_sram_available(struct hl_device *hdev,
+						 struct fw_load_mgr *fw_loader,
+						 const char *wait_str)
 {
 	struct dynamic_fw_load_mgr *dyn_loader;
 	u32 status;
@@ -2696,7 +2700,7 @@ static int hl_fw_dynamic_wait_for_linux_active(struct hl_device *hdev,
 		hdev->fw_poll_interval_usec,
 		fw_loader->cpu_timeout);
 	if (rc) {
-		dev_err(hdev->dev, "failed to wait for Linux (status = %d)\n", status);
+		dev_err(hdev->dev, "failed to wait for %s (status = %d)\n", wait_str, status);
 		return rc;
 	}
 
@@ -2704,6 +2708,22 @@ static int hl_fw_dynamic_wait_for_linux_active(struct hl_device *hdev,
 	return 0;
 }
 
+static int hl_fw_wait_for_bmu_remap(struct hl_device *hdev,
+						struct fw_load_mgr *fw_loader)
+{
+	struct asic_fixed_properties *prop = &hdev->asic_prop;
+
+	if (prop->pci_memory_regions_remapped_by_fw)
+		return hl_fw_dynamic_wait_for_sram_available(hdev, fw_loader, "SRAM available");
+
+	return 0;
+}
+
+static int hl_fw_dynamic_wait_for_linux_active(struct hl_device *hdev,
+						struct fw_load_mgr *fw_loader)
+{
+	return hl_fw_dynamic_wait_for_sram_available(hdev, fw_loader, "Linux");
+}
 /**
  * hl_fw_linux_update_state -	update internal data structures after Linux
  *				is loaded.
@@ -2959,6 +2979,10 @@ static int hl_fw_dynamic_init_cpu(struct hl_device *hdev,
 	hl_fw_boot_fit_update_state(hdev,
 			le32_to_cpu(dyn_regs->cpu_boot_dev_sts0),
 			le32_to_cpu(dyn_regs->cpu_boot_dev_sts1));
+
+	rc = hl_fw_wait_for_bmu_remap(hdev, fw_loader);
+	if (rc)
+		goto protocol_err;
 
 	/*
 	 * when testing FW load (without Linux) on PLDM we don't want to
