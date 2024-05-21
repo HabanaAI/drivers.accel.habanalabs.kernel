@@ -8336,11 +8336,7 @@ int gaudi3_hw_fini(struct hl_device *hdev, bool hard_reset, bool fw_reset)
 
 	reset_poll_timeout_us = hdev->asic_prop.reset_poll_timeout_us;
 	reset_sleep_ms = hard_reset ? hdev->asic_prop.hard_reset_sleep_ms
-			: hdev->asic_prop.soft_reset_sleep_ms;
-
-	/* TODO SW-163434 - remove after the PCIe SEI bug is fixed */
-	if (hdev->pldm && hdev->fw_components == FW_TYPE_PREBOOT_CPU)
-		hdev->asic_prop.hard_reset_done_by_fw = false;
+					: hdev->asic_prop.soft_reset_sleep_ms;
 
 	if (fw_reset) {
 		dev_dbg(hdev->dev, "Firmware performs self HARD reset\n");
