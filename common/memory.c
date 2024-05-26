@@ -3041,14 +3041,13 @@ static int get_user_memory(struct hl_device *hdev, u64 addr, u64 size,
 			rc, addr, size, npages);
 		if (rc < 0)
 			goto destroy_framevec;
-		rc = -EFAULT;
+		rc = -ENOMEM;
 		goto put_framevec;
 	}
 
-	if (frame_vector_to_pages(userptr->vec) < 0) {
-		dev_err(hdev->dev,
-			"Failed to translate frame vector to pages\n");
-		rc = -EFAULT;
+	rc = frame_vector_to_pages(userptr->vec);
+	if (rc < 0) {
+		dev_err(hdev->dev, "Failed to translate frame vector to pages\n");
 		goto put_framevec;
 	}
 
