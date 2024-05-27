@@ -4075,19 +4075,21 @@ done:
 	return rc;
 }
 
-static void gaudi3_remap_pci_memory_regions(struct hl_device *hdev)
+static void gaudi3_remap_pci_memory_regions(struct hl_device *hdev, bool sram_enable)
 {
 	struct asic_fixed_properties *prop = &hdev->asic_prop;
-	struct pci_mem_region *region;
+	struct pci_mem_region *sram_region = &hdev->pci_mem_region[PCI_REGION_SRAM],
+		*dram_region = &hdev->pci_mem_region[PCI_REGION_DRAM];
 
-	if (prop->pci_memory_regions_remapped_by_fw) {
-		/* SRAM Disable */
-		region = &hdev->pci_mem_region[PCI_REGION_SRAM];
-		region->used = 0;
+	if (!prop->pci_memory_regions_remapped_by_fw)
+		return;
 
-		/* DRAM */
-		region = &hdev->pci_mem_region[PCI_REGION_DRAM];
-		region->offset_in_bar = 0;
+	if (sram_enable) {
+		sram_region->used = 1;
+		dram_region->offset_in_bar = SRAM_SIZE;
+	} else {
+		sram_region->used = 0;
+		dram_region->offset_in_bar = 0;
 	}
 }
 
@@ -7961,7 +7963,7 @@ int gaudi3_init_cpu(struct hl_device *hdev)
 	if (rc)
 		return rc;
 
-	gaudi3_remap_pci_memory_regions(hdev);
+	gaudi3_remap_pci_memory_regions(hdev, false);
 
 	gaudi3->hw_cap_initialized |= HW_CAP_CPU;
 
@@ -8356,6 +8358,8 @@ int gaudi3_hw_fini(struct hl_device *hdev, bool hard_reset, bool fw_reset)
 	gaudi3_reset_arcs(hdev);
 
 	gaudi3_set_isolation(hdev, true, hard_reset);
+
+	gaudi3_remap_pci_memory_regions(hdev, true);
 
 	if (hard_reset) {
 		gaudi3_execute_hard_reset(hdev);
