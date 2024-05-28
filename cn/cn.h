@@ -103,6 +103,7 @@ struct hl_cn_port_funcs {
  * @get_hw_cap: check rather HW capability bitmap is set for NIC.
  * @set_hw_cap: set HW capability (on/off).
  * @set_cn_data: ASIC data to be used by the CN driver.
+ * @mmap: Map CN memory.
  * @port_funcs: functions called from common code for a specific NIC port.
  */
 struct hl_cn_funcs {
@@ -110,6 +111,7 @@ struct hl_cn_funcs {
 	bool (*get_hw_cap)(struct hl_device *hdev);
 	void (*set_hw_cap)(struct hl_device *hdev, bool enable);
 	void (*set_cn_data)(struct hl_device *hdev);
+	int (*mmap)(struct hl_device *hdev, u32 asid, struct vm_area_struct *vma);
 	struct hl_cn_port_funcs *port_funcs;
 };
 
