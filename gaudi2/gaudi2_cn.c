@@ -488,6 +488,11 @@ static void gaudi2_cn_set_cn_data(struct hl_device *hdev)
 	gaudi2_aux_ops->get_tx_swap_map = gaudi2_cn_get_tx_swap_map;
 }
 
+static int gaudi2_cn_mmap(struct hl_device *hdev, u32 asid, struct vm_area_struct *vma)
+{
+	return -EINVAL;
+}
+
 void gaudi2_cn_compute_reset_prepare(struct hl_device *hdev)
 {
 	struct gaudi2_device *gaudi2 = hdev->asic_specific;
@@ -583,5 +588,6 @@ struct hl_cn_funcs gaudi2_cn_funcs = {
 	.set_hw_cap = gaudi2_cn_set_hw_cap,
 	.pre_core_init = gaudi2_cn_pre_core_init,
 	.set_cn_data = gaudi2_cn_set_cn_data,
+	.mmap = gaudi2_cn_mmap,
 	.port_funcs = &gaudi2_cn_port_funcs,
 };
