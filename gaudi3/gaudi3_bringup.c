@@ -3139,7 +3139,7 @@ static void gaudi3_disable_regulators(struct hl_device *hdev)
 {
 	struct iterate_module_ctx ctx = {};
 
-	if (!hdev->disable_h9_regulartors)
+	if (!hdev->disable_h9_regulators)
 		return;
 
 	ctx.fn = gaudi3_disable_mme_mstr_if_tel_regu_hbw;
