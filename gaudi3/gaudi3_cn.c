@@ -619,6 +619,11 @@ static void gaudi3_cn_set_cn_data(struct hl_device *hdev)
 	gaudi3_aux_ops->post_send_status = hl_cn_post_send_status;
 }
 
+static int gaudi3_cn_mmap(struct hl_device *hdev, u32 asid, struct vm_area_struct *vma)
+{
+	return -EINVAL;
+}
+
 /**
  * gaudi3_cn_disable_nics_interrupts() - Disable interrupts of all NICs.
  * Gaudi3 NIC interrupts are enabled by default, need to disable them ASAP
@@ -809,5 +814,6 @@ struct hl_cn_funcs gaudi3_cn_funcs = {
 	.set_hw_cap = gaudi3_cn_set_hw_cap,
 	.pre_core_init = gaudi3_cn_pre_core_init,
 	.set_cn_data = gaudi3_cn_set_cn_data,
+	.mmap = gaudi3_cn_mmap,
 	.port_funcs = &gaudi3_cn_port_funcs,
 };
