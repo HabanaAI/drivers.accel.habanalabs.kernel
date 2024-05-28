@@ -974,18 +974,11 @@ void hl_cn_synchronize_irqs(struct hl_device *hdev)
 int hl_cn_mmap(struct hl_device *hdev, u32 asid, struct vm_area_struct *vma)
 {
 	struct hl_cn_funcs *cn_funcs = hdev->asic_funcs->cn_funcs;
-	struct hbl_aux_dev *aux_dev = &hdev->cn.cn_aux_dev;
-	struct hbl_cn_aux_ops *aux_ops;
-
-	aux_ops = aux_dev->aux_ops;
 
 	if (!cn_funcs->get_hw_cap(hdev))
 		return -EFAULT;
 
-	if (aux_ops->mmap)
-		return aux_ops->mmap(aux_dev, asid, vma);
-
-	return -EFAULT;
+	return cn_funcs->mmap(hdev, asid, vma);
 }
 
 int hl_cn_get_port_state(struct hl_device *hdev, u32 port, bool *up)
