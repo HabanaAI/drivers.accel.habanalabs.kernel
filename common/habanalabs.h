@@ -4116,7 +4116,6 @@ struct hl_device {
 	u8				heartbeat_reset_enable;
 	u8				glbl_errors_read_enable;
 	u8				gaudi3_setup_type;
-	u8				disable_h9_regulators;
 	u8				card_location_override;
 };
 
