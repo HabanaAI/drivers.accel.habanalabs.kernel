@@ -996,10 +996,10 @@ int hl_cn_get_port_state(struct hl_device *hdev, u32 port,
 	if (!cn_funcs->get_hw_cap(hdev))
 		return -EFAULT;
 
-	if (!aux_ops->get_port_state_temp)
+	if (!aux_ops->get_port_state)
 		return -EFAULT;
 
-	rc = aux_ops->get_port_state_temp(aux_dev, port, &port_state);
+	rc = aux_ops->get_port_state(aux_dev, port, &port_state);
 	if (rc)
 		return rc;
 
