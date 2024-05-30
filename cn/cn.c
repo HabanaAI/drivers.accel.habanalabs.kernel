@@ -978,21 +978,59 @@ int hl_cn_mmap(struct hl_device *hdev, u32 asid, struct vm_area_struct *vma)
 	return cn_funcs->mmap(hdev, asid, vma);
 }
 
-int hl_cn_get_port_state(struct hl_device *hdev, u32 port, bool *up)
+static int hl_cn_aux_link_qual_to_hl_link_qual(struct hl_device *hdev,
+						enum hbl_cn_aux_link_qual cn_aux_link_qual,
+						enum hl_link_qual *hl_link_qual)
+{
+	switch (cn_aux_link_qual) {
+	case HBL_CN_AUX_LINK_QUAL_POOR:
+		*hl_link_qual = HL_LINK_QUAL_POOR;
+		break;
+	case HBL_CN_AUX_LINK_QUAL_GOOD:
+		*hl_link_qual = HL_LINK_QUAL_GOOD;
+		break;
+	case HBL_CN_AUX_LINK_QUAL_EXCELLENT:
+		*hl_link_qual = HL_LINK_QUAL_EXCELLENT;
+		break;
+	default:
+		dev_dbg(hdev->dev, "link_type %d is invalid\n", cn_aux_link_qual);
+		return -EINVAL;
+	}
+
+	return 0;
+}
+
+int hl_cn_get_port_state(struct hl_device *hdev, u32 port,
+				struct hl_info_habana_link_state *link_state_info)
 {
 	struct hl_cn_funcs *cn_funcs = hdev->asic_funcs->cn_funcs;
 	struct hbl_aux_dev *aux_dev = &hdev->cn.cn_aux_dev;
+	struct hbl_cn_aux_port_state port_state;
 	struct hbl_cn_aux_ops *aux_ops;
+	enum hl_link_qual hl_link_qual;
+	int rc;
 
 	aux_ops = aux_dev->aux_ops;
 
 	if (!cn_funcs->get_hw_cap(hdev))
 		return -EFAULT;
 
-	if (aux_ops->get_port_state)
-		return aux_ops->get_port_state(aux_dev, port, up);
+	if (!aux_ops->get_port_state_temp)
+		return -EFAULT;
 
-	return -EFAULT;
+	rc = aux_ops->get_port_state_temp(aux_dev, port, &port_state);
+	if (rc)
+		return rc;
+
+	rc = hl_cn_aux_link_qual_to_hl_link_qual(hdev, port_state.link_qual, &hl_link_qual);
+	if (rc)
+		return rc;
+
+	link_state_info->link_up = port_state.link_up;
+	link_state_info->port_open = port_state.port_open;
+	link_state_info->link_qual = (u8)hl_link_qual;
+
+	return 0;
 }
 
 int hl_cn_get_port_statistics(struct hl_device *hdev, u32 port,

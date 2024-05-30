@@ -754,17 +754,14 @@ static int cn_link_state_info(struct hl_fpriv *hpriv, struct hl_info_args *args)
 	u32 max_size = args->return_size;
 	struct hl_info_habana_link_state link_state_info = {};
 	void __user *out = (void __user *) (uintptr_t) args->return_pointer;
-	bool up;
 	int rc;
 
 	if ((!max_size) || (!out))
 		return -EINVAL;
 
-	rc = hl_cn_get_port_state(hdev, args->habana_link_id, &up);
+	rc = hl_cn_get_port_state(hdev, args->habana_link_id, &link_state_info);
 	if (rc)
 		return rc;
-
-	link_state_info.up = up;
 
 	return copy_to_user(out, &link_state_info,
 		min_t(size_t, max_size, sizeof(link_state_info))) ? -EFAULT : 0;
