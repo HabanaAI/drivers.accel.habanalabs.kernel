@@ -8359,9 +8359,8 @@ int gaudi3_hw_fini(struct hl_device *hdev, bool hard_reset, bool fw_reset)
 
 	gaudi3_set_isolation(hdev, true, hard_reset);
 
-	gaudi3_remap_pci_memory_regions(hdev, true);
-
 	if (hard_reset) {
+		gaudi3_remap_pci_memory_regions(hdev, true);
 		gaudi3_execute_hard_reset(hdev);
 	} else {
 		if (hdev->fw_components & FW_TYPE_BOOT_CPU) {
