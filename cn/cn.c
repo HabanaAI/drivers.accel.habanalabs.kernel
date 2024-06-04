@@ -586,16 +586,12 @@ static int hl_cn_aux_data_init(struct hl_device *hdev)
 
 	/* set cn -> accel ops */
 	aux_ops->device_operational = hl_cn_device_operational;
-	aux_ops->hw_access_lock = hl_cn_device_lock;
-	aux_ops->hw_access_unlock = hl_cn_device_unlock;
 	aux_ops->device_lock = hl_cn_device_lock;
 	aux_ops->device_unlock = hl_cn_device_unlock;
 	aux_ops->vm_dev_mmu_map = hl_cn_vm_dev_mmu_map;
 	aux_ops->vm_dev_mmu_unmap = hl_cn_vm_dev_mmu_unmap;
 	aux_ops->vm_reserve_dva_block = hl_cn_vm_reserve_dva_block;
 	aux_ops->vm_unreserve_dva_block = hl_cn_vm_unreserve_dva_block;
-	aux_ops->dram_readl = hl_cn_read_mem;
-	aux_ops->dram_writel = hl_cn_write_mem;
 	aux_ops->read_mem = hl_cn_read_mem;
 	aux_ops->write_mem = hl_cn_write_mem;
 	aux_ops->rreg = hl_cn_rreg;
@@ -885,8 +881,8 @@ void hl_cn_stop(struct hl_device *hdev)
 	if (!cn_funcs->get_hw_cap(hdev))
 		return;
 
-	if (aux_ops->ports_stop)
-		aux_ops->ports_stop(aux_dev);
+	if (aux_ops->ports_close)
+		aux_ops->ports_close(aux_dev);
 
 	/* Set NIC as not initialized. */
 	cn_funcs->set_hw_cap(hdev, false);
