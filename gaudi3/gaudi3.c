@@ -14834,7 +14834,12 @@ int gaudi3_handle_eqe(struct hl_device *hdev, struct hl_eq_dynamic_entry *eq_dyn
 
 int gaudi3_send_device_activity(struct hl_device *hdev, bool open)
 {
-	return 0;
+	struct gaudi3_device *gaudi3 = hdev->asic_specific;
+
+	if (!(gaudi3->hw_cap_initialized & HW_CAP_CPU_Q))
+		return 0;
+
+	return hl_fw_send_device_activity(hdev, open);
 }
 
 /*
