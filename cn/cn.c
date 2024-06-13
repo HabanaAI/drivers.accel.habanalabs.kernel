@@ -1022,7 +1022,7 @@ int hl_cn_get_port_state(struct hl_device *hdev, u32 port,
 	if (rc)
 		return rc;
 
-	link_state_info->link_up = port_state.link_up;
+	link_state_info->up = port_state.link_up;
 	link_state_info->port_open = port_state.port_open;
 	link_state_info->link_qual = (u8)hl_link_qual;
 
