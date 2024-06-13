@@ -6747,7 +6747,7 @@ int gaudi3_page_fault_queue_hw_init(struct hl_device *hdev)
 	WREG32(mmD0_PMMU_HBW_MMU_BASE + mmMMU_FAULTQ_MAX_THSLD_INT_MASK, 1);
 
 	WREG32(mmD0_PMMU_HBW_MMU_BASE + mmMMU_FAULTQ_MSIX_ADDR,
-	       CFG_BAR_BASE - LBW_BASE + mmD0_PCIE_DBI_SIG_BASE + mmPCIE_DBI_MSIX_DOORBELL_OFF);
+	       CFG_BAR_BASE - LBW_BASE + mmD0_PCIE_MSIX_BASE + mmPCIE_MSIX_INTR);
 	WREG32(mmD0_PMMU_HBW_MMU_BASE + mmMMU_FAULTQ_MSIX_DATA, irq_nr);
 
 	gaudi3->hw_cap_initialized |= HW_CAP_PFQ;

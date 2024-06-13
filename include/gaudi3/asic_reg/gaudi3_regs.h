@@ -34,6 +34,7 @@
 #include "arc_regs.h"
 #include "arc_dup_eng_regs.h"
 #include "qman_arc_aux_regs.h"
+#include "pcie_msix_regs.h"
 #include "pcie_wrap_regs.h"
 #include "pcie_wrap_dbi_access_regs.h"
 #include "pcie_wrap_dbi_gw_m0_regs.h"
