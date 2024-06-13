@@ -4097,11 +4097,17 @@ static void gaudi3_remap_pci_memory_regions(struct hl_device *hdev, bool sram_en
 		return;
 
 	if (sram_enable) {
+		/* Map BAR first 256MB to SRAM  */
 		sram_region->used = 1;
 		dram_region->offset_in_bar = SRAM_SIZE;
+		prop->dram_pci_bar_size -= SRAM_SIZE;
+		hdev->dram_pci_bar_start += SRAM_SIZE;
 	} else {
+		/* Map BAR to expose all DRAM */
 		sram_region->used = 0;
 		dram_region->offset_in_bar = 0;
+		prop->dram_pci_bar_size += SRAM_SIZE;
+		hdev->dram_pci_bar_start -= SRAM_SIZE;
 	}
 }
 
