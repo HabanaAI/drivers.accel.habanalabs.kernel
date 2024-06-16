@@ -240,8 +240,6 @@ void hl_odp_region_ctx_destroy(struct hl_odp_region_ctx *rg)
 
 
 	xa_for_each(&rg->pt, va_pfn, entry) {
-		if (!entry)
-			continue;
 		device_addr = (va_pfn << PAGE_SHIFT);
 		dma_addr = xa_to_value(entry);
 		hl_mmu_unmap_page(ctx, device_addr, PAGE_SIZE, true);
@@ -394,8 +392,6 @@ static bool odp_mmu_update_page_out_locked(struct hl_odp_region_ctx *rg, u64 sta
 	last_va_pfn = start_va_pfn + npages - 1;
 
 	xa_for_each_range(&rg->pt, va_pfn, entry, start_va_pfn, last_va_pfn) {
-		if (!entry)
-			continue;
 		dma_addr = xa_to_value(entry);
 		device_addr = (va_pfn << PAGE_SHIFT);
 		rc = hl_mmu_unmap_page(ctx, device_addr, PAGE_SIZE, true);
@@ -419,9 +415,6 @@ static bool odp_mmu_update_page_out_locked(struct hl_odp_region_ctx *rg, u64 sta
 		return false;
 
 	xa_for_each_range(&rg->pt, va_pfn, entry, start_va_pfn, last_va_pfn) {
-		if (!entry)
-			continue;
-
 		dma_addr = xa_to_value(entry);
 		hl_dma_unmap_page(hdev, dma_addr, PAGE_SIZE, rg->userptr->dir);
 		xa_erase(&rg->pt, va_pfn);
