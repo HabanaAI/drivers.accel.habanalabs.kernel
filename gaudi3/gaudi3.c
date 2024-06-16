@@ -4944,15 +4944,12 @@ static bool gaudi3_special_blocks_skip_with_mask(struct hl_device *hdev,
 		else
 			instance_idx = major;
 
-		max_instances = NIC_NUM_MACROS_PER_DIE * MAX_NUM_OF_DIES;
+		max_instances = NIC_NUMBER_OF_MACROS;
 		if (instance_idx >= max_instances) {
 			dev_err(hdev->dev, "[blk_idx %u]: instance_idx (%u) exceeded max NIC macros (%u)!\n",
 					blk_idx, instance_idx, max_instances);
 			return true;
 		}
-
-		if (instance_idx >= NIC_NUMBER_OF_MACROS)
-			return true;
 
 		if (hdev->cn.ports_mask & gaudi3_cn_get_macro_ports_mask(hdev, instance_idx))
 			return false;
