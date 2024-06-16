@@ -431,12 +431,10 @@ static void hl_cn_get_ports_info(struct hbl_aux_dev *aux_dev,
 	memcpy(hbl_cn_aux_ports_info->module_eeprom, cn_cpucp_info->qsfp_eeprom,
 	       sizeof(hbl_cn_aux_ports_info->module_eeprom));
 
-	hbl_cn_aux_ports_info->ports_mask = hdev->cn.ports_mask;
 	hbl_cn_aux_ports_info->ports_pol_tx_mask = cn_cpucp_info->pol_tx_mask[0];
 	hbl_cn_aux_ports_info->ports_pol_rx_mask = cn_cpucp_info->pol_rx_mask[0];
 	hbl_cn_aux_ports_info->ports_ext_mask = hdev->cn.ports_ext_mask;
 	hbl_cn_aux_ports_info->ports_auto_neg_mask = hdev->cn.auto_neg_mask;
-	hbl_cn_aux_ports_info->lanes_per_port = hdev->cn.lanes_per_port;
 }
 
 static void hl_cn_cpucp_info_le_to_cpu(struct cpucp_nic_info *cpucp_nic_info,
