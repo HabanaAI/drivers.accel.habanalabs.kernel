@@ -235,6 +235,7 @@ void hl_odp_region_ctx_destroy(struct hl_odp_region_ctx *rg)
 	void *entry;
 	u64 device_addr;
 	unsigned long va_pfn;
+	int rc;
 
 	mmu_interval_notifier_remove(&rg->notifier);
 
@@ -242,7 +243,11 @@ void hl_odp_region_ctx_destroy(struct hl_odp_region_ctx *rg)
 	xa_for_each(&rg->pt, va_pfn, entry) {
 		device_addr = (va_pfn << PAGE_SHIFT);
 		dma_addr = xa_to_value(entry);
-		hl_mmu_unmap_page(ctx, device_addr, PAGE_SIZE, true);
+		rc = hl_mmu_unmap_page(ctx, device_addr, PAGE_SIZE, true);
+		if (rc)
+			dev_err(hdev->dev,
+				"Error while unmapping %#llx (device_addr=%#llx): %d",
+				dma_addr, device_addr, rc);
 		hl_dma_unmap_page(hdev, dma_addr, PAGE_SIZE, rg->userptr->dir);
 		xa_erase(&rg->pt, va_pfn);
 	}
