@@ -9,7 +9,6 @@
 #include "../include/gaudi3/asic_reg/gaudi3_regs.h"
 #include "../include/hw_ip/mmu/mmu_general.h"
 #include "../include/gaudi3/gaudi3_reg_map.h"
-#include "../include/common/pci_ids.h"
 
 #include <linux/pci.h>
 #include <linux/slab.h>

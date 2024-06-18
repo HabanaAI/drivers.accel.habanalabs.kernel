@@ -13,7 +13,6 @@
 #include "../include/gaudi/gaudi_fw_if.h"
 #include "../include/gaudi/gaudi_reg_map.h"
 #include "../include/gaudi/gaudi_async_ids_map_extended.h"
-#include "../include/common/pci_ids.h"
 
 #include <linux/module.h>
 #include <linux/pci.h>
@@ -710,7 +709,10 @@ int gaudi_set_fixed_properties(struct hl_device *hdev)
 	prop->nic_drv_addr = NIC_DRV_ADDR;
 	prop->nic_drv_size = NIC_DRV_SIZE;
 	prop->macro_cfg_size = mmNIC1_QM0_GLBL_CFG0 - mmNIC0_QM0_GLBL_CFG0;
-	prop->pci_id = hdev->pdev ? hdev->pdev->device : PCI_IDS_INVALID;
+
+	if (hdev->pdev)
+		prop->pci_id = hdev->pdev->device;
+
 	prop->signal_cb_size = sizeof(struct packet_msg_short) + sizeof(struct packet_msg_prot) * 2;
 	prop->wait_cb_size =
 		sizeof(struct packet_msg_short) * 4 +

@@ -10,7 +10,6 @@
 #include "../include/hw_ip/mmu/mmu_v1_0.h"
 #include "../include/goya/asic_reg/goya_masks.h"
 #include "../include/goya/goya_reg_map.h"
-#include "../include/common/pci_ids.h"
 
 #include <linux/module.h>
 #include <linux/pci.h>
@@ -491,7 +490,10 @@ int goya_set_fixed_properties(struct hl_device *hdev)
 	prop->configurable_stop_on_err = true;
 	prop->set_max_power_on_device_init = true;
 	prop->dma_mask = 48;
-	prop->pci_id = hdev->pdev ? hdev->pdev->device : PCI_IDS_INVALID;
+
+	if (hdev->pdev)
+		prop->pci_id = hdev->pdev->device;
+
 	prop->signal_cb_size = 0;
 	prop->wait_cb_size = 0;
 

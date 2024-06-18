@@ -78,7 +78,6 @@
 #include "../include/gaudi3/gaudi3_reg_map.h"
 #include "../include/hw_ip/mmu/mmu_v2_0.h"
 #include "../include/hw_ip/mmu/mmu_v3_0.h"
-#include "../include/common/pci_ids.h"
 #include "uapi/drm/habanalabs_accel.h"
 #include <linux/module.h>
 #include <linux/pci.h>
@@ -3908,7 +3907,9 @@ int gaudi3_set_fixed_properties(struct hl_device *hdev)
 		prop->dram_user_base_address = prop->dram_base_address + hbm_offset;
 	}
 
-	prop->pci_id = hdev->pdev ? hdev->pdev->device : PCI_IDS_INVALID;
+	if (hdev->pdev)
+		prop->pci_id = hdev->pdev->device;
+
 	prop->signal_cb_size = 0;
 	prop->wait_cb_size = 0;
 

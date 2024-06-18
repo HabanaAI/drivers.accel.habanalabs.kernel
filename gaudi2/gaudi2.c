@@ -17,7 +17,6 @@
 #include "../include/gaudi2/gaudi2_reg_map.h"
 #include "../include/gaudi2/gaudi2_async_ids_map_extended.h"
 #include "../include/gaudi2/arc/gaudi2_arc_common_packets.h"
-#include "../include/common/pci_ids.h"
 
 #include <linux/module.h>
 #include <linux/pci.h>
@@ -2617,7 +2616,10 @@ int gaudi2_set_fixed_properties(struct hl_device *hdev)
 
 	prop->pcie_flush_reg_addr = mmPSOC_TIMESTAMP_CNTCR;
 	prop->supports_advanced_cpucp_rc = true;
-	prop->pci_id = hdev->pdev ? hdev->pdev->device : PCI_IDS_INVALID;
+
+	if (hdev->pdev)
+		prop->pci_id = hdev->pdev->device;
+
 	prop->signal_cb_size = sizeof(struct packet_msg_short);
 	prop->wait_cb_size = sizeof(struct packet_msg_short) * 4 + sizeof(struct packet_fence);
 	return 0;
