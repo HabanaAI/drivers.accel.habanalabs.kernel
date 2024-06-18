@@ -788,6 +788,85 @@ static void hl_access_host_mem(struct hl_device *hdev, u64 addr, u64 *val,
 	}
 }
 
+static void dump_cfg_access_entry(struct hl_device *hdev,
+				  struct hl_debugfs_cfg_access_entry *entry)
+{
+	char *access_type = "";
+	struct tm tm;
+
+	switch (entry->debugfs_type) {
+	case DEBUGFS_READ32:
+		access_type = "READ32 from";
+		break;
+	case DEBUGFS_WRITE32:
+		access_type = "WRITE32 to";
+		break;
+	case DEBUGFS_READ64:
+		access_type = "READ64 from";
+		break;
+	case DEBUGFS_WRITE64:
+		access_type = "WRITE64 to";
+		break;
+	default:
+		dev_err(hdev->dev, "Invalid DEBUGFS access type (%u)\n", entry->debugfs_type);
+		return;
+	}
+
+	time64_to_tm(entry->seconds_since_epoch, 0, &tm);
+	dev_info(hdev->dev,
+		"%ld-%02d-%02d %02d:%02d:%02d (UTC): %s %#llx\n", tm.tm_year + 1900, tm.tm_mon + 1,
+		tm.tm_mday, tm.tm_hour, tm.tm_min, tm.tm_sec, access_type, entry->addr);
+}
+
+void hl_debugfs_cfg_access_history_dump(struct hl_device *hdev)
+{
+	struct hl_debugfs_cfg_access_entry *accesses_list =
+				hdev->debugfs_cfg_accesses.cfg_access_list;
+	u32 head = hdev->debugfs_cfg_accesses.head, i;
+	ktime_t entry_seconds, current_seconds;
+	bool first_loop = true;
+
+	i = (head - 1 + HL_DBGFS_CFG_ACCESS_HIST_LEN) % HL_DBGFS_CFG_ACCESS_HIST_LEN;
+	entry_seconds = accesses_list[i].seconds_since_epoch;
+	current_seconds = ktime_get_real_seconds();
+
+	while ((current_seconds - entry_seconds <= HL_DBGFS_CFG_ACCESS_HIST_TIMEOUT_SEC)
+		&& accesses_list[i].valid) {
+
+		if (first_loop) {
+			dev_info(hdev->dev,
+				"Config region access requests from debugfs - history dump (new to old):\n");
+			first_loop = false;
+		}
+
+		dump_cfg_access_entry(hdev, &accesses_list[i]);
+		accesses_list[i].valid = false;
+		i = (i - 1 + HL_DBGFS_CFG_ACCESS_HIST_LEN) % HL_DBGFS_CFG_ACCESS_HIST_LEN;
+		entry_seconds = accesses_list[i].seconds_since_epoch;
+	}
+}
+
+static void check_if_cfg_access_and_log(struct hl_device *hdev, u64 addr, size_t access_size,
+					enum debugfs_access_type access_type)
+{
+	struct hl_debugfs_cfg_access *dbgfs_cfg_accesses = &hdev->debugfs_cfg_accesses;
+	struct pci_mem_region *mem_reg = &hdev->pci_mem_region[PCI_REGION_CFG];
+	struct hl_debugfs_cfg_access_entry *new_entry;
+
+	/* Check if address is in config memory */
+	if (addr >= mem_reg->region_base && addr <= mem_reg->region_base +
+		mem_reg->region_size - access_size) {
+
+		new_entry = &dbgfs_cfg_accesses->cfg_access_list[dbgfs_cfg_accesses->head];
+		new_entry->seconds_since_epoch = ktime_get_real_seconds();
+		new_entry->addr = addr;
+		new_entry->debugfs_type = access_type;
+		new_entry->valid = true;
+		dbgfs_cfg_accesses->head = (dbgfs_cfg_accesses->head + 1)
+						% HL_DBGFS_CFG_ACCESS_HIST_LEN;
+	}
+}
+
 static int hl_access_mem(struct hl_device *hdev, u64 addr, u64 *val,
 				enum debugfs_access_type acc_type)
 {
@@ -805,6 +884,7 @@ static int hl_access_mem(struct hl_device *hdev, u64 addr, u64 *val,
 			return rc;
 	}
 
+	check_if_cfg_access_and_log(hdev, addr, acc_size, acc_type);
 	rc = hl_access_dev_mem_by_region(hdev, addr, val, acc_type, &found);
 	if (rc) {
 		dev_err(hdev->dev,

@@ -14657,6 +14657,7 @@ static u32 gaudi3_handle_sei_event(struct hl_device *hdev,
 
 	gaudi3_sei_razwi_handler(hdev, eq_dynamic_entry, event_mask);
 	gaudi3_check_for_glbl_errors(hdev, eq_dynamic_entry);
+	hl_debugfs_cfg_access_history_dump(hdev);
 
 out:
 	return err_cnt;
