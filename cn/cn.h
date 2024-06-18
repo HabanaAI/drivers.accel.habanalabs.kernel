@@ -73,6 +73,38 @@ struct hl_cn {
 	u8			eth_on_internal;
 };
 
+/*
+ * struct hbl_cn_cpucp_mac_addr - port MAC address received from FW.
+ * @mac_addr: port MAC address.
+ */
+struct hbl_cn_cpucp_mac_addr {
+	u8 mac_addr[ETH_ALEN];
+};
+
+/*
+ * struct hbl_cn_cpucp_info - info received from FW.
+ * @mac_addrs: array of MAC address for all physical ports.
+ * @link_mask: mask of available ports.
+ * @pol_tx_mask: array of Tx polarity value for all ports.
+ * @pol_rx_mask: array of Rx polarity value for all ports.
+ * @link_ext_mask: mask of external ports.
+ * @qsfp_eeprom: QSFP EEPROM info.
+ * @auto_neg_mask: mask of ports which supports Autonegotiation.
+ * @serdes_type: type of serdes.
+ * @tx_swap_map: lane swapping map.
+ */
+struct hbl_cn_cpucp_info {
+	struct hbl_cn_cpucp_mac_addr mac_addrs[CPUCP_MAX_NICS];
+	u64 link_mask[CPUCP_NIC_MASK_ARR_LEN];
+	u64 pol_tx_mask[CPUCP_NIC_POLARITY_ARR_LEN];
+	u64 pol_rx_mask[CPUCP_NIC_POLARITY_ARR_LEN];
+	u64 link_ext_mask[CPUCP_NIC_MASK_ARR_LEN];
+	u8 qsfp_eeprom[CPUCP_NIC_QSFP_EEPROM_MAX_LEN];
+	u64 auto_neg_mask[CPUCP_NIC_MASK_ARR_LEN];
+	enum cpucp_serdes_type serdes_type;
+	u16 tx_swap_map[CPUCP_MAX_NICS];
+};
+
 /**
  * struct hl_cn_port_funcs - ASIC specific CN functions that are called from common code for a
  *                            specific port.

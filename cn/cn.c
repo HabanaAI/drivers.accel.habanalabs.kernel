@@ -405,18 +405,6 @@ static int hl_cn_get_vm_info(struct hbl_aux_dev *aux_dev, u64 vm_handle,
 	return 0;
 }
 
-static void hl_cn_get_cpucp_info(struct hbl_aux_dev *aux_dev,
-					struct hbl_cn_cpucp_info *hl_cn_cpucp_info)
-{
-	struct hl_cn *cn = container_of(aux_dev, struct hl_cn, cn_aux_dev);
-	struct hl_device *hdev = container_of(cn, struct hl_device, cn);
-	struct hbl_cn_cpucp_info *cn_cpucp_info;
-
-	cn_cpucp_info = &hdev->asic_prop.cn_props.cpucp_info;
-
-	memcpy(hl_cn_cpucp_info, cn_cpucp_info, sizeof(*cn_cpucp_info));
-}
-
 static void hl_cn_get_ports_info(struct hbl_aux_dev *aux_dev,
 					struct hbl_cn_aux_ports_info *hbl_cn_aux_ports_info)
 {
@@ -600,7 +588,6 @@ static int hl_cn_aux_data_init(struct hl_device *hdev)
 	aux_ops->vm_create = hl_cn_vm_create;
 	aux_ops->vm_destroy = hl_cn_vm_destroy;
 	aux_ops->get_vm_info = hl_cn_get_vm_info;
-	aux_ops->get_cpucp_info = hl_cn_get_cpucp_info;
 	aux_ops->get_ports_info = hl_cn_get_ports_info;
 
 	cn_funcs->set_cn_data(hdev);
