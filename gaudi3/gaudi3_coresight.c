@@ -6287,7 +6287,7 @@ static int gaudi3_config_bmon(struct hl_device *hdev, struct hl_debug_params *pa
 		WREG32(base_reg + mmCS_DBG_TPC_EML_BMON0_ADDRH_E3, 0);
 		WREG32(base_reg + mmCS_DBG_TPC_EML_BMON0_REDUCTION, 0);
 		WREG32(base_reg + mmCS_DBG_TPC_EML_BMON0_STM_TRC, 0x7 | (0xA << 8));
-		WREG32(base_reg + mmCS_DBG_TPC_EML_BMON0_CR, 0x77 | 0xf << 24);
+		WREG32(base_reg + mmCS_DBG_TPC_EML_BMON0_CR, 0x41);
 	}
 
 	return 0;
