@@ -1276,6 +1276,9 @@ static int send_fw_generic_request(struct hl_device *hdev, struct hl_info_args *
 	case HL_PASSTHROUGH_PID_CMD:
 		need_input_buff = true;
 		break;
+	case  HL_GET_ERR_COUNTERS_CMD:
+		need_input_buff = true;
+		break;
 	default:
 		return -EINVAL;
 	}
