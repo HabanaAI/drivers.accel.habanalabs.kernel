@@ -1350,7 +1350,7 @@ static void stringify_time_of_last_heartbeat(struct hl_device *hdev, char *time_
 	time64_to_tm(seconds, 0, &tm);
 
 	snprintf(time_str, size, "%ld-%02d-%02d %02d:%02d:%02d (UTC)",
-		tm.tm_year + 1900, tm.tm_mon, tm.tm_mday, tm.tm_hour, tm.tm_min, tm.tm_sec);
+		tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday, tm.tm_hour, tm.tm_min, tm.tm_sec);
 }
 
 static bool hl_device_eq_heartbeat_received(struct hl_device *hdev)
