@@ -254,6 +254,15 @@
 extern u64 debug_bmon_regs[GAUDI2_BMON_LAST + 1];
 extern u64 debug_spmu_regs[GAUDI2_SPMU_LAST + 1];
 
+extern const char *gaudi2_engine_id_str[];
+extern const char *gaudi2_queue_id_str[];
+
+#define GAUDI2_ENG_ID_TO_STR(initiator) ((initiator) >= GAUDI2_ENGINE_ID_SIZE ? "not found" :	\
+						gaudi2_engine_id_str[initiator])
+
+#define GAUDI2_QUEUE_ID_TO_STR(initiator) ((initiator) >= GAUDI2_QUEUE_ID_SIZE ? "not found" :	\
+						gaudi2_queue_id_str[initiator])
+
 enum gaudi2_reserved_sob_id {
 	GAUDI2_RESERVED_SOB_CS_COMPLETION_FIRST,
 	GAUDI2_RESERVED_SOB_CS_COMPLETION_LAST =
