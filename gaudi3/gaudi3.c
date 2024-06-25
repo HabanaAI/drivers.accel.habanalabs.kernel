@@ -10441,7 +10441,9 @@ static int gaudi3_test_qman_wait_completion(struct hl_device *hdev, u32 engine_i
 	rc = hl_poll_timeout(hdev, sob_addr, tmp, (tmp == sob_val),
 					HL_POLL_SLEEP_US, timeout_usec);
 	if (rc == -ETIMEDOUT) {
-		dev_err(hdev->dev, "%s test for engine %d failed\n", test_name, engine_id);
+		dev_err(hdev->dev,
+			"%s test for engine %s failed\n",
+			test_name, GAUDI3_ENG_ID_TO_STR(engine_id));
 		rc = -EIO;
 	}
 
@@ -12122,8 +12124,9 @@ static bool gaudi3_razwi_status(struct hl_device *hdev, struct razwi_initiator_i
 	addr_lo = RREG32(base + mmRTR_CTRL_CH_RAZWI_HBW_RR_RAZWI_AW_ADDR_LO);
 	razwi_addr = ((u64)addr_hi << 32) + addr_lo + razwi_offset;
 
-	dev_err(hdev->dev, "%s %s : %s, address 0x%llX, captured id %u\n",
-				bw_type, razwi_type, initiator->initiator_name, razwi_addr, eng_id);
+	dev_err(hdev->dev, "%s %s : %s, address 0x%llX, captured eng %s\n",
+				bw_type, razwi_type, initiator->initiator_name,
+				razwi_addr, GAUDI3_ENG_ID_TO_STR(eng_id));
 
 	hl_handle_razwi(hdev, razwi_addr, &eng_id, 1, flags, event_mask);
 
