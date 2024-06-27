@@ -8007,12 +8007,6 @@ static bool gaudi2_get_nic_idle_status(struct hl_device *hdev, u64 *mask_arr, u8
 		if (mask && !is_eng_idle)
 			set_bit(engine_idx, mask);
 
-		/* SW-146391: For debug, not for upstream. */
-		if (!e && !is_eng_idle)
-			dev_info(hdev->dev,
-				"NIC%u qm_glbl_sts0:%#x qm_glbl_sts1:%#x qm_cgm_sts:%#x\n",
-				i, qm_glbl_sts0, qm_glbl_sts1, qm_cgm_sts);
-
 		if (e)
 			hl_engine_data_sprintf(e, nic_fmt, i, is_eng_idle ? "Y" : "N",
 						qm_glbl_sts0, qm_cgm_sts);
