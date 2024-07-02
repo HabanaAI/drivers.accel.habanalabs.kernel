@@ -158,7 +158,7 @@ int hl_cn_ctx_init(struct hl_ctx *ctx);
 void hl_cn_ctx_fini(struct hl_ctx *ctx);
 void hl_cn_synchronize_irqs(struct hl_device *hdev);
 int hl_cn_mmap(struct hl_device *hdev, u32 asid, struct vm_area_struct *vma);
-int hl_cn_get_port_state(struct hl_device *hdev, u32 port,
+int hl_cn_get_port_status(struct hl_device *hdev, u32 port,
 			 struct hl_info_habana_link_state *link_state_info);
 int hl_cn_get_port_statistics(struct hl_device *hdev, u32 port,
 				struct hbl_cn_port_statistics *out);

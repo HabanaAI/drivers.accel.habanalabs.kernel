@@ -997,12 +997,12 @@ static int hl_cn_aux_link_qual_to_hl_link_qual(struct hl_device *hdev,
 	return 0;
 }
 
-int hl_cn_get_port_state(struct hl_device *hdev, u32 port,
+int hl_cn_get_port_status(struct hl_device *hdev, u32 port,
 				struct hl_info_habana_link_state *link_state_info)
 {
 	struct hl_cn_funcs *cn_funcs = hdev->asic_funcs->cn_funcs;
 	struct hbl_aux_dev *aux_dev = &hdev->cn.cn_aux_dev;
-	struct hbl_cn_aux_port_state port_state;
+	struct hbl_cn_aux_port_status port_status;
 	struct hbl_cn_aux_ops *aux_ops;
 	enum hl_link_qual hl_link_qual;
 	int rc;
@@ -1012,19 +1012,19 @@ int hl_cn_get_port_state(struct hl_device *hdev, u32 port,
 	if (!cn_funcs->get_hw_cap(hdev))
 		return -EFAULT;
 
-	if (!aux_ops->get_port_state)
+	if (!aux_ops->get_port_status)
 		return -EFAULT;
 
-	rc = aux_ops->get_port_state(aux_dev, port, &port_state);
+	rc = aux_ops->get_port_status(aux_dev, port, &port_status);
 	if (rc)
 		return rc;
 
-	rc = hl_cn_aux_link_qual_to_hl_link_qual(hdev, port_state.link_qual, &hl_link_qual);
+	rc = hl_cn_aux_link_qual_to_hl_link_qual(hdev, port_status.link_qual, &hl_link_qual);
 	if (rc)
 		return rc;
 
-	link_state_info->up = port_state.link_up;
-	link_state_info->port_open = port_state.port_open;
+	link_state_info->up = port_status.link_up;
+	link_state_info->port_open = port_status.port_open;
 	link_state_info->link_qual = (u8)hl_link_qual;
 
 	return 0;

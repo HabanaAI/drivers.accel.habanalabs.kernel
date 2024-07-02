@@ -759,7 +759,7 @@ static int cn_link_state_info(struct hl_fpriv *hpriv, struct hl_info_args *args)
 	if ((!max_size) || (!out))
 		return -EINVAL;
 
-	rc = hl_cn_get_port_state(hdev, args->habana_link_id, &link_state_info);
+	rc = hl_cn_get_port_status(hdev, args->habana_link_id, &link_state_info);
 	if (rc)
 		return rc;
 
