@@ -2544,8 +2544,8 @@ static const char * const gaudi3_interrupt_hdcore_name[INT_HDCORE_MAX] = {
 	[INT_PSOC]    = "PSOC"
 };
 
-static int gaudi3_validate_eqe_data_size(struct hl_device *hdev,
-					 u16 actual_size, u16 expected_size);
+static void gaudi3_validate_eqe_data_size(struct hl_device *hdev, void *data, u16 actual_size,
+						u16 expected_size);
 
 static int gaudi3_test_qmans_get_sob_for_engine(struct hl_device *hdev,
 						enum gaudi3_engine_id engine_id,
@@ -3122,16 +3122,12 @@ static u32 handle_pmmu_spi_events(struct hl_device *hdev, u32 die, u64 *event_ma
 	const char *initiator_str;
 	const bool is_read = true;
 	u64 va, axi_id;
-	int rc;
 
-	rc = gaudi3_validate_eqe_data_size(hdev, data_size, sizeof(*pmmu_spi_data));
-	if (rc)
-		return 0;
+	gaudi3_validate_eqe_data_size(hdev, pmmu_spi_data, data_size, sizeof(*pmmu_spi_data));
 
 	mmu_spi_status = le64_to_cpu(pmmu_spi_data->intr_cause.intr_cause_data);
 	if (!mmu_spi_status)
 		return 0;
-
 
 	if ((mmu_spi_status & page_fault_sts_m) || page_fault_data->va || page_fault_data->axid) {
 		va = le64_to_cpu(page_fault_data->va);
@@ -3264,8 +3260,7 @@ static u32 handle_hmmu_spi_events(struct hl_device *hdev, u16 data_size,
 	char stlb_str[256] = {0}, dtlb_str[256] = {0};
 	u32 err_cnt = 0;
 
-	if (gaudi3_validate_eqe_data_size(hdev, data_size, sizeof(*spi_data)))
-		return 0;
+	gaudi3_validate_eqe_data_size(hdev, spi_data, data_size, sizeof(*spi_data));
 
 	err_cnt = hmmu_event_get_stlb_desc(hdev, spi_data, stlb_str, sizeof(stlb_str));
 	err_cnt += hmmu_event_get_dtlb_desc(hdev, hdcore, die, spi_data->dtlb_data,
@@ -12653,11 +12648,9 @@ static u32 gaudi3_handle_pdma_sei_err(struct hl_device *hdev, u16 data_size,
 	struct asic_fixed_properties *prop = &hdev->asic_prop;
 	u32 err_cnt = 0, err_cnt_per_grp = 0, err_msk;
 	char pdma_channel_name[20];
-	int i, j, rc;
+	int i, j;
 
-	rc = gaudi3_validate_eqe_data_size(hdev, data_size, sizeof(struct hl_eq_pdma_sei_data));
-	if (rc)
-		return 0;
+	gaudi3_validate_eqe_data_size(hdev, eqd, data_size, sizeof(struct hl_eq_pdma_sei_data));
 
 	/* Loop on all groups in die */
 	for (i = 0 ; i < NUM_OF_PDMA_GRP_PER_DIE ; i++) {
@@ -12700,15 +12693,27 @@ static u32 gaudi3_handle_pdma_sei_err(struct hl_device *hdev, u16 data_size,
 	return err_cnt;
 }
 
-static int gaudi3_validate_eqe_data_size(struct hl_device *hdev, u16 actual_size, u16 expected_size)
+static void gaudi3_validate_eqe_data_size(struct hl_device *hdev, void *data, u16 actual_size,
+						u16 expected_size)
 {
-	if (actual_size != expected_size) {
-		dev_err_ratelimited(hdev->dev, "EQ entry data size is %u while expecting %u\n",
+	if (actual_size != expected_size)
+		dev_dbg_ratelimited(hdev->dev, "EQ entry data size is %u while expecting %u\n",
 					actual_size, expected_size);
-		return -EINVAL;
-	}
 
-	return 0;
+	/*
+	 * When FW writes to an EQ entry, it doesn't necessarily clear the previously existing data
+	 * at that entry. If the actual size that is used by FW is less than the expected size by
+	 * the driver, it is possible that garbage will be read from the section that wasn't filled
+	 * by FW.
+	 * To handle such cases, this section is zeroed here, and it is the responsibility of the
+	 * specific EQ handler to ignore the relevant zeroed fields, as it should be aware of new
+	 * fields that are added in its relevant data structure by newer FW versions.
+	 *
+	 * If the actual size exceeds the expected size, no action should be taken, as in any
+	 * case the driver will look only at the fields that it is familiar with.
+	 */
+	if (actual_size < expected_size)
+		memset((u8 *) data + actual_size, 0, expected_size - actual_size);
 }
 
 static u32 gaudi3_handle_arc_farm_sei_err(struct hl_device *hdev, u16 data_size,
@@ -12717,11 +12722,8 @@ static u32 gaudi3_handle_arc_farm_sei_err(struct hl_device *hdev, u16 data_size,
 	struct hl_eq_arcfarm_sei_data *arcfarm_sei_data = &eq_dynamic_entry->arcfarm_sei_data;
 	u32 err_cnt = 0;
 	bool err_arc1;
-	int rc;
 
-	rc = gaudi3_validate_eqe_data_size(hdev, data_size, sizeof(*arcfarm_sei_data));
-	if (rc)
-		return 0;
+	gaudi3_validate_eqe_data_size(hdev, arcfarm_sei_data, data_size, sizeof(*arcfarm_sei_data));
 
 	err_cnt = gaudi3_err_cause_iterator(hdev,
 		lower_32_bits(le64_to_cpu(arcfarm_sei_data->arc1_wrapper_cause.intr_cause_data)),
@@ -12746,11 +12748,9 @@ static u32 gaudi3_handle_decoder_sei_err(struct hl_device *hdev, u16 data_size,
 				struct hl_eq_razwi_with_intr_cause_data *razwi_with_intr_cause)
 {
 	u32 err_mask;
-	int rc;
 
-	rc = gaudi3_validate_eqe_data_size(hdev, data_size, sizeof(*razwi_with_intr_cause));
-	if (rc)
-		return 0;
+	gaudi3_validate_eqe_data_size(hdev, razwi_with_intr_cause, data_size,
+					sizeof(*razwi_with_intr_cause));
 
 	err_mask = lower_32_bits(le64_to_cpu(razwi_with_intr_cause->intr_cause.intr_cause_data)) &
 			VDEC_BRDG_CTRL_CAUSE_INTR_SEI_M;
@@ -12762,11 +12762,8 @@ static u32 gaudi3_handle_pcie0_sei_err(struct hl_device *hdev, u16 data_size,
 					struct hl_eq_pcie_sei_data *pcie_sei_data)
 {
 	u32 err_msk;
-	int rc;
 
-	rc = gaudi3_validate_eqe_data_size(hdev, data_size, sizeof(*pcie_sei_data));
-	if (rc)
-		return 0;
+	gaudi3_validate_eqe_data_size(hdev, pcie_sei_data, data_size, sizeof(*pcie_sei_data));
 
 	if (pcie_sei_data->sei_type != PCIE_SEI_AXI_RESP_ERR)
 		return 0;
@@ -12831,15 +12828,11 @@ static u32 gaudi3_handle_edma_sei_err(struct hl_device *hdev, u16 data_size,
 				      u64 *event_mask)
 {
 	u32 instance, channel, chn_data_idx, err_num = 0, err_mask, err_num_tmp, acc_err_num = 0;
+	struct hl_eq_edma_sei_data *edma_sei_data = &eq_dynamic_entry->edma_sei_data;
 	struct hl_eq_edma_chn_data *edma_chn_data;
-	struct hl_eq_edma_sei_data *edma_sei_data;
 	char buf[32];
-	int rc;
 
-	edma_sei_data = &eq_dynamic_entry->edma_sei_data;
-	rc = gaudi3_validate_eqe_data_size(hdev, data_size, sizeof(*edma_sei_data));
-	if (rc)
-		return 0;
+	gaudi3_validate_eqe_data_size(hdev, edma_sei_data, data_size, sizeof(*edma_sei_data));
 
 	for (instance = 0 ; instance < NUM_OF_EDMA_PER_HDCORE ; ++instance) {
 		for (channel = 0 ; channel < NUM_OF_EDMA_CHANNELS ; ++channel) {
@@ -12925,11 +12918,8 @@ static u32 handle_tpc_spi_events(struct hl_device *hdev, u16 data_size,
 					struct hl_eq_tpc_spi_data *spi_data)
 {
 	u32 err_num;
-	int rc;
 
-	rc = gaudi3_validate_eqe_data_size(hdev, data_size, sizeof(struct hl_eq_tpc_spi_data));
-	if (rc)
-		return 0;
+	gaudi3_validate_eqe_data_size(hdev, spi_data, data_size, sizeof(struct hl_eq_tpc_spi_data));
 
 	err_num = handle_tpc_events(hdev, &spi_data->data, INT_GRP_TYPE_SPI);
 	if (err_num)
@@ -12965,11 +12955,8 @@ static u32 gaudi3_handle_nch_spi(struct hl_device *hdev, u32 die, u16 data_size,
 					struct hl_eq_intr_cause *cause)
 {
 	u32 cause_data, err_num = 0;
-	int rc;
 
-	rc = gaudi3_validate_eqe_data_size(hdev, data_size, sizeof(struct hl_eq_intr_cause));
-	if (rc)
-		return 0;
+	gaudi3_validate_eqe_data_size(hdev, cause, data_size, sizeof(struct hl_eq_intr_cause));
 
 	cause_data = le64_to_cpu(cause->intr_cause_data);
 	err_num = gaudi3_err_cause_iterator(hdev, cause_data, gaudi3_spi_nch_etr_full_intr_cause,
@@ -12983,11 +12970,9 @@ static u32 gaudi3_handle_mme_spi_events(struct hl_device *hdev, u16 data_size,
 	struct hl_eq_mme_spmu_bmon *spmu_bmon_data = &spi_data->spmu_bmon_data;
 	struct hl_eq_mme_acc_data *acc_data = &spi_data->acc_data;
 	u32 cause, err_num = 0;
-	int i, rc;
+	int i;
 
-	rc = gaudi3_validate_eqe_data_size(hdev, data_size, sizeof(struct hl_eq_mme_spi_data));
-	if (rc)
-		return 0;
+	gaudi3_validate_eqe_data_size(hdev, spi_data, data_size, sizeof(struct hl_eq_mme_spi_data));
 
 	switch (spi_data->type) {
 	case MME_DATA_TYPE_CS_DBG:
@@ -13026,11 +13011,8 @@ static u32 gaudi3_handle_mme_sei_err(struct hl_device *hdev, u16 data_size,
 	struct hl_eq_mme_sbte_data *sbte = &sei_data->sbte_data;
 	char initiator_str[128] = {};
 	u32 cause, err_num = 0;
-	int rc;
 
-	rc = gaudi3_validate_eqe_data_size(hdev, data_size, sizeof(struct hl_eq_mme_sei_data));
-	if (rc)
-		return 0;
+	gaudi3_validate_eqe_data_size(hdev, sei_data, data_size, sizeof(struct hl_eq_mme_sei_data));
 
 	switch (sei_data->type) {
 	case MME_DATA_TYPE_SBTE:
@@ -13064,11 +13046,8 @@ static u32 gaudi3_handle_nch_sei_err(struct hl_device *hdev, u16 data_size, u32 
 					struct hl_eq_nch_sei_data *sei_data, u64 *event_mask)
 {
 	u32 cause, err_num = 0;
-	int rc;
 
-	rc = gaudi3_validate_eqe_data_size(hdev, data_size, sizeof(struct hl_eq_nch_sei_data));
-	if (rc)
-		return 0;
+	gaudi3_validate_eqe_data_size(hdev, sei_data, data_size, sizeof(struct hl_eq_nch_sei_data));
 
 	cause = le64_to_cpu(sei_data->xresp_lbw.intr_cause_data);
 	if (cause & MSTR_IF_V1_XRESP_LBW_INTR_CTRL_CAUSE_BRESP_ERR_M)
@@ -13152,8 +13131,7 @@ static u32 handle_hmmu_sei_events(struct hl_device *hdev, u16 data_size,
 	char stlb_str[256] = {0}, dtlb_str[256] = {0};
 	u32 err_cnt = 0;
 
-	if (gaudi3_validate_eqe_data_size(hdev, data_size, sizeof(*sei_data)))
-		return 0;
+	gaudi3_validate_eqe_data_size(hdev, sei_data, data_size, sizeof(*sei_data));
 
 	if (sei_data->cause.intr_cause_data & STLB_INTR_SEI_CAUSE_LBW_RSP_ERR_M) {
 		snprintf(stlb_str, sizeof(stlb_str), "LBW resp error: address 0x%x, data: 0x%x",
@@ -13177,11 +13155,8 @@ static u32 handle_tpc_sei_events(struct hl_device *hdev, u16 data_size,
 				struct hl_eq_tpc_sei_data *sei_data, u16 eng_id, u64 *event_mask)
 {
 	u32 err_num;
-	int rc;
 
-	rc = gaudi3_validate_eqe_data_size(hdev, data_size, sizeof(struct hl_eq_tpc_sei_data));
-	if (rc)
-		return 0;
+	gaudi3_validate_eqe_data_size(hdev, sei_data, data_size, sizeof(struct hl_eq_tpc_sei_data));
 
 	err_num = handle_tpc_events(hdev, &sei_data->data, INT_GRP_TYPE_SEI);
 	if (err_num)
@@ -13198,11 +13173,8 @@ static u32 gaudi3_handle_rotator_sei_err(struct hl_device *hdev, u16 data_size,
 					u64 *event_mask)
 {
 	u32 err_msk, err_num;
-	int rc;
 
-	rc = gaudi3_validate_eqe_data_size(hdev, data_size, sizeof(*rot_sei_data));
-	if (rc)
-		return 0;
+	gaudi3_validate_eqe_data_size(hdev, rot_sei_data, data_size, sizeof(*rot_sei_data));
 
 	err_msk = lower_32_bits(le64_to_cpu(rot_sei_data->cause.intr_cause_data)) &
 			ROTATOR_MSS_SEI_CAUSE_MASK;
@@ -13218,11 +13190,8 @@ static u32 gaudi3_handle_psoc_sei_err(struct hl_device *hdev, u16 data_size,
 						struct hl_eq_psoc_sei_data *sei_data)
 {
 	u32 err_bits, err_num;
-	int rc;
 
-	rc = gaudi3_validate_eqe_data_size(hdev, data_size, sizeof(*sei_data));
-	if (rc)
-		return 0;
+	gaudi3_validate_eqe_data_size(hdev, sei_data, data_size, sizeof(*sei_data));
 
 	err_bits = lower_32_bits(le64_to_cpu(sei_data->intr_cause.intr_cause_data)) &
 				PSOC_GLBL_CONF2_SEI_INTR_MASK;
@@ -13257,11 +13226,9 @@ static u32 gaudi3_handle_sob_sei_err(struct hl_device *hdev, u16 data_size,
 						struct hl_eq_sob_sei_data *sei_data)
 {
 	u32 log_idx, sm_cause, sm_cause_cause, sm_cause_log, err_num = 0, cq_intr_queue_idx;
-	int rc;
 
-	rc = gaudi3_validate_eqe_data_size(hdev, data_size, sizeof(*sei_data));
-	if (rc)
-		return 0;
+	gaudi3_validate_eqe_data_size(hdev, sei_data, data_size, sizeof(*sei_data));
+
 	sm_cause = le64_to_cpu(sei_data->intr_cause.intr_cause_data);
 	sm_cause_cause = FIELD_GET(SOB_GLBL_SM_SEI_CAUSE_CAUSE_M, sm_cause);
 	err_num = gaudi3_err_cause_iterator(hdev, sm_cause_cause, gaudi3_sob_sei_cause,
@@ -13308,11 +13275,8 @@ static u32 gaudi3_handle_rotator_spi_err(struct hl_device *hdev, u16 data_size,
 						struct hl_eq_rot_spi_data *rot_spi_data)
 {
 	u32 err_msk, err_num, err_status;
-	int rc;
 
-	rc = gaudi3_validate_eqe_data_size(hdev, data_size, sizeof(*rot_spi_data));
-	if (rc)
-		return 0;
+	gaudi3_validate_eqe_data_size(hdev, rot_spi_data, data_size, sizeof(*rot_spi_data));
 
 	err_msk = lower_32_bits(le64_to_cpu(rot_spi_data->data.intr_cause.intr_cause_data)) &
 			ROTATOR_MSS_SPI_CAUSE_MASK;
@@ -13397,11 +13361,8 @@ static u32 gaudi3_handle_pcie0_spi_err(struct hl_device *hdev, u16 data_size,
 					u32 *reset_flags, u64 *event_mask)
 {
 	u32 err_num = 0, err_msk;
-	int rc;
 
-	rc = gaudi3_validate_eqe_data_size(hdev, data_size, sizeof(*pcie_spi_data));
-	if (rc)
-		return 0;
+	gaudi3_validate_eqe_data_size(hdev, pcie_spi_data, data_size, sizeof(*pcie_spi_data));
 
 	switch (pcie_spi_data->spi_type) {
 	case PCIE_SPI_FLR:
@@ -13446,11 +13407,8 @@ static u32 gaudi3_handle_decoder_spi(struct hl_device *hdev, u16 data_size,
 					struct hl_eq_generic_spi_data *spi_data, u64 *event_mask)
 {
 	u32 irq_status, err_cnt;
-	int rc;
 
-	rc = gaudi3_validate_eqe_data_size(hdev, data_size, sizeof(*spi_data));
-	if (rc)
-		return 0;
+	gaudi3_validate_eqe_data_size(hdev, spi_data, data_size, sizeof(*spi_data));
 
 	irq_status = lower_32_bits(le64_to_cpu(spi_data->cause.intr_cause_data)) & VCMD_SW_IRQ_MASK;
 
@@ -13478,11 +13436,8 @@ static u32 gaudi3_handle_nic_spi(struct hl_device *hdev, u32 macro_index, u16 da
 	struct gaudi3_device *gaudi3 = hdev->asic_specific;
 	struct gaudi3_cn_aux_ops *aux_ops = &gaudi3->cn_aux_ops;
 	struct hbl_aux_dev *aux_dev = &hdev->cn.cn_aux_dev;
-	int rc;
 
-	rc = gaudi3_validate_eqe_data_size(hdev, data_size, sizeof(*nic_spi_data));
-	if (rc)
-		return 0;
+	gaudi3_validate_eqe_data_size(hdev, nic_spi_data, data_size, sizeof(*nic_spi_data));
 
 	if (nic_spi_data->spi_type == NIC_SPI_BMON_SPMU)
 		return gaudi3_cn_handle_bmon_spmu_event(hdev);
@@ -13746,14 +13701,12 @@ out:
 static u32 gaudi3_handle_derr_event(struct hl_device *hdev,
 				struct hl_eq_dynamic_entry *eq_dynamic_entry, u64 *event_mask)
 {
+	struct hl_eq_ecc_data *ecc_data = &eq_dynamic_entry->ecc_data;
 	u16 data_size = le16_to_cpu(eq_dynamic_entry->hdr.size);
-	int rc;
 
-	rc = gaudi3_validate_eqe_data_size(hdev, data_size, sizeof(eq_dynamic_entry->ecc_data));
-	if (rc)
-		return 0;
+	gaudi3_validate_eqe_data_size(hdev, ecc_data, data_size, sizeof(*ecc_data));
 
-	gaudi3_handle_ecc_event(hdev, &eq_dynamic_entry->ecc_data);
+	gaudi3_handle_ecc_event(hdev, ecc_data);
 
 	return 1;
 }
@@ -13840,11 +13793,7 @@ static u32 gaudi3_handle_cs_sei_err(struct hl_device *hdev, u16 data_size,
 					struct hl_eq_cs_sei_data *sei_data,
 					u32 *reset_flags, u64 *event_mask)
 {
-	int rc;
-
-	rc = gaudi3_validate_eqe_data_size(hdev, data_size, sizeof(*sei_data));
-	if (rc)
-		return 0;
+	gaudi3_validate_eqe_data_size(hdev, sei_data, data_size, sizeof(*sei_data));
 
 	return gaudi3_cs_sei_err_cause_iterator(hdev, sei_data, reset_flags, event_mask);
 }
@@ -14169,11 +14118,7 @@ static void gaudi3_sei_razwi_handler(struct hl_device *hdev, struct hl_eq_dynami
 static u32 gaudi3_handle_cpu_sei_err(struct hl_device *hdev, u16 data_size,
 					struct hl_eq_cpu_sei_data *cpu_sei_data)
 {
-	int rc;
-
-	rc = gaudi3_validate_eqe_data_size(hdev, data_size, sizeof(struct hl_eq_cpu_sei_data));
-	if (rc)
-		return 0;
+	gaudi3_validate_eqe_data_size(hdev, cpu_sei_data, data_size, sizeof(*cpu_sei_data));
 
 	return gaudi3_err_cause_iterator(hdev,
 			lower_32_bits(le64_to_cpu(cpu_sei_data->intr_cause.intr_cause_data)),
@@ -14183,12 +14128,8 @@ static u32 gaudi3_handle_cpu_sei_err(struct hl_device *hdev, u16 data_size,
 static u32 gaudi3_handle_edup_sei_err(struct hl_device *hdev, u16 data_size,
 			struct hl_eq_razwi_with_intr_cause_data *razwi_with_intr_cause)
 {
-	int rc;
-
-	rc = gaudi3_validate_eqe_data_size(hdev, data_size,
-				sizeof(struct hl_eq_razwi_with_intr_cause_data));
-	if (rc)
-		return 0;
+	gaudi3_validate_eqe_data_size(hdev, razwi_with_intr_cause, data_size,
+					sizeof(*razwi_with_intr_cause));
 
 	return gaudi3_err_cause_iterator(hdev,
 		lower_32_bits(le64_to_cpu(razwi_with_intr_cause->intr_cause.intr_cause_data)),
@@ -14198,11 +14139,7 @@ static u32 gaudi3_handle_edup_sei_err(struct hl_device *hdev, u16 data_size,
 static u32 gaudi3_handle_parc_sei_err(struct hl_device *hdev, u16 data_size,
 					struct hl_eq_parc_sei_data *parc_sei_data)
 {
-	int rc;
-
-	rc = gaudi3_validate_eqe_data_size(hdev, data_size, sizeof(struct hl_eq_parc_sei_data));
-	if (rc)
-		return 0;
+	gaudi3_validate_eqe_data_size(hdev, parc_sei_data, data_size, sizeof(*parc_sei_data));
 
 	return gaudi3_err_cause_iterator(hdev,
 			lower_32_bits(le64_to_cpu(parc_sei_data->intr_cause.intr_cause_data)),
@@ -14213,11 +14150,8 @@ static u32 gaudi3_handle_d2d_mac_sei_err(struct hl_device *hdev, u16 data_size,
 					struct hl_eq_d2dmac_sei_data *d2d_mac_sei_data)
 {
 	u32 err_cnt;
-	int rc;
 
-	rc = gaudi3_validate_eqe_data_size(hdev, data_size, sizeof(struct hl_eq_d2dmac_sei_data));
-	if (rc)
-		return 0;
+	gaudi3_validate_eqe_data_size(hdev, d2d_mac_sei_data, data_size, sizeof(*d2d_mac_sei_data));
 
 	err_cnt = gaudi3_err_cause_iterator(hdev,
 			lower_32_bits(le64_to_cpu(d2d_mac_sei_data->intr_cause[0].intr_cause_data)),
@@ -14234,11 +14168,8 @@ static u32 gaudi3_handle_d2d_phy_sei_err(struct hl_device *hdev, u16 data_size,
 						struct hl_eq_d2dphy_sei_data *d2dphy_sei_data)
 {
 	u32 err_mask;
-	int rc;
 
-	rc = gaudi3_validate_eqe_data_size(hdev, data_size, sizeof(*d2dphy_sei_data));
-	if (rc)
-		return 0;
+	gaudi3_validate_eqe_data_size(hdev, d2dphy_sei_data, data_size, sizeof(*d2dphy_sei_data));
 
 	err_mask = lower_32_bits(le64_to_cpu(d2dphy_sei_data->intr_cause.intr_cause_data));
 
@@ -14251,11 +14182,8 @@ static u32 gaudi3_handle_pll_sei_err(struct hl_device *hdev, u16 data_size,
 {
 	char err_str[32];
 	u32 err_msk;
-	int rc;
 
-	rc = gaudi3_validate_eqe_data_size(hdev, data_size, sizeof(struct hl_eq_pll_sei_data));
-	if (rc)
-		return 0;
+	gaudi3_validate_eqe_data_size(hdev, pll_sei_cause, data_size, sizeof(*pll_sei_cause));
 
 	err_msk = lower_32_bits(le64_to_cpu(pll_sei_cause->intr_cause.intr_cause_data));
 
@@ -14271,11 +14199,9 @@ static u32 gaudi3_handle_nic_sei_err_event(struct hl_device *hdev, u16 data_size
 	struct hbl_aux_dev *aux_dev = &hdev->cn.cn_aux_dev;
 	struct gaudi3_device *gaudi3 = hdev->asic_specific;
 	struct gaudi3_cn_aux_ops *aux_ops = &gaudi3->cn_aux_ops;
-	int rc;
+	int rc = 0;
 
-	rc = gaudi3_validate_eqe_data_size(hdev, data_size, sizeof(struct hl_eq_nic_sei_data));
-	if (rc)
-		return 0;
+	gaudi3_validate_eqe_data_size(hdev, nic_sei_data, data_size, sizeof(*nic_sei_data));
 
 	if (aux_ops->sei_err_event_handler)
 		rc = aux_ops->sei_err_event_handler(aux_dev, nic_sei_data, macro_index);
@@ -14413,11 +14339,9 @@ static u32 gaudi3_handle_hbm_mc_sei_err(struct hl_device *hdev, u16 data_size,
 	struct hl_eq_hbm_mc_sei_data *sei_data;
 	u8 rd_err_bitmask = 0x0;
 	char buf[32];
-	int rc;
 
-	rc = gaudi3_validate_eqe_data_size(hdev, data_size, sizeof(*hbm_mc_cmn_sei_info));
-	if (rc)
-		return 0;
+	gaudi3_validate_eqe_data_size(hdev, hbm_mc_cmn_sei_info, data_size,
+					sizeof(*hbm_mc_cmn_sei_info));
 
 	sei_header = &hbm_mc_cmn_sei_info->sei_header;
 	sei_data = &hbm_mc_cmn_sei_info->sei_data;
