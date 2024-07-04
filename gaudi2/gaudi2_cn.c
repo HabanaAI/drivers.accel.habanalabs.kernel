@@ -439,6 +439,14 @@ static int gaudi2_cn_get_tx_swap_map(struct hbl_aux_dev *aux_dev, u16 *tx_swap_m
 	return 0;
 }
 
+static void gaudi2_cn_device_reset(struct hbl_aux_dev *aux_dev)
+{
+	struct hl_cn *cn = container_of(aux_dev, struct hl_cn, cn_aux_dev);
+	struct hl_device *hdev = container_of(cn, struct hl_device, cn);
+
+	hl_device_reset(hdev, HL_DRV_RESET_HARD);
+}
+
 static void gaudi2_cn_set_cn_data(struct hl_device *hdev)
 {
 	struct gaudi2_device *gaudi2 = hdev->asic_specific;
@@ -480,6 +488,7 @@ static void gaudi2_cn_set_cn_data(struct hl_device *hdev)
 	gaudi2_aux_ops->send_cpu_message = hl_cn_send_cpu_message;
 	gaudi2_aux_ops->post_send_status = hl_cn_post_send_status;
 	gaudi2_aux_ops->get_tx_swap_map = gaudi2_cn_get_tx_swap_map;
+	gaudi2_aux_ops->device_reset = gaudi2_cn_device_reset;
 }
 
 static int gaudi2_cn_mmap(struct hl_device *hdev, u32 asid, struct vm_area_struct *vma)
