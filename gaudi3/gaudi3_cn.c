@@ -569,6 +569,15 @@ static void gaudi3_cn_dma_pool_free(struct hbl_aux_dev *aux_dev, void *vaddr, dm
 	hl_cn_dma_pool_free(aux_dev, vaddr, dma_addr);
 }
 
+
+static void gaudi3_cn_device_reset(struct hbl_aux_dev *aux_dev)
+{
+	struct hl_cn *cn = container_of(aux_dev, struct hl_cn, cn_aux_dev);
+	struct hl_device *hdev = container_of(cn, struct hl_device, cn);
+
+	hl_device_reset(hdev, HL_DRV_RESET_HARD);
+}
+
 static void gaudi3_cn_set_cn_data(struct hl_device *hdev)
 {
 	struct gaudi3_device *gaudi3 = hdev->asic_specific;
@@ -618,6 +627,7 @@ static void gaudi3_cn_set_cn_data(struct hl_device *hdev)
 	gaudi3_aux_ops->poll_reg = hl_cn_poll_reg;
 	gaudi3_aux_ops->send_cpu_message = hl_cn_send_cpu_message;
 	gaudi3_aux_ops->post_send_status = hl_cn_post_send_status;
+	gaudi3_aux_ops->device_reset = gaudi3_cn_device_reset;
 }
 
 static int gaudi3_cn_mmap(struct hl_device *hdev, u32 asid, struct vm_area_struct *vma)
