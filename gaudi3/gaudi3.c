@@ -11701,74 +11701,9 @@ static int gaudi3_reinit_cbc(struct hl_device *hdev)
 	return rc;
 }
 
-static void gaudi3_trigger_cs_invalidation(struct hl_device *hdev, int block, int inst,
-						u32 offset, struct iterate_module_ctx *ctx)
-{
-	WREG32(offset + CS_MAINT_BASE_OFFSET + mmCACHE_MAINT_INV_ALL, 0x1);
-}
-
-static void gaudi3_cs_invalidation_poll_status(struct hl_device *hdev, int block, int inst,
-						u32 offset, struct iterate_module_ctx *ctx)
-{
-	u32 val, mask = CACHE_MAINT_STATUS_NUM_ONGOING_M | CACHE_MAINT_STATUS_NUM_ONGOING_PRIV_M;
-	u64 timeout_us;
-
-	timeout_us = hdev->pldm ? GAUDI3_PLDM_CS_INVALIDATION_TIMEOUT_USEC :
-					GAUDI3_CS_INVALIDATION_TIMEOUT_USEC;
-
-	/* Wait until there are no ongoing maintenance commands */
-	ctx->rc = hl_poll_timeout(
-			hdev,
-			offset + CS_MAINT_BASE_OFFSET + mmCACHE_MAINT_STATUS,
-			val,
-			((val & mask) == 0x0),
-			100,
-			timeout_us);
-
-	if (ctx->rc)
-		dev_err(hdev->dev, "CS invalidation still busy (%#x)\n", val);
-}
-
-static int gaudi3_invalidate_all_cs(struct hl_device *hdev)
-{
-	struct iterate_module_ctx ctx = {};
-
-	if (!hdev->cache_enable)
-		return 0;
-
-	ctx.fn = gaudi3_cs_invalidation_poll_status;
-	gaudi3_iterate_cache_slices(hdev, &ctx);
-	if (ctx.rc) {
-		dev_err(hdev->dev,
-			"Error %d while waiting for CS blocks to be idle before invalidation\n",
-			ctx.rc);
-		return ctx.rc;
-	}
-
-	ctx.fn = gaudi3_trigger_cs_invalidation;
-	gaudi3_iterate_cache_slices(hdev, &ctx);
-
-	ctx.fn = gaudi3_cs_invalidation_poll_status;
-	gaudi3_iterate_cache_slices(hdev, &ctx);
-	if (ctx.rc) {
-		dev_err(hdev->dev,
-			"Error %d while waiting for CS blocks invalidation to complete\n",
-			ctx.rc);
-		return ctx.rc;
-	}
-
-	return 0;
-}
-
 int gaudi3_compute_reset_late_init(struct hl_device *hdev)
 {
-	int rc;
-
 	gaudi3_init_arcs(hdev);
-
-	rc = gaudi3_invalidate_all_cs(hdev);
-	if (rc)
-		return rc;
 
 	gaudi3_cn_compute_reset_late_init(hdev);
 
