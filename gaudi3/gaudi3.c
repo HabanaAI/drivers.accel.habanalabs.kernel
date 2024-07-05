@@ -13842,8 +13842,9 @@ static void gaudi3_handle_razwi_info(struct hl_device *hdev, struct hl_eq_razwi_
 						char *type, u16 eng_id, u8 flags, u64 *event_mask)
 {
 	u64 addr = ((u64)le32_to_cpu(r->hi_reg) << 32) + le32_to_cpu(r->lo_reg);
+	u32 id = le32_to_cpu(r->id);
 
-	dev_err(hdev->dev, "%s RAZWI happened: addr 0x%llX, id 0x%X", type, addr, r->id);
+	dev_err(hdev->dev, "%s RAZWI happened: addr 0x%llX, id 0x%X", type, addr, id);
 
 	hl_handle_razwi(hdev, addr, &eng_id, 1, flags, event_mask);
 }
