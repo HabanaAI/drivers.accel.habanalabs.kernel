@@ -580,6 +580,7 @@ static void gaudi3_cn_device_reset(struct hbl_aux_dev *aux_dev)
 
 static void gaudi3_cn_set_cn_data(struct hl_device *hdev)
 {
+	struct asic_fixed_properties *prop = &hdev->asic_prop;
 	struct gaudi3_device *gaudi3 = hdev->asic_specific;
 	struct gaudi3_cn_aux_data *gaudi3_aux_data;
 	struct gaudi3_cn_aux_ops *gaudi3_aux_ops;
@@ -599,8 +600,8 @@ static void gaudi3_cn_set_cn_data(struct hl_device *hdev)
 	hl338_server = hdev->asic_prop.server_type == HL_SERVER_GAUDI3_HL338;
 
 	gaudi3_aux_data->msix_enabled = !!(gaudi3->hw_cap_initialized & HW_CAP_MSIX);
-	gaudi3_aux_data->num_of_hdcores = hdev->asic_prop.num_of_hdcores;
-	gaudi3_aux_data->cfg_base_address = hdev->asic_prop.cfg_base_address;
+	gaudi3_aux_data->num_of_hdcores = prop->num_of_hdcores;
+	gaudi3_aux_data->cfg_base_address = prop->cfg_base_address;
 	gaudi3_aux_data->lbw_base_address = LBW_BASE;
 	gaudi3_aux_data->irq_num_port_base = GAUDI3_IRQ_NUM_NIC_PORT_FIRST;
 	gaudi3_aux_data->coll_lag_size = hl338_server ?
@@ -609,6 +610,14 @@ static void gaudi3_cn_set_cn_data(struct hl_device *hdev)
 			GAUDI3_HL338_SCALE_OUT_COLL_LAG_SIZE : GAUDI3_DEFAULT_COLL_LAG_SIZE;
 	gaudi3_aux_data->enable_h9_rx_drop_eco = hdev->nic_enable_h9_rx_drop_eco;
 	gaudi3_aux_data->setup_type = hdev->gaudi3_setup_type;
+	gaudi3_aux_data->vendor_part_id = prop->pci_id;
+	gaudi3_aux_data->kernel_asid = HL_KERNEL_ASID_ID;
+	gaudi3_aux_data->card_location = hdev->ignore_fw_nic_info ? hdev->card_location_override :
+							cn->card_location;
+	gaudi3_aux_data->minor = hdev->id;
+	gaudi3_aux_data->dev_mgmt_fw = !!(hdev->fw_components & FW_TYPE_BOOT_CPU);
+	gaudi3_aux_data->cpucp_checkers_shift = NIC_CHECKERS_CHECK_SHIFT;
+	gaudi3_aux_data->num_of_dies = prop->num_of_dies;
 
 	gaudi3_aux_ops->irq_vector = gaudi3_cn_irq_vector;
 	gaudi3_aux_ops->get_bfe_status = gaudi3_get_bfe_status;
