@@ -579,6 +579,12 @@ static void gaudi_cn_set_cn_data(struct hl_device *hdev)
 	gaudi_aux_data->stat_ext_secured_read =
 					!!(secured_sts & CPU_BOOT_DEV_STS0_FW_NIC_STAT_EXT_EN);
 	gaudi_aux_data->mmap_type_flag = HL_MMAP_TYPE_CN_MEM;
+	gaudi_aux_data->vendor_part_id = prop->pci_id;
+	gaudi_aux_data->kernel_asid = HL_KERNEL_ASID_ID;
+	gaudi_aux_data->card_location = hdev->ignore_fw_nic_info ? hdev->card_location_override :
+								cn->card_location;
+	gaudi_aux_data->minor = hdev->id;
+	gaudi_aux_data->dev_mgmt_fw = !!(hdev->fw_components & FW_TYPE_BOOT_CPU);
 
 	gaudi_aux_ops->map_device_va = gaudi_cn_map_device_va;
 	gaudi_aux_ops->unmap_device_va = gaudi_cn_unmap_device_va;
