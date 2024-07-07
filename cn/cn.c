@@ -405,6 +405,21 @@ static int hl_cn_get_vm_info(struct hbl_aux_dev *aux_dev, u64 vm_handle,
 	return 0;
 }
 
+static int hl_cn_get_reserved_stolen_dev_mem(struct hbl_aux_dev *aux_dev, u32 nms_idx, u64 *addr,
+					     size_t *size)
+{
+	struct hl_cn *cn = container_of(aux_dev, struct hl_cn, cn_aux_dev);
+	struct hl_device *hdev = container_of(cn, struct hl_device, cn);
+	struct asic_fixed_properties *asic_props = &hdev->asic_prop;
+
+	/* ignore nms_idx as it is used for future generations of CN */
+
+	*addr = asic_props->nic_drv_addr;
+	*size = asic_props->nic_drv_size;
+
+	return 0;
+}
+
 static void hl_cn_get_ports_info(struct hbl_aux_dev *aux_dev,
 					struct hbl_cn_aux_ports_info *hbl_cn_aux_ports_info)
 {
@@ -589,6 +604,7 @@ static int hl_cn_aux_data_init(struct hl_device *hdev)
 	aux_ops->vm_destroy = hl_cn_vm_destroy;
 	aux_ops->get_vm_info = hl_cn_get_vm_info;
 	aux_ops->get_ports_info = hl_cn_get_ports_info;
+	aux_ops->get_reserved_stolen_dev_mem = hl_cn_get_reserved_stolen_dev_mem;
 
 	cn_funcs->set_cn_data(hdev);
 
