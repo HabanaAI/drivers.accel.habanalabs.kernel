@@ -4770,10 +4770,11 @@ static int gaudi3_early_init(struct hl_device *hdev)
 			goto pci_fini;
 		}
 
-		if (hdev->fw_components & FW_TYPE_PREBOOT_CPU) {
-			rc = hl_fw_wait_preboot_ready(hdev);
-			if (rc)
-				return rc;
+		rc = hl_fw_read_preboot_status(hdev);
+		if (rc) {
+			if (hdev->reset_on_preboot_fail)
+				hdev->asic_funcs->hw_fini(hdev, true, false);
+			goto pci_fini;
 		}
 	}
 
