@@ -449,6 +449,7 @@ static void gaudi2_cn_device_reset(struct hbl_aux_dev *aux_dev)
 
 static void gaudi2_cn_set_cn_data(struct hl_device *hdev)
 {
+	struct asic_fixed_properties *prop = &hdev->asic_prop;
 	struct gaudi2_device *gaudi2 = hdev->asic_specific;
 	struct gaudi2_cn_aux_data *gaudi2_aux_data;
 	struct gaudi2_cn_aux_ops *gaudi2_aux_ops;
@@ -466,12 +467,22 @@ static void gaudi2_cn_set_cn_data(struct hl_device *hdev)
 	aux_ops->asic_ops = gaudi2_aux_ops;
 
 	gaudi2_aux_data->cfg_base = CFG_BASE;
-	gaudi2_aux_data->fw_security_enabled = hdev->asic_prop.fw_security_enabled;
+	gaudi2_aux_data->fw_security_enabled = prop->fw_security_enabled;
 	gaudi2_aux_data->msix_enabled = !!(gaudi2->hw_cap_initialized & HW_CAP_MSIX);
 	gaudi2_aux_data->irq_num_port_base = GAUDI2_IRQ_NUM_NIC_PORT_FIRST;
 	gaudi2_aux_data->sob_id_base = GAUDI2_RESERVED_SOB_NIC_PORT_FIRST;
 	gaudi2_aux_data->sob_inc_cfg_val = GAUDI2_SOB_INCREMENT_BY_ONE;
 	gaudi2_aux_data->setup_type = hdev->gaudi2_setup_type;
+	gaudi2_aux_data->vendor_part_id = prop->pci_id;
+	gaudi2_aux_data->kernel_asid = HL_KERNEL_ASID_ID;
+	gaudi2_aux_data->card_location = hdev->ignore_fw_nic_info ? hdev->card_location_override :
+								cn->card_location;
+	gaudi2_aux_data->fw_major_version = hdev->fw_inner_major_ver;
+	gaudi2_aux_data->fw_minor_version = hdev->fw_inner_minor_ver;
+	gaudi2_aux_data->fw_app_cpu_boot_dev_sts0 = prop->fw_app_cpu_boot_dev_sts0;
+	gaudi2_aux_data->fw_app_cpu_boot_dev_sts1 = prop->fw_app_cpu_boot_dev_sts1;
+	gaudi2_aux_data->minor = hdev->id;
+	gaudi2_aux_data->dev_mgmt_fw = !!(hdev->fw_components & FW_TYPE_BOOT_CPU);
 
 	/* cn2accel */
 	gaudi2_aux_ops->get_event_name = gaudi2_cn_get_event_name;
