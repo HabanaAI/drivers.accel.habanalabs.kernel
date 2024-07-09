@@ -39,6 +39,10 @@ habanalabs-y += common/simulator.o common/habanalabs_compat.o \
 
 LINUXINCLUDE := -I$(src)/../../../include -I$(src) $(LINUXINCLUDE)
 
+ifdef OFED_PATH
+KBUILD_EXTRA_SYMBOLS := $(OFED_PATH)/Module.symvers
+endif
+
 else
 # normal makefile
 
