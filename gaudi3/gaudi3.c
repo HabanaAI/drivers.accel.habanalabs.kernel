@@ -11673,7 +11673,6 @@ static void gaudi3_set_cbc_cq_mode_params(struct hl_device *hdev,
 	memset(cq_params, 0, sizeof(*cq_params));
 	cq_params->job = gaudi3_invalidate_cbc;
 	cq_params->job_data = NULL;
-	cq_params->job_str = "CBC invalidation";
 	cq_params->timeout_usec = hdev->pldm ? GAUDI3_PLDM_CBC_INVALIDATION_TIMEOUT_USEC :
 						GAUDI3_CBC_INVALIDATION_TIMEOUT_USEC;
 	cq_params->target_sob_value = 1;
@@ -11690,10 +11689,14 @@ static int gaudi3_reinit_cbc(struct hl_device *hdev)
 	gaudi3_disable_cbc_ranges(hdev);
 
 	gaudi3_set_cbc_lbw_prot(hdev, true);
+
 	gaudi3_set_cbc_cq_mode_params(hdev, &cq_mode_params);
+	cq_mode_params.job_str = "CBC invalidation";
+
 	rc = gaudi3_trigger_job_and_wait_for_cq_completion(hdev, &cq_mode_params);
 	if (rc)
 		dev_err(hdev->dev, "Failed to invalidate CBC\n");
+
 	gaudi3_set_cbc_lbw_prot(hdev, false);
 
 	return rc;
