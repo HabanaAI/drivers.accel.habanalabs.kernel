@@ -859,6 +859,8 @@ struct hl_cn_properties {
  * @pci_memory_regions_remapped_by_fw: true if BMU was remmapped by FW in runtime,
  *				and different BMU mapping is used for boot phase
  *				and runtime phase.
+ * @pcie_cfg_bar_id: The PCIe configuration BAR index.
+ * @num_phys_nics: Total number of available NICs in the HW.
  */
 struct asic_fixed_properties {
 	struct hw_queue_properties	*hw_queues_props;
@@ -1013,6 +1015,8 @@ struct asic_fixed_properties {
 	u8				support_dynamic_resereved_fw_size;
 	u8				support_glbl_priv_fetch;
 	u8				pci_memory_regions_remapped_by_fw;
+	u8				pcie_cfg_bar_id;
+	u8				num_phys_nics;
 };
 
 /**
