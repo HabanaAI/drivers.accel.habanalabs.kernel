@@ -563,6 +563,7 @@ static void gaudi_cn_set_cn_data(struct hl_device *hdev)
 	aux_data = aux_dev->aux_data;
 	gaudi_aux_data = &gaudi->cn_aux_data;
 	aux_data->asic_specific = gaudi_aux_data;
+	cn->asic_specific_dev_info = gaudi_aux_data;
 	aux_ops = aux_dev->aux_ops;
 	gaudi_aux_ops = &gaudi->cn_aux_ops;
 	aux_ops->asic_ops = gaudi_aux_ops;
