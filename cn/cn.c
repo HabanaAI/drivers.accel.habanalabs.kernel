@@ -20,6 +20,8 @@
 static_assert(HBL_CN_AUX_MAX_NICS == CPUCP_MAX_NICS);
 static_assert(HBL_CN_AUX_MODULE_EEPROM_MAX_LEN == CPUCP_NIC_QSFP_EEPROM_MAX_LEN);
 
+static int hl_cn_get_nic_gen(struct hl_device *hdev, enum hbl_cn_aux_nic_gen *nic_gen);
+
 static int hl_cn_send_empty_status(struct hl_device *hdev, int port)
 {
 	struct hl_cn_funcs *cn_funcs = hdev->asic_funcs->cn_funcs;
@@ -77,6 +79,43 @@ static bool hl_cn_device_operational(struct hbl_aux_dev *aux_dev)
 	struct hl_device *hdev = container_of(cn, struct hl_device, cn);
 
 	return hl_device_operational(hdev, NULL);
+}
+
+static int hl_cn_get_device_info(struct hbl_aux_dev *aux_dev,
+				 struct hbl_cn_aux_device_info *device_info)
+{
+	struct hl_cn *cn = container_of(aux_dev, struct hl_cn, cn_aux_dev);
+	struct hl_device *hdev = container_of(cn, struct hl_device, cn);
+	struct asic_fixed_properties *asic_props = &hdev->asic_prop;
+	int rc;
+
+	memset(device_info, 0, sizeof(*device_info));
+
+	device_info->asic_specific = hdev->cn.asic_specific_dev_info;
+	rc = hl_cn_get_nic_gen(hdev, &device_info->nic_gen);
+	if (rc)
+		return rc;
+
+	if (hdev->pldm)
+		device_info->plat_type = HBL_CN_AUX_PLAT_TYPE_PLDM;
+	else if (hdev->pdev)
+		device_info->plat_type = HBL_CN_AUX_PLAT_TYPE_ASIC;
+	else
+		device_info->plat_type = HBL_CN_AUX_PLAT_TYPE_SIM;
+
+	device_info->nic_ports_mask = hdev->cn.ports_mask;
+	device_info->vendor_id = PCI_VENDOR_ID_HABANALABS;
+	device_info->dev_idx = hdev->cdev_idx;
+	device_info->dev_cline_size = asic_props->cache_line_size;
+	device_info->clk = asic_props->clk;
+	device_info->pcie_cfg_bar_id = asic_props->pcie_cfg_bar_id;
+	device_info->num_phys_nics = asic_props->num_phys_nics;
+	device_info->lanes_per_port = hdev->cn.lanes_per_port;
+	strscpy(device_info->driver_ver, hdev->driver_ver, sizeof(device_info->driver_ver));
+	strscpy(device_info->fw_ver, asic_props->cpucp_info.cpucp_version,
+		sizeof(device_info->fw_ver));
+
+	return 0;
 }
 
 static void hl_cn_device_lock(struct hbl_aux_dev *aux_dev)
@@ -512,6 +551,49 @@ static int hl_cn_get_asic_type(struct hl_device *hdev, enum hbl_cn_asic_type *as
 	return 0;
 }
 
+static int hl_cn_get_nic_gen(struct hl_device *hdev, enum hbl_cn_aux_nic_gen *nic_gen)
+
+{
+	switch (hdev->asic_type) {
+	case ASIC_GAUDI_SIM:
+	case ASIC_GAUDI_HL2000M_SIM:
+	case ASIC_GAUDI:
+	case ASIC_GAUDI_SEC:
+	case ASIC_GAUDI_HL2000M:
+	case ASIC_GAUDI_HL2000M_SEC:
+		*nic_gen = HBL_CN_AUX_NIC_GEN1;
+		break;
+	case ASIC_GAUDI2_SIM:
+	case ASIC_GAUDI2B_SIM:
+	case ASIC_GAUDI2C_SIM:
+	case ASIC_GAUDI2D_SIM:
+	case ASIC_GAUDI2_SIM_ARC:
+	case ASIC_GAUDI2B_SIM_ARC:
+	case ASIC_GAUDI2C_SIM_ARC:
+	case ASIC_GAUDI2D_SIM_ARC:
+	case ASIC_GAUDI2:
+	case ASIC_GAUDI2B:
+	case ASIC_GAUDI2C:
+	case ASIC_GAUDI2D:
+		*nic_gen = HBL_CN_AUX_NIC_GEN2;
+		break;
+	case ASIC_GAUDI3:
+	case ASIC_GAUDI3_HL_338:
+	case ASIC_GAUDI3_SIM:
+	case ASIC_GAUDI3_SIM_ARC:
+	case ASIC_GAUDI3_HL_338_SIM:
+	case ASIC_GAUDI3_HL_338_SIM_ARC:
+	case ASIC_GAUDI3_FPGA:
+		*nic_gen = HBL_CN_AUX_NIC_GEN3;
+		break;
+	default:
+		dev_err(hdev->dev, "Unrecognized ASIC type %d\n", hdev->asic_type);
+		return -EINVAL;
+	}
+
+	return 0;
+}
+
 static int hl_cn_aux_data_init(struct hl_device *hdev)
 {
 	struct hl_cn_funcs *cn_funcs = hdev->asic_funcs->cn_funcs;
@@ -587,6 +669,7 @@ static int hl_cn_aux_data_init(struct hl_device *hdev)
 
 	/* set cn -> accel ops */
 	aux_ops->device_operational = hl_cn_device_operational;
+	aux_ops->get_device_info = hl_cn_get_device_info;
 	aux_ops->device_lock = hl_cn_device_lock;
 	aux_ops->device_unlock = hl_cn_device_unlock;
 	aux_ops->vm_dev_mmu_map = hl_cn_vm_dev_mmu_map;
