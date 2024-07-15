@@ -3912,6 +3912,9 @@ int gaudi3_set_fixed_properties(struct hl_device *hdev)
 	prop->signal_cb_size = 0;
 	prop->wait_cb_size = 0;
 
+	prop->pcie_cfg_bar_id = CFG_BAR_ID;
+	prop->num_phys_nics = NIC_NUMBER_OF_MACROS;
+
 	return 0;
 
 free_hw_queues_props:
