@@ -2970,6 +2970,10 @@ int gaudi2_set_fixed_properties(struct hl_device *hdev)
 
 	prop->signal_cb_size = sizeof(struct packet_msg_short);
 	prop->wait_cb_size = sizeof(struct packet_msg_short) * 4 + sizeof(struct packet_fence);
+
+	prop->pcie_cfg_bar_id = SRAM_CFG_BAR_ID;
+	prop->num_phys_nics = NIC_NUMBER_OF_MACROS;
+
 	return 0;
 
 free_qprops:
