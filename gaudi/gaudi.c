@@ -718,6 +718,10 @@ int gaudi_set_fixed_properties(struct hl_device *hdev)
 		sizeof(struct packet_msg_short) * 4 +
 		sizeof(struct packet_fence) +
 		sizeof(struct packet_msg_prot) * 2;
+
+	prop->pcie_cfg_bar_id = CFG_BAR_ID;
+	prop->num_phys_nics = NIC_NUMBER_OF_MACROS;
+
 	cn_prop->status_packet_size = NIC_STATUS_PACKET_SIZE;
 	cn_prop->max_num_of_ports = NIC_NUMBER_OF_PORTS;
 
