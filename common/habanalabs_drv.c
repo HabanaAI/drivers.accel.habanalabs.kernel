@@ -165,7 +165,7 @@ static bool bfe_pci_rev_id;
 static bool bfe_ptw_bypass_enable = true;
 static uint bfe_rotator_binning;
 static bool bfe_hbm_compression_enable;
-static bool bfe_nic_enable_h9_rx_drop_eco;
+static bool bfe_nic_enable_h9_rx_drop_eco = true;
 static bool bfe_enable_h9_cache_eta_eco = true;
 static bool bfe_nic_enable_h9_qp_doorbells_eco = true;
 static bool bfe_nic_enable_h9_cc_msg_drops_eco = true;
@@ -1226,7 +1226,7 @@ static void set_driver_behavior_per_device(struct hl_device *hdev)
 	hdev->enable_h9_cache_eta_eco = 0;
 
 	/* ECOs should be enabled by default */
-	hdev->nic_enable_h9_rx_drop_eco = 0;
+	hdev->nic_enable_h9_rx_drop_eco = 1;
 	hdev->nic_enable_h9_qp_doorbells_eco = 1;
 	hdev->nic_enable_h9_cc_msg_drops_eco = 1;
 	hdev->nic_enable_h9_remote_pi_update_eco = 1;
