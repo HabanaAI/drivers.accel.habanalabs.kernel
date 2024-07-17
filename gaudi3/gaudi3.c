@@ -9589,7 +9589,7 @@ static void gaudi3_halt_engines(struct hl_device *hdev, bool hard_reset, bool fw
 	if (hard_reset)
 		hl_cn_hard_reset_prepare(hdev);
 
-	if (fw_reset)
+	if (fw_reset || hdev->cpld_shutdown)
 		goto skip_engines;
 
 	gaudi3_stop_edma_qmans(hdev);
@@ -13486,6 +13486,7 @@ static int gaudi3_handle_msg_event(struct hl_device *hdev,
 		break;
 	case EQ_EVENT_CPLD_SHUTDOWN:
 		dev_info(hdev->dev, "EQ_EVENT_CPLD_SHUTDOWN event received\n");
+		hl_eq_cpld_shutdown_event_handle(hdev, event_type, event_mask);
 		break;
 	case EQ_EVENT_POWER_EVT_START:
 	case EQ_EVENT_POWER_EVT_END:
