@@ -1679,3 +1679,24 @@ void hl_eventfd_signal(struct eventfd_ctx *ctx)
 	eventfd_signal(ctx, 1);
 }
 #endif
+
+#ifndef _HAS_FIND_MODULE
+struct module *find_module(const char *name)
+{
+	struct module *mod;
+
+	rcu_read_lock_sched();
+
+	list_for_each_entry_rcu(mod, &THIS_MODULE->list, list) {
+		if (!strcmp(mod->name, name)) {
+			rcu_read_unlock_sched();
+
+			return mod;
+		}
+	}
+
+	rcu_read_unlock_sched();
+
+	return NULL;
+}
+#endif /* !_HAS_FIND_MODULE */

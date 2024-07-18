@@ -431,3 +431,7 @@ endif
 ifneq ($(shell grep "void eventfd_signal" $(LINUX_SRC)/include/linux/eventfd.h > /dev/null 2>&1 && echo 1),)
 	ccflags-y += -D_HAS_EVENTFD_SIGNAL_SINGLE_PARAM
 endif
+
+ifneq ($(shell grep -w "find_module" Module.symvers > /dev/null 2>&1 && echo 1),)
+	ccflags-y += -D_HAS_FIND_MODULE
+endif

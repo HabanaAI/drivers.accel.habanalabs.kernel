@@ -991,4 +991,10 @@ irq_set_affinity_and_hint(unsigned int irq, const struct cpumask *m)
 void hl_eventfd_signal(struct eventfd_ctx *ctx);
 #endif
 
+#ifndef _HAS_FIND_MODULE
+/* find_module() is unexported in v5.12 and this change was backported to v5.10.220. */
+#include <linux/rcupdate.h>
+struct module *find_module(const char *name);
+#endif /* !_HAS_FIND_MODULE */
+
 #endif /* HABANALABS_COMPAT_H_ */
