@@ -861,6 +861,7 @@ struct hl_cn_properties {
  *				and runtime phase.
  * @pcie_cfg_bar_id: The PCIe configuration BAR index.
  * @num_phys_nics: Total number of available NICs in the HW.
+ * @supports_nvme: indicates whether the asic supports nvme.
  */
 struct asic_fixed_properties {
 	struct hw_queue_properties	*hw_queues_props;
@@ -1017,6 +1018,7 @@ struct asic_fixed_properties {
 	u8				pci_memory_regions_remapped_by_fw;
 	u8				pcie_cfg_bar_id;
 	u8				num_phys_nics;
+	u8				supports_nvme;
 };
 
 /**
@@ -3126,6 +3128,32 @@ void hl_wreg(struct hl_device *hdev, u32 reg, u32 val);
 	(hdev->simulator_crashed || cond) ? 0 : -ETIMEDOUT; \
 })
 
+#define hl_poll_timeout_condition(hdev, cond, sleep_us, timeout_us) \
+({ \
+	ktime_t __timeout; \
+	if (hdev->pdev) \
+		__timeout = ktime_add_us(ktime_get(), timeout_us); \
+	else \
+		__timeout = ktime_add_us(ktime_get(),\
+				min((u64)(timeout_us * 100), \
+					(u64) HL_SIM_MAX_TIMEOUT_US)); \
+	might_sleep_if(sleep_us); \
+	for (;;) { \
+		/* Verify we read updates done by other cores or by device */ \
+		mb(); \
+		if ((cond) || \
+			unlikely(!hdev->pdev && \
+				((hdev->disabled && !hdev->reset_info.in_compute_reset) || \
+					hdev->simulator_crashed))) \
+			break; \
+		if (timeout_us && ktime_compare(ktime_get(), __timeout) > 0) \
+			break; \
+		if (sleep_us) \
+			usleep_range((sleep_us >> 2) + 1, sleep_us); \
+	} \
+	(cond) ? 0 : -ETIMEDOUT; \
+})
+
 #define HL_USR_MAPPED_BLK_INIT(blk, base, sz) \
 ({ \
 	struct user_mapped_block *p = blk; \
@@ -3675,6 +3703,29 @@ struct eq_heartbeat_debug_info {
 	u32 cpu_queue_id;
 };
 
+struct hl_p2p_region {
+	struct page **p2ppages;
+	void *p2pmem;
+	u64 device_pa;
+	u64 bar_offset;
+	u64 size;
+	int bar;
+};
+
+/**
+ * struct hl_dio - describes habanalabs direct storage interraction interface
+ * @p2prs: array of p2p regions
+ * @inflight_ios: percpu counter for inflight ios
+ * @np2prs: number of elements in p2prs
+ * @io_enabled: 1 if io is enabled 0 otherwise
+ */
+struct hl_dio {
+	struct hl_p2p_region *p2prs;
+	s64 __percpu *inflight_ios;
+	u8 np2prs;
+	u8 io_enabled;
+};
+
 /**
  * struct hl_device - habanalabs device structure.
  * @pdev: pointer to PCI device, can be NULL in case of simulator device.
@@ -3776,6 +3827,7 @@ struct eq_heartbeat_debug_info {
  * @etr_buf_store: datastructure holding the descriptors of all the full etr
  *                 buffers in the system, ready to be fetched by the user
  * @heartbeat_debug_info: counters used to debug hearbeat failures.
+ * @hldio:  describes habanalabs direct storage interraction interface.
  * @irq_affinity_mask: mask of available CPU cores for user and decoder interrupt handling.
  * @stream_master_qid_arr: pointer to array with QIDs of master streams.
  * @fw_inner_major_ver: the major of current loaded preboot inner version.
@@ -3996,6 +4048,8 @@ struct hl_device {
 	struct hl_etr_buf_store		etr_buf_store;
 
 	struct eq_heartbeat_debug_info	heartbeat_debug_info;
+
+	struct hl_dio			hldio;
 
 	cpumask_t			irq_affinity_mask;
 
@@ -4745,6 +4799,14 @@ int map_device_va_from_dmabuf_fd(struct hl_ctx *ctx, struct hl_mem_in *args,
 void hl_eq_heartbeat_event_handle(struct hl_device *hdev);
 void hl_handle_clk_change_event(struct hl_device *hdev, u16 event_type, u64 *event_mask);
 void hl_eq_cpld_shutdown_event_handle(struct hl_device *hdev, u16 event_id, u64 *event_mask);
+
+int hl_dio_start(struct hl_device *hdev);
+void hl_dio_stop(struct hl_device *hdev);
+int hl_dio_ssd2hl(struct hl_device *hdev, struct hl_ctx *ctx, int fd,
+		 u64 device_va, off_t off_bytes, size_t len_bytes,
+		 size_t *len_read);
+int hl_p2p_region_init(struct hl_device *hdev, struct hl_p2p_region *p2pr);
+void hl_p2p_region_fini_all(struct hl_device *hdev);
 
 #ifdef CONFIG_DEBUG_FS
 

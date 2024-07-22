@@ -1501,6 +1501,53 @@ static int hl_info_ioctl_control(struct hl_fpriv *hpriv, void *data)
 	return _hl_info_ioctl(hpriv, data, hpriv->hdev->dev_ctrl);
 }
 
+static int debug_dio_ioctl(struct drm_file *file_priv, struct hl_debug_args *args)
+{
+	struct hl_fpriv *hpriv = file_priv->driver_priv;
+	struct hl_device *hdev = hpriv->hdev;
+	struct asic_fixed_properties *prop = &hdev->asic_prop;
+	struct hl_dio_args dio_data;
+	size_t len_read;
+	int rc;
+
+	if (!prop->supports_nvme)
+		return 0;
+
+	if (args->input_size != sizeof(struct hl_dio_args))
+		return -EINVAL;
+
+	if (copy_from_user(&dio_data, u64_to_user_ptr(args->input_ptr), args->input_size))
+		return -EFAULT;
+
+	switch (dio_data.op) {
+	case HL_DIO_CMD_SSD2HL:
+		rc = hl_dio_ssd2hl(hdev, hpriv->ctx, dio_data.ssd2hl.fd,
+				dio_data.ssd2hl.device_va,
+				dio_data.ssd2hl.off_bytes,
+				dio_data.ssd2hl.len_bytes,
+				&len_read);
+		if (rc < 0) {
+			dev_err(hdev->dev, "SSD2HL error: %d\n", rc);
+		} else {
+			if (copy_to_user((void __user *)(uintptr_t) args->output_ptr, &len_read,
+					sizeof(len_read))) {
+				dev_err(hdev->dev, "Error copying IO outcome to the user\n");
+				rc = -EFAULT;
+			}
+		} break;
+	case HL_DIO_CMD_HL2SSD:
+		dev_err(hdev->dev, "HL2SSD is not supported at this time\n");
+		rc = -EINVAL;
+		break;
+	default:
+		dev_err(hdev->dev, "Invalid HLDIO request %u\n", dio_data.op);
+		rc = -EINVAL;
+		break;
+	}
+
+	return rc;
+}
+
 int hl_debug_ioctl(struct drm_device *ddev, void *data, struct drm_file *file_priv)
 {
 	struct hl_fpriv *hpriv = file_priv->driver_priv;
@@ -1558,6 +1605,9 @@ int hl_debug_ioctl(struct drm_device *ddev, void *data, struct drm_file *file_pr
 		break;
 	case HL_DEBUG_ENABLE_ERR_INFO_CAPTURE:
 		hl_enable_err_info_capture(&hdev->captured_err_info);
+		break;
+	case HL_DEBUG_OP_DIO:
+		rc = debug_dio_ioctl(file_priv, args);
 		break;
 	default:
 		dev_err(hdev->dev, "Invalid request %d\n", args->op);
