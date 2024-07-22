@@ -3917,6 +3917,7 @@ int gaudi3_set_fixed_properties(struct hl_device *hdev)
 
 	prop->pcie_cfg_bar_id = CFG_BAR_ID;
 	prop->num_phys_nics = NIC_NUMBER_OF_MACROS;
+	prop->supports_nvme = false;
 
 	return 0;
 
@@ -4803,6 +4804,7 @@ int gaudi3_early_fini(struct hl_device *hdev)
 
 int gaudi3_late_init(struct hl_device *hdev)
 {
+	struct asic_fixed_properties *prop = &hdev->asic_prop;
 	int rc;
 
 	rc = hl_fw_send_pci_access_msg(hdev, CPUCP_PACKET_ENABLE_PCI_ACCESS, 0x0);
@@ -4829,6 +4831,33 @@ int gaudi3_late_init(struct hl_device *hdev)
 		return rc;
 	}
 
+	if (prop->supports_nvme) {
+		/*
+		 * Init p2p data to be used for NVME POC ioctl if needed.
+		 */
+		hdev->hldio.np2prs = 1;
+		hdev->hldio.p2prs = vzalloc(hdev->hldio.np2prs * sizeof(*hdev->hldio.p2prs));
+		if (!hdev->hldio.p2prs) {
+			dev_err(hdev->dev, "P2P mem init error\n");
+			hdev->hldio.np2prs = 0;
+			return -ENOMEM;
+		}
+		hdev->hldio.p2prs[0].bar = SRAM_DRAM_BAR_ID;
+		hdev->hldio.p2prs[0].device_pa = prop->dram_user_base_address;
+		hdev->hldio.p2prs[0].bar_offset =
+				hdev->hldio.p2prs[0].device_pa - prop->dram_base_address;
+		hdev->hldio.p2prs[0].size =
+				prop->dram_pci_bar_size - hdev->hldio.p2prs[0].bar_offset;
+		rc = hl_p2p_region_init(hdev, &hdev->hldio.p2prs[0]);
+		if (rc) {
+			dev_err(hdev->dev, "P2P mem init error %d\n", rc);
+			vfree(hdev->hldio.p2prs);
+			hdev->hldio.p2prs = NULL;
+		} else {
+			hl_dio_start(hdev);
+		}
+	}
+
 	return gaudi3_etr_buf_store_late_init(hdev);
 }
 
@@ -4837,6 +4866,11 @@ void gaudi3_late_fini(struct hl_device *hdev)
 	gaudi3_etr_buf_store_late_fini(hdev);
 
 	hl_hwmon_release_resources(hdev);
+
+	if (hdev->asic_prop.supports_nvme && hdev->hldio.io_enabled) {
+		hl_dio_stop(hdev);
+		hl_p2p_region_fini_all(hdev);
+	}
 }
 
 int gaudi3_alloc_cpu_accessible_dma_mem(struct hl_device *hdev)
