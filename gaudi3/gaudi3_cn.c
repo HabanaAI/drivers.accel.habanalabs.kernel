@@ -242,41 +242,11 @@ static int gaudi3_cn_override_ports_ext_mask(struct hl_device *hdev,
 
 			break;
 		case HL338_SERDES_TYPE:
-			switch (hdev->cn.card_location) {
-			case 0:
-				*ports_ext_mask = 0xF00;
-				return 0;
-			case 1:
-				*ports_ext_mask = 0xF00;
-				return 0;
-			case 2:
-				*ports_ext_mask = 0xF00;
-				return 0;
-			case 3:
-				*ports_ext_mask = 0xF00;
-				return 0;
-			case 4:
-				*ports_ext_mask = 0xF00;
-				return 0;
-			case 5:
-				*ports_ext_mask = 0xF00;
-				return 0;
-			case 6:
-				*ports_ext_mask = 0xF00;
-				return 0;
-			case 7:
-				*ports_ext_mask = 0xF00;
-				return 0;
-			default:
-				dev_err(hdev->dev, "Invalid card location %u\n",
-					hdev->cn.card_location);
-				break;
-			}
-
 			/* Ports 0,1 are disabled, so need to update also the ports_mask */
 			hdev->cn.ports_mask = 0xFFFFFC;
-
-			break;
+			/* In all cards, ports 8-11 are external */
+			*ports_ext_mask = 0xF00;
+			return 0;
 		default:
 			dev_err(hdev->dev, "Invalid serdes_type %u\n", serdes_type);
 			break;
