@@ -541,49 +541,6 @@ static void hl_cn_cpucp_info_le_to_cpu(struct cpucp_nic_info *cpucp_nic_info,
 		sizeof(cpucp_nic_info->qsfp_eeprom));
 }
 
-static int hl_cn_get_asic_type(struct hl_device *hdev, enum hbl_cn_asic_type *asic_type)
-
-{
-	switch (hdev->asic_type) {
-	case ASIC_GAUDI_SIM:
-	case ASIC_GAUDI_HL2000M_SIM:
-	case ASIC_GAUDI:
-	case ASIC_GAUDI_SEC:
-	case ASIC_GAUDI_HL2000M:
-	case ASIC_GAUDI_HL2000M_SEC:
-		*asic_type = HBL_ASIC_GAUDI;
-		break;
-	case ASIC_GAUDI2_SIM:
-	case ASIC_GAUDI2B_SIM:
-	case ASIC_GAUDI2C_SIM:
-	case ASIC_GAUDI2D_SIM:
-	case ASIC_GAUDI2_SIM_ARC:
-	case ASIC_GAUDI2B_SIM_ARC:
-	case ASIC_GAUDI2C_SIM_ARC:
-	case ASIC_GAUDI2D_SIM_ARC:
-	case ASIC_GAUDI2:
-	case ASIC_GAUDI2B:
-	case ASIC_GAUDI2C:
-	case ASIC_GAUDI2D:
-		*asic_type = HBL_ASIC_GAUDI2;
-		break;
-	case ASIC_GAUDI3:
-	case ASIC_GAUDI3_HL_338:
-	case ASIC_GAUDI3_SIM:
-	case ASIC_GAUDI3_SIM_ARC:
-	case ASIC_GAUDI3_HL_338_SIM:
-	case ASIC_GAUDI3_HL_338_SIM_ARC:
-	case ASIC_GAUDI3_FPGA:
-		*asic_type = HBL_ASIC_GAUDI3;
-		break;
-	default:
-		dev_err(hdev->dev, "Unrecognized ASIC type %d\n", hdev->asic_type);
-		return -EINVAL;
-	}
-
-	return 0;
-}
-
 static int hl_cn_get_nic_gen(struct hl_device *hdev, enum hbl_cn_aux_nic_gen *nic_gen)
 
 {
@@ -630,12 +587,10 @@ static int hl_cn_get_nic_gen(struct hl_device *hdev, enum hbl_cn_aux_nic_gen *ni
 static int hl_cn_aux_data_init(struct hl_device *hdev)
 {
 	struct hl_cn_funcs *cn_funcs = hdev->asic_funcs->cn_funcs;
-	struct asic_fixed_properties *asic_props = &hdev->asic_prop;
 	struct hbl_cn_aux_data *aux_data;
 	struct hbl_cn_aux_ops *aux_ops;
 	struct hl_cn *cn = &hdev->cn;
 	struct hbl_aux_dev *aux_dev;
-	u64 dram_kmd_size;
 	int rc;
 
 	aux_data = kzalloc(sizeof(*aux_data), GFP_KERNEL);
@@ -655,50 +610,6 @@ static int hl_cn_aux_data_init(struct hl_device *hdev)
 
 	aux_data->pdev = hdev->pdev;
 	aux_data->dev = hdev->dev;
-	aux_data->driver_ver = hdev->driver_ver;
-	aux_data->ports_mask = hdev->cn.ports_mask;
-	aux_data->ext_ports_mask = cn->eth_ports_mask;
-	aux_data->auto_neg_mask = hdev->cn.auto_neg_mask;
-	aux_data->vendor_id = PCI_VENDOR_ID_HABANALABS;
-	aux_data->pci_id = asic_props->pci_id;
-	aux_data->minor = hdev->id;
-	aux_data->fw_ver = asic_props->cpucp_info.cpucp_version;
-	aux_data->nic_drv_addr = asic_props->nic_drv_addr;
-	aux_data->nic_drv_size = asic_props->nic_drv_size;
-	aux_data->macro_cfg_size = asic_props->macro_cfg_size;
-	aux_data->pending_reset_long_timeout = hdev->pldm ? HL_PLDM_HARD_RESET_MAX_TIMEOUT :
-									HL_HARD_RESET_MAX_TIMEOUT;
-	aux_data->id = hdev->cdev_idx;
-	aux_data->pldm = hdev->pldm;
-	aux_data->skip_phy_init = hdev->cn.skip_phy_init;
-	aux_data->load_phy_fw = hdev->cn.load_fw;
-	aux_data->cpucp_fw = !!(hdev->fw_components & FW_TYPE_BOOT_CPU);
-	aux_data->supports_coresight = hdev->supports_coresight;
-	aux_data->use_fw_serdes_info = cn->use_fw_serdes_info;
-	aux_data->cache_line_size = asic_props->cache_line_size;
-	aux_data->clk = asic_props->clk;
-	aux_data->kernel_asid = HL_KERNEL_ASID_ID;
-	aux_data->card_location = hdev->ignore_fw_nic_info ? hdev->card_location_override :
-								cn->card_location;
-	aux_data->mmu_enable = true;
-	aux_data->lanes_per_port = hdev->cn.lanes_per_port;
-	aux_data->device_timeout = HL_DEVICE_TIMEOUT_USEC;
-	aux_data->dram_enable = hdev->dram_enable;
-	aux_data->fw_major_version = hdev->fw_inner_major_ver;
-	aux_data->fw_minor_version = hdev->fw_inner_minor_ver;
-	aux_data->fw_app_cpu_boot_dev_sts0 = asic_props->fw_app_cpu_boot_dev_sts0;
-	aux_data->fw_app_cpu_boot_dev_sts1 = asic_props->fw_app_cpu_boot_dev_sts1;
-	aux_data->cpucp_checkers_shift = NIC_CHECKERS_CHECK_SHIFT;
-	aux_data->num_of_dies = hdev->asic_prop.num_of_dies;
-
-	rc = hl_cn_get_asic_type(hdev, &aux_data->asic_type);
-	if (rc) {
-		dev_err(hdev->dev, "failed to set eth aux data asic type\n");
-		goto free_aux_ops;
-	}
-
-	dram_kmd_size = asic_props->dram_user_base_address - asic_props->dram_base_address;
-	aux_data->dram_size = (asic_props->dram_size < dram_kmd_size) ? 0 : dram_kmd_size;
 
 	/* set cn -> accel ops */
 	aux_ops->device_operational = hl_cn_device_operational;
@@ -727,8 +638,6 @@ static int hl_cn_aux_data_init(struct hl_device *hdev)
 
 	return 0;
 
-free_aux_ops:
-	kfree(aux_ops);
 free_aux_data:
 	kfree(aux_data);
 

@@ -143,6 +143,9 @@ struct hl_fpriv;
 
 #define TIMESTAMP_FREE_NODES_NUM	512
 
+#define PORT_LANES_2		2
+#define PORT_LANES_4		4
+
 /**
  * enum hl_mmu_page_table_location - mmu page table location
  * @MMU_DR_PGT: page-table is located on device DRAM.

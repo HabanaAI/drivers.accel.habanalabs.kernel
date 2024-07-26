@@ -555,14 +555,11 @@ static void gaudi_cn_set_cn_data(struct hl_device *hdev)
 	struct gaudi_cn_aux_data *gaudi_aux_data;
 	struct hl_cn *cn = &hdev->cn;
 	struct hbl_cn_aux_ops *aux_ops;
-	struct hbl_cn_aux_data *aux_data;
 	struct hbl_aux_dev *aux_dev;
 	u32 secured_sts;
 
 	aux_dev = &cn->cn_aux_dev;
-	aux_data = aux_dev->aux_data;
 	gaudi_aux_data = &gaudi->cn_aux_data;
-	aux_data->asic_specific = gaudi_aux_data;
 	cn->asic_specific_dev_info = gaudi_aux_data;
 	aux_ops = aux_dev->aux_ops;
 	gaudi_aux_ops = &gaudi->cn_aux_ops;

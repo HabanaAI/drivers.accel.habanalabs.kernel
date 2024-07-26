@@ -453,15 +453,12 @@ static void gaudi2_cn_set_cn_data(struct hl_device *hdev)
 	struct gaudi2_device *gaudi2 = hdev->asic_specific;
 	struct gaudi2_cn_aux_data *gaudi2_aux_data;
 	struct gaudi2_cn_aux_ops *gaudi2_aux_ops;
-	struct hbl_cn_aux_data *aux_data;
 	struct hbl_cn_aux_ops *aux_ops;
 	struct hl_cn *cn = &hdev->cn;
 	struct hbl_aux_dev *aux_dev;
 
 	aux_dev = &cn->cn_aux_dev;
-	aux_data = aux_dev->aux_data;
 	gaudi2_aux_data = &gaudi2->cn_aux_data;
-	aux_data->asic_specific = gaudi2_aux_data;
 	cn->asic_specific_dev_info = gaudi2_aux_data;
 	aux_ops = aux_dev->aux_ops;
 	gaudi2_aux_ops = &gaudi2->cn_aux_ops;
