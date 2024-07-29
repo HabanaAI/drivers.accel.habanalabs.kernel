@@ -23,6 +23,24 @@ static struct hbl_cn_stat gaudi3_cn_spmu_stats[] = {
 
 static size_t gaudi3_cn_spmu_stats_len = ARRAY_SIZE(gaudi3_cn_spmu_stats);
 
+static char *gaudi3_spmu_stats_names[] = {
+	"spmu_req_out_of_range_psn",
+	"spmu_req_unset_psn",
+	"spmu_res_duplicate_psn",
+	"spmu_res_out_of_sequence_psn",
+};
+
+static u32 gaudi3_spmu_stats_event_types[] = {
+	17,
+	18,
+	22,
+	23,
+};
+
+static_assert(ARRAY_SIZE(gaudi3_spmu_stats_names) == ARRAY_SIZE(gaudi3_spmu_stats_event_types));
+
+static size_t gaudi3_spmu_stats_len = ARRAY_SIZE(gaudi3_spmu_stats_names);
+
 /* START OF AUTO_GENERATED_PART */
 
 #define COMPONENT_ID_INVALID ((u32)(-1))
@@ -6862,6 +6880,29 @@ void gaudi3_cn_spmu_get_stats_info(struct hl_device *hdev, u32 port, struct hbl_
 
 	*n_stats = gaudi3_cn_spmu_stats_len;
 	*stats = gaudi3_cn_spmu_stats;
+}
+
+void gaudi3_cn_spmu_get_stats_names(struct hl_device *hdev, u32 port, char ***names, u32 *n_stats)
+{
+	if (!hdev->supports_coresight) {
+		*n_stats = 0;
+		return;
+	}
+
+	*n_stats = gaudi3_spmu_stats_len;
+	*names = gaudi3_spmu_stats_names;
+}
+
+void gaudi3_cn_spmu_get_stats_event_types(struct hl_device *hdev, u32 port, u32 **event_types,
+						u32 *n_stats)
+{
+	if (!hdev->supports_coresight) {
+		*n_stats = 0;
+		return;
+	}
+
+	*n_stats = gaudi3_spmu_stats_len;
+	*event_types = gaudi3_spmu_stats_event_types;
 }
 
 int gaudi3_cn_spmu_config(struct hl_device *hdev, u32 port, u32 num_event_types, u32 event_types[],
