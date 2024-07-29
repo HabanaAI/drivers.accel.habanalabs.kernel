@@ -593,6 +593,9 @@ void gaudi_sim_cn_early_init_props_ext(struct gaudi_cn_sim_properties *cn_prop);
 void gaudi_cn_handle_qp_err(struct hl_device *hdev, u16 event_type);
 void gaudi_cn_spmu_get_stats_info(struct hl_device *hdev, u32 port, struct hbl_cn_stat **stats,
 					u32 *n_stats);
+void gaudi_cn_spmu_get_stats_names(struct hl_device *hdev, u32 port, char ***names, u32 *n_stats);
+void gaudi_cn_spmu_get_stats_event_types(struct hl_device *hdev, u32 port, u32 **event_types,
+						u32 *n_stats);
 int gaudi_cn_spmu_config(struct hl_device *hdev, u32 port, u32 num_event_types, u32 event_types[],
 				bool enable);
 int gaudi_cn_spmu_sample(struct hl_device *hdev, u32 port, u32 num_out_data, u64 out_data[]);

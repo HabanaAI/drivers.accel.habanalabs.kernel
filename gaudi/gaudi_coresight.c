@@ -40,6 +40,32 @@ static struct hbl_cn_stat gaudi_nic1_spmu_stats[] = {
 static size_t gaudi_nic0_spmu_stats_len = ARRAY_SIZE(gaudi_nic0_spmu_stats);
 static size_t gaudi_nic1_spmu_stats_len = ARRAY_SIZE(gaudi_nic1_spmu_stats);
 
+static char *gaudi_spmu_stats_names[] = {
+	"bad_format",
+	"requester_psn_out_of_range",
+	"responder_duplicate_psn",
+	"responder_out_of_sequence_psn",
+};
+
+static u32 gaudi_nic0_spmu_stats_event_types[] = {
+	1,
+	6,
+	9,
+	10,
+};
+
+static u32 gaudi_nic1_spmu_stats_event_types[] = {
+	13,
+	18,
+	21,
+	22,
+};
+
+static_assert(ARRAY_SIZE(gaudi_spmu_stats_names) == ARRAY_SIZE(gaudi_nic0_spmu_stats_event_types));
+static_assert(ARRAY_SIZE(gaudi_spmu_stats_names) == ARRAY_SIZE(gaudi_nic1_spmu_stats_event_types));
+
+static size_t gaudi_spmu_stats_len = ARRAY_SIZE(gaudi_spmu_stats_names);
+
 static u64 debug_stm_regs[GAUDI_STM_LAST + 1] = {
 	[GAUDI_STM_MME0_ACC]	= mmMME0_ACC_STM_BASE,
 	[GAUDI_STM_MME0_SBAB]	= mmMME0_SBAB_STM_BASE,
@@ -965,6 +991,32 @@ void gaudi_cn_spmu_get_stats_info(struct hl_device *hdev, u32 port, struct hbl_c
 		*n_stats = gaudi_nic0_spmu_stats_len;
 		*stats = gaudi_nic0_spmu_stats;
 	}
+}
+
+void gaudi_cn_spmu_get_stats_names(struct hl_device *hdev, u32 port, char ***names, u32 *n_stats)
+{
+	if (!hdev->supports_coresight) {
+		*n_stats = 0;
+		return;
+	}
+
+	*n_stats = gaudi_spmu_stats_len;
+	*names = gaudi_spmu_stats_names;
+}
+void gaudi_cn_spmu_get_stats_event_types(struct hl_device *hdev, u32 port, u32 **event_types,
+						u32 *n_stats)
+{
+	if (!hdev->supports_coresight) {
+		*n_stats = 0;
+		return;
+	}
+
+	*n_stats = gaudi_spmu_stats_len;
+
+	if (port & 1)
+		*event_types = gaudi_nic1_spmu_stats_event_types;
+	else
+		*event_types = gaudi_nic0_spmu_stats_event_types;
 }
 
 int gaudi_cn_spmu_config(struct hl_device *hdev, u32 port, u32 num_event_types, u32 event_types[],
