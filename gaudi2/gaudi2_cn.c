@@ -493,6 +493,8 @@ static void gaudi2_cn_set_cn_data(struct hl_device *hdev)
 	gaudi2_aux_ops->dma_pool_zalloc = gaudi2_cn_dma_pool_zalloc;
 	gaudi2_aux_ops->dma_pool_free = gaudi2_cn_dma_pool_free;
 	gaudi2_aux_ops->spmu_get_stats_info = hl_cn_spmu_get_stats_info;
+	gaudi2_aux_ops->spmu_get_stats_names = hl_cn_spmu_get_stats_names;
+	gaudi2_aux_ops->spmu_get_stats_event_types = hl_cn_spmu_get_stats_event_types;
 	gaudi2_aux_ops->spmu_config = hl_cn_spmu_config;
 	gaudi2_aux_ops->spmu_sample = hl_cn_spmu_sample;
 	gaudi2_aux_ops->set_priv_assertions = hl_cn_set_priv_assertions;
@@ -590,6 +592,8 @@ static int gaudi2_cn_get_port_statistics(struct hl_device *hdev, u32 port,
 
 static struct hl_cn_port_funcs gaudi2_cn_port_funcs = {
 	.spmu_get_stats_info = gaudi2_cn_spmu_get_stats_info,
+	.spmu_get_stats_names = gaudi2_cn_spmu_get_stats_names,
+	.spmu_get_stats_event_types = gaudi2_cn_spmu_get_stats_event_types,
 	.spmu_config = gaudi2_cn_spmu_config,
 	.spmu_sample = gaudi2_cn_spmu_sample,
 	.post_send_status = gaudi2_cn_post_send_status,
