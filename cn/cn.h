@@ -111,6 +111,8 @@ struct hbl_cn_cpucp_info {
  * struct hl_cn_port_funcs - ASIC specific CN functions that are called from common code for a
  *                            specific port.
  * @spmu_get_stats_info: get SPMU statistics information.
+ * @spmu_get_stats_names: get SPMU statistics names.
+ * @spmu_get_stats_event_types: get SPMU statistics event types.
  * @spmu_config: config the SPMU.
  * @spmu_sample: read the SPMU counters.
  * @post_send_status: ASIC-specific handler for post sending status packet to FW.
@@ -121,6 +123,9 @@ struct hbl_cn_cpucp_info {
 struct hl_cn_port_funcs {
 	void (*spmu_get_stats_info)(struct hl_device *hdev, u32 port, struct hbl_cn_stat **stats,
 					u32 *n_stats);
+	void (*spmu_get_stats_names)(struct hl_device *hdev, u32 port, char ***names, u32 *n_stats);
+	void (*spmu_get_stats_event_types)(struct hl_device *hdev, u32 port, u32 **event_types,
+						u32 *n_stats);
 	int (*spmu_config)(struct hl_device *hdev, u32 port, u32 num_event_types, u32 event_types[],
 				bool enable);
 	int (*spmu_sample)(struct hl_device *hdev, u32 port, u32 num_out_data, u64 out_data[]);
@@ -176,6 +181,9 @@ void hl_cn_dma_pool_free(struct hbl_aux_dev *aux_dev, void *vaddr, dma_addr_t dm
 int hl_cn_get_hw_block_handle(struct hbl_aux_dev *aux_dev, u64 address, u64 *handle);
 void hl_cn_spmu_get_stats_info(struct hbl_aux_dev *aux_dev, u32 port, struct hbl_cn_stat **stats,
 				u32 *n_stats);
+void hl_cn_spmu_get_stats_names(struct hbl_aux_dev *aux_dev, u32 port, char ***names, u32 *n_stats);
+void hl_cn_spmu_get_stats_event_types(struct hbl_aux_dev *aux_dev, u32 port, u32 **event_types,
+					u32 *n_stats);
 int hl_cn_spmu_config(struct hbl_aux_dev *aux_dev, u32 port, u32 num_event_types, u32 event_types[],
 			bool enable);
 int hl_cn_spmu_sample(struct hbl_aux_dev *aux_dev, u32 port, u32 num_out_data, u64 out_data[]);
