@@ -247,16 +247,6 @@ int hl_cn_get_hw_block_handle(struct hbl_aux_dev *aux_dev, u64 address, u64 *han
 	return hl_get_hw_block_handle(hdev, address, handle, NULL);
 }
 
-void hl_cn_spmu_get_stats_info(struct hbl_aux_dev *aux_dev, u32 port, struct hbl_cn_stat **stats,
-				u32 *n_stats)
-{
-	struct hl_cn *cn = container_of(aux_dev, struct hl_cn, cn_aux_dev);
-	struct hl_device *hdev = container_of(cn, struct hl_device, cn);
-	struct hl_cn_port_funcs *port_funcs = hdev->asic_funcs->cn_funcs->port_funcs;
-
-	port_funcs->spmu_get_stats_info(hdev, port, stats, n_stats);
-}
-
 void hl_cn_spmu_get_stats_names(struct hbl_aux_dev *aux_dev, u32 port, char ***names,
 				u32 *n_stats)
 {
