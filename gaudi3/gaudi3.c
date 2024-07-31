@@ -8130,12 +8130,6 @@ static int gaudi3_hw_init(struct hl_device *hdev)
 		return rc;
 	}
 
-	/*
-	 * this should be done before FW config as it contains HBM MMU init that
-	 * needs the DUP initialized.
-	 */
-	gaudi3_lbw_dup_init(hdev);
-
 	/* If iATU is done by FW, the HBM bar ALWAYS points to DRAM_PHYS_BASE.
 	 * So we set it here and if anyone tries to move it later to
 	 * a different address, there will be an error
@@ -8157,6 +8151,12 @@ static int gaudi3_hw_init(struct hl_device *hdev)
 		dev_err(hdev->dev, "failed to initialize CPU\n");
 		return rc;
 	}
+
+	/*
+	 * this should be done before FW config as it contains HBM MMU init that
+	 * needs the DUP initialized.
+	 */
+	gaudi3_lbw_dup_init(hdev);
 
 	gaudi3_hw_init_fw_config(hdev);
 
