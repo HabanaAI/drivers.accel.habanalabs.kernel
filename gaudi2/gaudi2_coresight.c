@@ -61,23 +61,6 @@ struct component_config_offsets {
 	u32 bmon_ids[MAX_BMONS_PER_UNIT];
 };
 
-static struct hbl_cn_stat gaudi2_nic0_spmu_stats[] = {
-	{"spmu_req_out_of_range_psn", 17},
-	{"spmu_req_unset_psn", 18},
-	{"spmu_res_duplicate_psn", 20},
-	{"spmu_res_out_of_sequence_psn", 21}
-};
-
-static struct hbl_cn_stat gaudi2_nic1_spmu_stats[] = {
-	{"spmu_req_out_of_range_psn", 5},
-	{"spmu_req_unset_psn", 6},
-	{"spmu_res_duplicate_psn", 8},
-	{"spmu_res_out_of_sequence_psn", 9}
-};
-
-static size_t gaudi2_nic0_spmu_stats_len = ARRAY_SIZE(gaudi2_nic0_spmu_stats);
-static size_t gaudi2_nic1_spmu_stats_len = ARRAY_SIZE(gaudi2_nic1_spmu_stats);
-
 static char *gaudi2_spmu_stats_names[] = {
 	"bad_format",
 	"requester_psn_out_of_range",
@@ -2635,23 +2618,6 @@ static int gaudi2_sample_spmu(struct hl_device *hdev, struct hl_debug_params *pa
 		output[i] = RREG32(base_reg + mmSPMU_PMEVCNTSR0_OFFSET + i * 4);
 
 	return 0;
-}
-
-void gaudi2_cn_spmu_get_stats_info(struct hl_device *hdev, u32 port, struct hbl_cn_stat **stats,
-					u32 *n_stats)
-{
-	if (!hdev->supports_coresight) {
-		*n_stats = 0;
-		return;
-	}
-
-	if (port & 1) {
-		*n_stats = gaudi2_nic1_spmu_stats_len;
-		*stats = gaudi2_nic1_spmu_stats;
-	} else {
-		*n_stats = gaudi2_nic0_spmu_stats_len;
-		*stats = gaudi2_nic0_spmu_stats;
-	}
 }
 
 void gaudi2_cn_spmu_get_stats_names(struct hl_device *hdev, u32 port, char ***names, u32 *n_stats)

@@ -659,8 +659,6 @@ int gaudi2_send_device_activity(struct hl_device *hdev, bool open);
 
 /* Functions exported for NIC */
 void gaudi2_init_cn(struct hl_device *hdev);
-void gaudi2_cn_spmu_get_stats_info(struct hl_device *hdev, u32 port, struct hbl_cn_stat **stats,
-					u32 *n_stats);
 void gaudi2_cn_spmu_get_stats_names(struct hl_device *hdev, u32 port, char ***names, u32 *n_stats);
 void gaudi2_cn_spmu_get_stats_event_types(struct hl_device *hdev, u32 port, u32 **event_types,
 						u32 *n_stats);
