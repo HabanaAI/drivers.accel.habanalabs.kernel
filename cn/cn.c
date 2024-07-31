@@ -1158,6 +1158,18 @@ int hl_cn_get_port_statistics(struct hl_device *hdev, u32 port,
 	return cn_funcs->port_funcs->get_port_statistics(hdev, port, out);
 }
 
+int hl_cn_dump_port_statistics(struct hl_device *hdev, u32 port, u64 str_buf_ptr, u64 val_buf_ptr,
+				u32 *num_of_stat)
+{
+	struct hl_cn_funcs *cn_funcs = hdev->asic_funcs->cn_funcs;
+
+	if (!cn_funcs->get_hw_cap(hdev))
+		return -EFAULT;
+
+	return cn_funcs->port_funcs->dump_port_statistics(hdev, port, str_buf_ptr, val_buf_ptr,
+								num_of_stat);
+}
+
 #ifdef _HAS_AUX_BUS_H
 int hl_cn_check_ib_driver(struct hl_device *hdev)
 {

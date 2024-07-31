@@ -118,6 +118,7 @@ struct hbl_cn_cpucp_info {
  * @ports_stop_prepare: prepare the ports for a stop.
  * @send_port_cpucp_status: Send port status to FW.
  * @get_port_statistics: Get port statistics.
+ * @dump_port_statistics: Dump port statistics.
  */
 struct hl_cn_port_funcs {
 	void (*spmu_get_stats_names)(struct hl_device *hdev, u32 port, char ***names, u32 *n_stats);
@@ -131,6 +132,8 @@ struct hl_cn_port_funcs {
 	int (*send_port_cpucp_status)(struct hl_device *hdev, u32 port, u8 cmd, u8 period);
 	int (*get_port_statistics)(struct hl_device *hdev, u32 port,
 				   struct hbl_cn_port_statistics *out);
+	int (*dump_port_statistics)(struct hl_device *hdev, u32 port, u64 str_buf_ptr,
+					u64 val_buf_ptr, u32 *num_of_stat);
 };
 
 /**
@@ -166,6 +169,8 @@ int hl_cn_get_port_status(struct hl_device *hdev, u32 port,
 			 struct hl_info_habana_link_state *link_state_info);
 int hl_cn_get_port_statistics(struct hl_device *hdev, u32 port,
 				struct hbl_cn_port_statistics *out);
+int hl_cn_dump_port_statistics(struct hl_device *hdev, u32 port, u64 str_buf_ptr, u64 val_buf_ptr,
+				u32 *num_of_stat);
 int hl_cn_check_ib_driver(struct hl_device *hdev);
 int hl_cn_cpucp_info_get(struct hl_device *hdev);
 void *hl_cn_dma_alloc_coherent(struct hbl_aux_dev *aux_dev, size_t size, dma_addr_t *dma_handle,
