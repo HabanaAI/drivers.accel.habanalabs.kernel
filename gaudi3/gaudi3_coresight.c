@@ -14,15 +14,6 @@
 /* SPMU should also include overflow_idx and cycle_cnt_idx */
 #define SPMU_DATA_LEN				(SPMU_MAX_COUNTERS + 2)
 
-static struct hbl_cn_stat gaudi3_cn_spmu_stats[] = {
-	{"spmu_req_out_of_range_psn", 17},
-	{"spmu_req_unset_psn", 18},
-	{"spmu_res_duplicate_psn", 22},
-	{"spmu_res_out_of_sequence_psn", 23}
-};
-
-static size_t gaudi3_cn_spmu_stats_len = ARRAY_SIZE(gaudi3_cn_spmu_stats);
-
 static char *gaudi3_spmu_stats_names[] = {
 	"spmu_req_out_of_range_psn",
 	"spmu_req_unset_psn",
@@ -6868,18 +6859,6 @@ static int gaudi3_sample_spmu(struct hl_device *hdev, struct hl_debug_params *pa
 		output[i] = RREG32(base_reg + mmCS_DBG_TPC_EML_EML_SPMU_PMEVCNTR0_EL0 + i * 8);
 
 	return 0;
-}
-
-void gaudi3_cn_spmu_get_stats_info(struct hl_device *hdev, u32 port, struct hbl_cn_stat **stats,
-					u32 *n_stats)
-{
-	if (!hdev->supports_coresight) {
-		*n_stats = 0;
-		return;
-	}
-
-	*n_stats = gaudi3_cn_spmu_stats_len;
-	*stats = gaudi3_cn_spmu_stats;
 }
 
 void gaudi3_cn_spmu_get_stats_names(struct hl_device *hdev, u32 port, char ***names, u32 *n_stats)
