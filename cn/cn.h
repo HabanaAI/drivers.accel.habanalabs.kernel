@@ -117,7 +117,6 @@ struct hbl_cn_cpucp_info {
  * @post_send_status: ASIC-specific handler for post sending status packet to FW.
  * @ports_stop_prepare: prepare the ports for a stop.
  * @send_port_cpucp_status: Send port status to FW.
- * @get_port_statistics: Get port statistics.
  * @dump_port_statistics: Dump port statistics.
  */
 struct hl_cn_port_funcs {
@@ -130,8 +129,6 @@ struct hl_cn_port_funcs {
 	void (*post_send_status)(struct hl_device *hdev, u32 port);
 	void (*ports_stop_prepare)(struct hl_device *hdev, bool fw_reset, bool in_teardown);
 	int (*send_port_cpucp_status)(struct hl_device *hdev, u32 port, u8 cmd, u8 period);
-	int (*get_port_statistics)(struct hl_device *hdev, u32 port,
-				   struct hbl_cn_port_statistics *out);
 	int (*dump_port_statistics)(struct hl_device *hdev, u32 port, u64 str_buf_ptr,
 					u64 val_buf_ptr, u32 *num_of_stat);
 };
@@ -167,8 +164,6 @@ void hl_cn_synchronize_irqs(struct hl_device *hdev);
 int hl_cn_mmap(struct hl_device *hdev, u32 asid, struct vm_area_struct *vma);
 int hl_cn_get_port_status(struct hl_device *hdev, u32 port,
 			 struct hl_info_habana_link_state *link_state_info);
-int hl_cn_get_port_statistics(struct hl_device *hdev, u32 port,
-				struct hbl_cn_port_statistics *out);
 int hl_cn_dump_port_statistics(struct hl_device *hdev, u32 port, u64 str_buf_ptr, u64 val_buf_ptr,
 				u32 *num_of_stat);
 int hl_cn_check_ib_driver(struct hl_device *hdev);

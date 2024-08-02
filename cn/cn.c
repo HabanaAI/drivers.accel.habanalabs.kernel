@@ -1147,17 +1147,6 @@ int hl_cn_get_port_status(struct hl_device *hdev, u32 port,
 	return 0;
 }
 
-int hl_cn_get_port_statistics(struct hl_device *hdev, u32 port,
-				struct hbl_cn_port_statistics *out)
-{
-	struct hl_cn_funcs *cn_funcs = hdev->asic_funcs->cn_funcs;
-
-	if (!cn_funcs->get_hw_cap(hdev))
-		return -EFAULT;
-
-	return cn_funcs->port_funcs->get_port_statistics(hdev, port, out);
-}
-
 int hl_cn_dump_port_statistics(struct hl_device *hdev, u32 port, u64 str_buf_ptr, u64 val_buf_ptr,
 				u32 *num_of_stat)
 {
