@@ -769,11 +769,10 @@ static int cn_link_state_info(struct hl_fpriv *hpriv, struct hl_info_args *args)
 
 static int cn_statistics(struct hl_fpriv *hpriv, struct hl_info_args *args)
 {
+	void __user *out = (void __user *) (uintptr_t) args->return_pointer;
+	struct hl_info_habana_link_counters stat = {};
 	struct hl_device *hdev = hpriv->hdev;
 	u32 max_size = args->return_size;
-	struct hl_info_habana_link_counters stat = {};
-	void __user *out = (void __user *) (uintptr_t) args->return_pointer;
-	struct hbl_cn_port_statistics core_stats = {};
 	int rc;
 
 	if ((!max_size) || (!out))
@@ -783,14 +782,10 @@ static int cn_statistics(struct hl_fpriv *hpriv, struct hl_info_args *args)
 	if (rc)
 		return -EFAULT;
 
-	core_stats.str_buf_ptr = stat.str_buf_ptr;
-	core_stats.val_buf_ptr = stat.val_buf_ptr;
-
-	rc = hl_cn_get_port_statistics(hdev, args->habana_link_id, &core_stats);
+	rc = hl_cn_dump_port_statistics(hdev, args->habana_link_id, stat.str_buf_ptr,
+					stat.val_buf_ptr, &stat.num_of_stat);
 	if (rc)
 		return rc;
-
-	stat.num_of_stat = core_stats.num_of_stat;
 
 	return copy_to_user(out, &stat, min_t(size_t, max_size, sizeof(stat))) ? -EFAULT : 0;
 }
