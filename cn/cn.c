@@ -20,6 +20,18 @@
 static_assert(HBL_CN_AUX_MAX_NICS == CPUCP_MAX_NICS);
 static_assert(HBL_CN_AUX_MODULE_EEPROM_MAX_LEN == CPUCP_NIC_QSFP_EEPROM_MAX_LEN);
 
+/**
+ * enum hbl_cn_status_cmd - status cmd type.
+ * @HBL_CN_STATUS_ONE_SHOT: one shot command.
+ * @HBL_CN_STATUS_PERIODIC_START: start periodic status update.
+ * @HBL_CN_STATUS_PERIODIC_STOP: stop periodic status update.
+ */
+enum hbl_cn_status_cmd {
+	HBL_CN_STATUS_ONE_SHOT,
+	HBL_CN_STATUS_PERIODIC_START,
+	HBL_CN_STATUS_PERIODIC_STOP,
+};
+
 static int hl_cn_get_nic_gen(struct hl_device *hdev, enum hbl_cn_aux_nic_gen *nic_gen);
 
 static int hl_cn_send_empty_status(struct hl_device *hdev, int port)
