@@ -17,7 +17,6 @@
 #endif
 
 
-static_assert(HBL_CN_AUX_MAX_NICS == CPUCP_MAX_NICS);
 static_assert(HBL_CN_AUX_MODULE_EEPROM_MAX_LEN == CPUCP_NIC_QSFP_EEPROM_MAX_LEN);
 
 /**
@@ -520,6 +519,8 @@ static void hl_cn_get_ports_info(struct hbl_aux_dev *aux_dev,
 
 	hbl_cn_aux_ports_info->ports_pol_tx_mask = cn_cpucp_info->pol_tx_mask[0];
 	hbl_cn_aux_ports_info->ports_pol_rx_mask = cn_cpucp_info->pol_rx_mask[0];
+	hbl_cn_aux_ports_info->lanes_pol_tx_mask_lo = cn_cpucp_info->pol_tx_mask[0];
+	hbl_cn_aux_ports_info->lanes_pol_rx_mask_lo = cn_cpucp_info->pol_rx_mask[0];
 	hbl_cn_aux_ports_info->ports_ext_mask = hdev->cn.ports_ext_mask;
 	hbl_cn_aux_ports_info->ports_auto_neg_mask = hdev->cn.auto_neg_mask;
 }
