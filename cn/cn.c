@@ -517,8 +517,6 @@ static void hl_cn_get_ports_info(struct hbl_aux_dev *aux_dev,
 	memcpy(hbl_cn_aux_ports_info->module_eeprom, cn_cpucp_info->qsfp_eeprom,
 	       sizeof(hbl_cn_aux_ports_info->module_eeprom));
 
-	hbl_cn_aux_ports_info->ports_pol_tx_mask = cn_cpucp_info->pol_tx_mask[0];
-	hbl_cn_aux_ports_info->ports_pol_rx_mask = cn_cpucp_info->pol_rx_mask[0];
 	hbl_cn_aux_ports_info->lanes_pol_tx_mask_lo = cn_cpucp_info->pol_tx_mask[0];
 	hbl_cn_aux_ports_info->lanes_pol_rx_mask_lo = cn_cpucp_info->pol_rx_mask[0];
 	hbl_cn_aux_ports_info->ports_ext_mask = hdev->cn.ports_ext_mask;
