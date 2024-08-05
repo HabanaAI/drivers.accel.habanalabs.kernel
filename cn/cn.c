@@ -84,14 +84,6 @@ out:
 	return rc;
 }
 
-static bool hl_cn_device_operational(struct hbl_aux_dev *aux_dev)
-{
-	struct hl_cn *cn = container_of(aux_dev, struct hl_cn, cn_aux_dev);
-	struct hl_device *hdev = container_of(cn, struct hl_device, cn);
-
-	return hl_device_operational(hdev, NULL);
-}
-
 static enum hbl_cn_aux_device_status hl_cn_get_device_status(struct hbl_aux_dev *aux_dev)
 {
 	struct hl_cn *cn = container_of(aux_dev, struct hl_cn, cn_aux_dev);
@@ -623,7 +615,6 @@ static int hl_cn_aux_data_init(struct hl_device *hdev)
 	aux_data->dev = hdev->dev;
 
 	/* set cn -> accel ops */
-	aux_ops->device_operational = hl_cn_device_operational;
 	aux_ops->get_device_status = hl_cn_get_device_status;
 	aux_ops->get_device_info = hl_cn_get_device_info;
 	aux_ops->device_lock = hl_cn_device_lock;
