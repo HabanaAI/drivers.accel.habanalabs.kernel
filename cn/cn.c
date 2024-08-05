@@ -81,6 +81,29 @@ static bool hl_cn_device_operational(struct hbl_aux_dev *aux_dev)
 	return hl_device_operational(hdev, NULL);
 }
 
+static enum hbl_cn_aux_device_status hl_cn_get_device_status(struct hbl_aux_dev *aux_dev)
+{
+	struct hl_cn *cn = container_of(aux_dev, struct hl_cn, cn_aux_dev);
+	struct hl_device *hdev = container_of(cn, struct hl_device, cn);
+	enum hl_device_status current_status;
+
+	current_status = hl_device_status(hdev);
+
+	switch (current_status) {
+	case HL_DEVICE_STATUS_MALFUNCTION:
+	case HL_DEVICE_STATUS_IN_RESET:
+	case HL_DEVICE_STATUS_IN_RESET_AFTER_DEVICE_RELEASE:
+	case HL_DEVICE_STATUS_NEEDS_RESET:
+		return HBL_CN_AUX_DEVICE_STATUS_DISABLED;
+	case HL_DEVICE_STATUS_OPERATIONAL:
+	case HL_DEVICE_STATUS_IN_DEVICE_CREATION:
+	default:
+		return HBL_CN_AUX_DEVICE_STATUS_OPERATIONAL;
+	}
+
+	return HBL_CN_AUX_DEVICE_STATUS_DISABLED;
+}
+
 static int hl_cn_get_device_info(struct hbl_aux_dev *aux_dev,
 				 struct hbl_cn_aux_device_info *device_info)
 {
@@ -689,6 +712,7 @@ static int hl_cn_aux_data_init(struct hl_device *hdev)
 
 	/* set cn -> accel ops */
 	aux_ops->device_operational = hl_cn_device_operational;
+	aux_ops->get_device_status = hl_cn_get_device_status;
 	aux_ops->get_device_info = hl_cn_get_device_info;
 	aux_ops->device_lock = hl_cn_device_lock;
 	aux_ops->device_unlock = hl_cn_device_unlock;
