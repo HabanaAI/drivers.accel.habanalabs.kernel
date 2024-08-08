@@ -444,7 +444,7 @@ static void gaudi2_cn_device_reset(struct hbl_aux_dev *aux_dev)
 	struct hl_cn *cn = container_of(aux_dev, struct hl_cn, cn_aux_dev);
 	struct hl_device *hdev = container_of(cn, struct hl_device, cn);
 
-	hl_device_reset(hdev, HL_DRV_RESET_HARD);
+	hl_device_cond_reset(hdev, HL_DRV_RESET_HARD, HL_NOTIFIER_EVENT_DEVICE_RESET);
 }
 
 static void gaudi2_cn_set_cn_data(struct hl_device *hdev)
