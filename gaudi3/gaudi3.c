@@ -8227,6 +8227,10 @@ static int gaudi3_hw_init(struct hl_device *hdev)
 		return rc;
 	}
 
+	rc = hl_fw_set_host_date_and_time(hdev);
+	if (rc)
+		return rc;
+
 	rc = gaudi3->cpucp_info_get(hdev);
 	if (rc) {
 		dev_err(hdev->dev, "Failed to get cpucp info\n");

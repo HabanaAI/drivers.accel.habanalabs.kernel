@@ -3597,3 +3597,33 @@ int hl_fw_send_generic_request(struct hl_device *hdev, enum hl_passthrough_type 
 
 	return rc;
 }
+
+int hl_fw_set_host_date_and_time(struct hl_device *hdev)
+{
+	struct cpucp_packet pkt = {};
+	struct tm tm;
+	u64 value;
+	int rc;
+
+	/* The 'SET_HOST_TIME' packet is supported from FW version 1.18.0 */
+	if (hl_fw_version_cmp(hdev, 1, 18, 0) < 0)
+		return 0;
+
+	time64_to_tm(ktime_get_real_seconds(), 0, &tm);
+
+	value = FIELD_PREP(CPUCP_PKT_VAL_YEAR_MASK, tm.tm_year + 1900) |
+		FIELD_PREP(CPUCP_PKT_VAL_MONTH_MASK, tm.tm_mon + 1) |
+		FIELD_PREP(CPUCP_PKT_VAL_DAY_MASK, tm.tm_mday) |
+		FIELD_PREP(CPUCP_PKT_VAL_HOUR_MASK, tm.tm_hour) |
+		FIELD_PREP(CPUCP_PKT_VAL_MINUTE_MASK, tm.tm_min) |
+		FIELD_PREP(CPUCP_PKT_VAL_SECOND_MASK, tm.tm_sec);
+
+	pkt.ctl = cpu_to_le32(CPUCP_PACKET_SET_HOST_TIME << CPUCP_PKT_CTL_OPCODE_SHIFT);
+	pkt.value = cpu_to_le64(value);
+
+	rc = hdev->asic_funcs->send_cpu_message(hdev, (u32 *) &pkt, sizeof(pkt), 0, NULL);
+	if (rc)
+		dev_err(hdev->dev, "Failed to set host date and time, rc %d\n", rc);
+
+	return rc;
+}
