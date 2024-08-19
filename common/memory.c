@@ -2001,12 +2001,7 @@ int hl_hw_block_mmap(struct hl_fpriv *hpriv, struct vm_area_struct *vma)
 	/* Driver only allows mapping of a complete HW block */
 	block_size = vma->vm_end - vma->vm_start;
 
-#ifdef _HAS_TYPE_ARG_IN_ACCESS_OK
-	if (!access_ok(VERIFY_WRITE,
-		(void __user *) (uintptr_t) vma->vm_start, block_size)) {
-#else
 	if (!access_ok((void __user *) (uintptr_t) vma->vm_start, block_size)) {
-#endif
 		dev_err(hdev->dev,
 			"user pointer is invalid - 0x%lx\n",
 			vma->vm_start);
@@ -2960,11 +2955,7 @@ static int get_user_memory(struct hl_device *hdev, u64 addr, u64 size,
 {
 	int rc;
 
-#ifdef _HAS_TYPE_ARG_IN_ACCESS_OK
-	if (!access_ok(VERIFY_WRITE, (void __user *) (uintptr_t) addr, size)) {
-#else
 	if (!access_ok((void __user *) (uintptr_t) addr, size)) {
-#endif
 		dev_err(hdev->dev, "user pointer is invalid - 0x%llx\n", addr);
 		return -EFAULT;
 	}
@@ -3022,11 +3013,7 @@ static int get_user_memory(struct hl_device *hdev, u64 addr, u64 size,
 {
 	int rc;
 
-#ifdef _HAS_TYPE_ARG_IN_ACCESS_OK
-	if (!access_ok(VERIFY_WRITE, (void __user *) (uintptr_t) addr, size)) {
-#else
 	if (!access_ok((void __user *) (uintptr_t) addr, size)) {
-#endif
 		dev_err(hdev->dev, "user pointer is invalid - 0x%llx\n", addr);
 		return -EFAULT;
 	}

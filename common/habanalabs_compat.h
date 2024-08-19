@@ -997,4 +997,10 @@ void hl_eventfd_signal(struct eventfd_ctx *ctx);
 struct module *find_module(const char *name);
 #endif /* !_HAS_FIND_MODULE */
 
+#ifdef _HAS_TYPE_ARG_IN_ACCESS_OK
+#undef access_ok
+#define access_ok(addr, size) \
+	likely(!__range_not_ok(addr, size, user_addr_max()))
+#endif
+
 #endif /* HABANALABS_COMPAT_H_ */
