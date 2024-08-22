@@ -13532,6 +13532,15 @@ static int gaudi3_handle_msg_event(struct hl_device *hdev,
 	case EQ_EVENT_THERMAL_EVT_END:
 		hl_handle_clk_change_event(hdev, event_type, event_mask);
 		break;
+	case EQ_EVENT_PVT_ALARM_EVT:
+		dev_err(hdev->dev, "Received temperature die %u pvt %u channel bit_mask %u",
+		eq_dynamic_entry->pvt_alarm_data.die_id, eq_dynamic_entry->pvt_alarm_data.hdcore,
+		eq_dynamic_entry->pvt_alarm_data.chn_bitmask);
+		if (eq_dynamic_entry->pvt_alarm_data.alarm_type == PVT_TS_ALARM_A)
+			dev_err(hdev->dev, "dts alarm_a event\n");
+		else if (eq_dynamic_entry->pvt_alarm_data.alarm_type == PVT_TS_ALARM_B)
+			dev_err(hdev->dev, "dts alarm_b event\n");
+	break;
 	default:
 		dev_err(hdev->dev, "undefined msg event %d received\n", event_type);
 		rc = -EINVAL;
