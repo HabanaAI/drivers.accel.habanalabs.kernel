@@ -587,6 +587,23 @@ static int gaudi2_cn_dump_port_statistics(struct hl_device *hdev, u32 port, u64 
 	return -ENODEV;
 }
 
+static int gaudi2_cn_cmd_control(struct hl_device *hdev, u32 op, void *input, void *output,
+					u32 asid)
+{
+	struct gaudi2_device *gaudi2 = hdev->asic_specific;
+	struct gaudi2_cn_aux_ops *gaudi2_aux_ops;
+	struct hl_cn *cn = &hdev->cn;
+	struct hbl_aux_dev *aux_dev;
+
+	aux_dev = &cn->cn_aux_dev;
+	gaudi2_aux_ops = &gaudi2->cn_aux_ops;
+
+	if (gaudi2_aux_ops->cmd_control)
+		return gaudi2_aux_ops->cmd_control(aux_dev, op, input, output, asid);
+
+	return -ENODEV;
+}
+
 static struct hl_cn_port_funcs gaudi2_cn_port_funcs = {
 	.spmu_get_stats_names = gaudi2_cn_spmu_get_stats_names,
 	.spmu_get_stats_event_types = gaudi2_cn_spmu_get_stats_event_types,
@@ -604,5 +621,6 @@ struct hl_cn_funcs gaudi2_cn_funcs = {
 	.pre_core_init = gaudi2_cn_pre_core_init,
 	.set_cn_data = gaudi2_cn_set_cn_data,
 	.mmap = gaudi2_cn_mmap,
+	.cmd_control = gaudi2_cn_cmd_control,
 	.port_funcs = &gaudi2_cn_port_funcs,
 };
