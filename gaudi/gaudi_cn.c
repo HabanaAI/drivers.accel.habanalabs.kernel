@@ -627,6 +627,23 @@ static int gaudi_cn_mmap(struct hl_device *hdev, u32 asid, struct vm_area_struct
 	return -ENODEV;
 }
 
+static int gaudi_cn_cmd_control(struct hl_device *hdev, u32 op, void *input, void *output,
+				u32 asid)
+{
+	struct gaudi_device *gaudi = hdev->asic_specific;
+	struct gaudi_cn_aux_ops *gaudi_aux_ops;
+	struct hl_cn *cn = &hdev->cn;
+	struct hbl_aux_dev *aux_dev;
+
+	aux_dev = &cn->cn_aux_dev;
+	gaudi_aux_ops = &gaudi->cn_aux_ops;
+
+	if (gaudi_aux_ops->cmd_control)
+		return gaudi_aux_ops->cmd_control(aux_dev, op, input, output, asid);
+
+	return -ENODEV;
+}
+
 static void gaudi_cn_post_send_status(struct hl_device *hdev, u32 port)
 {
 	hl_fw_unmask_irq(hdev, GAUDI_EVENT_STATUS_NIC0_ENG0 + port);
@@ -697,5 +714,6 @@ struct hl_cn_funcs gaudi_cn_funcs = {
 	.pre_core_init = gaudi_cn_pre_core_init,
 	.set_cn_data = gaudi_cn_set_cn_data,
 	.mmap = gaudi_cn_mmap,
+	.cmd_control = gaudi_cn_cmd_control,
 	.port_funcs = &gaudi_cn_port_funcs,
 };
