@@ -941,20 +941,13 @@ void hl_cn_hard_reset_prepare(struct hl_device *hdev)
 int hl_cn_control(struct hl_device *hdev, u32 op, void *input,	void *output, struct hl_ctx *ctx)
 {
 	struct hl_cn_funcs *cn_funcs = hdev->asic_funcs->cn_funcs;
-	struct hbl_aux_dev *aux_dev = &hdev->cn.cn_aux_dev;
-	struct hbl_cn_aux_ops *aux_ops;
-
-	aux_ops = aux_dev->aux_ops;
 
 	if (!cn_funcs->get_hw_cap(hdev)) {
 		dev_dbg(hdev->dev, "NIC is not initialized, can't execute request %d\n", op);
 		return -EFAULT;
 	}
 
-	if (aux_ops->cmd_control)
-		return aux_ops->cmd_control(aux_dev, op, input, output, ctx->asid);
-
-	return -EFAULT;
+	return cn_funcs->cmd_control(hdev, op, input, output, ctx->asid);
 }
 
 int hl_cn_ctx_init(struct hl_ctx *ctx)
