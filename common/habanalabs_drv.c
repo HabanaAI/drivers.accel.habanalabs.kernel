@@ -941,9 +941,6 @@ static u32 get_dev_nic_ports_mask(struct hl_device *hdev)
 	case ASIC_GAUDI3_HL_338_SIM_ARC:
 		mask = (nic_lanes_per_port == PORT_LANES_4) ? 0xFFE : 0xFFFFFC;
 		break;
-	case ASIC_GAUDI3_HL_338:
-		mask = (nic_lanes_per_port == PORT_LANES_4) ? 0xFFE : 0xFFFFFC;
-		break;
 	case ASIC_GAUDI2_SIM:
 	case ASIC_GAUDI2_SIM_ARC:
 	case ASIC_GAUDI2:
