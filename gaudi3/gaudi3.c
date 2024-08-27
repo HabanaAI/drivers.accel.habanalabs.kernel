@@ -4101,11 +4101,22 @@ static void gaudi3_remap_pci_memory_regions(struct hl_device *hdev, bool sram_en
 
 	if (sram_enable) {
 		/* Map BAR first 256MB to SRAM  */
+		if (sram_region->used) {
+			dev_err(hdev->dev,
+				"try to expose sram in bar when it is already exposed!\n");
+			return;
+		}
+
 		sram_region->used = 1;
 		dram_region->offset_in_bar = SRAM_SIZE;
 		prop->dram_pci_bar_size -= SRAM_SIZE;
 		hdev->dram_pci_bar_start += SRAM_SIZE;
 	} else {
+		if (!sram_region->used) {
+			dev_err(hdev->dev,
+				"try to remove sram from bar when it is already removed!\n");
+			return;
+		}
 		/* Map BAR to expose all DRAM */
 		sram_region->used = 0;
 		dram_region->offset_in_bar = 0;
@@ -8011,6 +8022,8 @@ int gaudi3_init_cpu(struct hl_device *hdev)
 	if (gaudi3->hw_cap_initialized & HW_CAP_CPU)
 		return 0;
 
+	gaudi3_remap_pci_memory_regions(hdev, true);
+
 	rc = hl_fw_init_cpu(hdev);
 	if (rc)
 		return rc;
@@ -8414,7 +8427,6 @@ int gaudi3_hw_fini(struct hl_device *hdev, bool hard_reset, bool fw_reset)
 	gaudi3_set_isolation(hdev, true, hard_reset);
 
 	if (hard_reset) {
-		gaudi3_remap_pci_memory_regions(hdev, true);
 		gaudi3_execute_hard_reset(hdev);
 	} else {
 		if (hdev->fw_components & FW_TYPE_BOOT_CPU) {
