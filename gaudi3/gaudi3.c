@@ -13584,13 +13584,23 @@ static void gaudi3_stringify_agg_eq_header(char *str, size_t size, struct hl_agg
 			gaudi3_get_interrupt_grp_name(agg_hdr->int_grp_type));
 }
 
+static int gaudi3_is_nic_spi_event(struct hl_agg_eq_header *agg_hdr)
+{
+	return (agg_hdr->int_comp_type == INT_COMP_TYPE_NIC) &&
+	       (agg_hdr->int_grp_type == INT_GRP_TYPE_SPI);
+}
+
 static void gaudi3_print_hw_event_info(struct hl_device *hdev, struct hl_agg_eq_header *agg_hdr)
 {
 	char agg_eq_header_str[64] = "";
 
 	gaudi3_stringify_agg_eq_header(agg_eq_header_str, sizeof(agg_eq_header_str), agg_hdr);
 
-	dev_err(hdev->dev, "Received H/W event %s\n", agg_eq_header_str);
+	/* NIC SPI events are events that HW can overcome */
+	if (gaudi3_is_nic_spi_event(agg_hdr))
+		dev_dbg(hdev->dev, "Received H/W event %s\n", agg_eq_header_str);
+	else
+		dev_err(hdev->dev, "Received H/W event %s\n", agg_eq_header_str);
 }
 
 static void gaudi3_print_hw_event_invalid(struct hl_device *hdev, struct hl_agg_eq_header *agg_hdr)
