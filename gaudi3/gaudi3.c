@@ -11988,10 +11988,13 @@ void gaudi3_init_firmware_preload_params(struct hl_device *hdev)
 	pre_fw_load->boot_err0_reg = mmD0_PSOC_GLOBAL_CONF_BASE + mmCPU_BOOT_ERR0;
 	pre_fw_load->boot_err1_reg = mmD0_PSOC_GLOBAL_CONF_BASE + mmCPU_BOOT_ERR1;
 
-	if (hdev->pldm)
+	if (hdev->pldm) {
 		pre_fw_load->wait_for_preboot_timeout = GAUDI3_PLDM_BOOT_FIT_REQ_TIMEOUT_USEC;
-	else
+	} else {
 		pre_fw_load->wait_for_preboot_timeout = GAUDI3_BOOT_FIT_REQ_TIMEOUT_USEC;
+		pre_fw_load->wait_for_preboot_extended_timeout =
+			GAUDI3_PREBOOT_EXT_REQ_TIMEOUT_USEC;
+	}
 }
 
 void gaudi3_init_firmware_loader(struct hl_device *hdev)
