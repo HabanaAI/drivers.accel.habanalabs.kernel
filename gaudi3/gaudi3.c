@@ -9703,6 +9703,17 @@ int gaudi3_mmap(struct hl_device *hdev, struct vm_area_struct *vma,
 
 #ifdef _HAS_DMA_MMAP_COHERENT
 
+	/*
+	 * SW-198065: in kernel 6.8.0-40-generic with iommu enabled the dma_alloc_coherent routine
+	 * with GFP_USER flag may return kernel_address from the vmalloc address range.
+	 * In such case we need to set the VM_MIXEDMAP flag or else the vm_insert_page routine will
+	 * crash the kernel when executing BUG_ON(vma->vm_flags & VM_PFNMAP);
+	 * Note that this cannot create security issues as these addresses are allocated by the
+	 * driver and the user can not access them directly but only via a driver provided handle.
+	 */
+	if (is_vmalloc_addr(cpu_addr))
+		vm_flags_set(vma, VM_MIXEDMAP);
+
 	rc = dma_mmap_coherent(hdev->dev, vma, cpu_addr, dma_addr, size);
 	if (rc)
 		dev_err(hdev->dev, "dma_mmap_coherent error %d", rc);
