@@ -11991,7 +11991,7 @@ void gaudi3_init_firmware_preload_params(struct hl_device *hdev)
 	if (hdev->pldm) {
 		pre_fw_load->wait_for_preboot_timeout = GAUDI3_PLDM_BOOT_FIT_REQ_TIMEOUT_USEC;
 	} else {
-		pre_fw_load->wait_for_preboot_timeout = GAUDI3_BOOT_FIT_REQ_TIMEOUT_USEC;
+		pre_fw_load->wait_for_preboot_timeout = GAUDI3_PREBOOT_REQ_TIMEOUT_USEC;
 		pre_fw_load->wait_for_preboot_extended_timeout =
 			GAUDI3_PREBOOT_EXT_REQ_TIMEOUT_USEC;
 	}
