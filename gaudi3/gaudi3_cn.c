@@ -296,8 +296,7 @@ static int gaudi3_cn_override_ports_ext_mask(struct hl_device *hdev,
 		*ports_ext_mask = 0xF00;
 		return 0;
 	case GAUDI3_SETUP_TYPE_HL338_S_EXT_LB:
-		/* Ports 0,1 are disabled, so need to update also the ports_mask */
-		hdev->cn.ports_mask = 0xFFFFFC;
+		hdev->cn.ports_mask = 0xFFFFFF;
 		/* All the enabled ports should be set as external */
 		*ports_ext_mask = hdev->cn.ports_mask;
 		return 0;
