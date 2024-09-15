@@ -13565,6 +13565,9 @@ static int gaudi3_handle_msg_event(struct hl_device *hdev,
 		else if (eq_dynamic_entry->pvt_alarm_data.alarm_type == PVT_TS_ALARM_B)
 			dev_err(hdev->dev, "dts alarm_b event\n");
 	break;
+	case EQ_EVENT_BIS_VIOLATION:
+		dev_err(hdev->dev, "BIS restrictions violation detected\n");
+		break;
 	default:
 		dev_err(hdev->dev, "undefined msg event %d received\n", event_type);
 		rc = -EINVAL;
