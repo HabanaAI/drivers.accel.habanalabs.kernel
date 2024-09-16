@@ -95,8 +95,7 @@ static int gaudi3_cn_override_ports_ext_mask(struct hl_device *hdev,
 					     uint64_t *ports_ext_mask)
 {
 	/* If we are running on a PCI card, all the ports should be set as external */
-	/* TODO: SW-166512 - remove the pldm check */
-	if (hdev->card_type == cpucp_card_type_pci || is_400g_mode(hdev) || hdev->pldm) {
+	if (is_400g_mode(hdev) || hdev->pldm) {
 		*ports_ext_mask = hdev->cn.ports_mask;
 		return 0;
 	}
@@ -451,13 +450,9 @@ int gaudi3_cn_set_info(struct hl_device *hdev, bool get_from_fw)
 		break;
 	}
 
-	if (hdev->card_type == cpucp_card_type_pci || is_400g_mode(hdev) ||
-	    hdev->gaudi3_setup_type != GAUDI3_SETUP_TYPE_HLS3) {
-		/* Set all ports as external in case of the following:
-		 * 1. PCI card, which is a testing card.
-		 * 2. 400G mode.
-		 */
-		if (hdev->card_type == cpucp_card_type_pci || is_400g_mode(hdev))
+	if (is_400g_mode(hdev) || hdev->gaudi3_setup_type != GAUDI3_SETUP_TYPE_HLS3) {
+		/* Set all ports as external in case we are running 400G mode. */
+		if (is_400g_mode(hdev))
 			hdev->cn.ports_ext_mask = hdev->cn.ports_mask;
 		hdev->cn.auto_neg_mask &= ~hdev->cn.ports_ext_mask;
 	}
