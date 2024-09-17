@@ -2119,7 +2119,7 @@ static void __init hl_enable_trace_events(void)
 	path_len = snprintf(hl_event_filename_buffer, HL_EVENT_FILE_MAX_NAME_LEN,
 					"%s/%s/", tracefs_mnt, HL_TRACE_EVENTS_DIR);
 	if ((path_len < 0) || (path_len >= HL_EVENT_FILE_MAX_NAME_LEN)) {
-		pr_err("failed to snprintf hbanalabas trace folder %d\n", path_len);
+		pr_err("failed to snprintf habanalabs trace folder %d\n", path_len);
 		return;
 	}
 
