@@ -965,6 +965,10 @@ int hl_fw_cpucp_info_get(struct hl_device *hdev,
 out:
 	hl_cpu_accessible_dma_pool_free(hdev, sizeof(struct cpucp_info), cpucp_info_cpu_addr);
 
+	if (!rc)
+		rc = hl_get_sw_major_minor_subminor(hdev, &hdev->cpucp_ver,
+						    prop->cpucp_info.cpucp_version);
+
 	return rc;
 }
 

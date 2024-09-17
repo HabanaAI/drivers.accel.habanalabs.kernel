@@ -3844,6 +3844,7 @@ struct hl_version {
  * @heartbeat_debug_info: counters used to debug hearbeat failures.
  * @hldio:  describes habanalabs direct storage interraction interface.
  * @fw_sw_ver: version structure for FW's SW version.
+ * @cpucp_ver: version structure for CPUCP.
  * @irq_affinity_mask: mask of available CPU cores for user and decoder interrupt handling.
  * @stream_master_qid_arr: pointer to array with QIDs of master streams.
  * @fw_inner_major_ver: the major of current loaded preboot inner version.
@@ -4065,6 +4066,8 @@ struct hl_device {
 	struct hl_dio			hldio;
 
 	struct hl_version		fw_sw_ver;
+
+	struct hl_version		cpucp_ver;
 
 	cpumask_t			irq_affinity_mask;
 
