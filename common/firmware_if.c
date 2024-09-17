@@ -50,26 +50,26 @@ static char *comms_sts_str_arr[COMMS_STS_INVLD_LAST] = {
 };
 
 /**
- * hl_fw_version_cmp() - compares the FW version to a specific version
+ * hl_version_cmp() - compares habana component version to a reference version
  *
- * @hdev: pointer to hl_device structure
- * @major: major number of a reference version
- * @minor: minor number of a reference version
- * @subminor: sub-minor number of a reference version
+ * @tested_version: the tested version
+ * @major: the reference major version
+ * @minor: the reference minor version
+ * @subminor: the reference subminor version
  *
- * Return 1 if FW version greater than the reference version, -1 if it's
+ * Return 1 if the tested version greater than the reference version, -1 if it's
  *         smaller and 0 if versions are identical.
  */
-int hl_fw_version_cmp(struct hl_device *hdev, u32 major, u32 minor, u32 subminor)
+int hl_version_cmp(struct hl_version *tested_version, u32 major, u32 minor, u32 subminor)
 {
-	if (hdev->fw_sw_major_ver != major)
-		return (hdev->fw_sw_major_ver > major) ? 1 : -1;
+	if (tested_version->major != major)
+		return (tested_version->major > major) ? 1 : -1;
 
-	if (hdev->fw_sw_minor_ver != minor)
-		return (hdev->fw_sw_minor_ver > minor) ? 1 : -1;
+	if (tested_version->minor != minor)
+		return (tested_version->minor > minor) ? 1 : -1;
 
-	if (hdev->fw_sw_sub_minor_ver != subminor)
-		return (hdev->fw_sw_sub_minor_ver > subminor) ? 1 : -1;
+	if (tested_version->subminor != subminor)
+		return (tested_version->subminor > subminor) ? 1 : -1;
 
 	return 0;
 }
@@ -131,6 +131,7 @@ static char *extract_u32_until_given_char(char *str, u32 *ver_num, char given_ch
  * hl_get_sw_major_minor_subminor() - extract the FW's SW version major, minor, sub-minor
  *				      from the version string
  * @hdev: pointer to the hl_device
+ * @version: version structure
  * @fw_str: the FW's version string
  *
  * The extracted version is set in the hdev fields: fw_sw_{major/minor/sub_minor}_ver.
@@ -142,7 +143,9 @@ static char *extract_u32_until_given_char(char *str, u32 *ver_num, char given_ch
  *
  * Return: 0 for success or a negative error code for failure.
  */
-static int hl_get_sw_major_minor_subminor(struct hl_device *hdev, const char *fw_str)
+static int hl_get_sw_major_minor_subminor(struct hl_device *hdev,
+					  struct hl_version *version,
+					  const char *fw_str)
 {
 	char *end, *start;
 
@@ -169,26 +172,25 @@ static int hl_get_sw_major_minor_subminor(struct hl_device *hdev, const char *fw
 
 	/* start/end point each to the starting and ending hyphen of the sw version e.g. -1.9.0- */
 	start++;
-	start = extract_u32_until_given_char(start, &hdev->fw_sw_major_ver, '.');
+	start = extract_u32_until_given_char(start, &version->major, '.');
 	if (!start)
 		goto err_zero_ver;
 
 	start++;
-	start = extract_u32_until_given_char(start, &hdev->fw_sw_minor_ver, '.');
+	start = extract_u32_until_given_char(start, &version->minor, '.');
 	if (!start)
 		goto err_zero_ver;
 
 	start++;
-	start = extract_u32_until_given_char(start, &hdev->fw_sw_sub_minor_ver, '-');
+	start = extract_u32_until_given_char(start, &version->subminor, '-');
 	if (!start)
 		goto err_zero_ver;
 
 	return 0;
 
 err_zero_ver:
-	hdev->fw_sw_major_ver = 0;
-	hdev->fw_sw_minor_ver = 0;
-	hdev->fw_sw_sub_minor_ver = 0;
+	memset(version, 0, sizeof(*version));
+
 	return -EINVAL;
 }
 
@@ -2405,7 +2407,7 @@ static int hl_fw_dynamic_read_device_fw_version(struct hl_device *hdev,
 			dev_info(hdev->dev, "%s\n", btl_ver);
 		}
 
-		rc = hl_get_sw_major_minor_subminor(hdev, preboot_ver);
+		rc = hl_get_sw_major_minor_subminor(hdev, &hdev->fw_sw_ver, preboot_ver);
 		if (rc)
 			return rc;
 		preboot_ver = extract_fw_ver_from_str(prop->preboot_ver);
@@ -3600,7 +3602,7 @@ int hl_fw_send_generic_request(struct hl_device *hdev, enum hl_passthrough_type 
 
 /*
  * NOTE: here, we may have compatibility issues that can cause packet failure.
- * for example, when flash version (which is checked in hl_fw_version_cmp())
+ * for example, when flash version (which is checked in hl_version_cmp())
  * differs from the preboot's.
  * Failure to get this data should not be fatal but rather be reported
  * as an info log to the user.
@@ -3613,7 +3615,7 @@ void hl_fw_set_host_date_and_time(struct hl_device *hdev)
 	int rc;
 
 	/* The 'SET_HOST_TIME' packet is supported from FW version 1.18.0 */
-	if (hl_fw_version_cmp(hdev, 1, 18, 0) < 0)
+	if (hl_version_cmp(&hdev->fw_sw_ver, 1, 18, 0) < 0)
 		return;
 
 	time64_to_tm(ktime_get_real_seconds(), 0, &tm);

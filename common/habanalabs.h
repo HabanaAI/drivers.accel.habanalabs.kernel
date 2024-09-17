@@ -3730,6 +3730,18 @@ struct hl_dio {
 };
 
 /**
+ * struct hl_version - describes general habana component version
+ * @major: component's major number
+ * @minor: component's minor number
+ * @subminor: component's subminor number
+ */
+struct hl_version {
+	u32 major;
+	u32 minor;
+	u32 subminor;
+};
+
+/**
  * struct hl_device - habanalabs device structure.
  * @pdev: pointer to PCI device, can be NULL in case of simulator device.
  * @pcie_bar_phys: array of available PCIe bars physical addresses.
@@ -3831,13 +3843,11 @@ struct hl_dio {
  *                 buffers in the system, ready to be fetched by the user
  * @heartbeat_debug_info: counters used to debug hearbeat failures.
  * @hldio:  describes habanalabs direct storage interraction interface.
+ * @fw_sw_ver: version structure for FW's SW version.
  * @irq_affinity_mask: mask of available CPU cores for user and decoder interrupt handling.
  * @stream_master_qid_arr: pointer to array with QIDs of master streams.
  * @fw_inner_major_ver: the major of current loaded preboot inner version.
  * @fw_inner_minor_ver: the minor of current loaded preboot inner version.
- * @fw_sw_major_ver: the major of current loaded preboot SW version.
- * @fw_sw_minor_ver: the minor of current loaded preboot SW version.
- * @fw_sw_sub_minor_ver: the sub-minor of current loaded preboot SW version.
  * @dram_used_mem: current DRAM memory consumption.
  * @memory_scrub_val: the value to which the dram will be scrubbed to using cb scrub_device_dram
  * @timeout_jiffies: device CS timeout value.
@@ -4054,14 +4064,13 @@ struct hl_device {
 
 	struct hl_dio			hldio;
 
+	struct hl_version		fw_sw_ver;
+
 	cpumask_t			irq_affinity_mask;
 
 	u32				*stream_master_qid_arr;
 	u32				fw_inner_major_ver;
 	u32				fw_inner_minor_ver;
-	u32				fw_sw_major_ver;
-	u32				fw_sw_minor_ver;
-	u32				fw_sw_sub_minor_ver;
 	atomic64_t			dram_used_mem;
 	u64				memory_scrub_val;
 	u64				timeout_jiffies;
@@ -4629,7 +4638,7 @@ bool hl_mmu_v3_is_hop2_page_code(u32 code);
 int hl_mmu_v2_ctx_init(struct hl_ctx *ctx);
 void hl_mmu_v2_ctx_fini(struct hl_ctx *ctx);
 int hl_mmu_v2_get_tlb_info(struct hl_ctx *ctx, u64 virt_addr, struct hl_mmu_hop_info *hops);
-int hl_fw_version_cmp(struct hl_device *hdev, u32 major, u32 minor, u32 subminor);
+int hl_version_cmp(struct hl_version *tested_version, u32 major, u32 minor, u32 subminor);
 int hl_mmu_map_page_by_multiple_ptes(struct hl_ctx *ctx, u64 virt_addr, u64 phys_addr,
 					u32 page_size, bool is_dram_addr);
 int hl_mmu_unmap_page_by_multiple_ptes(struct hl_ctx *ctx, u64 virt_addr, u32 page_size,
