@@ -8128,7 +8128,7 @@ int gaudi3_init_cpu_queues(struct hl_device *hdev, u32 cpu_timeout)
 
 	gaudi3->hw_cap_initialized |= HW_CAP_CPU_Q;
 
-	return gaudi3_fw_send_eqe_size(hdev);
+	return 0;
 }
 
 static uint64_t gaudi3_set_hbm_bar_base(struct hl_device *hdev, u64 addr)
@@ -8235,19 +8235,34 @@ static int gaudi3_hw_init(struct hl_device *hdev)
 	if (gaudi3_init_hbm(hdev))
 		return -EIO;
 
+	/*
+	 * handling the CPU code we must maintain the below order:
+	 * 1. gaudi3_init_cpu_queues(), which communicates the queues with the FW
+	 *    on which all messages are passed.
+	 * 2. cpucp_info_get(), this among other things, stores the CPUCP version
+	 *    which is necessary for CPUCP messages compatibility.
+	 * 3. send hl_fw_set_host_date_and_time() and gaudi3_fw_send_eqe_size()
+	 *    as an initial message to the FW as a CPUCP packet
+	 */
 	rc = gaudi3_init_cpu_queues(hdev, GAUDI3_CPU_TIMEOUT_USEC);
 	if (rc) {
 		dev_err(hdev->dev, "failed to initialize CPU H/W queues %d\n", rc);
 		return rc;
 	}
 
-	hl_fw_set_host_date_and_time(hdev);
-
 	rc = gaudi3->cpucp_info_get(hdev);
 	if (rc) {
 		dev_err(hdev->dev, "Failed to get cpucp info\n");
 		return rc;
 	}
+
+	rc = hl_fw_set_host_date_and_time(hdev);
+	if (rc)
+		return rc;
+
+	rc = gaudi3_fw_send_eqe_size(hdev);
+	if (rc)
+		return rc;
 
 	rc = gaudi3_mmu_init(hdev);
 	if (rc)

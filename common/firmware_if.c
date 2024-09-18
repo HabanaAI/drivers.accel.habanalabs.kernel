@@ -3604,14 +3604,7 @@ int hl_fw_send_generic_request(struct hl_device *hdev, enum hl_passthrough_type 
 	return rc;
 }
 
-/*
- * NOTE: here, we may have compatibility issues that can cause packet failure.
- * for example, when flash version (which is checked in hl_version_cmp())
- * differs from the preboot's.
- * Failure to get this data should not be fatal but rather be reported
- * as an info log to the user.
- */
-void hl_fw_set_host_date_and_time(struct hl_device *hdev)
+int hl_fw_set_host_date_and_time(struct hl_device *hdev)
 {
 	struct cpucp_packet pkt = {};
 	struct tm tm;
@@ -3619,8 +3612,8 @@ void hl_fw_set_host_date_and_time(struct hl_device *hdev)
 	int rc;
 
 	/* The 'SET_HOST_TIME' packet is supported from FW version 1.18.0 */
-	if (hl_version_cmp(&hdev->fw_sw_ver, 1, 18, 0) < 0)
-		return;
+	if (hl_version_cmp(&hdev->cpucp_ver, 1, 18, 0) < 0)
+		return 0;
 
 	time64_to_tm(ktime_get_real_seconds(), 0, &tm);
 
@@ -3636,5 +3629,7 @@ void hl_fw_set_host_date_and_time(struct hl_device *hdev)
 
 	rc = hdev->asic_funcs->send_cpu_message(hdev, (u32 *) &pkt, sizeof(pkt), 0, NULL);
 	if (rc)
-		dev_info(hdev->dev, "Failed to set host date and time, rc %d\n", rc);
+		dev_err(hdev->dev, "Failed to set host date and time, rc %d\n", rc);
+
+	return rc;
 }

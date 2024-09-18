@@ -4735,7 +4735,7 @@ void hl_sysfs_add_dev_vrm_attr(struct hl_device *hdev, struct attribute_group *d
 int hl_fw_send_binning_info(struct hl_device *hdev);
 int hl_fw_send_generic_request(struct hl_device *hdev, enum hl_passthrough_type sub_opcode,
 						dma_addr_t buff, u32 *size);
-void hl_fw_set_host_date_and_time(struct hl_device *hdev);
+int hl_fw_set_host_date_and_time(struct hl_device *hdev);
 
 void hw_sob_get(struct hl_hw_sob *hw_sob);
 void hw_sob_put(struct hl_hw_sob *hw_sob);
