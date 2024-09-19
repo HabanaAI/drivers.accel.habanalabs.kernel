@@ -3645,6 +3645,11 @@ int gaudi3_set_fixed_properties(struct hl_device *hdev)
 	u32 sram_start_offset;
 	int rc;
 
+	/* All ports should be enabled in HL338 standalone mode */
+	if (hdev->gaudi3_setup_type == GAUDI3_SETUP_TYPE_HL338_S_EXT_LB)
+		hdev->cn.ports_mask  = (hdev->cn.lanes_per_port == PORT_LANES_4) ?
+				       0xFFF : 0xFFFFFF;
+
 	prop->max_queues = GAUDI3_QUEUE_ID_SIZE;
 	prop->hw_queues_props = kcalloc(prop->max_queues,
 			sizeof(struct hw_queue_properties),
