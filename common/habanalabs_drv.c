@@ -646,6 +646,8 @@ static void set_pci_revision_id(struct hl_device *hdev, enum hl_asic_type asic_t
 			break;
 		case ASIC_GAUDI2D_SIM:
 		case ASIC_GAUDI2D_SIM_ARC:
+		case ASIC_GAUDI3D_SIM:
+		case ASIC_GAUDI3D_SIM_ARC:
 			hdev->pci_revision_id = REV_ID_D;
 			break;
 		default:
@@ -702,10 +704,28 @@ static enum hl_asic_type get_asic_type(struct hl_device *hdev)
 		}
 		break;
 	case PCI_IDS_GAUDI3:
-		asic_type = ASIC_GAUDI3;
+		switch (hdev->pci_revision_id) {
+		case REV_ID_A:
+			asic_type = ASIC_GAUDI3;
+			break;
+		case REV_ID_D:
+			asic_type = ASIC_GAUDI3D;
+			break;
+		default:
+			break;
+		}
 		break;
 	case PCI_IDS_GAUDI3_HL_338:
-		asic_type = ASIC_GAUDI3_HL_338;
+	switch (hdev->pci_revision_id) {
+		case REV_ID_A:
+			asic_type = ASIC_GAUDI3_HL_338;
+			break;
+		case REV_ID_D:
+			asic_type = ASIC_GAUDI3D_HL_338;
+			break;
+		default:
+			break;
+		}
 		break;
 	case PCI_IDS_GAUDI3_FPGA:
 		asic_type = ASIC_GAUDI3_FPGA;
@@ -938,10 +958,15 @@ static u32 get_dev_nic_ports_mask(struct hl_device *hdev)
 	 * be masked later on
 	 */
 	case ASIC_GAUDI3_HL_338:
+	case ASIC_GAUDI3D:
+	case ASIC_GAUDI3D_SIM:
+	case ASIC_GAUDI3D_SIM_ARC:
 		mask = (nic_lanes_per_port == PORT_LANES_4) ? 0xFFF : 0xFFFFFF;
 		break;
 	case ASIC_GAUDI3_HL_338_SIM:
 	case ASIC_GAUDI3_HL_338_SIM_ARC:
+	case ASIC_GAUDI3D_HL_338_SIM:
+	case ASIC_GAUDI3D_HL_338_SIM_ARC:
 		mask = (nic_lanes_per_port == PORT_LANES_4) ? 0xFFE : 0xFFFFFC;
 		break;
 	case ASIC_GAUDI2_SIM:
@@ -1069,7 +1094,9 @@ static void set_driver_behavior_per_device(struct hl_device *hdev)
 		break;
 
 	case ASIC_GAUDI3:
+	case ASIC_GAUDI3D:
 	case ASIC_GAUDI3_HL_338:
+	case ASIC_GAUDI3D_HL_338:
 		hdev->dram_enable = 1;
 		hdev->fw_components = FW_TYPE_BOOT_CPU | FW_TYPE_PREBOOT_CPU;
 		hdev->security_enable = 1;
@@ -1096,6 +1123,7 @@ static void set_driver_behavior_per_device(struct hl_device *hdev)
 		break;
 
 	case ASIC_GAUDI3_SIM:
+	case ASIC_GAUDI3D_SIM:
 	case ASIC_GAUDI3_HL_338_SIM:
 		hdev->dram_enable = 1;
 		hdev->fw_components = 0;
@@ -1122,6 +1150,7 @@ static void set_driver_behavior_per_device(struct hl_device *hdev)
 		break;
 
 	case ASIC_GAUDI3_SIM_ARC:
+	case ASIC_GAUDI3D_SIM_ARC:
 	case ASIC_GAUDI3_HL_338_SIM_ARC:
 		hdev->dram_enable = 1;
 		hdev->fw_components = FW_TYPE_BOOT_CPU | FW_TYPE_PREBOOT_CPU;
@@ -1433,9 +1462,13 @@ static void fixup_device_params_per_asic(struct hl_device *hdev, int timeout)
 	case ASIC_GAUDI3_SIM:
 	case ASIC_GAUDI3_SIM_ARC:
 	case ASIC_GAUDI3:
+	case ASIC_GAUDI3D_SIM:
+	case ASIC_GAUDI3D_SIM_ARC:
+	case ASIC_GAUDI3D:
 	case ASIC_GAUDI3_HL_338_SIM:
 	case ASIC_GAUDI3_HL_338_SIM_ARC:
 	case ASIC_GAUDI3_HL_338:
+	case ASIC_GAUDI3D_HL_338:
 		/* DRAM cannot be used if SRAM is enabled
 		 * Cache cannot be used if DRAM is disabled
 		 */

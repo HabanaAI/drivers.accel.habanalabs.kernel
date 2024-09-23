@@ -571,11 +571,17 @@ static int hl_cn_get_nic_gen(struct hl_device *hdev, enum hbl_cn_aux_nic_gen *ni
 		*nic_gen = HBL_CN_AUX_NIC_GEN2;
 		break;
 	case ASIC_GAUDI3:
+	case ASIC_GAUDI3D:
+	case ASIC_GAUDI3D_SIM:
+	case ASIC_GAUDI3D_SIM_ARC:
+	case ASIC_GAUDI3D_HL_338:
 	case ASIC_GAUDI3_HL_338:
 	case ASIC_GAUDI3_SIM:
 	case ASIC_GAUDI3_SIM_ARC:
 	case ASIC_GAUDI3_HL_338_SIM:
+	case ASIC_GAUDI3D_HL_338_SIM:
 	case ASIC_GAUDI3_HL_338_SIM_ARC:
+	case ASIC_GAUDI3D_HL_338_SIM_ARC:
 	case ASIC_GAUDI3_FPGA:
 		*nic_gen = HBL_CN_AUX_NIC_GEN3;
 		break;

@@ -366,16 +366,32 @@ static int hl_sim_set_devtype_get_minor_ioctl(struct hl_sim_mode_device *sdev,
 		sim_start_args.virt_dev_type = ASIC_GAUDI3_SIM;
 		simulator_start = gaudi3_simulator_start;
 		break;
+	case HLV_SIM_GAUDI3D:
+		sim_start_args.virt_dev_type = ASIC_GAUDI3D_SIM;
+		simulator_start = gaudi3_simulator_start;
+		break;
 	case HLV_SIM_GAUDI3_ARC:
 		sim_start_args.virt_dev_type = ASIC_GAUDI3_SIM_ARC;
+		simulator_start = gaudi3_simulator_start;
+		break;
+	case HLV_SIM_GAUDI3D_ARC:
+		sim_start_args.virt_dev_type = ASIC_GAUDI3D_SIM;
 		simulator_start = gaudi3_simulator_start;
 		break;
 	case HLV_SIM_GAUDI3_HL_338:
 		sim_start_args.virt_dev_type = ASIC_GAUDI3_HL_338_SIM;
 		simulator_start = gaudi3_simulator_start;
 		break;
+	case HLV_SIM_GAUDI3D_HL_338:
+		sim_start_args.virt_dev_type = ASIC_GAUDI3D_HL_338_SIM;
+		simulator_start = gaudi3_simulator_start;
+		break;
 	case HLV_SIM_GAUDI3_HL_338_ARC:
 		sim_start_args.virt_dev_type = ASIC_GAUDI3_HL_338_SIM_ARC;
+		simulator_start = gaudi3_simulator_start;
+		break;
+	case HLV_SIM_GAUDI3D_HL_338_ARC:
+		sim_start_args.virt_dev_type = ASIC_GAUDI3D_HL_338_SIM_ARC;
 		simulator_start = gaudi3_simulator_start;
 		break;
 	default:
@@ -973,9 +989,13 @@ static void hl_sim_destroy_devices(struct hl_sim_mode_device *sdev)
 			gaudi2_simulator_stop(minor);
 			break;
 		case ASIC_GAUDI3_SIM:
+		case ASIC_GAUDI3D_SIM:
 		case ASIC_GAUDI3_SIM_ARC:
+		case ASIC_GAUDI3D_SIM_ARC:
 		case ASIC_GAUDI3_HL_338_SIM:
+		case ASIC_GAUDI3D_HL_338_SIM:
 		case ASIC_GAUDI3_HL_338_SIM_ARC:
+		case ASIC_GAUDI3D_HL_338_SIM_ARC:
 			gaudi3_simulator_stop(minor);
 			break;
 		default:
