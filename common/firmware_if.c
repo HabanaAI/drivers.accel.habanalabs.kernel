@@ -660,6 +660,12 @@ int hl_fw_send_soft_reset(struct hl_device *hdev)
 	struct cpucp_packet pkt;
 	int rc;
 
+	while (ktime_compare(ktime_get(), hdev->soft_reset_stall_timestamp) < 0) {
+		dev_dbg(hdev->dev, "stalling the soft reset until %lld (current ts %lld)\n",
+			hdev->soft_reset_stall_timestamp, ktime_get());
+		msleep(1);
+	}
+
 	memset(&pkt, 0, sizeof(pkt));
 	pkt.ctl = cpu_to_le32(CPUCP_PACKET_SOFT_RESET << CPUCP_PKT_CTL_OPCODE_SHIFT);
 	rc = hdev->asic_funcs->send_cpu_message(hdev, (u32 *) &pkt, sizeof(pkt), 0, NULL);

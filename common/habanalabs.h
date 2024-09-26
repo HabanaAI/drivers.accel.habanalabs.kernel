@@ -3888,6 +3888,8 @@ struct hl_version {
  *                drams are binned-out
  * @tpc_binning: contains mask of tpc engines that is received from the f/w which indicates which
  *               tpc engines are binned-out
+ * @soft_reset_stall_timestamp: timestamp for stalling any soft reset requests after polling the
+ *                              device status
  * @dmabuf_export_cnt: number of dma-buf exporting.
  * @mapped_resource_cnt: number of mapped resources.
  * @card_type: Various ASICs have several card types. This indicates the card
@@ -4100,6 +4102,7 @@ struct hl_device {
 	u64				fw_comms_poll_interval_usec;
 	u64				dram_binning;
 	u64				tpc_binning;
+	ktime_t				soft_reset_stall_timestamp;
 	atomic_t			dmabuf_export_cnt;
 	atomic_t			mapped_resource_cnt;
 	enum cpucp_card_types		card_type;

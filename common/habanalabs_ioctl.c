@@ -114,6 +114,15 @@ static int device_status_info(struct hl_device *hdev, struct hl_info_args *args)
 	if ((!size) || (!out))
 		return -EINVAL;
 
+	if (copy_from_user(&dev_stat, u64_to_user_ptr(args->return_pointer), args->return_size))
+		return -EFAULT;
+
+	if (dev_stat.soft_reset_stall)
+		hdev->soft_reset_stall_timestamp =
+			ktime_add_ms(ktime_get(), HL_SOFT_RESET_STALL_AFTER_POLLING_MS);
+	else
+		hdev->soft_reset_stall_timestamp = 0;
+
 	dev_stat.status = hl_device_status(hdev);
 
 	return copy_to_user(out, &dev_stat,
