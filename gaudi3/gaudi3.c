@@ -6711,7 +6711,8 @@ static void gaudi3_enable_mstr_if_dbg_counters(struct hl_device *hdev)
 
 static void gaudi3_init_mstr_if(struct hl_device *hdev)
 {
-	gaudi3_enable_mstr_if_dbg_counters(hdev);
+	if (!hdev->asic_prop.fw_security_enabled)
+		gaudi3_enable_mstr_if_dbg_counters(hdev);
 }
 
 static const char *gaudi3_irq_name(u16 irq_number)
@@ -9686,7 +9687,8 @@ static void gaudi3_halt_engines(struct hl_device *hdev, bool hard_reset, bool fw
 	gaudi3_disable_timestamp(hdev);
 
 	/* Verify that there are no on-the-fly AXI transactions after halting the engines */
-	gaudi3_verify_compute_mstr_if_dbg_counters(hdev);
+	if (!hdev->asic_prop.fw_security_enabled)
+		gaudi3_verify_compute_mstr_if_dbg_counters(hdev);
 
 	gaudi3_pldm_disable_interrupts(hdev);
 
