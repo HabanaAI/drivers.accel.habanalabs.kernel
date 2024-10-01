@@ -934,9 +934,12 @@ static u32 get_dev_nic_ports_mask(struct hl_device *hdev)
 	case ASIC_GAUDI3:
 	case ASIC_GAUDI3_SIM:
 	case ASIC_GAUDI3_SIM_ARC:
+	/* HL338 supports all ports in SA mode, therefore enable the wider case, as the ports will
+	 * be masked later on
+	 */
+	case ASIC_GAUDI3_HL_338:
 		mask = (nic_lanes_per_port == PORT_LANES_4) ? 0xFFF : 0xFFFFFF;
 		break;
-	case ASIC_GAUDI3_HL_338:
 	case ASIC_GAUDI3_HL_338_SIM:
 	case ASIC_GAUDI3_HL_338_SIM_ARC:
 		mask = (nic_lanes_per_port == PORT_LANES_4) ? 0xFFE : 0xFFFFFC;
