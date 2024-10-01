@@ -13767,7 +13767,8 @@ static u32 gaudi3_cs_sei_err_cause_iterator(struct hl_device *hdev,
 			/* no error */
 			continue;
 		case CACHE_MAIN_SEI_CAUSE_REG_MAINT_CMD_LOST_M:
-			dev_info_ratelimited(hdev->dev, "CS SEI: %s\n", gaudi3_cs_sei_err_cause[i]);
+			dev_warn_ratelimited(hdev->dev, "CS SEI: warning: %s\n",
+				gaudi3_cs_sei_err_cause[i]);
 			break;
 		case CACHE_MAIN_SEI_CAUSE_REG_C2M_R_SLV_ERR_ORIG_WRITE_M:
 			dev_err_ratelimited(hdev->dev, "CS SEI error: %s, addr 0x%llx\n",
