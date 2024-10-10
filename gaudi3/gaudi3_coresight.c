@@ -6592,7 +6592,7 @@ int gaudi3_coresight_init(struct hl_device *hdev)
 
 		/* Set PMMU disable components */
 		half_size = CS_DBG_PMMU_ID_SIZE >> 1;
-		enabled_mask = GENMASK_ULL(half_size - 1, 0);
+		enabled_mask = die_index ? 0x0 : GENMASK_ULL(half_size - 1, 0);
 		ret = gaudi3_coresight_set_disabled_components(hdev, die_index, half_size,
 					enabled_mask, gaudi3_pmmu_coresight_cfg_table);
 		if (ret) {
