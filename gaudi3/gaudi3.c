@@ -10102,8 +10102,8 @@ static int gaudi3_scrub_device_memory(struct hl_device *hdev,
 				      const struct gaudi3_test_pdma_params *test_params,
 				      int ch_idx)
 {
-	u64 device_addr, device_data = 0;
-	int i, rc;
+	u64 i, device_addr, device_data = 0;
+	int rc;
 
 	device_addr = test_params->device_phys_addr + ch_idx * test_params->channel_transfer_size;
 
