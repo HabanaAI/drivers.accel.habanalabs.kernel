@@ -754,12 +754,18 @@ static bool is_cpu_queue_enabled(struct hl_device *hdev)
 
 	switch (hdev->asic_type) {
 	case ASIC_GAUDI3:
+	case ASIC_GAUDI3D:
 	case ASIC_GAUDI3_FPGA:
 	case ASIC_GAUDI3_HL_338:
+	case ASIC_GAUDI3D_HL_338:
 	case ASIC_GAUDI3_SIM:
+	case ASIC_GAUDI3D_SIM:
 	case ASIC_GAUDI3_SIM_ARC:
+	case ASIC_GAUDI3D_SIM_ARC:
 	case ASIC_GAUDI3_HL_338_SIM:
+	case ASIC_GAUDI3D_HL_338_SIM:
 	case ASIC_GAUDI3_HL_338_SIM_ARC:
+	case ASIC_GAUDI3D_HL_338_SIM_ARC:
 	case ASIC_GAUDI2:
 	case ASIC_GAUDI2B:
 	case ASIC_GAUDI2C:
