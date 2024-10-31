@@ -967,6 +967,7 @@ static u32 get_dev_nic_ports_mask(struct hl_device *hdev)
 	case ASIC_GAUDI3D:
 	case ASIC_GAUDI3D_SIM:
 	case ASIC_GAUDI3D_SIM_ARC:
+	case ASIC_GAUDI3D_HL_338:
 		mask = (nic_lanes_per_port == PORT_LANES_4) ? 0xFFF : 0xFFFFFF;
 		break;
 	case ASIC_GAUDI3_HL_338_SIM:
@@ -1131,6 +1132,7 @@ static void set_driver_behavior_per_device(struct hl_device *hdev)
 	case ASIC_GAUDI3_SIM:
 	case ASIC_GAUDI3D_SIM:
 	case ASIC_GAUDI3_HL_338_SIM:
+	case ASIC_GAUDI3D_HL_338_SIM:
 		hdev->dram_enable = 1;
 		hdev->fw_components = 0;
 		hdev->security_enable = 1;
@@ -1158,6 +1160,7 @@ static void set_driver_behavior_per_device(struct hl_device *hdev)
 	case ASIC_GAUDI3_SIM_ARC:
 	case ASIC_GAUDI3D_SIM_ARC:
 	case ASIC_GAUDI3_HL_338_SIM_ARC:
+	case ASIC_GAUDI3D_HL_338_SIM_ARC:
 		hdev->dram_enable = 1;
 		hdev->fw_components = FW_TYPE_BOOT_CPU | FW_TYPE_PREBOOT_CPU;
 		hdev->security_enable = 1;
@@ -1415,6 +1418,7 @@ static void fixup_fw_components_param(struct hl_device *hdev)
 	case ASIC_GAUDI2C_SIM:
 	case ASIC_GAUDI2D_SIM:
 	case ASIC_GAUDI3_SIM:
+	case ASIC_GAUDI3D_SIM:
 		/* Enforce running without F/W for non SIM_ARC simulators */
 		hdev->fw_components = FW_TYPE_NONE;
 		break;
@@ -1472,7 +1476,9 @@ static void fixup_device_params_per_asic(struct hl_device *hdev, int timeout)
 	case ASIC_GAUDI3D_SIM_ARC:
 	case ASIC_GAUDI3D:
 	case ASIC_GAUDI3_HL_338_SIM:
+	case ASIC_GAUDI3D_HL_338_SIM:
 	case ASIC_GAUDI3_HL_338_SIM_ARC:
+	case ASIC_GAUDI3D_HL_338_SIM_ARC:
 	case ASIC_GAUDI3_HL_338:
 	case ASIC_GAUDI3D_HL_338:
 		/* DRAM cannot be used if SRAM is enabled
