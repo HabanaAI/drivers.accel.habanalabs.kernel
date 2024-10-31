@@ -3639,3 +3639,23 @@ int hl_fw_set_host_date_and_time(struct hl_device *hdev)
 
 	return rc;
 }
+
+int hl_fw_send_memory_consumption(struct hl_device *hdev, u64 total_mem, u64 free_mem, u64 used_mem,
+				  u64 timestamp_sec)
+{
+	struct cpucp_memory_consumption_packet pkt = {0};
+	int rc;
+
+	pkt.cpucp_pkt.ctl = cpu_to_le32(CPUCP_PACKET_MEMORY_CONSUMPTION_SET <<
+						CPUCP_PKT_CTL_OPCODE_SHIFT);
+	pkt.total_mem = cpu_to_le64(total_mem);
+	pkt.free_mem = cpu_to_le64(free_mem);
+	pkt.used_mem = cpu_to_le64(used_mem);
+	pkt.timestamp_sec = cpu_to_le64(timestamp_sec);
+
+	rc = hdev->asic_funcs->send_cpu_message(hdev, (u32 *) &pkt, sizeof(pkt), 0, NULL);
+	if (rc)
+		dev_err(hdev->dev, "failed to send memory consumption msg to FW, error %d\n", rc);
+
+	return rc;
+}

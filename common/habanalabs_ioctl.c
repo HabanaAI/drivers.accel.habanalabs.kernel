@@ -1321,6 +1321,30 @@ free_buff:
 	return rc;
 }
 
+static int report_memory_consumption_ioctl(struct hl_device *hdev, struct hl_info_args *info_args)
+{
+	void __user *buff = (void __user *) (uintptr_t) info_args->return_pointer;
+	struct hl_info_memory_consumption input;
+	u32 input_size = info_args->return_size;
+
+	if (input_size != sizeof(struct hl_info_memory_consumption)) {
+		dev_dbg(hdev->dev, "Unexpected size of user input buffer\n");
+		return -EINVAL;
+	}
+
+	if (copy_from_user((void *) &input, buff, input_size)) {
+		dev_dbg(hdev->dev, "Failed to copy from user input buffer\n");
+		return -EFAULT;
+	}
+
+	if (input.used_mem > atomic64_read(&hdev->dram_used_mem)) {
+		dev_dbg(hdev->dev, "Reported used memory is larger than allocated\n");
+		return -EINVAL;
+	}
+
+	return hl_report_memory_consumption_to_fw(hdev, input.used_mem, input.timestamp_sec);
+}
+
 static int _hl_info_ioctl(struct hl_fpriv *hpriv, void *data,
 				struct device *dev)
 {
@@ -1475,6 +1499,9 @@ static int _hl_info_ioctl(struct hl_fpriv *hpriv, void *data,
 
 	case HL_INFO_DEV_SIGNED:
 		return dev_info_signed(hpriv, args);
+
+	case HL_INFO_MEMORY_CONSUMPTION:
+		return report_memory_consumption_ioctl(hdev, args);
 
 	default:
 		dev_err(dev, "Invalid request %d\n", args->op);

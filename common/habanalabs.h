@@ -865,6 +865,7 @@ struct hl_cn_properties {
  * @pcie_cfg_bar_id: The PCIe configuration BAR index.
  * @num_phys_nics: Total number of available NICs in the HW.
  * @supports_nvme: indicates whether the asic supports nvme.
+ * @supports_memory_consumption_report: true if device supports memory consumption reporting via FW
  */
 struct asic_fixed_properties {
 	struct hw_queue_properties	*hw_queues_props;
@@ -1022,6 +1023,7 @@ struct asic_fixed_properties {
 	u8				pcie_cfg_bar_id;
 	u8				num_phys_nics;
 	u8				supports_nvme;
+	u8				supports_memory_consumption_report;
 };
 
 /**
@@ -4751,6 +4753,9 @@ int hl_fw_send_binning_info(struct hl_device *hdev);
 int hl_fw_send_generic_request(struct hl_device *hdev, enum hl_passthrough_type sub_opcode,
 						dma_addr_t buff, u32 *size);
 int hl_fw_set_host_date_and_time(struct hl_device *hdev);
+int hl_report_memory_consumption_to_fw(struct hl_device *hdev, u64 used_mem, u64 timestamp_sec);
+int hl_fw_send_memory_consumption(struct hl_device *hdev, u64 total_mem, u64 free_mem, u64 used_mem,
+				  u64 timestamp_sec);
 
 void hw_sob_get(struct hl_hw_sob *hw_sob);
 void hw_sob_put(struct hl_hw_sob *hw_sob);

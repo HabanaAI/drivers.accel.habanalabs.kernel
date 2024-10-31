@@ -2716,6 +2716,14 @@ access_addr:
 	return 0;
 }
 
+static void send_fw_early_reports(struct hl_device *hdev)
+{
+	struct timespec64 ts;
+
+	ktime_get_ts64(&ts);
+	hl_report_memory_consumption_to_fw(hdev, atomic64_read(&hdev->dram_used_mem), ts.tv_sec);
+}
+
 #if !IS_ENABLED(CONFIG_DRM_ACCEL)
 static int create_cdev(struct hl_device *hdev)
 {
@@ -3066,6 +3074,8 @@ int hl_device_init(struct hl_device *hdev)
 	 * be operational although it shouldn't be
 	 */
 	hdev->asic_funcs->enable_events_from_fw(hdev);
+
+	send_fw_early_reports(hdev);
 
 	hdev->init_done = true;
 
@@ -3628,4 +3638,19 @@ void hl_eq_cpld_shutdown_event_handle(struct hl_device *hdev, u16 event_id, u64 
 	hdev->cpld_shutdown = true;
 	hl_cn_hard_reset_prepare(hdev);
 	hl_cn_stop(hdev);
+}
+
+int hl_report_memory_consumption_to_fw(struct hl_device *hdev, u64 used_mem, u64 timestamp_sec)
+{
+	u64 total_mem, free_mem, stolen_mem;
+
+	if (!hdev->asic_prop.supports_memory_consumption_report)
+		return 0;
+
+	total_mem = hdev->asic_prop.dram_size;
+	stolen_mem = hdev->asic_prop.dram_user_base_address - hdev->asic_prop.dram_base_address;
+	used_mem += stolen_mem;
+	free_mem = total_mem - used_mem;
+
+	return hl_fw_send_memory_consumption(hdev, total_mem, free_mem, used_mem, timestamp_sec);
 }
