@@ -648,6 +648,8 @@ static void set_pci_revision_id(struct hl_device *hdev, enum hl_asic_type asic_t
 		case ASIC_GAUDI2D_SIM_ARC:
 		case ASIC_GAUDI3D_SIM:
 		case ASIC_GAUDI3D_SIM_ARC:
+		case ASIC_GAUDI3D_HL_338_SIM:
+		case ASIC_GAUDI3D_HL_338_SIM_ARC:
 			hdev->pci_revision_id = REV_ID_D;
 			break;
 		default:
@@ -705,26 +707,20 @@ static enum hl_asic_type get_asic_type(struct hl_device *hdev)
 		break;
 	case PCI_IDS_GAUDI3:
 		switch (hdev->pci_revision_id) {
-		case REV_ID_A:
-			asic_type = ASIC_GAUDI3;
-			break;
 		case REV_ID_D:
 			asic_type = ASIC_GAUDI3D;
 			break;
 		default:
-			break;
+			asic_type = ASIC_GAUDI3;
 		}
 		break;
 	case PCI_IDS_GAUDI3_HL_338:
 	switch (hdev->pci_revision_id) {
-		case REV_ID_A:
-			asic_type = ASIC_GAUDI3_HL_338;
-			break;
 		case REV_ID_D:
 			asic_type = ASIC_GAUDI3D_HL_338;
 			break;
 		default:
-			break;
+			asic_type = ASIC_GAUDI3_HL_338;
 		}
 		break;
 	case PCI_IDS_GAUDI3_FPGA:
