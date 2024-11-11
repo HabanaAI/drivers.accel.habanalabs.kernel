@@ -102,6 +102,8 @@ static void hl_ctx_fini(struct hl_ctx *ctx)
 	kfree(ctx->cs_pending);
 
 	if (ctx->asid != HL_KERNEL_ASID_ID) {
+		struct timespec64 ts;
+
 		dev_dbg(hdev->dev, "closing user context, asid=%u\n", ctx->asid);
 
 		/* The engines are stopped as there is no executing CS, but the
@@ -119,6 +121,9 @@ static void hl_ctx_fini(struct hl_ctx *ctx)
 		hl_vm_ctx_fini(ctx);
 		hl_asid_free(hdev, ctx->asid);
 		hl_encaps_sig_mgr_fini(hdev, &ctx->sig_mgr);
+		ktime_get_ts64(&ts);
+		hl_report_memory_consumption_to_fw(hdev, atomic64_read(&hdev->dram_used_mem),
+						   ts.tv_sec);
 		mutex_destroy(&ctx->ts_reg_lock);
 	} else {
 		dev_dbg(hdev->dev, "closing kernel context\n");

@@ -3680,7 +3680,7 @@ int hl_fw_send_memory_consumption(struct hl_device *hdev, u64 total_mem, u64 fre
 
 	rc = hdev->asic_funcs->send_cpu_message(hdev, (u32 *) &pkt, sizeof(pkt), 0, NULL);
 	if (rc)
-		dev_err(hdev->dev, "failed to send memory consumption msg to FW, error %d\n", rc);
+		dev_warn(hdev->dev, "failed to send memory consumption msg to FW\n");
 
 	return rc;
 }

@@ -2786,6 +2786,7 @@ int hl_mem_ioctl(struct drm_device *ddev, void *data, struct drm_file *file_priv
 	struct hl_device *hdev = hpriv->hdev;
 	struct hl_ctx *ctx = hpriv->ctx;
 	u64 block_handle, device_addr = 0;
+	bool report_mem_usage = false;
 	u32 handle = 0, block_size;
 	int rc, dmabuf_fd = -EBADF;
 
@@ -2821,13 +2822,16 @@ int hl_mem_ioctl(struct drm_device *ddev, void *data, struct drm_file *file_priv
 
 			dev_dbg(hdev->dev, "DRAM alloc is not supported\n");
 			rc = 0;
-
+			report_mem_usage = true;
 			memset(args, 0, sizeof(*args));
 			args->out.handle = 0;
 			goto out;
 		}
 
 		rc = alloc_device_memory(ctx, &args->in, &handle);
+
+		if (!rc)
+			report_mem_usage = true;
 
 		memset(args, 0, sizeof(*args));
 		args->out.handle = (__u64) handle;
@@ -2850,11 +2854,16 @@ int hl_mem_ioctl(struct drm_device *ddev, void *data, struct drm_file *file_priv
 
 			dev_dbg(hdev->dev, "DRAM alloc is not supported\n");
 			rc = 0;
+			report_mem_usage = true;
 
 			goto out;
 		}
 
 		rc = free_device_memory(ctx, &args->in);
+
+		if (!rc)
+			report_mem_usage = true;
+
 		break;
 
 	case HL_MEM_OP_MAP:
@@ -2903,6 +2912,14 @@ int hl_mem_ioctl(struct drm_device *ddev, void *data, struct drm_file *file_priv
 	}
 
 out:
+	if (report_mem_usage) {
+		struct timespec64 ts;
+
+		ktime_get_ts64(&ts);
+		hl_report_memory_consumption_to_fw(hdev, atomic64_read(&hdev->dram_used_mem),
+						   ts.tv_sec);
+	}
+
 	return rc;
 }
 
