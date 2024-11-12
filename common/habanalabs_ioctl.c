@@ -1616,6 +1616,7 @@ int hl_debug_ioctl(struct drm_device *ddev, void *data, struct drm_file *file_pr
 			return -EFAULT;
 		}
 		args->input_size = min(args->input_size, hl_debug_struct_size[args->op]);
+		args->output_size = min_t(u32, args->output_size, PAGE_SIZE);
 		rc = debug_coresight(hdev, hpriv->ctx, args);
 		break;
 
