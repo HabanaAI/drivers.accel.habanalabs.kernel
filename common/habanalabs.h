@@ -734,7 +734,9 @@ struct hl_cn_properties {
  * @mmu_pte_size: PTE size in MMU page tables.
  * @dram_page_size: The DRAM physical page size.
  * @cfg_size: configuration space size on SRAM.
- * @sram_size: total size of SRAM.
+ * @sram_size: total size of SRAM used by FW.
+ * @sram_total_size: the total size of SRAM.
+ * @sram_die_size: die SRAM size.
  * @max_asid: maximum number of open contexts (ASIDs).
  * @num_of_events: number of possible internal H/W IRQs.
  * @psoc_pci_pll_nr: PCI PLL NR value.
@@ -866,6 +868,7 @@ struct hl_cn_properties {
  * @num_phys_nics: Total number of available NICs in the HW.
  * @supports_nvme: indicates whether the asic supports nvme.
  * @supports_memory_consumption_report: true if device supports memory consumption reporting via FW
+ * @fw_sram_remap_enabled: true if the fw has enabled the sram remap.
  */
 struct asic_fixed_properties {
 	struct hw_queue_properties	*hw_queues_props;
@@ -930,6 +933,8 @@ struct asic_fixed_properties {
 	u32				dram_page_size;
 	u32				cfg_size;
 	u32				sram_size;
+	u32				sram_total_size;
+	u32				sram_die_size;
 	u32				max_asid;
 	u32				num_of_events;
 	u32				psoc_pci_pll_nr;
@@ -1024,6 +1029,7 @@ struct asic_fixed_properties {
 	u8				num_phys_nics;
 	u8				supports_nvme;
 	u8				supports_memory_consumption_report;
+	u8				fw_sram_remap_enabled;
 };
 
 /**

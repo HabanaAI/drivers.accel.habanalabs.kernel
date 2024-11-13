@@ -1782,6 +1782,8 @@ static void hl_fw_preboot_update_state(struct hl_device *hdev)
 
 	prop->fw_security_enabled = !!(cpu_boot_dev_sts0 & CPU_BOOT_DEV_STS0_SECURITY_EN);
 
+	prop->fw_sram_remap_enabled = !!(cpu_boot_dev_sts0 & CPU_BOOT_DEV_STS0_SRAM_REMAP_EN);
+
 	dev_dbg(hdev->dev, "Firmware preboot boot device status0 %#x\n",
 							cpu_boot_dev_sts0);
 
@@ -1915,9 +1917,19 @@ static int hl_fw_dynamic_extract_fw_response(struct hl_device *hdev,
 						struct fw_response *response,
 						u32 status)
 {
+	struct asic_fixed_properties *prop = &hdev->asic_prop;
+
 	response->status = FIELD_GET(COMMS_STATUS_STATUS_MASK, status);
 	response->ram_offset = FIELD_GET(COMMS_STATUS_OFFSET_MASK, status) <<
 						COMMS_STATUS_OFFSET_ALIGN_SHIFT;
+
+	/* As currently the driver assumes 2 dies SRAM allocation for FW, in the new re-mapping the preboot
+	 * will provide offset from the lower die start address, need to subtract the size
+	 * of the second die sram size to get the correct offset inside the new mapped regions
+	 */
+	if (prop->fw_sram_remap_enabled)
+		response->ram_offset -= prop->sram_die_size;
+
 	response->ram_type = FIELD_GET(COMMS_STATUS_RAM_TYPE_MASK, status);
 
 	if ((response->ram_type != COMMS_SRAM) &&
@@ -2162,6 +2174,7 @@ static int hl_fw_dynamic_validate_descriptor(struct hl_device *hdev,
 					struct fw_load_mgr *fw_loader,
 					struct lkd_fw_comms_desc *fw_desc)
 {
+	struct asic_fixed_properties *prop = &hdev->asic_prop;
 	struct pci_mem_region *region;
 	enum pci_region region_id;
 	size_t data_size;
@@ -2197,6 +2210,14 @@ static int hl_fw_dynamic_validate_descriptor(struct hl_device *hdev,
 
 	/* find memory region to which to copy the image */
 	addr = le64_to_cpu(fw_desc->img_addr);
+
+	/* When re-mapping the SRAM the FW still give fullchip addresses based on the old regions map.
+	 * To support this remap need to subtract from each fullchip address the delta between the old and the new map.
+	 * As currently the new map will move the SRAM region to the beginning of the SRAM physical address need to subtract accordingly.
+	 */
+	if (prop->fw_sram_remap_enabled)
+		addr -= (prop->sram_total_size - prop->sram_die_size);
+
 	region_id = hl_get_pci_memory_region(hdev, addr);
 	if ((region_id != PCI_REGION_SRAM) && ((region_id != PCI_REGION_DRAM))) {
 		dev_err(hdev->dev, "Invalid region to copy FW image address=%llx\n", addr);
@@ -2448,6 +2469,7 @@ static int hl_fw_dynamic_copy_image(struct hl_device *hdev,
 						const struct firmware *fw,
 						struct fw_load_mgr *fw_loader)
 {
+	struct asic_fixed_properties *prop = &hdev->asic_prop;
 	struct lkd_fw_comms_desc *fw_desc;
 	struct pci_mem_region *region;
 	void __iomem *dest;
@@ -2456,6 +2478,9 @@ static int hl_fw_dynamic_copy_image(struct hl_device *hdev,
 
 	fw_desc = &fw_loader->dynamic_loader.comm_desc;
 	addr = le64_to_cpu(fw_desc->img_addr);
+
+	if (prop->fw_sram_remap_enabled)
+		addr -= (prop->sram_total_size - prop->sram_die_size);
 
 	/* find memory region to which to copy the image */
 	region = fw_loader->dynamic_loader.image_region;

@@ -3674,6 +3674,8 @@ int gaudi3_set_fixed_properties(struct hl_device *hdev)
 	/* Note that SRAM memory might be used before operating as a cache */
 	sram_start_offset = SRAM_MODE_0_OFFSET;
 
+	prop->sram_total_size = SRAM_SIZE;
+	prop->sram_die_size = SZ_1M * 48;
 	prop->sram_base_address = SRAM_BASE_ADDR + sram_start_offset;
 	prop->sram_size = SRAM_SIZE - sram_start_offset;
 	prop->sram_end_address = prop->sram_base_address + prop->sram_size;
@@ -10793,12 +10795,16 @@ void gaudi3_set_pci_memory_regions(struct hl_device *hdev)
 
 	/* SRAM */
 	region = &hdev->pci_mem_region[PCI_REGION_SRAM];
-	region->region_base = prop->sram_base_address;
-	region->region_size = prop->sram_size;
-	if (hdev->pdev)
+	region->region_base = prop->fw_sram_remap_enabled ? SRAM_BASE_ADDR : prop->sram_base_address;
+	region->region_size = prop->fw_sram_remap_enabled ? prop->sram_die_size : prop->sram_size;
+
+	if (hdev->pdev && (!prop->fw_sram_remap_enabled))
 		region->offset_in_bar = SRAM_SIZE - prop->sram_size;
 	else
-		/* simulator sets pcie_bar base at the correct offset */
+		/*
+		 * simulator sets pcie_bar base at the correct offset and in case of sram remapping to the start of the
+		 * SRAM base address also need to set offset to 0
+		 */
 		region->offset_in_bar = 0;
 	region->bar_size = SRAM_SIZE + prop->dram_pci_bar_size;
 	region->bar_id = SRAM_DRAM_BAR_ID;
