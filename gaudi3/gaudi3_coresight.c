@@ -5039,7 +5039,7 @@ static struct component_config_offsets gaudi3_mme_qman_coresight_cfg_table[8] = 
 
 static struct component_config_offsets gaudi3_pmmu_coresight_cfg_table[2] = {
 	[CS_DBG_PMMU_ID_0] = {
-		.funnel_id = GAUDI3_FUNNEL_D0_PMMU,
+		.funnel_id = COMPONENT_ID_INVALID,
 		.etf_id = GAUDI3_ETF_D0_PMMU_CS_DBG_BLOCK,
 		.stm_id = GAUDI3_STM_D0_PMMU_CS_DBG_BLOCK,
 		.spmu_id = GAUDI3_SPMU_D0_PMMU_CS_DBG_BLOCK,
@@ -5053,7 +5053,7 @@ static struct component_config_offsets gaudi3_pmmu_coresight_cfg_table[2] = {
 		}
 	},
 	[CS_DBG_PMMU_ID_1] = {
-		.funnel_id = GAUDI3_FUNNEL_D1_PMMU,
+		.funnel_id = COMPONENT_ID_INVALID,
 		.etf_id = GAUDI3_ETF_D1_PMMU_CS_DBG_BLOCK,
 		.stm_id = GAUDI3_STM_D1_PMMU_CS_DBG_BLOCK,
 		.spmu_id = GAUDI3_SPMU_D1_PMMU_CS_DBG_BLOCK,
