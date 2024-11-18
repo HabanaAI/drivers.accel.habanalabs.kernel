@@ -3921,7 +3921,6 @@ int gaudi3_set_fixed_properties(struct hl_device *hdev)
 	prop->pcie_cfg_bar_id = CFG_BAR_ID;
 	prop->num_phys_nics = NIC_NUMBER_OF_MACROS;
 	prop->supports_nvme = false;
-	prop->supports_memory_consumption_report = true;
 
 	return 0;
 
