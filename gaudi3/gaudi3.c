@@ -14584,6 +14584,11 @@ static u32 gaudi3_handle_sei_event(struct hl_device *hdev,
 	case INT_COMP_TYPE_PARC:
 		err_cnt = gaudi3_handle_parc_sei_err(hdev, data_size,
 							&eq_dynamic_entry->parc_sei_data);
+		/* PARC razwi may be captured only in mstr_if and will have no intr_cause,
+		 * hence in this case, we need to check the mstr_if for razwi
+		 */
+		if (!err_cnt)
+			gaudi3_sei_razwi_handler(hdev, eq_dynamic_entry, event_mask);
 		break;
 	case INT_COMP_TYPE_PCIE:
 		err_cnt = gaudi3_handle_pcie0_sei_err(hdev, data_size,
