@@ -2722,6 +2722,8 @@ static void send_fw_early_reports(struct hl_device *hdev)
 
 	ktime_get_ts64(&ts);
 	hl_report_memory_consumption_to_fw(hdev, atomic64_read(&hdev->dram_used_mem), ts.tv_sec);
+
+	hl_fw_send_driver_version(hdev);
 }
 
 #if !IS_ENABLED(CONFIG_DRM_ACCEL)

@@ -869,6 +869,7 @@ struct hl_cn_properties {
  * @num_phys_nics: Total number of available NICs in the HW.
  * @supports_nvme: indicates whether the asic supports nvme.
  * @supports_memory_consumption_report: true if device supports memory consumption reporting via FW
+ * @supports_driver_version_report: true if device supports driver version reporting via FW
  * @fw_sram_remap_enabled: true if the fw has enabled the sram remap.
  */
 struct asic_fixed_properties {
@@ -1031,6 +1032,7 @@ struct asic_fixed_properties {
 	u8				num_phys_nics;
 	u8				supports_nvme;
 	u8				supports_memory_consumption_report;
+	u8				supports_driver_version_report;
 	u8				fw_sram_remap_enabled;
 };
 
@@ -4769,7 +4771,7 @@ int hl_fw_set_host_date_and_time(struct hl_device *hdev);
 int hl_report_memory_consumption_to_fw(struct hl_device *hdev, u64 used_mem, u64 timestamp_sec);
 int hl_fw_send_memory_consumption(struct hl_device *hdev, u64 total_mem, u64 free_mem, u64 used_mem,
 				  u64 timestamp_sec);
-
+int hl_fw_send_driver_version(struct hl_device *hdev);
 void hw_sob_get(struct hl_hw_sob *hw_sob);
 void hw_sob_put(struct hl_hw_sob *hw_sob);
 void hl_encaps_release_handle_and_put_ctx(struct kref *ref);

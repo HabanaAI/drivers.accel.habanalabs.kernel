@@ -3684,3 +3684,24 @@ int hl_fw_send_memory_consumption(struct hl_device *hdev, u64 total_mem, u64 fre
 
 	return rc;
 }
+
+int hl_fw_send_driver_version(struct hl_device *hdev)
+{
+	struct cpucp_driver_version_packet pkt = {0};
+	int rc;
+
+	if (!hdev->asic_prop.supports_driver_version_report)
+		return 0;
+
+	pkt.cpucp_pkt.ctl = cpu_to_le32(CPUCP_PACKET_DRIVER_VERSION_SET <<
+						CPUCP_PKT_CTL_OPCODE_SHIFT);
+	strscpy(pkt.lkd_ver, hdev->driver_ver, sizeof(pkt.lkd_ver));
+	strscpy(pkt.rdma_ver, "N/A", sizeof(pkt.rdma_ver));
+	strscpy(pkt.reserved_ver, "N/A", sizeof(pkt.reserved_ver));
+
+	rc = hdev->asic_funcs->send_cpu_message(hdev, (u32 *) &pkt, sizeof(pkt), 0, NULL);
+	if (rc)
+		dev_err(hdev->dev, "failed to send driver version msg to FW, error %d\n", rc);
+
+	return rc;
+}
