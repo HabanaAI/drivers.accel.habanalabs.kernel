@@ -5285,6 +5285,7 @@ void gaudi3_special_blocks_iterator_free(struct hl_device *hdev)
 static int gaudi3_cpucp_handshake_info_get(struct hl_device *hdev)
 {
 	struct asic_fixed_properties *prop = &hdev->asic_prop;
+	char *data = NULL;
 	int rc;
 
 	/* No point of asking this information again when not doing hard reset, as the device
@@ -5301,8 +5302,28 @@ static int gaudi3_cpucp_handshake_info_get(struct hl_device *hdev)
 	if (rc)
 		return rc;
 
-	if (!strlen(prop->cpucp_info.card_name))
+	if (!strlen(prop->cpucp_info.card_name)) {
 		strscpy(prop->cpucp_info.card_name, GAUDI3_DEFAULT_CARD_NAME, CARD_NAME_MAX_LEN);
+	} else {
+		data = kmalloc(PAGE_SIZE, GFP_KERNEL);
+		if (!data)
+			return -ENOMEM;
+
+		rc = gaudi3_get_eeprom_data(hdev, data, PAGE_SIZE);
+		if (rc) {
+			kfree(data);
+			return rc;
+		}
+		/*
+		 * the field we should read is 'Vendor System Product' which starts at offset 0x20.
+		 * in that field, the substing 'G017' indicates lower device so we should
+		 * add the suffix 'L' to 'card_name'
+		 */
+		if (strnstr(data + 0x20, "G017", 16))
+			strncat(prop->cpucp_info.card_name, "L", CARD_NAME_MAX_LEN - 1);
+		kfree(data);
+		data = NULL;
+	}
 
 	/* Overwrite binning masks with the actual binning values from F/W */
 	hdev->dram_binning = prop->cpucp_info.dram_binning_mask;
