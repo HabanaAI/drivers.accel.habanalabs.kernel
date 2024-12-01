@@ -706,6 +706,7 @@ struct hl_cn_properties {
  * @dram_hints_align_mask: dram va hint addresses alignment mask which is used
  *                  for hints validity check.
  * @cfg_base_address: config space base address.
+ * @lbw_base_address: low BW base address.
  * @mmu_cache_mng_addr: address of the MMU cache.
  * @mmu_cache_mng_size: size of the MMU cache.
  * @device_dma_offset_for_host_access: the offset to add to host DMA addresses
@@ -909,6 +910,7 @@ struct asic_fixed_properties {
 	u64				mme_binning_mask;
 	u64				dram_hints_align_mask;
 	u64				cfg_base_address;
+	u64				lbw_base_address;
 	u64				mmu_cache_mng_addr;
 	u64				mmu_cache_mng_size;
 	u64				device_dma_offset_for_host_access;
@@ -1911,6 +1913,7 @@ struct engines_data {
  * @set_dram_properties: set DRAM related properties.
  * @set_priv_assertions: enable/disable privilege assertions.
  * @set_binning_masks: set binning/enable masks for all relevant components.
+ * @is_irq_enabled: return true if IRQs are enabled, false otherwise.
  * @cn_funcs: ASIC specific CN functions.
  */
 struct hl_asic_funcs {
@@ -2067,6 +2070,7 @@ struct hl_asic_funcs {
 	int (*set_dram_properties)(struct hl_device *hdev);
 	void (*set_priv_assertions)(struct hl_device *hdev, bool enable);
 	int (*set_binning_masks)(struct hl_device *hdev);
+	u8 (*is_irq_enabled)(struct hl_device *hdev);
 	struct hl_cn_funcs *cn_funcs;
 };
 
