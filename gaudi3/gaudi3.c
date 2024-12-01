@@ -3683,6 +3683,7 @@ int gaudi3_set_fixed_properties(struct hl_device *hdev)
 
 	prop->cache_line_size = DEVICE_CACHE_LINE_SIZE;
 	prop->cfg_base_address = CFG_BAR_BASE;
+	prop->lbw_base_address = LBW_BASE;
 	prop->device_dma_offset_for_host_access = HOST_PHYS_BASE_0;
 	prop->host_base_address = HOST_PHYS_BASE_0;
 	prop->host_end_address = prop->host_base_address + HOST_PHYS_SIZE_0;
@@ -14944,6 +14945,12 @@ static int gaudi3_get_reg_pcie_addr(struct hl_device *hdev, u32 reg, u64 *pci_ad
 	return 0;
 }
 
+static u8 gaudi3_is_irq_enabled(struct hl_device *hdev)
+{
+	struct gaudi3_device *gaudi3 = hdev->asic_specific;
+
+	return !!(gaudi3->hw_cap_initialized & HW_CAP_MSIX);
+}
 
 static const struct hl_asic_funcs gaudi3_funcs = {
 	.early_init = gaudi3_early_init,
@@ -15049,6 +15056,7 @@ static const struct hl_asic_funcs gaudi3_funcs = {
 	.set_dram_properties = gaudi3_set_dram_properties,
 	.set_priv_assertions = gaudi3_set_priv_assertions,
 	.set_binning_masks = gaudi3_set_binning_masks,
+	.is_irq_enabled = gaudi3_is_irq_enabled,
 };
 
 void gaudi3_set_asic_funcs(struct hl_device *hdev)
