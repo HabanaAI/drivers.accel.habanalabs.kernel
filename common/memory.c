@@ -1328,7 +1328,7 @@ static int init_phys_pg_pack_from_userptr(struct hl_ctx *ctx,
 	phys_pg_pack->asid = ctx->asid;
 	atomic_set(&phys_pg_pack->mapping_cnt, 1);
 
-	is_huge_page_opt = (phys_pg_pack->is_odp || force_regular_page ? false : true);
+	is_huge_page_opt = !(phys_pg_pack->is_odp || force_regular_page);
 
 	if (phys_pg_pack->is_odp) {
 		/*
@@ -1573,13 +1573,15 @@ int map_device_va(struct hl_ctx *ctx, struct hl_mem_in *args, u64 *device_addr)
 			size = args->map_host.mem_size;
 		u32 page_size = hdev->asic_prop.pmmu.page_size,
 			huge_page_size = hdev->asic_prop.pmmu_huge.page_size;
+		bool force_regular_pg = is_hint_crossing_range(HL_VA_RANGE_TYPE_HOST,
+							       args->map_host.hint_addr, size,
+							       &hdev->asic_prop);
 
 		rc = dma_map_host_va(hdev, addr, false, is_odp, size, &userptr);
 		if (rc)
 			return rc;
 
-		rc = init_phys_pg_pack_from_userptr(ctx, userptr,
-				&phys_pg_pack, false);
+		rc = init_phys_pg_pack_from_userptr(ctx, userptr, &phys_pg_pack, force_regular_pg);
 		if (rc) {
 			dev_err(hdev->dev,
 				"unable to init page pack for vaddr 0x%llx\n",
@@ -1819,11 +1821,17 @@ int unmap_device_va(struct hl_ctx *ctx, struct hl_mem_in *args, bool ctx_free)
 	vm_type = hnode->ptr;
 
 	if (*vm_type == VM_TYPE_USERPTR) {
+		bool regular_pg_map, force_regular_pg;
+
 		is_userptr = true;
 		userptr = hnode->ptr;
 
-		rc = init_phys_pg_pack_from_userptr(ctx, userptr, &phys_pg_pack,
-			(userptr->is_dmabuf || userptr->is_kernel_addr) ? true : false);
+		regular_pg_map = is_hint_crossing_range(HL_VA_RANGE_TYPE_HOST, vaddr, userptr->size,
+							&hdev->asic_prop);
+
+		force_regular_pg = userptr->is_dmabuf || userptr->is_kernel_addr || regular_pg_map;
+
+		rc = init_phys_pg_pack_from_userptr(ctx, userptr, &phys_pg_pack, force_regular_pg);
 		if (rc) {
 			dev_err(hdev->dev,
 				"unable to init page pack for vaddr 0x%llx\n",
