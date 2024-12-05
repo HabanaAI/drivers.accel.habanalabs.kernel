@@ -108,13 +108,13 @@ static u32 hl_nic_output_size[HL_NIC_OP_DUMP_QP + 1] = {
 static int device_status_info(struct hl_device *hdev, struct hl_info_args *args)
 {
 	struct hl_info_device_status dev_stat = {0};
-	u32 size = args->return_size;
+	u32 size = min_t(u32, args->return_size, sizeof(dev_stat));
 	void __user *out = (void __user *) (uintptr_t) args->return_pointer;
 
 	if ((!size) || (!out))
 		return -EINVAL;
 
-	if (copy_from_user(&dev_stat, u64_to_user_ptr(args->return_pointer), args->return_size))
+	if (copy_from_user(&dev_stat, u64_to_user_ptr(args->return_pointer), size))
 		return -EFAULT;
 
 	if (dev_stat.soft_reset_stall)
@@ -125,8 +125,7 @@ static int device_status_info(struct hl_device *hdev, struct hl_info_args *args)
 
 	dev_stat.status = hl_device_status(hdev);
 
-	return copy_to_user(out, &dev_stat,
-			min((size_t)size, sizeof(dev_stat))) ? -EFAULT : 0;
+	return copy_to_user(out, &dev_stat, size) ? -EFAULT : 0;
 }
 
 static int hw_ip_info(struct hl_device *hdev, struct hl_info_args *args)
