@@ -13648,6 +13648,9 @@ static int gaudi3_handle_msg_event(struct hl_device *hdev,
 	case EQ_EVENT_VR_OC_VIOLATION:
 		dev_warn(hdev->dev, "VR over current violation event\n");
 		break;
+	case EQ_EVENT_FW_RESET:
+		dev_warn(hdev->dev, "FW reset event\n");
+		break;
 	default:
 		dev_err(hdev->dev, "undefined msg event %d received\n", event_type);
 		rc = -EINVAL;
