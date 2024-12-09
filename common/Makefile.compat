@@ -435,7 +435,3 @@ endif
 ifneq ($(shell grep -w "find_module" Module.symvers > /dev/null 2>&1 && echo 1),)
 	ccflags-y += -D_HAS_FIND_MODULE
 endif
-
-ifneq ($(shell grep -w "__assign_str(dst)" $(LINUX_SRC)/include/trace/stages/stage6_event_callback.h > /dev/null 2>&1 && echo 1),)
-	ccflags-y += -D_HAS_ASSIGN_STR_ONE_ARG
-endif
