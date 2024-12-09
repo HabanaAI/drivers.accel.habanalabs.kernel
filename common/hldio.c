@@ -9,6 +9,7 @@
 #include <generated/uapi/linux/version.h>
 #include <linux/pci-p2pdma.h>
 #include <linux/blkdev.h>
+#include <linux/vmalloc.h>
 
 /*
  * This file is for NVME POC, So no aim to make it perfect, It just should work!
@@ -255,7 +256,7 @@ static ssize_t hl_direct_io(struct hl_device *hdev, struct hl_direct_io *io)
 	}
 
 	iov_iter_bvec(&io->iter, io->type, io->bv, 1, io->len_bytes);
-	rc = call_read_iter(io->f.filp, &io->kio, &io->iter);
+	rc = io->f.filp->f_op->read_iter(&io->kio, &io->iter);
 
 cleanup:
 	vfree(io->bv); /* @TODO: skip this label in async IO */
