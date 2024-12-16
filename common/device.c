@@ -3549,9 +3549,15 @@ void hl_init_cpu_for_irq(struct hl_device *hdev)
 {
 #ifdef CONFIG_NUMA
 	struct cpumask *available_mask = &hdev->irq_affinity_mask;
-	int numa_node = hdev->pdev->dev.numa_node, i;
 	static struct cpumask cpu_mask;
+	int numa_node, i;
 
+	if (!hdev->pdev) {
+		/* Not supported in simulator mode */
+		return;
+	}
+
+	numa_node = hdev->pdev->dev.numa_node;
 	if (numa_node < 0)
 		return;
 
@@ -3568,6 +3574,11 @@ void hl_init_cpu_for_irq(struct hl_device *hdev)
 
 void hl_set_irq_affinity(struct hl_device *hdev, int irq)
 {
+	if (!hdev->pdev) {
+		/* Not supported in simulator mode */
+		return;
+	}
+
 	if (cpumask_empty(&hdev->irq_affinity_mask)) {
 		dev_dbg(hdev->dev, "affinity mask is empty\n");
 		return;
