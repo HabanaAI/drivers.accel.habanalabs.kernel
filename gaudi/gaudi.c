@@ -9753,6 +9753,13 @@ static int gaudi_get_reg_pcie_addr(struct hl_device *hdev, u32 reg, u64 *pci_add
 	return 0;
 }
 
+static u8 gaudi_is_irq_enabled(struct hl_device *hdev)
+{
+	struct gaudi_device *gaudi = hdev->asic_specific;
+
+	return !!(gaudi->hw_cap_initialized & HW_CAP_MSI);
+}
+
 static const struct hl_asic_funcs gaudi_funcs = {
 	.early_init = gaudi_early_init,
 	.early_fini = gaudi_early_fini,
@@ -9858,6 +9865,7 @@ static const struct hl_asic_funcs gaudi_funcs = {
 	.set_dram_properties = gaudi_set_dram_properties,
 	.set_priv_assertions = gaudi_set_priv_assertions,
 	.set_binning_masks = gaudi_set_binning_masks,
+	.is_irq_enabled = gaudi_is_irq_enabled,
 };
 
 /**
