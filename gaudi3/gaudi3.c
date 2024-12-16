@@ -7092,6 +7092,7 @@ static int gaudi3_enable_user_msix(struct hl_device *hdev)
 			i < prop->user_interrupt_count;
 			i++, j++, intr_id++, user_irq_init_cnt++) {
 		irq = hl_irq_vector(hdev, intr_id);
+		hl_set_irq_affinity(hdev, irq);
 		rc = request_irq(irq, hl_irq_user_interrupt_handler, 0, gaudi3_irq_name(intr_id),
 				&hdev->user_interrupt[j]);
 		if (rc) {
@@ -7882,6 +7883,8 @@ int gaudi3_enable_msix(struct hl_device *hdev)
 
 	if (gaudi3->hw_cap_initialized & HW_CAP_MSIX)
 		return 0;
+
+	hl_init_cpu_for_irq(hdev);
 
 	rc = hl_alloc_irq_vectors(hdev, GAUDI3_MIN_MSIX_ENTRIES,
 					GAUDI3_MAX_MSIX_ENTRIES, PCI_IRQ_MSIX);
