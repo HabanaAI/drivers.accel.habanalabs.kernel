@@ -1143,6 +1143,14 @@ static int device_early_init(struct hl_device *hdev)
 		gaudi2_set_asic_funcs(hdev);
 		strscpy(hdev->asic_name, "GAUDI2D", sizeof(hdev->asic_name));
 		break;
+	case ASIC_GAUDI2_HL_228:
+		gaudi2_set_asic_funcs(hdev);
+		strscpy(hdev->asic_name, "GAUDI2 HL-228", sizeof(hdev->asic_name));
+		break;
+	case ASIC_GAUDI2D_HL_228:
+		gaudi2_set_asic_funcs(hdev);
+		strscpy(hdev->asic_name, "GAUDI2D HL-228", sizeof(hdev->asic_name));
+		break;
 	case ASIC_GAUDI3:
 		gaudi3_set_asic_funcs(hdev);
 		strscpy(hdev->asic_name, "GAUDI3",

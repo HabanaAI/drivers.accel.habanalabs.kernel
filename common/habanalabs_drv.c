@@ -562,6 +562,7 @@ MODULE_PARM_DESC(bfe_glbl_errors_read_enable,
 #define PCI_IDS_GAUDI_HL2000M_SEC	0x1011
 
 #define PCI_IDS_GAUDI2			0x1020
+#define PCI_IDS_GAUDI2_HL_288		0x1021
 
 #define PCI_IDS_GAUDI3			0x1060
 #define PCI_IDS_GAUDI3_HL_338		0x1063
@@ -575,6 +576,7 @@ static const struct pci_device_id ids[] = {
 	{ PCI_DEVICE(PCI_VENDOR_ID_HABANALABS, PCI_IDS_GAUDI_HL2000M), },
 	{ PCI_DEVICE(PCI_VENDOR_ID_HABANALABS, PCI_IDS_GAUDI_HL2000M_SEC), },
 	{ PCI_DEVICE(PCI_VENDOR_ID_HABANALABS, PCI_IDS_GAUDI2), },
+	{ PCI_DEVICE(PCI_VENDOR_ID_HABANALABS, PCI_IDS_GAUDI2_HL_288), },
 	{ PCI_DEVICE(PCI_VENDOR_ID_HABANALABS, PCI_IDS_GAUDI3), },
 	{ PCI_DEVICE(PCI_VENDOR_ID_HABANALABS, PCI_IDS_GAUDI3_HL_338), },
 	{ PCI_DEVICE(PCI_VENDOR_ID_HABANALABS, PCI_IDS_GAUDI3_FPGA), },
@@ -688,6 +690,7 @@ static enum hl_asic_type get_asic_type(struct hl_device *hdev)
 		asic_type = ASIC_GAUDI_HL2000M_SEC;
 		break;
 	case PCI_IDS_GAUDI2:
+	case PCI_IDS_GAUDI2_HL_288:
 		switch (hdev->pci_revision_id) {
 		case REV_ID_A:
 			asic_type = ASIC_GAUDI2;
@@ -766,6 +769,8 @@ static bool is_cpu_queue_enabled(struct hl_device *hdev)
 	case ASIC_GAUDI2B:
 	case ASIC_GAUDI2C:
 	case ASIC_GAUDI2D:
+	case ASIC_GAUDI2_HL_228:
+	case ASIC_GAUDI2D_HL_228:
 	case ASIC_GAUDI2_SIM:
 	case ASIC_GAUDI2B_SIM:
 	case ASIC_GAUDI2C_SIM:
@@ -975,6 +980,7 @@ static u32 get_dev_nic_ports_mask(struct hl_device *hdev)
 	case ASIC_GAUDI2_SIM:
 	case ASIC_GAUDI2_SIM_ARC:
 	case ASIC_GAUDI2:
+	case ASIC_GAUDI2_HL_228:
 	case ASIC_GAUDI2B_SIM:
 	case ASIC_GAUDI2B_SIM_ARC:
 	case ASIC_GAUDI2B:
@@ -984,6 +990,7 @@ static u32 get_dev_nic_ports_mask(struct hl_device *hdev)
 	case ASIC_GAUDI2D_SIM:
 	case ASIC_GAUDI2D_SIM_ARC:
 	case ASIC_GAUDI2D:
+	case ASIC_GAUDI2D_HL_228:
 		/* 24 ports are supported */
 		mask = 0xFFFFFF;
 		break;
@@ -1072,6 +1079,8 @@ static void set_driver_behavior_per_device(struct hl_device *hdev)
 	case ASIC_GAUDI2B:
 	case ASIC_GAUDI2C:
 	case ASIC_GAUDI2D:
+	case ASIC_GAUDI2_HL_228:
+	case ASIC_GAUDI2D_HL_228:
 		hdev->dram_enable = 1;
 		hdev->fw_components = FW_TYPE_ALL_TYPES;
 		hdev->security_enable = 1;
@@ -1454,6 +1463,8 @@ static void fixup_device_params_per_asic(struct hl_device *hdev, int timeout)
 	case ASIC_GAUDI2B:
 	case ASIC_GAUDI2C:
 	case ASIC_GAUDI2D:
+	case ASIC_GAUDI2_HL_228:
+	case ASIC_GAUDI2D_HL_228:
 		/* TODO: remove this workaround after f/w fix the boot bug which cause us
 		 * to fail on reading ELBI. I keep an option for the user to force not to skip
 		 * for any strange reason he might have.

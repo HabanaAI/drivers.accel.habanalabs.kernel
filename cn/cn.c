@@ -568,6 +568,8 @@ static int hl_cn_get_nic_gen(struct hl_device *hdev, enum hbl_cn_aux_nic_gen *ni
 	case ASIC_GAUDI2B:
 	case ASIC_GAUDI2C:
 	case ASIC_GAUDI2D:
+	case ASIC_GAUDI2_HL_228:
+	case ASIC_GAUDI2D_HL_228:
 		*nic_gen = HBL_CN_AUX_NIC_GEN2;
 		break;
 	case ASIC_GAUDI3:

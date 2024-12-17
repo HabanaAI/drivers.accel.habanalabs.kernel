@@ -1520,6 +1520,8 @@ struct hl_dec {
  * @ASIC_GAUDI2B: Gaudi2B device.
  * @ASIC_GAUDI2C: Gaudi2C device.
  * @ASIC_GAUDI2D: Gaudi2D device.
+ * @ASIC_GAUDI2_HL_228: Gaudi2 HL-228 device.
+ * @ASIC_GAUDI2D_HL_228: Gaudi2D HL-228 device.
  * @ASIC_GAUDI3: Gaudi3 device.
  * @ASIC_GAUDI3D: Gaudi3D device.
  * @ASIC_GAUDI3_FPGA: Gaudi3 device FPGA.
@@ -1557,6 +1559,8 @@ enum hl_asic_type {
 	ASIC_GAUDI2B,
 	ASIC_GAUDI2C,
 	ASIC_GAUDI2D,
+	ASIC_GAUDI2_HL_228,
+	ASIC_GAUDI2D_HL_228,
 	ASIC_GAUDI3,
 	ASIC_GAUDI3D,
 	ASIC_GAUDI3_FPGA,

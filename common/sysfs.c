@@ -337,6 +337,12 @@ static ssize_t device_type_show(struct device *dev,
 	case ASIC_GAUDI2D:
 		str = "GAUDI2D";
 		break;
+	case ASIC_GAUDI2_HL_228:
+		str = "GAUDI2 HL-228";
+		break;
+	case ASIC_GAUDI2D_HL_228:
+		str = "GAUDI2D HL-228";
+		break;
 	case ASIC_GAUDI3:
 		str = "GAUDI3";
 		break;
