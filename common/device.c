@@ -2263,13 +2263,21 @@ kill_processes:
 		goto out_err;
 	}
 
-	/* If device is not idle fail the reset process */
-	if (!hdev->asic_funcs->is_device_idle(hdev, idle_mask,
-						HL_BUSY_ENGINES_MASK_EXT_SIZE, NULL)) {
+	/* If device is not idle after several retries, fail the reset process */
+	for (i = 0 ; i < 10 ; i++) {
+		if (hdev->asic_funcs->is_device_idle(hdev, idle_mask,
+							HL_BUSY_ENGINES_MASK_EXT_SIZE, NULL)) {
+			rc = 0;
+			break;
+		}
+
 		print_idle_status_mask(hdev, "device is not idle after reset", idle_mask);
 		rc = -EIO;
-		goto out_err;
+		msleep(100);
 	}
+
+	if (rc)
+		goto out_err;
 
 	/* Check that the communication with the device is working */
 	rc = hdev->asic_funcs->test_queues(hdev);
