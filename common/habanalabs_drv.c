@@ -236,7 +236,7 @@ MODULE_PARM_DESC(reset_upon_device_release,
 
 module_param(gaudi2_setup_type, uint, 0444);
 MODULE_PARM_DESC(gaudi2_setup_type,
-	"The type of setup according to which the gaudi2 PHY should be configured (0 - HLS2, 1 - HL225-S with external loopbacks, 2 - HL325-S with external loopbacks, 3 - HLS3, default 0)");
+	"The type of setup according to which the gaudi2 PHY should be configured (0 - HLS2, 1 - HL225-S with external loopbacks, 2 - HL325-S with external loopbacks, 3 - HLS3, 4 - HL288, default 0)");
 
 module_param(enable_events_tracing, ulong, 0444);
 MODULE_PARM_DESC(enable_events_tracing,

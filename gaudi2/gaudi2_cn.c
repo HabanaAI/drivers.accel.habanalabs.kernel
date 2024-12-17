@@ -146,12 +146,6 @@ static int gaudi2_cn_override_ports_ext_mask(struct hl_device *hdev, uint64_t *p
 		return 0;
 	}
 
-	/* If we are running on a PCI card, all the ports should be set as external */
-	if (hdev->card_type == cpucp_card_type_pci) {
-		*ports_ext_mask = hdev->cn.ports_mask;
-		return 0;
-	}
-
 	switch (hdev->gaudi2_setup_type) {
 	case GAUDI2_SETUP_TYPE_HLS2:
 		/* For HLS2 setup type, the external ports mask shouldn't be changed */
@@ -197,6 +191,11 @@ static int gaudi2_cn_override_ports_ext_mask(struct hl_device *hdev, uint64_t *p
 		}
 
 		break;
+	case GAUDI2_SETUP_TYPE_HL288:
+		/* In this flavor ports 22,23 are disabled and 6,7,8,9 are external*/
+		hdev->cn.ports_mask = 0x3FFFFF;
+		*ports_ext_mask = 0x3C0;
+		return 0;
 	default:
 		dev_dbg(hdev->dev, "Invalid gaudi2_setup_type %u\n", hdev->gaudi2_setup_type);
 		break;
@@ -330,6 +329,10 @@ int gaudi2_cn_set_info(struct hl_device *hdev, bool get_from_fw)
 		} else {
 			dev_warn(hdev->dev, "can't read card location as FW security is enabled\n");
 		}
+
+		rc = gaudi2_cn_override_ports_ext_mask(hdev, &hdev->cn.ports_ext_mask);
+		if (rc)
+			return rc;
 	}
 
 	switch (serdes_type) {
@@ -338,6 +341,9 @@ int gaudi2_cn_set_info(struct hl_device *hdev, bool get_from_fw)
 		break;
 	case HLS2_TYPE_1_SERDES_TYPE:
 		hdev->asic_prop.server_type = HL_SERVER_GAUDI2_TYPE1;
+		break;
+	case HL288_SERDES_TYPE:
+		hdev->asic_prop.server_type = HL_SERVER_GAUDI2_HL288;
 		break;
 	default:
 		hdev->asic_prop.server_type = HL_SERVER_TYPE_UNKNOWN;
@@ -350,23 +356,7 @@ int gaudi2_cn_set_info(struct hl_device *hdev, bool get_from_fw)
 		break;
 	}
 
-	/* If we are running on non HLS2 setup or a PCI card, all the ports should be set as
-	 * external (the only exception is when the asic type is GADUI2B).
-	 */
-	if (hdev->card_type == cpucp_card_type_pci ||
-			hdev->gaudi2_setup_type != GAUDI2_SETUP_TYPE_HLS2) {
-		if (hdev->asic_type != ASIC_GAUDI2B)
-			hdev->cn.ports_ext_mask = hdev->cn.ports_mask;
-
-		hdev->cn.auto_neg_mask &= ~hdev->cn.ports_ext_mask;
-	}
-
-	rc = gaudi2_cn_override_ports_ext_mask(hdev, &hdev->cn.ports_ext_mask);
-	if (rc)
-		return rc;
-
-	if (hdev->card_type == cpucp_card_type_pci ||
-			hdev->gaudi2_setup_type != GAUDI2_SETUP_TYPE_HLS2)
+	if (hdev->gaudi2_setup_type != GAUDI2_SETUP_TYPE_HLS2)
 		hdev->cn.auto_neg_mask &= ~hdev->cn.ports_ext_mask;
 
 	/* Disable ANLT on NIC 0 ports (due to lane swapping) */
