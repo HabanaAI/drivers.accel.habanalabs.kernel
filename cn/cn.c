@@ -560,10 +560,14 @@ static int hl_cn_get_nic_gen(struct hl_device *hdev, enum hbl_cn_aux_nic_gen *ni
 	case ASIC_GAUDI2B_SIM:
 	case ASIC_GAUDI2C_SIM:
 	case ASIC_GAUDI2D_SIM:
+	case ASIC_GAUDI2_HL_228_SIM:
+	case ASIC_GAUDI2D_HL_228_SIM:
 	case ASIC_GAUDI2_SIM_ARC:
 	case ASIC_GAUDI2B_SIM_ARC:
 	case ASIC_GAUDI2C_SIM_ARC:
 	case ASIC_GAUDI2D_SIM_ARC:
+	case ASIC_GAUDI2_HL_228_SIM_ARC:
+	case ASIC_GAUDI2D_HL_228_SIM_ARC:
 	case ASIC_GAUDI2:
 	case ASIC_GAUDI2B:
 	case ASIC_GAUDI2C:

@@ -362,6 +362,22 @@ static int hl_sim_set_devtype_get_minor_ioctl(struct hl_sim_mode_device *sdev,
 		sim_start_args.virt_dev_type = ASIC_GAUDI2D_SIM_ARC;
 		simulator_start = gaudi2_simulator_start;
 		break;
+	case HLV_SIM_GAUDI2_HL_228:
+		sim_start_args.virt_dev_type = ASIC_GAUDI2_HL_228_SIM;
+		simulator_start = gaudi2_simulator_start;
+		break;
+	case HLV_SIM_GAUDI2D_HL_228:
+		sim_start_args.virt_dev_type = ASIC_GAUDI2D_HL_228_SIM;
+		simulator_start = gaudi2_simulator_start;
+		break;
+	case HLV_SIM_GAUDI2_HL_228_ARC:
+		sim_start_args.virt_dev_type = ASIC_GAUDI2_HL_228_SIM_ARC;
+		simulator_start = gaudi2_simulator_start;
+		break;
+	case HLV_SIM_GAUDI2D_HL_228_ARC:
+		sim_start_args.virt_dev_type = ASIC_GAUDI2D_HL_228_SIM_ARC;
+		simulator_start = gaudi2_simulator_start;
+		break;
 	case HLV_SIM_GAUDI3:
 		sim_start_args.virt_dev_type = ASIC_GAUDI3_SIM;
 		simulator_start = gaudi3_simulator_start;
@@ -979,13 +995,17 @@ static void hl_sim_destroy_devices(struct hl_sim_mode_device *sdev)
 			gaudi_simulator_stop(minor);
 			break;
 		case ASIC_GAUDI2_SIM:
+		case ASIC_GAUDI2_HL_228_SIM:
 		case ASIC_GAUDI2B_SIM:
 		case ASIC_GAUDI2C_SIM:
 		case ASIC_GAUDI2D_SIM:
+		case ASIC_GAUDI2D_HL_228_SIM:
 		case ASIC_GAUDI2_SIM_ARC:
+		case ASIC_GAUDI2_HL_228_SIM_ARC:
 		case ASIC_GAUDI2B_SIM_ARC:
 		case ASIC_GAUDI2C_SIM_ARC:
 		case ASIC_GAUDI2D_SIM_ARC:
+		case ASIC_GAUDI2D_HL_228_SIM_ARC:
 			gaudi2_simulator_stop(minor);
 			break;
 		case ASIC_GAUDI3_SIM:
