@@ -129,6 +129,9 @@ static int hl_cn_get_device_info(struct hbl_aux_dev *aux_dev,
 	else
 		device_info->plat_type = HBL_CN_AUX_PLAT_TYPE_SIM;
 
+	device_info->cfg_base_address = asic_props->cfg_base_address;
+	device_info->lbw_base_address = asic_props->lbw_base_address;
+	device_info->irq_enabled = hdev->asic_funcs->is_irq_enabled(hdev);
 	device_info->nic_ports_mask = hdev->cn.ports_mask;
 	device_info->vendor_id = PCI_VENDOR_ID_HABANALABS;
 	device_info->dev_idx = hdev->cdev_idx;
