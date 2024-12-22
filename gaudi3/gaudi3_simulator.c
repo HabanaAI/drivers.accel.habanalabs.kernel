@@ -1682,6 +1682,7 @@ static const struct hl_asic_funcs gaudi3_sim_funcs = {
 	.set_priv_assertions = gaudi3_sim_set_priv_assertions,
 	.set_binning_masks = gaudi3_sim_set_binning_masks,
 	.get_msi_info = gaudi3_get_msi_info,
+	.is_irq_enabled = gaudi3_is_irq_enabled,
 };
 
 /**

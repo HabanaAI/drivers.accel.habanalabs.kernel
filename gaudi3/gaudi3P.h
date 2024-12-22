@@ -928,6 +928,7 @@ int gaudi3_set_engines(struct hl_device *hdev, u32 *engine_ids,
 int gaudi3_irq_vector(struct hl_device *hdev, unsigned int nr);
 int gaudi3_get_eeprom_data(struct hl_device *hdev, void *data, size_t max_size);
 void gaudi3_get_msi_info(__le32 *table);
+u8 gaudi3_is_irq_enabled(struct hl_device *hdev);
 
 /* Bringup functions (w/o F/W support) */
 u32 gaudi3_handle_axi_drain(struct hl_device *hdev, bool *pci_link_error);
