@@ -71,8 +71,15 @@
 #define PHY_RREG(addr) hbm_phy_read(hdev, dev, addr)
 #define PHY_WREG(addr, val) hbm_phy_write(hdev, dev, addr, val)
 #define CEIL(numerator, denominator) ((numerator + denominator - 1) / (denominator))
+
+#ifndef MIN
 #define MIN(a, b) ((a < b) ? a : b)
+#endif
+
+#ifndef MAX
 #define MAX(a, b) ((a > b) ? a : b)
+#endif
+
 
 #define phy_poll_timeout(hdev, hbm_dev, addr, val, cond, sleep_us, timeout_us) \
 ({ \
