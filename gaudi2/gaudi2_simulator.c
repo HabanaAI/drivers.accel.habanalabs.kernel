@@ -1853,6 +1853,7 @@ static const struct hl_asic_funcs gaudi2_sim_funcs = {
 	.set_dram_properties = gaudi2_set_dram_properties,
 	.set_priv_assertions = gaudi2_sim_set_priv_assertions,
 	.set_binning_masks = gaudi2_set_binning_masks,
+	.is_irq_enabled = gaudi2_is_irq_enabled,
 };
 
 /**
