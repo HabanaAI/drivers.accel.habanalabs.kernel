@@ -9753,7 +9753,7 @@ static int gaudi_get_reg_pcie_addr(struct hl_device *hdev, u32 reg, u64 *pci_add
 	return 0;
 }
 
-static u8 gaudi_is_irq_enabled(struct hl_device *hdev)
+u8 gaudi_is_irq_enabled(struct hl_device *hdev)
 {
 	struct gaudi_device *gaudi = hdev->asic_specific;
 
