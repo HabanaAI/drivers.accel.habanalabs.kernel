@@ -295,12 +295,12 @@ static int gaudi_cn_read_xpcs91_regs(struct hbl_aux_dev *aux_dev, u32 port, u64 
 		pkt.port_index = cpu_to_le32(port);
 
 		rc = hdev->asic_funcs->send_cpu_message(hdev, (u32 *) &pkt, sizeof(pkt), 0, NULL);
-		if (rc) {
+		if (!rc) {
+			regs[0] = buf_cpu_addr[0];
+			regs[1] = buf_cpu_addr[1];
+		} else {
 			dev_err(hdev->dev, "failed to send XPCS91 pkt, port %d\n", port);
-			return rc;
 		}
-		regs[0] = buf_cpu_addr[0];
-		regs[1] = buf_cpu_addr[1];
 
 		hl_cpu_accessible_dma_pool_free(hdev, size, buf_cpu_addr);
 	} else {
@@ -332,18 +332,17 @@ static int gaudi_cn_read_xpcs91_regs(struct hbl_aux_dev *aux_dev, u32 port, u64 
 		pkt->cpucp_pkt.value = cpu_to_le64(fw_tuning_mask);
 
 		rc = hdev->asic_funcs->send_cpu_message(hdev, (u32 *) pkt, total_pkt_size, 0, NULL);
-		if (rc) {
+		if (!rc) {
+			regs[0] = le32_to_cpu(pkt->data[0]);
+			regs[1] = le32_to_cpu(pkt->data[1]);
+		} else {
 			dev_err(hdev->dev, "failed to send XPCS91 pkt, port %d\n", port);
-			return rc;
 		}
-
-		regs[0] = le32_to_cpu(pkt->data[0]);
-		regs[1] = le32_to_cpu(pkt->data[1]);
 
 		kfree(pkt);
 	}
 
-	return 0;
+	return rc;
 }
 
 static u32 gaudi_cn_get_fault_counters(struct hbl_aux_dev *aux_dev, u32 port, u64 fw_tuning_mask)
