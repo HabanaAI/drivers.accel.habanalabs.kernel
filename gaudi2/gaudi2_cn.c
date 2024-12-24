@@ -326,6 +326,14 @@ int gaudi2_cn_set_info(struct hl_device *hdev, bool get_from_fw)
 			cn->card_location = card_location;
 			serdes_type &= PSOC_GLOBAL_CONF_BOOT_STRAP_PINS_H_RERERVED_STRAP_MASK;
 			serdes_type >>= PSOC_GLOBAL_CONF_BOOT_STRAP_PINS_H_RERERVED_STRAP_SHIFT;
+			/* TODO: SW-214295 - Remove this WA once resolved.
+			 * The RERERVED_STRAP_MASK field is 3 bits only hence the serdes type
+			 * which are common to all Gaudi family cannot represent HL288, hence if
+			 * value in Gaudi2 is of HLS3_FULLSCALE_IN_SERDES_TYPE that is actually a
+			 * HL288 type.
+			 */
+			if (serdes_type == HLS3_FULLSCALE_IN_SERDES_TYPE)
+				serdes_type = HL288_SERDES_TYPE;
 		} else {
 			dev_warn(hdev->dev, "can't read card location as FW security is enabled\n");
 		}
