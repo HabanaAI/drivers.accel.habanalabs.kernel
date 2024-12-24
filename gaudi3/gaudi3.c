@@ -9752,7 +9752,9 @@ static void gaudi3_halt_engines(struct hl_device *hdev, bool hard_reset, bool fw
 skip_engines:
 	if (hard_reset) {
 		hl_cn_stop(hdev);
-		gaudi3_verify_nic_mstr_if_dbg_counters(hdev);
+		if (!hdev->asic_prop.fw_security_enabled)
+			/* avoid reading privileged registers when secured fw is enabled */
+			gaudi3_verify_nic_mstr_if_dbg_counters(hdev);
 		gaudi3_disable_msix(hdev);
 		return;
 	}
