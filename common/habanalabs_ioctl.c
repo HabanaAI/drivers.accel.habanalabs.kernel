@@ -1288,6 +1288,9 @@ static int send_fw_generic_request(struct hl_device *hdev, struct hl_info_args *
 	case HL_GET_SUPPORTED_P_STATES:
 		need_input_buff = false;
 		break;
+	case HL_GET_POWER_LIMITS_CONSTRAINTS:
+		need_input_buff = false;
+		break;
 	default:
 		return -EINVAL;
 	}
