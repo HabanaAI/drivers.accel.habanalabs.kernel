@@ -337,10 +337,6 @@ int gaudi2_cn_set_info(struct hl_device *hdev, bool get_from_fw)
 		} else {
 			dev_warn(hdev->dev, "can't read card location as FW security is enabled\n");
 		}
-
-		rc = gaudi2_cn_override_ports_ext_mask(hdev, &hdev->cn.ports_ext_mask);
-		if (rc)
-			return rc;
 	}
 
 	switch (serdes_type) {
@@ -364,8 +360,16 @@ int gaudi2_cn_set_info(struct hl_device *hdev, bool get_from_fw)
 		break;
 	}
 
-	if (hdev->gaudi2_setup_type != GAUDI2_SETUP_TYPE_HLS2)
+	/* If running on non HLS2 setup, we set the external ports according to the module param
+	 * setup type.
+	 */
+	if (hdev->gaudi2_setup_type != GAUDI2_SETUP_TYPE_HLS2) {
+		rc = gaudi2_cn_override_ports_ext_mask(hdev, &hdev->cn.ports_ext_mask);
+		if (rc)
+			return rc;
+		
 		hdev->cn.auto_neg_mask &= ~hdev->cn.ports_ext_mask;
+	}
 
 	/* Disable ANLT on NIC 0 ports (due to lane swapping) */
 	hdev->cn.auto_neg_mask &= ~0x3;

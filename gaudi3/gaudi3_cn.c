@@ -67,13 +67,13 @@ static int gaudi3_cn_check_oui_prefix_validity(u8 *mac_addr)
 	u8 mac[ETH_ALEN];
 	int i;
 
-	for (i = 0 ; i < 3 ; i++)
+	for (i = 0; i < 3; i++)
 		mac[i] = HABANALABS_MAC_OUI_1 >> (8 * (2 - i));
 
 	if (!strncmp(mac, mac_addr, 3))
 		return 1;
 
-	for (i = 0 ; i < 3 ; i++)
+	for (i = 0; i < 3; i++)
 		mac[i] = HABANALABS_MAC_OUI_2 >> (8 * (2 - i));
 
 	if (!strncmp(mac, mac_addr, 3))
@@ -83,18 +83,22 @@ static int gaudi3_cn_check_oui_prefix_validity(u8 *mac_addr)
 }
 
 /**
- * gaudi3_cn_override_ports_ext_mask() - Returns the external ports mask.
- * @hdev: Hl device whose external ports mask to return.
+ * gaudi3_cn_override_ports_ext_mask() - Sets the external ports mask.
+ * @hdev: Hl device whose external ports mask to set.
  * @serdes_type: The serdes type of the card.
  * @ports_ext_mask: Out, the external ports mask.
+ * @get_from_fw: If params are provided by FW or not.
  *
  * Return: 0 on success, negative error code otherwise.
  */
 static int gaudi3_cn_override_ports_ext_mask(struct hl_device *hdev,
 					     enum cpucp_serdes_type serdes_type,
-					     uint64_t *ports_ext_mask)
+					     uint64_t *ports_ext_mask, bool get_from_fw)
 {
-	/* If we are running on a PCI card, all the ports should be set as external */
+	if (hdev->gaudi3_setup_type == GAUDI3_SETUP_TYPE_HLS3 && get_from_fw)
+		return 0;
+
+	/* If we are running on a PCI card or 400G mode, all the ports should be set as external */
 	if (is_400g_mode(hdev) || hdev->pldm) {
 		*ports_ext_mask = hdev->cn.ports_mask;
 		return 0;
@@ -140,7 +144,7 @@ static int gaudi3_cn_override_ports_ext_mask(struct hl_device *hdev,
 
 			break;
 		case HLS3_FULL_OAM_3PORTS_SCALE_OUT_SERDES_TYPE:
-		fallthrough;
+			fallthrough;
 		case HLB325_FULL_OAM_3PORTS_SCALE_OUT_SERDES_TYPE:
 			switch (hdev->cn.card_location) {
 			case 0:
@@ -283,8 +287,7 @@ static int gaudi3_cn_override_ports_ext_mask(struct hl_device *hdev,
 			*ports_ext_mask = 0x08C000;
 			return 0;
 		default:
-			dev_err(hdev->dev, "Invalid card location %u\n",
-				hdev->cn.card_location);
+			dev_err(hdev->dev, "Invalid card location %u\n", hdev->cn.card_location);
 			break;
 		}
 
@@ -319,7 +322,7 @@ int gaudi3_cn_set_info(struct hl_device *hdev, bool get_from_fw)
 	int rc, i;
 
 	/* copy the MAC OUI in reverse */
-	for (i = 0 ; i < 3 ; i++)
+	for (i = 0; i < 3; i++)
 		mac[i] = HABANALABS_MAC_OUI_1 >> (8 * (2 - i));
 
 	if (get_from_fw) {
@@ -349,7 +352,7 @@ int gaudi3_cn_set_info(struct hl_device *hdev, bool get_from_fw)
 		}
 
 		/* check for invalid MAC addresses from F/W (bad OUI) */
-		for (i = 0 ; i < NIC_NUMBER_OF_PORTS ; i++) {
+		for (i = 0; i < NIC_NUMBER_OF_PORTS; i++) {
 			if (!(hdev->cn.ports_mask & BIT(i)))
 				continue;
 
@@ -363,7 +366,7 @@ int gaudi3_cn_set_info(struct hl_device *hdev, bool get_from_fw)
 					memcpy(mac_addr, mac, ETH_ALEN);
 				} else {
 					dev_warn(hdev->dev, "unrecognized MAC OUI %pM, port %d\n",
-						mac_addr, i);
+						 mac_addr, i);
 				}
 			}
 		}
@@ -374,7 +377,7 @@ int gaudi3_cn_set_info(struct hl_device *hdev, bool get_from_fw)
 		/* No F/W, hence need to set the MACs manually (randomize) */
 		get_random_bytes(&mac[3], 2);
 
-		for (i = 0 ; i < NIC_NUMBER_OF_PORTS ; i++) {
+		for (i = 0; i < NIC_NUMBER_OF_PORTS; i++) {
 			if (!(hdev->cn.ports_mask & BIT(i)))
 				continue;
 
@@ -389,7 +392,7 @@ int gaudi3_cn_set_info(struct hl_device *hdev, bool get_from_fw)
 			 */
 			hdev->asic_funcs->set_priv_assertions(hdev, false);
 			card_location = RREG32(mmD0_PSOC_BOOT_CONF_BASE +
-						mmPSOC_BOOT_CONF_BOOT_STRAP_PINS_H);
+					       mmPSOC_BOOT_CONF_BOOT_STRAP_PINS_H);
 			hdev->asic_funcs->set_priv_assertions(hdev, true);
 
 			serdes_type = card_location;
@@ -398,10 +401,10 @@ int gaudi3_cn_set_info(struct hl_device *hdev, bool get_from_fw)
 			cpucp_info->card_location = cpu_to_le32(card_location);
 			cn->card_location = card_location;
 			serdes_type &= ~(PSOC_BOOT_CONF_BOOT_STRAP_PINS_H_MODULE_ID_M |
-						PSOC_BOOT_CONF_BOOT_STRAP_PINS_H_SRIS_M |
-						PSOC_BOOT_CONF_BOOT_STRAP_PINS_H_SRNS_M |
-						PSOC_BOOT_CONF_BOOT_STRAP_PINS_H_ADD_SSC_M |
-						PSOC_BOOT_CONF_BOOT_STRAP_PINS_H_DIE_ID_M);
+					 PSOC_BOOT_CONF_BOOT_STRAP_PINS_H_SRIS_M |
+					 PSOC_BOOT_CONF_BOOT_STRAP_PINS_H_SRNS_M |
+					 PSOC_BOOT_CONF_BOOT_STRAP_PINS_H_ADD_SSC_M |
+					 PSOC_BOOT_CONF_BOOT_STRAP_PINS_H_DIE_ID_M);
 			serdes_type >>= (PSOC_BOOT_CONF_BOOT_STRAP_PINS_H_DIE_ID_S + 1);
 		} else {
 			if (hdev->ignore_fw_nic_info) {
@@ -412,10 +415,6 @@ int gaudi3_cn_set_info(struct hl_device *hdev, bool get_from_fw)
 					 "can't read card location as FW security is enabled\n");
 			}
 		}
-
-		rc = gaudi3_cn_override_ports_ext_mask(hdev, serdes_type, &hdev->cn.ports_ext_mask);
-		if (rc)
-			return rc;
 	}
 
 	switch (serdes_type) {
@@ -426,7 +425,7 @@ int gaudi3_cn_set_info(struct hl_device *hdev, bool get_from_fw)
 		hdev->asic_prop.server_type = HL_SERVER_GAUDI3_HLS3_FULLSCALE_OUT;
 		break;
 	case HLS3_FULL_OAM_3PORTS_SCALE_OUT_SERDES_TYPE:
-	fallthrough;
+		fallthrough;
 	case HLB325_FULL_OAM_3PORTS_SCALE_OUT_SERDES_TYPE:
 		hdev->asic_prop.server_type = HL_SERVER_GAUDI3_HLS3_FULL_OAM_3PORTS_SCALE_OUT;
 		break;
@@ -449,12 +448,13 @@ int gaudi3_cn_set_info(struct hl_device *hdev, bool get_from_fw)
 		break;
 	}
 
-	if (is_400g_mode(hdev) || hdev->gaudi3_setup_type != GAUDI3_SETUP_TYPE_HLS3) {
-		/* Set all ports as external in case we are running 400G mode. */
-		if (is_400g_mode(hdev))
-			hdev->cn.ports_ext_mask = hdev->cn.ports_mask;
+	rc = gaudi3_cn_override_ports_ext_mask(hdev, serdes_type, &hdev->cn.ports_ext_mask,
+					       get_from_fw);
+	if (rc)
+		return rc;
+
+	if (is_400g_mode(hdev) || hdev->gaudi3_setup_type != GAUDI3_SETUP_TYPE_HLS3)
 		hdev->cn.auto_neg_mask &= ~hdev->cn.ports_ext_mask;
-	}
 
 	return 0;
 }
@@ -490,7 +490,7 @@ static int gaudi3_cn_irq_vector(struct hbl_aux_dev *aux_dev, unsigned int nr)
 }
 
 static void gaudi3_cn_axuser_hbw_mmu_bp_set(struct hbl_aux_dev *aux_dev, u32 axuser_hbw_reg_base,
-						bool bypass)
+					    bool bypass)
 {
 	struct hl_cn *cn = container_of(aux_dev, struct hl_cn, cn_aux_dev);
 	struct hl_device *hdev = container_of(cn, struct hl_device, cn);
@@ -545,7 +545,6 @@ static void gaudi3_cn_dma_pool_free(struct hbl_aux_dev *aux_dev, void *vaddr, dm
 	hl_cn_dma_pool_free(aux_dev, vaddr, dma_addr);
 }
 
-
 static void gaudi3_cn_device_reset(struct hbl_aux_dev *aux_dev)
 {
 	struct hl_cn *cn = container_of(aux_dev, struct hl_cn, cn_aux_dev);
@@ -578,16 +577,16 @@ static void gaudi3_cn_set_cn_data(struct hl_device *hdev)
 	gaudi3_aux_data->cfg_base_address = prop->cfg_base_address;
 	gaudi3_aux_data->lbw_base_address = LBW_BASE;
 	gaudi3_aux_data->irq_num_port_base = GAUDI3_IRQ_NUM_NIC_PORT_FIRST;
-	gaudi3_aux_data->coll_lag_size = hl338_server ?
-			GAUDI3_HL338_COLL_LAG_SIZE : GAUDI3_DEFAULT_COLL_LAG_SIZE;
-	gaudi3_aux_data->scale_out_coll_lag_size = hl338_server ?
-			GAUDI3_HL338_SCALE_OUT_COLL_LAG_SIZE : GAUDI3_DEFAULT_COLL_LAG_SIZE;
+	gaudi3_aux_data->coll_lag_size = hl338_server ? GAUDI3_HL338_COLL_LAG_SIZE :
+							GAUDI3_DEFAULT_COLL_LAG_SIZE;
+	gaudi3_aux_data->scale_out_coll_lag_size =
+		hl338_server ? GAUDI3_HL338_SCALE_OUT_COLL_LAG_SIZE : GAUDI3_DEFAULT_COLL_LAG_SIZE;
 	gaudi3_aux_data->enable_h9_rx_drop_eco = hdev->nic_enable_h9_rx_drop_eco;
 	gaudi3_aux_data->setup_type = hdev->gaudi3_setup_type;
 	gaudi3_aux_data->vendor_part_id = prop->pci_id;
 	gaudi3_aux_data->kernel_asid = HL_KERNEL_ASID_ID;
 	gaudi3_aux_data->card_location = hdev->ignore_fw_nic_info ? hdev->card_location_override :
-							cn->card_location;
+								    cn->card_location;
 	gaudi3_aux_data->minor = hdev->id;
 	gaudi3_aux_data->dev_mgmt_fw = !!(hdev->fw_components & FW_TYPE_BOOT_CPU);
 	gaudi3_aux_data->cpucp_checkers_shift = NIC_CHECKERS_CHECK_SHIFT;
@@ -638,18 +637,17 @@ static void gaudi3_cn_disable_nics_interrupts(struct hl_device *hdev)
 		gaudi3_disable_nic_interrupts_cpu_if(hdev);
 
 	/* Disable interrupts of all NICs */
-	for (i = 0 ; i < NIC_NUMBER_OF_MACROS ; i++) {
+	for (i = 0; i < NIC_NUMBER_OF_MACROS; i++) {
 		/* skip non-present macros in pldm as we may run on partial-nics image */
-		if (hdev->pldm && !(hdev->cn.ports_mask &
-					gaudi3_cn_get_macro_ports_mask(hdev, i)))
+		if (hdev->pldm && !(hdev->cn.ports_mask & gaudi3_cn_get_macro_ports_mask(hdev, i)))
 			continue;
 
 		port = gaudi3_cn_get_first_port(hdev, i);
 
 		NIC_WREG32(mmD0_NIC0_TXE_BASE + mmNIC_TXE_INTERRUPT_MASK,
-				NIC_TXE_INTERRUPT_MASK_R_M);
+			   NIC_TXE_INTERRUPT_MASK_R_M);
 		NIC_WREG32(mmD0_NIC0_TXS_BASE + mmNIC_TXS_INTERRUPT_MASK,
-				NIC_TXS_INTERRUPT_MASK_R_M);
+			   NIC_TXS_INTERRUPT_MASK_R_M);
 
 		/* interrupt MSI and WIRE regs determine if the interrupt
 		 * being generated is directed to the MSI or Wire Path
@@ -666,13 +664,13 @@ static void gaudi3_cn_disable_nics_interrupts(struct hl_device *hdev)
 		 * interrupts are disabled by default
 		 */
 		NIC_WREG32(mmD0_NIC0_QPC_BASE + mmNIC_QPC_INTERRUPT_MASK,
-						NIC_QPC_INTERRUPT_MASK_R_M);
+			   NIC_QPC_INTERRUPT_MASK_R_M);
 
 		NIC_WREG32(mmD0_NIC0_QPC_BASE + mmNIC_QPC_INTERRUPT_RESP_ERR_MASK,
-					NIC_QPC_INTERRUPT_RESP_ERR_MASK_R_M);
+			   NIC_QPC_INTERRUPT_RESP_ERR_MASK_R_M);
 
 		NIC_WREG32(mmD0_NIC0_RXE_BASE + mmNIC_RXE_SPI_INTR_MASK_0,
-						NIC_RXE_SPI_INTR_MASK_VAL_M);
+			   NIC_RXE_SPI_INTR_MASK_VAL_M);
 		NIC_WREG32(mmD0_NIC0_RXE_BASE + mmNIC_RXE_SEI_INTR_MASK, 0xFFFFFFFF);
 
 		NIC_WREG32(mmD0_NIC0_QPC_BASE + mmNIC_QPC_EVENT_QUE_CFG_0, 0);
@@ -778,7 +776,7 @@ static int gaudi3_cn_send_port_cpucp_status(struct hl_device *hdev, u32 port, u8
 }
 
 static int gaudi3_cn_dump_port_statistics(struct hl_device *hdev, u32 port, u64 str_buf_ptr,
-						u64 val_buf_ptr, u32 *num_of_stat)
+					  u64 val_buf_ptr, u32 *num_of_stat)
 {
 	struct gaudi3_device *gaudi = hdev->asic_specific;
 	struct gaudi3_cn_aux_ops *gaudi3_aux_ops;
@@ -790,13 +788,13 @@ static int gaudi3_cn_dump_port_statistics(struct hl_device *hdev, u32 port, u64 
 
 	if (gaudi3_aux_ops->dump_port_statistics)
 		return gaudi3_aux_ops->dump_port_statistics(aux_dev, port, str_buf_ptr, val_buf_ptr,
-								num_of_stat);
+							    num_of_stat);
 
 	return -ENODEV;
 }
 
 static int gaudi3_cn_cmd_control(struct hl_device *hdev, u32 op, void *input, void *output,
-					u32 asid)
+				 u32 asid)
 {
 	struct gaudi3_device *gaudi3 = hdev->asic_specific;
 	struct gaudi3_cn_aux_ops *gaudi3_aux_ops;
