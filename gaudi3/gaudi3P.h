@@ -383,8 +383,6 @@ enum gaudi3_irq_num {
 	GAUDI3_PLDM_AGGR_IRQ_LAST = GAUDI3_PLDM_AGGR_IRQ_FIRST + INTR_AGGR_NUM_OF_MSIX_VECTORS - 1,
 	GAUDI3_PLDM_QM_SW_IRQ_FIRST,
 	GAUDI3_PLDM_QM_SW_IRQ_LAST = GAUDI3_PLDM_QM_SW_IRQ_FIRST + GAUDI3_NUM_OF_SW_QM_INTR - 1,
-	/* TODO: SW-211651: remove */
-	GAUDI3_IRQ_NUM_UNEXPECTED_ERROR_OLD = 1023,
 };
 
 static_assert(GAUDI3_IRQ_NUM_DEC_NRM_FIRST == 3);
@@ -394,6 +392,23 @@ static_assert(GAUDI3_IRQ_NUM_EQ_ERROR == 47);
 static_assert(GAUDI3_IRQ_NUM_USER_FIRST == 48);
 static_assert(GAUDI3_IRQ_NUM_RESERVED_FIRST == 112);
 static_assert(GAUDI3_IRQ_NUM_UNEXPECTED_ERROR == RESERVED_MSIX_UNEXPECTED_USER_ERROR_INTERRUPT);
+
+/*
+ * The minimum number of MSI-X interrupts required for the device to work.
+ * Refer to the gaudi3_irq_num above. We use no more than 128 interrupts in
+ * order to be able to run on VMware ESXi.
+ */
+#define GAUDI3_MIN_MSIX_ENTRIES			128
+
+/* Assert that this is the number exposed in specs */
+static_assert(GAUDI3_MIN_MSIX_ENTRIES == GAUDI3_MSIX_ENTRIES);
+
+/*
+ * The maximum number of MSI-X interrupts supported by the device.
+ * In particular, this is useful when running on PLDM. On bare-metal, we might
+ * allocate the maximum, but actually use only the minimum.
+ */
+#define GAUDI3_MAX_MSIX_ENTRIES			1024
 
 /* This value cannot change due to errata H9-5304 */
 #define GAUDI3_PAGE_FAULT_QUEUE_SIZE		0x2000	/* 8KB */

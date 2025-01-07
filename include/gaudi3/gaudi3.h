@@ -81,11 +81,9 @@
 
 #define NUM_OF_PDMA_CH_PER_DIE	(NUM_OF_PDMA_GRP_PER_DIE * NUM_OF_PDMA_CH_PER_GRP)
 
-/* TODO: SW-211651: will be overriden with same value (via specs change) */
 #define RESERVED_MSIX_UNEXPECTED_USER_ERROR_INTERRUPT	127
 
-/* TODO: SW-211651: change to 128 (via specs change) */
-#define GAUDI3_MSIX_ENTRIES	1024
+#define GAUDI3_MSIX_ENTRIES	128
 
 #define NIC_MAX_NUM_OF_MACROS	12
 
@@ -93,7 +91,6 @@
 
 #define NIC_MIN_LANES_PER_PORT	2
 
-/* TODO: SW-211651: will be overriden with same value (via specs change) */
 #define NIC_MAX_NUM_OF_PORTS	(NIC_MAX_NUM_OF_ENGINES * \
 				 NIC_MAC_NUM_OF_LANES / NIC_MIN_LANES_PER_PORT)
 

@@ -191,11 +191,6 @@ MODULE_FIRMWARE(GAUDI3_BOOT_FIT_FILE);
 
 #define GAUDI3_GLBL_ERR_MAX_CAUSE_NUM		25
 
-#define GAUDI3_MIN_MSIX_ENTRIES			GAUDI3_MSIX_ENTRIES
-#define GAUDI3_MAX_MSIX_ENTRIES			1024
-/* TODO: SW-211651: static_assert(GAUDI3_MIN_MSIX_ENTRIES == 128); */
-static_assert(GAUDI3_MIN_MSIX_ENTRIES <= GAUDI3_MAX_MSIX_ENTRIES);
-
 #define VSI_CMD_USER_ENGINE_ERR_MASKS		(VSI_CMD_SWREG17_SW_IRQ_ENDCMD_M | \
 							VSI_CMD_SWREG17_SW_IRQ_BUSERR_M | \
 							VSI_CMD_SWREG17_SW_IRQ_CMDERR_M | \
@@ -7064,10 +7059,6 @@ void gaudi3_init_msix_gw_table(struct hl_device *hdev)
 
 	gaudi3_msix_gw_table_enable_range(hdev,
 				GAUDI3_IRQ_NUM_UNEXPECTED_ERROR, GAUDI3_IRQ_NUM_UNEXPECTED_ERROR);
-
-	/* TODO: SW-211651: remove */
-	gaudi3_msix_gw_table_enable_range(hdev,
-				GAUDI3_IRQ_NUM_UNEXPECTED_ERROR_OLD, GAUDI3_IRQ_NUM_UNEXPECTED_ERROR_OLD);
 }
 
 static int gaudi3_enable_user_msix(struct hl_device *hdev)
@@ -7107,18 +7098,6 @@ static int gaudi3_enable_user_msix(struct hl_device *hdev)
 					&hdev->unexpected_error_interrupt);
 	if (rc) {
 		dev_err(hdev->dev, "Failed to request IRQ %d", irq);
-		goto free_user_irqs;
-	}
-
-	/* TODO: SW-211651: remove */
-	irq = hl_irq_vector(hdev, GAUDI3_IRQ_NUM_UNEXPECTED_ERROR_OLD);
-	rc = request_threaded_irq(irq, NULL, hl_irq_user_interrupt_thread_handler, IRQF_ONESHOT,
-					gaudi3_irq_name(GAUDI3_IRQ_NUM_UNEXPECTED_ERROR),
-					&hdev->unexpected_error_interrupt);
-	if (rc) {
-		dev_err(hdev->dev, "Failed to request IRQ %d", irq);
-		free_irq(hl_irq_vector(hdev, GAUDI3_IRQ_NUM_UNEXPECTED_ERROR),
-			&hdev->unexpected_error_interrupt);
 		goto free_user_irqs;
 	}
 
@@ -7163,10 +7142,6 @@ static void gaudi3_disable_user_msix(struct hl_device *hdev)
 	}
 
 	irq = hl_irq_vector(hdev, GAUDI3_IRQ_NUM_UNEXPECTED_ERROR);
-	free_irq(irq, &hdev->unexpected_error_interrupt);
-
-	/* TODO: SW-211651: remove */
-	irq = hl_irq_vector(hdev, GAUDI3_IRQ_NUM_UNEXPECTED_ERROR_OLD);
 	free_irq(irq, &hdev->unexpected_error_interrupt);
 }
 
@@ -8024,10 +7999,6 @@ void gaudi3_sync_irqs(struct hl_device *hdev)
 	}
 
 	irq = hl_irq_vector(hdev, GAUDI3_IRQ_NUM_UNEXPECTED_ERROR);
-	synchronize_irq(irq);
-
-	/* TODO: SW-211651: remove */
-	irq = hl_irq_vector(hdev, GAUDI3_IRQ_NUM_UNEXPECTED_ERROR_OLD);
 	synchronize_irq(irq);
 
 	for (i = 0, intr_id = GAUDI3_IRQ_NUM_ETR_FIRST;
