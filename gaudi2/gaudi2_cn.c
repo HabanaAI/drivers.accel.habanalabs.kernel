@@ -367,7 +367,7 @@ int gaudi2_cn_set_info(struct hl_device *hdev, bool get_from_fw)
 		rc = gaudi2_cn_override_ports_ext_mask(hdev, &hdev->cn.ports_ext_mask);
 		if (rc)
 			return rc;
-		
+
 		hdev->cn.auto_neg_mask &= ~hdev->cn.ports_ext_mask;
 	}
 
@@ -466,9 +466,7 @@ static void gaudi2_cn_set_cn_data(struct hl_device *hdev)
 	gaudi2_aux_ops = &gaudi2->cn_aux_ops;
 	aux_ops->asic_ops = gaudi2_aux_ops;
 
-	gaudi2_aux_data->cfg_base = CFG_BASE;
 	gaudi2_aux_data->fw_security_enabled = prop->fw_security_enabled;
-	gaudi2_aux_data->msix_enabled = !!(gaudi2->hw_cap_initialized & HW_CAP_MSIX);
 	gaudi2_aux_data->irq_num_port_base = GAUDI2_IRQ_NUM_NIC_PORT_FIRST;
 	gaudi2_aux_data->sob_id_base = GAUDI2_RESERVED_SOB_NIC_PORT_FIRST;
 	gaudi2_aux_data->sob_inc_cfg_val = GAUDI2_SOB_INCREMENT_BY_ONE;
