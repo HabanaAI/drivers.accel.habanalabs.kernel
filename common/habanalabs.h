@@ -4403,13 +4403,16 @@ static inline struct hl_device *to_hl_device(struct drm_device *ddev)
  * @range_start_address: The start address of the valid range.
  * @range_end_address: The end address of the valid range.
  *
- * Return: true if the area overlaps part or all of the valid range,
- *		false otherwise.
+ * Return: true if the area overlaps part or all of the valid range, false otherwise
+ *	   and also if the range is not initialized or the input address is null.
  */
 static inline bool hl_mem_area_crosses_range(u64 address, u32 size,
 				u64 range_start_address, u64 range_end_address)
 {
 	u64 end_address = address + size - 1;
+
+	if (!address || range_start_address == range_end_address)
+		return false;
 
 	return ((address <= range_end_address) && (range_start_address <= end_address));
 }
