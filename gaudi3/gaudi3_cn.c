@@ -572,10 +572,7 @@ static void gaudi3_cn_set_cn_data(struct hl_device *hdev)
 	aux_ops->asic_ops = gaudi3_aux_ops;
 	hl338_server = hdev->asic_prop.server_type == HL_SERVER_GAUDI3_HL338;
 
-	gaudi3_aux_data->msix_enabled = !!(gaudi3->hw_cap_initialized & HW_CAP_MSIX);
 	gaudi3_aux_data->num_of_hdcores = prop->num_of_hdcores;
-	gaudi3_aux_data->cfg_base_address = prop->cfg_base_address;
-	gaudi3_aux_data->lbw_base_address = LBW_BASE;
 	gaudi3_aux_data->irq_num_port_base = GAUDI3_IRQ_NUM_NIC_PORT_FIRST;
 	gaudi3_aux_data->coll_lag_size = hl338_server ? GAUDI3_HL338_COLL_LAG_SIZE :
 							GAUDI3_DEFAULT_COLL_LAG_SIZE;
