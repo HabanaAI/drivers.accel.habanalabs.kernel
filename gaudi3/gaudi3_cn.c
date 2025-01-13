@@ -95,14 +95,14 @@ static int gaudi3_cn_override_ports_ext_mask(struct hl_device *hdev,
 					     enum cpucp_serdes_type serdes_type,
 					     uint64_t *ports_ext_mask, bool get_from_fw)
 {
-	if (hdev->gaudi3_setup_type == GAUDI3_SETUP_TYPE_HLS3 && get_from_fw)
-		return 0;
-
 	/* If we are running on a PCI card or 400G mode, all the ports should be set as external */
 	if (is_400g_mode(hdev) || hdev->pldm) {
 		*ports_ext_mask = hdev->cn.ports_mask;
 		return 0;
 	}
+
+	if (hdev->gaudi3_setup_type == GAUDI3_SETUP_TYPE_HLS3 && get_from_fw)
+		return 0;
 
 	switch (hdev->gaudi3_setup_type) {
 	case GAUDI3_SETUP_TYPE_HLS3:
