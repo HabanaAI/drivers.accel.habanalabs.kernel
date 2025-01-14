@@ -7108,6 +7108,7 @@ free_user_irqs:
 			i < user_irq_init_cnt;
 			i++, j++, intr_id++) {
 		irq = hl_irq_vector(hdev, intr_id);
+		irq_set_affinity_and_hint(irq, NULL);
 		free_irq(irq, &hdev->user_interrupt[j]);
 	}
 
@@ -7138,6 +7139,7 @@ static void gaudi3_disable_user_msix(struct hl_device *hdev)
 			i < prop->user_interrupt_count;
 			i++, j++, intr_id++) {
 		irq = hl_irq_vector(hdev, intr_id);
+		irq_set_affinity_and_hint(irq, NULL);
 		free_irq(irq, &hdev->user_interrupt[j]);
 	}
 
