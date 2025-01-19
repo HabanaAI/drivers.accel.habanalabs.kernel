@@ -7856,6 +7856,7 @@ static void gaudi3_pldm_disable_msix(struct hl_device *hdev)
 int gaudi3_enable_msix(struct hl_device *hdev)
 {
 	struct gaudi3_device *gaudi3 = hdev->asic_specific;
+	unsigned int n_msix;
 	int rc;
 
 	if (gaudi3->hw_cap_initialized & HW_CAP_MSIX)
@@ -7863,12 +7864,12 @@ int gaudi3_enable_msix(struct hl_device *hdev)
 
 	hl_init_cpu_for_irq(hdev);
 
-	rc = hl_alloc_irq_vectors(hdev, GAUDI3_MIN_MSIX_ENTRIES,
-					GAUDI3_MAX_MSIX_ENTRIES, PCI_IRQ_MSIX);
+	n_msix = hdev->pldm ? GAUDI3_PLDM_MSIX_ENTRIES : GAUDI3_MSIX_ENTRIES;
+	rc = hl_alloc_irq_vectors(hdev, n_msix, n_msix, PCI_IRQ_MSIX);
 	if (rc < 0) {
 		dev_err(hdev->dev,
 			"MSI-X: Failed to enable support (%d-%d) - %d\n",
-			GAUDI3_MIN_MSIX_ENTRIES, GAUDI3_MAX_MSIX_ENTRIES, rc);
+			n_msix, n_msix, rc);
 		return rc;
 	}
 

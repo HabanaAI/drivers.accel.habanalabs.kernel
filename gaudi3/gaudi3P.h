@@ -394,21 +394,12 @@ static_assert(GAUDI3_IRQ_NUM_RESERVED_FIRST == 112);
 static_assert(GAUDI3_IRQ_NUM_UNEXPECTED_ERROR == RESERVED_MSIX_UNEXPECTED_USER_ERROR_INTERRUPT);
 
 /*
- * The minimum number of MSI-X interrupts required for the device to work.
- * Refer to the gaudi3_irq_num above. We use no more than 128 interrupts in
- * order to be able to run on VMware ESXi.
- */
-#define GAUDI3_MIN_MSIX_ENTRIES			128
-
-/* Assert that this is the number exposed in specs */
-static_assert(GAUDI3_MIN_MSIX_ENTRIES == GAUDI3_MSIX_ENTRIES);
-
-/*
  * The maximum number of MSI-X interrupts supported by the device.
- * In particular, this is useful when running on PLDM. On bare-metal, we might
- * allocate the maximum, but actually use only the minimum.
+ * For PLDM, we need more than 128 interrupts used in production, so we might
+ * as well allocate the entire range.
+ * The limitation of 128 interrupts comes from VMware ESXi.
  */
-#define GAUDI3_MAX_MSIX_ENTRIES			1024
+#define GAUDI3_PLDM_MSIX_ENTRIES		1024
 
 /* This value cannot change due to errata H9-5304 */
 #define GAUDI3_PAGE_FAULT_QUEUE_SIZE		0x2000	/* 8KB */
