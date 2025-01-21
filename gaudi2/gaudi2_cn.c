@@ -132,76 +132,108 @@ static void gaudi2_cn_set_hw_cap(struct hl_device *hdev, bool enable)
 }
 
 /**
- * gaudi2_cn_override_ports_ext_mask() - Returns the external ports mask.
+ * gaudi2_cn_override_ports_masks() - Override ports masks configuration.
  * @hdev: Hl device whose external ports mask to return.
- * @ports_ext_mask: Out, the external ports mask.
+ * @serdes_type: The SerDes type that was configured for this board.
+ * @ignore_fw: Flag that indicates if we ignore FW configurations.
  *
  * Return: 0 on success, negative error code otherwise.
  */
-static int gaudi2_cn_override_ports_ext_mask(struct hl_device *hdev, uint64_t *ports_ext_mask)
+static int gaudi2_cn_override_ports_masks(struct hl_device *hdev, u32 serdes_type, bool ignore_fw)
 {
+	enum gaudi2_setup_type setup_type;
+	u64 ports_ext_mask, ports_mask;
+	int rc = 0;
+
+	setup_type = hdev->gaudi2_setup_type;
+	ports_mask = hdev->cn.ports_mask;
+	ports_ext_mask = hdev->cn.ports_ext_mask;
+
 	/* For asic type GAUDI2B, the external ports mask shouldn't be changed */
 	if (hdev->asic_type == ASIC_GAUDI2B) {
-		*ports_ext_mask = hdev->cn.ports_ext_mask;
-		return 0;
+		goto out;
 	}
 
-	switch (hdev->gaudi2_setup_type) {
+	/* In case we are running on a simulator or we ignore FW information, and no setup type
+	 * module param was passed we should override the ports masks both of the enable mask
+	 * and the external ports mask, according to the read SerDes type from a bootstrap register.
+	 * Otherwise there will be a mismatch between the default masks and the masks that represent
+	 * the read SerDes type.
+	 */
+	if (ignore_fw && hdev->gaudi2_setup_type == GAUDI2_SETUP_TYPE_HLS2) {
+		switch (serdes_type) {
+		case HLS2_SERDES_TYPE:
+			setup_type = GAUDI2_SETUP_TYPE_HLS2;
+			break;
+		case HL288_SERDES_TYPE:
+			setup_type = GAUDI2_SETUP_TYPE_HL288;
+			break;
+		}
+	}
+
+	switch (setup_type) {
 	case GAUDI2_SETUP_TYPE_HLS2:
 		/* For HLS2 setup type, the external ports mask shouldn't be changed */
-		*ports_ext_mask = hdev->cn.ports_ext_mask;
-		return 0;
+		break;
 	case GAUDI2_SETUP_TYPE_HL225_S_EXT_LB:
 	case GAUDI2_SETUP_TYPE_HL325_S_EXT_LB:
 		/* For the above setup types, all the ports should be set as external */
-		*ports_ext_mask = hdev->cn.ports_mask;
-		return 0;
+		ports_ext_mask = hdev->cn.ports_mask;
+		break;
 	case GAUDI2_SETUP_TYPE_HLS3:
 		/* For HLS3 setup type, the external ports mask is determined according to the
 		 * card location.
 		 */
 		switch (hdev->cn.card_location) {
 		case 0:
-			*ports_ext_mask = 0x27FC00;
-			return 0;
+			ports_ext_mask = 0x27FC00;
+			break;
 		case 1:
-			*ports_ext_mask = 0xC003FC;
-			return 0;
+			ports_ext_mask = 0xC003FC;
+			break;
 		case 2:
-			*ports_ext_mask = 0xC003FC;
-			return 0;
+			ports_ext_mask = 0xC003FC;
+			break;
 		case 3:
-			*ports_ext_mask = 0x27FC00;
-			return 0;
+			ports_ext_mask = 0x27FC00;
+			break;
 		case 4:
-			*ports_ext_mask = 0x3FF000;
-			return 0;
+			ports_ext_mask = 0x3FF000;
+			break;
 		case 5:
-			*ports_ext_mask = 0x0003FF;
-			return 0;
+			ports_ext_mask = 0x0003FF;
+			break;
 		case 6:
-			*ports_ext_mask = 0x0003FF;
-			return 0;
+			ports_ext_mask = 0x0003FF;
+			break;
 		case 7:
-			*ports_ext_mask = 0x3FF000;
-			return 0;
+			ports_ext_mask = 0x3FF000;
+			break;
 		default:
 			dev_dbg(hdev->dev, "Invalid card location %u\n", hdev->cn.card_location);
+			rc = -EINVAL;
 			break;
 		}
 
 		break;
 	case GAUDI2_SETUP_TYPE_HL288:
 		/* In this flavor ports 22,23 are disabled and 6,7,8,9 are external*/
-		hdev->cn.ports_mask = 0x3FFFFF;
-		*ports_ext_mask = 0x3C0;
-		return 0;
+		ports_mask = 0x3FFFFF;
+		ports_ext_mask = 0x3C0;
+		break;
 	default:
 		dev_dbg(hdev->dev, "Invalid gaudi2_setup_type %u\n", hdev->gaudi2_setup_type);
+		rc = -EINVAL;
 		break;
 	}
 
-	return -EINVAL;
+out:
+	if (!rc) {
+		hdev->cn.ports_mask = ports_mask;
+		hdev->cn.ports_ext_mask = ports_ext_mask;
+	}
+
+	return rc;
 }
 
 static int gaudi2_cn_check_oui_prefix_validity(u8 *mac_addr)
@@ -360,16 +392,16 @@ int gaudi2_cn_set_info(struct hl_device *hdev, bool get_from_fw)
 		break;
 	}
 
-	/* If running on non HLS2 setup, we set the external ports according to the module param
-	 * setup type.
+	/* As there are several code flows which can require us to modify the ports masks, whether
+	 * for debug purproses or when working without FW, we might need to override the ports
+	 * masks, both of the enable ports and the external ports.
 	 */
-	if (hdev->gaudi2_setup_type != GAUDI2_SETUP_TYPE_HLS2) {
-		rc = gaudi2_cn_override_ports_ext_mask(hdev, &hdev->cn.ports_ext_mask);
-		if (rc)
-			return rc;
+	rc = gaudi2_cn_override_ports_masks(hdev, serdes_type, !get_from_fw);
+	if (rc)
+		return rc;
 
+	if (hdev->gaudi2_setup_type != GAUDI2_SETUP_TYPE_HLS2)
 		hdev->cn.auto_neg_mask &= ~hdev->cn.ports_ext_mask;
-	}
 
 	/* Disable ANLT on NIC 0 ports (due to lane swapping) */
 	hdev->cn.auto_neg_mask &= ~0x3;
