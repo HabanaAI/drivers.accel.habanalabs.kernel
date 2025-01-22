@@ -140,6 +140,10 @@ static int hl_cn_get_device_info(struct hbl_aux_dev *aux_dev,
 	device_info->pcie_cfg_bar_id = asic_props->pcie_cfg_bar_id;
 	device_info->num_phys_nics = asic_props->num_phys_nics;
 	device_info->lanes_per_port = hdev->cn.lanes_per_port;
+
+	/* There is a single continuous block of stolen memory to store all NIC data. */
+	device_info->nms_mask = 1;
+
 	strscpy(device_info->driver_ver, hdev->driver_ver, sizeof(device_info->driver_ver));
 	strscpy(device_info->fw_ver, asic_props->cpucp_info.cpucp_version,
 		sizeof(device_info->fw_ver));
