@@ -502,6 +502,14 @@ static int hl_cn_get_reserved_stolen_dev_mem(struct hbl_aux_dev *aux_dev, u32 nm
 	return 0;
 }
 
+static int hl_cn_reserve_irqs(struct hbl_aux_dev *aux_dev, u32 num, int *base_irq)
+{
+	struct hl_cn *cn = container_of(aux_dev, struct hl_cn, cn_aux_dev);
+	struct hl_device *hdev = container_of(cn, struct hl_device, cn);
+
+	return hdev->asic_funcs->cn_funcs->reserve_irqs(hdev, num, base_irq);
+}
+
 static void hl_cn_get_ports_info(struct hbl_aux_dev *aux_dev,
 					struct hbl_cn_aux_ports_info *hbl_cn_aux_ports_info)
 {
@@ -653,6 +661,7 @@ static int hl_cn_aux_data_init(struct hl_device *hdev)
 	aux_ops->vm_destroy = hl_cn_vm_destroy;
 	aux_ops->get_vm_info = hl_cn_get_vm_info;
 	aux_ops->get_ports_info = hl_cn_get_ports_info;
+	aux_ops->reserve_irqs = hl_cn_reserve_irqs;
 	aux_ops->get_reserved_stolen_dev_mem = hl_cn_get_reserved_stolen_dev_mem;
 
 	cn_funcs->set_cn_data(hdev);
