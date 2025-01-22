@@ -13,6 +13,8 @@
 #define GAUDI3_HL338_COLL_LAG_SIZE		0x6
 #define GAUDI3_HL338_SCALE_OUT_COLL_LAG_SIZE	0x4
 
+#define MAX_NUM_OF_NIC_INTERRUPTS (GAUDI3_IRQ_NUM_NIC_PORT_LAST - GAUDI3_IRQ_NUM_NIC_PORT_FIRST)
+
 bool is_400g_mode(struct hl_device *hdev)
 {
 	return hdev->cn.lanes_per_port == PORT_LANES_4;
@@ -790,6 +792,19 @@ static int gaudi3_cn_dump_port_statistics(struct hl_device *hdev, u32 port, u64 
 	return -ENODEV;
 }
 
+static int gaudi3_reserve_irqs(struct hl_device *hdev, u32 num, int *base_irq)
+{
+	if (num > MAX_NUM_OF_NIC_INTERRUPTS) {
+		dev_err(hdev->dev, "CN requested %u interrupts but only %u may be reserved\n",
+			num, MAX_NUM_OF_NIC_INTERRUPTS);
+		return -EINVAL;
+	}
+
+	*base_irq = GAUDI3_IRQ_NUM_NIC_PORT_FIRST;
+
+	return 0;
+}
+
 static int gaudi3_cn_cmd_control(struct hl_device *hdev, u32 op, void *input, void *output,
 				 u32 asid)
 {
@@ -824,6 +839,7 @@ struct hl_cn_funcs gaudi3_cn_funcs = {
 	.pre_core_init = gaudi3_cn_pre_core_init,
 	.set_cn_data = gaudi3_cn_set_cn_data,
 	.mmap = gaudi3_cn_mmap,
+	.reserve_irqs = gaudi3_reserve_irqs,
 	.cmd_control = gaudi3_cn_cmd_control,
 	.port_funcs = &gaudi3_cn_port_funcs,
 };
