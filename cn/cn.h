@@ -140,6 +140,7 @@ struct hl_cn_port_funcs {
  * @set_hw_cap: set HW capability (on/off).
  * @set_cn_data: ASIC data to be used by the CN driver.
  * @mmap: Map CN memory.
+ * @reserve_irqs: get the MSI-X IRQs that are needed for the CN operation.
  * @cmd_control: command control IOCTL.
  * @port_funcs: functions called from common code for a specific NIC port.
  */
@@ -149,6 +150,7 @@ struct hl_cn_funcs {
 	void (*set_hw_cap)(struct hl_device *hdev, bool enable);
 	void (*set_cn_data)(struct hl_device *hdev);
 	int (*mmap)(struct hl_device *hdev, u32 asid, struct vm_area_struct *vma);
+	int (*reserve_irqs)(struct hl_device *hdev, u32 num, int *base_irq);
 	int (*cmd_control)(struct hl_device *hdev, u32 op, void *input, void *output, u32 asid);
 	struct hl_cn_port_funcs *port_funcs;
 };
