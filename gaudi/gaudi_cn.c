@@ -626,6 +626,11 @@ static int gaudi_cn_mmap(struct hl_device *hdev, u32 asid, struct vm_area_struct
 	return -ENODEV;
 }
 
+static int gaudi_reserve_irqs(struct hl_device *hdev, u32 num, int *base_irq)
+{
+	return 0;
+}
+
 static int gaudi_cn_cmd_control(struct hl_device *hdev, u32 op, void *input, void *output,
 				u32 asid)
 {
@@ -713,6 +718,7 @@ struct hl_cn_funcs gaudi_cn_funcs = {
 	.pre_core_init = gaudi_cn_pre_core_init,
 	.set_cn_data = gaudi_cn_set_cn_data,
 	.mmap = gaudi_cn_mmap,
+	.reserve_irqs = gaudi_reserve_irqs,
 	.cmd_control = gaudi_cn_cmd_control,
 	.port_funcs = &gaudi_cn_port_funcs,
 };
