@@ -96,7 +96,7 @@ DRV_CFLAGS_MODULE="-DHL_DRIVER_GIT_SHA=$(GIT_SHA_DRV_STR) $(SELECTED_EXTRA_WARNI
 
 default custom: modules
 
-modules:
+modules compile_commands.json:
 	$(MAKE) CFLAGS_MODULE=$(DRV_CFLAGS_MODULE) -C $(KERNELDIR) M=$(SRC_DIR) $(RUN_ALL_EXTRA_WARNINGS) $@
 
 debug debug_custom:
