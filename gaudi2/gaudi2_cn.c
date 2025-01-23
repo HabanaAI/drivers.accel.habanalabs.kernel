@@ -10,6 +10,8 @@
 #include "../include/gaudi2/gaudi2_async_ids_map_extended.h"
 #include "../include/hw_ip/nic/nic_general.h"
 
+#define MAX_NUM_OF_NIC_INTERRUPTS (GAUDI2_IRQ_NUM_NIC_PORT_LAST - GAUDI2_IRQ_NUM_NIC_PORT_FIRST)
+
 static bool gaudi2_cn_get_hw_cap(struct hl_device *hdev);
 
 int gaudi2_cn_handle_sw_error_event(struct hl_device *hdev, u16 event_type, u8 macro_index,
@@ -619,6 +621,19 @@ static int gaudi2_cn_dump_port_statistics(struct hl_device *hdev, u32 port, u64 
 	return -ENODEV;
 }
 
+static int gaudi2_reserve_irqs(struct hl_device *hdev, u32 num, int *base_irq)
+{
+	if (num > MAX_NUM_OF_NIC_INTERRUPTS) {
+		dev_err(hdev->dev, "CN requested %u interrupts but only %u may be reserved\n",
+			num, MAX_NUM_OF_NIC_INTERRUPTS);
+		return -EINVAL;
+	}
+
+	*base_irq = GAUDI2_IRQ_NUM_NIC_PORT_FIRST;
+
+	return 0;
+}
+
 static int gaudi2_cn_cmd_control(struct hl_device *hdev, u32 op, void *input, void *output,
 					u32 asid)
 {
@@ -653,6 +668,7 @@ struct hl_cn_funcs gaudi2_cn_funcs = {
 	.pre_core_init = gaudi2_cn_pre_core_init,
 	.set_cn_data = gaudi2_cn_set_cn_data,
 	.mmap = gaudi2_cn_mmap,
+	.reserve_irqs = gaudi2_reserve_irqs,
 	.cmd_control = gaudi2_cn_cmd_control,
 	.port_funcs = &gaudi2_cn_port_funcs,
 };
