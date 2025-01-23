@@ -46,8 +46,20 @@ endif
 else
 # normal makefile
 
+RED=$(shell echo "\033[0;31m")
+RESET=$(shell echo "\033[0m")
+
+# Backwards compatiblity
+
+ifneq ($(filter custom debug_custom custom_importer,${MAKECMDGOALS}),)
+$(info ${RED}deprecated: the target '${MAKECMDGOALS}' is deprecated, to use a custom kernel, export 'KERNELDIR=<path to kernel build dir>'${RESET})
+ifdef CUSTOMKERNELDIR
+KERNELDIR := ${CUSTOMKERNELDIR}
+endif
+endif
+
 KVERSION ?= $(shell uname -r)
-KERNELDIR := /lib/modules/$(KVERSION)/build
+KERNELDIR ?= /lib/modules/$(KVERSION)/build
 SRC_DIR ?= $(shell pwd)
 GIT_LOCAL_CHANGES_STR := $(shell cd ${HABANALABS_ROOT}; if [ -n "$$(git status --porcelain 2> /dev/null | grep "^[[:space:]]*M ")" ]; then echo "+"; fi)
 GIT_SHA ?= $(shell git --git-dir=${HABANALABS_ROOT}/.git rev-parse --short HEAD 2> /dev/null)
@@ -82,23 +94,16 @@ endif
 endif
 DRV_CFLAGS_MODULE="-DHL_DRIVER_GIT_SHA=$(GIT_SHA_DRV_STR) $(SELECTED_EXTRA_WARNINGS)"
 
-default:
-	$(MAKE) CFLAGS_MODULE=$(DRV_CFLAGS_MODULE) -C $(KERNELDIR) M=$(SRC_DIR) $(RUN_ALL_EXTRA_WARNINGS) modules
+default custom: modules
 
-debug:
-	$(MAKE) EXTRA_CFLAGS="$(DEBUG_CFLAGS)" CFLAGS_MODULE=$(DRV_CFLAGS_MODULE) -C $(KERNELDIR) M=$(SRC_DIR) $(RUN_ALL_EXTRA_WARNINGS) modules
+modules:
+	$(MAKE) CFLAGS_MODULE=$(DRV_CFLAGS_MODULE) -C $(KERNELDIR) M=$(SRC_DIR) $(RUN_ALL_EXTRA_WARNINGS) $@
 
-custom:
-	$(MAKE) CFLAGS_MODULE=$(DRV_CFLAGS_MODULE) -C $(CUSTOMKERNELDIR) M=$(SRC_DIR) $(RUN_ALL_EXTRA_WARNINGS) modules
+debug debug_custom:
+	$(MAKE) CFLAGS_MODULE=$(DRV_CFLAGS_MODULE) -C $(KERNELDIR) M=$(SRC_DIR) $(RUN_ALL_EXTRA_WARNINGS) EXTRA_CFLAGS="$(DEBUG_CFLAGS)" modules
 
-debug_custom:
-	$(MAKE) EXTRA_CFLAGS="$(DEBUG_CFLAGS)" CFLAGS_MODULE=$(DRV_CFLAGS_MODULE) -C $(CUSTOMKERNELDIR) M=$(SRC_DIR) $(RUN_ALL_EXTRA_WARNINGS) modules
-
-importer:
+importer custom_importer:
 	$(MAKE) CFLAGS_MODULE='$(DRV_CFLAGS_MODULE) -D__IMPORTER' -C $(KERNELDIR) M=$(SRC_DIR) $(RUN_ALL_EXTRA_WARNINGS) modules
-
-custom_importer:
-	$(MAKE) CFLAGS_MODULE='$(DRV_CFLAGS_MODULE) -D__IMPORTER' -C $(CUSTOMKERNELDIR) M=$(SRC_DIR) $(RUN_ALL_EXTRA_WARNINGS) modules
 
 clean:
 	$(MAKE) -C $(KERNELDIR) M=$(SRC_DIR) clean
