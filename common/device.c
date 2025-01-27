@@ -1574,6 +1574,63 @@ int hl_device_utilization(struct hl_device *hdev, u32 *utilization)
 	return 0;
 }
 
+const char *hl_get_default_card_name(struct hl_device *hdev)
+{
+	switch (hdev->asic_type) {
+		case ASIC_GAUDI_SIM:
+			return "HL205 SIM";
+		case ASIC_GAUDI2_SIM:
+		case ASIC_GAUDI2_SIM_ARC:
+		case ASIC_GAUDI2B_SIM:
+		case ASIC_GAUDI2B_SIM_ARC:
+		case ASIC_GAUDI2C_SIM:
+		case ASIC_GAUDI2C_SIM_ARC:
+		case ASIC_GAUDI2D_SIM:
+		case ASIC_GAUDI2D_SIM_ARC:
+			return "HL225 SIM";
+		case ASIC_GAUDI2D_HL_288_SIM:
+		case ASIC_GAUDI2D_HL_288_SIM_ARC:
+		case ASIC_GAUDI2_HL_288_SIM:
+		case ASIC_GAUDI2_HL_288_SIM_ARC:
+			return "HL288 SIM";
+		case ASIC_GAUDI3_SIM:
+		case ASIC_GAUDI3_SIM_ARC:
+		case ASIC_GAUDI3D_SIM:
+		case ASIC_GAUDI3D_SIM_ARC:
+			return "HL325 SIM";
+		case ASIC_GAUDI3_HL_338_SIM:
+		case ASIC_GAUDI3_HL_338_SIM_ARC:
+		case ASIC_GAUDI3D_HL_338_SIM:
+		case ASIC_GAUDI3D_HL_338_SIM_ARC:
+			return "HL338 SIM";
+		case ASIC_GAUDI:
+		case ASIC_GAUDI_SEC:
+			return "HL205";
+		case ASIC_GAUDI_HL2000M:
+		case ASIC_GAUDI_HL2000M_SEC:
+			return "HL2000M";
+		case ASIC_GAUDI2:
+		case ASIC_GAUDI2B:
+		case ASIC_GAUDI2C:
+		case ASIC_GAUDI2D:
+			return "HL225";
+		case ASIC_GAUDI2_HL_288:
+		case ASIC_GAUDI2D_HL_288:
+			return "HL288";
+		case ASIC_GAUDI3:
+		case ASIC_GAUDI3D:
+		case ASIC_GAUDI3_FPGA:
+			return "HL325";
+		case ASIC_GAUDI3_HL_338:
+		case ASIC_GAUDI3D_HL_338:
+			return "HL338"
+		default:
+			break;
+	}
+
+	return "N/A";
+}
+
 int hl_device_set_debug_mode(struct hl_device *hdev, struct hl_ctx *ctx, bool enable)
 {
 	int rc = 0;

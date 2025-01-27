@@ -4528,6 +4528,8 @@ void hl_hpriv_get(struct hl_fpriv *hpriv);
 int hl_hpriv_put(struct hl_fpriv *hpriv);
 int hl_device_utilization(struct hl_device *hdev, u32 *utilization);
 
+const char *hl_get_default_card_name(struct hl_device *hdev);
+
 int hl_build_hwmon_channel_info(struct hl_device *hdev,
 		struct cpucp_sensor *sensors_arr);
 
