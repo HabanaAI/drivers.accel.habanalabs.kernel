@@ -692,7 +692,6 @@ static enum hl_asic_type get_asic_type(struct hl_device *hdev)
 		asic_type = ASIC_GAUDI_HL2000M_SEC;
 		break;
 	case PCI_IDS_GAUDI2:
-	case PCI_IDS_GAUDI2_HL_288:
 		switch (hdev->pci_revision_id) {
 		case REV_ID_A:
 			asic_type = ASIC_GAUDI2;
@@ -705,6 +704,18 @@ static enum hl_asic_type get_asic_type(struct hl_device *hdev)
 			break;
 		case REV_ID_D:
 			asic_type = ASIC_GAUDI2D;
+			break;
+		default:
+			break;
+		}
+		break;
+	case PCI_IDS_GAUDI2_HL_288:
+		switch (hdev->pci_revision_id) {
+		case REV_ID_A:
+			asic_type = ASIC_GAUDI2_HL_288;
+			break;
+		case REV_ID_D:
+			asic_type = ASIC_GAUDI2D_HL_288;
 			break;
 		default:
 			break;
