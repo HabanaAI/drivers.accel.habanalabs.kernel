@@ -97,8 +97,6 @@
 
 #define DMA_MAX_TRANSFER_SIZE			U32_MAX
 
-#define GAUDI2_DEFAULT_CARD_NAME		"HL225"
-
 #define QMAN_STREAMS				4
 
 #define NUM_OF_MME_SBTE_PORTS			5
