@@ -3695,7 +3695,7 @@ int gaudi3_set_fixed_properties(struct hl_device *hdev)
 
 	prop->supports_engine_modes = true;
 
-	strscpy(prop->cpucp_info.card_name, GAUDI3_DEFAULT_CARD_NAME, CARD_NAME_MAX_LEN);
+	strscpy(prop->cpucp_info.card_name, hl_get_default_card_name(hdev), CARD_NAME_MAX_LEN);
 
 	prop->fw_cpu_boot_dev_sts0_valid = false;
 	prop->fw_cpu_boot_dev_sts1_valid = false;
@@ -5304,7 +5304,8 @@ static int gaudi3_cpucp_handshake_info_get(struct hl_device *hdev)
 		return rc;
 
 	if (!strlen(prop->cpucp_info.card_name)) {
-		strscpy(prop->cpucp_info.card_name, GAUDI3_DEFAULT_CARD_NAME, CARD_NAME_MAX_LEN);
+		strscpy(prop->cpucp_info.card_name, hl_get_default_card_name(hdev),
+			CARD_NAME_MAX_LEN);
 	} else {
 		data = kmalloc(PAGE_SIZE, GFP_KERNEL);
 		if (!data)

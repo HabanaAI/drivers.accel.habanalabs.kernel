@@ -1623,7 +1623,7 @@ const char *hl_get_default_card_name(struct hl_device *hdev)
 			return "HL325";
 		case ASIC_GAUDI3_HL_338:
 		case ASIC_GAUDI3D_HL_338:
-			return "HL338"
+			return "HL338";
 		default:
 			break;
 	}
