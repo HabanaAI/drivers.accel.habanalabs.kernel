@@ -2980,6 +2980,7 @@ static int get_user_memory(struct hl_device *hdev, u64 addr, u64 size,
 				struct hl_userptr *userptr)
 {
 	int rc;
+	int pinned;
 
 	if (!access_ok((void __user *) (uintptr_t) addr, size)) {
 		dev_err(hdev->dev, "user pointer is invalid - 0x%llx\n", addr);
@@ -2991,7 +2992,23 @@ static int get_user_memory(struct hl_device *hdev, u64 addr, u64 size,
 		return -ENOMEM;
 
 #if KERNEL_VERSION(5, 11, 0) <= LINUX_VERSION_CODE
-	rc = pin_user_pages_fast(start, npages, GUP_FLAGS, userptr->pages);
+	pinned = 0;
+	rc = 0;
+
+	while (pinned < npages) {
+		rc = pin_user_pages_fast(start + (pinned * PAGE_SIZE),
+					npages - pinned,
+					GUP_FLAGS,
+					&userptr->pages[pinned]);
+		if (rc < 0)
+			break;
+
+		pinned += rc;
+	}
+
+	if (rc > 0)
+		rc = pinned;
+
 #else
 	/* In kernels before 5.11 that have pin_user_pages_fast(), we can't pin many pages at the
 	 * same time because of some kmalloc call inside the pinning code path. Split the pinning
