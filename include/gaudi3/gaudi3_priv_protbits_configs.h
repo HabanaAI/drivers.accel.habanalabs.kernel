@@ -17,7 +17,7 @@
 
 #define GAUDI3_PRIV_PROTBITS_DATA1 { \
 		 0x1fff, 0xfffff800, 0x3c07f, 0xfeff0fc0, 0xc007f93f, 0xf9fe73e2, \
-		0x1fb1fb }
+		0x7ff7ff }
 
 #define GAUDI3_PRIV_PROTBITS_DATA2 { \
 		 0xffffff, 0xffffff, 0xffffff, 0xffffff }
@@ -26,58 +26,24 @@
 		0xffff }
 
 #define GAUDI3_PRIV_PROTBITS_DATA4 { \
-		 0xffffc4c7, 0xffff7fff, 0xffff, 0x3000003, 0x8000ffff, 0x100d, \
+		 0xffffc4c7, 0xffff7fff, 0xffff, 0x3000003, 0x9000ffff, 0x100d, \
 		0xd800, 0x70000ff, 0x1ef80600, 0x3c0000, 0x13006d, \
 		0xc00c000 }
 
 #define GAUDI3_PRIV_PROTBITS_DATA5 { \
-		 0xffffbfef, 0xf7fcffff, 0xe03fff3f, 0x1ffc3c0, 0x1fb1fb, 0x1fffff, \
-		0x1fffff, 0x2 }
+		 0xffffbfef, 0xf7fcffff, 0xe03fff3f, 0x1ffc3c0, 0x7ff7ff, 0x2 }
 
 #define GAUDI3_PRIV_PROTBITS_DATA6 { \
 		 0x73111, 0x77, 0x77777777 }
 
-#define GAUDI3_PRIV_PROTBITS_DATA7 { \
-		0x800000ff }
-
 #define GAUDI3_PRIV_PROTBITS_DATA8 { \
 		 0xff, 0x150000, 0xffffff, 0xffff0000, 0x50000 }
-
-#define GAUDI3_PRIV_PROTBITS_DATA9 { \
-		 0x1e1e1e1e, 0x1, 0x3f7f3f7f }
-
-#define GAUDI3_PRIV_PROTBITS_DATA10 { \
-		 0x1e1e1e1e, 0x1, 0x3f7f3f7f }
-
-#define GAUDI3_PRIV_PROTBITS_DATA11 { \
-		 0x1e1e1e1e, 0x1, 0x3f7f3f7f }
-
-#define GAUDI3_PRIV_PROTBITS_DATA12 { \
-		 0x1e1e1e1e, 0x1, 0x1e1e1e1e, 0x1 }
 
 #define GAUDI3_PRIV_PROTBITS_DATA14 { \
 		 0xff, 0x150000, 0xffffff, 0xffff0000, 0x50000 }
 
-#define GAUDI3_PRIV_PROTBITS_DATA15 { \
-		 0x1e1e1e1e, 0x1, 0x3f7f3f7f }
-
-#define GAUDI3_PRIV_PROTBITS_DATA16 { \
-		 0x1e1e1e1e, 0x1 }
-
 #define GAUDI3_PRIV_PROTBITS_DATA20 { \
 		 0xff, 0x150000, 0xffffff, 0xffff0000, 0x50000 }
-
-#define GAUDI3_PRIV_PROTBITS_DATA21 { \
-		 0x1e1e1e1e, 0x1, 0x3f7f3f7f }
-
-#define GAUDI3_PRIV_PROTBITS_DATA22 { \
-		 0x1e1e1e1e, 0x1, 0x3f7f3f7f }
-
-#define GAUDI3_PRIV_PROTBITS_DATA23 { \
-		 0x1e1e1e1e, 0x1, 0x3f7f3f7f }
-
-#define GAUDI3_PRIV_PROTBITS_DATA24 { \
-		 0x1e1e1e1e, 0x1, 0x1e1e1e1e, 0x1 }
 
 #define GAUDI3_PRIV_PROTBITS_DATA28 { \
 		 0x3711, 0x77 }
@@ -85,58 +51,35 @@
 #define GAUDI3_PRIV_PROTBITS_DATA29 { \
 		 0xff, 0x150000, 0xffffff, 0xffff0000, 0x50000 }
 
-#define GAUDI3_PRIV_PROTBITS_DATA30 { \
-		 0x1e1e1e1e, 0x1, 0x3f7f3f7f }
-
-#define GAUDI3_PRIV_PROTBITS_DATA31 { \
-		 0x1e1e1e1e, 0x1 }
-
-#define GAUDI3_PRIV_PROTBITS_DATA33 { \
-		 0x1e1e1e1e, 0x1 }
-
 #define GAUDI3_PRIV_PROTBITS_DATA35 { \
 		 0xfff83000, 0x1fffff }
 
 #define GAUDI3_PRIV_PROTBITS_DATA36 { \
-		 0xfb000000, 0x1fb1, 0x1dc, 0x3800000, 0xf783ef8, 0xff40ff4, \
-		0x1fffff, 0x7fff, 0x1fffff }
+		 0xff000000, 0x7ff7 }
 
 #define GAUDI3_PRIV_PROTBITS_DATA39 { \
 		0x7fff }
 
 #define GAUDI3_PRIV_PROTBITS_DATA42 { \
-		0x1fb1fb }
+		0x7ff7ff }
 
 #define GAUDI3_PRIV_PROTBITS_DATA43 { \
-		 0x3f, 0x40000000, 0x10 }
+		 0xffffffc0, 0x3f, 0x40000000, 0x10 }
 
 #define GAUDI3_PRIV_PROTBITS_DATA45 { \
-		0x80000000 }
-
-#define GAUDI3_PRIV_PROTBITS_DATA47 { \
-		 0xffffff, 0xffff0000, 0x3b850000, 0x1dc, 0x3800000, 0xf780000, \
-		0xff40000, 0x1fffff }
+		 0xfffffffc, 0x3, 0x80000000 }
 
 #define GAUDI3_PRIV_PROTBITS_DATA48 { \
-		 0xff, 0xde150000, 0x3, 0xffffff, 0xffff0000, 0x3b850000, 0xfb000000, \
-		0x1fb1, 0x1dc, 0x3800000, 0xf783ef8, 0xff40ff4, \
-		0x1fffff, 0x7fff, 0x1fffff }
-
-#define GAUDI3_PRIV_PROTBITS_DATA49 { \
-		 0xffffff, 0xffff0000, 0x3b850000, 0xf780000, 0xff40000, 0x1fffff }
-
-#define GAUDI3_PRIV_PROTBITS_DATA51 { \
-		 0x1dc, 0x3800000, 0xf780000, 0xff40000, 0x1fffff }
+		 0xff000000, 0x7ff7 }
 
 #define GAUDI3_PRIV_PROTBITS_DATA52 { \
-		 0x8fc3f1f1, 0x3e1fff, 0x6b00, 0x1fb1fb }
+		 0x8fc3f1f1, 0x3e1fff, 0x6b00, 0x7ff7ff }
 
 #define GAUDI3_PRIV_PROTBITS_DATA53 { \
 		 0x8020020f, 0x1, 0x100000 }
 
 #define GAUDI3_PRIV_PROTBITS_DATA54 { \
-		 0xfb000000, 0x1fb1, 0x1dc, 0x3800000, 0xf783ef8, 0xff40ff4, \
-		0x1fffff, 0x7fff, 0x1fffff }
+		 0xff000000, 0x7ff7 }
 
 #define GAUDI3_PRIV_PROTBITS_DATA56 { \
 		 0x5, 0xfff, 0x1f000000, 0x1f1f00, 0xf01f103 }
@@ -157,85 +100,60 @@
 		 0x11f70, 0x10000000, 0xff }
 
 #define GAUDI3_PRIV_PROTBITS_DATA68 { \
-		 0xff, 0xde150000, 0x3, 0xffffff, 0xffff0000, 0x3b850000, 0xfb000000, \
-		0x1fb1, 0xf783ef8, 0xff40ff4, 0x1fffff, 0x7fff, \
-		0x1fffff }
+		 0xff000000, 0x7ff7 }
 
 #define GAUDI3_PRIV_PROTBITS_DATA69 { \
-		 0xff, 0xde150000, 0x3, 0xffffff, 0xffff0000, 0x3b850000, 0xfb000000, \
-		0x1fb1, 0xf783ef8, 0xff40ff4, 0x1fffff, 0x7fff, \
-		0x1fffff }
+		 0xff000000, 0x7ff7 }
 
 #define GAUDI3_PRIV_PROTBITS_DATA70 { \
-		 0xff, 0xde150000, 0x3, 0xffffff, 0xffff0000, 0x3b850000, 0xfb000000, \
-		0x1fb1, 0xf783ef8, 0xff40ff4, 0x1fffff, 0x7fff, \
-		0x1fffff }
+		 0xff000000, 0x7ff7 }
 
 #define GAUDI3_PRIV_PROTBITS_DATA77 { \
-		 0xfb000000, 0x1fb1, 0x1dc, 0x3800000, 0xf783ef8, 0xff40ff4, \
-		0x1fffff, 0x7fff, 0x1fffff }
+		 0xff000000, 0x7ff7 }
 
 #define GAUDI3_PRIV_PROTBITS_DATA79 { \
 		0x404000 }
 
 #define GAUDI3_PRIV_PROTBITS_DATA80 { \
-		 0xfb000000, 0x1fb1, 0x1dc, 0x3800000, 0xf783ef8, 0xff40ff4, \
-		0x1fffff, 0x7fff, 0x1fffff }
+		 0xff000000, 0x7ff7 }
 
 #define GAUDI3_PRIV_PROTBITS_DATA83 { \
 		0x1fff }
 
 #define GAUDI3_PRIV_PROTBITS_DATA84 { \
-		 0xfb000000, 0x1fb1, 0x1dc, 0x3800000, 0xf783ef8, 0xff40ff4, \
-		0x1fffff, 0x7fff, 0x1fffff }
+		 0xff000000, 0x7ff7 }
 
 #define GAUDI3_PRIV_PROTBITS_DATA85 { \
 		0xff0000 }
-
-#define GAUDI3_PRIV_PROTBITS_DATA87 { \
-		 0x57fffff, 0xff818000 }
-
-#define GAUDI3_PRIV_PROTBITS_DATA88 { \
-		 0x1dc, 0x3800000, 0xf780000, 0xff40000, 0x1fffff }
 
 #define GAUDI3_PRIV_PROTBITS_DATA89 { \
 		 0xfffff003, 0xf, 0x3ff, 0x1ff }
 
 #define GAUDI3_PRIV_PROTBITS_DATA90 { \
-		 0xf7dffea, 0x1fb1fb, 0xfffbfe96, 0x1f, 0x1fb1fb, 0x1fb1fb }
+		 0xf7dffea, 0x7ff7ff, 0xfffbfe96, 0x1f, 0x7ff7ff, 0x7ff7ff }
 
 #define GAUDI3_PRIV_PROTBITS_DATA91 { \
-		 0xfe80ffff, 0x3ff, 0x1fffff, 0x1fffff, 0x70000000, 0x3f, 0xf06, \
-		0xf8000000, 0x3fff }
+		 0xfe80ffff, 0x3ff, 0x70000000, 0x3f, 0xf06, 0xf8000000, 0x3fff }
 
 #define GAUDI3_PRIV_PROTBITS_DATA92 { \
-		 0xfb000000, 0x1fb1, 0x1dc, 0x3800000, 0xf783ef8, 0xff40ff4, \
-		0x1fffff, 0x7fff, 0x1fffff }
+		 0xff000000, 0x7ff7 }
 
 #define GAUDI3_PRIV_PROTBITS_DATA93 { \
 		 0x57fffff, 0xff818000 }
-
-#define GAUDI3_PRIV_PROTBITS_DATA94 { \
-		 0x1dc, 0x3800000, 0xf780000, 0xff40000, 0x1fffff }
 
 #define GAUDI3_PRIV_PROTBITS_DATA117 { \
 		 0x8, 0x3000 }
 
 #define GAUDI3_PRIV_PROTBITS_DATA118 { \
-		 0xfb000000, 0x1fb1, 0x1dc, 0x3800000, 0xf783ef8, 0xff40ff4, \
-		0x1fffff, 0x7fff, 0x1fffff }
-
-#define GAUDI3_PRIV_PROTBITS_DATA121 { \
-		 0x1dc, 0x3800000, 0xf780000, 0xff40000, 0x1fffff }
+		 0xff000000, 0x7ff7 }
 
 #define GAUDI3_PRIV_PROTBITS_DATA122 { \
-		 0xffffc4c7, 0xffff7fff, 0xffff, 0x3000003, 0x8000ffff, 0x100d, \
+		 0xffffc4c7, 0xffff7fff, 0xffff, 0x3000003, 0x9000ffff, 0x100d, \
 		0xd800, 0x70000ff, 0x1ef80600, 0x3c0000, 0x13006d, \
 		0xc00c000 }
 
 #define GAUDI3_PRIV_PROTBITS_DATA123 { \
-		 0xffffbfef, 0xf7fcffff, 0xe03fff3f, 0x1ffc3c0, 0x1fb1fb, 0x1fffff, \
-		0x1fffff, 0x2 }
+		 0xffffbfef, 0xf7fcffff, 0xe03fff3f, 0x1ffc3c0, 0x7ff7ff, 0x2 }
 
 #define GAUDI3_PRIV_PROTBITS_DATA124 { \
 		 0xfdf0003f, 0xdfffffff, 0xfffff, 0xfffffdf9, 0xfffff01f, 0x7ffff, \
@@ -243,41 +161,40 @@
 		0xfe000000, 0x7ffffff }
 
 #define GAUDI3_PRIV_PROTBITS_DATA125 { \
-		 0x1fb1fb, 0x1fb1fb, 0x1fb1fb, 0x1fb1fb, 0x1fb1fb, 0x1fb1fb, \
-		0x1fb1fb }
+		 0x7ff7ff, 0x7ff7ff, 0x7ff7ff, 0x7ff7ff, 0x7ff7ff, 0x7ff7ff, \
+		0x7ff7ff }
 
 #define GAUDI3_PRIV_PROTBITS_DATA126 { \
-		 0xffffabff, 0x10ffc0ff, 0x1, 0x3 }
+		 0xffffabff, 0x10ffc0ff, 0x1 }
 
 #define GAUDI3_PRIV_PROTBITS_DATA127 { \
 		 0xfffff8ff, 0x327ffff, 0x15, 0x3ffffff, 0x1f3f0fff, 0x13f3ff, \
-		0x1fb1fb, 0x1fb1fb, 0xff0fffff, 0x701 }
+		0x7ff7ff, 0x7ff7ff, 0xff0fffff, 0x701 }
 
 #define GAUDI3_PRIV_PROTBITS_DATA128 { \
 		 0xff800ff1, 0x7fffc9ff, 0xfc3, 0xf, 0x3ff8, 0x33303337, 0x33303330, \
-		0x1fb1fb, 0x3f7, 0x3f71cc7 }
+		0x7ff7ff, 0x3f7, 0x3f71cc7 }
 
 #define GAUDI3_PRIV_PROTBITS_DATA129 { \
-		 0xfb000000, 0x1fb1, 0x1dc, 0x3800000, 0xf783ef8, 0xff40ff4, \
-		0x1fffff, 0x7fff, 0x1fffff }
+		 0xff000000, 0x7ff7 }
 
 #define GAUDI3_PRIV_PROTBITS_DATA130 { \
-		 0xfb000000, 0x1fb1, 0x3ef8, 0xff4, 0x1fffff, 0x7fff }
+		 0xff000000, 0x7ff7 }
 
 #define GAUDI3_PRIV_PROTBITS_DATA131 { \
-		 0xfffbffff, 0xc3ffffff, 0xfe3f03ff, 0x7f, 0x1f1f110, 0x1503f000, \
-		0x5, 0x1fb1fb }
+		 0xfffbffff, 0xc3ffffff, 0xfe3f03ff, 0x7f, 0x1f1f110, 0x15000000, \
+		0x5, 0x7ff7ff }
 
 #define GAUDI3_PRIV_PROTBITS_DATA132 { \
 		 0xffff0007, 0x5ff7ffff, 0xf9fffff8, 0x7fff, 0x10, 0x7ff7600, \
 		0x303171ff, 0xc0007f00, 0xf3ffff, 0xffff, 0xffff, \
-		0x81a, 0x1fb1fb, 0x1fb1fb }
+		0x81a, 0x7ff7ff, 0x7ff7ff }
 
 #define GAUDI3_PRIV_PROTBITS_DATA133 { \
 		 0xff1f003f, 0x3f3ff }
 
 #define GAUDI3_PRIV_PROTBITS_DATA134 { \
-		0x3ff }
+		0x3ef }
 
 #define GAUDI3_PRIV_PROTBITS_DATA135 { \
 		0x3f }
@@ -286,17 +203,16 @@
 		 0xfffff3f1, 0x1fff }
 
 #define GAUDI3_PRIV_PROTBITS_DATA137 { \
-		 0xffffc4c7, 0xffff7fff, 0xffff, 0x3000003, 0x8000ffff, 0x100d, \
+		 0xffffc4c7, 0xffff7fff, 0xffff, 0x3000003, 0x9000ffff, 0x100d, \
 		0xd800, 0x70000ff, 0x1ef80600, 0x3c0000, 0x13006d, \
 		0xc00c000 }
 
 #define GAUDI3_PRIV_PROTBITS_DATA138 { \
-		 0xffffbfef, 0xf7fcffff, 0xe03fff3f, 0x1ffc3c0, 0x1fb1fb, 0x1fffff, \
-		0x1fffff, 0x2 }
+		 0xffffbfef, 0xf7fcffff, 0xe03fff3f, 0x1ffc3c0, 0x7ff7ff, 0x2 }
 
 #define GAUDI3_PRIV_PROTBITS_DATA139 { \
 		 0x1fff, 0xfffff800, 0x3c07f, 0xfeff0fc0, 0xc007f93f, 0xf9fe73e2, \
-		0x1fb1fb }
+		0x7ff7ff }
 
 #define GAUDI3_PRIV_PROTBITS_DATA140 { \
 		 0xffffff, 0xffffff, 0xffffff, 0xffffff }
@@ -305,17 +221,10 @@
 		0xffff }
 
 #define GAUDI3_PRIV_PROTBITS_DATA142 { \
-		 0xfb000000, 0x1fb1, 0x1dc, 0x3800000, 0xf783ef8, 0xff40ff4, \
-		0x1fffff, 0x7fff, 0x1fffff }
+		 0xff000000, 0x7ff7 }
 
 #define GAUDI3_PRIV_PROTBITS_DATA143 { \
 		 0xff, 0x150000, 0xffffff, 0xffff0000, 0x50000 }
-
-#define GAUDI3_PRIV_PROTBITS_DATA144 { \
-		 0x1e1e1e1e, 0x1, 0x3f7f3f7f }
-
-#define GAUDI3_PRIV_PROTBITS_DATA146 { \
-		 0x1e1e1e1e, 0x1 }
 
 #define GAUDI3_PRIV_PROTBITS_DATA147 { \
 		 0x3f00077, 0x3, 0x1f7, 0x88, 0x3b00, 0x1 }
@@ -324,20 +233,18 @@
 		0x3fff1 }
 
 #define GAUDI3_PRIV_PROTBITS_DATA149 { \
-		 0xfb000000, 0x1fb1, 0x1dc, 0x3800000, 0xf783ef8, 0xff40ff4, \
-		0x1fffff, 0x7fff, 0x1fffff }
+		 0xff000000, 0x7ff7 }
 
 #define GAUDI3_PRIV_PROTBITS_DATA151 { \
-		 0xffffc4c7, 0xffff7fff, 0xffff, 0x3000003, 0x8000ffff, 0x100d, \
+		 0xffffc4c7, 0xffff7fff, 0xffff, 0x3000003, 0x9000ffff, 0x100d, \
 		0xd800, 0x70000ff, 0x1ef80600, 0x3c0000, 0x13006d, \
 		0xc00c000 }
 
 #define GAUDI3_PRIV_PROTBITS_DATA152 { \
-		 0xffffbfef, 0xf7fcffff, 0xe03fff3f, 0x1ffc3c0, 0x1fb1fb, 0x1fffff, \
-		0x1fffff, 0x2 }
+		 0xffffbfef, 0xf7fcffff, 0xe03fff3f, 0x1ffc3c0, 0x7ff7ff, 0x2 }
 
 #define GAUDI3_PRIV_PROTBITS_DATA153 { \
-		 0x3f, 0x1, 0x80000007, 0xc0001e07, 0x128003, 0xfffffffc, 0x3f }
+		 0x3f, 0x1, 0x80000807, 0xc0001e07, 0x128003, 0xfffffffc, 0x3f }
 
 #define GAUDI3_PRIV_PROTBITS_DATA154 { \
 		 0x3f, 0x3f, 0x3f, 0x3f }
@@ -346,20 +253,19 @@
 		 0xff, 0xff }
 
 #define GAUDI3_PRIV_PROTBITS_DATA156 { \
-		 0xfb000000, 0x1fb1, 0x1dc, 0x3800000, 0xf783ef8, 0xff40ff4, \
-		0x1fffff, 0x7fff, 0x1fffff }
+		 0xff000000, 0x7ff7 }
 
 #define GAUDI3_PRIV_PROTBITS_DATA157 { \
 		0x74a3ffce }
 
 #define GAUDI3_PRIV_PROTBITS_DATA158 { \
-		 0xfb000000, 0x1fb1, 0x3ef8, 0xff4, 0x1fffff, 0x7fff }
+		 0xff000000, 0x7ff7 }
 
 #define GAUDI3_PRIV_PROTBITS_DATA159 { \
 		0xfedf8 }
 
 #define GAUDI3_PRIV_PROTBITS_DATA160 { \
-		 0xfb000000, 0x1fb1, 0x3ef8, 0xff4, 0x1fffff, 0x7fff }
+		 0xff000000, 0x7ff7 }
 
 #define GAUDI3_PRIV_PROTBITS_DATA161 { \
 		 0x10, 0x13, 0xffff, 0xffff, 0x1 }
@@ -368,32 +274,22 @@
 		0x7f }
 
 #define GAUDI3_PRIV_PROTBITS_DATA164 { \
-		 0x10, 0x1000000, 0x1fb1fb, 0x1fb1fb, 0x1fb1fb, 0x1fb1fb, 0x1fb1fb }
+		 0x10, 0x1000000, 0x7ff7ff, 0x7ff7ff, 0x7ff7ff, 0x7ff7ff, 0x7ff7ff }
 
 #define GAUDI3_PRIV_PROTBITS_DATA166 { \
-		 0xfb000000, 0x1fb1, 0x1dc, 0x3800000, 0xf783ef8, 0xff40ff4, \
-		0x1fffff, 0x7fff, 0x1fffff }
+		 0xff000000, 0x7ff7 }
 
 #define GAUDI3_PRIV_PROTBITS_DATA167 { \
 		 0xff, 0x150000, 0xffffff, 0xffff0000, 0x50000 }
 
-#define GAUDI3_PRIV_PROTBITS_DATA168 { \
-		 0x1e1e1e1e, 0x1, 0x3f7f3f7f }
-
-#define GAUDI3_PRIV_PROTBITS_DATA170 { \
-		 0x1e1e1e1e, 0x1 }
-
 #define GAUDI3_PRIV_PROTBITS_DATA173 { \
-		 0x600, 0x40000000, 0x2 }
+		 0x2600, 0x40000000, 0x3 }
 
 #define GAUDI3_PRIV_PROTBITS_DATA174 { \
 		 0xffff, 0x55555557, 0x55555555, 0x1500, 0x180000, 0x1ff }
 
-#define GAUDI3_PRIV_PROTBITS_DATA175 { \
-		 0xf780000, 0xff40000, 0x1fffff }
-
 #define GAUDI3_PRIV_PROTBITS_DATA176 { \
-		 0xffffc4c7, 0xffff7fff, 0xffff, 0x3000003, 0x8000ffff, 0x100d, \
+		 0xffffc4c7, 0xffff7fff, 0xffff, 0x3000003, 0x9000ffff, 0x100d, \
 		0xd800, 0x70000ff, 0x1ef80600, 0x3c0000, 0x13006d, \
 		0xc00c000 }
 
@@ -401,8 +297,7 @@
 		 0xc000c, 0xffff }
 
 #define GAUDI3_PRIV_PROTBITS_DATA178 { \
-		 0xfb000000, 0x1fb1, 0x1dc, 0x3800000, 0xf783ef8, 0xff40ff4, \
-		0x1fffff, 0x7fff, 0x1fffff }
+		 0xff000000, 0x7ff7 }
 
 #define GAUDI3_PRIV_PROTBITS_DATA179 { \
 		 0x7, 0xffff, 0x2, 0x1ffff, 0xff }
@@ -414,22 +309,17 @@
 		0x1, 0xfffffffe, 0x1, 0x301e, 0xe }
 
 #define GAUDI3_PRIV_PROTBITS_DATA181 { \
-		 0x1fb1fb, 0x10 }
+		 0x7ff7ff, 0x10 }
 
 #define GAUDI3_PRIV_PROTBITS_DATA182 { \
-		 0xfff07c03, 0x1fbfffff, 0x1fb, 0x1fb00000, 0x1fb, 0x1fb00000, \
-		0x1fb }
+		 0xfff07c03, 0x7fffffff, 0x7ff, 0x7ff00000, 0x7ff, 0x7ff00000, \
+		0x7ff }
 
 #define GAUDI3_PRIV_PROTBITS_DATA183 { \
-		 0xff, 0xde150000, 0x3, 0xffffff, 0xffff0000, 0x3b850000, 0xfb000000, \
-		0x1fb1, 0x1dc, 0x3800000, 0xf783ef8, 0xff40ff4, \
-		0x1fffff, 0x7fff, 0x1fffff }
+		 0xff000000, 0x7ff7 }
 
 #define GAUDI3_PRIV_PROTBITS_DATA184 { \
 		 0xffff, 0x55555557, 0x55555555, 0x1500, 0x180000, 0x1ff }
-
-#define GAUDI3_PRIV_PROTBITS_DATA185 { \
-		 0x1dc, 0x3800000, 0xf780000, 0xff40000, 0x1fffff }
 
 #define GAUDI3_PRIV_PROTBITS_DATA186 { \
 		0xc0000 }
@@ -443,35 +333,18 @@ static const uint32_t gaudi3_priv_protbits_data3[] = GAUDI3_PRIV_PROTBITS_DATA3;
 static const uint32_t gaudi3_priv_protbits_data4[] = GAUDI3_PRIV_PROTBITS_DATA4; \
 static const uint32_t gaudi3_priv_protbits_data5[] = GAUDI3_PRIV_PROTBITS_DATA5; \
 static const uint32_t gaudi3_priv_protbits_data6[] = GAUDI3_PRIV_PROTBITS_DATA6; \
-static const uint32_t gaudi3_priv_protbits_data7[] = GAUDI3_PRIV_PROTBITS_DATA7; \
 static const uint32_t gaudi3_priv_protbits_data8[] = GAUDI3_PRIV_PROTBITS_DATA8; \
-static const uint32_t gaudi3_priv_protbits_data9[] = GAUDI3_PRIV_PROTBITS_DATA9; \
-static const uint32_t gaudi3_priv_protbits_data10[] = GAUDI3_PRIV_PROTBITS_DATA10; \
-static const uint32_t gaudi3_priv_protbits_data11[] = GAUDI3_PRIV_PROTBITS_DATA11; \
-static const uint32_t gaudi3_priv_protbits_data12[] = GAUDI3_PRIV_PROTBITS_DATA12; \
 static const uint32_t gaudi3_priv_protbits_data14[] = GAUDI3_PRIV_PROTBITS_DATA14; \
-static const uint32_t gaudi3_priv_protbits_data15[] = GAUDI3_PRIV_PROTBITS_DATA15; \
-static const uint32_t gaudi3_priv_protbits_data16[] = GAUDI3_PRIV_PROTBITS_DATA16; \
 static const uint32_t gaudi3_priv_protbits_data20[] = GAUDI3_PRIV_PROTBITS_DATA20; \
-static const uint32_t gaudi3_priv_protbits_data21[] = GAUDI3_PRIV_PROTBITS_DATA21; \
-static const uint32_t gaudi3_priv_protbits_data22[] = GAUDI3_PRIV_PROTBITS_DATA22; \
-static const uint32_t gaudi3_priv_protbits_data23[] = GAUDI3_PRIV_PROTBITS_DATA23; \
-static const uint32_t gaudi3_priv_protbits_data24[] = GAUDI3_PRIV_PROTBITS_DATA24; \
 static const uint32_t gaudi3_priv_protbits_data28[] = GAUDI3_PRIV_PROTBITS_DATA28; \
 static const uint32_t gaudi3_priv_protbits_data29[] = GAUDI3_PRIV_PROTBITS_DATA29; \
-static const uint32_t gaudi3_priv_protbits_data30[] = GAUDI3_PRIV_PROTBITS_DATA30; \
-static const uint32_t gaudi3_priv_protbits_data31[] = GAUDI3_PRIV_PROTBITS_DATA31; \
-static const uint32_t gaudi3_priv_protbits_data33[] = GAUDI3_PRIV_PROTBITS_DATA33; \
 static const uint32_t gaudi3_priv_protbits_data35[] = GAUDI3_PRIV_PROTBITS_DATA35; \
 static const uint32_t gaudi3_priv_protbits_data36[] = GAUDI3_PRIV_PROTBITS_DATA36; \
 static const uint32_t gaudi3_priv_protbits_data39[] = GAUDI3_PRIV_PROTBITS_DATA39; \
 static const uint32_t gaudi3_priv_protbits_data42[] = GAUDI3_PRIV_PROTBITS_DATA42; \
 static const uint32_t gaudi3_priv_protbits_data43[] = GAUDI3_PRIV_PROTBITS_DATA43; \
 static const uint32_t gaudi3_priv_protbits_data45[] = GAUDI3_PRIV_PROTBITS_DATA45; \
-static const uint32_t gaudi3_priv_protbits_data47[] = GAUDI3_PRIV_PROTBITS_DATA47; \
 static const uint32_t gaudi3_priv_protbits_data48[] = GAUDI3_PRIV_PROTBITS_DATA48; \
-static const uint32_t gaudi3_priv_protbits_data49[] = GAUDI3_PRIV_PROTBITS_DATA49; \
-static const uint32_t gaudi3_priv_protbits_data51[] = GAUDI3_PRIV_PROTBITS_DATA51; \
 static const uint32_t gaudi3_priv_protbits_data52[] = GAUDI3_PRIV_PROTBITS_DATA52; \
 static const uint32_t gaudi3_priv_protbits_data53[] = GAUDI3_PRIV_PROTBITS_DATA53; \
 static const uint32_t gaudi3_priv_protbits_data54[] = GAUDI3_PRIV_PROTBITS_DATA54; \
@@ -490,17 +363,13 @@ static const uint32_t gaudi3_priv_protbits_data80[] = GAUDI3_PRIV_PROTBITS_DATA8
 static const uint32_t gaudi3_priv_protbits_data83[] = GAUDI3_PRIV_PROTBITS_DATA83; \
 static const uint32_t gaudi3_priv_protbits_data84[] = GAUDI3_PRIV_PROTBITS_DATA84; \
 static const uint32_t gaudi3_priv_protbits_data85[] = GAUDI3_PRIV_PROTBITS_DATA85; \
-static const uint32_t gaudi3_priv_protbits_data87[] = GAUDI3_PRIV_PROTBITS_DATA87; \
-static const uint32_t gaudi3_priv_protbits_data88[] = GAUDI3_PRIV_PROTBITS_DATA88; \
 static const uint32_t gaudi3_priv_protbits_data89[] = GAUDI3_PRIV_PROTBITS_DATA89; \
 static const uint32_t gaudi3_priv_protbits_data90[] = GAUDI3_PRIV_PROTBITS_DATA90; \
 static const uint32_t gaudi3_priv_protbits_data91[] = GAUDI3_PRIV_PROTBITS_DATA91; \
 static const uint32_t gaudi3_priv_protbits_data92[] = GAUDI3_PRIV_PROTBITS_DATA92; \
 static const uint32_t gaudi3_priv_protbits_data93[] = GAUDI3_PRIV_PROTBITS_DATA93; \
-static const uint32_t gaudi3_priv_protbits_data94[] = GAUDI3_PRIV_PROTBITS_DATA94; \
 static const uint32_t gaudi3_priv_protbits_data117[] = GAUDI3_PRIV_PROTBITS_DATA117; \
 static const uint32_t gaudi3_priv_protbits_data118[] = GAUDI3_PRIV_PROTBITS_DATA118; \
-static const uint32_t gaudi3_priv_protbits_data121[] = GAUDI3_PRIV_PROTBITS_DATA121; \
 static const uint32_t gaudi3_priv_protbits_data122[] = GAUDI3_PRIV_PROTBITS_DATA122; \
 static const uint32_t gaudi3_priv_protbits_data123[] = GAUDI3_PRIV_PROTBITS_DATA123; \
 static const uint32_t gaudi3_priv_protbits_data124[] = GAUDI3_PRIV_PROTBITS_DATA124; \
@@ -523,8 +392,6 @@ static const uint32_t gaudi3_priv_protbits_data140[] = GAUDI3_PRIV_PROTBITS_DATA
 static const uint32_t gaudi3_priv_protbits_data141[] = GAUDI3_PRIV_PROTBITS_DATA141; \
 static const uint32_t gaudi3_priv_protbits_data142[] = GAUDI3_PRIV_PROTBITS_DATA142; \
 static const uint32_t gaudi3_priv_protbits_data143[] = GAUDI3_PRIV_PROTBITS_DATA143; \
-static const uint32_t gaudi3_priv_protbits_data144[] = GAUDI3_PRIV_PROTBITS_DATA144; \
-static const uint32_t gaudi3_priv_protbits_data146[] = GAUDI3_PRIV_PROTBITS_DATA146; \
 static const uint32_t gaudi3_priv_protbits_data147[] = GAUDI3_PRIV_PROTBITS_DATA147; \
 static const uint32_t gaudi3_priv_protbits_data148[] = GAUDI3_PRIV_PROTBITS_DATA148; \
 static const uint32_t gaudi3_priv_protbits_data149[] = GAUDI3_PRIV_PROTBITS_DATA149; \
@@ -543,11 +410,8 @@ static const uint32_t gaudi3_priv_protbits_data162[] = GAUDI3_PRIV_PROTBITS_DATA
 static const uint32_t gaudi3_priv_protbits_data164[] = GAUDI3_PRIV_PROTBITS_DATA164; \
 static const uint32_t gaudi3_priv_protbits_data166[] = GAUDI3_PRIV_PROTBITS_DATA166; \
 static const uint32_t gaudi3_priv_protbits_data167[] = GAUDI3_PRIV_PROTBITS_DATA167; \
-static const uint32_t gaudi3_priv_protbits_data168[] = GAUDI3_PRIV_PROTBITS_DATA168; \
-static const uint32_t gaudi3_priv_protbits_data170[] = GAUDI3_PRIV_PROTBITS_DATA170; \
 static const uint32_t gaudi3_priv_protbits_data173[] = GAUDI3_PRIV_PROTBITS_DATA173; \
 static const uint32_t gaudi3_priv_protbits_data174[] = GAUDI3_PRIV_PROTBITS_DATA174; \
-static const uint32_t gaudi3_priv_protbits_data175[] = GAUDI3_PRIV_PROTBITS_DATA175; \
 static const uint32_t gaudi3_priv_protbits_data176[] = GAUDI3_PRIV_PROTBITS_DATA176; \
 static const uint32_t gaudi3_priv_protbits_data177[] = GAUDI3_PRIV_PROTBITS_DATA177; \
 static const uint32_t gaudi3_priv_protbits_data178[] = GAUDI3_PRIV_PROTBITS_DATA178; \
@@ -557,7 +421,6 @@ static const uint32_t gaudi3_priv_protbits_data181[] = GAUDI3_PRIV_PROTBITS_DATA
 static const uint32_t gaudi3_priv_protbits_data182[] = GAUDI3_PRIV_PROTBITS_DATA182; \
 static const uint32_t gaudi3_priv_protbits_data183[] = GAUDI3_PRIV_PROTBITS_DATA183; \
 static const uint32_t gaudi3_priv_protbits_data184[] = GAUDI3_PRIV_PROTBITS_DATA184; \
-static const uint32_t gaudi3_priv_protbits_data185[] = GAUDI3_PRIV_PROTBITS_DATA185; \
 static const uint32_t gaudi3_priv_protbits_data186[] = GAUDI3_PRIV_PROTBITS_DATA186
 
 #define GAUDI3_PRIV_PROTBITS_CFG { \
@@ -593,7 +456,7 @@ static const uint32_t gaudi3_priv_protbits_data186[] = GAUDI3_PRIV_PROTBITS_DATA
 	}, \
 	{{ GAUDI3_BLOCK_TYPE_TPC, 0xf004d000, 8, 8, 0, 0x1000000, 0x200000, 0x0 }, \
 	  .prot_map = 0x800c0000, \
-	  .data_map = 0xb80000f, \
+	  .data_map = 0x880000f, \
 	  .data = gaudi3_priv_protbits_data5, \
 	  .data_size = ARRAY_SIZE(gaudi3_priv_protbits_data5) \
 	}, \
@@ -604,10 +467,10 @@ static const uint32_t gaudi3_priv_protbits_data186[] = GAUDI3_PRIV_PROTBITS_DATA
 	  .data_size = ARRAY_SIZE(gaudi3_priv_protbits_data6) \
 	}, \
 	{{ GAUDI3_BLOCK_TYPE_RTR, 0xfc001000, 2, 1, 0, 0x800000, 0x0, 0x0 }, \
-	  .prot_map = 0x80000001, \
-	  .data_map = 0x2, \
-	  .data = gaudi3_priv_protbits_data7, \
-	  .data_size = ARRAY_SIZE(gaudi3_priv_protbits_data7) \
+	  .prot_map = 0x80000000, \
+	  .data_map = 0x0, \
+	  .data = NULL, \
+	  .data_size = 0 \
 	}, \
 	{{ GAUDI3_BLOCK_TYPE_RTR, 0xfc002000, 2, 0, 0, 0x800000, 0x0, 0x0 }, \
 	  .prot_map = 0x80001100, \
@@ -617,27 +480,27 @@ static const uint32_t gaudi3_priv_protbits_data186[] = GAUDI3_PRIV_PROTBITS_DATA
 	}, \
 	{{ GAUDI3_BLOCK_TYPE_RTR, 0xfc003000, 2, 0, 0, 0x800000, 0x0, 0x0 }, \
 	  .prot_map = 0x80000000, \
-	  .data_map = 0x1030, \
-	  .data = gaudi3_priv_protbits_data9, \
-	  .data_size = ARRAY_SIZE(gaudi3_priv_protbits_data9) \
+	  .data_map = 0x0, \
+	  .data = NULL, \
+	  .data_size = 0 \
 	}, \
 	{{ GAUDI3_BLOCK_TYPE_RTR, 0xfc004000, 2, 0, 0, 0x800000, 0x0, 0x0 }, \
 	  .prot_map = 0x80000000, \
-	  .data_map = 0x1030, \
-	  .data = gaudi3_priv_protbits_data10, \
-	  .data_size = ARRAY_SIZE(gaudi3_priv_protbits_data10) \
+	  .data_map = 0x0, \
+	  .data = NULL, \
+	  .data_size = 0 \
 	}, \
 	{{ GAUDI3_BLOCK_TYPE_RTR, 0xfc005000, 2, 0, 0, 0x800000, 0x0, 0x0 }, \
 	  .prot_map = 0x80000000, \
-	  .data_map = 0x1030, \
-	  .data = gaudi3_priv_protbits_data11, \
-	  .data_size = ARRAY_SIZE(gaudi3_priv_protbits_data11) \
+	  .data_map = 0x0, \
+	  .data = NULL, \
+	  .data_size = 0 \
 	}, \
 	{{ GAUDI3_BLOCK_TYPE_RTR, 0xfc006000, 2, 0, 0, 0x800000, 0x0, 0x0 }, \
 	  .prot_map = 0x80000000, \
-	  .data_map = 0x3030, \
-	  .data = gaudi3_priv_protbits_data12, \
-	  .data_size = ARRAY_SIZE(gaudi3_priv_protbits_data12) \
+	  .data_map = 0x0, \
+	  .data = NULL, \
+	  .data_size = 0 \
 	}, \
 	{{ GAUDI3_BLOCK_TYPE_RTR, 0xfc007000, 2, 1, 2, 0x800000, 0x0, 0x4000 }, \
 	  .prot_map = 0x80000000, \
@@ -653,15 +516,15 @@ static const uint32_t gaudi3_priv_protbits_data186[] = GAUDI3_PRIV_PROTBITS_DATA
 	}, \
 	{{ GAUDI3_BLOCK_TYPE_RTR, 0xfc009000, 2, 0, 0, 0x800000, 0x0, 0x0 }, \
 	  .prot_map = 0x80000000, \
-	  .data_map = 0x1030, \
-	  .data = gaudi3_priv_protbits_data15, \
-	  .data_size = ARRAY_SIZE(gaudi3_priv_protbits_data15) \
+	  .data_map = 0x0, \
+	  .data = NULL, \
+	  .data_size = 0 \
 	}, \
 	{{ GAUDI3_BLOCK_TYPE_RTR, 0xfc00a000, 2, 0, 0, 0x800000, 0x0, 0x0 }, \
 	  .prot_map = 0x80000000, \
-	  .data_map = 0x30, \
-	  .data = gaudi3_priv_protbits_data16, \
-	  .data_size = ARRAY_SIZE(gaudi3_priv_protbits_data16) \
+	  .data_map = 0x0, \
+	  .data = NULL, \
+	  .data_size = 0 \
 	}, \
 	{{ GAUDI3_BLOCK_TYPE_RTR, 0xfc00e000, 2, 0, 0, 0x800000, 0x0, 0x0 }, \
 	  .prot_map = 0x80000000, \
@@ -689,27 +552,27 @@ static const uint32_t gaudi3_priv_protbits_data186[] = GAUDI3_PRIV_PROTBITS_DATA
 	}, \
 	{{ GAUDI3_BLOCK_TYPE_RTR, 0xfc022000, 2, 0, 0, 0x800000, 0x0, 0x0 }, \
 	  .prot_map = 0x80000000, \
-	  .data_map = 0x1030, \
-	  .data = gaudi3_priv_protbits_data21, \
-	  .data_size = ARRAY_SIZE(gaudi3_priv_protbits_data21) \
+	  .data_map = 0x0, \
+	  .data = NULL, \
+	  .data_size = 0 \
 	}, \
 	{{ GAUDI3_BLOCK_TYPE_RTR, 0xfc023000, 2, 0, 0, 0x800000, 0x0, 0x0 }, \
 	  .prot_map = 0x80000000, \
-	  .data_map = 0x1030, \
-	  .data = gaudi3_priv_protbits_data22, \
-	  .data_size = ARRAY_SIZE(gaudi3_priv_protbits_data22) \
+	  .data_map = 0x0, \
+	  .data = NULL, \
+	  .data_size = 0 \
 	}, \
 	{{ GAUDI3_BLOCK_TYPE_RTR, 0xfc024000, 2, 0, 0, 0x800000, 0x0, 0x0 }, \
 	  .prot_map = 0x80000000, \
-	  .data_map = 0x1030, \
-	  .data = gaudi3_priv_protbits_data23, \
-	  .data_size = ARRAY_SIZE(gaudi3_priv_protbits_data23) \
+	  .data_map = 0x0, \
+	  .data = NULL, \
+	  .data_size = 0 \
 	}, \
 	{{ GAUDI3_BLOCK_TYPE_RTR, 0xfc025000, 2, 0, 0, 0x800000, 0x0, 0x0 }, \
 	  .prot_map = 0x80000000, \
-	  .data_map = 0x3030, \
-	  .data = gaudi3_priv_protbits_data24, \
-	  .data_size = ARRAY_SIZE(gaudi3_priv_protbits_data24) \
+	  .data_map = 0x0, \
+	  .data = NULL, \
+	  .data_size = 0 \
 	}, \
 	{{ GAUDI3_BLOCK_TYPE_RTR, 0xfc026000, 2, 0, 0, 0x800000, 0x0, 0x0 }, \
 	  .prot_map = 0x80000000, \
@@ -743,15 +606,15 @@ static const uint32_t gaudi3_priv_protbits_data186[] = GAUDI3_PRIV_PROTBITS_DATA
 	}, \
 	{{ GAUDI3_BLOCK_TYPE_RTR, 0xfc042000, 2, 2, 0, 0x800000, 0x10000, 0x0 }, \
 	  .prot_map = 0x80000000, \
-	  .data_map = 0x1030, \
-	  .data = gaudi3_priv_protbits_data30, \
-	  .data_size = ARRAY_SIZE(gaudi3_priv_protbits_data30) \
+	  .data_map = 0x0, \
+	  .data = NULL, \
+	  .data_size = 0 \
 	}, \
 	{{ GAUDI3_BLOCK_TYPE_RTR, 0xfc043000, 2, 0, 0, 0x800000, 0x0, 0x0 }, \
 	  .prot_map = 0x80000000, \
-	  .data_map = 0x30, \
-	  .data = gaudi3_priv_protbits_data31, \
-	  .data_size = ARRAY_SIZE(gaudi3_priv_protbits_data31) \
+	  .data_map = 0x0, \
+	  .data = NULL, \
+	  .data_size = 0 \
 	}, \
 	{{ GAUDI3_BLOCK_TYPE_RTR, 0xfc044000, 2, 2, 0, 0x800000, 0x10000, 0x0 }, \
 	  .prot_map = 0x80000000, \
@@ -761,9 +624,9 @@ static const uint32_t gaudi3_priv_protbits_data186[] = GAUDI3_PRIV_PROTBITS_DATA
 	}, \
 	{{ GAUDI3_BLOCK_TYPE_RTR, 0xfc053000, 2, 0, 0, 0x800000, 0x0, 0x0 }, \
 	  .prot_map = 0x80000000, \
-	  .data_map = 0x30, \
-	  .data = gaudi3_priv_protbits_data33, \
-	  .data_size = ARRAY_SIZE(gaudi3_priv_protbits_data33) \
+	  .data_map = 0x0, \
+	  .data = NULL, \
+	  .data_size = 0 \
 	}, \
 	{{ GAUDI3_BLOCK_TYPE_NIC, 0xfc0c0000, 2, 0, 0, 0x800000, 0x0, 0x0 }, \
 	  .prot_map = 0x80000000, \
@@ -779,7 +642,7 @@ static const uint32_t gaudi3_priv_protbits_data186[] = GAUDI3_PRIV_PROTBITS_DATA
 	}, \
 	{{ GAUDI3_BLOCK_TYPE_NIC, 0xfc0c2000, 2, 0, 0, 0x800000, 0x0, 0x0 }, \
 	  .prot_map = 0x80000000, \
-	  .data_map = 0x1f090c00, \
+	  .data_map = 0xc00, \
 	  .data = gaudi3_priv_protbits_data36, \
 	  .data_size = ARRAY_SIZE(gaudi3_priv_protbits_data36) \
 	}, \
@@ -821,7 +684,7 @@ static const uint32_t gaudi3_priv_protbits_data186[] = GAUDI3_PRIV_PROTBITS_DATA
 	}, \
 	{{ GAUDI3_BLOCK_TYPE_PCIE, 0xfc401000, 2, 0, 0, 0x800000, 0x0, 0x0 }, \
 	  .prot_map = 0x80000000, \
-	  .data_map = 0x18000004, \
+	  .data_map = 0x18000030, \
 	  .data = gaudi3_priv_protbits_data43, \
 	  .data_size = ARRAY_SIZE(gaudi3_priv_protbits_data43) \
 	}, \
@@ -833,7 +696,7 @@ static const uint32_t gaudi3_priv_protbits_data186[] = GAUDI3_PRIV_PROTBITS_DATA
 	}, \
 	{{ GAUDI3_BLOCK_TYPE_PCIE, 0xfc407000, 2, 0, 0, 0x800000, 0x0, 0x0 }, \
 	  .prot_map = 0x80000000, \
-	  .data_map = 0x80000, \
+	  .data_map = 0x80003, \
 	  .data = gaudi3_priv_protbits_data45, \
 	  .data_size = ARRAY_SIZE(gaudi3_priv_protbits_data45) \
 	}, \
@@ -844,22 +707,22 @@ static const uint32_t gaudi3_priv_protbits_data186[] = GAUDI3_PRIV_PROTBITS_DATA
 	  .data_size = 0 \
 	}, \
 	{{ GAUDI3_BLOCK_TYPE_PCIE, 0xfc414000, 2, 0, 0, 0x800000, 0x0, 0x0 }, \
-	  .prot_map = 0x80000010, \
-	  .data_map = 0x130901a0, \
-	  .data = gaudi3_priv_protbits_data47, \
-	  .data_size = ARRAY_SIZE(gaudi3_priv_protbits_data47) \
+	  .prot_map = 0x80000000, \
+	  .data_map = 0x0, \
+	  .data = NULL, \
+	  .data_size = 0 \
 	}, \
 	{{ GAUDI3_BLOCK_TYPE_PCIE, 0xfc415000, 2, 0, 0, 0x800000, 0x0, 0x0 }, \
-	  .prot_map = 0x80000011, \
-	  .data_map = 0x1f090dae, \
+	  .prot_map = 0x80000000, \
+	  .data_map = 0xc00, \
 	  .data = gaudi3_priv_protbits_data48, \
 	  .data_size = ARRAY_SIZE(gaudi3_priv_protbits_data48) \
 	}, \
 	{{ GAUDI3_BLOCK_TYPE_PCIE, 0xfc416000, 2, 0, 0, 0x800000, 0x0, 0x0 }, \
-	  .prot_map = 0x80000010, \
-	  .data_map = 0x130001a0, \
-	  .data = gaudi3_priv_protbits_data49, \
-	  .data_size = ARRAY_SIZE(gaudi3_priv_protbits_data49) \
+	  .prot_map = 0x80000000, \
+	  .data_map = 0x0, \
+	  .data = NULL, \
+	  .data_size = 0 \
 	}, \
 	{{ GAUDI3_BLOCK_TYPE_PCIE, 0xfc418000, 2, 0, 0, 0x800000, 0x0, 0x0 }, \
 	  .prot_map = 0x80000000, \
@@ -869,9 +732,9 @@ static const uint32_t gaudi3_priv_protbits_data186[] = GAUDI3_PRIV_PROTBITS_DATA
 	}, \
 	{{ GAUDI3_BLOCK_TYPE_PCIE, 0xfc41b000, 2, 0, 0, 0x800000, 0x0, 0x0 }, \
 	  .prot_map = 0x80000000, \
-	  .data_map = 0x13090000, \
-	  .data = gaudi3_priv_protbits_data51, \
-	  .data_size = ARRAY_SIZE(gaudi3_priv_protbits_data51) \
+	  .data_map = 0x0, \
+	  .data = NULL, \
+	  .data_size = 0 \
 	}, \
 	{{ GAUDI3_BLOCK_TYPE_PMMU, 0xfc440000, 2, 0, 0, 0x800000, 0x0, 0x0 }, \
 	  .prot_map = 0x80000000, \
@@ -887,7 +750,7 @@ static const uint32_t gaudi3_priv_protbits_data186[] = GAUDI3_PRIV_PROTBITS_DATA
 	}, \
 	{{ GAUDI3_BLOCK_TYPE_PMMU, 0xfc442000, 2, 0, 0, 0x800000, 0x0, 0x0 }, \
 	  .prot_map = 0x80000000, \
-	  .data_map = 0x1f090c00, \
+	  .data_map = 0xc00, \
 	  .data = gaudi3_priv_protbits_data54, \
 	  .data_size = ARRAY_SIZE(gaudi3_priv_protbits_data54) \
 	}, \
@@ -970,20 +833,20 @@ static const uint32_t gaudi3_priv_protbits_data186[] = GAUDI3_PRIV_PROTBITS_DATA
 	  .data_size = ARRAY_SIZE(gaudi3_priv_protbits_data67) \
 	}, \
 	{{ GAUDI3_BLOCK_TYPE_PSOC, 0xfc495000, 2, 0, 0, 0x800000, 0x0, 0x0 }, \
-	  .prot_map = 0x80000011, \
-	  .data_map = 0x1f000dae, \
+	  .prot_map = 0x80000000, \
+	  .data_map = 0xc00, \
 	  .data = gaudi3_priv_protbits_data68, \
 	  .data_size = ARRAY_SIZE(gaudi3_priv_protbits_data68) \
 	}, \
 	{{ GAUDI3_BLOCK_TYPE_PSOC, 0xfc496000, 2, 0, 0, 0x800000, 0x0, 0x0 }, \
-	  .prot_map = 0x80000011, \
-	  .data_map = 0x1f000dae, \
+	  .prot_map = 0x80000000, \
+	  .data_map = 0xc00, \
 	  .data = gaudi3_priv_protbits_data69, \
 	  .data_size = ARRAY_SIZE(gaudi3_priv_protbits_data69) \
 	}, \
 	{{ GAUDI3_BLOCK_TYPE_PSOC, 0xfc497000, 2, 0, 0, 0x800000, 0x0, 0x0 }, \
-	  .prot_map = 0x80000011, \
-	  .data_map = 0x1f000dae, \
+	  .prot_map = 0x80000000, \
+	  .data_map = 0xc00, \
 	  .data = gaudi3_priv_protbits_data70, \
 	  .data_size = ARRAY_SIZE(gaudi3_priv_protbits_data70) \
 	}, \
@@ -1025,7 +888,7 @@ static const uint32_t gaudi3_priv_protbits_data186[] = GAUDI3_PRIV_PROTBITS_DATA
 	}, \
 	{{ GAUDI3_BLOCK_TYPE_PSOC, 0xfc4a8000, 2, 0, 0, 0x800000, 0x0, 0x0 }, \
 	  .prot_map = 0x80000000, \
-	  .data_map = 0x1f090c00, \
+	  .data_map = 0xc00, \
 	  .data = gaudi3_priv_protbits_data77, \
 	  .data_size = ARRAY_SIZE(gaudi3_priv_protbits_data77) \
 	}, \
@@ -1043,7 +906,7 @@ static const uint32_t gaudi3_priv_protbits_data186[] = GAUDI3_PRIV_PROTBITS_DATA
 	}, \
 	{{ GAUDI3_BLOCK_TYPE_PSOC, 0xfc4d1000, 2, 0, 0, 0x800000, 0x0, 0x0 }, \
 	  .prot_map = 0x80000000, \
-	  .data_map = 0x1f090c00, \
+	  .data_map = 0xc00, \
 	  .data = gaudi3_priv_protbits_data80, \
 	  .data_size = ARRAY_SIZE(gaudi3_priv_protbits_data80) \
 	}, \
@@ -1067,7 +930,7 @@ static const uint32_t gaudi3_priv_protbits_data186[] = GAUDI3_PRIV_PROTBITS_DATA
 	}, \
 	{{ GAUDI3_BLOCK_TYPE_PSOC, 0xfc4e1000, 2, 3, 0, 0x800000, 0x3000, 0x0 }, \
 	  .prot_map = 0x80000000, \
-	  .data_map = 0x1f090c00, \
+	  .data_map = 0xc00, \
 	  .data = gaudi3_priv_protbits_data84, \
 	  .data_size = ARRAY_SIZE(gaudi3_priv_protbits_data84) \
 	}, \
@@ -1084,16 +947,16 @@ static const uint32_t gaudi3_priv_protbits_data186[] = GAUDI3_PRIV_PROTBITS_DATA
 	  .data_size = 0 \
 	}, \
 	{{ GAUDI3_BLOCK_TYPE_PSOC, 0xfc4f4000, 2, 0, 0, 0x800000, 0x0, 0x0 }, \
-	  .prot_map = 0x87ffffff, \
-	  .data_map = 0x18000000, \
-	  .data = gaudi3_priv_protbits_data87, \
-	  .data_size = ARRAY_SIZE(gaudi3_priv_protbits_data87) \
+	  .prot_map = 0x80000000, \
+	  .data_map = 0x0, \
+	  .data = NULL, \
+	  .data_size = 0 \
 	}, \
 	{{ GAUDI3_BLOCK_TYPE_PSOC, 0xfc4f5000, 2, 0, 0, 0x800000, 0x0, 0x0 }, \
 	  .prot_map = 0x80000000, \
-	  .data_map = 0x13090000, \
-	  .data = gaudi3_priv_protbits_data88, \
-	  .data_size = ARRAY_SIZE(gaudi3_priv_protbits_data88) \
+	  .data_map = 0x0, \
+	  .data = NULL, \
+	  .data_size = 0 \
 	}, \
 	{{ GAUDI3_BLOCK_TYPE_PDMA, 0xfc540000, 2, 2, 6, 0x800000, 0x20000, 0x1000 }, \
 	  .prot_map = 0x80000047, \
@@ -1109,13 +972,13 @@ static const uint32_t gaudi3_priv_protbits_data186[] = GAUDI3_PRIV_PROTBITS_DATA
 	}, \
 	{{ GAUDI3_BLOCK_TYPE_PDMA, 0xfc54c000, 2, 2, 0, 0x800000, 0x20000, 0x0 }, \
 	  .prot_map = 0x80000003, \
-	  .data_map = 0x7d4c, \
+	  .data_map = 0x7c0c, \
 	  .data = gaudi3_priv_protbits_data91, \
 	  .data_size = ARRAY_SIZE(gaudi3_priv_protbits_data91) \
 	}, \
 	{{ GAUDI3_BLOCK_TYPE_PDMA, 0xfc54d000, 2, 2, 0, 0x800000, 0x20000, 0x0 }, \
 	  .prot_map = 0x80000000, \
-	  .data_map = 0x1f090c00, \
+	  .data_map = 0xc00, \
 	  .data = gaudi3_priv_protbits_data92, \
 	  .data_size = ARRAY_SIZE(gaudi3_priv_protbits_data92) \
 	}, \
@@ -1127,9 +990,9 @@ static const uint32_t gaudi3_priv_protbits_data186[] = GAUDI3_PRIV_PROTBITS_DATA
 	}, \
 	{{ GAUDI3_BLOCK_TYPE_PDMA, 0xfc555000, 2, 2, 0, 0x800000, 0x20000, 0x0 }, \
 	  .prot_map = 0x80000000, \
-	  .data_map = 0x13090000, \
-	  .data = gaudi3_priv_protbits_data94, \
-	  .data_size = ARRAY_SIZE(gaudi3_priv_protbits_data94) \
+	  .data_map = 0x0, \
+	  .data = NULL, \
+	  .data_size = 0 \
 	}, \
 	{{ GAUDI3_BLOCK_TYPE_PLL, 0xfc680000, 2, 0, 0, 0x800000, 0x0, 0x0 }, \
 	  .prot_map = 0x80000000, \
@@ -1271,7 +1134,7 @@ static const uint32_t gaudi3_priv_protbits_data186[] = GAUDI3_PRIV_PROTBITS_DATA
 	}, \
 	{{ GAUDI3_BLOCK_TYPE_CPU, 0xfc743000, 2, 0, 0, 0x800000, 0x0, 0x0 }, \
 	  .prot_map = 0x80000000, \
-	  .data_map = 0x1f090c00, \
+	  .data_map = 0xc00, \
 	  .data = gaudi3_priv_protbits_data118, \
 	  .data_size = ARRAY_SIZE(gaudi3_priv_protbits_data118) \
 	}, \
@@ -1289,9 +1152,9 @@ static const uint32_t gaudi3_priv_protbits_data186[] = GAUDI3_PRIV_PROTBITS_DATA
 	}, \
 	{{ GAUDI3_BLOCK_TYPE_CPU, 0xfc749000, 2, 0, 0, 0x800000, 0x0, 0x0 }, \
 	  .prot_map = 0x80000000, \
-	  .data_map = 0x13090000, \
-	  .data = gaudi3_priv_protbits_data121, \
-	  .data_size = ARRAY_SIZE(gaudi3_priv_protbits_data121) \
+	  .data_map = 0x0, \
+	  .data = NULL, \
+	  .data_size = 0 \
 	}, \
 	{{ GAUDI3_BLOCK_TYPE_NIC, 0xfd008000, 2, 6, 0, 0x400000, 0x80000, 0x0 }, \
 	  .prot_map = 0x80000600, \
@@ -1301,7 +1164,7 @@ static const uint32_t gaudi3_priv_protbits_data186[] = GAUDI3_PRIV_PROTBITS_DATA
 	}, \
 	{{ GAUDI3_BLOCK_TYPE_NIC, 0xfd009000, 2, 6, 0, 0x400000, 0x80000, 0x0 }, \
 	  .prot_map = 0x800c0000, \
-	  .data_map = 0xb80000f, \
+	  .data_map = 0x880000f, \
 	  .data = gaudi3_priv_protbits_data123, \
 	  .data_size = ARRAY_SIZE(gaudi3_priv_protbits_data123) \
 	}, \
@@ -1319,7 +1182,7 @@ static const uint32_t gaudi3_priv_protbits_data186[] = GAUDI3_PRIV_PROTBITS_DATA
 	}, \
 	{{ GAUDI3_BLOCK_TYPE_NIC, 0xfd024000, 2, 6, 0, 0x400000, 0x80000, 0x0 }, \
 	  .prot_map = 0x80000002, \
-	  .data_map = 0x1d, \
+	  .data_map = 0xd, \
 	  .data = gaudi3_priv_protbits_data126, \
 	  .data_size = ARRAY_SIZE(gaudi3_priv_protbits_data126) \
 	}, \
@@ -1337,13 +1200,13 @@ static const uint32_t gaudi3_priv_protbits_data186[] = GAUDI3_PRIV_PROTBITS_DATA
 	}, \
 	{{ GAUDI3_BLOCK_TYPE_NIC, 0xfd038000, 2, 6, 0, 0x400000, 0x80000, 0x0 }, \
 	  .prot_map = 0x80000000, \
-	  .data_map = 0x1f090c00, \
+	  .data_map = 0xc00, \
 	  .data = gaudi3_priv_protbits_data129, \
 	  .data_size = ARRAY_SIZE(gaudi3_priv_protbits_data129) \
 	}, \
 	{{ GAUDI3_BLOCK_TYPE_NIC, 0xfd039000, 2, 6, 0, 0x400000, 0x80000, 0x0 }, \
 	  .prot_map = 0x80000000, \
-	  .data_map = 0xf000c00, \
+	  .data_map = 0xc00, \
 	  .data = gaudi3_priv_protbits_data130, \
 	  .data_size = ARRAY_SIZE(gaudi3_priv_protbits_data130) \
 	}, \
@@ -1391,7 +1254,7 @@ static const uint32_t gaudi3_priv_protbits_data186[] = GAUDI3_PRIV_PROTBITS_DATA
 	}, \
 	{{ GAUDI3_BLOCK_TYPE_TPC, 0xfe009000, 8, 8, 0, 0x400000, 0x10000, 0x0 }, \
 	  .prot_map = 0x800c0000, \
-	  .data_map = 0xb80000f, \
+	  .data_map = 0x880000f, \
 	  .data = gaudi3_priv_protbits_data138, \
 	  .data_size = ARRAY_SIZE(gaudi3_priv_protbits_data138) \
 	}, \
@@ -1415,7 +1278,7 @@ static const uint32_t gaudi3_priv_protbits_data186[] = GAUDI3_PRIV_PROTBITS_DATA
 	}, \
 	{{ GAUDI3_BLOCK_TYPE_TPC, 0xfe00d000, 8, 8, 0, 0x400000, 0x10000, 0x0 }, \
 	  .prot_map = 0x80000000, \
-	  .data_map = 0x1f090c00, \
+	  .data_map = 0xc00, \
 	  .data = gaudi3_priv_protbits_data142, \
 	  .data_size = ARRAY_SIZE(gaudi3_priv_protbits_data142) \
 	}, \
@@ -1427,9 +1290,9 @@ static const uint32_t gaudi3_priv_protbits_data186[] = GAUDI3_PRIV_PROTBITS_DATA
 	}, \
 	{{ GAUDI3_BLOCK_TYPE_RTR, 0xfe0a1000, 8, 4, 0, 0x400000, 0x1000, 0x0 }, \
 	  .prot_map = 0x80000000, \
-	  .data_map = 0x1030, \
-	  .data = gaudi3_priv_protbits_data144, \
-	  .data_size = ARRAY_SIZE(gaudi3_priv_protbits_data144) \
+	  .data_map = 0x0, \
+	  .data = NULL, \
+	  .data_size = 0 \
 	}, \
 	{{ GAUDI3_BLOCK_TYPE_RTR, 0xfe0a5000, 8, 0, 0, 0x400000, 0x0, 0x0 }, \
 	  .prot_map = 0x80000000, \
@@ -1439,9 +1302,9 @@ static const uint32_t gaudi3_priv_protbits_data186[] = GAUDI3_PRIV_PROTBITS_DATA
 	}, \
 	{{ GAUDI3_BLOCK_TYPE_RTR, 0xfe0a6000, 8, 0, 0, 0x400000, 0x0, 0x0 }, \
 	  .prot_map = 0x80000000, \
-	  .data_map = 0x30, \
-	  .data = gaudi3_priv_protbits_data146, \
-	  .data_size = ARRAY_SIZE(gaudi3_priv_protbits_data146) \
+	  .data_map = 0x0, \
+	  .data = NULL, \
+	  .data_size = 0 \
 	}, \
 	{{ GAUDI3_BLOCK_TYPE_STLB, 0xfe0b0000, 8, 0, 0, 0x400000, 0x0, 0x0 }, \
 	  .prot_map = 0x80000000, \
@@ -1457,7 +1320,7 @@ static const uint32_t gaudi3_priv_protbits_data186[] = GAUDI3_PRIV_PROTBITS_DATA
 	}, \
 	{{ GAUDI3_BLOCK_TYPE_STLB, 0xfe0b2000, 8, 0, 0, 0x400000, 0x0, 0x0 }, \
 	  .prot_map = 0x80000000, \
-	  .data_map = 0x1f090c00, \
+	  .data_map = 0xc00, \
 	  .data = gaudi3_priv_protbits_data149, \
 	  .data_size = ARRAY_SIZE(gaudi3_priv_protbits_data149) \
 	}, \
@@ -1475,7 +1338,7 @@ static const uint32_t gaudi3_priv_protbits_data186[] = GAUDI3_PRIV_PROTBITS_DATA
 	}, \
 	{{ GAUDI3_BLOCK_TYPE_MME, 0xfe0c9000, 8, 0, 0, 0x400000, 0x0, 0x0 }, \
 	  .prot_map = 0x800c0000, \
-	  .data_map = 0xb80000f, \
+	  .data_map = 0x880000f, \
 	  .data = gaudi3_priv_protbits_data152, \
 	  .data_size = ARRAY_SIZE(gaudi3_priv_protbits_data152) \
 	}, \
@@ -1499,7 +1362,7 @@ static const uint32_t gaudi3_priv_protbits_data186[] = GAUDI3_PRIV_PROTBITS_DATA
 	}, \
 	{{ GAUDI3_BLOCK_TYPE_MME, 0xfe0d4000, 8, 0, 0, 0x400000, 0x0, 0x0 }, \
 	  .prot_map = 0x80000000, \
-	  .data_map = 0x1f090c00, \
+	  .data_map = 0xc00, \
 	  .data = gaudi3_priv_protbits_data156, \
 	  .data_size = ARRAY_SIZE(gaudi3_priv_protbits_data156) \
 	}, \
@@ -1511,7 +1374,7 @@ static const uint32_t gaudi3_priv_protbits_data186[] = GAUDI3_PRIV_PROTBITS_DATA
 	}, \
 	{{ GAUDI3_BLOCK_TYPE_MME, 0xfe0d6000, 8, 2, 0, 0x400000, 0x8000, 0x0 }, \
 	  .prot_map = 0x80000000, \
-	  .data_map = 0xf000c00, \
+	  .data_map = 0xc00, \
 	  .data = gaudi3_priv_protbits_data158, \
 	  .data_size = ARRAY_SIZE(gaudi3_priv_protbits_data158) \
 	}, \
@@ -1523,7 +1386,7 @@ static const uint32_t gaudi3_priv_protbits_data186[] = GAUDI3_PRIV_PROTBITS_DATA
 	}, \
 	{{ GAUDI3_BLOCK_TYPE_MME, 0xfe0e1000, 8, 2, 4, 0x400000, 0x8000, 0x2000 }, \
 	  .prot_map = 0x80000000, \
-	  .data_map = 0xf000c00, \
+	  .data_map = 0xc00, \
 	  .data = gaudi3_priv_protbits_data160, \
 	  .data_size = ARRAY_SIZE(gaudi3_priv_protbits_data160) \
 	}, \
@@ -1559,7 +1422,7 @@ static const uint32_t gaudi3_priv_protbits_data186[] = GAUDI3_PRIV_PROTBITS_DATA
 	}, \
 	{{ GAUDI3_BLOCK_TYPE_DEC, 0xfe125000, 8, 2, 0, 0x400000, 0x10000, 0x0 }, \
 	  .prot_map = 0x80000000, \
-	  .data_map = 0x1f090c00, \
+	  .data_map = 0xc00, \
 	  .data = gaudi3_priv_protbits_data166, \
 	  .data_size = ARRAY_SIZE(gaudi3_priv_protbits_data166) \
 	}, \
@@ -1571,9 +1434,9 @@ static const uint32_t gaudi3_priv_protbits_data186[] = GAUDI3_PRIV_PROTBITS_DATA
 	}, \
 	{{ GAUDI3_BLOCK_TYPE_RTR, 0xfe181000, 8, 8, 2, 0x400000, 0x10000, 0x1000 }, \
 	  .prot_map = 0x80000000, \
-	  .data_map = 0x1030, \
-	  .data = gaudi3_priv_protbits_data168, \
-	  .data_size = ARRAY_SIZE(gaudi3_priv_protbits_data168) \
+	  .data_map = 0x0, \
+	  .data = NULL, \
+	  .data_size = 0 \
 	}, \
 	{{ GAUDI3_BLOCK_TYPE_RTR, 0xfe183000, 8, 8, 0, 0x400000, 0x10000, 0x0 }, \
 	  .prot_map = 0x80000000, \
@@ -1583,9 +1446,9 @@ static const uint32_t gaudi3_priv_protbits_data186[] = GAUDI3_PRIV_PROTBITS_DATA
 	}, \
 	{{ GAUDI3_BLOCK_TYPE_RTR, 0xfe184000, 8, 8, 0, 0x400000, 0x10000, 0x0 }, \
 	  .prot_map = 0x80000000, \
-	  .data_map = 0x30, \
-	  .data = gaudi3_priv_protbits_data170, \
-	  .data_size = ARRAY_SIZE(gaudi3_priv_protbits_data170) \
+	  .data_map = 0x0, \
+	  .data = NULL, \
+	  .data_size = 0 \
 	}, \
 	{{ GAUDI3_BLOCK_TYPE_RTR, 0xfe185000, 8, 8, 0, 0x400000, 0x10000, 0x0 }, \
 	  .prot_map = 0x80000000, \
@@ -1613,9 +1476,9 @@ static const uint32_t gaudi3_priv_protbits_data186[] = GAUDI3_PRIV_PROTBITS_DATA
 	}, \
 	{{ GAUDI3_BLOCK_TYPE_ARC_FARM, 0xfe305000, 8, 2, 0, 0x400000, 0x20000, 0x0 }, \
 	  .prot_map = 0x80000000, \
-	  .data_map = 0x13000000, \
-	  .data = gaudi3_priv_protbits_data175, \
-	  .data_size = ARRAY_SIZE(gaudi3_priv_protbits_data175) \
+	  .data_map = 0x0, \
+	  .data = NULL, \
+	  .data_size = 0 \
 	}, \
 	{{ GAUDI3_BLOCK_TYPE_ARC_FARM, 0xfe308000, 8, 2, 0, 0x400000, 0x20000, 0x0 }, \
 	  .prot_map = 0x80000600, \
@@ -1631,7 +1494,7 @@ static const uint32_t gaudi3_priv_protbits_data186[] = GAUDI3_PRIV_PROTBITS_DATA
 	}, \
 	{{ GAUDI3_BLOCK_TYPE_ARC_FARM, 0xfe30c000, 8, 0, 0, 0x400000, 0x0, 0x0 }, \
 	  .prot_map = 0x80000000, \
-	  .data_map = 0x1f090c00, \
+	  .data_map = 0xc00, \
 	  .data = gaudi3_priv_protbits_data178, \
 	  .data_size = ARRAY_SIZE(gaudi3_priv_protbits_data178) \
 	}, \
@@ -1660,8 +1523,8 @@ static const uint32_t gaudi3_priv_protbits_data186[] = GAUDI3_PRIV_PROTBITS_DATA
 	  .data_size = ARRAY_SIZE(gaudi3_priv_protbits_data182) \
 	}, \
 	{{ GAUDI3_BLOCK_TYPE_SYNC_MNGR, 0xfe3a1000, 8, 0, 0, 0x400000, 0x0, 0x0 }, \
-	  .prot_map = 0x80000011, \
-	  .data_map = 0x1f090dae, \
+	  .prot_map = 0x80000000, \
+	  .data_map = 0xc00, \
 	  .data = gaudi3_priv_protbits_data183, \
 	  .data_size = ARRAY_SIZE(gaudi3_priv_protbits_data183) \
 	}, \
@@ -1673,9 +1536,9 @@ static const uint32_t gaudi3_priv_protbits_data186[] = GAUDI3_PRIV_PROTBITS_DATA
 	}, \
 	{{ GAUDI3_BLOCK_TYPE_SYNC_MNGR, 0xfe3b5000, 8, 0, 0, 0x400000, 0x0, 0x0 }, \
 	  .prot_map = 0x80000000, \
-	  .data_map = 0x13090000, \
-	  .data = gaudi3_priv_protbits_data185, \
-	  .data_size = ARRAY_SIZE(gaudi3_priv_protbits_data185) \
+	  .data_map = 0x0, \
+	  .data = NULL, \
+	  .data_size = 0 \
 	}, \
 	{{ GAUDI3_BLOCK_TYPE_SYNC_MNGR, 0xfe3c0000, 8, 0, 0, 0x400000, 0x0, 0x0 }, \
 	  .prot_map = 0x80000000, \
