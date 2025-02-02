@@ -204,35 +204,73 @@ void hl_cn_dma_pool_free(struct hbl_aux_dev *aux_dev, void *vaddr, dma_addr_t dm
 	hl_asic_dma_pool_free(hdev, vaddr, dma_addr);
 }
 
+static struct hl_ctx *hl_cn_get_ctx(const struct hl_cn *cn, u64 vm_handle, int *rc)
+{
+	struct hl_device *hdev = container_of(cn, struct hl_device, cn);
+
+	switch (vm_handle) {
+	case HL_KERNEL_VM_HANDLE:
+		/* For gaudis we want to use user asid throughout */
+		return cn->ctx;
+	case HL_USER_VM_HANDLE:
+		return cn->ctx;
+	default:
+		dev_err(hdev->dev, "Unknown vm handle: %llx", vm_handle);
+		*rc = -EINVAL;
+		return NULL;
+	}
+}
+
 static int hl_cn_vm_dev_mmu_map(struct hbl_aux_dev *aux_dev, u64 vm_handle,
 				enum hbl_cn_mem_type mem_type, u64 addr, u64 dva, size_t size)
 
 {
 	struct hl_cn *cn = container_of(aux_dev, struct hl_cn, cn_aux_dev);
+	struct hl_ctx *ctx;
+	int rc;
 
-	return hl_map_vmalloc_range(cn->ctx, addr, dva, size);
+	ctx = hl_cn_get_ctx(cn, vm_handle, &rc);
+	if (!ctx)
+		return rc;
+
+	return hl_map_vmalloc_range(ctx, addr, dva, size);
 }
 
 static void hl_cn_vm_dev_mmu_unmap(struct hbl_aux_dev *aux_dev, u64 vm_handle, u64 dva, size_t size)
 {
 	struct hl_cn *cn = container_of(aux_dev, struct hl_cn, cn_aux_dev);
 	struct hl_device *hdev = container_of(cn, struct hl_device, cn);
+	struct hl_ctx *ctx;
 	int rc;
 
-	rc = hl_unmap_vmalloc_range(cn->ctx, dva);
+	ctx = hl_cn_get_ctx(cn, vm_handle, &rc);
+	if (!ctx) {
+		dev_crit(hdev->dev,
+			 "Failed to unmap dva 0x%llx with size 0x%lx, no context for vm_handle: %#llx, err %d\n",
+			 dva, size, vm_handle, rc);
+		return;
+	}
+
+	rc = hl_unmap_vmalloc_range(ctx, dva);
 	if (rc)
 		dev_crit(hdev->dev, "Failed to unmap dva 0x%llx with size 0x%lx, err %d\n", dva,
-				size, rc);
+			 size, rc);
 }
 
 static int hl_cn_vm_reserve_dva_block(struct hbl_aux_dev *aux_dev, u64 vm_handle, u64 size,
-					u64 *dva)
+				      u64 *dva)
 {
 	struct hl_cn *cn = container_of(aux_dev, struct hl_cn, cn_aux_dev);
 	struct hl_device *hdev = container_of(cn, struct hl_device, cn);
+	struct hl_ctx *ctx;
 	u64 addr;
+	int rc;
 
-	addr = hl_reserve_va_block(hdev, cn->ctx, HL_VA_RANGE_TYPE_HOST, size, PAGE_SIZE);
+	ctx = hl_cn_get_ctx(cn, vm_handle, &rc);
+	if (!ctx)
+		return rc;
+
+	addr = hl_reserve_va_block(hdev, ctx, HL_VA_RANGE_TYPE_HOST, size, PAGE_SIZE);
 	if (!addr)
 		return -ENOMEM;
 
@@ -240,13 +278,24 @@ static int hl_cn_vm_reserve_dva_block(struct hbl_aux_dev *aux_dev, u64 vm_handle
 
 	return 0;
 }
+
 static void hl_cn_vm_unreserve_dva_block(struct hbl_aux_dev *aux_dev, u64 vm_handle, u64 dva,
-						u64 size)
+					 u64 size)
 {
 	struct hl_cn *cn = container_of(aux_dev, struct hl_cn, cn_aux_dev);
 	struct hl_device *hdev = container_of(cn, struct hl_device, cn);
+	struct hl_ctx *ctx;
+	int rc;
 
-	hl_unreserve_va_block(hdev, cn->ctx, dva, size);
+	ctx = hl_cn_get_ctx(cn, vm_handle, &rc);
+	if (!ctx) {
+		dev_crit(hdev->dev,
+			 "Failed to unreserve dva 0x%llx with size 0x%llx, no context for vm_handle: %#llx, err %d\n",
+			 dva, size, vm_handle, rc);
+		return;
+	}
+
+	hl_unreserve_va_block(hdev, ctx, dva, size);
 }
 
 int hl_cn_get_hw_block_handle(struct hbl_aux_dev *aux_dev, u64 address, u64 *handle)
@@ -382,7 +431,7 @@ static int hl_cn_get_reg_pcie_addr(struct hbl_aux_dev *aux_dev, u32 reg, u64 *pc
 }
 
 static int hl_cn_register_cn_user_context(struct hbl_aux_dev *aux_dev, int user_fd,
-				const void *cn_ctx, u64 *comp_handle, u64 *vm_handle)
+					  const void *cn_ctx, u64 *comp_handle, u64 *vm_handle)
 {
 	struct hl_cn *cn = container_of(aux_dev, struct hl_cn, cn_aux_dev);
 	struct hl_device *hdev = container_of(cn, struct hl_device, cn);
@@ -429,9 +478,8 @@ static int hl_cn_register_cn_user_context(struct hbl_aux_dev *aux_dev, int user_
 
 	mutex_unlock(&hdev->fpriv_list_lock);
 
-	/* these must have different values to allow data transfer */
-	*comp_handle = 0;
-	*vm_handle = 1;
+	*comp_handle = HL_COMP_HANDLE;
+	*vm_handle = HL_USER_VM_HANDLE;
 
 	return 0;
 
@@ -468,21 +516,28 @@ static void hl_cn_deregister_cn_user_context(struct hbl_aux_dev *aux_dev, u64 vm
 
 static int hl_cn_vm_create(struct hbl_aux_dev *aux_dev, u64 comp_handle, u32 flags, u64 *vm_handle)
 {
-	*vm_handle = 0;
+	*vm_handle = HL_KERNEL_VM_HANDLE;
 
 	return 0;
 }
 
 static void hl_cn_vm_destroy(struct hbl_aux_dev *aux_dev, u64 vm_handle)
 {
-
 }
 
 static int hl_cn_get_vm_info(struct hbl_aux_dev *aux_dev, u64 vm_handle,
-				struct hbl_cn_vm_info *vm_info)
+			     struct hbl_cn_vm_info *vm_info)
 {
+	struct hl_cn *cn = container_of(aux_dev, struct hl_cn, cn_aux_dev);
+	struct hl_ctx *ctx;
+	int rc;
+
+	ctx = hl_cn_get_ctx(cn, vm_handle, &rc);
+	if (!ctx)
+		return rc;
+
 	vm_info->mmu_mode = HBL_CN_MMU_MODE_EXTERNAL;
-	vm_info->ext_mmu.work_id = 1;
+	vm_info->ext_mmu.work_id = ctx->asid;
 
 	return 0;
 }

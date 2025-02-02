@@ -2095,6 +2095,11 @@ struct hl_asic_funcs {
 
 #define HL_KERNEL_ASID_ID	0
 
+/* The user VM handle and the comp handle must have different values to allow data transfer */
+#define HL_COMP_HANDLE	0
+#define HL_KERNEL_VM_HANDLE	1
+#define HL_USER_VM_HANDLE	2
+
 /**
  * enum hl_va_range_type - virtual address range type.
  * @HL_VA_RANGE_TYPE_HOST: range type of host pages
