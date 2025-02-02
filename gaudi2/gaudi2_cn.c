@@ -10,7 +10,7 @@
 #include "../include/gaudi2/gaudi2_async_ids_map_extended.h"
 #include "../include/hw_ip/nic/nic_general.h"
 
-#define MAX_NUM_OF_NIC_INTERRUPTS (GAUDI2_IRQ_NUM_NIC_PORT_LAST - GAUDI2_IRQ_NUM_NIC_PORT_FIRST)
+#define MAX_NUM_OF_NIC_INTERRUPTS (GAUDI2_IRQ_NUM_NIC_PORT_LAST - GAUDI2_IRQ_NUM_NIC_PORT_FIRST + 1)
 
 static bool gaudi2_cn_get_hw_cap(struct hl_device *hdev);
 
