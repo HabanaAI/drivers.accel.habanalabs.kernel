@@ -2505,6 +2505,7 @@ static int hl_fw_dynamic_copy_image(struct hl_device *hdev,
 static int hl_fw_dynamic_copy_msg(struct hl_device *hdev,
 		struct lkd_msg_comms *msg, struct fw_load_mgr *fw_loader)
 {
+	struct asic_fixed_properties *prop = &hdev->asic_prop;
 	struct lkd_fw_comms_desc *fw_desc;
 	struct pci_mem_region *region;
 	void __iomem *dest;
@@ -2513,6 +2514,9 @@ static int hl_fw_dynamic_copy_msg(struct hl_device *hdev,
 
 	fw_desc = &fw_loader->dynamic_loader.comm_desc;
 	addr = le64_to_cpu(fw_desc->img_addr);
+
+	if (prop->fw_sram_remap_enabled)
+		addr -= (prop->sram_total_size - prop->sram_die_size);
 
 	/* find memory region to which to copy the image */
 	region = fw_loader->dynamic_loader.image_region;
