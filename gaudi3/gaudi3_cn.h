@@ -26,14 +26,6 @@
 static_assert(IS_POWER_OF_2(NIC_RAW_ELEM_SIZE));
 /* Parameters for bring-up (not to be upstreamed) - END */
 
-/* TODO: SW-153130 - remove once SW-153128 is done - START */
-#define NIC_MAX_CONN_ID		((1 << 15) - 1) /* 32K QPs */
-#define NIC_MAX_CONN_ID_NO_DRAM	((1 << 14) - 1) /* 16K QPs */
-
-#define NIC_MAX_QP_NUM		((hdev->dram_enable ? NIC_MAX_CONN_ID : NIC_MAX_CONN_ID_NO_DRAM) + \
-							1)
-#define NIC_MAX_GEN_QP_NUM	(NIC_MAX_QP_NUM / 2)
-
 /* read/write port specific registers */
 #define NIC_PORT_DIE_OFFSET(port)	(((port) >= NIC_NUM_PORTS_PER_DIE) ? NIC_DIE_OFFSET : 0)
 #define NIC_MACRO_OFFSET(macro)		((macro) * NIC_OFFSET)

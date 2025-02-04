@@ -95,8 +95,7 @@ MODULE_FIRMWARE(GAUDI3_BOOT_FIT_FILE);
 
 #define GAUDI3_MMU_CACHE_MAINT_TIMEOUT_USEC		(MMU_CONFIG_TIMEOUT_USEC * 1000)
 
-/* TODO set GAUDI3_PLDM_MMU_TIMEOUT_USEC to 4sec once SW-148410 is resolved */
-#define GAUDI3_PLDM_MMU_TIMEOUT_USEC			(MMU_CONFIG_TIMEOUT_USEC * 8000)
+#define GAUDI3_PLDM_MMU_TIMEOUT_USEC			(MMU_CONFIG_TIMEOUT_USEC * 4000)
 
 #define GAUDI3_PLDM_HALT_ENGINES_WAIT_MSEC		1000		/* 1s */
 #define GAUDI3_PLDM_RESET_WAIT_MSEC			1000		/* 1s */
@@ -459,7 +458,7 @@ static struct hl_automated_pb_cfg gaudi3_sec_pb_cfg[] = GAUDI3_SEC_PROTBITS_CFG;
 GAUDI3_PRIV_PROTBITS_DATA;
 static struct hl_automated_pb_cfg gaudi3_priv_pb_cfg[] = GAUDI3_PRIV_PROTBITS_CFG;
 
-/* TODO - remove exclusion of ARC_FARM once SW-123176 is resolved
+/*
  * Part of PSOC blocks cannot be accessed through PCIe, so need to skip.
  */
 static const int gaudi3_iterator_skip_block_types[] = {
@@ -3340,16 +3339,11 @@ void gaudi3_lbw_dup_group_push(struct hl_device *hdev, enum gaudi3_dup_group dup
 
 	gaudi3_lbw_dup_group_id_breakdown(hdev, dup_group_id, &die, &pdma, &group);
 
-	/*
-	 * TODO:
-	 * When specs are fixed, use a valid define instead of group0 - 0x4000
-	 * to find the block start.
-	 */
 	push_base = mmD0_SPDMA0_DUP_ENG_BASE + mmPDUP_ENG_DUP_ADDR_GR_0_0 +
 			die * DIE_OFFSET +
 			pdma * PDMA_ENGINE_OFFSET +
 			group * LBW_DUP_PUSH_BLOCK_SIZE -
-			0x4000;
+			D0_PSOC_DUP_P_MAX_OFFSET;
 
 	WREG32(push_base + (offset - info->fixup_offset), data);
 }
@@ -5405,11 +5399,10 @@ int gaudi3_cpucp_info_get(struct hl_device *hdev)
 	 */
 	if (use_fw_nic_info && !hdev->reset_info.in_reset)
 		hdev->card_type = le32_to_cpu(hdev->asic_prop.cpucp_info.card_type);
-
 	/**
-	 * TODO - SW-171315: Due to a bug in FW/SIM+ARC we're failing to poll cpucp info after a
-	 * soft reset, temporarily disabling the polling after reset when running on simulator.
-	 * To revert, change if to `(use_fw_nic_info || !hdev->reset_info.in_reset)`.
+	 * Due to a bug in FW/SIM+ARC we're failing to poll cpucp info after a
+	 * soft reset. However, FW/SIM+ARC is not used. If sometime it will be in use,
+	 * it can be reverted by changing if to `(use_fw_nic_info || !hdev->reset_info.in_reset)`.
 	 */
 	if ((use_fw_nic_info && hdev->pdev) || !hdev->reset_info.in_reset)
 		return gaudi3_cn_set_info(hdev, use_fw_nic_info);
@@ -10798,13 +10791,6 @@ int gaudi3_test_queues(struct hl_device *hdev)
 	struct gaudi3_device *gaudi3 = hdev->asic_specific;
 	int rc;
 
-	/* TODO: used for debug, so can be removed once H9-5315 is resolved.
-	 * The reset value is 0x3, and we force 0x2 (turn off bit 0)
-	 * as there's a PLDM trigger expecting this change to take place.
-	 */
-	if (hdev->pldm)
-		WREG32(mmD0_NRTR0_CRDT_RRTR_OB_CRDT_BASE + mmNRTR_CRDT_RRTR_OB_CRDT_CRDT_EN, 0x2);
-
 	dev_dbg(hdev->dev, "Testing PDMA access on %lu channels\n",
 						hweight_long(gaudi3->hw_cap_pdma_initialized));
 
@@ -10813,10 +10799,6 @@ int gaudi3_test_queues(struct hl_device *hdev)
 		return rc;
 
 	dev_dbg(hdev->dev, "PDMA testing passed");
-
-	/* TODO: used for debug, so can be removed once H9-5315 is resolved */
-	if (hdev->pldm)
-		WREG32(mmD0_NRTR0_CRDT_RRTR_OB_CRDT_BASE + mmNRTR_CRDT_RRTR_OB_CRDT_CRDT_EN, 0x3);
 
 	rc = gaudi3_test_qmans_kdma_and_cpu(hdev);
 	if (rc)
@@ -14950,28 +14932,6 @@ int gaudi3_send_device_activity(struct hl_device *hdev, bool open)
 	return hl_fw_send_device_activity(hdev, open);
 }
 
-/*
- * gaudi3_access_dev_mem - access device memory
- *
- * @hdev: pointer to habanalabs device structure
- * @region_type: the type of the region the address belongs to
- * @addr: the address to access
- * @val: the value to write from or read to
- * @acc_type: the type of access (r/w, 32/64)
- *
- * TODO: this implementation is added as a debug feature to help FW during gaudi3 power-on.
- *       Once IATU is enabled by FW this code should be removed and we should set
- *       the access_dev_mem ASIC function back to hl_access_dev_mem (SW-103863).
- */
-static int gaudi3_access_dev_mem(struct hl_device *hdev, enum pci_region region_type,
-			u64 addr, u64 *val, enum debugfs_access_type acc_type)
-{
-	if (region_type == PCI_REGION_FW_MEM)
-		return hl_access_sram_dram_region(hdev, addr, val, acc_type, region_type, true);
-
-	return hl_access_dev_mem(hdev, region_type, addr, val, acc_type);
-}
-
 static int gaudi3_pll_info_get(struct hl_device *hdev, u32 pll_index, u16 *pll_freq_arr)
 {
 	if (pll_index >= HL_GAUDI3_PLL_MAX)
@@ -15130,7 +15090,7 @@ static const struct hl_asic_funcs gaudi3_funcs = {
 	.scheduler_submit_buf = gaudi3_scheduler_submit_buf,
 	.no_fw_monitor = gaudi3_no_fw_monitor,
 	.mmu_get_real_page_size = gaudi3_mmu_get_real_page_size,
-	.access_dev_mem = gaudi3_access_dev_mem,
+	.access_dev_mem = hl_access_dev_mem,
 	.set_dram_bar_base = gaudi3_set_hbm_bar_base,
 	.set_engine_cores = gaudi3_set_engine_cores,
 	.set_engines = gaudi3_set_engines,

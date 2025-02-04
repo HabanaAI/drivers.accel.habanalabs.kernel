@@ -99,7 +99,6 @@
 #define NUM_MCS_PER_HBM			8
 #define SINGLE_HBM_SIZE			SZ_16G
 
-/* TODO: SW-153130 - remove once SW-153128 is done */
 #define GAUDI3_NIC_CLK_FREQ		533000000ull	/* 533 MHz */
 
 #define GAUDI3_FPGA_CPU_TIMEOUT_USEC		100000000	/* 100s */
@@ -218,7 +217,6 @@
 
 static_assert(IS_POWER_OF_2(ETR_BUF_SIZE));
 
-/* TODO: SW-153130 - remove once SW-153128 is done */
 #define NIC_DRV_SIZE		0x20000000				/* 512MB */
 
 #define PMMU_PAGE_TABLES_SIZE	0x0C000000				/* 192MB */

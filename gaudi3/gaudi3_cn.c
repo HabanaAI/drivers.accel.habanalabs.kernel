@@ -466,7 +466,7 @@ int gaudi3_cn_set_info(struct hl_device *hdev, bool get_from_fw)
 		break;
 	default:
 		hdev->asic_prop.server_type = HL_SERVER_TYPE_UNKNOWN;
-		/* TODO: SW-166512 - remove the pldm check */
+		/* pldm needs to be verified since not handled by pldm FW */
 		if (get_from_fw && !hdev->pldm) {
 			dev_err(hdev->dev, "bad SerDes type %d\n", serdes_type);
 			return -EFAULT;
