@@ -1105,6 +1105,7 @@ static int gaudi_sim_sw_init(struct hl_device *hdev)
 
 	hdev->supports_sync_stream = true;
 	hdev->supports_coresight = false;
+	hdev->supports_default_cs = true;
 	hdev->supports_staged_submission = true;
 	hdev->supports_wait_for_multi_cs = true;
 

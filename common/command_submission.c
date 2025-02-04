@@ -1397,6 +1397,11 @@ static int hl_cs_sanity_checks(struct hl_fpriv *hpriv, union hl_cs_args *args)
 	}
 
 	if (cs_type == CS_TYPE_DEFAULT) {
+		if (!hdev->supports_default_cs) {
+			dev_err(hdev->dev, "Command submission is not supported");
+			return -EPERM;
+		}
+
 		if (!num_chunks) {
 			dev_err(hdev->dev, "Got execute CS with 0 chunks, context %d\n", ctx->asid);
 			return -EINVAL;

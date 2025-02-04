@@ -4431,6 +4431,7 @@ int gaudi2_sw_init(struct hl_device *hdev)
 	hdev->supports_custom_fw_binning = true;
 	hdev->supports_sync_stream = true;
 	hdev->supports_cb_mapping = true;
+	hdev->supports_default_cs = true;
 	hdev->supports_wait_for_multi_cs = false;
 	hdev->supports_fw_cfg_skip = true;
 

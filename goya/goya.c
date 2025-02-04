@@ -1033,6 +1033,7 @@ static int goya_sw_init(struct hl_device *hdev)
 	hdev->supports_coresight = true;
 	hdev->asic_prop.supports_compute_reset = true;
 	hdev->asic_prop.allow_inference_soft_reset = true;
+	hdev->supports_default_cs = true;
 	hdev->supports_wait_for_multi_cs = false;
 	hdev->supports_ctx_switch = true;
 

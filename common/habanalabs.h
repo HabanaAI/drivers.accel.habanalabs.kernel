@@ -3987,6 +3987,7 @@ struct hl_version {
  * @pci_revision_id: PCI revision ID
  * @support_preboot_binning: true if we support read binning info from preboot.
  * @eq_heartbeat_received: indication that eq heartbeat event has received from FW.
+ * @supports_default_cs: true if driver command submission is supported, false for ARC submission.
  * @fw_components: Controls which f/w components to load to the device. There are multiple f/w
  *                 stages and sometimes we want to stop at a certain stage. Used only for testing.
  * @mmu_disable: Disable the device MMU(s). Used only for testing.
@@ -4188,6 +4189,7 @@ struct hl_device {
 	u8				pci_revision_id;
 	u8				support_preboot_binning;
 	u8				eq_heartbeat_received;
+	u8				supports_default_cs;
 
 	/* Parameters for bring-up to be upstreamed */
 	u64				fw_components;

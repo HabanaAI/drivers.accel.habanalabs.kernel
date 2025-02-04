@@ -1032,6 +1032,7 @@ static int goya_sim_sw_init(struct hl_device *hdev)
 
 	mutex_init(&goya->hw_queues_lock_mutex);
 	hdev->supports_coresight = false;
+	hdev->supports_default_cs = true;
 	hdev->supports_wait_for_multi_cs = false;
 	hdev->supports_ctx_switch = true;
 

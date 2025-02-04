@@ -1248,6 +1248,7 @@ static int gaudi2_sim_sw_init(struct hl_device *hdev)
 	hdev->asic_prop.supports_compute_reset = true;
 	hdev->supports_sync_stream = true;
 	hdev->supports_cb_mapping = true;
+	hdev->supports_default_cs = true;
 	hdev->supports_wait_for_multi_cs = false;
 
 	hdev->asic_funcs->set_pci_memory_regions(hdev);
