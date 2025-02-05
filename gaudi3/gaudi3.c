@@ -3852,7 +3852,7 @@ int gaudi3_set_fixed_properties(struct hl_device *hdev)
 
 	prop->user_interrupt_count = GAUDI3_IRQ_NUM_USER_LAST - GAUDI3_IRQ_NUM_USER_FIRST + 1;
 	prop->first_available_user_interrupt = GAUDI3_IRQ_NUM_USER_FIRST;
-	prop->tpc_interrupt_id = USHRT_MAX;
+	prop->tpc_interrupt_id = GAUDI3_IRQ_NUM_TPC_ASSERT;
 	prop->eq_interrupt_id = GAUDI3_IRQ_NUM_EVENT_QUEUE;
 
 	prop->user_dec_intr_count = NUMBER_OF_DEC;
@@ -6760,10 +6760,12 @@ static const char *gaudi3_irq_name(u16 irq_number)
 		return "gaudi3 pldm qm sw interrupts";
 	case GAUDI3_IRQ_NUM_ETR_FIRST ... GAUDI3_IRQ_NUM_ETR_LAST:
 		return "gaudi3 etr";
-	case GAUDI3_IRQ_NUM_UNEXPECTED_ERROR:
-		return "gaudi3 unexpected error";
+	case GAUDI3_IRQ_NUM_TPC_ASSERT:
+		return "gaudi3 tpc assert";
 	case GAUDI3_IRQ_NUM_EQ_ERROR:
 		return "gaudi3 eq error";
+	case GAUDI3_IRQ_NUM_UNEXPECTED_ERROR:
+		return "gaudi3 unexpected error";
 	default:
 		return "invalid";
 	}
@@ -7779,6 +7781,27 @@ void gaudi3_eq_disable_msix(struct hl_device *hdev)
 	free_irq(irq, hdev);
 }
 
+static int gaudi3_tpc_assert_enable_msix(struct hl_device *hdev)
+{
+	enum gaudi3_irq_num irq_nr = GAUDI3_IRQ_NUM_TPC_ASSERT;
+	int irq;
+
+	irq = hl_irq_vector(hdev, irq_nr);
+	if (irq < 0)
+		return irq;
+
+	return request_threaded_irq(irq, NULL, hl_irq_user_interrupt_thread_handler,
+					IRQF_ONESHOT, gaudi3_irq_name(irq_nr),
+					&hdev->tpc_interrupt);
+}
+
+static void gaudi3_tpc_assert_disable_msix(struct hl_device *hdev)
+{
+	int irq = hl_irq_vector(hdev, GAUDI3_IRQ_NUM_TPC_ASSERT);
+
+	free_irq(irq, &hdev->tpc_interrupt);
+}
+
 static int gaudi3_eq_error_enable_msix(struct hl_device *hdev)
 {
 	enum gaudi3_irq_num irq_nr = GAUDI3_IRQ_NUM_EQ_ERROR;
@@ -7904,15 +7927,24 @@ int gaudi3_enable_msix(struct hl_device *hdev)
 		goto free_eq_irqs;
 	}
 
+	rc = gaudi3_tpc_assert_enable_msix(hdev);
+	if (rc) {
+		dev_err(hdev->dev, "MSI-X: Failed to enable TPC assert interrupt - %d\n", rc);
+		goto free_pldm_irqs;
+	}
+
 	rc = gaudi3_eq_error_enable_msix(hdev);
 	if (rc) {
 		dev_err(hdev->dev, "MSI-X: Failed to enable EQ error interrupt - %d\n", rc);
-		goto free_pldm_irqs;
+		goto free_tpc_assert_irq;
 	}
 
 	gaudi3->hw_cap_initialized |= HW_CAP_MSIX;
 
 	return 0;
+
+free_tpc_assert_irq:
+	gaudi3_tpc_assert_disable_msix(hdev);
 
 free_pldm_irqs:
 	gaudi3_pldm_disable_msix(hdev);
@@ -7939,6 +7971,9 @@ void gaudi3_user_interrupt_setup(struct hl_device *hdev)
 {
 	struct asic_fixed_properties *prop = &hdev->asic_prop;
 	int i, j, intr_id;
+
+	/* Initialize TPC interrupt */
+	HL_USR_INTR_STRUCT_INIT(hdev->tpc_interrupt, hdev, 0, HL_USR_INTERRUPT_TPC);
 
 	/* Initialize unexpected error interrupt */
 	HL_USR_INTR_STRUCT_INIT(hdev->unexpected_error_interrupt, hdev, 0,
@@ -8022,6 +8057,9 @@ void gaudi3_sync_irqs(struct hl_device *hdev)
 		}
 	}
 
+	irq = hl_irq_vector(hdev, GAUDI3_IRQ_NUM_TPC_ASSERT);
+	synchronize_irq(irq);
+
 	irq = hl_irq_vector(hdev, GAUDI3_IRQ_NUM_EQ_ERROR);
 	synchronize_irq(irq);
 }
@@ -8044,6 +8082,8 @@ void gaudi3_disable_msix(struct hl_device *hdev)
 	gaudi3_eq_disable_msix(hdev);
 
 	gaudi3_pldm_disable_msix(hdev);
+
+	gaudi3_tpc_assert_disable_msix(hdev);
 
 	gaudi3_eq_error_disable_msix(hdev);
 
