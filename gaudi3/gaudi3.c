@@ -10369,16 +10369,24 @@ static int gaudi3_test_pdma_access(struct hl_device *hdev)
 	bool is_dram_test = !!hdev->cache_enable;
 
 	/* No PDMA channel is initialized */
-	if (!gaudi3->hw_cap_pdma_initialized)
+	if (!gaudi3->hw_cap_pdma_initialized) {
+		dev_dbg(hdev->dev, "No PDMA channel initialized - aborting PDMA test");
 		return 0;
+	}
 
 	/* Neither DRAM nor SRAM is available for PDMA testing */
-	if (hdev->cache_enable && !hdev->dram_enable)
+	if (hdev->cache_enable && !hdev->dram_enable) {
+		dev_dbg(hdev->dev,
+			"Neither DRAM nor SRAM is available for PDMA testing - aborting PDMA test");
 		return 0;
+	}
 
 	rc = gaudi3_test_pdma_job_init(hdev, &test_params);
-	if (rc)
+	if (rc) {
+		dev_err(hdev->dev,
+			"PDMA test failed at init (rc = %d)\n", rc);
 		return rc;
+	}
 
 	/* prepare JOB params */
 	job_params.src = test_params.host_va;
@@ -10625,6 +10633,8 @@ static int gaudi3_test_qmans_kdma_and_cpu(struct hl_device *hdev)
 	int rc = 0, i, j;
 
 	/* send messages on all QMANs */
+	dev_dbg(hdev->dev, "Starting QMAN Engines testing");
+
 	for (i = GAUDI3_HDCORE1_ENGINE_ID_EDMA_0 ; i <= GAUDI3_HDCORE6_ENGINE_ID_ROT_1 ; i++) {
 		if (!gaudi3_is_engine_enabled(hdev, i))
 			continue;
@@ -10653,9 +10663,15 @@ static int gaudi3_test_qmans_kdma_and_cpu(struct hl_device *hdev)
 	}
 
 	/* test the KDMA while QMANs are working */
+	dev_dbg(hdev->dev, "Starting KDMA testing");
+
 	rc = gaudi3_test_kdma_access(hdev);
-	if (rc)
+	if (rc) {
+		dev_dbg(hdev->dev, "KDMA testing failed");
 		return rc;
+	}
+
+	dev_dbg(hdev->dev, "KDMA testing passed");
 
 	/* wait for QMANs completion */
 	for (i = GAUDI3_HDCORE1_ENGINE_ID_EDMA_0 ; i <= GAUDI3_HDCORE6_ENGINE_ID_ROT_1 ; i++) {
@@ -10668,11 +10684,16 @@ static int gaudi3_test_qmans_kdma_and_cpu(struct hl_device *hdev)
 		rc = gaudi3_test_qman_wait_completion(hdev, i, "QMAN CQF", sob->addr, sob->val);
 		/* Clear the SOB value */
 		WREG32(sob->addr, 0);
-		if (rc)
+		if (rc) {
+			dev_dbg(hdev->dev, "QMAN Engines testing failed on engine %d", i);
 			return rc;
+		}
 	}
+	dev_dbg(hdev->dev, "QMAN Engines testing passed");
+
 
 	/* send messages on all QMAN ARCs */
+	dev_dbg(hdev->dev, "Starting QMAN ARCs testing");
 	for (i = GAUDI3_HDCORE1_ENGINE_ID_EDMA_0 ; i <= GAUDI3_HDCORE6_ENGINE_ID_ROT_1 ; i++) {
 		if (!gaudi3_is_engine_enabled(hdev, i))
 			continue;
@@ -10684,9 +10705,14 @@ static int gaudi3_test_qmans_kdma_and_cpu(struct hl_device *hdev)
 	}
 
 	/* test the CPU-Q while QMAN ARCs are working */
+	dev_dbg(hdev->dev, "Starting CPU Queue testing");
 	rc = gaudi3_test_cpu_queue(hdev);
-	if (rc)
+	if (rc) {
+		dev_dbg(hdev->dev, "CPU Queue testing failed");
 		return rc;
+	}
+
+	dev_dbg(hdev->dev, "CPU Queue testing passed");
 
 	/* wait for ARCs completion */
 	for (i = GAUDI3_HDCORE1_ENGINE_ID_EDMA_0 ; i <= GAUDI3_HDCORE6_ENGINE_ID_ROT_1 ; i++) {
@@ -10703,9 +10729,12 @@ static int gaudi3_test_qmans_kdma_and_cpu(struct hl_device *hdev)
 
 		gaudi3_qman_set_test_mode(hdev, i, false);
 
-		if (rc)
+		if (rc) {
+			dev_dbg(hdev->dev, "QMAN ARCs testing failed on ARC %d", i);
 			return rc;
+		}
 	}
+	dev_dbg(hdev->dev, "QMAN ARCs testing passed");
 
 	return 0;
 }
@@ -10739,6 +10768,8 @@ int gaudi3_test_queues(struct hl_device *hdev)
 	rc = gaudi3_test_pdma_access(hdev);
 	if (rc)
 		return rc;
+
+	dev_dbg(hdev->dev, "PDMA testing passed");
 
 	/* TODO: used for debug, so can be removed once H9-5315 is resolved */
 	if (hdev->pldm)
