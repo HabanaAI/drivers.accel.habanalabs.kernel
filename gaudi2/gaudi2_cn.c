@@ -243,14 +243,20 @@ static int gaudi2_cn_check_oui_prefix_validity(u8 *mac_addr)
 	u8 mac[ETH_ALEN];
 	int i;
 
-	for (i = 0 ; i < 3 ; i++)
+	for (i = 0; i < 3; i++)
 		mac[i] = HABANALABS_MAC_OUI_1 >> (8 * (2 - i));
 
 	if (!strncmp(mac, mac_addr, 3))
 		return 1;
 
-	for (i = 0 ; i < 3 ; i++)
+	for (i = 0; i < 3; i++)
 		mac[i] = HABANALABS_MAC_OUI_2 >> (8 * (2 - i));
+
+	if (!strncmp(mac, mac_addr, 3))
+		return 1;
+
+	for (i = 0; i < 3; i++)
+		mac[i] = HABANALABS_MAC_OUI_3 >> (8 * (2 - i));
 
 	if (!strncmp(mac, mac_addr, 3))
 		return 1;
