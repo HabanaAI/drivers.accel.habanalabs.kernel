@@ -550,7 +550,9 @@ irqreturn_t hl_irq_handler_eq(int irq, void *arg)
 			memcpy(&handle_eqe_work->eq_entry, eq_entry,
 					sizeof(*eq_entry));
 
-			queue_work(hdev->eq_wq, &handle_eqe_work->eq_work);
+			if (!queue_work(hdev->eq_wq, &handle_eqe_work->eq_work))
+				dev_warn_ratelimited(hdev->dev,
+						     "EQ event queue_work FAILED, work is already on a queue\n");
 		}
 skip_irq:
 		/* Clear EQ entry ready bit */
