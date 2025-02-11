@@ -7757,7 +7757,10 @@ static irqreturn_t gaudi3_eq_irq_handler(int irq, void *arg)
 
 	gaudi3 = hdev->asic_specific;
 	eq_work = &gaudi3->eq_work;
-	queue_work(hdev->eq_wq, &eq_work->work);
+	if (!queue_work(hdev->eq_wq, &eq_work->work))
+		dev_warn_ratelimited(hdev->dev,
+				     "EQ event queue_work FAILED, work is already on a queue\n");
+
 out:
 	return IRQ_HANDLED;
 }
