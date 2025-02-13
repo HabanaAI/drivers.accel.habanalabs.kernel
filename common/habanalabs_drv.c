@@ -602,7 +602,8 @@ static const struct file_operations hl_fops = {
 	.unlocked_ioctl = drm_ioctl,
 	.compat_ioctl = drm_compat_ioctl,
 	.llseek = noop_llseek,
-	.mmap = hl_mmap
+	.mmap = hl_mmap,
+	.fop_flags = FOP_UNSIGNED_OFFSET
 };
 
 static const struct drm_driver hl_driver = {
