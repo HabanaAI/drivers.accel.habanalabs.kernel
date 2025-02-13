@@ -2933,9 +2933,7 @@ out:
 }
 
 #ifdef _HAS_USER_PAGES_DIRTY_LOCK
-
-#if KERNEL_VERSION(5, 11, 0) > LINUX_VERSION_CODE
-static int pin_user_pages_fast_split(unsigned long start, int nr_pages,
+static __maybe_unused int pin_user_pages_fast_split(unsigned long start, int nr_pages,
 					unsigned int gup_flags, struct page **pages)
 {
 	int rc, cur_nr_pin_pages = 0;
@@ -2973,7 +2971,6 @@ static int pin_user_pages_fast_split(unsigned long start, int nr_pages,
 
 	return cur_nr_pin_pages;
 }
-#endif
 
 static int get_user_memory(struct hl_device *hdev, u64 addr, u64 size,
 				u32 npages, u64 start, u32 offset,
@@ -2990,16 +2987,18 @@ static int get_user_memory(struct hl_device *hdev, u64 addr, u64 size,
 	if (!userptr->pages)
 		return -ENOMEM;
 
-#if KERNEL_VERSION(5, 11, 0) <= LINUX_VERSION_CODE
-	rc = pin_user_pages_fast(start, npages, GUP_FLAGS, userptr->pages);
-#else
-	/* In kernels before 5.11 that have pin_user_pages_fast(), we can't pin many pages at the
-	 * same time because of some kmalloc call inside the pinning code path. Split the pinning
-	 * to multiple calls of 256MB
+
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 11, 0) || \
+((LINUX_VERSION_CODE & KERNEL_VERSION(6, 11, 0)) == KERNEL_VERSION(6, 11, 0))
+	/* In kernels before 5.11 and in 6.11 that have pin_user_pages_fast(),
+	 * we can't pin many pages at the same time because of some kmalloc call
+	 * inside the pinning code path. Split the pinning to multiple calls of 256MB
 	 */
 	rc = pin_user_pages_fast_split(start, npages,
 				 FOLL_FORCE | FOLL_WRITE | FOLL_LONGTERM,
 				 userptr->pages);
+#else
+	rc = pin_user_pages_fast(start, npages, GUP_FLAGS, userptr->pages);
 #endif
 
 	if (rc != npages) {
