@@ -516,7 +516,6 @@ static void gaudi2_cn_set_cn_data(struct hl_device *hdev)
 	aux_ops->asic_ops = gaudi2_aux_ops;
 
 	gaudi2_aux_data->fw_security_enabled = prop->fw_security_enabled;
-	gaudi2_aux_data->irq_num_port_base = GAUDI2_IRQ_NUM_NIC_PORT_FIRST;
 	gaudi2_aux_data->sob_id_base = GAUDI2_RESERVED_SOB_NIC_PORT_FIRST;
 	gaudi2_aux_data->sob_inc_cfg_val = GAUDI2_SOB_INCREMENT_BY_ONE;
 	gaudi2_aux_data->setup_type = hdev->gaudi2_setup_type;
