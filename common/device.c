@@ -1618,9 +1618,10 @@ const char *hl_get_default_card_name(struct hl_device *hdev)
 		case ASIC_GAUDI2D_HL_288:
 			return "HL288";
 		case ASIC_GAUDI3:
-		case ASIC_GAUDI3D:
 		case ASIC_GAUDI3_FPGA:
 			return "HL325";
+		case ASIC_GAUDI3D:
+			return "HL328" ;
 		case ASIC_GAUDI3_HL_338:
 		case ASIC_GAUDI3D_HL_338:
 			return "HL338";
