@@ -274,11 +274,11 @@ int gaudi2_cn_set_info(struct hl_device *hdev, bool get_from_fw)
 	u8 mac[ETH_ALEN], *mac_addr;
 	int rc, i;
 
-	/* copy the MAC OUI in reverse */
-	for (i = 0 ; i < 3 ; i++)
-		mac[i] = HABANALABS_MAC_OUI_1 >> (8 * (2 - i));
-
 	if (get_from_fw) {
+		/* copy the MAC OUI in reverse */
+		for (i = 0 ; i < 3 ; i++)
+			mac[i] = HABANALABS_MAC_OUI_1 >> (8 * (2 - i));
+
 		rc = hl_cn_cpucp_info_get(hdev);
 		if (rc)
 			return rc;
@@ -339,17 +339,6 @@ int gaudi2_cn_set_info(struct hl_device *hdev, bool get_from_fw)
 			cn->card_location = le32_to_cpu(cpucp_info->card_location);
 		}
 
-		/* No F/W, hence need to set the MACs manually (randomize) */
-		get_random_bytes(&mac[3], 2);
-
-		for (i = 0 ; i < NIC_NUMBER_OF_PORTS ; i++) {
-			if (!(hdev->cn.ports_mask & BIT(i)))
-				continue;
-
-			mac[ETH_ALEN - 1] = i;
-			memcpy(mac_arr[i].mac_addr, mac, ETH_ALEN);
-		}
-
 		if (!(hdev->fw_components & FW_TYPE_BOOT_CPU)) {
 			/* This section reads privilege register, hence we should disable
 			 * assertion on simulator to allow this read.
@@ -377,6 +366,26 @@ int gaudi2_cn_set_info(struct hl_device *hdev, bool get_from_fw)
 		} else {
 			dev_warn(hdev->dev, "can't read card location as FW security is enabled\n");
 		}
+
+		/* copy the MAC OUI in reverse according to the flavor */
+		for (i = 0 ; i < 3 ; i++) {
+			if (serdes_type == HL288_SERDES_TYPE)
+				mac[i] = HABANALABS_MAC_OUI_3 >> (8 * (2 - i));
+			else
+				mac[i] = HABANALABS_MAC_OUI_1 >> (8 * (2 - i));
+		}
+
+		/* No F/W, hence need to set the MACs manually (randomize) */
+		get_random_bytes(&mac[3], 2);
+
+		for (i = 0 ; i < NIC_NUMBER_OF_PORTS ; i++) {
+			if (!(hdev->cn.ports_mask & BIT(i)))
+				continue;
+
+			mac[ETH_ALEN - 1] = i;
+			memcpy(mac_arr[i].mac_addr, mac, ETH_ALEN);
+		}
+
 	}
 
 	switch (serdes_type) {
