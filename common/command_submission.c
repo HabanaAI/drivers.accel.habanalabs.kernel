@@ -3254,30 +3254,44 @@ static int validate_and_get_ts_record(struct device *dev,
 	return 0;
 }
 
-static void unregister_timestamp_node(struct hl_device *hdev,
-			struct hl_user_pending_interrupt *record, bool need_lock)
+static inline void unregister_timestamp_put_refcounts(struct hl_user_pending_interrupt *record)
 {
-	struct hl_user_interrupt *interrupt = record->ts_reg_info.interrupt;
-	bool ts_rec_found = false;
-	unsigned long flags;
-
-	if (need_lock)
-		spin_lock_irqsave(&interrupt->ts_list_lock, flags);
-
-	if (record->ts_reg_info.in_use) {
-		record->ts_reg_info.in_use = false;
-		list_del(&record->list_node);
-		ts_rec_found = true;
-	}
-
-	if (need_lock)
-		spin_unlock_irqrestore(&interrupt->ts_list_lock, flags);
+	struct timestamp_reg_info *info = &record->ts_reg_info;
 
 	/* Put refcounts that were taken when we registered the event */
-	if (ts_rec_found) {
-		hl_mmap_mem_buf_put(record->ts_reg_info.buf);
-		hl_cb_put(record->ts_reg_info.cq_cb);
+	hl_mmap_mem_buf_put(info->buf);
+	hl_cb_put(info->cq_cb);
+}
+
+static inline void unregister_timestamp_delete(struct hl_user_pending_interrupt *record)
+{
+	record->ts_reg_info.in_use = false;
+	list_del(&record->list_node);
+}
+
+static inline void unregister_timestamp_node_locked(struct hl_user_pending_interrupt *record)
+{
+	unregister_timestamp_delete(record);
+	unregister_timestamp_put_refcounts(record);
+}
+
+static void unregister_timestamp_node(struct hl_user_pending_interrupt *record)
+{
+	spinlock_t *ts_list_lock = &record->ts_reg_info.interrupt->ts_list_lock;
+	unsigned long flags;
+
+	spin_lock_irqsave(ts_list_lock, flags);
+
+	if (unlikely(!record->ts_reg_info.in_use)) {
+		spin_unlock_irqrestore(ts_list_lock, flags);
+		return;
 	}
+
+	unregister_timestamp_delete(record);
+
+	spin_unlock_irqrestore(ts_list_lock, flags);
+
+	unregister_timestamp_put_refcounts(record);
 }
 
 static int ts_get_and_handle_kernel_record(struct hl_device *hdev, struct hl_ctx *ctx,
@@ -3286,7 +3300,6 @@ static int ts_get_and_handle_kernel_record(struct hl_device *hdev, struct hl_ctx
 {
 	struct hl_user_pending_interrupt *req_offset_record;
 	struct hl_ts_buff *ts_buff = data->buf->private;
-	bool need_lock = false;
 	int rc;
 
 	rc = validate_and_get_ts_record(data->buf->mmg->hdev->dev, ts_buff, data->ts_offset,
@@ -3304,14 +3317,12 @@ static int ts_get_and_handle_kernel_record(struct hl_device *hdev, struct hl_ctx
 		if (data->interrupt->interrupt_id !=
 				req_offset_record->ts_reg_info.interrupt->interrupt_id) {
 
-			need_lock = true;
 			spin_unlock_irqrestore(&data->interrupt->ts_list_lock, *flags);
-		}
-
-		unregister_timestamp_node(hdev, req_offset_record, need_lock);
-
-		if (need_lock)
+			unregister_timestamp_node(req_offset_record);
 			spin_lock_irqsave(&data->interrupt->ts_list_lock, *flags);
+		} else {
+			unregister_timestamp_node_locked(req_offset_record);
+		}
 	}
 
 	/* Fill up the new registration node info and add it to the list */
