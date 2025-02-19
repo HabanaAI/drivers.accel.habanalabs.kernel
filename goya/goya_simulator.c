@@ -1278,7 +1278,6 @@ static bool goya_sim_is_device_idle(struct hl_device *hdev, u64 *mask_arr, u8 ma
 }
 
 static void goya_sim_hw_queues_lock(struct hl_device *hdev)
-	__acquires(&goya->hw_queues_lock_mutex)
 {
 	struct goya_device *goya = hdev->asic_specific;
 
@@ -1286,7 +1285,6 @@ static void goya_sim_hw_queues_lock(struct hl_device *hdev)
 }
 
 static void goya_sim_hw_queues_unlock(struct hl_device *hdev)
-	__releases(&goya->hw_queues_lock_mutex)
 {
 	struct goya_device *goya = hdev->asic_specific;
 

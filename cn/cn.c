@@ -152,7 +152,6 @@ static int hl_cn_get_device_info(struct hbl_aux_dev *aux_dev,
 }
 
 static void hl_cn_device_lock(struct hbl_aux_dev *aux_dev)
-	__acquires(&hdev->cn.device_lock)
 {
 	struct hl_cn *cn = container_of(aux_dev, struct hl_cn, cn_aux_dev);
 	struct hl_device *hdev = container_of(cn, struct hl_device, cn);
@@ -161,7 +160,6 @@ static void hl_cn_device_lock(struct hbl_aux_dev *aux_dev)
 }
 
 static void hl_cn_device_unlock(struct hbl_aux_dev *aux_dev)
-	__releases(&hdev->cn.device_lock)
 {
 	struct hl_cn *cn = container_of(aux_dev, struct hl_cn, cn_aux_dev);
 	struct hl_device *hdev = container_of(cn, struct hl_device, cn);

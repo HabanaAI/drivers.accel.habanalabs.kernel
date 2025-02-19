@@ -1619,7 +1619,6 @@ static void gaudi2_sim_write_pte(struct hl_device *hdev, u64 addr, u64 val)
 }
 
 static void gaudi2_sim_hw_queues_lock(struct hl_device *hdev)
-	__acquires(&gaudi2->hw_queues_lock_mutex)
 {
 	struct gaudi2_device *gaudi2 = hdev->asic_specific;
 
@@ -1627,7 +1626,6 @@ static void gaudi2_sim_hw_queues_lock(struct hl_device *hdev)
 }
 
 static void gaudi2_sim_hw_queues_unlock(struct hl_device *hdev)
-	__releases(&gaudi2->hw_queues_lock_mutex)
 {
 	struct gaudi2_device *gaudi2 = hdev->asic_specific;
 

@@ -1469,7 +1469,6 @@ static bool gaudi_sim_is_device_idle(struct hl_device *hdev, u64 *mask_arr, u8 m
 }
 
 static void gaudi_sim_hw_queues_lock(struct hl_device *hdev)
-	__acquires(&gaudi->hw_queues_lock_mutex)
 {
 	struct gaudi_device *gaudi = hdev->asic_specific;
 
@@ -1477,7 +1476,6 @@ static void gaudi_sim_hw_queues_lock(struct hl_device *hdev)
 }
 
 static void gaudi_sim_hw_queues_unlock(struct hl_device *hdev)
-	__releases(&gaudi->hw_queues_lock_mutex)
 {
 	struct gaudi_device *gaudi = hdev->asic_specific;
 
