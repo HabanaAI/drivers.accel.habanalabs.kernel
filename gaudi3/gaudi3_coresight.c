@@ -5865,8 +5865,8 @@ static void gaudi3_ac_start(struct hl_device *hdev, u32 etr_idx, u32 buf_size)
 		memset(&pkt, 0, sizeof(pkt));
 
 		pkt.ctl = cpu_to_le32(CPUCP_PACKET_AC_CONTROL << CPUCP_PKT_CTL_OPCODE_SHIFT);
-		pkt.index = etr_idx;
-		pkt.pkt_subidx = AC_OP_START;
+		pkt.index = cpu_to_le32(etr_idx);
+		pkt.pkt_subidx = cpu_to_le32(AC_OP_START);
 		pkt.value = cpu_to_le64(buf_size);
 		rc = hdev->asic_funcs->send_cpu_message(hdev, (u32 *) &pkt, sizeof(pkt), 0, NULL);
 		if (rc && rc != -EAGAIN)
@@ -5888,8 +5888,8 @@ static void gaudi3_ac_stop(struct hl_device *hdev, u32 etr_idx)
 		memset(&pkt, 0, sizeof(pkt));
 
 		pkt.ctl = cpu_to_le32(CPUCP_PACKET_AC_CONTROL << CPUCP_PKT_CTL_OPCODE_SHIFT);
-		pkt.index = etr_idx;
-		pkt.pkt_subidx = AC_OP_STOP;
+		pkt.index = cpu_to_le32(etr_idx);
+		pkt.pkt_subidx = cpu_to_le32(AC_OP_STOP);
 		rc = hdev->asic_funcs->send_cpu_message(hdev, (u32 *) &pkt, sizeof(pkt), 0, NULL);
 		if (rc && rc != -EAGAIN)
 			dev_err(hdev->dev, "failed to send AC stop msg (err = %d)\n", rc);

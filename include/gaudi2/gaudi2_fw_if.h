@@ -68,7 +68,7 @@ struct gaudi2_cold_rst_data {
 			u32 spsram_init_done : 1;
 			u32 fake_security_enable : 1;
 			u32 bist_skip_enable : 1;
-			__le32 reserved1 : 3;
+			u32 reserved1 : 3;
 			u32 wd_rst_cause_arm : 1;
 			u32 wd_rst_cause_arcpid : 1;
 			u32 reserved : 21;

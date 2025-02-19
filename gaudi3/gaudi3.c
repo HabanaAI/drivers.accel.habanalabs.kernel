@@ -203,7 +203,7 @@ MODULE_FIRMWARE(GAUDI3_BOOT_FIT_FILE);
 
 #define HL_STR_DEC_SM_ARC(hd) "GAUDI3_HDCORE" #hd "_ENGINE_ID_{DEC_0,DEC_1,SM,ARCF_0,ARCF_1}"
 
-const char *gaud3_engine_id_dec_sm_arc_str[] = {
+static const char *gaud3_engine_id_dec_sm_arc_str[] = {
 	HL_STR_DEC_SM_ARC(0),
 	HL_STR_DEC_SM_ARC(1),
 	HL_STR_DEC_SM_ARC(2),
@@ -13236,18 +13236,19 @@ static u32 handle_hmmu_sei_events(struct hl_device *hdev, u16 data_size,
 				  struct hl_eq_stlb_sei_data *sei_data)
 {
 	char stlb_str[256] = {0}, dtlb_str[256] = {0};
+	u64 intr_cause_data = le64_to_cpu(sei_data->cause.intr_cause_data);
 	u32 err_cnt = 0;
 
 	gaudi3_validate_eqe_data_size(hdev, sei_data, data_size, sizeof(*sei_data));
 
-	if (sei_data->cause.intr_cause_data & STLB_INTR_SEI_CAUSE_LBW_RSP_ERR_M) {
+	if (intr_cause_data & STLB_INTR_SEI_CAUSE_LBW_RSP_ERR_M) {
 		snprintf(stlb_str, sizeof(stlb_str), "LBW resp error: address 0x%x, data: 0x%x",
 			 le32_to_cpu(sei_data->lbw_data.addr),
 			 le32_to_cpu(sei_data->lbw_data.data));
 		err_cnt++;
 	}
 
-	if (sei_data->cause.intr_cause_data & STLB_INTR_SEI_CAUSE_PTW_RSP_ERR_M)
+	if (intr_cause_data & STLB_INTR_SEI_CAUSE_PTW_RSP_ERR_M)
 		err_cnt += hmmu_sei_event_get_dti_desc(hdev,
 						le64_to_cpu(sei_data->fault_data.syndrom_dti),
 						dtlb_str, sizeof(dtlb_str));
