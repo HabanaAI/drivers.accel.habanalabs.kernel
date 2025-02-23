@@ -267,6 +267,9 @@ static int gaudi3_cn_override_ports_masks(struct hl_device *hdev, u32 serdes_typ
 			/* In all cards, ports 8-11 are external */
 			ports_ext_mask = 0xF00;
 			goto out;
+		case GAUDI3_RACK_SERDES_TYPE:
+			ports_ext_mask = hdev->cn.ports_mask;
+			break;
 		default:
 			dev_err(hdev->dev, "Invalid serdes_type %u\n", serdes_type);
 			rc = -EINVAL;
@@ -463,6 +466,9 @@ int gaudi3_cn_set_info(struct hl_device *hdev, bool get_from_fw)
 		break;
 	case HL338_SERDES_TYPE:
 		hdev->asic_prop.server_type = HL_SERVER_GAUDI3_HL338;
+		break;
+	case GAUDI3_RACK_SERDES_TYPE:
+		hdev->asic_prop.server_type = HL_SERVER_GAUDI3_RACK;
 		break;
 	default:
 		hdev->asic_prop.server_type = HL_SERVER_TYPE_UNKNOWN;
