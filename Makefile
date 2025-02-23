@@ -31,10 +31,3 @@ habanalabs-y += common/simulator.o common/habanalabs_compat.o \
 		common/importer_drv.o common/habanalabs_compat_accel.o
 
 ccflags-y += -I$(src)
-
-# NOT TO BE UPSTREAMED - START
-# General out-of-tree build and compat magic
-module_srctree := $(src)/../../..
-module_name := habanalabs
-include $(module_srctree)/compat/compat.kbuild
-# NOT TO BE UPSTREAMED - END
