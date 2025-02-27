@@ -603,7 +603,9 @@ static const struct file_operations hl_fops = {
 	.compat_ioctl = drm_compat_ioctl,
 	.llseek = noop_llseek,
 	.mmap = hl_mmap,
+	#ifdef FOP_UNSIGNED_OFFSET
 	.fop_flags = FOP_UNSIGNED_OFFSET
+	#endif
 };
 
 static const struct drm_driver hl_driver = {
