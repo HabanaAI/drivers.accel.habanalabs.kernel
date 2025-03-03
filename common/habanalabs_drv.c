@@ -32,6 +32,7 @@
 
 #define CREATE_TRACE_POINTS
 #include <trace/events/habanalabs.h>
+#include <linux/trace_events.h>
 
 #define HL_DRIVER_AUTHOR	"HabanaLabs Kernel Driver Team"
 
@@ -2124,7 +2125,6 @@ void hl_pci_force_remove_device(struct hl_device *hdev)
 	complete(&hl_pci_mon.comp);
 }
 
-#define HL_EVENT_FILE_MAX_NAME_LEN	128
 #define HL_TRACE_EVENTS_DIR	"events/habanalabs"
 
 static char *hl_events[HL_TRACE_NUM_EVENTS] __initdata = {
@@ -2144,39 +2144,27 @@ static char *hl_events[HL_TRACE_NUM_EVENTS] __initdata = {
 	[HL_TRACE_DMA_UNMAP_PAGE] = "habanalabs_dma_unmap_page",
 };
 
-static char hl_event_filename_buffer[HL_EVENT_FILE_MAX_NAME_LEN] __initdata;
-
-static long __init hl_enable_trace_event(const char *fpath)
+static long __init hl_enable_trace_event(enum hl_trace_events trace_event)
 {
-	struct file *filp;
-	ssize_t n, nr;
-	loff_t pos;
+	struct trace_event_file *tfile;
 	long rc = 0;
 
-	filp = filp_open(fpath, O_RDWR, 0);
-	if (IS_ERR(filp)) {
-		rc = PTR_ERR(filp);
-		pr_err("habanalabs: trace file %s open error %ld\n", fpath, rc);
+	/* Get the event file for the trace event */
+	tfile = trace_get_event_file(NULL, "habanalabs", hl_events[trace_event]);
+	if(IS_ERR(tfile)){
+		rc = PTR_ERR(tfile);
+		pr_err("habanalabs: trace file for %s open error %ld\n",
+		       hl_events[trace_event], rc);
 		return rc;
 	}
 
-	pos = filp->f_pos;
+	/* Enable the trace event */
+	rc = trace_array_set_clr_event(tfile->tr,
+				       "habanalabs", hl_events[trace_event], true);
 
-	/* expected to write single char */
-	nr = 1;
 
-#ifdef _HAS_KERNEL_WRITE_WITH_PTR
-	n = kernel_write(filp, "1", nr, &pos);
-#else
-	n = kernel_write(filp, "1", nr, pos);
-#endif
-
-	if (n != nr) {
-		pr_err("habanalabs: trace file write error %ld\n", (long)n);
-		rc = -EFAULT;
-	}
-
-	filp_close(filp, NULL);
+	/* Release the file after event trace enabling */
+	trace_put_event_file(tfile);
 
 	return rc;
 }
@@ -2194,7 +2182,7 @@ static void hl_trace_print_sync_timestamp(void)
 
 static void __init hl_enable_trace_events(void)
 {
-	int i, path_len, free_space;
+	int event_id;
 	long rc;
 
 	if (!enable_events_tracing)
@@ -2202,45 +2190,16 @@ static void __init hl_enable_trace_events(void)
 
 	hl_trace_print_sync_timestamp();
 
-	/* compose habanalabs trace folder */
-	path_len = snprintf(hl_event_filename_buffer, HL_EVENT_FILE_MAX_NAME_LEN,
-					"%s/%s/", tracefs_mnt, HL_TRACE_EVENTS_DIR);
-	if ((path_len < 0) || (path_len >= HL_EVENT_FILE_MAX_NAME_LEN)) {
-		pr_err("failed to snprintf habanalabs trace folder %d\n", path_len);
-		return;
-	}
-
-	/* update free space in buffer */
-	free_space = HL_EVENT_FILE_MAX_NAME_LEN - path_len;
-
-	if ((enable_events_tracing & HL_TRACE_ALL_EVENTS_MASK) == HL_TRACE_ALL_EVENTS_MASK) {
-		rc = snprintf(&hl_event_filename_buffer[path_len], free_space, "enable");
-
-		if ((rc < 0) || (rc >= free_space)) {
-			pr_err("failed to snprintf enable (all) %ld\n", rc);
-			return;
-		}
-
-		hl_enable_trace_event(hl_event_filename_buffer);
-		return;
-	}
-
-	for (i = 0; i < HL_TRACE_NUM_EVENTS; i++) {
-		if (!(enable_events_tracing & BIT_ULL(i)))
+	for (event_id = 0; event_id < HL_TRACE_NUM_EVENTS; event_id++) {
+		if (!(enable_events_tracing & BIT_ULL(event_id)))
 			continue;
 
-		rc = snprintf(&hl_event_filename_buffer[path_len], free_space,
-					"%s/enable", hl_events[i]);
-
-		if ((rc < 0) || (rc >= free_space)) {
-			pr_err("failed to snprintf hl trace file %s %ld\n",
-					hl_events[i], rc);
+		rc = hl_enable_trace_event(event_id);
+		if (rc) {
+			pr_err("event tracing enabling for event %s failed with rc = %ld",
+			       hl_events[event_id], rc);
 			return;
 		}
-
-		rc = hl_enable_trace_event(hl_event_filename_buffer);
-		if (rc)
-			return;
 	}
 }
 
