@@ -360,10 +360,6 @@ ifneq ($(shell grep -w "get_random_u32" $(LINUX_SRC)/include/linux/random.h > /d
 	ccflags-y += -D_HAS_RANDOM_U32
 endif
 
-ifneq ($(shell grep -w "kernel_write" $(LINUX_SRC)/include/linux/fs.h | grep ", loff_t \*" > /dev/null 2>&1 && echo 1),)
-	ccflags-y += -D_HAS_KERNEL_WRITE_WITH_PTR
-endif
-
 ifneq ($(shell grep "check_add_overflow" $(LINUX_SRC)/include/linux/overflow.h > /dev/null 2>&1 && echo 1),)
 	ccflags-y += -D_HAS_CHECK_ADD_OVERFLOW
 endif
