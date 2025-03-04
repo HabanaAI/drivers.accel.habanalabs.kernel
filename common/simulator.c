@@ -1627,14 +1627,11 @@ int hl_sim_create_shared_block(struct hl_simulator_device *edev,
 	struct hl_ctx *ctx;
 	int rc = 0, handle, i, err_idx;
 
-	/* TODO: SW-147312 - check if to change PAGE_SIZE to prop->pmmu.page */
-	/* TODO: SW-147312 - check how to handle HUGE_PAGE                   */
 	if (!args->size || args->size % PAGE_SIZE || args->size > HL_SIM_MAX_SHARED_BLOCK_SIZE) {
 		dev_err(edev->dev, "invalid size for shared block. size: %llu\n", args->size);
 		return -EINVAL;
 	}
 
-	/* TODO: SW-147312 - add device_address validation */
 	ctx = hl_get_compute_ctx(hdev);
 	if (!ctx) {
 		dev_err(edev->dev, "Can't get compute context\n");
