@@ -135,9 +135,6 @@
 #include "psoc_global_conf2_regs.h"
 #include "parc_global_conf_regs.h"
 
-/* TODO: used for debug, so can be removed once H9-5315 is resolved */
-#include "nrtr_crdt_rrtr_ob_crdt_regs.h"
-
 #include "pdma_cmn_b_masks.h"
 #include "pdma_cmn_b_pqm_cmn_b_masks.h"
 #include "pdup_eng_masks.h"
