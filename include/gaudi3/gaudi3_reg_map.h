@@ -45,9 +45,4 @@
 #define mmPID_CMD_TELEMETRY_REG_1		0
 #define mmPID_CMD_TELEMETRY_REG_1_HI		0
 
-/*
- * TODO: temporary pre-silicone use, remove after poweron
- */
-#define mmHBM_STS				mmD0_PSOC_GLOBAL_CONF_SCRATCHPAD_31
-
 #endif /* GAUDI3_REG_MAP_H_ */
