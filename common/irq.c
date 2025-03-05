@@ -542,7 +542,7 @@ irqreturn_t hl_irq_handler_eq(int irq, void *arg)
 			goto skip_irq;
 		}
 
-		handle_eqe_work = kmalloc(sizeof(*handle_eqe_work), GFP_ATOMIC);
+		handle_eqe_work = kzalloc(sizeof(*handle_eqe_work), GFP_ATOMIC);
 		if (handle_eqe_work) {
 			INIT_WORK(&handle_eqe_work->eq_work, irq_handle_eqe);
 			handle_eqe_work->hdev = hdev;
@@ -550,9 +550,12 @@ irqreturn_t hl_irq_handler_eq(int irq, void *arg)
 			memcpy(&handle_eqe_work->eq_entry, eq_entry,
 					sizeof(*eq_entry));
 
-			if (!queue_work(hdev->eq_wq, &handle_eqe_work->eq_work))
-				dev_warn_ratelimited(hdev->dev,
+			if (!queue_work(hdev->eq_wq, &handle_eqe_work->eq_work)) {
+				/* This should not have happened, report it as critical */
+				kfree(handle_eqe_work);
+				dev_crit_ratelimited(hdev->dev,
 						     "EQ event queue_work FAILED, work is already on a queue\n");
+			}
 		}
 skip_irq:
 		/* Clear EQ entry ready bit */
