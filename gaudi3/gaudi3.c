@@ -7750,9 +7750,14 @@ static irqreturn_t gaudi3_eq_irq_handler(int irq, void *arg)
 
 	gaudi3 = hdev->asic_specific;
 	eq_work = &gaudi3->eq_work;
+	/*
+	 * Failure to queue an already queued work can happen on heavily loaded systems
+	 * but this is OK as the work doesn't stop until it handles all the events in the EQ
+	 * So just log this.
+	 */
 	if (!queue_work(hdev->eq_wq, &eq_work->work))
-		dev_warn_ratelimited(hdev->dev,
-				     "EQ event queue_work FAILED, work is already on a queue\n");
+		dev_info_ratelimited(hdev->dev,
+				     "EQ event queue_work was rejected, work is already on a queue\n");
 
 out:
 	return IRQ_HANDLED;
