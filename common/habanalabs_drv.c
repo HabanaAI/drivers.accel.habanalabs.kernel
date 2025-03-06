@@ -2144,31 +2144,6 @@ static char *hl_events[HL_TRACE_NUM_EVENTS] __initdata = {
 	[HL_TRACE_DMA_UNMAP_PAGE] = "habanalabs_dma_unmap_page",
 };
 
-static long __init hl_enable_trace_event(enum hl_trace_events trace_event)
-{
-	struct trace_event_file *tfile;
-	long rc = 0;
-
-	/* Get the event file for the trace event */
-	tfile = trace_get_event_file(NULL, "habanalabs", hl_events[trace_event]);
-	if(IS_ERR(tfile)){
-		rc = PTR_ERR(tfile);
-		pr_err("habanalabs: trace file for %s open error %ld\n",
-		       hl_events[trace_event], rc);
-		return rc;
-	}
-
-	/* Enable the trace event */
-	rc = trace_array_set_clr_event(tfile->tr,
-				       "habanalabs", hl_events[trace_event], true);
-
-
-	/* Release the file after event trace enabling */
-	trace_put_event_file(tfile);
-
-	return rc;
-}
-
 static void hl_trace_print_sync_timestamp(void)
 {
 	u64 ts_nsec, ts_sec;
@@ -2194,7 +2169,7 @@ static void __init hl_enable_trace_events(void)
 		if (!(enable_events_tracing & BIT_ULL(event_id)))
 			continue;
 
-		rc = hl_enable_trace_event(event_id);
+		rc = trace_set_clr_event("habanalabs", hl_events[event_id], true);
 		if (rc) {
 			pr_err("event tracing enabling for event %s failed with rc = %ld",
 			       hl_events[event_id], rc);
