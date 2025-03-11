@@ -25,7 +25,7 @@
 
 /*
  * In FPGA, the DRAM mapped at lower address, the SRAM is after it. 0xD000000 after the
- * end of the DRAM area. This address configuration has set, as a result of FPGA limition
+ * end of the DRAM area. This address configuration has set, as a result of FPGA limitation
  * with the asic SRAM start address.
  */
 
@@ -113,10 +113,6 @@ static int gaudi3_fpga_early_init(struct hl_device *hdev)
 	struct asic_fixed_properties *prop = &hdev->asic_prop;
 	struct pci_dev *pdev = hdev->pdev;
 	int rc;
-
-	rc = hl_cn_check_ib_driver(hdev);
-	if (rc)
-		return rc;
 
 	rc = gaudi3_fpga_set_fixed_properties(hdev);
 	if (rc)

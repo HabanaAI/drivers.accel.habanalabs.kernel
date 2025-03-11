@@ -3429,7 +3429,7 @@ static int gaudi2_cpucp_info_get(struct hl_device *hdev)
 
 	dram_size = le64_to_cpu(prop->cpucp_info.dram_size);
 	if (dram_size) {
-		/* we can have wither 5 or 6 HBMs. other values are invalid */
+		/* we can have either 5 or 6 HBMs. other values are invalid */
 
 		if ((dram_size != ((GAUDI2_HBM_NUM - 1) * SZ_16G)) &&
 					(dram_size != (GAUDI2_HBM_NUM * SZ_16G))) {
@@ -3559,10 +3559,6 @@ static int gaudi2_early_init(struct hl_device *hdev)
 	struct pci_dev *pdev = hdev->pdev;
 	resource_size_t pci_bar_size;
 	int rc;
-
-	rc = hl_cn_check_ib_driver(hdev);
-	if (rc)
-		return rc;
 
 	rc = gaudi2_set_fixed_properties(hdev);
 	if (rc)

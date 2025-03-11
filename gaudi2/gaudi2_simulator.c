@@ -1090,10 +1090,6 @@ static int gaudi2_sim_early_init(struct hl_device *hdev)
 {
 	int rc;
 
-	rc = hl_cn_check_ib_driver(hdev);
-	if (rc)
-		return rc;
-
 	rc = gaudi2_sim_set_fixed_properties(hdev);
 	if (rc)
 		return rc;

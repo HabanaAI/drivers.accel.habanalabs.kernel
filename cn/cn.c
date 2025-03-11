@@ -11,12 +11,6 @@
 #include "../include/common/pci_ids.h"
 #include <linux/file.h>
 
-#ifndef _HAS_AUX_BUS_H
-#define HL_CN_NAME		"habanalabs_cn"
-#define HL_IB_NAME		"habanalabs_ib"
-#endif
-
-
 static_assert(HBL_CN_AUX_MODULE_EEPROM_MAX_LEN == CPUCP_NIC_QSFP_EEPROM_MAX_LEN);
 
 /**
@@ -735,7 +729,6 @@ static void hl_cn_aux_data_fini(struct hl_device *hdev)
 	kfree(aux_dev->aux_data);
 }
 
-#ifdef _HAS_AUX_BUS_H
 static void cn_adev_release(struct device *dev)
 {
 	struct hbl_aux_dev *aux_dev = container_of(dev, struct hbl_aux_dev, adev.dev);
@@ -802,84 +795,6 @@ static void hl_cn_aux_drv_fini(struct hl_device *hdev)
 
 	hl_cn_aux_data_fini(hdev);
 }
-#else
-static int hl_cn_aux_drv_init(struct hl_device *hdev)
-{
-	int (*probe)(struct hbl_aux_dev *aux_dev);
-	struct hl_cn *cn = &hdev->cn;
-	struct module *module;
-	int rc;
-
-	rc = hl_cn_aux_data_init(hdev);
-	if (rc) {
-		dev_err(hdev->dev, "CN aux data init failed\n");
-		return rc;
-	}
-
-	module = find_module(HL_CN_NAME);
-	if (!module) {
-		dev_err(hdev->dev, "Module %s was not found\n", HL_CN_NAME);
-		rc = -EIO;
-		goto module_fail;
-	}
-
-	/* don't allow module unloading */
-	if (!try_module_get(module)) {
-		dev_err(hdev->dev, "Failed to increment %s module refcount\n", HL_CN_NAME);
-		rc = -EIO;
-		goto module_fail;
-	}
-
-	probe = symbol_get(hbl_cn_probe);
-	if (!probe) {
-		dev_err(hdev->dev, "hbl_cn_probe symbol was not found\n");
-		rc = -ENODEV;
-		goto probe_fail;
-	}
-
-	rc = probe(&hdev->cn.cn_aux_dev);
-	symbol_put(hbl_cn_probe);
-
-	cn->is_cn_aux_dev_initialized = true;
-
-	return 0;
-
-probe_fail:
-	module_put(module);
-module_fail:
-	hl_cn_aux_data_fini(hdev);
-
-	return rc;
-}
-
-static void hl_cn_aux_drv_fini(struct hl_device *hdev)
-{
-	void (*remove)(struct hbl_aux_dev *aux_dev);
-	struct hl_cn *cn = &hdev->cn;
-	struct module *module;
-
-	if (!cn->is_cn_aux_dev_initialized)
-		return;
-
-	module = find_module(HL_CN_NAME);
-	if (!module) {
-		dev_err(hdev->dev, "Module %s was not found\n", HL_CN_NAME);
-		return;
-	}
-
-	remove = symbol_get(hbl_cn_remove);
-	if (!remove) {
-		dev_err(hdev->dev, "hbl_cn_remove symbol was not found\n");
-		return;
-	}
-
-	remove(&hdev->cn.cn_aux_dev);
-	symbol_put(hbl_cn_remove);
-	module_put(module);
-
-	hl_cn_aux_data_fini(hdev);
-}
-#endif
 
 int hl_cn_reopen(struct hl_device *hdev)
 {
@@ -1143,31 +1058,6 @@ int hl_cn_dump_port_statistics(struct hl_device *hdev, u32 port, u64 str_buf_ptr
 	return cn_funcs->port_funcs->dump_port_statistics(hdev, port, str_buf_ptr, val_buf_ptr,
 								num_of_stat);
 }
-
-#ifdef _HAS_AUX_BUS_H
-int hl_cn_check_ib_driver(struct hl_device *hdev)
-{
-	/* With Aux bus support, IB driver need not be loaded beforehand */
-	return 0;
-}
-#else
-int hl_cn_check_ib_driver(struct hl_device *hdev)
-{
-#ifdef HL_LOAD_IB
-	struct module *modules_list;
-
-	list_for_each_entry(modules_list, THIS_MODULE->list.prev, list) {
-		if (!strcmp(modules_list->name, HL_IB_NAME))
-			return 0;
-	}
-
-	dev_err(hdev->dev, "%s module is not found. Maybe it is unloaded?\n", HL_IB_NAME);
-	return -ENODEV;
-#else
-	return 0;
-#endif
-}
-#endif
 
 int hl_cn_cpucp_info_get(struct hl_device *hdev)
 {

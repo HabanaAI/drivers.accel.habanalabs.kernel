@@ -171,7 +171,6 @@ int hl_cn_get_port_status(struct hl_device *hdev, u32 port,
 			 struct hl_info_habana_link_state *link_state_info);
 int hl_cn_dump_port_statistics(struct hl_device *hdev, u32 port, u64 str_buf_ptr, u64 val_buf_ptr,
 				u32 *num_of_stat);
-int hl_cn_check_ib_driver(struct hl_device *hdev);
 int hl_cn_cpucp_info_get(struct hl_device *hdev);
 void *hl_cn_dma_alloc_coherent(struct hbl_aux_dev *aux_dev, size_t size, dma_addr_t *dma_handle,
 			       gfp_t flag);
@@ -193,11 +192,5 @@ int hl_cn_send_cpu_message(struct hbl_aux_dev *aux_dev, u32 *msg, u16 len, u32 t
 				u64 *result);
 void hl_cn_set_priv_assertions(struct hbl_aux_dev *aux_dev, bool enable);
 void hl_cn_post_send_status(struct hbl_aux_dev *aux_dev, u32 port);
-
-
-#ifndef _HAS_AUX_BUS_H
-extern int hbl_cn_probe(struct hbl_aux_dev *aux_dev);
-extern void hbl_cn_remove(struct hbl_aux_dev *aux_dev);
-#endif
 
 #endif /* CN_H_ */

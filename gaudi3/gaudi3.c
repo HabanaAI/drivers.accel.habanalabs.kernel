@@ -4717,10 +4717,6 @@ static int gaudi3_early_init(struct hl_device *hdev)
 	u32 status;
 	int rc;
 
-	rc = hl_cn_check_ib_driver(hdev);
-	if (rc)
-		return rc;
-
 	rc = gaudi3_set_fixed_properties(hdev);
 	if (rc)
 		return rc;
