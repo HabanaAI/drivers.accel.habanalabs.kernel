@@ -27,7 +27,8 @@ habanalabs-y += $(HL_GOYA_FILES)
 
 habanalabs-$(CONFIG_DEBUG_FS) += common/debugfs.o
 
-habanalabs-y += common/simulator.o common/habanalabs_compat.o \
-		common/importer_drv.o common/habanalabs_compat_accel.o
+habanalabs-y += common/habanalabs_compat_accel.o \
+                common/importer_drv.o            \
+                common/simulator.o               \
 
 ccflags-y += -I$(src)

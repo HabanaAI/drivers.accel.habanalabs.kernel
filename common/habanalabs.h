@@ -49,7 +49,7 @@
 #include <drm/drm_device.h>
 #include <drm/drm_file.h>
 
-#include "habanalabs_compat.h"
+#include "compat.h"
 #include "security.h"
 
 #if (KERNEL_VERSION(6, 2, 0) <= LINUX_VERSION_CODE) && !IS_ENABLED(CONFIG_DRM_ACCEL)

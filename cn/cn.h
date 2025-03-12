@@ -8,6 +8,8 @@
 #ifndef CN_H_
 #define CN_H_
 
+#include "compat.h"
+
 #include <uapi/drm/habanalabs_accel.h>
 #include <linux/net/intel/cn_aux.h>
 
@@ -15,7 +17,6 @@
 #include <linux/hashtable.h>
 #include <linux/ctype.h>
 
-#include "../common/habanalabs_compat.h"
 #include <linux/habanalabs/cpucp_if.h>
 
 struct hl_device;
