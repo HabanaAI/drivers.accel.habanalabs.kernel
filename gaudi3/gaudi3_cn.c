@@ -325,6 +325,9 @@ static int gaudi3_cn_override_ports_masks(struct hl_device *hdev, u32 serdes_typ
 		/* All the enabled ports should be set as external */
 		ports_ext_mask = hdev->cn.ports_mask;
 		goto out;
+	case GAUDI3_SETUP_TYPE_RACK:
+		ports_ext_mask = hdev->cn.ports_mask;
+		goto out;
 	default:
 		dev_err(hdev->dev, "Invalid gaudi3_setup_type %u\n", hdev->gaudi3_setup_type);
 		rc = -EINVAL;
