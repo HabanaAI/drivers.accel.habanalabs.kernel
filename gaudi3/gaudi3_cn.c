@@ -270,6 +270,9 @@ static int gaudi3_cn_override_ports_masks(struct hl_device *hdev, u32 serdes_typ
 		case GAUDI3_RACK_SERDES_TYPE:
 			ports_ext_mask = hdev->cn.ports_mask;
 			break;
+		case GAUDI3_RACK_WHITEBOX_SERDES_TYPE:
+			ports_ext_mask = hdev->cn.ports_mask;
+			break;
 		default:
 			dev_err(hdev->dev, "Invalid serdes_type %u\n", serdes_type);
 			rc = -EINVAL;
@@ -326,6 +329,9 @@ static int gaudi3_cn_override_ports_masks(struct hl_device *hdev, u32 serdes_typ
 		ports_ext_mask = hdev->cn.ports_mask;
 		goto out;
 	case GAUDI3_SETUP_TYPE_RACK:
+		ports_ext_mask = hdev->cn.ports_mask;
+		goto out;
+	case GAUDI3_SETUP_TYPE_RACK_WHITEBOX:
 		ports_ext_mask = hdev->cn.ports_mask;
 		goto out;
 	default:
@@ -472,6 +478,9 @@ int gaudi3_cn_set_info(struct hl_device *hdev, bool get_from_fw)
 		break;
 	case GAUDI3_RACK_SERDES_TYPE:
 		hdev->asic_prop.server_type = HL_SERVER_GAUDI3_RACK;
+		break;
+	case GAUDI3_RACK_WHITEBOX_SERDES_TYPE:
+		hdev->asic_prop.server_type = HL_SERVER_GAUDI3_RACK_WHITEBOX;
 		break;
 	default:
 		hdev->asic_prop.server_type = HL_SERVER_TYPE_UNKNOWN;
