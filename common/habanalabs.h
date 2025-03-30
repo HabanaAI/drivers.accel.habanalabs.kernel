@@ -1534,30 +1534,6 @@ struct hl_dec {
  */
 enum hl_asic_type {
 	ASIC_INVALID,
-	ASIC_GOYA_SIM,
-	ASIC_GAUDI_SIM,
-	ASIC_GAUDI_HL2000M_SIM,
-	ASIC_GAUDI2_SIM,
-	ASIC_GAUDI2B_SIM,
-	ASIC_GAUDI2C_SIM,
-	ASIC_GAUDI2D_SIM,
-	ASIC_GAUDI2_HL_288_SIM,
-	ASIC_GAUDI2D_HL_288_SIM,
-	ASIC_GAUDI2_SIM_ARC,
-	ASIC_GAUDI2B_SIM_ARC,
-	ASIC_GAUDI2C_SIM_ARC,
-	ASIC_GAUDI2D_SIM_ARC,
-	ASIC_GAUDI2_HL_288_SIM_ARC,
-	ASIC_GAUDI2D_HL_288_SIM_ARC,
-	ASIC_GAUDI3D_SIM,
-	ASIC_GAUDI3_SIM,
-	ASIC_GAUDI3_SIM_ARC,
-	ASIC_GAUDI3D_SIM_ARC,
-	ASIC_GAUDI3_HL_338_SIM,
-	ASIC_GAUDI3D_HL_338_SIM,
-	ASIC_GAUDI3_HL_338_SIM_ARC,
-	ASIC_GAUDI3D_HL_338_SIM_ARC,
-	ASIC_LAST_SIM,
 	ASIC_GOYA,
 	ASIC_GAUDI,
 	ASIC_GAUDI_SEC,
@@ -1571,7 +1547,6 @@ enum hl_asic_type {
 	ASIC_GAUDI2D_HL_288,
 	ASIC_GAUDI3,
 	ASIC_GAUDI3D,
-	ASIC_GAUDI3_FPGA,
 	ASIC_GAUDI3_HL_338,
 	ASIC_GAUDI3D_HL_338,
 };
@@ -2053,7 +2028,6 @@ struct hl_asic_funcs {
 	int (*map_pll_idx_to_fw_idx)(u32 pll_idx);
 	void (*init_firmware_preload_params)(struct hl_device *hdev);
 	void (*init_firmware_loader)(struct hl_device *hdev);
-	void (*init_cpu_scrambler_dram)(struct hl_device *hdev);
 	void (*state_dump_init)(struct hl_device *hdev);
 	u32 (*get_sob_addr)(struct hl_device *hdev, u32 sob_id);
 	void (*set_pci_memory_regions)(struct hl_device *hdev);
@@ -5080,165 +5054,6 @@ int hl_wait_ioctl(struct drm_device *ddev, void *data, struct drm_file *file_pri
 int hl_mem_ioctl(struct drm_device *ddev, void *data, struct drm_file *file_priv);
 int hl_debug_ioctl(struct drm_device *ddev, void *data, struct drm_file *file_priv);
 int hl_nic_ioctl(struct drm_device *ddev, void *data, struct drm_file *file_priv);
-
-/* SIMULATOR CODE */
-#include <linux/kfifo.h>
-#include <linux/poll.h>
-
-struct hl_vm_user_pages {
-	struct task_struct	*tsk;
-	struct mm_struct	*owner_mm;
-	struct page		**pages;
-	void			*vaddr;
-	long			nr_pages;
-};
-
-struct hl_sim_irq {
-	unsigned int irq0;
-	unsigned int size;
-};
-
-struct hl_simulator_device {
-	struct delayed_work	work_create;
-	struct cdev		cdev;
-	struct kfifo		c2h_fifo;
-	struct kfifo		h2c_fifo;
-	spinlock_t		h2c_lock;
-	spinlock_t		c2h_lock;
-	struct mutex		*irq_mutex;
-	void			*shmem;
-	struct gen_pool		*pool;
-	struct class		*hclass;
-	struct device		*dev;
-	struct device		sdev;
-	struct hl_device	*hdev;
-	struct platform_device	*plat_dev;
-	struct hl_vm_user_pages	user_sram_dram;
-	struct hl_vm_user_pages	user_sram;
-	struct hl_sim_irq	sirq;
-	struct mutex		shared_block_idr_mutex;
-	struct idr		shared_block_idr;
-	wait_queue_head_t	pollq;
-	void			*sram;
-	void			*dram;
-	void			*dram_vmalloc_address;
-	char			name[32];
-	u64			dram_user_provided_ptr;
-	u64			sram_user_provided_ptr;
-	u64			sram_size;
-	u64			sram_user_address;
-	u64			dram_size;
-	u64			dram_user_address;
-	u64			dram_off_in_user_sram_dram;
-	enum hl_asic_type	asic_type;
-	atomic_t		h2c_seq;
-	int			reg_err_cnt;
-	u32			virt_dev_type;
-	u32			major;
-	u32			rw_reg_timeout;
-	u16			id;
-	u8			open;
-	u8			reset;
-	u8			single_msi_mode;
-};
-
-int hl_sim_dma_map_sgtable(struct hl_device *hdev, struct sg_table *sgt,
-				enum dma_data_direction dir);
-void hl_sim_dma_unmap_sgtable(struct hl_device *hdev, struct sg_table *sgt,
-				enum dma_data_direction dir);
-int hl_sim_access_dev_mem(struct hl_device *hdev, struct hl_simulator_device *edev,
-		enum pci_region region_type, u64 addr, u64 *val,
-		enum debugfs_access_type acc_type);
-
-void goya_sim_set_asic_funcs(struct hl_device *hdev);
-void gaudi_sim_set_asic_funcs(struct hl_device *hdev);
-void gaudi2_sim_set_asic_funcs(struct hl_device *hdev);
-void gaudi3_sim_set_asic_funcs(struct hl_device *hdev);
-
-struct simulator_start_args {
-	struct class *hclass;
-	u64 dram_user_pointer;
-	u64 sram_user_pointer;
-	u64 sram_dram_user_pointer;
-	u32 dram_size_in_mb;
-	u32 sram_size_in_mb;
-	u32 major;
-	u32 minor;
-	u32 virt_dev_type;
-	u8 single_msi_mode;
-};
-
-struct simulator_shared_mem_block {
-	u64 *pfn_arr;
-	u32 num_pages;
-};
-
-struct simulator_memory_args;
-int hl_sim_create_shared_block(struct hl_simulator_device *edev,
-				struct simulator_memory_args *args);
-int hl_sim_release_shared_block(struct hl_simulator_device *edev,
-				struct simulator_memory_args *args);
-int hl_sim_alloc_irq_vectors(struct hl_simulator_device *edev, unsigned int min_vecs,
-			unsigned int max_vecs, unsigned int flags);
-void hl_sim_free_irq_vectors(struct hl_simulator_device *edev);
-int hl_sim_irq_vector(struct hl_simulator_device *edev, unsigned int nr);
-int hl_sim_send_irq(struct hl_simulator_device *edev, unsigned int irq);
-void hl_sim_free_shared_block(struct simulator_shared_mem_block *shared_block,
-					bool refcount);
-
-int goya_simulator_start(struct simulator_start_args *args);
-void goya_simulator_stop(u32 minor);
-
-int gaudi_simulator_start(struct simulator_start_args *args);
-void gaudi_simulator_stop(u32 minor);
-
-int gaudi2_simulator_start(struct simulator_start_args *args);
-void gaudi2_simulator_stop(u32 minor);
-
-int gaudi3_simulator_start(struct simulator_start_args *args);
-void gaudi3_simulator_stop(u32 minor);
-
-int hl_sim_init(struct class *hclass, u32 major, struct idr *hl_devs_idr,
-		struct mutex *hl_devs_idr_lock);
-int hl_sim_fini(void);
-void hl_sim_remove(u32 minor);
-
-int hl_sim_create_hdev(struct hl_simulator_device *edev);
-void hl_sim_destroy_hdev(struct hl_device *hdev);
-
-int sim_mem_access_debug_handler(struct hl_device *hdev, void *info);
-u32 hl_sim_rreg(struct hl_device *hdev, u64 reg_addr,
-		struct hl_simulator_device *edev);
-void hl_sim_wreg(struct hl_device *hdev, u64 reg_addr,
-		struct hl_simulator_device *edev, u32 val);
-void hl_sim_notify_reset(struct hl_device *hdev,
-			struct hl_simulator_device *edev);
-void hl_sim_set_priv_assertions(struct hl_simulator_device *edev, bool enable);
-void hl_sim_notify_simulator_close(struct hl_device *hdev);
-
-void hl_sim_vunmap_user_pages(struct hl_vm_user_pages *user_pages);
-int hl_sim_vmap_user_pages(u64 user_pointer, u64 size_in_bytes,
-			   struct hl_vm_user_pages *out_user_pages,
-			   bool locked);
-int hl_sim_read_dram(struct hl_simulator_device *edev, void *dst, u64 offset,
-		     u64 size);
-int hl_sim_write_dram(struct hl_simulator_device *edev, u64 offset,
-		      const void *src, u64 size);
-
-ssize_t hl_sim_write_c2h_fifo(struct hl_simulator_device *edev, struct file *filp,
-				const char __user *buffer, size_t len);
-ssize_t hl_sim_read_h2c_fifo(struct hl_simulator_device *edev, struct file *filp,
-				char __user *buffer, size_t len);
-void sim_devices_init(struct hl_simulator_device *sdev, struct class *hclass,
-			int minor, const struct file_operations *fops, char *name);
-__poll_t hl_sim_poll(struct hl_simulator_device *edev, struct file *filp,
-				struct poll_table_struct *wait);
-/* END OF SIMULATOR CODE */
-
-/* IMPORTER CODE */
-int hl_importer_init(void);
-int hl_importer_exit(void);
-/* END OF IMPORTER CODE */
 
 bool hl_check_fd(struct file *file);
 

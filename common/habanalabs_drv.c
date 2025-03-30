@@ -642,28 +642,7 @@ static void set_pci_revision_id(struct hl_device *hdev, enum hl_asic_type asic_t
 	} else if (pdev) {
 		hdev->pci_revision_id = pdev->revision;
 	} else {
-		switch (asic_type) {
-		case ASIC_GAUDI2B_SIM:
-		case ASIC_GAUDI2B_SIM_ARC:
-			hdev->pci_revision_id = REV_ID_B;
-			break;
-		case ASIC_GAUDI2C_SIM:
-		case ASIC_GAUDI2C_SIM_ARC:
-			hdev->pci_revision_id = REV_ID_C;
-			break;
-		case ASIC_GAUDI2D_SIM:
-		case ASIC_GAUDI2D_SIM_ARC:
-		case ASIC_GAUDI2D_HL_288_SIM:
-		case ASIC_GAUDI2D_HL_288_SIM_ARC:
-		case ASIC_GAUDI3D_SIM:
-		case ASIC_GAUDI3D_SIM_ARC:
-		case ASIC_GAUDI3D_HL_338_SIM:
-		case ASIC_GAUDI3D_HL_338_SIM_ARC:
-			hdev->pci_revision_id = REV_ID_D;
-			break;
-		default:
-			hdev->pci_revision_id = REV_ID_A;
-		}
+		hdev->pci_revision_id = REV_ID_A;
 	}
 }
 
@@ -744,9 +723,6 @@ static enum hl_asic_type get_asic_type(struct hl_device *hdev)
 			asic_type = ASIC_GAUDI3_HL_338;
 		}
 		break;
-	case PCI_IDS_GAUDI3_FPGA:
-		asic_type = ASIC_GAUDI3_FPGA;
-		break;
 	default:
 		break;
 	}
@@ -772,35 +748,14 @@ static bool is_cpu_queue_enabled(struct hl_device *hdev)
 	switch (hdev->asic_type) {
 	case ASIC_GAUDI3:
 	case ASIC_GAUDI3D:
-	case ASIC_GAUDI3_FPGA:
 	case ASIC_GAUDI3_HL_338:
 	case ASIC_GAUDI3D_HL_338:
-	case ASIC_GAUDI3_SIM:
-	case ASIC_GAUDI3D_SIM:
-	case ASIC_GAUDI3_SIM_ARC:
-	case ASIC_GAUDI3D_SIM_ARC:
-	case ASIC_GAUDI3_HL_338_SIM:
-	case ASIC_GAUDI3D_HL_338_SIM:
-	case ASIC_GAUDI3_HL_338_SIM_ARC:
-	case ASIC_GAUDI3D_HL_338_SIM_ARC:
 	case ASIC_GAUDI2:
 	case ASIC_GAUDI2B:
 	case ASIC_GAUDI2C:
 	case ASIC_GAUDI2D:
 	case ASIC_GAUDI2_HL_288:
 	case ASIC_GAUDI2D_HL_288:
-	case ASIC_GAUDI2_SIM:
-	case ASIC_GAUDI2B_SIM:
-	case ASIC_GAUDI2C_SIM:
-	case ASIC_GAUDI2D_SIM:
-	case ASIC_GAUDI2_SIM_ARC:
-	case ASIC_GAUDI2B_SIM_ARC:
-	case ASIC_GAUDI2C_SIM_ARC:
-	case ASIC_GAUDI2D_SIM_ARC:
-	case ASIC_GAUDI2_HL_288_SIM:
-	case ASIC_GAUDI2D_HL_288_SIM:
-	case ASIC_GAUDI2_HL_288_SIM_ARC:
-	case ASIC_GAUDI2D_HL_288_SIM_ARC:
 		enabled = !!(hdev->fw_components & FW_TYPE_BOOT_CPU);
 		break;
 	default:
@@ -981,52 +936,28 @@ static u32 get_dev_nic_ports_mask(struct hl_device *hdev)
 
 	switch (asic_type) {
 	case ASIC_GAUDI3:
-	case ASIC_GAUDI3_SIM:
-	case ASIC_GAUDI3_SIM_ARC:
 	/* HL338 supports all ports in SA mode, therefore enable the wider case, as the ports will
 	 * be masked later on
 	 */
 	case ASIC_GAUDI3_HL_338:
 	case ASIC_GAUDI3D:
-	case ASIC_GAUDI3D_SIM:
-	case ASIC_GAUDI3D_SIM_ARC:
 	case ASIC_GAUDI3D_HL_338:
 		mask = (nic_lanes_per_port == PORT_LANES_4) ? 0xFFF : 0xFFFFFF;
 		break;
-	case ASIC_GAUDI3_HL_338_SIM:
-	case ASIC_GAUDI3_HL_338_SIM_ARC:
-	case ASIC_GAUDI3D_HL_338_SIM:
-	case ASIC_GAUDI3D_HL_338_SIM_ARC:
-		mask = (nic_lanes_per_port == PORT_LANES_4) ? 0xFFE : 0xFFFFFC;
-		break;
-	case ASIC_GAUDI2_SIM:
-	case ASIC_GAUDI2_SIM_ARC:
 	case ASIC_GAUDI2:
 	case ASIC_GAUDI2_HL_288:
-	case ASIC_GAUDI2B_SIM:
-	case ASIC_GAUDI2B_SIM_ARC:
 	case ASIC_GAUDI2B:
-	case ASIC_GAUDI2C_SIM:
-	case ASIC_GAUDI2C_SIM_ARC:
 	case ASIC_GAUDI2C:
-	case ASIC_GAUDI2D_SIM:
-	case ASIC_GAUDI2D_SIM_ARC:
 	case ASIC_GAUDI2D:
 	case ASIC_GAUDI2D_HL_288:
-	case ASIC_GAUDI2_HL_288_SIM:
-	case ASIC_GAUDI2D_HL_288_SIM:
-	case ASIC_GAUDI2_HL_288_SIM_ARC:
-	case ASIC_GAUDI2D_HL_288_SIM_ARC:
 		/* 24 ports are supported */
 		mask = 0xFFFFFF;
 		break;
 
 	case ASIC_GAUDI:
 	case ASIC_GAUDI_SEC:
-	case ASIC_GAUDI_SIM:
 	case ASIC_GAUDI_HL2000M:
 	case ASIC_GAUDI_HL2000M_SEC:
-	case ASIC_GAUDI_HL2000M_SIM:
 		/* 10 ports are supported */
 		mask = 0x3FF;
 		break;
@@ -1045,66 +976,6 @@ static void set_driver_behavior_per_device(struct hl_device *hdev)
 	hdev->cn.skip_phy_init = 0;
 
 	switch (hdev->asic_type) {
-	case ASIC_GAUDI2_SIM:
-	case ASIC_GAUDI2_HL_288_SIM:
-	case ASIC_GAUDI2B_SIM:
-	case ASIC_GAUDI2C_SIM:
-	case ASIC_GAUDI2D_SIM:
-	case ASIC_GAUDI2D_HL_288_SIM:
-		hdev->dram_enable = 1;
-		hdev->fw_components = 0;
-		hdev->security_enable = 1;
-		hdev->tpc_mask = 0x1FFFFFF;
-		hdev->mme_mask = 0xF;
-		hdev->pdma_ch_mask = 0x0;
-		hdev->edma_mask = 0x0;
-		hdev->hard_reset_on_fw_events = 1;
-		hdev->decoder_mask = 0x3FF;
-		hdev->dram_binning = 0x0;
-		hdev->edma_binning = 0x0;
-		hdev->tpc_binning = 0x1000000;
-		hdev->decoder_binning = 0x200;
-		hdev->scrub_arc_dccm = 0;
-		hdev->axi_drain = AXI_DRAIN_SKIP;
-		hdev->fw_communication_enable = 1;
-		hdev->sched_arc_mask = 0x3F;
-		hdev->rotator_mask = 0x3;
-		hdev->priv_security_enable = 1;
-		hdev->cache_enable = 0;
-		hdev->rotator_binning = 0;
-		hdev->hbm_compression_enable = 0;
-		break;
-
-	case ASIC_GAUDI2_SIM_ARC:
-	case ASIC_GAUDI2_HL_288_SIM_ARC:
-	case ASIC_GAUDI2B_SIM_ARC:
-	case ASIC_GAUDI2C_SIM_ARC:
-	case ASIC_GAUDI2D_SIM_ARC:
-	case ASIC_GAUDI2D_HL_288_SIM_ARC:
-		hdev->dram_enable = 1;
-		hdev->fw_components = 0;
-		hdev->security_enable = 1;
-		hdev->tpc_mask = 0x1FFFFFF;
-		hdev->mme_mask = 0xF;
-		hdev->pdma_ch_mask = 0x0;
-		hdev->edma_mask = 0x0;
-		hdev->hard_reset_on_fw_events = 1;
-		hdev->decoder_mask = 0x3FF;
-		hdev->dram_binning = 0x0;
-		hdev->edma_binning = 0x0;
-		hdev->tpc_binning = 0x1000000;
-		hdev->decoder_binning = 0x200;
-		hdev->scrub_arc_dccm = 1;
-		hdev->axi_drain = AXI_DRAIN_SKIP;
-		hdev->fw_communication_enable = 1;
-		hdev->sched_arc_mask = 0x3F;
-		hdev->rotator_mask = 0x3;
-		hdev->priv_security_enable = 1;
-		hdev->cache_enable = 0;
-		hdev->rotator_binning = 0;
-		hdev->hbm_compression_enable = 0;
-		break;
-
 	case ASIC_GAUDI2:
 	case ASIC_GAUDI2B:
 	case ASIC_GAUDI2C:
@@ -1162,87 +1033,6 @@ static void set_driver_behavior_per_device(struct hl_device *hdev)
 		hdev->ptw_bypass_enable = 1;
 		hdev->rotator_binning = 0;
 		hdev->hbm_compression_enable = 0;
-		break;
-
-	case ASIC_GAUDI3_SIM:
-	case ASIC_GAUDI3D_SIM:
-	case ASIC_GAUDI3_HL_338_SIM:
-	case ASIC_GAUDI3D_HL_338_SIM:
-		hdev->dram_enable = 1;
-		hdev->fw_components = 0;
-		hdev->security_enable = 1;
-		hdev->tpc_mask = 0xFFFFFFFFFFFFFFFFull;
-		hdev->mme_mask = 0xFF;
-		hdev->pdma_ch_mask = 0xFFFFFF;
-		hdev->edma_mask = 0xFF;
-		hdev->hard_reset_on_fw_events = 0;
-		hdev->decoder_mask = 0xFFFF;
-		hdev->dram_binning = 0x0;
-		hdev->edma_binning = 0x0;
-		hdev->tpc_binning = 0x0;
-		hdev->decoder_binning = 0x0;
-		hdev->scrub_arc_dccm = 1;
-		hdev->axi_drain = AXI_DRAIN_SKIP;
-		hdev->fw_communication_enable = 0;
-		hdev->sched_arc_mask = 0xFFFF;
-		hdev->rotator_mask = 0xFF;
-		hdev->priv_security_enable = 1;
-		hdev->cache_enable = 1;
-		hdev->rotator_binning = 0;
-		hdev->hbm_compression_enable = 1;
-		break;
-
-	case ASIC_GAUDI3_SIM_ARC:
-	case ASIC_GAUDI3D_SIM_ARC:
-	case ASIC_GAUDI3_HL_338_SIM_ARC:
-	case ASIC_GAUDI3D_HL_338_SIM_ARC:
-		hdev->dram_enable = 1;
-		hdev->fw_components = FW_TYPE_BOOT_CPU | FW_TYPE_PREBOOT_CPU;
-		hdev->security_enable = 1;
-		hdev->tpc_mask = 0xFFFFFFFFFFFFFFFFull;
-		hdev->mme_mask = 0xFF;
-		hdev->pdma_ch_mask = 0xFFFFFF;
-		hdev->edma_mask = 0xFF;
-		hdev->hard_reset_on_fw_events = 1;
-		hdev->decoder_mask = 0xFFFF;
-		hdev->dram_binning = 0x0;
-		hdev->edma_binning = 0x0;
-		hdev->tpc_binning = 0x0;
-		hdev->decoder_binning = 0x0;
-		hdev->scrub_arc_dccm = 1;
-		hdev->axi_drain = AXI_DRAIN_SKIP;
-		hdev->fw_communication_enable = 1;
-		hdev->sched_arc_mask = 0xFFFF;
-		hdev->rotator_mask = 0xFF;
-		hdev->priv_security_enable = 1;
-		hdev->cache_enable = 1;
-		hdev->rotator_binning = 0;
-		hdev->hbm_compression_enable = 1;
-		break;
-
-	case ASIC_GAUDI3_FPGA:
-		hdev->dram_enable = 1;
-		hdev->fw_components = FW_TYPE_BOOT_CPU | FW_TYPE_PREBOOT_CPU;
-		hdev->security_enable = 0;
-		hdev->tpc_mask = 0;
-		hdev->mme_mask = 0;
-		hdev->pdma_ch_mask = 0x0;
-		hdev->edma_mask = 0x0;
-		hdev->hard_reset_on_fw_events = 1;
-		hdev->decoder_mask = 0;
-		hdev->dram_binning = 0x0;
-		hdev->edma_binning = 0x0;
-		hdev->tpc_binning = 0x0;
-		hdev->decoder_binning = 0x0;
-		hdev->scrub_arc_dccm = 0;
-		hdev->axi_drain = AXI_DRAIN_SKIP;
-		hdev->fw_communication_enable = 1;
-		hdev->sched_arc_mask = 0;
-		hdev->rotator_mask = 0x0;
-		hdev->priv_security_enable = 0;
-		hdev->cache_enable = 0;
-		hdev->rotator_binning = 0;
-		hdev->hbm_compression_enable = 1;
 		break;
 
 	default:
@@ -1442,26 +1232,6 @@ static void copy_bfe_params_to_device(struct hl_device *hdev)
 	dbg_conf->rot_mask = cpu_to_le32(bfe_rotator_binning);
 }
 
-static void fixup_fw_components_param(struct hl_device *hdev)
-{
-	switch (hdev->asic_type) {
-	case ASIC_GOYA_SIM:
-	case ASIC_GAUDI_SIM:
-	case ASIC_GAUDI_HL2000M_SIM:
-	case ASIC_GAUDI2_SIM:
-	case ASIC_GAUDI2B_SIM:
-	case ASIC_GAUDI2C_SIM:
-	case ASIC_GAUDI2D_SIM:
-	case ASIC_GAUDI3_SIM:
-	case ASIC_GAUDI3D_SIM:
-		/* Enforce running without F/W for non SIM_ARC simulators */
-		hdev->fw_components = FW_TYPE_NONE;
-		break;
-	default:
-		break;
-	}
-}
-
 static void fixup_device_params_per_asic(struct hl_device *hdev, int timeout)
 {
 	switch (hdev->asic_type) {
@@ -1469,8 +1239,7 @@ static void fixup_device_params_per_asic(struct hl_device *hdev, int timeout)
 	case ASIC_GAUDI_HL2000M:
 	case ASIC_GAUDI_SEC:
 	case ASIC_GAUDI_HL2000M_SEC:
-	case ASIC_GAUDI_SIM:
-	case ASIC_GAUDI_HL2000M_SIM:
+
 		/* If user didn't request a different timeout than the default one, we have
 		 * a different default timeout for Gaudi
 		 */
@@ -1481,22 +1250,10 @@ static void fixup_device_params_per_asic(struct hl_device *hdev, int timeout)
 		hdev->reset_upon_device_release = false;
 		break;
 
-	case ASIC_GAUDI2_SIM:
-	case ASIC_GAUDI2_HL_288_SIM:
-	case ASIC_GAUDI2B_SIM:
-	case ASIC_GAUDI2C_SIM:
-	case ASIC_GAUDI2D_SIM:
-	case ASIC_GAUDI2D_HL_288_SIM:
-	case ASIC_GAUDI2_SIM_ARC:
-	case ASIC_GAUDI2_HL_288_SIM_ARC:
-	case ASIC_GAUDI2B_SIM_ARC:
-	case ASIC_GAUDI2C_SIM_ARC:
-	case ASIC_GAUDI2D_SIM_ARC:
 	case ASIC_GAUDI2:
 	case ASIC_GAUDI2B:
 	case ASIC_GAUDI2C:
 	case ASIC_GAUDI2D:
-	case ASIC_GAUDI2D_HL_288_SIM_ARC:
 	case ASIC_GAUDI2_HL_288:
 	case ASIC_GAUDI2D_HL_288:
 		/* TODO: remove this workaround after f/w fix the boot bug which cause us
@@ -1510,16 +1267,8 @@ static void fixup_device_params_per_asic(struct hl_device *hdev, int timeout)
 
 		break;
 
-	case ASIC_GAUDI3_SIM:
-	case ASIC_GAUDI3_SIM_ARC:
 	case ASIC_GAUDI3:
-	case ASIC_GAUDI3D_SIM:
-	case ASIC_GAUDI3D_SIM_ARC:
 	case ASIC_GAUDI3D:
-	case ASIC_GAUDI3_HL_338_SIM:
-	case ASIC_GAUDI3D_HL_338_SIM:
-	case ASIC_GAUDI3_HL_338_SIM_ARC:
-	case ASIC_GAUDI3D_HL_338_SIM_ARC:
 	case ASIC_GAUDI3_HL_338:
 	case ASIC_GAUDI3D_HL_338:
 		/* DRAM cannot be used if SRAM is enabled
@@ -1531,9 +1280,6 @@ static void fixup_device_params_per_asic(struct hl_device *hdev, int timeout)
 			hdev->cache_enable = 0;
 		break;
 
-	case ASIC_GAUDI3_FPGA:
-		hdev->mmu_disable = true;
-		break;
 	default:
 		hdev->reset_upon_device_release = false;
 		break;
@@ -1581,8 +1327,6 @@ static int fixup_device_params(struct hl_device *hdev)
 		hdev->dram_scrambler_enable = 0;
 		hdev->hbm_ecc_enable = 0;
 	}
-
-	fixup_fw_components_param(hdev);
 
 	if (!(hdev->fw_components & FW_TYPE_PREBOOT_CPU) &&
 			(hdev->fw_components & ~FW_TYPE_PREBOOT_CPU)) {
@@ -2210,25 +1954,6 @@ static int __init hl_init(void)
 	if (rc)
 		goto err_accel_init;
 
-	/* SIMULATOR CODE */
-	rc = hl_sim_init(hl_class, hl_major, &hl_devs_idr, &hl_devs_idr_lock);
-	if (rc < 0) {
-		pr_err("fatal error during simulator mode device init\n");
-		goto err_sim_init;
-	} else if (rc > 0) {
-		pr_info("driver loaded in simulator only mode\n");
-		return 0;
-	}
-	/* END OF SIMULATOR CODE */
-
-	/* IMPORTER CODE */
-	rc = hl_importer_init();
-	if (rc) {
-		pr_err("fatal error during importer driver init\n");
-		goto err_importer_init;
-	}
-	/* END OF IMPORTER CODE */
-
 	init_completion(&hl_pci_mon.comp);
 
 	hl_pci_mon.thread = kthread_run(pci_mon_func, NULL, "hl_pci_mon");
@@ -2255,14 +1980,6 @@ err_register_driver:
 	complete_all(&hl_pci_mon.comp);
 	kthread_stop(hl_pci_mon.thread);
 err_pci_mon_run:
-/* IMPORTER CODE */
-	hl_importer_exit();
-err_importer_init:
-/* END OF IMPORTER CODE */
-/* SIMULATOR CODE */
-	hl_sim_fini();
-err_sim_init:
-/* END OF SIMULATOR CODE */
 	hl_accel_exit();
 err_accel_init:
 	class_destroy(hl_class);
@@ -2276,11 +1993,6 @@ err_class_create:
  */
 static void __exit hl_exit(void)
 {
-	/* SIMULATOR CODE */
-	if (hl_sim_fini())
-		goto skip_pci;
-	/* END OF SIMULATOR CODE */
-
 	hl_pci_mon.in_teardown = true;
 	/* Set the teardown flag before waking up the waiting thread */
 	mb();
@@ -2288,14 +2000,6 @@ static void __exit hl_exit(void)
 	kthread_stop(hl_pci_mon.thread);
 
 	pci_unregister_driver(&hl_pci_driver);
-
-	/* IMPORTER CODE */
-	hl_importer_exit();
-	/* END OF IMPORTER CODE */
-
-/* SIMULATOR CODE */
-skip_pci:
-/* END OF SIMULATOR CODE */
 
 	hl_accel_exit();
 

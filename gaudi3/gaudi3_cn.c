@@ -673,12 +673,6 @@ static void gaudi3_cn_disable_nics_interrupts(struct hl_device *hdev)
 	u32 port;
 	int i;
 
-	/* The CPU_IF_NIC registers are handled only by the privileged embedded code and in any
-	 * case, this is relevant only on PLDM where the PHY link is always ON
-	 */
-	if (hdev->pldm)
-		gaudi3_disable_nic_interrupts_cpu_if(hdev);
-
 	/* Disable interrupts of all NICs */
 	for (i = 0; i < NIC_NUMBER_OF_MACROS; i++) {
 		/* skip non-present macros in pldm as we may run on partial-nics image */

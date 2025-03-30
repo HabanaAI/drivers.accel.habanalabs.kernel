@@ -3034,11 +3034,6 @@ static int hl_fw_dynamic_init_cpu(struct hl_device *hdev,
 	if (hdev->pldm && !(hdev->fw_components & FW_TYPE_LINUX))
 		return 0;
 
-	/* Enable DRAM scrambling before Linux boot and after successful
-	 *  UBoot
-	 */
-	hdev->asic_funcs->init_cpu_scrambler_dram(hdev);
-
 	if (!(hdev->fw_components & FW_TYPE_LINUX)) {
 		hl_dbg(hdev, "Skip loading Linux F/W\n");
 		return 0;
@@ -3216,11 +3211,6 @@ static int hl_fw_static_init_cpu(struct hl_device *hdev,
 		rc = -EIO;
 		goto out;
 	}
-
-	/* Enable DRAM scrambling before Linux boot and after successful
-	 *  UBoot
-	 */
-	hdev->asic_funcs->init_cpu_scrambler_dram(hdev);
 
 	if (!(hdev->fw_components & FW_TYPE_LINUX)) {
 		hl_info(hdev, "Skip loading Linux F/W\n");

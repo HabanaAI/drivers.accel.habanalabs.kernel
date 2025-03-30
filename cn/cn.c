@@ -610,26 +610,12 @@ static int hl_cn_get_nic_gen(struct hl_device *hdev, enum hbl_cn_aux_nic_gen *ni
 
 {
 	switch (hdev->asic_type) {
-	case ASIC_GAUDI_SIM:
-	case ASIC_GAUDI_HL2000M_SIM:
 	case ASIC_GAUDI:
 	case ASIC_GAUDI_SEC:
 	case ASIC_GAUDI_HL2000M:
 	case ASIC_GAUDI_HL2000M_SEC:
 		*nic_gen = HBL_CN_AUX_NIC_GEN1;
 		break;
-	case ASIC_GAUDI2_SIM:
-	case ASIC_GAUDI2B_SIM:
-	case ASIC_GAUDI2C_SIM:
-	case ASIC_GAUDI2D_SIM:
-	case ASIC_GAUDI2_HL_288_SIM:
-	case ASIC_GAUDI2D_HL_288_SIM:
-	case ASIC_GAUDI2_SIM_ARC:
-	case ASIC_GAUDI2B_SIM_ARC:
-	case ASIC_GAUDI2C_SIM_ARC:
-	case ASIC_GAUDI2D_SIM_ARC:
-	case ASIC_GAUDI2_HL_288_SIM_ARC:
-	case ASIC_GAUDI2D_HL_288_SIM_ARC:
 	case ASIC_GAUDI2:
 	case ASIC_GAUDI2B:
 	case ASIC_GAUDI2C:
@@ -640,17 +626,8 @@ static int hl_cn_get_nic_gen(struct hl_device *hdev, enum hbl_cn_aux_nic_gen *ni
 		break;
 	case ASIC_GAUDI3:
 	case ASIC_GAUDI3D:
-	case ASIC_GAUDI3D_SIM:
-	case ASIC_GAUDI3D_SIM_ARC:
 	case ASIC_GAUDI3D_HL_338:
 	case ASIC_GAUDI3_HL_338:
-	case ASIC_GAUDI3_SIM:
-	case ASIC_GAUDI3_SIM_ARC:
-	case ASIC_GAUDI3_HL_338_SIM:
-	case ASIC_GAUDI3D_HL_338_SIM:
-	case ASIC_GAUDI3_HL_338_SIM_ARC:
-	case ASIC_GAUDI3D_HL_338_SIM_ARC:
-	case ASIC_GAUDI3_FPGA:
 		*nic_gen = HBL_CN_AUX_NIC_GEN3;
 		break;
 	default:

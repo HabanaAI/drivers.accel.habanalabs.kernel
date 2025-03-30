@@ -642,9 +642,6 @@ int hl_mmu_if_set_funcs(struct hl_device *hdev)
 		return 0;
 
 	switch (hdev->asic_type) {
-	case ASIC_GOYA_SIM:
-	case ASIC_GAUDI_SIM:
-	case ASIC_GAUDI_HL2000M_SIM:
 	case ASIC_GOYA:
 	case ASIC_GAUDI:
 	case ASIC_GAUDI_SEC:
@@ -652,18 +649,6 @@ int hl_mmu_if_set_funcs(struct hl_device *hdev)
 	case ASIC_GAUDI_HL2000M_SEC:
 		hl_mmu_v1_set_funcs(hdev, &hdev->mmu_func[MMU_DR_PGT]);
 		break;
-	case ASIC_GAUDI2_SIM:
-	case ASIC_GAUDI2B_SIM:
-	case ASIC_GAUDI2C_SIM:
-	case ASIC_GAUDI2D_SIM:
-	case ASIC_GAUDI2_HL_288_SIM:
-	case ASIC_GAUDI2D_HL_288_SIM:
-	case ASIC_GAUDI2_SIM_ARC:
-	case ASIC_GAUDI2B_SIM_ARC:
-	case ASIC_GAUDI2C_SIM_ARC:
-	case ASIC_GAUDI2D_SIM_ARC:
-	case ASIC_GAUDI2_HL_288_SIM_ARC:
-	case ASIC_GAUDI2D_HL_288_SIM_ARC:
 	case ASIC_GAUDI2:
 	case ASIC_GAUDI2B:
 	case ASIC_GAUDI2C:
@@ -674,14 +659,6 @@ int hl_mmu_if_set_funcs(struct hl_device *hdev)
 		if (prop->pmmu.host_resident)
 			hl_mmu_v2_hr_set_funcs(hdev, &hdev->mmu_func[MMU_HR_PGT]);
 		break;
-	case ASIC_GAUDI3_SIM:
-	case ASIC_GAUDI3D_SIM:
-	case ASIC_GAUDI3_SIM_ARC:
-	case ASIC_GAUDI3D_SIM_ARC:
-	case ASIC_GAUDI3_HL_338_SIM:
-	case ASIC_GAUDI3D_HL_338_SIM:
-	case ASIC_GAUDI3_HL_338_SIM_ARC:
-	case ASIC_GAUDI3D_HL_338_SIM_ARC:
 	case ASIC_GAUDI3:
 	case ASIC_GAUDI3D:
 	case ASIC_GAUDI3_HL_338:

@@ -1625,16 +1625,6 @@ int hl_debug_ioctl(struct drm_device *ddev, void *data, struct drm_file *file_pr
 		rc = hl_device_set_debug_mode(hdev, hpriv->ctx, (bool) args->enable);
 		break;
 
-	case HL_DEBUG_OP_READMEM:
-	case HL_DEBUG_OP_MEMCPY:
-		if (hdev->pdev) {
-			hl_err_ratelimited(hdev,
-				"Rejecting memory access debug request, because device not in simulator mode\n");
-			return -EFAULT;
-		}
-		rc = sim_mem_access_debug_handler(hdev, args);
-		break;
-
 	case HL_DEBUG_OP_SCHED_SUBMIT_BUF:
 		rc = debug_sched_ioctl(hdev, hpriv->ctx, args);
 		break;

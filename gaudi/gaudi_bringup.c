@@ -3268,11 +3268,6 @@ static int gaudi_load_boot_bin_to_device(struct hl_device *hdev)
 {
 	void __iomem *dst;
 
-	/* For PLDM, need to initialize SRAM scrambler before pushing u-boot
-	 * to SRAM
-	 */
-	gaudi_init_scrambler_sram(hdev);
-
 	dst = hdev->pcie_bar[SRAM_BAR_ID] + UBOOT_FW_OFFSET;
 
 	return hl_fw_load_fw_to_device(hdev, GAUDI_UBOOT_FW_FILE, dst, 0, 0);
