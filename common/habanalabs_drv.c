@@ -2201,20 +2201,20 @@ static int __init hl_init(void)
 	if (IS_ERR(hl_class)) {
 		pr_err("failed to allocate class\n");
 		rc = PTR_ERR(hl_class);
-		goto remove_major;
+		goto err_class_create;
 	}
 
 	hl_enable_trace_events();
 
 	rc = hl_accel_init();
 	if (rc)
-		goto destroy_class;
+		goto err_accel_init;
 
 	/* SIMULATOR CODE */
 	rc = hl_sim_init(hl_class, hl_major, &hl_devs_idr, &hl_devs_idr_lock);
 	if (rc < 0) {
 		pr_err("fatal error during simulator mode device init\n");
-		goto remove_accel;
+		goto err_sim_init;
 	} else if (rc > 0) {
 		pr_info("driver loaded in simulator only mode\n");
 		return 0;
@@ -2225,7 +2225,7 @@ static int __init hl_init(void)
 	rc = hl_importer_init();
 	if (rc) {
 		pr_err("fatal error during importer driver init\n");
-		goto remove_sim;
+		goto err_importer_init;
 	}
 	/* END OF IMPORTER CODE */
 
@@ -2235,38 +2235,38 @@ static int __init hl_init(void)
 	if (IS_ERR(hl_pci_mon.thread)) {
 		pr_err("failed to create pci monitor\n");
 		rc = PTR_ERR(hl_pci_mon.thread);
-		goto remove_importer;
+		goto err_pci_mon_run;
 	}
 
 	rc = pci_register_driver(&hl_pci_driver);
 	if (rc) {
 		pr_err("failed to register pci device\n");
-		goto remove_pci_mon;
+		goto err_register_driver;
 	}
 
 	pr_debug("driver loaded\n");
 
 	return 0;
 
-remove_pci_mon:
+err_register_driver:
 	hl_pci_mon.in_teardown = true;
 	/* Set the teardown flag before waking up the waiting thread */
 	mb();
 	complete_all(&hl_pci_mon.comp);
 	kthread_stop(hl_pci_mon.thread);
+err_pci_mon_run:
 /* IMPORTER CODE */
-remove_importer:
 	hl_importer_exit();
+err_importer_init:
 /* END OF IMPORTER CODE */
 /* SIMULATOR CODE */
-remove_sim:
 	hl_sim_fini();
+err_sim_init:
 /* END OF SIMULATOR CODE */
-remove_accel:
 	hl_accel_exit();
-destroy_class:
+err_accel_init:
 	class_destroy(hl_class);
-remove_major:
+err_class_create:
 	unregister_chrdev_region(MKDEV(hl_major, 0), HL_MAX_MINORS);
 	return rc;
 }
