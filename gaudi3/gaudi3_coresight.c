@@ -5855,48 +5855,48 @@ static int gaudi3_is_ac_started(struct hl_device *hdev, u32 etr_idx)
 	return store->etr_tracer[etr_idx].ac_started;
 }
 
-static void gaudi3_ac_start(struct hl_device *hdev, u32 etr_idx, u32 buf_size)
+static void gaudi3_ac_send(struct hl_device *hdev, u32 etr_idx,
+			   enum ac_operation_types op, u32 buf_size)
 {
-	struct hl_etr_buf_store *store = &hdev->etr_buf_store;
 	struct cpucp_packet pkt;
 	int rc;
 
-	if (hdev->fw_components & FW_TYPE_BOOT_CPU) {
-		memset(&pkt, 0, sizeof(pkt));
+	memset(&pkt, 0, sizeof(pkt));
 
-		pkt.ctl = cpu_to_le32(CPUCP_PACKET_AC_CONTROL << CPUCP_PKT_CTL_OPCODE_SHIFT);
-		pkt.index = cpu_to_le32(etr_idx);
-		pkt.pkt_subidx = cpu_to_le32(AC_OP_START);
-		pkt.value = cpu_to_le64(buf_size);
-		rc = hdev->asic_funcs->send_cpu_message(hdev, (u32 *) &pkt, sizeof(pkt), 0, NULL);
-		if (rc && rc != -EAGAIN)
-			hl_err(hdev, "failed to send AC start msg (err = %d)\n", rc);
-	} else {
+	pkt.ctl = cpu_to_le32(CPUCP_PACKET_AC_CONTROL << CPUCP_PKT_CTL_OPCODE_SHIFT);
+	pkt.index = cpu_to_le32(etr_idx);
+	pkt.pkt_subidx = cpu_to_le32(op);
+	pkt.value = cpu_to_le64(buf_size);
+	rc = hdev->asic_funcs->send_cpu_message(hdev, (u32 *) &pkt, sizeof(pkt), 0, NULL);
+	if (rc && rc != -EAGAIN)
+		hl_err(hdev, "failed to send AC msg %d (err = %d)\n", (int)op, rc);
+}
+
+static void gaudi3_ac_start(struct hl_device *hdev, u32 etr_idx, u32 buf_size)
+{
+	struct hl_etr_buf_store *store = &hdev->etr_buf_store;
+
+	if (!(hdev->fw_components & FW_TYPE_BOOT_CPU)) {
 		gaudi3_ac_start_no_fw(hdev, etr_idx, buf_size);
+		store->etr_tracer[etr_idx].ac_started = 1;
+		return;
 	}
 
+	gaudi3_ac_send(hdev, etr_idx, AC_OP_START, buf_size);
 	store->etr_tracer[etr_idx].ac_started = 1;
 }
 
 static void gaudi3_ac_stop(struct hl_device *hdev, u32 etr_idx)
 {
 	struct hl_etr_buf_store *store = &hdev->etr_buf_store;
-	struct cpucp_packet pkt;
-	int rc;
 
-	if (hdev->fw_components & FW_TYPE_BOOT_CPU) {
-		memset(&pkt, 0, sizeof(pkt));
-
-		pkt.ctl = cpu_to_le32(CPUCP_PACKET_AC_CONTROL << CPUCP_PKT_CTL_OPCODE_SHIFT);
-		pkt.index = cpu_to_le32(etr_idx);
-		pkt.pkt_subidx = cpu_to_le32(AC_OP_STOP);
-		rc = hdev->asic_funcs->send_cpu_message(hdev, (u32 *) &pkt, sizeof(pkt), 0, NULL);
-		if (rc && rc != -EAGAIN)
-			hl_err(hdev, "failed to send AC stop msg (err = %d)\n", rc);
-	} else {
+	if (!(hdev->fw_components & FW_TYPE_BOOT_CPU)) {
 		gaudi3_ac_stop_no_fw(hdev, etr_idx);
+		store->etr_tracer[etr_idx].ac_started = 0;
+		return;
 	}
 
+	gaudi3_ac_send(hdev, etr_idx, AC_OP_STOP, 0);
 	store->etr_tracer[etr_idx].ac_started = 0;
 }
 
