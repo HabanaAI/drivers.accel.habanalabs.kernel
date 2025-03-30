@@ -7951,67 +7951,67 @@ int gaudi3_enable_msix(struct hl_device *hdev)
 	if (rc) {
 		hl_err(hdev,
 			"MSI-X: Failed to enable page fault queue - %d\n", rc);
-		goto free_irq_vectors;
+		goto err_page_fault_queue_irq;
 	}
 
 	rc = gaudi3_enable_user_msix(hdev);
 	if (rc)
-		goto free_page_fault_queue_irq;
+		goto err_user_irqs;
 
 	rc = gaudi3_etrs_enable_msix(hdev);
 	if (rc) {
 		hl_err(hdev,
 			"MSI-X: Failed to enable ETR buffer interrupts - %d\n", rc);
-		goto free_user_irqs;
+		goto err_etr_irqs;
 	}
 
 	rc = gaudi3_eq_enable_msix(hdev);
 	if (rc) {
 		hl_err(hdev, "MSI-X: Failed to enable EQ interrupt - %d\n", rc);
-		goto free_etr_irqs;
+		goto err_eq_irqs;
 	}
 
 	rc = gaudi3_pldm_enable_msix(hdev);
 	if (rc) {
 		hl_err(hdev, "MSI-X: Failed to enable PLDM interrupts - %d\n", rc);
-		goto free_eq_irqs;
+		goto err_pldm_irqs;
 	}
 
 	rc = gaudi3_tpc_assert_enable_msix(hdev);
 	if (rc) {
 		hl_err(hdev, "MSI-X: Failed to enable TPC assert interrupt - %d\n", rc);
-		goto free_pldm_irqs;
+		goto err_tpc_assert_irq;
 	}
 
 	rc = gaudi3_eq_error_enable_msix(hdev);
 	if (rc) {
 		hl_err(hdev, "MSI-X: Failed to enable EQ error interrupt - %d\n", rc);
-		goto free_tpc_assert_irq;
+		goto err_eq_error_irq;
 	}
 
 	gaudi3->hw_cap_initialized |= HW_CAP_MSIX;
 
 	return 0;
 
-free_tpc_assert_irq:
+err_eq_error_irq:
 	gaudi3_tpc_assert_disable_msix(hdev);
 
-free_pldm_irqs:
+err_tpc_assert_irq:
 	gaudi3_pldm_disable_msix(hdev);
 
-free_eq_irqs:
+err_pldm_irqs:
 	gaudi3_eq_disable_msix(hdev);
 
-free_etr_irqs:
+err_eq_irqs:
 	gaudi3_etrs_disable_msix(hdev);
 
-free_user_irqs:
+err_etr_irqs:
 	gaudi3_disable_user_msix(hdev);
 
-free_page_fault_queue_irq:
+err_user_irqs:
 	gaudi3_page_fault_queue_disable_msix(hdev);
 
-free_irq_vectors:
+err_page_fault_queue_irq:
 	hl_free_irq_vectors(hdev);
 
 	return rc;
