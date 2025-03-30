@@ -3792,6 +3792,10 @@ int gaudi3_set_fixed_properties(struct hl_device *hdev)
 		goto free_hw_queues_props;
 
 	prop->mmu_pgt_size = PMMU_PAGE_TABLES_SIZE;
+#ifdef HL_DOWNSTREAM
+	if (hdev->pldm)
+		prop->mmu_pgt_size = 0x800000; /* 8MB */
+#endif /* HL_DOWNSTREAM */
 
 	prop->mmu_pte_size = HL_PTE_SIZE;
 	hdev->pmmu_huge_range = true;
@@ -3880,6 +3884,13 @@ int gaudi3_set_fixed_properties(struct hl_device *hdev)
 	prop->hard_reset_sleep_ms = GAUDI3_RESET_TIMEOUT_MSEC;
 	prop->soft_reset_sleep_ms = GAUDI3_RESET_TIMEOUT_MSEC;
 	prop->reset_poll_timeout_us = GAUDI3_RESET_POLL_TIMEOUT_USEC;
+#ifdef HL_DOWNSTREAM
+	if (hdev->pldm) {
+		prop->hard_reset_sleep_ms = GAUDI3_PLDM_DUAL_DIE_HARD_RESET_WAIT_MSEC;
+		prop->soft_reset_sleep_ms = GAUDI3_PLDM_RESET_WAIT_MSEC;
+		prop->reset_poll_timeout_us = GAUDI3_PLDM_PREBOOT_RESET_POLL_TIMEOUT_USEC;
+	}
+#endif /* HL_DOWNSTREAM */
 
 	prop->macro_cfg_size = NIC_OFFSET;
 	prop->clk = GAUDI3_NIC_CLK_FREQ / USEC_PER_SEC;
@@ -4399,6 +4410,14 @@ static int gaudi3_trigger_pdma_job_and_wait_for_cq_completion(struct hl_device *
 	cq_params.cq_id = GAUDI3_RESERVED_CQ_PDMA;
 	cq_params.target_sob_value = 1; /* support a single descriptor transaction */
 	cq_params.timeout_usec = GAUDI3_PDMA_TIMEOUT_USEC;
+#ifdef HL_DOWNSTREAM
+	if (hdev->pldm)
+		cq_params.timeout_usec = (((job_params->size / SZ_1M) + 1) *
+						GAUDI3_PDMA_TIMEOUT_USEC);
+	/* TODO - remove when H9-5542 is resolved */
+	if (!strcmp(cq_params.job_str, "ARC scrub") && hdev->pldm)
+		cq_params.timeout_usec = GAUDI3_PDMA_TIMEOUT_USEC * 10;
+#endif /* HL_DOWNSTREAM */
 
 	rc = gaudi3_trigger_job_and_wait_for_cq_completion(hdev, &cq_params);
 	if (rc)
@@ -4445,6 +4464,10 @@ int gaudi3_scrub_device_dram(struct hl_device *hdev, u64 val)
 	int rc;
 
 	size = prop->dram_end_address - prop->dram_user_base_address;
+#ifdef HL_DOWNSTREAM
+	if (hdev->pldm)
+		size = 0x10000;
+#endif /* HL_DOWNSTREAM */
 
 	rc = gaudi3_memset_device_memory(hdev, prop->dram_user_base_address, size, val,
 						"DRAM scrub");
@@ -4463,6 +4486,11 @@ static int gaudi3_scrub_device_sram(struct hl_device *hdev, u64 val)
 
 	if (hdev->cache_enable)
 		return 0;
+
+#ifdef HL_DOWNSTREAM
+	if (hdev->pldm)
+		size = 0x10000;
+#endif /* HL_DOWNSTREAM */
 
 	rc = gaudi3_memset_device_memory(hdev, prop->sram_user_base_address, size, val,
 						"SRAM scrub");
@@ -4750,6 +4778,11 @@ static int gaudi3_early_init(struct hl_device *hdev)
 	hdev->dram_pci_bar_start = pci_resource_start(pdev, SRAM_DRAM_BAR_ID) + SRAM_SIZE;
 
 	hdev->asic_prop.iatu_done_by_fw = true;
+#ifdef HL_DOWNSTREAM
+	/* Only on pldm without preboot, driver config iATU */
+	if (hdev->pldm && !(hdev->fw_components & FW_TYPE_PREBOOT_CPU))
+		hdev->asic_prop.iatu_done_by_fw = false;
+#endif /* HL_DOWNSTREAM */
 
 	rc = hl_pci_init(hdev);
 	if (rc)
@@ -4765,6 +4798,19 @@ static int gaudi3_early_init(struct hl_device *hdev)
 			hdev->asic_funcs->hw_fini(hdev, true, false);
 		goto pci_fini;
 	}
+
+#ifdef HL_DOWNSTREAM
+	/* TODO - can be removed in the future, since for development purposes only (SW-139611) */
+	if (hdev->pldm && (hdev->fw_components == FW_TYPE_PREBOOT_CPU)) {
+		u32 status = RREG32(mmD0_PSOC_SECURITY_BASE + mmPSOC_SECURITY_SW_STATUS_0);
+		if (status) {
+			hl_dbg(hdev, "Loading LKD with full Preboot for embedded regression\n");
+			hdev->fw_components |= FW_TYPE_BOOT_CPU;
+			hdev->cpu_queues_enable = 1;
+			hdev->heartbeat = 1;
+		}
+	}
+#endif /* HL_DOWNSTREAM */
 
 	if (gaudi3_get_hw_state(hdev) == HL_DEVICE_HW_STATE_DIRTY) {
 		hl_dbg(hdev, "H/W state is dirty, must reset before initializing\n");
@@ -5093,6 +5139,12 @@ static bool gaudi3_special_blocks_skip_with_mask(struct hl_device *hdev,
 		 */
 		break;
 	}
+
+#ifdef HL_DOWNSTREAM
+	/* Some sub/blocks are inconsistently-stubbed/disabled on PLDM images */
+	if (hdev->pldm)
+		return true;
+#endif /* HL_DOWNSTREAM */
 
 	return false;
 }
@@ -5596,6 +5648,10 @@ static int gaudi3_pmmu_update_asid_hop0_addr(struct hl_device *hdev, u32 asid, u
 	u32 status, timeout_usec = GAUDI3_MMU_CACHE_MAINT_TIMEOUT_USEC;
 	int rc;
 
+#ifdef HL_DOWNSTREAM
+	if (hdev->pldm || !hdev->pdev)
+		timeout_usec = GAUDI3_PLDM_MMU_TIMEOUT_USEC;
+#endif /* HL_DOWNSTREAM */
 
 	WREG32(mmD0_PMMU_HBW_STLB_BASE + mmPSTLB_ASID, asid);
 	WREG32(mmD0_PMMU_HBW_STLB_BASE + mmPSTLB_HOP0_PA43_12,
@@ -5624,6 +5680,12 @@ static int gaudi3_pmmu_update_hop0_addr(struct hl_device *hdev, bool host_reside
 	u64 hop0_addr;
 	u32 asid, max_asid = prop->max_asid;
 	int rc;
+
+#ifdef HL_DOWNSTREAM
+	/* it takes too much time to init all of the ASIDs on palladium */
+	if (hdev->pldm)
+		max_asid = min((u32) 8, max_asid);
+#endif /* HL_DOWNSTREAM */
 
 	for (asid = 0 ; asid < max_asid ; asid++) {
 		if (host_resident_pgt)
@@ -5707,6 +5769,12 @@ static void gaudi3_hmmu_update_hop0_addr(struct hl_device *hdev)
 {
 	struct asic_fixed_properties *prop = &hdev->asic_prop;
 	u32 asid, max_asid = prop->max_asid;
+
+#ifdef HL_DOWNSTREAM
+	/* it takes too much time to init all of the ASIDs on palladium */
+	if (hdev->pldm)
+		max_asid = min((u32) 8, max_asid);
+#endif /* HL_DOWNSTREAM */
 
 	for (asid = 0 ; asid < max_asid ; asid++) {
 		u64 hop0_addr = prop->mmu_pgt_addr + asid * prop->dmmu.hop_table_size;
@@ -6717,6 +6785,12 @@ static const char *gaudi3_irq_name(u16 irq_number)
 		return gaudi3_vdec_irq_name[irq_number - GAUDI3_IRQ_NUM_DEC_NRM_FIRST];
 	case GAUDI3_IRQ_NUM_USER_FIRST ... GAUDI3_IRQ_NUM_USER_LAST:
 		return "gaudi3 user completion";
+#ifdef HL_DOWNSTREAM
+	case GAUDI3_PLDM_AGGR_IRQ_FIRST ... GAUDI3_PLDM_AGGR_IRQ_LAST:
+		return "gaudi3 pldm aggr interrupts";
+	case GAUDI3_PLDM_QM_SW_IRQ_FIRST ...  GAUDI3_PLDM_QM_SW_IRQ_LAST:
+		return "gaudi3 pldm qm sw interrupts";
+#endif /* HL_DOWNSTREAM */
 	case GAUDI3_IRQ_NUM_ETR_FIRST ... GAUDI3_IRQ_NUM_ETR_LAST:
 		return "gaudi3 etr";
 	case GAUDI3_IRQ_NUM_TPC_ASSERT:
@@ -7822,6 +7896,63 @@ static void gaudi3_eq_error_disable_msix(struct hl_device *hdev)
 	free_irq(irq, hdev);
 }
 
+#ifdef HL_DOWNSTREAM
+static int gaudi3_pldm_enable_msix(struct hl_device *hdev)
+{
+	struct gaudi3_device *gaudi3 = hdev->asic_specific;
+	struct gaudi3_pldm_msix_info *pldm_msix_info;
+	u32 i, irq_cnt;
+	int irq, rc;
+
+	if (!hdev->pldm)
+		return 0;
+
+	for (i = GAUDI3_PLDM_AGGR_IRQ_FIRST, irq_cnt = 0; i <= GAUDI3_PLDM_QM_SW_IRQ_LAST;
+			++i, ++irq_cnt) {
+		irq = hl_irq_vector(hdev, i);
+		if (irq < 0) {
+			rc = irq;
+			goto free_irqs;
+		}
+
+		pldm_msix_info = &gaudi3->pldm_msix_info[i - GAUDI3_PLDM_AGGR_IRQ_FIRST];
+		pldm_msix_info->hdev = hdev;
+		rc = request_threaded_irq(irq, NULL, hl_pldm_irq_handler, IRQF_ONESHOT,
+					  gaudi3_irq_name(i), pldm_msix_info);
+		if (rc)
+			goto free_irqs;
+	}
+
+	return 0;
+
+free_irqs:
+	for (i = GAUDI3_PLDM_AGGR_IRQ_FIRST ; i < GAUDI3_PLDM_AGGR_IRQ_FIRST + irq_cnt ; ++i) {
+		irq = hl_irq_vector(hdev, i);
+		pldm_msix_info = &gaudi3->pldm_msix_info[i - GAUDI3_PLDM_AGGR_IRQ_FIRST];
+		free_irq(irq, pldm_msix_info);
+	}
+
+	return rc;
+}
+
+static void gaudi3_pldm_disable_msix(struct hl_device *hdev)
+{
+	struct gaudi3_device *gaudi3 = hdev->asic_specific;
+	struct gaudi3_pldm_msix_info *pldm_msix_info;
+	int irq;
+	u32 i;
+
+	if (!hdev->pldm)
+		return;
+
+	for (i = GAUDI3_PLDM_AGGR_IRQ_FIRST ; i <= GAUDI3_PLDM_QM_SW_IRQ_LAST ; ++i) {
+		irq = hl_irq_vector(hdev, i);
+		pldm_msix_info = &gaudi3->pldm_msix_info[i - GAUDI3_PLDM_AGGR_IRQ_FIRST];
+		free_irq(irq, pldm_msix_info);
+	}
+}
+#endif /* HL_DOWNSTREAM */
+
 int gaudi3_enable_msix(struct hl_device *hdev)
 {
 	struct gaudi3_device *gaudi3 = hdev->asic_specific;
@@ -7832,6 +7963,11 @@ int gaudi3_enable_msix(struct hl_device *hdev)
 		return 0;
 
 	hl_init_cpu_for_irq(hdev);
+
+#ifdef HL_DOWNSTREAM
+	if (hdev->pldm)
+		n_msix = GAUDI3_PLDM_MSIX_ENTRIES;
+#endif /* HL_DOWNSTREAM */
 
 	rc = hl_alloc_irq_vectors(hdev, n_msix, n_msix, PCI_IRQ_MSIX);
 	if (rc < 0) {
@@ -7865,6 +8001,14 @@ int gaudi3_enable_msix(struct hl_device *hdev)
 		goto err_eq_irqs;
 	}
 
+#ifdef HL_DOWNSTREAM
+	rc = gaudi3_pldm_enable_msix(hdev);
+	if (rc) {
+		hl_err(hdev, "MSI-X: Failed to enable PLDM interrupts - %d\n", rc);
+		goto err_pldm_irqs;
+	}
+#endif /* HL_DOWNSTREAM */
+
 	rc = gaudi3_tpc_assert_enable_msix(hdev);
 	if (rc) {
 		hl_err(hdev, "MSI-X: Failed to enable TPC assert interrupt - %d\n", rc);
@@ -7885,6 +8029,11 @@ err_eq_error_irq:
 	gaudi3_tpc_assert_disable_msix(hdev);
 
 err_tpc_assert_irq:
+#ifdef HL_DOWNSTREAM
+	gaudi3_pldm_disable_msix(hdev);
+
+err_pldm_irqs:
+#endif /* HL_DOWNSTREAM */
 	gaudi3_eq_disable_msix(hdev);
 
 err_eq_irqs:
@@ -7985,6 +8134,15 @@ void gaudi3_sync_irqs(struct hl_device *hdev)
 	irq = hl_irq_vector(hdev, GAUDI3_IRQ_NUM_EVENT_QUEUE);
 	synchronize_irq(irq);
 
+#ifdef HL_DOWNSTREAM
+	if (hdev->pldm) {
+		for (i = GAUDI3_PLDM_AGGR_IRQ_FIRST ; i <= GAUDI3_PLDM_QM_SW_IRQ_LAST ; i++) {
+			irq = hl_irq_vector(hdev, i);
+			synchronize_irq(irq);
+		}
+	}
+#endif /* HL_DOWNSTREAM */
+
 	irq = hl_irq_vector(hdev, GAUDI3_IRQ_NUM_TPC_ASSERT);
 	synchronize_irq(irq);
 
@@ -8008,6 +8166,10 @@ void gaudi3_disable_msix(struct hl_device *hdev)
 	gaudi3_etrs_disable_msix(hdev);
 
 	gaudi3_eq_disable_msix(hdev);
+
+#ifdef HL_DOWNSTREAM
+	gaudi3_pldm_disable_msix(hdev);
+#endif /* HL_DOWNSTREAM */
 
 	gaudi3_tpc_assert_disable_msix(hdev);
 
@@ -8065,6 +8227,15 @@ int gaudi3_init_cpu_queues(struct hl_device *hdev, u32 cpu_timeout)
 	u32 status, reg_base = mmD0_PARC_ARC1_CFG_BASE;
 	struct hl_eq *eq;
 	int err;
+
+#ifdef HL_DOWNSTREAM
+	if (hdev->pldm) {
+		if (hdev->fw_components & (FW_TYPE_BOOT_CPU | FW_TYPE_PREBOOT_CPU))
+			cpu_timeout = GAUDI3_PLDM_FIT_CPU_TIMEOUT_USEC;
+		else
+			cpu_timeout = GAUDI3_PLDM_CPU_TIMEOUT_USEC;
+	}
+#endif /* HL_DOWNSTREAM */
 
 	if (!hdev->cpu_queues_enable)
 		return 0;
@@ -8154,6 +8325,12 @@ static int gaudi3_hw_init(struct hl_device *hdev)
 	struct gaudi3_device *gaudi3 = hdev->asic_specific;
 	int rc;
 
+#ifdef HL_DOWNSTREAM
+	rc = gaudi3_pre_hw_init(hdev);
+	if (rc)
+		return rc;
+#endif /* HL_DOWNSTREAM */
+
 	/* Let's mark in the H/W that we have reached this point. We check
 	 * this value in the reset_before_init function to understand whether
 	 * we need to reset the chip before doing H/W init. This register is
@@ -8163,6 +8340,14 @@ static int gaudi3_hw_init(struct hl_device *hdev)
 
 	/* Perform read from the device to make sure device is up */
 	RREG32(mmD0_CPU_IF_BASE + mmHW_STATE);
+
+#ifdef HL_DOWNSTREAM
+	rc = gaudi3_init_plls(hdev);
+	if (rc) {
+		hl_err(hdev, "failed to initialize PLLs\n");
+		return rc;
+	}
+#endif /* HL_DOWNSTREAM */
 
 	/* If iATU is done by FW, the HBM bar ALWAYS points to DRAM_PHYS_BASE.
 	 * So we set it here and if anyone tries to move it later to
@@ -8192,9 +8377,34 @@ static int gaudi3_hw_init(struct hl_device *hdev)
 	 */
 	gaudi3_lbw_dup_init(hdev);
 
+#ifdef HL_DOWNSTREAM
+	gaudi3_hw_init_fw_config(hdev);
+
+	if (hdev->cache_enable) {
+		rc = gaudi3_set_cache_mode(hdev);
+		if (rc) {
+			hl_err(hdev, "failed setting cache mode\n");
+			return rc;
+		}
+	}
+
+	gaudi3_init_scrambler(hdev);
+
+	/*
+	 * This function overrides some registers which are set also in gaudi3_init_scrambler
+	 * hence it must be called after it.
+	 */
+	gaudi3_dtlb_nrtr_eco_fixup(hdev);
+#endif /* HL_DOWNSTREAM */
+
 	gaudi3_cn_quiescence(hdev);
 
 	gaudi3_init_msix_gw_table(hdev);
+
+#ifdef HL_DOWNSTREAM
+	if (gaudi3_init_hbm(hdev))
+		return -EIO;
+#endif /* HL_DOWNSTREAM */
 
 	/*
 	 * handling the CPU code we must maintain the below order:
@@ -8265,6 +8475,10 @@ static int gaudi3_hw_init(struct hl_device *hdev)
 	if (rc)
 		return rc;
 
+#ifdef HL_DOWNSTREAM
+	gaudi3_pldm_enable_interrupts(hdev);
+#endif /* HL_DOWNSTREAM */
+
 	rc = gaudi3_enable_msix(hdev);
 	if (rc)
 		return rc;
@@ -8328,6 +8542,13 @@ void gaudi3_send_hard_reset_cmd(struct hl_device *hdev)
  */
 static void gaudi3_execute_hard_reset(struct hl_device *hdev)
 {
+#ifdef HL_DOWNSTREAM
+	if (!(hdev->fw_components & FW_TYPE_PREBOOT_CPU)) {
+		gaudi3_execute_reset_no_fw(hdev, true);
+		return;
+	}
+#endif /* HL_DOWNSTREAM */
+
 	gaudi3_send_hard_reset_cmd(hdev);
 	hl_dbg(hdev, "Firmware performs HARD reset\n");
 }
@@ -8396,9 +8617,21 @@ int gaudi3_hw_fini(struct hl_device *hdev, bool hard_reset, bool fw_reset)
 		goto wait_reset_done;
 	}
 
+#ifdef HL_DOWNSTREAM
+	gaudi3_reset_arcs(hdev);
+	gaudi3_set_isolation(hdev, true, hard_reset);
+#endif /* HL_DOWNSTREAM */
+
 	if (hard_reset) {
 		gaudi3_execute_hard_reset(hdev);
 	} else {
+#ifdef HL_DOWNSTREAM
+		if (!(hdev->fw_components & FW_TYPE_BOOT_CPU)) {
+			gaudi3_execute_reset_no_fw(hdev, false);
+			goto wait_reset_done;
+		}
+#endif /* HL_DOWNSTREAM */
+
 		rc = hl_fw_send_soft_reset(hdev);
 		if (rc)
 			return rc;
@@ -8980,6 +9213,22 @@ void gaudi3_clear_arcs_hw_cap(struct hl_device *hdev)
 	}
 }
 
+#ifdef HL_DOWNSTREAM
+void gaudi3_reset_arcs(struct hl_device *hdev)
+{
+	struct gaudi3_device *gaudi3 = hdev->asic_specific;
+	u16 arc_id;
+
+	if (!gaudi3)
+		return;
+
+	for (arc_id = CPU_ID_SCHED_ARC0 ; arc_id < NUM_ACTIVE_ARCS ; arc_id++) {
+		if (gaudi3_is_arc_initialized(hdev, arc_id))
+			gaudi3_reset_arc(hdev, arc_id);
+	}
+}
+#endif /* HL_DOWNSTREAM */
+
 void gaudi3_init_arcs(struct hl_device *hdev)
 {
 	u32 i;
@@ -8990,7 +9239,9 @@ void gaudi3_init_arcs(struct hl_device *hdev)
 
 		if (gaudi3_is_arc_initialized(hdev, i))
 			continue;
-
+#ifdef HL_DOWNSTREAM
+		gaudi3_init_arc(hdev, i);
+#endif /* HL_DOWNSTREAM */
 		gaudi3_halt_arc_farm_dup(hdev, i, false);
 		gaudi3_set_arc_id_cap(hdev, i);
 	}
@@ -8999,6 +9250,9 @@ void gaudi3_init_arcs(struct hl_device *hdev)
 		if (!gaudi3_is_engine_enabled(hdev, gaudi3_arc_to_engine_id[i]))
 			continue;
 
+#ifdef HL_DOWNSTREAM
+		gaudi3_init_arc(hdev, i);
+#endif /* HL_DOWNSTREAM */
 		gaudi3_set_arc_id_cap(hdev, i);
 	}
 }
@@ -9281,6 +9535,10 @@ static void gaudi3_stop_decoder_engine(struct hl_device *hdev, int hdcore, int i
 			FIELD_PREP(VDEC_BRDG_CTRL_GRACEFUL_STOP_M, 0x1));
 
 	timeout_usec = GAUDI3_VDEC_TIMEOUT_USEC;
+#ifdef HL_DOWNSTREAM
+	if (hdev->pldm)
+		timeout_usec = GAUDI3_PLDM_VDEC_TIMEOUT_USEC;
+#endif /* HL_DOWNSTREAM */
 	rc = hl_poll_timeout(
 			hdev,
 			brdg_ctrl_reg_base + mmVDEC_BRDG_CTRL_GRACEFUL,
@@ -9325,6 +9583,11 @@ static int gaudi3_verify_arc_running_mode(struct hl_device *hdev, u32 cpu_id, u3
 {
 	int rc;
 	u32 reg_base, val, ack_mask, req_val, offset, timeout_usec = 100000;
+
+#ifdef HL_DOWNSTREAM
+	if (hdev->pldm)
+		timeout_usec *= 100;
+#endif /* HL_DOWNSTREAM */
 
 	reg_base = gaudi3_arc_blocks_bases[cpu_id];
 	if (run_mode == HL_ENGINE_CORE_RUN) {
@@ -9570,6 +9833,13 @@ static void gaudi3_halt_engines(struct hl_device *hdev, bool hard_reset, bool fw
 {
 	u32 wait_timeout_ms = GAUDI3_RESET_WAIT_MSEC;
 
+#ifdef HL_DOWNSTREAM
+	gaudi3_halt_engines_fw_config(hdev);
+
+	if (hdev->pldm)
+		wait_timeout_ms = GAUDI3_PLDM_HALT_ENGINES_WAIT_MSEC;
+#endif /* HL_DOWNSTREAM */
+
 	/*
 	 * Mark the NIC as in reset to avoid any new NIC accesses to the HW. This must be done
 	 * before we stop the CPU as the NIC might use it e.g. get/set EEPROM data.
@@ -9608,6 +9878,10 @@ static void gaudi3_halt_engines(struct hl_device *hdev, bool hard_reset, bool fw
 	/* Verify that there are no on-the-fly AXI transactions after halting the engines */
 	if (!hdev->asic_prop.fw_security_enabled)
 		gaudi3_verify_compute_mstr_if_dbg_counters(hdev);
+
+#ifdef HL_DOWNSTREAM
+	gaudi3_pldm_disable_interrupts(hdev);
+#endif /* HL_DOWNSTREAM */
 
 skip_engines:
 	if (hard_reset) {
@@ -10011,9 +10285,44 @@ static void gaudi3_trigger_all_pdma_channels(struct hl_device *hdev,
 	cq_params->cq_id = GAUDI3_RESERVED_CQ_PDMA;
 	cq_params->target_sob_value = num_of_pdma;
 	cq_params->timeout_usec = GAUDI3_PDMA_TIMEOUT_USEC;
+#ifdef HL_DOWNSTREAM
+	if (hdev->pldm)
+		cq_params->timeout_usec = (((job_params->size / SZ_1M) + 1) *
+						GAUDI3_PDMA_TIMEOUT_USEC);
+#endif /* HL_DOWNSTREAM */
 
 	gaudi3_trigger_job(hdev, cq_params);
 }
+
+#ifdef HL_DOWNSTREAM
+static int gaudi3_scrub_device_memory(struct hl_device *hdev,
+				      const struct gaudi3_test_pdma_params *test_params,
+				      int ch_idx)
+{
+	u64 i, device_addr, device_data = 0;
+	int rc;
+
+	device_addr = test_params->device_phys_addr + ch_idx * test_params->channel_transfer_size;
+
+	/* Scrub device memory before DMAing to it */
+	for (i = 0 ; i < test_params->channel_transfer_size ; i += sizeof(u32)) {
+
+		rc = hdev->asic_funcs->access_dev_mem(hdev, test_params->region_type,
+						      device_addr + i, &device_data,
+						      DEBUGFS_WRITE32);
+
+		device_data += 0x11111111;
+
+		if (rc) {
+			hl_crit(hdev, "Failed to writel to dev_mem type %d, addr 0x%llx\n",
+				 test_params->region_type, device_addr + i);
+			return rc;
+		}
+	}
+
+	return 0;
+}
+#endif /* HL_DOWNSTREAM */
 
 static int gaudi3_test_pdma_job_init(struct hl_device *hdev,
 				     struct gaudi3_test_pdma_params *test_params)
@@ -10069,6 +10378,15 @@ static int gaudi3_test_pdma_job_init(struct hl_device *hdev,
 		val = GAUDI3_PDMA_TEST_VAL | ch_idx;
 		memset32(&test_params->host_ptr[offset], val, SZ_128 / sizeof(u32));
 
+#ifdef HL_DOWNSTREAM
+		if (hdev->pldm) {
+			rc = gaudi3_scrub_device_memory(hdev, test_params, ch_idx);
+			/* Don't bother reverting HW cfg, the device is not usable if we fail */
+			if (rc)
+				goto err_scrub;
+		}
+#endif /* HL_DOWNSTREAM */
+
 		ch_reg_base = gaudi3_pdma_get_ch_reg_base(hdev, ch_idx);
 
 		/* While testing we change to PDMA non bypass mode so we test the pmmu on the way */
@@ -10081,6 +10399,11 @@ static int gaudi3_test_pdma_job_init(struct hl_device *hdev,
 
 	return 0;
 
+#ifdef HL_DOWNSTREAM
+err_scrub:
+	gaudi3_kernel_ctx_unmap_addr(hdev, test_params->host_va,
+				     test_params->transfer_size, false);
+#endif /* HL_DOWNSTREAM */
 err_map_host_va:
 	hl_asic_dma_free_coherent(hdev, test_params->transfer_size,
 				  test_params->host_ptr, test_params->host_mem_dma_addr);
@@ -10159,6 +10482,29 @@ static int gaudi3_test_pdma_verify_result(struct hl_device *hdev,
 				val, test_params->host_ptr[offset + i],
 				(test_params->region_type == PCI_REGION_DRAM) ?
 									"DRAM":"SRAM");
+
+#ifdef HL_DOWNSTREAM
+			if (hdev->pldm) {
+				u64 device_addr, device_data;
+
+				device_addr = test_params->device_phys_addr +
+							(offset + i) * sizeof(u32);
+
+				rc = hdev->asic_funcs->access_dev_mem(hdev,
+								test_params->region_type,
+								device_addr, &device_data,
+								DEBUGFS_READ32);
+				if (rc)
+					hl_crit(hdev,
+						 "Failed to readl from dev_mem type %d, addr 0x%llx\n",
+						 test_params->region_type, device_addr);
+
+				hl_err(hdev, "src: %8x, data: %8x, dst: %8x region: %s",
+					val, (u32)device_data, test_params->host_ptr[offset + i],
+					(test_params->region_type == PCI_REGION_DRAM) ?
+										"DRAM":"SRAM");
+			}
+#endif /* HL_DOWNSTREAM */
 
 			/* if host_mem_va is not as expected, it means dma failed, set rc = -EIO */
 			rc = -EIO;
@@ -10384,6 +10730,11 @@ static int gaudi3_test_qman_wait_completion(struct hl_device *hdev, u32 engine_i
 {
 	u32 tmp, timeout_usec = GAUDI3_QMAN_TEST_WAIT_USEC;
 	int rc;
+
+#ifdef HL_DOWNSTREAM
+	if (hdev->pldm)
+		timeout_usec = GAUDI3_PLDM_QMAN_TEST_WAIT_USEC;
+#endif /* HL_DOWNSTREAM */
 
 	rc = hl_poll_timeout(hdev, sob_addr, tmp, (tmp == sob_val),
 					HL_POLL_SLEEP_US, timeout_usec);
@@ -10918,6 +11269,11 @@ int gaudi3_mmu_invalidate_cache(struct hl_device *hdev, bool is_hard, u32 flags)
 	if (hdev->reset_info.hard_reset_pending)
 		return 0;
 
+#ifdef HL_DOWNSTREAM
+	if (hdev->pldm)
+		timeout_usec = GAUDI3_PLDM_MMU_TIMEOUT_USEC;
+#endif /* HL_DOWNSTREAM */
+
 	maint_data.range_maint = false;
 	maint_data.maint_type = GAUDI3_CACHE_MAINT_INV;
 	maint_data.asid = HL_KERNEL_ASID_ID;
@@ -10950,6 +11306,11 @@ static int gaudi3_mmu_cache_range_maint(struct hl_device *hdev, bool is_hard,
 
 	if (!gaudi3)
 		return -EINVAL;
+
+#ifdef HL_DOWNSTREAM
+	if (hdev->pldm)
+		timeout_usec = GAUDI3_PLDM_MMU_TIMEOUT_USEC;
+#endif /* HL_DOWNSTREAM */
 
 	maint_data.maint_type = is_prefetch ? GAUDI3_CACHE_MAINT_PF : GAUDI3_CACHE_MAINT_INV;
 	maint_data.range_maint = true;
@@ -11616,6 +11977,10 @@ static void gaudi3_set_cbc_cq_mode_params(struct hl_device *hdev,
 	cq_params->job = gaudi3_invalidate_cbc;
 	cq_params->job_data = NULL;
 	cq_params->timeout_usec = GAUDI3_CBC_INVALIDATION_TIMEOUT_USEC;
+#ifdef HL_DOWNSTREAM
+	if (hdev->pldm)
+		cq_params->timeout_usec = GAUDI3_PLDM_CBC_INVALIDATION_TIMEOUT_USEC;
+#endif /* HL_DOWNSTREAM */
 	cq_params->target_sob_value = 1;
 	cq_params->sob_id = GAUDI3_RESERVED_SOB_CBC_INVALIDATION;
 	cq_params->mon_id = GAUDI3_RESERVED_MON_CBC_INVALIDATION;
@@ -11673,6 +12038,10 @@ int gaudi3_send_cpu_message(struct hl_device *hdev, u32 *msg, u16 len,
 
 	if (!timeout)
 		timeout = GAUDI3_MSG_TO_CPU_TIMEOUT_USEC;
+#ifdef HL_DOWNSTREAM
+	if (hdev->pldm)
+		timeout = GAUDI3_PLDM_MSG_TO_CPU_TIMEOUT_USEC;
+#endif /* HL_DOWNSTREAM */
 
 	return hl_fw_send_cpu_message(hdev, GAUDI3_QUEUE_ID_CPU_PQ, msg, len, timeout, result);
 }
@@ -11870,6 +12239,11 @@ void gaudi3_init_firmware_preload_params(struct hl_device *hdev)
 	pre_fw_load->boot_err1_reg = mmD0_PSOC_GLOBAL_CONF_BASE + mmCPU_BOOT_ERR1;
 	pre_fw_load->wait_for_preboot_timeout = GAUDI3_PREBOOT_REQ_TIMEOUT_USEC;
 	pre_fw_load->wait_for_preboot_extended_timeout = GAUDI3_PREBOOT_EXT_REQ_TIMEOUT_USEC;
+
+#ifdef HL_DOWNSTREAM
+	if (hdev->pldm)
+		pre_fw_load->wait_for_preboot_timeout = GAUDI3_PLDM_BOOT_FIT_REQ_TIMEOUT_USEC;
+#endif /* HL_DOWNSTREAM */
 }
 
 void gaudi3_init_firmware_loader(struct hl_device *hdev)
@@ -11885,6 +12259,16 @@ void gaudi3_init_firmware_loader(struct hl_device *hdev)
 	fw_loader->dram_bar_id = SRAM_DRAM_BAR_ID;
 	fw_loader->boot_fit_timeout = GAUDI3_BOOT_FIT_REQ_TIMEOUT_USEC;
 	fw_loader->cpu_timeout = GAUDI3_CPU_TIMEOUT_USEC;
+
+#ifdef HL_DOWNSTREAM
+	if (hdev->pldm) {
+		fw_loader->boot_fit_timeout = GAUDI3_PLDM_FIT_CPU_TIMEOUT_USEC;
+		if (hdev->fw_components & (FW_TYPE_BOOT_CPU | FW_TYPE_PREBOOT_CPU))
+			fw_loader->cpu_timeout = GAUDI3_PLDM_FIT_CPU_TIMEOUT_USEC;
+		else
+			fw_loader->cpu_timeout = GAUDI3_PLDM_CPU_TIMEOUT_USEC;
+	}
+#endif /* HL_DOWNSTREAM */
 
 	dynamic_loader = &hdev->fw_loader.dynamic_loader;
 
@@ -11903,6 +12287,10 @@ void gaudi3_init_firmware_loader(struct hl_device *hdev)
 				cpu_to_le32(mmD0_PSOC_GLOBAL_CONF_BASE + mmCPU_CMD_STATUS_TO_HOST);
 
 	dynamic_loader->wait_for_bl_timeout = GAUDI3_WAIT_FOR_BL_TIMEOUT_USEC;
+#ifdef HL_DOWNSTREAM
+	if (hdev->pldm)
+		dynamic_loader->wait_for_bl_timeout = GAUDI3_PLDM_WAIT_FOR_BL_TIMEOUT_USEC;
+#endif /* HL_DOWNSTREAM */
 }
 
 static int gaudi3_gen_sync_to_engine_map(struct hl_device *hdev,
@@ -12416,6 +12804,14 @@ static void gaudi3_check_if_razwi_happened(struct hl_device *hdev)
 static void gaudi3_no_fw_monitor(struct hl_device *hdev, bool *stop_monitor)
 {
 	*stop_monitor = true;
+#ifdef HL_DOWNSTREAM
+	if (hdev->pldm && !hdev->enable_intr_aggr) {
+		bool pci_link_error = false;
+
+		gaudi3_handle_axi_drain(hdev, &pci_link_error);
+		*stop_monitor = pci_link_error;
+	}
+#endif /* HL_DOWNSTREAM */
 }
 
 int gaudi3_alloc_irq_vectors(struct hl_device *hdev, unsigned int min_vecs,
@@ -13537,6 +13933,11 @@ static void gaudi3_set_initial_reset_flags_and_event_mask(struct hl_device *hdev
 		break;
 	case INT_COMP_TYPE_NIC:
 		/* NIC SPI events are not errors */
+#ifdef HL_DOWNSTREAM
+		/* As to the PLDM exception, see H9-5611. */
+		if (hdev->pldm)
+			break;
+#endif /* HL_DOWNSTREAM */
 		if (agg_grp_type == INT_GRP_TYPE_SEI) {
 			*event_mask |= HL_NOTIFIER_EVENT_USER_ENGINE_ERR;
 			hard_reset = true;
@@ -14689,6 +15090,11 @@ static int gaudi3_pll_info_get(struct hl_device *hdev, u32 pll_index, u16 *pll_f
 	if (pll_index >= HL_GAUDI3_PLL_MAX)
 		return -EINVAL;
 
+#ifdef HL_DOWNSTREAM
+	if (hdev->pldm)
+		return gaudi3_pldm_pll_info_get(hdev, pll_index, pll_freq_arr);
+#endif /* HL_DOWNSTREAM */
+
 	return hl_fw_cpucp_pll_info_get(hdev, pll_index, pll_freq_arr);
 }
 
@@ -14826,6 +15232,9 @@ static const struct hl_asic_funcs gaudi3_funcs = {
 	.map_pll_idx_to_fw_idx = gaudi3_map_pll_idx_to_fw_idx,
 	.init_firmware_preload_params = gaudi3_init_firmware_preload_params,
 	.init_firmware_loader = gaudi3_init_firmware_loader,
+#ifdef HL_DOWNSTREAM
+	.init_cpu_scrambler_dram = gaudi3_init_scrambler,
+#endif /* HL_DOWNSTREAM */
 	.state_dump_init = gaudi3_state_dump_init,
 	.get_sob_addr = &gaudi3_get_sob_addr,
 	.set_pci_memory_regions = gaudi3_set_pci_memory_regions,

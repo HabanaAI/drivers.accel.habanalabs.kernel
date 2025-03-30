@@ -593,6 +593,9 @@ static void gaudi_cn_set_cn_data(struct hl_device *hdev)
 	gaudi_aux_ops->set_lpbk = gaudi_cn_set_lpbk;
 	gaudi_aux_ops->read_mac_cnt = gaudi_cn_read_mac_cnt;
 	gaudi_aux_ops->reset_mac_stats = gaudi_cn_reset_mac_stats;
+#ifdef HL_DOWNSTREAM
+	gaudi_aux_ops->sim_init_props = gaudi_sim_cn_early_init_props_ext;
+#endif /* HL_DOWNSTREAM */
 	gaudi_aux_ops->dma_alloc_coherent = gaudi_cn_dma_alloc_coherent;
 	gaudi_aux_ops->dma_free_coherent = gaudi_cn_dma_free_coherent;
 	gaudi_aux_ops->dma_pool_zalloc = gaudi_cn_dma_pool_zalloc;

@@ -269,6 +269,60 @@ static ssize_t device_type_show(struct device *dev,
 	char *str;
 
 	switch (hdev->asic_type) {
+#ifdef HL_DOWNSTREAM
+	case ASIC_GOYA_SIM:
+		str = "GOYA Simulator";
+		break;
+	case ASIC_GAUDI_SIM:
+		str = "GAUDI Simulator";
+		break;
+	case ASIC_GAUDI_HL2000M_SIM:
+		str = "GAUDI HL2000M Simulator";
+		break;
+	case ASIC_GAUDI2_SIM:
+	case ASIC_GAUDI2_SIM_ARC:
+		str = "GAUDI2 Simulator";
+		break;
+	case ASIC_GAUDI2B_SIM:
+	case ASIC_GAUDI2B_SIM_ARC:
+		str = "GAUDI2B Simulator";
+		break;
+	case ASIC_GAUDI2C_SIM:
+	case ASIC_GAUDI2C_SIM_ARC:
+		str = "GAUDI2C Simulator";
+		break;
+	case ASIC_GAUDI2D_SIM:
+	case ASIC_GAUDI2D_SIM_ARC:
+		str = "GAUDI2D Simulator";
+		break;
+	case ASIC_GAUDI2_HL_288_SIM:
+	case ASIC_GAUDI2_HL_288_SIM_ARC:
+		str = "GAUDI2 HL-288 Simulator";
+		break;
+	case ASIC_GAUDI2D_HL_288_SIM:
+	case ASIC_GAUDI2D_HL_288_SIM_ARC:
+		str = "GAUDI2D HL-288 Simulator";
+		break;
+	case ASIC_GAUDI3_SIM:
+	case ASIC_GAUDI3_SIM_ARC:
+		str = "GAUDI3 Simulator";
+		break;
+	case ASIC_GAUDI3D_SIM:
+	case ASIC_GAUDI3D_SIM_ARC:
+		str = "GAUDI3D Simulator";
+		break;
+	case ASIC_GAUDI3_HL_338_SIM:
+	case ASIC_GAUDI3_HL_338_SIM_ARC:
+		str = "GAUDI3 HL-338 Simulator";
+		break;
+	case ASIC_GAUDI3D_HL_338_SIM:
+	case ASIC_GAUDI3D_HL_338_SIM_ARC:
+		str = "GAUDI3D HL-338 Simulator";
+		break;
+	case ASIC_GAUDI3_FPGA:
+		str = "GAUDI3 FPGA";
+		break;
+#endif /* HL_DOWNSTREAM */
 	case ASIC_GOYA:
 		str = "GOYA";
 		break;

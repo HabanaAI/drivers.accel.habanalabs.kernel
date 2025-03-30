@@ -1048,6 +1048,80 @@ static int device_early_init(struct hl_device *hdev)
 	char workq_name[32];
 
 	switch (hdev->asic_type) {
+#ifdef HL_DOWNSTREAM
+	case ASIC_GOYA_SIM:
+		goya_sim_set_asic_funcs(hdev);
+		strscpy(hdev->asic_name, "GOYA SIM", sizeof(hdev->asic_name));
+		break;
+	case ASIC_GAUDI_SIM:
+		gaudi_sim_set_asic_funcs(hdev);
+		strscpy(hdev->asic_name, "GAUDI_SIM", sizeof(hdev->asic_name));
+		break;
+	case ASIC_GAUDI_HL2000M_SIM:
+		gaudi_sim_set_asic_funcs(hdev);
+		strscpy(hdev->asic_name, "GAUDI HL2000M SIM",
+				sizeof(hdev->asic_name));
+		break;
+	case ASIC_GAUDI2_SIM:
+	case ASIC_GAUDI2_SIM_ARC:
+		gaudi2_sim_set_asic_funcs(hdev);
+		strscpy(hdev->asic_name, "GAUDI2 SIM", sizeof(hdev->asic_name));
+		break;
+	case ASIC_GAUDI2B_SIM:
+	case ASIC_GAUDI2B_SIM_ARC:
+		gaudi2_sim_set_asic_funcs(hdev);
+		strscpy(hdev->asic_name, "GAUDI2B SIM", sizeof(hdev->asic_name));
+		break;
+	case ASIC_GAUDI2C_SIM:
+	case ASIC_GAUDI2C_SIM_ARC:
+		gaudi2_sim_set_asic_funcs(hdev);
+		strscpy(hdev->asic_name, "GAUDI2C SIM", sizeof(hdev->asic_name));
+		break;
+	case ASIC_GAUDI2D_SIM:
+	case ASIC_GAUDI2D_SIM_ARC:
+		gaudi2_sim_set_asic_funcs(hdev);
+		strscpy(hdev->asic_name, "GAUDI2D SIM", sizeof(hdev->asic_name));
+		break;
+	case ASIC_GAUDI2D_HL_288_SIM:
+	case ASIC_GAUDI2D_HL_288_SIM_ARC:
+		gaudi2_sim_set_asic_funcs(hdev);
+		strscpy(hdev->asic_name, "GAUDI2D HL-288 SIM", sizeof(hdev->asic_name));
+		break;
+	case ASIC_GAUDI2_HL_288_SIM:
+	case ASIC_GAUDI2_HL_288_SIM_ARC:
+		gaudi2_sim_set_asic_funcs(hdev);
+		strscpy(hdev->asic_name, "GAUDI2 HL-288 SIM", sizeof(hdev->asic_name));
+		break;
+	case ASIC_GAUDI3D_SIM:
+	case ASIC_GAUDI3D_SIM_ARC:
+		gaudi3_sim_set_asic_funcs(hdev);
+		strscpy(hdev->asic_name, "GAUDI3D SIM",
+						sizeof(hdev->asic_name));
+		break;
+	case ASIC_GAUDI3_SIM:
+	case ASIC_GAUDI3_SIM_ARC:
+		gaudi3_sim_set_asic_funcs(hdev);
+		strscpy(hdev->asic_name, "GAUDI3 SIM",
+						sizeof(hdev->asic_name));
+		break;
+	case ASIC_GAUDI3D_HL_338_SIM:
+	case ASIC_GAUDI3D_HL_338_SIM_ARC:
+		gaudi3_sim_set_asic_funcs(hdev);
+		strscpy(hdev->asic_name, "GAUDI3D HL-338 SIM",
+						sizeof(hdev->asic_name));
+		break;
+	case ASIC_GAUDI3_HL_338_SIM:
+	case ASIC_GAUDI3_HL_338_SIM_ARC:
+		gaudi3_sim_set_asic_funcs(hdev);
+		strscpy(hdev->asic_name, "GAUDI3 HL-338 SIM",
+						sizeof(hdev->asic_name));
+		break;
+	case ASIC_GAUDI3_FPGA:
+		gaudi3_fpga_set_asic_funcs(hdev);
+		strscpy(hdev->asic_name, "GAUDI3 FPGA",
+				sizeof(hdev->asic_name));
+		break;
+#endif /* HL_DOWNSTREAM */
 	case ASIC_GOYA:
 		goya_set_asic_funcs(hdev);
 		strscpy(hdev->asic_name, "GOYA", sizeof(hdev->asic_name));
@@ -1486,6 +1560,34 @@ int hl_device_utilization(struct hl_device *hdev, u32 *utilization)
 const char *hl_get_default_card_name(struct hl_device *hdev)
 {
 	switch (hdev->asic_type) {
+#ifdef HL_DOWNSTREAM
+		case ASIC_GAUDI_SIM:
+			return "HL205 SIM";
+		case ASIC_GAUDI2_SIM:
+		case ASIC_GAUDI2_SIM_ARC:
+		case ASIC_GAUDI2B_SIM:
+		case ASIC_GAUDI2B_SIM_ARC:
+		case ASIC_GAUDI2C_SIM:
+		case ASIC_GAUDI2C_SIM_ARC:
+		case ASIC_GAUDI2D_SIM:
+		case ASIC_GAUDI2D_SIM_ARC:
+			return "HL225 SIM";
+		case ASIC_GAUDI2D_HL_288_SIM:
+		case ASIC_GAUDI2D_HL_288_SIM_ARC:
+		case ASIC_GAUDI2_HL_288_SIM:
+		case ASIC_GAUDI2_HL_288_SIM_ARC:
+			return "HL288 SIM";
+		case ASIC_GAUDI3_SIM:
+		case ASIC_GAUDI3_SIM_ARC:
+		case ASIC_GAUDI3D_SIM:
+		case ASIC_GAUDI3D_SIM_ARC:
+			return "HL325 SIM";
+		case ASIC_GAUDI3_HL_338_SIM:
+		case ASIC_GAUDI3_HL_338_SIM_ARC:
+		case ASIC_GAUDI3D_HL_338_SIM:
+		case ASIC_GAUDI3D_HL_338_SIM_ARC:
+			return "HL338 SIM";
+#endif /* HL_DOWNSTREAM */
 		case ASIC_GAUDI:
 		case ASIC_GAUDI_SEC:
 			return "HL205";
@@ -1501,6 +1603,9 @@ const char *hl_get_default_card_name(struct hl_device *hdev)
 		case ASIC_GAUDI2D_HL_288:
 			return "HL288";
 		case ASIC_GAUDI3:
+#ifdef HL_DOWNSTREAM
+		case ASIC_GAUDI3_FPGA:
+#endif /* HL_DOWNSTREAM */
 			return "HL325";
 		case ASIC_GAUDI3D:
 			return "HL328" ;

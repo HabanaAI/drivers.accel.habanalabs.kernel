@@ -12688,6 +12688,9 @@ static const struct hl_asic_funcs gaudi2_funcs = {
 	.map_pll_idx_to_fw_idx = gaudi2_map_pll_idx_to_fw_idx,
 	.init_firmware_preload_params = gaudi2_init_firmware_preload_params,
 	.init_firmware_loader = gaudi2_init_firmware_loader,
+#ifdef HL_DOWNSTREAM
+	.init_cpu_scrambler_dram = gaudi2_init_scrambler_hbm,
+#endif /* HL_DOWNSTREAM */
 	.state_dump_init = gaudi2_state_dump_init,
 	.get_sob_addr = &gaudi2_get_sob_addr,
 	.set_pci_memory_regions = gaudi2_set_pci_memory_regions,

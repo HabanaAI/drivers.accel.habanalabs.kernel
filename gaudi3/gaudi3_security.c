@@ -289,6 +289,9 @@ static inline void gaudi3_init_range_registers(struct hl_device *hdev)
 {
 	hl_dbg(hdev, "Configure RRs\n");
 	gaudi3_init_lbw_hbw_range_registers(hdev);
+#ifdef HL_DOWNSTREAM
+	gaudi3_init_pa_range_registers(hdev);
+#endif /* HL_DOWNSTREAM */
 }
 
 static const u32 gaudi3_pb_kdma[] = {
