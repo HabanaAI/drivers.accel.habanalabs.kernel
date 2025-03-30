@@ -234,7 +234,7 @@ int hl_mmu_get_real_page_size(struct hl_device *hdev, struct hl_mmu_properties *
 		return 0;
 	}
 
-	dev_err(hdev->dev, "page size of %u is not %uKB aligned, can't map\n",
+	hl_err(hdev, "page size of %u is not %uKB aligned, can't map\n",
 						page_size, mmu_prop->page_size >> 10);
 
 	return -EFAULT;
@@ -378,7 +378,7 @@ int hl_mmu_map_page(struct hl_ctx *ctx, u64 virt_addr, u64 phys_addr, u32 page_s
 				(mmu_prop->page_size - 1)))) ||
 		(!is_dram_addr && ((phys_addr & (real_page_size - 1)) ||
 				(virt_addr & (real_page_size - 1)))))
-		dev_crit(hdev->dev,
+		hl_crit(hdev,
 			"Mapping address 0x%llx with virtual address 0x%llx and page size of 0x%x is erroneous! Addresses must be divisible by page size",
 			phys_addr, virt_addr, real_page_size);
 
@@ -408,7 +408,7 @@ err:
 	real_virt_addr = virt_addr;
 	for (i = 0 ; i < mapped_cnt ; i++) {
 		if (mmu_funcs->unmap_page(ctx, real_virt_addr, page_size, is_dram_addr))
-			dev_warn_ratelimited(hdev->dev,
+			hl_warn_ratelimited(hdev,
 				"failed to unmap va: 0x%llx\n", real_virt_addr);
 
 		real_virt_addr += real_page_size;
@@ -458,7 +458,7 @@ int hl_mmu_map_contiguous(struct hl_ctx *ctx, u64 virt_addr,
 		rc = hl_mmu_map_page(ctx, curr_va, curr_pa, page_size,
 								flush_pte);
 		if (rc) {
-			dev_err(hdev->dev,
+			hl_err(hdev,
 				"Map failed for va 0x%llx to pa 0x%llx\n",
 				curr_va, curr_pa);
 			/* last mapping failed so don't try to unmap it - reduce off by page_size */
@@ -474,7 +474,7 @@ unmap:
 		curr_va = virt_addr + off;
 		flush_pte = (off - (s32) page_size) < 0;
 		if (hl_mmu_unmap_page(ctx, curr_va, page_size, flush_pte))
-			dev_warn_ratelimited(hdev->dev,
+			hl_warn_ratelimited(hdev,
 				"failed to unmap va 0x%llx\n", curr_va);
 	}
 
@@ -516,7 +516,7 @@ int hl_mmu_unmap_contiguous(struct hl_ctx *ctx, u64 virt_addr, u32 size)
 		flush_pte = (off + page_size) >= size;
 		rc = hl_mmu_unmap_page(ctx, curr_va, page_size, flush_pte);
 		if (rc)
-			dev_warn_ratelimited(hdev->dev,
+			hl_warn_ratelimited(hdev,
 				"Unmap failed for va 0x%llx\n", curr_va);
 	}
 
@@ -694,7 +694,7 @@ int hl_mmu_if_set_funcs(struct hl_device *hdev)
 		hl_mmu_v3_set_funcs(hdev, &hdev->hmmu_info.func);
 		break;
 	default:
-		dev_err(hdev->dev, "Unrecognized ASIC type %d\n",
+		hl_err(hdev, "Unrecognized ASIC type %d\n",
 			hdev->asic_type);
 		return -EOPNOTSUPP;
 	}
@@ -733,7 +733,7 @@ int hl_mmu_invalidate_cache(struct hl_device *hdev, bool is_hard, u32 flags)
 
 	rc = hdev->asic_funcs->mmu_invalidate_cache(hdev, is_hard, flags);
 	if (rc)
-		dev_err_ratelimited(hdev->dev,
+		hl_err_ratelimited(hdev,
 				"%s: %s cache invalidation failed, rc=%d\n",
 				HL_PARENT_DEV_NAME(hdev),
 				flags == VM_TYPE_USERPTR ? "PMMU" : "HMMU", rc);
@@ -749,7 +749,7 @@ int hl_mmu_invalidate_cache_range(struct hl_device *hdev, bool is_hard,
 	rc = hdev->asic_funcs->mmu_invalidate_cache_range(hdev, is_hard, flags,
 								asid, va, size);
 	if (rc)
-		dev_err_ratelimited(hdev->dev,
+		hl_err_ratelimited(hdev,
 			"%s: %s cache range invalidation failed: va=%#llx, size=%llu, rc=%d",
 			HL_PARENT_DEV_NAME(hdev), flags == VM_TYPE_USERPTR ? "PMMU" : "HMMU",
 			va, size, rc);
@@ -827,7 +827,7 @@ u64 hl_mmu_get_hop_pte_phys_addr(struct hl_ctx *ctx, struct hl_mmu_properties *m
 	u64 mask, shift;
 
 	if (hop_idx >= mmu_prop->num_hops) {
-		dev_err_ratelimited(ctx->hdev->dev, "Invalid hop index %d\n", hop_idx);
+		hl_err_ratelimited(ctx->hdev, "Invalid hop index %d\n", hop_idx);
 		return U64_MAX;
 	}
 
@@ -927,13 +927,13 @@ int hl_mmu_hr_init(struct hl_device *hdev, struct hl_mmu_hr_priv *hr_priv, u32 h
 	 */
 	hr_priv->mmu_pgt_pool = gen_pool_create(PAGE_SHIFT, -1);
 	if (ZERO_OR_NULL_PTR(hr_priv->mmu_pgt_pool)) {
-		dev_err(hdev->dev, "Failed to create hr page pool\n");
+		hl_err(hdev, "Failed to create hr page pool\n");
 		return -ENOMEM;
 	}
 
 	hr_priv->mmu_asid_hop0 = kvcalloc(prop->max_asid, sizeof(struct pgt_info), GFP_KERNEL);
 	if (ZERO_OR_NULL_PTR(hr_priv->mmu_asid_hop0)) {
-		dev_err(hdev->dev, "Failed to allocate hr-mmu hop0 table\n");
+		hl_err(hdev, "Failed to allocate hr-mmu hop0 table\n");
 		rc = -ENOMEM;
 		goto destroy_mmu_pgt_pool;
 	}
@@ -943,7 +943,7 @@ int hl_mmu_hr_init(struct hl_device *hdev, struct hl_mmu_hr_priv *hr_priv, u32 h
 									&dma_addr,
 									GFP_KERNEL | __GFP_ZERO);
 		if (ZERO_OR_NULL_PTR(virt_addr)) {
-			dev_err(hdev->dev,
+			hl_err(hdev,
 				"Failed to allocate memory for host-resident page pool\n");
 			rc = -ENOMEM;
 			goto destroy_mmu_pgt_pool;
@@ -952,7 +952,7 @@ int hl_mmu_hr_init(struct hl_device *hdev, struct hl_mmu_hr_priv *hr_priv, u32 h
 		rc = gen_pool_add_virt(hr_priv->mmu_pgt_pool, virt_addr, (phys_addr_t) dma_addr,
 						pool_chunk_size, -1);
 		if (rc) {
-			dev_err(hdev->dev, "Failed to fill host-resident page pool\n");
+			hl_err(hdev, "Failed to fill host-resident page pool\n");
 			goto destroy_mmu_pgt_pool;
 		}
 	}
@@ -965,7 +965,7 @@ int hl_mmu_hr_init(struct hl_device *hdev, struct hl_mmu_hr_priv *hr_priv, u32 h
 								(dma_addr_t *) &hop0_pgt->phys_addr,
 								hop_table_size);
 		if (!hop0_pgt->virt_addr) {
-			dev_err(hdev->dev, "Failed to allocate HOP from pgt pool\n");
+			hl_err(hdev, "Failed to allocate HOP from pgt pool\n");
 			rc = -ENOMEM;
 			goto destroy_mmu_pgt_pool;
 		}
@@ -1186,7 +1186,7 @@ struct pgt_info *hl_mmu_hr_alloc_hop(struct hl_ctx *ctx, struct hl_mmu_hr_priv *
 	}
 
 	if (ZERO_OR_NULL_PTR(virt_addr)) {
-		dev_err(hdev->dev, "failed to allocate page\n");
+		hl_err(hdev, "failed to allocate page\n");
 		goto pool_alloc_err;
 	}
 
@@ -1420,7 +1420,7 @@ u64 hl_mmu_dr_alloc_hop(struct hl_ctx *ctx)
 	phys_addr = (u64) gen_pool_alloc(hdev->mmu_priv.dr.mmu_pgt_pool,
 					prop->dmmu.hop_table_size);
 	if (!phys_addr) {
-		dev_err(hdev->dev, "failed to allocate page\n");
+		hl_err(hdev, "failed to allocate page\n");
 		goto pool_add_err;
 	}
 
@@ -1474,7 +1474,7 @@ int hl_mmu_dr_init(struct hl_device *hdev)
 			gen_pool_create(__ffs(prop->dmmu.hop_table_size), -1);
 
 	if (!hdev->mmu_priv.dr.mmu_pgt_pool) {
-		dev_err(hdev->dev, "Failed to create page gen pool\n");
+		hl_err(hdev, "Failed to create page gen pool\n");
 		return -ENOMEM;
 	}
 
@@ -1483,7 +1483,7 @@ int hl_mmu_dr_init(struct hl_device *hdev)
 			prop->dmmu.pgt_size - prop->dmmu.hop0_tables_total_size,
 			-1);
 	if (rc) {
-		dev_err(hdev->dev, "Failed to add memory to page gen pool\n");
+		hl_err(hdev, "Failed to add memory to page gen pool\n");
 		goto err_pool_add;
 	}
 
@@ -1591,7 +1591,7 @@ int hl_mmu_map_page_by_multiple_ptes(struct hl_ctx *ctx, u64 virt_addr, u64 phys
 	u64 supported_pages_mask = ctx->hdev->asic_prop.dmmu.supported_pages_mask;
 
 	if (!(page_size & supported_pages_mask)) {
-		dev_err(ctx->hdev->dev,
+		hl_err(ctx->hdev,
 				"%x page size not supported (supported_pages_mask: %llx)\n",
 				page_size, supported_pages_mask);
 		return -EINVAL;

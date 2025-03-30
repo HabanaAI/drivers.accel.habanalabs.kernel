@@ -87,7 +87,7 @@ static void hl_push_cs_outcome(struct hl_device *hdev,
 		node = list_last_entry(&outcome_store->used_list,
 				       struct hl_cs_outcome, list_link);
 		hash_del(&node->map_link);
-		dev_dbg(hdev->dev, "CS %llu outcome was lost\n", node->seq);
+		hl_dbg(hdev, "CS %llu outcome was lost\n", node->seq);
 	} else {
 		node = list_last_entry(&outcome_store->free_list,
 				       struct hl_cs_outcome, list_link);
@@ -138,7 +138,7 @@ static void hl_sob_reset(struct kref *ref)
 							kref);
 	struct hl_device *hdev = hw_sob->hdev;
 
-	dev_dbg(hdev->dev, "reset sob id %u\n", hw_sob->sob_id);
+	hl_dbg(hdev, "reset sob id %u\n", hw_sob->sob_id);
 
 	hdev->asic_funcs->reset_sob(hdev, hw_sob);
 
@@ -151,7 +151,7 @@ void hl_sob_reset_error(struct kref *ref)
 							kref);
 	struct hl_device *hdev = hw_sob->hdev;
 
-	dev_crit(hdev->dev,
+	hl_crit(hdev,
 		"SOB release shouldn't be called here, q_idx: %d, sob_id: %d\n",
 		hw_sob->q_idx, hw_sob->sob_id);
 }
@@ -580,7 +580,7 @@ static void force_complete_multi_cs(struct hl_device *hdev)
 		 * We are calling the function as a protection for such case
 		 * to free any pending context and print error message
 		 */
-		dev_err(hdev->dev,
+		hl_err(hdev,
 				"multi-CS completion context %d still waiting when calling force completion\n",
 				i);
 		complete_all(&mcs_compl->completion);
@@ -674,7 +674,7 @@ static inline void cs_release_sob_reset_handler(struct hl_device *hdev,
 			(hl_cs_cmpl->type == CS_TYPE_WAIT) ||
 			(hl_cs_cmpl->type == CS_TYPE_COLLECTIVE_WAIT) ||
 			(!!hl_cs_cmpl->encaps_signals)) {
-		dev_dbg(hdev->dev,
+		hl_dbg(hdev,
 				"CS 0x%llx type %d finished, sob_id: %d, sob_val: %u\n",
 				hl_cs_cmpl->cs_seq,
 				hl_cs_cmpl->type,
@@ -788,7 +788,7 @@ out:
 		cs->fence->error = -EBUSY;
 
 	if (unlikely(cs->skip_reset_on_timeout)) {
-		dev_err(hdev->dev,
+		hl_err(hdev,
 			"Command submission %llu completed after %llu (s)\n",
 			cs->sequence,
 			div_u64(jiffies - cs->submission_time_jiffies, HZ));
@@ -857,25 +857,25 @@ static void cs_timedout(struct work_struct *work)
 
 	switch (cs->type) {
 	case CS_TYPE_SIGNAL:
-		dev_err(hdev->dev,
+		hl_err(hdev,
 			"Signal command submission %llu has not finished in %u seconds!\n",
 			cs->sequence, timeout_sec);
 		break;
 
 	case CS_TYPE_WAIT:
-		dev_err(hdev->dev,
+		hl_err(hdev,
 			"Wait command submission %llu has not finished in %u seconds!\n",
 			cs->sequence, timeout_sec);
 		break;
 
 	case CS_TYPE_COLLECTIVE_WAIT:
-		dev_err(hdev->dev,
+		hl_err(hdev,
 			"Collective Wait command submission %llu has not finished in %u seconds!\n",
 			cs->sequence, timeout_sec);
 		break;
 
 	default:
-		dev_err(hdev->dev,
+		hl_err(hdev,
 			"Command submission %llu has not finished in %u seconds!\n",
 			cs->sequence, timeout_sec);
 		break;
@@ -883,7 +883,7 @@ static void cs_timedout(struct work_struct *work)
 
 	rc = hl_state_dump(hdev);
 	if (rc)
-		dev_err(hdev->dev, "Error during system state dump %d\n", rc);
+		hl_err(hdev, "Error during system state dump %d\n", rc);
 
 	cs_put(cs);
 
@@ -980,11 +980,11 @@ static int allocate_cs(struct hl_device *hdev, struct hl_ctx *ctx,
 		 * completed as it depends on future CS's for completion.
 		 */
 		if (other->cs_sequence == user_sequence)
-			dev_crit_ratelimited(hdev->dev,
+			hl_crit_ratelimited(hdev,
 				"Staged CS %llu deadlock due to lack of resources",
 				user_sequence);
 
-		dev_dbg_ratelimited(hdev->dev,
+		hl_dbg_ratelimited(hdev,
 			"Rejecting CS because of too many in-flights CS\n");
 		atomic64_inc(&ctx->cs_counters.max_cs_in_flight_drop_cnt);
 		atomic64_inc(&cntr->max_cs_in_flight_drop_cnt);
@@ -1082,7 +1082,7 @@ void hl_cs_rollback_all(struct hl_device *hdev, bool skip_wq_flush)
 	list_for_each_entry_safe(cs, tmp, &hdev->cs_mirror_list, mirror_node) {
 		cs_get(cs);
 		cs->aborted = true;
-		dev_warn_ratelimited(hdev->dev, "Killing CS %d.%llu\n",
+		hl_warn_ratelimited(hdev, "Killing CS %d.%llu\n",
 					cs->ctx->asid, cs->sequence);
 		cs_rollback(hdev, cs);
 		cs_put(cs);
@@ -1212,7 +1212,7 @@ static int validate_queue_index(struct hl_device *hdev,
 	 * hw_queues_props array
 	 */
 	if (chunk->queue_index >= asic->max_queues) {
-		dev_err(hdev->dev, "Queue index %d is invalid\n",
+		hl_err(hdev, "Queue index %d is invalid\n",
 			chunk->queue_index);
 		return -EINVAL;
 	}
@@ -1220,26 +1220,26 @@ static int validate_queue_index(struct hl_device *hdev,
 	hw_queue_prop = &asic->hw_queues_props[chunk->queue_index];
 
 	if (hw_queue_prop->type == QUEUE_TYPE_NA) {
-		dev_err(hdev->dev, "Queue index %d is not applicable\n",
+		hl_err(hdev, "Queue index %d is not applicable\n",
 			chunk->queue_index);
 		return -EINVAL;
 	}
 
 	if (hw_queue_prop->binned) {
-		dev_err(hdev->dev, "Queue index %d is binned out\n",
+		hl_err(hdev, "Queue index %d is binned out\n",
 			chunk->queue_index);
 		return -EINVAL;
 	}
 
 	if (hw_queue_prop->driver_only) {
-		dev_err(hdev->dev,
+		hl_err(hdev,
 			"Queue index %d is restricted for the kernel driver\n",
 			chunk->queue_index);
 		return -EINVAL;
 	}
 
 	if (hw_queue_prop->slave) {
-		dev_err(hdev->dev,
+		hl_err(hdev,
 			"Queue index %d is in slave mode and can't be used directly\n",
 			chunk->queue_index);
 		return -EINVAL;
@@ -1251,7 +1251,7 @@ static int validate_queue_index(struct hl_device *hdev,
 	if (hw_queue_prop->type == QUEUE_TYPE_HW) {
 		if (chunk->cs_chunk_flags & HL_CS_CHUNK_FLAGS_USER_ALLOC_CB) {
 			if (!(hw_queue_prop->cb_alloc_flags & CB_ALLOC_USER)) {
-				dev_err(hdev->dev,
+				hl_err(hdev,
 					"Queue index %d doesn't support user CB\n",
 					chunk->queue_index);
 				return -EINVAL;
@@ -1261,7 +1261,7 @@ static int validate_queue_index(struct hl_device *hdev,
 		} else {
 			if (!(hw_queue_prop->cb_alloc_flags &
 					CB_ALLOC_KERNEL)) {
-				dev_err(hdev->dev,
+				hl_err(hdev,
 					"Queue index %d doesn't support kernel CB\n",
 					chunk->queue_index);
 				return -EINVAL;
@@ -1286,12 +1286,12 @@ static struct hl_cb *get_cb_from_cs_chunk(struct hl_device *hdev,
 
 	cb = hl_cb_get(mmg, chunk->cb_handle);
 	if (!cb) {
-		dev_err(hdev->dev, "CB handle 0x%llx invalid\n", chunk->cb_handle);
+		hl_err(hdev, "CB handle 0x%llx invalid\n", chunk->cb_handle);
 		return NULL;
 	}
 
 	if ((chunk->cb_size < 8) || (chunk->cb_size > cb->size)) {
-		dev_err(hdev->dev, "CB size %u invalid\n", chunk->cb_size);
+		hl_err(hdev, "CB size %u invalid\n", chunk->cb_size);
 		goto release_cb;
 	}
 
@@ -1363,7 +1363,7 @@ static int hl_cs_sanity_checks(struct hl_fpriv *hpriv, union hl_cs_args *args)
 
 	for (i = 0 ; i < sizeof(args->in.pad) ; i++)
 		if (args->in.pad[i]) {
-			dev_dbg(hdev->dev, "Padding bytes must be 0\n");
+			hl_dbg(hdev, "Padding bytes must be 0\n");
 			return -EINVAL;
 		}
 
@@ -1372,14 +1372,14 @@ static int hl_cs_sanity_checks(struct hl_fpriv *hpriv, union hl_cs_args *args)
 
 	if ((args->in.cs_flags & HL_CS_FLAGS_STAGED_SUBMISSION) &&
 			!hdev->supports_staged_submission) {
-		dev_err(hdev->dev, "staged submission not supported");
+		hl_err(hdev, "staged submission not supported");
 		return -EPERM;
 	}
 
 	cs_type_flags = args->in.cs_flags & HL_CS_FLAGS_TYPE_MASK;
 
 	if (unlikely(cs_type_flags && !is_power_of_2(cs_type_flags))) {
-		dev_err(hdev->dev,
+		hl_err(hdev,
 			"CS type flags are mutually exclusive, context %d\n",
 			ctx->asid);
 		return -EINVAL;
@@ -1392,22 +1392,22 @@ static int hl_cs_sanity_checks(struct hl_fpriv *hpriv, union hl_cs_args *args)
 			cs_type == CS_TYPE_COLLECTIVE_WAIT);
 
 	if (unlikely(is_sync_stream && !hdev->supports_sync_stream)) {
-		dev_err(hdev->dev, "Sync stream CS is not supported\n");
+		hl_err(hdev, "Sync stream CS is not supported\n");
 		return -EINVAL;
 	}
 
 	if (cs_type == CS_TYPE_DEFAULT) {
 		if (!hdev->supports_default_cs) {
-			dev_err(hdev->dev, "Command submission is not supported");
+			hl_err(hdev, "Command submission is not supported");
 			return -EPERM;
 		}
 
 		if (!num_chunks) {
-			dev_err(hdev->dev, "Got execute CS with 0 chunks, context %d\n", ctx->asid);
+			hl_err(hdev, "Got execute CS with 0 chunks, context %d\n", ctx->asid);
 			return -EINVAL;
 		}
 	} else if (is_sync_stream && num_chunks != 1) {
-		dev_err(hdev->dev,
+		hl_err(hdev,
 			"Sync stream CS mandates one chunk only, context %d\n",
 			ctx->asid);
 		return -EINVAL;
@@ -1426,7 +1426,7 @@ static int hl_cs_copy_chunk_array(struct hl_device *hdev,
 	if (num_chunks > HL_MAX_JOBS_PER_CS) {
 		atomic64_inc(&ctx->cs_counters.validation_drop_cnt);
 		atomic64_inc(&hdev->aggregated_cs_counters.validation_drop_cnt);
-		dev_err(hdev->dev,
+		hl_err(hdev,
 			"Number of chunks can NOT be larger than %d\n",
 			HL_MAX_JOBS_PER_CS);
 		return -EINVAL;
@@ -1447,7 +1447,7 @@ static int hl_cs_copy_chunk_array(struct hl_device *hdev,
 	if (copy_from_user(*cs_chunk_array, chunks, size_to_copy)) {
 		atomic64_inc(&ctx->cs_counters.validation_drop_cnt);
 		atomic64_inc(&hdev->aggregated_cs_counters.validation_drop_cnt);
-		dev_err(hdev->dev, "Failed to copy cs chunk array from user\n");
+		hl_err(hdev, "Failed to copy cs chunk array from user\n");
 		kfree(*cs_chunk_array);
 		return -EFAULT;
 	}
@@ -1600,7 +1600,7 @@ static int cs_ioctl_default(struct hl_fpriv *hpriv, void __user *chunks,
 		if (!job) {
 			atomic64_inc(&ctx->cs_counters.out_of_mem_drop_cnt);
 			atomic64_inc(&cntr->out_of_mem_drop_cnt);
-			dev_err(hdev->dev, "Failed to allocate a new job\n");
+			hl_err(hdev, "Failed to allocate a new job\n");
 			rc = -ENOMEM;
 			if (is_kernel_allocated_cb)
 				goto release_cb;
@@ -1636,7 +1636,7 @@ static int cs_ioctl_default(struct hl_fpriv *hpriv, void __user *chunks,
 		if (rc) {
 			atomic64_inc(&ctx->cs_counters.parsing_drop_cnt);
 			atomic64_inc(&cntr->parsing_drop_cnt);
-			dev_err(hdev->dev,
+			hl_err(hdev,
 				"Failed to parse JOB %d.%llu.%d, err %d, rejecting the CS\n",
 				cs->ctx->asid, cs->sequence, job->id, rc);
 			goto free_cs_object;
@@ -1649,7 +1649,7 @@ static int cs_ioctl_default(struct hl_fpriv *hpriv, void __user *chunks,
 	if (int_queues_only && cs_needs_completion(cs)) {
 		atomic64_inc(&ctx->cs_counters.validation_drop_cnt);
 		atomic64_inc(&cntr->validation_drop_cnt);
-		dev_err(hdev->dev,
+		hl_err(hdev,
 			"Reject CS %d.%llu since it contains only internal queues jobs and needs completion\n",
 			cs->ctx->asid, cs->sequence);
 		rc = -EINVAL;
@@ -1669,7 +1669,7 @@ static int cs_ioctl_default(struct hl_fpriv *hpriv, void __user *chunks,
 	rc = hl_hw_queue_schedule_cs(cs);
 	if (rc) {
 		if (rc != -EAGAIN)
-			dev_err(hdev->dev,
+			hl_err(hdev,
 				"Failed to submit CS %d.%llu to H/W queues, error %d\n",
 				cs->ctx->asid, cs->sequence, rc);
 		goto free_cs_object;
@@ -1717,7 +1717,7 @@ static int hl_cs_ctx_switch(struct hl_fpriv *hpriv, union hl_cs_args *args,
 		if (do_ctx_switch) {
 			rc = hdev->asic_funcs->context_switch(hdev, ctx->asid);
 			if (rc) {
-				dev_err_ratelimited(hdev->dev,
+				hl_err_ratelimited(hdev,
 					"Failed to switch to context %d, rejecting CS! %d\n",
 					ctx->asid, rc);
 				/*
@@ -1742,7 +1742,7 @@ static int hl_cs_ctx_switch(struct hl_fpriv *hpriv, union hl_cs_args *args,
 		num_chunks = args->in.num_chunks_restore;
 
 		if (!num_chunks) {
-			dev_dbg(hdev->dev,
+			hl_dbg(hdev,
 				"Need to run restore phase but restore CS is empty\n");
 			rc = 0;
 		} else {
@@ -1753,7 +1753,7 @@ static int hl_cs_ctx_switch(struct hl_fpriv *hpriv, union hl_cs_args *args,
 		mutex_unlock(&hpriv->restore_phase_mutex);
 
 		if (rc) {
-			dev_err(hdev->dev,
+			hl_err(hdev,
 				"Failed to submit restore CS for context %d (%d)\n",
 				ctx->asid, rc);
 			goto out;
@@ -1767,7 +1767,7 @@ static int hl_cs_ctx_switch(struct hl_fpriv *hpriv, union hl_cs_args *args,
 					jiffies_to_usecs(hdev->timeout_jiffies),
 					*cs_seq, &status, NULL);
 			if (ret) {
-				dev_err(hdev->dev,
+				hl_err(hdev,
 					"Restore CS for context %d failed to complete %d\n",
 					ctx->asid, ret);
 				rc = -ENOEXEC;
@@ -1784,7 +1784,7 @@ static int hl_cs_ctx_switch(struct hl_fpriv *hpriv, union hl_cs_args *args,
 			100, jiffies_to_usecs(hdev->timeout_jiffies), false);
 
 		if (rc == -ETIMEDOUT) {
-			dev_err(hdev->dev,
+			hl_err(hdev,
 				"context switch phase timeout (%d)\n", tmp);
 			goto out;
 		}
@@ -1839,7 +1839,7 @@ int hl_cs_signal_sob_wraparound_handler(struct hl_device *hdev, u32 q_idx,
 		other_sob = &prop->hw_sob[other_sob_offset];
 
 		if (kref_read(&other_sob->kref) != 1) {
-			dev_err(hdev->dev, "error: Cannot switch SOBs q_idx: %d\n",
+			hl_err(hdev, "error: Cannot switch SOBs q_idx: %d\n",
 								q_idx);
 			return -EINVAL;
 		}
@@ -1880,7 +1880,7 @@ int hl_cs_signal_sob_wraparound_handler(struct hl_device *hdev, u32 q_idx,
 			hw_sob_get(other_sob);
 		}
 
-		dev_dbg(hdev->dev, "switched to SOB %d, q_idx: %d\n",
+		hl_dbg(hdev, "switched to SOB %d, q_idx: %d\n",
 				prop->curr_sob_offset, q_idx);
 	} else {
 		prop->next_sob_val += count;
@@ -1908,7 +1908,7 @@ static int cs_ioctl_extract_signal_seq(struct hl_device *hdev,
 	if (signal_seq_arr_len != 1) {
 		atomic64_inc(&ctx->cs_counters.validation_drop_cnt);
 		atomic64_inc(&hdev->aggregated_cs_counters.validation_drop_cnt);
-		dev_err(hdev->dev,
+		hl_err(hdev,
 			"Wait for signal CS supports only one signal CS seq\n");
 		return -EINVAL;
 	}
@@ -1932,7 +1932,7 @@ static int cs_ioctl_extract_signal_seq(struct hl_device *hdev,
 				size_to_copy)) {
 		atomic64_inc(&ctx->cs_counters.validation_drop_cnt);
 		atomic64_inc(&hdev->aggregated_cs_counters.validation_drop_cnt);
-		dev_err(hdev->dev,
+		hl_err(hdev,
 			"Failed to copy signal seq array from user\n");
 		rc = -EFAULT;
 		goto out;
@@ -1962,7 +1962,7 @@ static int cs_ioctl_signal_wait_create_jobs(struct hl_device *hdev,
 	if (!job) {
 		atomic64_inc(&ctx->cs_counters.out_of_mem_drop_cnt);
 		atomic64_inc(&cntr->out_of_mem_drop_cnt);
-		dev_err(hdev->dev, "Failed to allocate a new job\n");
+		hl_err(hdev, "Failed to allocate a new job\n");
 		return -ENOMEM;
 	}
 
@@ -2027,14 +2027,14 @@ static int cs_ioctl_reserve_signals(struct hl_fpriv *hpriv,
 	int rc = 0;
 
 	if (count >= HL_MAX_SOB_VAL) {
-		dev_err(hdev->dev, "signals count(%u) exceeds the max SOB value\n",
+		hl_err(hdev, "signals count(%u) exceeds the max SOB value\n",
 						count);
 		rc = -EINVAL;
 		goto out;
 	}
 
 	if (q_idx >= hdev->asic_prop.max_queues) {
-		dev_err(hdev->dev, "Queue index %d is invalid\n",
+		hl_err(hdev, "Queue index %d is invalid\n",
 			q_idx);
 		rc = -EINVAL;
 		goto out;
@@ -2043,7 +2043,7 @@ static int cs_ioctl_reserve_signals(struct hl_fpriv *hpriv,
 	hw_queue_prop = &hdev->asic_prop.hw_queues_props[q_idx];
 
 	if (!hw_queue_prop->supports_sync_stream) {
-		dev_err(hdev->dev,
+		hl_err(hdev,
 			"Queue index %d does not support sync stream operations\n",
 									q_idx);
 		rc = -EINVAL;
@@ -2069,7 +2069,7 @@ static int cs_ioctl_reserve_signals(struct hl_fpriv *hpriv,
 	spin_unlock(&mgr->lock);
 
 	if (hdl_id < 0) {
-		dev_err(hdev->dev, "Failed to allocate IDR for a new signal reservation\n");
+		hl_err(hdev, "Failed to allocate IDR for a new signal reservation\n");
 		rc = -EINVAL;
 		goto put_ctx;
 	}
@@ -2092,7 +2092,7 @@ static int cs_ioctl_reserve_signals(struct hl_fpriv *hpriv,
 	rc = hl_cs_signal_sob_wraparound_handler(hdev, q_idx, &hw_sob, count,
 								true);
 	if (rc) {
-		dev_err(hdev->dev, "Failed to switch SOB\n");
+		hl_err(hdev, "Failed to switch SOB\n");
 		hdev->asic_funcs->hw_queues_unlock(hdev);
 		rc = -EINVAL;
 		goto remove_idr;
@@ -2115,7 +2115,7 @@ static int cs_ioctl_reserve_signals(struct hl_fpriv *hpriv,
 	*sob_addr = handle->hw_sob->sob_addr;
 	*handle_id = hdl_id;
 
-	dev_dbg(hdev->dev,
+	hl_dbg(hdev,
 		"Signals reserved, sob_id: %d, sob addr: 0x%x, last sob_val: %u, q_idx: %d, hdl_id: %d\n",
 			hw_sob->sob_id, handle->hw_sob->sob_addr,
 			prop->next_sob_val - 1, q_idx, hdl_id);
@@ -2149,7 +2149,7 @@ static int cs_ioctl_unreserve_signals(struct hl_fpriv *hpriv, u32 handle_id)
 	spin_lock(&mgr->lock);
 	encaps_sig_hdl = idr_find(&mgr->handles, handle_id);
 	if (encaps_sig_hdl) {
-		dev_dbg(hdev->dev, "unreserve signals, handle: %u, SOB:0x%x, count: %u\n",
+		hl_dbg(hdev, "unreserve signals, handle: %u, SOB:0x%x, count: %u\n",
 				handle_id, encaps_sig_hdl->hw_sob->sob_addr,
 					encaps_sig_hdl->count);
 
@@ -2168,7 +2168,7 @@ static int cs_ioctl_unreserve_signals(struct hl_fpriv *hpriv, u32 handle_id)
 		if (encaps_sig_hdl->pre_sob_val + encaps_sig_hdl->count
 				!= prop->next_sob_val ||
 				sob_addr != encaps_sig_hdl->hw_sob->sob_addr) {
-			dev_err(hdev->dev, "Cannot unreserve signals, SOB val ran out of sync, expected: %u, actual val: %u\n",
+			hl_err(hdev, "Cannot unreserve signals, SOB val ran out of sync, expected: %u, actual val: %u\n",
 				encaps_sig_hdl->pre_sob_val,
 				(prop->next_sob_val - encaps_sig_hdl->count));
 
@@ -2197,7 +2197,7 @@ static int cs_ioctl_unreserve_signals(struct hl_fpriv *hpriv, u32 handle_id)
 		goto out;
 	} else {
 		rc = -EINVAL;
-		dev_err(hdev->dev, "failed to unreserve signals, cannot find handler\n");
+		hl_err(hdev, "failed to unreserve signals, cannot find handler\n");
 	}
 
 out_unlock:
@@ -2244,7 +2244,7 @@ static int cs_ioctl_signal_wait(struct hl_fpriv *hpriv, enum hl_cs_type cs_type,
 	if (chunk->queue_index >= hdev->asic_prop.max_queues) {
 		atomic64_inc(&ctx->cs_counters.validation_drop_cnt);
 		atomic64_inc(&cntr->validation_drop_cnt);
-		dev_err(hdev->dev, "Queue index %d is invalid\n",
+		hl_err(hdev, "Queue index %d is invalid\n",
 			chunk->queue_index);
 		rc = -EINVAL;
 		goto free_cs_chunk_array;
@@ -2257,7 +2257,7 @@ static int cs_ioctl_signal_wait(struct hl_fpriv *hpriv, enum hl_cs_type cs_type,
 	if (!hw_queue_prop->supports_sync_stream) {
 		atomic64_inc(&ctx->cs_counters.validation_drop_cnt);
 		atomic64_inc(&cntr->validation_drop_cnt);
-		dev_err(hdev->dev,
+		hl_err(hdev,
 			"Queue index %d does not support sync stream operations\n",
 			q_idx);
 		rc = -EINVAL;
@@ -2268,7 +2268,7 @@ static int cs_ioctl_signal_wait(struct hl_fpriv *hpriv, enum hl_cs_type cs_type,
 		if (!(hw_queue_prop->collective_mode == HL_COLLECTIVE_MASTER)) {
 			atomic64_inc(&ctx->cs_counters.validation_drop_cnt);
 			atomic64_inc(&cntr->validation_drop_cnt);
-			dev_err(hdev->dev,
+			hl_err(hdev,
 				"Queue index %d is invalid\n", q_idx);
 			rc = -EINVAL;
 			goto free_cs_chunk_array;
@@ -2277,7 +2277,7 @@ static int cs_ioctl_signal_wait(struct hl_fpriv *hpriv, enum hl_cs_type cs_type,
 		if (!hdev->cn.ports_mask) {
 			atomic64_inc(&ctx->cs_counters.validation_drop_cnt);
 			atomic64_inc(&cntr->validation_drop_cnt);
-			dev_err(hdev->dev,
+			hl_err(hdev,
 				"Collective operations not supported when NIC ports are disabled");
 			rc = -EINVAL;
 			goto free_cs_chunk_array;
@@ -2325,7 +2325,7 @@ static int cs_ioctl_signal_wait(struct hl_fpriv *hpriv, enum hl_cs_type cs_type,
 
 			if (!handle_found) {
 				/* treat as signal CS already finished */
-				dev_dbg(hdev->dev, "Cannot find encapsulated signals handle for seq 0x%llx\n",
+				hl_dbg(hdev, "Cannot find encapsulated signals handle for seq 0x%llx\n",
 						signal_seq);
 				rc = 0;
 				goto free_cs_chunk_array;
@@ -2334,7 +2334,7 @@ static int cs_ioctl_signal_wait(struct hl_fpriv *hpriv, enum hl_cs_type cs_type,
 			/* validate also the signal offset value */
 			if (chunk->encaps_signal_offset >
 					encaps_sig_hdl->count) {
-				dev_err(hdev->dev, "offset(%u) value exceed max reserved signals count(%u)!\n",
+				hl_err(hdev, "offset(%u) value exceed max reserved signals count(%u)!\n",
 						chunk->encaps_signal_offset,
 						encaps_sig_hdl->count);
 				rc = -EINVAL;
@@ -2346,7 +2346,7 @@ static int cs_ioctl_signal_wait(struct hl_fpriv *hpriv, enum hl_cs_type cs_type,
 		if (IS_ERR(sig_fence)) {
 			atomic64_inc(&ctx->cs_counters.validation_drop_cnt);
 			atomic64_inc(&cntr->validation_drop_cnt);
-			dev_err(hdev->dev,
+			hl_err(hdev,
 				"Failed to get signal CS with seq 0x%llx\n",
 				signal_seq);
 			rc = PTR_ERR(sig_fence);
@@ -2370,7 +2370,7 @@ static int cs_ioctl_signal_wait(struct hl_fpriv *hpriv, enum hl_cs_type cs_type,
 				!staged_cs_with_encaps_signals) {
 			atomic64_inc(&ctx->cs_counters.validation_drop_cnt);
 			atomic64_inc(&cntr->validation_drop_cnt);
-			dev_err(hdev->dev,
+			hl_err(hdev,
 				"CS seq 0x%llx is not of a signal/encaps-signal CS\n",
 				signal_seq);
 			hl_fence_put(sig_fence);
@@ -2442,7 +2442,7 @@ static int cs_ioctl_signal_wait(struct hl_fpriv *hpriv, enum hl_cs_type cs_type,
 		if (is_wait_cs)
 			rc = 0;
 		else if (rc != -EAGAIN)
-			dev_err(hdev->dev,
+			hl_err(hdev,
 				"Failed to submit CS %d.%llu to H/W queues, error %d\n",
 				ctx->asid, cs->sequence, rc);
 		goto free_cs_object;
@@ -2483,12 +2483,12 @@ static int cs_ioctl_engine_cores(struct hl_fpriv *hpriv, u64 engine_cores,
 		return -EPERM;
 
 	if (!num_engine_cores || num_engine_cores > hdev->asic_prop.num_engine_cores) {
-		dev_err(hdev->dev, "Number of engine cores %d is invalid\n", num_engine_cores);
+		hl_err(hdev, "Number of engine cores %d is invalid\n", num_engine_cores);
 		return -EINVAL;
 	}
 
 	if (core_command != HL_ENGINE_CORE_RUN && core_command != HL_ENGINE_CORE_HALT) {
-		dev_err(hdev->dev, "Engine core command is invalid\n");
+		hl_err(hdev, "Engine core command is invalid\n");
 		return -EINVAL;
 	}
 
@@ -2498,7 +2498,7 @@ static int cs_ioctl_engine_cores(struct hl_fpriv *hpriv, u64 engine_cores,
 		return -ENOMEM;
 
 	if (copy_from_user(cores, engine_cores_arr, num_engine_cores * sizeof(u32))) {
-		dev_err(hdev->dev, "Failed to copy core-ids array from user\n");
+		hl_err(hdev, "Failed to copy core-ids array from user\n");
 		kfree(cores);
 		return -EFAULT;
 	}
@@ -2521,7 +2521,7 @@ static int cs_ioctl_engines(struct hl_fpriv *hpriv, u64 engines_arr_user_addr,
 		return -EPERM;
 
 	if (command >= HL_ENGINE_COMMAND_MAX) {
-		dev_err(hdev->dev, "Engine command is invalid\n");
+		hl_err(hdev, "Engine command is invalid\n");
 		return -EINVAL;
 	}
 
@@ -2530,7 +2530,7 @@ static int cs_ioctl_engines(struct hl_fpriv *hpriv, u64 engines_arr_user_addr,
 		max_num_of_engines = hdev->asic_prop.num_engine_cores;
 
 	if (!num_engines || num_engines > max_num_of_engines) {
-		dev_err(hdev->dev, "Number of engines %d is invalid\n", num_engines);
+		hl_err(hdev, "Number of engines %d is invalid\n", num_engines);
 		return -EINVAL;
 	}
 
@@ -2540,7 +2540,7 @@ static int cs_ioctl_engines(struct hl_fpriv *hpriv, u64 engines_arr_user_addr,
 		return -ENOMEM;
 
 	if (copy_from_user(engines, engines_arr, num_engines * sizeof(u32))) {
-		dev_err(hdev->dev, "Failed to copy engine-ids array from user\n");
+		hl_err(hdev, "Failed to copy engine-ids array from user\n");
 		kfree(engines);
 		return -EFAULT;
 	}
@@ -2557,7 +2557,7 @@ static int cs_ioctl_flush_pci_hbw_writes(struct hl_fpriv *hpriv)
 	struct asic_fixed_properties *prop = &hdev->asic_prop;
 
 	if (!prop->hbw_flush_reg) {
-		dev_dbg(hdev->dev, "HBW flush is not supported\n");
+		hl_dbg(hdev, "HBW flush is not supported\n");
 		return -EOPNOTSUPP;
 	}
 
@@ -2678,7 +2678,7 @@ static int hl_wait_for_fence(struct hl_ctx *ctx, u64 seq, struct hl_fence *fence
 	if (IS_ERR(fence)) {
 		rc = PTR_ERR(fence);
 		if (rc == -EINVAL)
-			dev_notice_ratelimited(hdev->dev,
+			hl_notice_ratelimited(hdev,
 				"Can't wait on CS %llu because current CS is at seq %llu\n",
 				seq, ctx->cs_sequence);
 		return rc;
@@ -2686,7 +2686,7 @@ static int hl_wait_for_fence(struct hl_ctx *ctx, u64 seq, struct hl_fence *fence
 
 	if (!fence) {
 		if (!hl_pop_cs_outcome(&ctx->outcome_store, seq, &timestamp_kt, &error)) {
-			dev_dbg(hdev->dev,
+			hl_dbg(hdev,
 				"Can't wait on seq %llu because current CS is at seq %llu (Fence is gone)\n",
 				seq, ctx->cs_sequence);
 			*status = CS_WAIT_STATUS_GONE;
@@ -2800,7 +2800,7 @@ static int hl_cs_poll_fences(struct multi_cs_data *mcs_data, struct multi_cs_com
 		 */
 		rc = hl_wait_for_fence(mcs_data->ctx, seq_arr[i], fence, &status, 0, NULL);
 		if (rc) {
-			dev_err(hdev->dev,
+			hl_err(hdev,
 				"wait_for_fence error :%d for CS seq %llu\n",
 								rc, seq_arr[i]);
 			break;
@@ -2852,7 +2852,7 @@ static int hl_cs_poll_fences(struct multi_cs_data *mcs_data, struct multi_cs_com
 			mcs_data->completion_bitmap |= BIT(i);
 			break;
 		default:
-			dev_err(hdev->dev, "Invalid fence status\n");
+			hl_err(hdev, "Invalid fence status\n");
 			rc = -EINVAL;
 			break;
 		}
@@ -2940,7 +2940,7 @@ static struct multi_cs_completion *hl_wait_multi_cs_completion_init(struct hl_de
 	}
 
 	if (i == MULTI_CS_MAX_USER_CTX) {
-		dev_err(hdev->dev, "no available multi-CS completion structure\n");
+		hl_err(hdev, "no available multi-CS completion structure\n");
 		return ERR_PTR(-ENOMEM);
 	}
 	return mcs_compl;
@@ -3032,19 +3032,19 @@ static int hl_multi_cs_wait_ioctl(struct hl_fpriv *hpriv, void *data)
 
 	for (i = 0 ; i < sizeof(args->in.pad) ; i++)
 		if (args->in.pad[i]) {
-			dev_dbg(hdev->dev, "Padding bytes must be 0\n");
+			hl_dbg(hdev, "Padding bytes must be 0\n");
 			return -EINVAL;
 		}
 
 	if (!hdev->supports_wait_for_multi_cs) {
-		dev_err(hdev->dev, "Wait for multi CS is not supported\n");
+		hl_err(hdev, "Wait for multi CS is not supported\n");
 		return -EPERM;
 	}
 
 	seq_arr_len = args->in.seq_arr_len;
 
 	if (seq_arr_len > HL_WAIT_MULTI_CS_LIST_MAX_LEN) {
-		dev_err(hdev->dev, "Can wait only up to %d CSs, input sequence is of length %u\n",
+		hl_err(hdev, "Can wait only up to %d CSs, input sequence is of length %u\n",
 				HL_WAIT_MULTI_CS_LIST_MAX_LEN, seq_arr_len);
 		return -EINVAL;
 	}
@@ -3059,7 +3059,7 @@ static int hl_multi_cs_wait_ioctl(struct hl_fpriv *hpriv, void *data)
 	seq_arr = (void __user *) (uintptr_t) args->in.seq;
 	size_to_copy = seq_arr_len * sizeof(*cs_seq_arr);
 	if (copy_from_user(cs_seq_arr, seq_arr, size_to_copy)) {
-		dev_err(hdev->dev, "Failed to copy multi-cs sequence array from user\n");
+		hl_err(hdev, "Failed to copy multi-cs sequence array from user\n");
 		rc = -EFAULT;
 		goto free_seq_arr;
 	}
@@ -3138,7 +3138,7 @@ free_seq_arr:
 	kfree(cs_seq_arr);
 
 	if (rc == -ERESTARTSYS) {
-		dev_err_ratelimited(hdev->dev,
+		hl_err_ratelimited(hdev,
 				"user process got signal while waiting for Multi-CS\n");
 		rc = -EINTR;
 	}
@@ -3181,7 +3181,7 @@ static int hl_cs_wait_ioctl(struct hl_fpriv *hpriv, void *data)
 	rc = _hl_cs_wait_ioctl(hdev, hpriv->ctx, args->in.timeout_us, seq, &status, &timestamp);
 
 	if (rc == -ERESTARTSYS) {
-		dev_err_ratelimited(hdev->dev,
+		hl_err_ratelimited(hdev,
 			"user process got signal while waiting for CS handle %llu\n",
 			seq);
 		return -EINTR;
@@ -3191,12 +3191,12 @@ static int hl_cs_wait_ioctl(struct hl_fpriv *hpriv, void *data)
 
 	if (rc) {
 		if (rc == -ETIMEDOUT) {
-			dev_err_ratelimited(hdev->dev,
+			hl_err_ratelimited(hdev,
 				"CS %llu has timed-out while user process is waiting for it\n",
 				seq);
 			args->out.status = HL_WAIT_CS_STATUS_TIMEDOUT;
 		} else if (rc == -EIO) {
-			dev_err_ratelimited(hdev->dev,
+			hl_err_ratelimited(hdev,
 				"CS %llu has been aborted while user process is waiting for it\n",
 				seq);
 			args->out.status = HL_WAIT_CS_STATUS_ABORTED;
@@ -3233,7 +3233,7 @@ static inline void set_record_cq_info(struct hl_user_pending_interrupt *record,
 	record->cq_target_value = target_value;
 }
 
-static int validate_and_get_ts_record(struct device *dev,
+static int validate_and_get_ts_record(struct hl_device *hdev,
 					struct hl_ts_buff *ts_buff, u64 ts_offset,
 					struct hl_user_pending_interrupt **req_event_record)
 {
@@ -3246,7 +3246,7 @@ static int validate_and_get_ts_record(struct device *dev,
 
 	/* Validate ts_offset not exceeding last max */
 	if (*req_event_record >= ts_cb_last) {
-		dev_err(dev, "Ts offset(%llu) exceeds max CB offset(0x%llx)\n",
+		hl_err(hdev, "Ts offset(%llu) exceeds max CB offset(0x%llx)\n",
 				ts_offset, (u64)(uintptr_t)ts_cb_last);
 		return -EINVAL;
 	}
@@ -3302,7 +3302,7 @@ static int ts_get_and_handle_kernel_record(struct hl_device *hdev, struct hl_ctx
 	struct hl_ts_buff *ts_buff = data->buf->private;
 	int rc;
 
-	rc = validate_and_get_ts_record(data->buf->mmg->hdev->dev, ts_buff, data->ts_offset,
+	rc = validate_and_get_ts_record(data->buf->mmg->hdev, ts_buff, data->ts_offset,
 									&req_offset_record);
 	if (rc)
 		return rc;
@@ -3476,7 +3476,7 @@ static int _hl_interrupt_wait_ioctl(struct hl_device *hdev, struct hl_ctx *ctx,
 								timeout);
 	if (completion_rc > 0) {
 		if (pend->fence.error == -EIO) {
-			dev_err_ratelimited(hdev->dev,
+			hl_err_ratelimited(hdev,
 					"interrupt based wait ioctl aborted(error:%d) due to a reset cycle initiated\n",
 					pend->fence.error);
 			rc = -EIO;
@@ -3486,7 +3486,7 @@ static int _hl_interrupt_wait_ioctl(struct hl_device *hdev, struct hl_ctx *ctx,
 		}
 	} else {
 		if (completion_rc == -ERESTARTSYS) {
-			dev_err_ratelimited(hdev->dev,
+			hl_err_ratelimited(hdev,
 					"user process got signal while waiting for interrupt ID %d\n",
 					data->interrupt->interrupt_id);
 			rc = -EINTR;
@@ -3563,7 +3563,7 @@ static int _hl_interrupt_wait_ioctl_user_addr(struct hl_device *hdev, struct hl_
 	 * before we added the node to the wait list
 	 */
 	if (copy_from_user(&completion_value, u64_to_user_ptr(user_address), 8)) {
-		dev_err(hdev->dev, "Failed to copy completion value from user\n");
+		hl_err(hdev, "Failed to copy completion value from user\n");
 		rc = -EFAULT;
 		goto remove_pending_user_interrupt;
 	}
@@ -3598,7 +3598,7 @@ wait_again:
 		spin_unlock_irqrestore(&interrupt->wait_list_lock, flags);
 
 		if (copy_from_user(&completion_value, u64_to_user_ptr(user_address), 8)) {
-			dev_err(hdev->dev, "Failed to copy completion value from user\n");
+			hl_err(hdev, "Failed to copy completion value from user\n");
 			rc = -EFAULT;
 
 			goto remove_pending_user_interrupt;
@@ -3607,7 +3607,7 @@ wait_again:
 		if (completion_value >= target_value) {
 			*status = HL_WAIT_CS_STATUS_COMPLETED;
 		} else if (pend->fence.error) {
-			dev_err_ratelimited(hdev->dev,
+			hl_err_ratelimited(hdev,
 				"interrupt based wait ioctl aborted(error:%d) due to a reset cycle initiated\n",
 				pend->fence.error);
 			/* set the command completion status as ABORTED */
@@ -3617,7 +3617,7 @@ wait_again:
 			goto wait_again;
 		}
 	} else if (completion_rc == -ERESTARTSYS) {
-		dev_err_ratelimited(hdev->dev,
+		hl_err_ratelimited(hdev,
 			"user process got signal while waiting for interrupt ID %d\n",
 			interrupt->interrupt_id);
 		rc = -EINTR;
@@ -3658,7 +3658,7 @@ static int hl_interrupt_wait_ioctl(struct hl_fpriv *hpriv, void *data)
 	prop = &hdev->asic_prop;
 
 	if (!(prop->user_interrupt_count + prop->user_dec_intr_count)) {
-		dev_err(hdev->dev, "no user interrupts allowed");
+		hl_err(hdev, "no user interrupts allowed");
 		return -EPERM;
 	}
 
@@ -3671,7 +3671,7 @@ static int hl_interrupt_wait_ioctl(struct hl_fpriv *hpriv, void *data)
 
 		/* Check if the requested core is enabled */
 		if (!(prop->decoder_enabled_mask & BIT(interrupt_id))) {
-			dev_err(hdev->dev, "interrupt on a disabled core(%u) not allowed",
+			hl_err(hdev, "interrupt on a disabled core(%u) not allowed",
 				interrupt_id);
 			return -EINVAL;
 		}
@@ -3688,7 +3688,7 @@ static int hl_interrupt_wait_ioctl(struct hl_fpriv *hpriv, void *data)
 	} else if (interrupt_id == HL_COMMON_DEC_INTERRUPT_ID) {
 		interrupt = &hdev->common_decoder_interrupt;
 	} else {
-		dev_err(hdev->dev, "invalid user interrupt %u", interrupt_id);
+		hl_err(hdev, "invalid user interrupt %u", interrupt_id);
 		return -EINVAL;
 	}
 

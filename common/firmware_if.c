@@ -208,7 +208,7 @@ static int hl_get_preboot_major_minor(struct hl_device *hdev, char *preboot_ver)
 {
 	preboot_ver = extract_u32_until_given_char(preboot_ver, &hdev->fw_inner_major_ver, '.');
 	if (!preboot_ver) {
-		dev_err(hdev->dev, "Error parsing preboot major version\n");
+		hl_err(hdev, "Error parsing preboot major version\n");
 		goto err_zero_ver;
 	}
 
@@ -216,7 +216,7 @@ static int hl_get_preboot_major_minor(struct hl_device *hdev, char *preboot_ver)
 
 	preboot_ver = extract_u32_until_given_char(preboot_ver, &hdev->fw_inner_minor_ver, '.');
 	if (!preboot_ver) {
-		dev_err(hdev->dev, "Error parsing preboot minor version\n");
+		hl_err(hdev, "Error parsing preboot minor version\n");
 		goto err_zero_ver;
 	}
 	return 0;
@@ -236,23 +236,23 @@ static int hl_request_fw(struct hl_device *hdev,
 
 	rc = request_firmware(firmware_p, fw_name, hdev->dev);
 	if (rc) {
-		dev_err(hdev->dev, "Firmware file %s is not found! (error %d)\n",
+		hl_err(hdev, "Firmware file %s is not found! (error %d)\n",
 				fw_name, rc);
 		goto out;
 	}
 
 	fw_size = (*firmware_p)->size;
 	if ((fw_size % 4) != 0) {
-		dev_err(hdev->dev, "Illegal %s firmware size %zu\n",
+		hl_err(hdev, "Illegal %s firmware size %zu\n",
 				fw_name, fw_size);
 		rc = -EINVAL;
 		goto release_fw;
 	}
 
-	dev_dbg(hdev->dev, "%s firmware size == %zu\n", fw_name, fw_size);
+	hl_dbg(hdev, "%s firmware size == %zu\n", fw_name, fw_size);
 
 	if (fw_size > FW_FILE_MAX_SIZE) {
-		dev_err(hdev->dev,
+		hl_err(hdev,
 			"FW file size %zu exceeds maximum of %u bytes\n",
 			fw_size, FW_FILE_MAX_SIZE);
 		rc = -EINVAL;
@@ -302,7 +302,7 @@ static int hl_fw_copy_fw_to_device(struct hl_device *hdev,
 		size = fw->size;
 
 	if (src_offset + size > fw->size) {
-		dev_err(hdev->dev,
+		hl_err(hdev,
 			"size to copy(%u) and offset(%u) are invalid\n",
 			size, src_offset);
 		return -EINVAL;
@@ -336,7 +336,7 @@ static int hl_fw_copy_msg_to_device(struct hl_device *hdev,
 		size = sizeof(struct lkd_msg_comms);
 
 	if (src_offset + size > sizeof(struct lkd_msg_comms)) {
-		dev_err(hdev->dev,
+		hl_err(hdev,
 			"size to copy(%u) and offset(%u) are invalid\n",
 			size, src_offset);
 		return -EINVAL;
@@ -388,7 +388,7 @@ int hl_fw_send_pci_access_msg(struct hl_device *hdev, u32 opcode, u64 value)
 
 	rc = hdev->asic_funcs->send_cpu_message(hdev, (u32 *) &pkt, sizeof(pkt), 0, NULL);
 	if (rc)
-		dev_err(hdev->dev, "Failed to disable FW's PCI access\n");
+		hl_err(hdev, "Failed to disable FW's PCI access\n");
 
 	return rc;
 }
@@ -424,7 +424,7 @@ int hl_fw_send_cpu_message(struct hl_device *hdev, u32 hw_queue_id, u32 *msg,
 
 	pkt = hl_cpu_accessible_dma_pool_alloc(hdev, size, &pkt_dma_addr);
 	if (!pkt) {
-		dev_err(hdev->dev, "Failed to allocate DMA memory for packet to CPU\n");
+		hl_err(hdev, "Failed to allocate DMA memory for packet to CPU\n");
 		return -ENOMEM;
 	}
 
@@ -471,14 +471,14 @@ int hl_fw_send_cpu_message(struct hl_device *hdev, u32 hw_queue_id, u32 *msg,
 		 * This is expected behavior, hence no need for error message.
 		 */
 		if (!hl_device_operational(hdev, NULL) && !hdev->reset_info.in_compute_reset) {
-			dev_dbg(hdev->dev, "Device CPU packet timeout (0x%x) due to FW reset\n",
+			hl_dbg(hdev, "Device CPU packet timeout (0x%x) due to FW reset\n",
 					tmp);
 		} else {
 			struct hl_bd *bd = queue->kernel_address;
 
 			bd += hl_pi_2_offset(pi);
 
-			dev_err(hdev->dev, "Device CPU packet timeout (status = 0x%x)\n"
+			hl_err(hdev, "Device CPU packet timeout (status = 0x%x)\n"
 				"Pkt info[%u]: dma_addr: 0x%llx, kernel_addr: %p, len:0x%x, ctl: 0x%x, ptr:0x%llx, dram_bd:%u\n",
 				tmp, pi, pkt_dma_addr, (void *)pkt, bd->len, bd->ctl, bd->ptr,
 				queue->dram_bd);
@@ -494,31 +494,31 @@ int hl_fw_send_cpu_message(struct hl_device *hdev, u32 hw_queue_id, u32 *msg,
 		opcode = (tmp & CPUCP_PKT_CTL_OPCODE_MASK) >> CPUCP_PKT_CTL_OPCODE_SHIFT;
 
 		if (!prop->supports_advanced_cpucp_rc) {
-			dev_dbg(hdev->dev, "F/W ERROR %d for CPU packet %d\n", rc, opcode);
+			hl_dbg(hdev, "F/W ERROR %d for CPU packet %d\n", rc, opcode);
 			rc = -EIO;
 			goto scrub_descriptor;
 		}
 
 		switch (fw_rc) {
 		case cpucp_packet_invalid:
-			dev_err(hdev->dev,
+			hl_err(hdev,
 				"CPU packet %d is not supported by F/W\n", opcode);
 			break;
 		case cpucp_packet_fault:
-			dev_err(hdev->dev,
+			hl_err(hdev,
 				"F/W failed processing CPU packet %d\n", opcode);
 			break;
 		case cpucp_packet_invalid_pkt:
-			dev_dbg(hdev->dev,
+			hl_dbg(hdev,
 				"CPU packet %d is not supported by F/W\n", opcode);
 			break;
 		case cpucp_packet_invalid_params:
-			dev_err(hdev->dev,
+			hl_err(hdev,
 				"F/W reports invalid parameters for CPU packet %d\n", opcode);
 			break;
 
 		default:
-			dev_err(hdev->dev,
+			hl_err(hdev,
 				"Unknown F/W ERROR %d for CPU packet %d\n", rc, opcode);
 		}
 
@@ -565,7 +565,7 @@ int hl_fw_unmask_irq(struct hl_device *hdev, u16 event_type)
 						0, &result);
 
 	if (rc)
-		dev_err(hdev->dev, "failed to unmask event %d", event_type);
+		hl_err(hdev, "failed to unmask event %d", event_type);
 
 	return rc;
 }
@@ -586,7 +586,7 @@ int hl_fw_unmask_irq_arr(struct hl_device *hdev, const u32 *irq_arr,
 
 	/* total_pkt_size is casted to u16 later on */
 	if (total_pkt_size > USHRT_MAX) {
-		dev_err(hdev->dev, "too many elements in IRQ array\n");
+		hl_err(hdev, "too many elements in IRQ array\n");
 		return -EINVAL;
 	}
 
@@ -604,7 +604,7 @@ int hl_fw_unmask_irq_arr(struct hl_device *hdev, const u32 *irq_arr,
 						total_pkt_size, 0, &result);
 
 	if (rc)
-		dev_err(hdev->dev, "failed to unmask event array\n");
+		hl_err(hdev, "failed to unmask event array\n");
 
 	kfree(pkt);
 
@@ -626,10 +626,10 @@ int hl_fw_test_cpu_queue(struct hl_device *hdev)
 
 	if (!rc) {
 		if (result != CPUCP_PACKET_FENCE_VAL)
-			dev_err(hdev->dev,
+			hl_err(hdev,
 				"CPU queue test failed (%#08llx)\n", result);
 	} else {
-		dev_err(hdev->dev, "CPU queue test failed, error %d\n", rc);
+		hl_err(hdev, "CPU queue test failed, error %d\n", rc);
 	}
 
 	return rc;
@@ -661,7 +661,7 @@ int hl_fw_send_soft_reset(struct hl_device *hdev)
 	int rc;
 
 	while (ktime_compare(ktime_get(), hdev->soft_reset_stall_timestamp) < 0) {
-		dev_dbg(hdev->dev, "stalling the soft reset until %lld (current ts %lld)\n",
+		hl_dbg(hdev, "stalling the soft reset until %lld (current ts %lld)\n",
 			hdev->soft_reset_stall_timestamp, ktime_get());
 		msleep(1);
 	}
@@ -670,7 +670,7 @@ int hl_fw_send_soft_reset(struct hl_device *hdev)
 	pkt.ctl = cpu_to_le32(CPUCP_PACKET_SOFT_RESET << CPUCP_PKT_CTL_OPCODE_SHIFT);
 	rc = hdev->asic_funcs->send_cpu_message(hdev, (u32 *) &pkt, sizeof(pkt), 0, NULL);
 	if (rc)
-		dev_err(hdev->dev, "failed to send soft-reset msg (err = %d)\n", rc);
+		hl_err(hdev, "failed to send soft-reset msg (err = %d)\n", rc);
 
 	return rc;
 }
@@ -685,7 +685,7 @@ int hl_fw_send_device_activity(struct hl_device *hdev, bool open)
 	pkt.value = cpu_to_le64(open);
 	rc = hdev->asic_funcs->send_cpu_message(hdev, (u32 *) &pkt, sizeof(pkt), 0, NULL);
 	if (rc)
-		dev_err(hdev->dev, "failed to send device activity msg(%u)\n", open);
+		hl_err(hdev, "failed to send device activity msg(%u)\n", open);
 
 	return rc;
 }
@@ -700,7 +700,7 @@ int hl_fw_send_psoc_wd_disable_msg(struct hl_device *hdev, bool disable)
 	pkt.value = cpu_to_le64(disable);
 	rc = hdev->asic_funcs->send_cpu_message(hdev, (u32 *) &pkt, sizeof(pkt), 0, NULL);
 	if (rc && rc != -EAGAIN)
-		dev_err(hdev->dev, "failed to psoc watchdog disable msg(val: %u)\n", disable);
+		hl_err(hdev, "failed to psoc watchdog disable msg(val: %u)\n", disable);
 
 	return rc;
 }
@@ -722,7 +722,7 @@ int hl_fw_send_heartbeat(struct hl_device *hdev)
 
 	if (le32_to_cpu(hb_pkt.status_mask) &
 					CPUCP_PKT_HB_STATUS_EQ_FAULT_MASK) {
-		dev_warn(hdev->dev, "FW reported EQ fault during heartbeat\n");
+		hl_warn(hdev, "FW reported EQ fault during heartbeat\n");
 		rc = -EIO;
 	}
 
@@ -739,19 +739,19 @@ static bool fw_report_boot_dev0(struct hl_device *hdev, u32 err_val, u32 sts_val
 		return false;
 
 	if (err_val & CPU_BOOT_ERR0_DRAM_INIT_FAIL)
-		dev_err(hdev->dev, "Device boot error - DRAM initialization failed\n");
+		hl_err(hdev, "Device boot error - DRAM initialization failed\n");
 
 	if (err_val & CPU_BOOT_ERR0_FIT_CORRUPTED)
-		dev_err(hdev->dev, "Device boot error - FIT image corrupted\n");
+		hl_err(hdev, "Device boot error - FIT image corrupted\n");
 
 	if (err_val & CPU_BOOT_ERR0_TS_INIT_FAIL)
-		dev_err(hdev->dev, "Device boot error - Thermal Sensor initialization failed\n");
+		hl_err(hdev, "Device boot error - Thermal Sensor initialization failed\n");
 
 	if (err_val & CPU_BOOT_ERR0_BMC_WAIT_SKIPPED) {
 		if (hdev->bmc_enable) {
-			dev_err(hdev->dev, "Device boot error - Skipped waiting for BMC\n");
+			hl_err(hdev, "Device boot error - Skipped waiting for BMC\n");
 		} else {
-			dev_info(hdev->dev, "Device boot message - Skipped waiting for BMC\n");
+			hl_info(hdev, "Device boot message - Skipped waiting for BMC\n");
 			/* This is an info so we don't want it to disable the
 			 * device
 			 */
@@ -760,66 +760,66 @@ static bool fw_report_boot_dev0(struct hl_device *hdev, u32 err_val, u32 sts_val
 	}
 
 	if (err_val & CPU_BOOT_ERR0_NIC_DATA_NOT_RDY)
-		dev_err(hdev->dev, "Device boot error - Serdes data from BMC not available\n");
+		hl_err(hdev, "Device boot error - Serdes data from BMC not available\n");
 
 	if (err_val & CPU_BOOT_ERR0_NIC_FW_FAIL)
-		dev_err(hdev->dev, "Device boot error - NIC F/W initialization failed\n");
+		hl_err(hdev, "Device boot error - NIC F/W initialization failed\n");
 
 	if (err_val & CPU_BOOT_ERR0_SECURITY_NOT_RDY)
-		dev_err(hdev->dev, "Device boot warning - security not ready\n");
+		hl_err(hdev, "Device boot warning - security not ready\n");
 
 	if (err_val & CPU_BOOT_ERR0_SECURITY_FAIL)
-		dev_err(hdev->dev, "Device boot error - security failure\n");
+		hl_err(hdev, "Device boot error - security failure\n");
 
 	if (err_val & CPU_BOOT_ERR0_EFUSE_FAIL)
-		dev_err(hdev->dev, "Device boot error - eFuse failure\n");
+		hl_err(hdev, "Device boot error - eFuse failure\n");
 
 	if (err_val & CPU_BOOT_ERR0_SEC_IMG_VER_FAIL)
-		dev_err(hdev->dev, "Device boot error - Failed to load preboot secondary image\n");
+		hl_err(hdev, "Device boot error - Failed to load preboot secondary image\n");
 
 	if (err_val & CPU_BOOT_ERR0_PLL_FAIL)
-		dev_err(hdev->dev, "Device boot error - PLL failure\n");
+		hl_err(hdev, "Device boot error - PLL failure\n");
 
 	if (err_val & CPU_BOOT_ERR0_TMP_THRESH_INIT_FAIL)
-		dev_err(hdev->dev, "Device boot error - Failed to set threshold for temperature sensor\n");
+		hl_err(hdev, "Device boot error - Failed to set threshold for temperature sensor\n");
 
 	if (err_val & CPU_BOOT_ERR0_DEVICE_UNUSABLE_FAIL) {
 		/* Ignore this bit, don't prevent driver loading */
-		dev_dbg(hdev->dev, "device unusable status is set\n");
+		hl_dbg(hdev, "device unusable status is set\n");
 		err_val &= ~CPU_BOOT_ERR0_DEVICE_UNUSABLE_FAIL;
 	}
 
 	if (err_val & CPU_BOOT_ERR0_BINNING_FAIL)
-		dev_err(hdev->dev, "Device boot error - binning failure\n");
+		hl_err(hdev, "Device boot error - binning failure\n");
 
 	if (sts_val & CPU_BOOT_DEV_STS0_ENABLED)
-		dev_dbg(hdev->dev, "Device status0 %#x\n", sts_val);
+		hl_dbg(hdev, "Device status0 %#x\n", sts_val);
 
 	if (err_val & CPU_BOOT_ERR0_DRAM_SKIPPED)
-		dev_err(hdev->dev, "Device boot warning - Skipped DRAM initialization\n");
+		hl_err(hdev, "Device boot warning - Skipped DRAM initialization\n");
 
 	if (err_val & CPU_BOOT_ERR_ENG_ARC_MEM_SCRUB_FAIL)
-		dev_err(hdev->dev, "Device boot error - ARC memory scrub failed\n");
+		hl_err(hdev, "Device boot error - ARC memory scrub failed\n");
 
 	/* All warnings should go here in order not to reach the unknown error validation */
 	if (err_val & CPU_BOOT_ERR0_EEPROM_FAIL) {
 		if (hdev->ignore_eeprom_errors) {
-			dev_warn(hdev->dev,
+			hl_warn(hdev,
 				"Device boot warning - EEPROM failure detected, default settings applied\n");
 			/* This is a warning so we don't want it to disable the
 			 * device
 			 */
 			err_val &= ~CPU_BOOT_ERR0_EEPROM_FAIL;
 		} else {
-			dev_err(hdev->dev, "Device boot error - EEPROM failure detected\n");
+			hl_err(hdev, "Device boot error - EEPROM failure detected\n");
 		}
 	}
 
 	if (err_val & CPU_BOOT_ERR0_PRI_IMG_VER_FAIL)
-		dev_warn(hdev->dev, "Device boot warning - Failed to load preboot primary image\n");
+		hl_warn(hdev, "Device boot warning - Failed to load preboot primary image\n");
 
 	if (err_val & CPU_BOOT_ERR0_TPM_FAIL)
-		dev_warn(hdev->dev, "Device boot warning - TPM failure\n");
+		hl_warn(hdev, "Device boot warning - TPM failure\n");
 
 	if (err_val & CPU_BOOT_ERR_FATAL_MASK)
 		err_exists = true;
@@ -847,10 +847,10 @@ static bool fw_report_boot_dev1(struct hl_device *hdev, u32 err_val,
 		return false;
 
 	if (sts_val & CPU_BOOT_DEV_STS1_ENABLED)
-		dev_dbg(hdev->dev, "Device status1 %#x\n", sts_val);
+		hl_dbg(hdev, "Device status1 %#x\n", sts_val);
 
 	if (!err_exists && (err_val & ~CPU_BOOT_ERR1_ENABLED)) {
-		dev_err(hdev->dev,
+		hl_err(hdev,
 			"Device boot error - unknown ERR1 error 0x%08x\n",
 								err_val);
 		err_exists = true;
@@ -910,7 +910,7 @@ int hl_fw_cpucp_info_get(struct hl_device *hdev,
 	cpucp_info_cpu_addr = hl_cpu_accessible_dma_pool_alloc(hdev, sizeof(struct cpucp_info),
 								&cpucp_info_dma_addr);
 	if (!cpucp_info_cpu_addr) {
-		dev_err(hdev->dev,
+		hl_err(hdev,
 			"Failed to allocate DMA memory for CPU-CP info packet\n");
 		return -ENOMEM;
 	}
@@ -925,7 +925,7 @@ int hl_fw_cpucp_info_get(struct hl_device *hdev,
 	rc = hdev->asic_funcs->send_cpu_message(hdev, (u32 *) &pkt, sizeof(pkt),
 					HL_CPUCP_INFO_TIMEOUT_USEC, &result);
 	if (rc) {
-		dev_err(hdev->dev,
+		hl_err(hdev,
 			"Failed to handle CPU-CP info pkt, error %d\n", rc);
 		goto out;
 	}
@@ -933,7 +933,7 @@ int hl_fw_cpucp_info_get(struct hl_device *hdev,
 	rc = fw_read_errors(hdev, boot_err0_reg, boot_err1_reg,
 				sts_boot_dev_sts0_reg, sts_boot_dev_sts1_reg);
 	if (rc) {
-		dev_err(hdev->dev, "Errors in device boot\n");
+		hl_err(hdev, "Errors in device boot\n");
 		goto out;
 	}
 
@@ -942,7 +942,7 @@ int hl_fw_cpucp_info_get(struct hl_device *hdev,
 
 	rc = hl_build_hwmon_channel_info(hdev, prop->cpucp_info.sensors);
 	if (rc) {
-		dev_err(hdev->dev,
+		hl_err(hdev,
 			"Failed to build hwmon channel info, error %d\n", rc);
 		rc = -EFAULT;
 		goto out;
@@ -950,7 +950,7 @@ int hl_fw_cpucp_info_get(struct hl_device *hdev,
 
 	kernel_ver = extract_fw_ver_from_str(prop->cpucp_info.kernel_version);
 	if (kernel_ver) {
-		dev_info(hdev->dev, "Linux version %s", kernel_ver);
+		hl_info(hdev, "Linux version %s", kernel_ver);
 		kfree(kernel_ver);
 	}
 
@@ -997,7 +997,7 @@ static int hl_fw_send_msi_info_msg(struct hl_device *hdev)
 
 	/* total_pkt_size is casted to u16 later on */
 	if (total_pkt_size > USHRT_MAX) {
-		dev_err(hdev->dev, "CPUCP array data is too big\n");
+		hl_err(hdev, "CPUCP array data is too big\n");
 		return -EINVAL;
 	}
 
@@ -1025,7 +1025,7 @@ static int hl_fw_send_msi_info_msg(struct hl_device *hdev)
 		rc = 0;
 
 	if (rc)
-		dev_err(hdev->dev, "failed to send CPUCP array data\n");
+		hl_err(hdev, "failed to send CPUCP array data\n");
 
 	kfree(pkt);
 
@@ -1059,7 +1059,7 @@ int hl_fw_get_eeprom_data(struct hl_device *hdev, void *data, size_t max_size)
 	eeprom_info_cpu_addr = hl_cpu_accessible_dma_pool_alloc(hdev, max_size,
 									&eeprom_info_dma_addr);
 	if (!eeprom_info_cpu_addr) {
-		dev_err(hdev->dev,
+		hl_err(hdev,
 			"Failed to allocate DMA memory for CPU-CP EEPROM packet\n");
 		return -ENOMEM;
 	}
@@ -1075,7 +1075,7 @@ int hl_fw_get_eeprom_data(struct hl_device *hdev, void *data, size_t max_size)
 			HL_CPUCP_EEPROM_TIMEOUT_USEC, &result);
 	if (rc) {
 		if (rc != -EAGAIN)
-			dev_err(hdev->dev,
+			hl_err(hdev,
 				"Failed to handle CPU-CP EEPROM packet, error %d\n", rc);
 		goto out;
 	}
@@ -1103,7 +1103,7 @@ int hl_fw_get_monitor_dump(struct hl_device *hdev, void *data)
 	data_size = sizeof(struct cpucp_monitor_dump);
 	mon_dump_cpu_addr = hl_cpu_accessible_dma_pool_alloc(hdev, data_size, &mon_dump_dma_addr);
 	if (!mon_dump_cpu_addr) {
-		dev_err(hdev->dev,
+		hl_err(hdev,
 			"Failed to allocate DMA memory for CPU-CP monitor-dump packet\n");
 		return -ENOMEM;
 	}
@@ -1118,7 +1118,7 @@ int hl_fw_get_monitor_dump(struct hl_device *hdev, void *data)
 							HL_CPUCP_MON_DUMP_TIMEOUT_USEC, &result);
 	if (rc) {
 		if (rc != -EAGAIN)
-			dev_err(hdev->dev,
+			hl_err(hdev,
 				"Failed to handle CPU-CP monitor-dump packet, error %d\n", rc);
 		goto out;
 	}
@@ -1152,7 +1152,7 @@ int hl_fw_cpucp_nic_info_get(struct hl_device *hdev, dma_addr_t cpucp_nic_info_d
 	rc = hdev->asic_funcs->send_cpu_message(hdev, (u32 *) &pkt, sizeof(pkt),
 					HL_CPUCP_INFO_TIMEOUT_USEC, &result);
 	if (rc)
-		dev_err(hdev->dev,
+		hl_err(hdev,
 			"Failed to handle CPU-CP NIC info pkt, error %d\n", rc);
 
 	return rc;
@@ -1174,7 +1174,7 @@ int hl_fw_cpucp_pci_counters_get(struct hl_device *hdev,
 					HL_CPUCP_INFO_TIMEOUT_USEC, &result);
 	if (rc) {
 		if (rc != -EAGAIN)
-			dev_err(hdev->dev,
+			hl_err(hdev,
 				"Failed to handle CPU-CP PCI info pkt, error %d\n", rc);
 		return rc;
 	}
@@ -1190,7 +1190,7 @@ int hl_fw_cpucp_pci_counters_get(struct hl_device *hdev,
 					HL_CPUCP_INFO_TIMEOUT_USEC, &result);
 	if (rc) {
 		if (rc != -EAGAIN)
-			dev_err(hdev->dev,
+			hl_err(hdev,
 				"Failed to handle CPU-CP PCI info pkt, error %d\n", rc);
 		return rc;
 	}
@@ -1205,7 +1205,7 @@ int hl_fw_cpucp_pci_counters_get(struct hl_device *hdev,
 			HL_CPUCP_INFO_TIMEOUT_USEC, &result);
 	if (rc) {
 		if (rc != -EAGAIN)
-			dev_err(hdev->dev,
+			hl_err(hdev,
 				"Failed to handle CPU-CP PCI info pkt, error %d\n", rc);
 		return rc;
 	}
@@ -1227,7 +1227,7 @@ int hl_fw_cpucp_total_energy_get(struct hl_device *hdev, u64 *total_energy)
 					HL_CPUCP_INFO_TIMEOUT_USEC, &result);
 	if (rc) {
 		if (rc != -EAGAIN)
-			dev_err(hdev->dev,
+			hl_err(hdev,
 				"Failed to handle CpuCP total energy pkt, error %d\n", rc);
 		return rc;
 	}
@@ -1263,7 +1263,7 @@ int get_used_pll_index(struct hl_device *hdev, u32 input_pll_index,
 	 */
 	fw_pll_idx = hdev->asic_funcs->map_pll_idx_to_fw_idx(input_pll_index);
 	if (fw_pll_idx < 0) {
-		dev_err(hdev->dev, "Invalid PLL index (%u) error %d\n",
+		hl_err(hdev, "Invalid PLL index (%u) error %d\n",
 			input_pll_index, fw_pll_idx);
 		return -EINVAL;
 	}
@@ -1273,7 +1273,7 @@ int get_used_pll_index(struct hl_device *hdev, u32 input_pll_index,
 	pll_bit_off = fw_pll_idx & 0x7;
 
 	if (!(pll_byte & BIT(pll_bit_off))) {
-		dev_err(hdev->dev, "PLL index %d is not supported\n",
+		hl_err(hdev, "PLL index %d is not supported\n",
 			fw_pll_idx);
 		return -EINVAL;
 	}
@@ -1305,7 +1305,7 @@ int hl_fw_cpucp_pll_info_get(struct hl_device *hdev, u32 pll_index,
 			HL_CPUCP_INFO_TIMEOUT_USEC, &result);
 	if (rc) {
 		if (rc != -EAGAIN)
-			dev_err(hdev->dev, "Failed to read PLL info, error %d\n", rc);
+			hl_err(hdev, "Failed to read PLL info, error %d\n", rc);
 		return rc;
 	}
 
@@ -1333,7 +1333,7 @@ int hl_fw_cpucp_power_get(struct hl_device *hdev, u64 *power)
 			HL_CPUCP_INFO_TIMEOUT_USEC, &result);
 	if (rc) {
 		if (rc != -EAGAIN)
-			dev_err(hdev->dev, "Failed to read power, error %d\n", rc);
+			hl_err(hdev, "Failed to read power, error %d\n", rc);
 		return rc;
 	}
 
@@ -1355,7 +1355,7 @@ int hl_fw_dram_replaced_row_get(struct hl_device *hdev,
 							sizeof(struct cpucp_hbm_row_info),
 							&cpucp_repl_rows_info_dma_addr);
 	if (!cpucp_repl_rows_info_cpu_addr) {
-		dev_err(hdev->dev,
+		hl_err(hdev,
 			"Failed to allocate DMA memory for CPU-CP replaced rows info packet\n");
 		return -ENOMEM;
 	}
@@ -1371,7 +1371,7 @@ int hl_fw_dram_replaced_row_get(struct hl_device *hdev,
 					HL_CPUCP_INFO_TIMEOUT_USEC, &result);
 	if (rc) {
 		if (rc != -EAGAIN)
-			dev_err(hdev->dev,
+			hl_err(hdev,
 				"Failed to handle CPU-CP replaced rows info pkt, error %d\n", rc);
 		goto out;
 	}
@@ -1398,7 +1398,7 @@ int hl_fw_dram_pending_row_get(struct hl_device *hdev, u32 *pend_rows_num)
 	rc = hdev->asic_funcs->send_cpu_message(hdev, (u32 *) &pkt, sizeof(pkt), 0, &result);
 	if (rc) {
 		if (rc != -EAGAIN)
-			dev_err(hdev->dev,
+			hl_err(hdev,
 				"Failed to handle CPU-CP pending rows info pkt, error %d\n", rc);
 		goto out;
 	}
@@ -1421,7 +1421,7 @@ int hl_fw_cpucp_engine_core_asid_set(struct hl_device *hdev, u32 asid)
 	rc = hdev->asic_funcs->send_cpu_message(hdev, (u32 *) &pkt, sizeof(pkt),
 						HL_CPUCP_INFO_TIMEOUT_USEC, NULL);
 	if (rc)
-		dev_err(hdev->dev,
+		hl_err(hdev,
 			"Failed on ASID configuration request for engine core, error %d\n",
 			rc);
 
@@ -1439,7 +1439,7 @@ void hl_fw_ask_hard_reset_without_linux(struct hl_device *hdev)
 				COMMS_RST_DEV, 0, false,
 				hdev->fw_loader.cpu_timeout);
 		if (rc)
-			dev_err(hdev->dev, "Failed sending COMMS_RST_DEV\n");
+			hl_err(hdev, "Failed sending COMMS_RST_DEV\n");
 	} else {
 		WREG32(static_loader->kmd_msg_to_cpu_reg, KMD_MSG_RST_DEV);
 	}
@@ -1465,7 +1465,7 @@ void hl_fw_ask_halt_machine_without_linux(struct hl_device *hdev)
 		rc = hl_fw_dynamic_send_protocol_cmd(hdev, &hdev->fw_loader,
 				COMMS_GOTO_WFE, 0, false, cpu_timeout);
 		if (rc) {
-			dev_err(hdev->dev, "Failed sending COMMS_GOTO_WFE\n");
+			hl_err(hdev, "Failed sending COMMS_GOTO_WFE\n");
 		} else {
 			rc = hl_poll_timeout(
 				hdev,
@@ -1475,7 +1475,7 @@ void hl_fw_ask_halt_machine_without_linux(struct hl_device *hdev)
 				hdev->fw_poll_interval_usec,
 				cpu_timeout);
 			if (rc)
-				dev_err(hdev->dev, "Current status=%u. Timed-out updating to WFE\n",
+				hl_err(hdev, "Current status=%u. Timed-out updating to WFE\n",
 						status);
 		}
 	} else {
@@ -1499,51 +1499,51 @@ static void detect_cpu_boot_status(struct hl_device *hdev, u32 status)
 	 */
 	switch (status) {
 	case CPU_BOOT_STATUS_NA:
-		dev_err(hdev->dev,
+		hl_err(hdev,
 			"Device boot progress - BTL/ROM did NOT run\n");
 		break;
 	case CPU_BOOT_STATUS_IN_WFE:
-		dev_err(hdev->dev,
+		hl_err(hdev,
 			"Device boot progress - Stuck inside WFE loop\n");
 		break;
 	case CPU_BOOT_STATUS_IN_BTL:
-		dev_err(hdev->dev,
+		hl_err(hdev,
 			"Device boot progress - Stuck in BTL\n");
 		break;
 	case CPU_BOOT_STATUS_IN_PREBOOT:
-		dev_err(hdev->dev,
+		hl_err(hdev,
 			"Device boot progress - Stuck in Preboot\n");
 		break;
 	case CPU_BOOT_STATUS_IN_SPL:
-		dev_err(hdev->dev,
+		hl_err(hdev,
 			"Device boot progress - Stuck in SPL\n");
 		break;
 	case CPU_BOOT_STATUS_IN_UBOOT:
-		dev_err(hdev->dev,
+		hl_err(hdev,
 			"Device boot progress - Stuck in u-boot\n");
 		break;
 	case CPU_BOOT_STATUS_DRAM_INIT_FAIL:
-		dev_err(hdev->dev,
+		hl_err(hdev,
 			"Device boot progress - DRAM initialization failed\n");
 		break;
 	case CPU_BOOT_STATUS_UBOOT_NOT_READY:
-		dev_err(hdev->dev,
+		hl_err(hdev,
 			"Device boot progress - Cannot boot\n");
 		break;
 	case CPU_BOOT_STATUS_TS_INIT_FAIL:
-		dev_err(hdev->dev,
+		hl_err(hdev,
 			"Device boot progress - Thermal Sensor initialization failed\n");
 		break;
 	case CPU_BOOT_STATUS_SECURITY_READY:
-		dev_err(hdev->dev,
+		hl_err(hdev,
 			"Device boot progress - Stuck in preboot after security initialization\n");
 		break;
 	case CPU_BOOT_STATUS_FW_SHUTDOWN_PREP:
-		dev_err(hdev->dev,
+		hl_err(hdev,
 			"Device boot progress - Stuck in preparation for shutdown\n");
 		break;
 	default:
-		dev_err(hdev->dev,
+		hl_err(hdev,
 			"Device boot progress - Invalid or unexpected status code %d\n", status);
 		break;
 	}
@@ -1557,7 +1557,7 @@ int hl_fw_wait_preboot_ready(struct hl_device *hdev)
 	bool preboot_still_runs;
 
 	if (hdev->pldm) {
-		dev_dbg(hdev->dev, "Waiting for preboot ready, might take few min...\n");
+		hl_dbg(hdev, "Waiting for preboot ready, might take few min...\n");
 
 		/* This section is only for PLDM to ensure that the boot status register
 		 * polling will be after iatu is configured.
@@ -1570,7 +1570,7 @@ int hl_fw_wait_preboot_ready(struct hl_device *hdev)
 				hdev->fw_poll_interval_usec,
 				pre_fw_load->wait_for_preboot_timeout);
 		if (rc) {
-			dev_err(hdev->dev, "CPU boot ready ELBI timeout (status = %d)\n", status);
+			hl_err(hdev, "CPU boot ready ELBI timeout (status = %d)\n", status);
 			return -EIO;
 		}
 		/* Wait for prfeboot iatu setup */
@@ -1624,7 +1624,7 @@ retry:
 					pre_fw_load->sts_boot_dev_sts1_reg);
 	if (rc || fw_err) {
 		detect_cpu_boot_status(hdev, status);
-		dev_err(hdev->dev, "CPU boot %s (status = %d)\n",
+		hl_err(hdev, "CPU boot %s (status = %d)\n",
 				fw_err ? "failed due to an error" : "ready timeout", status);
 		return -EIO;
 	}
@@ -1676,7 +1676,7 @@ static int hl_fw_read_preboot_caps(struct hl_device *hdev)
 	/* initialize FW loader once we know what load protocol is used */
 	hdev->asic_funcs->init_firmware_loader(hdev);
 
-	dev_dbg(hdev->dev, "Attempting %s FW load\n",
+	hl_dbg(hdev, "Attempting %s FW load\n",
 			prop->dynamic_fw_load ? "dynamic" : "legacy");
 	return 0;
 }
@@ -1708,7 +1708,7 @@ static int hl_fw_static_read_device_fw_version(struct hl_device *hdev,
 		limit = static_loader->preboot_version_max_off;
 		break;
 	default:
-		dev_warn(hdev->dev, "Undefined FW component: %d\n", fwc);
+		hl_warn(hdev, "Undefined FW component: %d\n", fwc);
 		return -EIO;
 	}
 
@@ -1719,7 +1719,7 @@ static int hl_fw_static_read_device_fw_version(struct hl_device *hdev,
 			hdev->pcie_bar[fw_loader->sram_bar_id] + ver_off,
 			VERSION_MAX_LEN);
 	} else {
-		dev_err(hdev->dev, "%s version offset (0x%x) is above SRAM\n",
+		hl_err(hdev, "%s version offset (0x%x) is above SRAM\n",
 								name, ver_off);
 		strscpy(dest, "unavailable", VERSION_MAX_LEN);
 		return -EIO;
@@ -1728,7 +1728,7 @@ static int hl_fw_static_read_device_fw_version(struct hl_device *hdev,
 	if (fwc == FW_COMP_BOOT_FIT) {
 		boot_ver = extract_fw_ver_from_str(prop->uboot_ver);
 		if (boot_ver) {
-			dev_info(hdev->dev, "boot-fit version %s\n", boot_ver);
+			hl_info(hdev, "boot-fit version %s\n", boot_ver);
 			kfree(boot_ver);
 		}
 	} else if (fwc == FW_COMP_PREBOOT) {
@@ -1738,12 +1738,12 @@ static int hl_fw_static_read_device_fw_version(struct hl_device *hdev,
 			strscpy(btl_ver, prop->preboot_ver,
 				min((int) (preboot_ver - prop->preboot_ver),
 									31));
-			dev_info(hdev->dev, "%s\n", btl_ver);
+			hl_info(hdev, "%s\n", btl_ver);
 		}
 
 		preboot_ver = extract_fw_ver_from_str(prop->preboot_ver);
 		if (preboot_ver) {
-			dev_info(hdev->dev, "preboot version %s\n",
+			hl_info(hdev, "preboot version %s\n",
 								preboot_ver);
 			kfree(preboot_ver);
 		}
@@ -1784,19 +1784,19 @@ static void hl_fw_preboot_update_state(struct hl_device *hdev)
 
 	prop->fw_sram_remap_enabled = !!(cpu_boot_dev_sts0 & CPU_BOOT_DEV_STS0_SRAM_REMAP_EN);
 
-	dev_dbg(hdev->dev, "Firmware preboot boot device status0 %#x\n",
+	hl_dbg(hdev, "Firmware preboot boot device status0 %#x\n",
 							cpu_boot_dev_sts0);
 
-	dev_dbg(hdev->dev, "Firmware preboot boot device status1 %#x\n",
+	hl_dbg(hdev, "Firmware preboot boot device status1 %#x\n",
 							cpu_boot_dev_sts1);
 
-	dev_dbg(hdev->dev, "Firmware preboot hard-reset is %s\n",
+	hl_dbg(hdev, "Firmware preboot hard-reset is %s\n",
 			prop->hard_reset_done_by_fw ? "enabled" : "disabled");
 
-	dev_dbg(hdev->dev, "firmware-level security is %s\n",
+	hl_dbg(hdev, "firmware-level security is %s\n",
 			prop->fw_security_enabled ? "enabled" : "disabled");
 
-	dev_dbg(hdev->dev, "GIC controller is %s\n",
+	hl_dbg(hdev, "GIC controller is %s\n",
 			prop->gic_interrupts_enable ? "enabled" : "disabled");
 }
 
@@ -1863,11 +1863,11 @@ static void hl_fw_dynamic_report_error_status(struct hl_device *hdev,
 				FIELD_GET(COMMS_STATUS_STATUS_MASK, status);
 
 	if (comm_status < COMMS_STS_INVLD_LAST)
-		dev_err(hdev->dev, "Device status %s, expected status: %s\n",
+		hl_err(hdev, "Device status %s, expected status: %s\n",
 				hl_dynamic_fw_status_str[comm_status],
 				hl_dynamic_fw_status_str[expected_status]);
 	else
-		dev_err(hdev->dev, "Device status unknown %d, expected status: %s\n",
+		hl_err(hdev, "Device status unknown %d, expected status: %s\n",
 				comm_status,
 				hl_dynamic_fw_status_str[expected_status]);
 }
@@ -1934,7 +1934,7 @@ static int hl_fw_dynamic_extract_fw_response(struct hl_device *hdev,
 
 	if ((response->ram_type != COMMS_SRAM) &&
 					(response->ram_type != COMMS_DRAM)) {
-		dev_err(hdev->dev, "FW status: invalid RAM type %u\n",
+		hl_err(hdev, "FW status: invalid RAM type %u\n",
 							response->ram_type);
 		return -EIO;
 	}
@@ -2140,7 +2140,7 @@ static int hl_fw_dynamic_validate_memory_bound(struct hl_device *hdev,
 	/* now make sure that the memory transfer is within region's bounds */
 	end_addr = addr + size;
 	if (end_addr >= region->region_base + region->region_size) {
-		dev_err(hdev->dev,
+		hl_err(hdev,
 			"dynamic FW load: memory transfer end address out of memory region bounds. addr: %llx\n",
 							end_addr);
 		return -EIO;
@@ -2153,7 +2153,7 @@ static int hl_fw_dynamic_validate_memory_bound(struct hl_device *hdev,
 	 */
 	if (end_addr >= region->region_base - region->offset_in_bar +
 							region->bar_size) {
-		dev_err(hdev->dev,
+		hl_err(hdev,
 			"FW image beyond PCI BAR bounds\n");
 		return -EIO;
 	}
@@ -2184,11 +2184,11 @@ static int hl_fw_dynamic_validate_descriptor(struct hl_device *hdev,
 	int rc;
 
 	if (le32_to_cpu(fw_desc->header.magic) != HL_COMMS_DESC_MAGIC)
-		dev_dbg(hdev->dev, "Invalid magic for dynamic FW descriptor (%x)\n",
+		hl_dbg(hdev, "Invalid magic for dynamic FW descriptor (%x)\n",
 				fw_desc->header.magic);
 
 	if (fw_desc->header.version != HL_COMMS_DESC_VER)
-		dev_dbg(hdev->dev, "Invalid version for dynamic FW descriptor (%x)\n",
+		hl_dbg(hdev, "Invalid version for dynamic FW descriptor (%x)\n",
 				fw_desc->header.version);
 
 	/*
@@ -2203,7 +2203,7 @@ static int hl_fw_dynamic_validate_descriptor(struct hl_device *hdev,
 
 	data_crc32 = hl_fw_compat_crc32(data_ptr, data_size);
 	if (data_crc32 != le32_to_cpu(fw_desc->header.crc32)) {
-		dev_err(hdev->dev, "CRC32 mismatch for dynamic FW descriptor (%x:%x)\n",
+		hl_err(hdev, "CRC32 mismatch for dynamic FW descriptor (%x:%x)\n",
 			data_crc32, fw_desc->header.crc32);
 		return -EIO;
 	}
@@ -2220,7 +2220,7 @@ static int hl_fw_dynamic_validate_descriptor(struct hl_device *hdev,
 
 	region_id = hl_get_pci_memory_region(hdev, addr);
 	if ((region_id != PCI_REGION_SRAM) && ((region_id != PCI_REGION_DRAM))) {
-		dev_err(hdev->dev, "Invalid region to copy FW image address=%llx\n", addr);
+		hl_err(hdev, "Invalid region to copy FW image address=%llx\n", addr);
 		return -EIO;
 	}
 
@@ -2237,7 +2237,7 @@ static int hl_fw_dynamic_validate_descriptor(struct hl_device *hdev,
 					fw_loader->dynamic_loader.fw_image_size,
 					region);
 	if (rc) {
-		dev_err(hdev->dev, "invalid mem transfer request for FW image\n");
+		hl_err(hdev, "invalid mem transfer request for FW image\n");
 		return rc;
 	}
 
@@ -2289,16 +2289,16 @@ static void hl_fw_dynamic_read_descriptor_msg(struct hl_device *hdev,
 
 		switch (fw_desc->ascii_msg[i].msg_lvl) {
 		case LKD_FW_ASCII_MSG_ERR:
-			dev_err(hdev->dev, "fw: %s", fw_desc->ascii_msg[i].msg);
+			hl_err(hdev, "fw: %s", fw_desc->ascii_msg[i].msg);
 			break;
 		case LKD_FW_ASCII_MSG_WRN:
-			dev_warn(hdev->dev, "fw: %s", fw_desc->ascii_msg[i].msg);
+			hl_warn(hdev, "fw: %s", fw_desc->ascii_msg[i].msg);
 			break;
 		case LKD_FW_ASCII_MSG_INF:
-			dev_info(hdev->dev, "fw: %s", fw_desc->ascii_msg[i].msg);
+			hl_info(hdev, "fw: %s", fw_desc->ascii_msg[i].msg);
 			break;
 		default:
-			dev_dbg(hdev->dev, "fw: %s", fw_desc->ascii_msg[i].msg);
+			hl_dbg(hdev, "fw: %s", fw_desc->ascii_msg[i].msg);
 			break;
 		}
 	}
@@ -2334,7 +2334,7 @@ static int hl_fw_dynamic_read_and_validate_descriptor(struct hl_device *hdev,
 
 	rc = hl_fw_dynamic_validate_response(hdev, response, region);
 	if (rc) {
-		dev_err(hdev->dev,
+		hl_err(hdev,
 			"invalid mem transfer request for FW descriptor\n");
 		return rc;
 	}
@@ -2422,7 +2422,7 @@ static int hl_fw_dynamic_read_device_fw_version(struct hl_device *hdev,
 		strscpy(prop->uboot_ver, fw_version, VERSION_MAX_LEN);
 		boot_ver = extract_fw_ver_from_str(prop->uboot_ver);
 		if (boot_ver) {
-			dev_info(hdev->dev, "boot-fit version %s\n", boot_ver);
+			hl_info(hdev, "boot-fit version %s\n", boot_ver);
 			kfree(boot_ver);
 		}
 
@@ -2430,12 +2430,12 @@ static int hl_fw_dynamic_read_device_fw_version(struct hl_device *hdev,
 	case FW_COMP_PREBOOT:
 		strscpy(prop->preboot_ver, fw_version, VERSION_MAX_LEN);
 		preboot_ver = strnstr(prop->preboot_ver, "Preboot", VERSION_MAX_LEN);
-		dev_info(hdev->dev, "preboot full version: '%s'\n", preboot_ver);
+		hl_info(hdev, "preboot full version: '%s'\n", preboot_ver);
 
 		if (preboot_ver && preboot_ver != prop->preboot_ver) {
 			strscpy(btl_ver, prop->preboot_ver,
 				min((int) (preboot_ver - prop->preboot_ver), 31));
-			dev_info(hdev->dev, "%s\n", btl_ver);
+			hl_info(hdev, "%s\n", btl_ver);
 		}
 
 		rc = hl_get_sw_major_minor_subminor(hdev, &hdev->fw_sw_ver, preboot_ver);
@@ -2451,7 +2451,7 @@ static int hl_fw_dynamic_read_device_fw_version(struct hl_device *hdev,
 
 		break;
 	default:
-		dev_warn(hdev->dev, "Undefined FW component: %d\n", fwc);
+		hl_warn(hdev, "Undefined FW component: %d\n", fwc);
 		return -EINVAL;
 	}
 
@@ -2558,7 +2558,7 @@ static void hl_fw_boot_fit_update_state(struct hl_device *hdev,
 		prop->pci_memory_regions_remapped_by_fw =
 			!!(prop->fw_bootfit_cpu_boot_dev_sts0 & CPU_BOOT_DEV_STS0_BMU_REMAP_EN);
 
-		dev_dbg(hdev->dev, "Firmware boot CPU status0 %#x\n",
+		hl_dbg(hdev, "Firmware boot CPU status0 %#x\n",
 					prop->fw_bootfit_cpu_boot_dev_sts0);
 	}
 
@@ -2566,11 +2566,11 @@ static void hl_fw_boot_fit_update_state(struct hl_device *hdev,
 		prop->fw_bootfit_cpu_boot_dev_sts1 =
 				RREG32(cpu_boot_dev_sts1_reg);
 
-		dev_dbg(hdev->dev, "Firmware boot CPU status1 %#x\n",
+		hl_dbg(hdev, "Firmware boot CPU status1 %#x\n",
 					prop->fw_bootfit_cpu_boot_dev_sts1);
 	}
 
-	dev_dbg(hdev->dev, "Firmware boot CPU hard-reset is %s\n",
+	hl_dbg(hdev, "Firmware boot CPU hard-reset is %s\n",
 			prop->hard_reset_done_by_fw ? "enabled" : "disabled");
 }
 
@@ -2588,7 +2588,7 @@ static void hl_fw_dynamic_update_linux_interrupt_if(struct hl_device *hdev)
 		dyn_regs->gic_host_halt_irq = dyn_regs->gic_host_pi_upd_irq;
 		dyn_regs->gic_host_ints_irq = dyn_regs->gic_host_pi_upd_irq;
 
-		dev_warn(hdev->dev,
+		hl_warn(hdev,
 			"Using a single interrupt interface towards cpucp");
 	}
 }
@@ -2689,11 +2689,11 @@ static int hl_fw_dynamic_wait_for_boot_fit_active(struct hl_device *hdev,
 		hdev->fw_poll_interval_usec,
 		dyn_loader->wait_for_bl_timeout);
 	if (rc) {
-		dev_err(hdev->dev, "failed to wait for boot (status = %d)\n", status);
+		hl_err(hdev, "failed to wait for boot (status = %d)\n", status);
 		return rc;
 	}
 
-	dev_dbg(hdev->dev, "uboot status = %d\n", status);
+	hl_dbg(hdev, "uboot status = %d\n", status);
 	return 0;
 }
 
@@ -2715,7 +2715,7 @@ static int hl_fw_dynamic_wait_pll_reinit(struct hl_device *hdev,
 
 	if (rc) {
 		detect_cpu_boot_status(hdev, status);
-		dev_err(hdev->dev, "failed to wait for PLL re-init (status = %d)\n", status);
+		hl_err(hdev, "failed to wait for PLL re-init (status = %d)\n", status);
 		return -EIO;
 	}
 	return 0;
@@ -2741,11 +2741,11 @@ static int hl_fw_dynamic_wait_for_sram_available(struct hl_device *hdev,
 		hdev->fw_poll_interval_usec,
 		fw_loader->cpu_timeout);
 	if (rc) {
-		dev_err(hdev->dev, "failed to wait for %s (status = %d)\n", wait_str, status);
+		hl_err(hdev, "failed to wait for %s (status = %d)\n", wait_str, status);
 		return rc;
 	}
 
-	dev_dbg(hdev->dev, "Boot status = %d\n", status);
+	hl_dbg(hdev, "Boot status = %d\n", status);
 	return 0;
 }
 
@@ -2799,11 +2799,11 @@ static void hl_fw_linux_update_state(struct hl_device *hdev,
 				CPU_BOOT_DEV_STS0_GIC_PRIVILEGED_EN)
 			prop->gic_interrupts_enable = false;
 
-		dev_dbg(hdev->dev,
+		hl_dbg(hdev,
 			"Firmware application CPU status0 %#x\n",
 			prop->fw_app_cpu_boot_dev_sts0);
 
-		dev_dbg(hdev->dev, "GIC controller is %s\n",
+		hl_dbg(hdev, "GIC controller is %s\n",
 				prop->gic_interrupts_enable ?
 						"enabled" : "disabled");
 	}
@@ -2811,15 +2811,15 @@ static void hl_fw_linux_update_state(struct hl_device *hdev,
 	if (prop->fw_cpu_boot_dev_sts1_valid) {
 		prop->fw_app_cpu_boot_dev_sts1 = RREG32(cpu_boot_dev_sts1_reg);
 
-		dev_dbg(hdev->dev,
+		hl_dbg(hdev,
 			"Firmware application CPU status1 %#x\n",
 			prop->fw_app_cpu_boot_dev_sts1);
 	}
 
-	dev_dbg(hdev->dev, "Firmware application CPU hard-reset is %s\n",
+	hl_dbg(hdev, "Firmware application CPU hard-reset is %s\n",
 			prop->hard_reset_done_by_fw ? "enabled" : "disabled");
 
-	dev_info(hdev->dev, "Successfully loaded firmware to device\n");
+	hl_info(hdev, "Successfully loaded firmware to device\n");
 }
 
 /**
@@ -2861,7 +2861,7 @@ static int hl_fw_dynamic_send_msg(struct hl_device *hdev,
 		break;
 
 	default:
-		dev_err(hdev->dev,
+		hl_err(hdev,
 			"Send COMMS message - invalid message type %u\n",
 			msg_type);
 		rc = -EINVAL;
@@ -2917,7 +2917,7 @@ static int hl_fw_dynamic_init_cpu(struct hl_device *hdev,
 	struct cpu_dyn_regs *dyn_regs;
 	int rc, fw_error_rc;
 
-	dev_info(hdev->dev,
+	hl_info(hdev,
 		"Loading %sfirmware to device, may take some time...\n",
 		hdev->asic_prop.fw_security_enabled ? "secured " : "");
 
@@ -2996,7 +2996,7 @@ static int hl_fw_dynamic_init_cpu(struct hl_device *hdev,
 			if (rc)
 				return rc;
 
-			dev_dbg(hdev->dev, "Read binning masks: tpc: 0x%llx, dram: 0x%llx, edma: 0x%x, dec: 0x%x, mme: 0x%llx, rot:0x%x\n",
+			hl_dbg(hdev, "Read binning masks: tpc: 0x%llx, dram: 0x%llx, edma: 0x%x, dec: 0x%x, mme: 0x%llx, rot:0x%x\n",
 					hdev->tpc_binning, hdev->dram_binning, hdev->edma_binning,
 					hdev->decoder_binning, hdev->mme_binning,
 					hdev->rotator_binning);
@@ -3009,7 +3009,7 @@ static int hl_fw_dynamic_init_cpu(struct hl_device *hdev,
 	rc = hl_fw_dynamic_load_image(hdev, fw_loader, FW_COMP_BOOT_FIT,
 						fw_loader->boot_fit_timeout);
 	if (rc) {
-		dev_err(hdev->dev, "failed to load boot fit\n");
+		hl_err(hdev, "failed to load boot fit\n");
 		goto protocol_err;
 	}
 
@@ -3040,7 +3040,7 @@ static int hl_fw_dynamic_init_cpu(struct hl_device *hdev,
 	hdev->asic_funcs->init_cpu_scrambler_dram(hdev);
 
 	if (!(hdev->fw_components & FW_TYPE_LINUX)) {
-		dev_dbg(hdev->dev, "Skip loading Linux F/W\n");
+		hl_dbg(hdev, "Skip loading Linux F/W\n");
 		return 0;
 	}
 
@@ -3051,7 +3051,7 @@ static int hl_fw_dynamic_init_cpu(struct hl_device *hdev,
 							false,
 							fw_loader->cpu_timeout);
 		if (rc) {
-			dev_err(hdev->dev, "failed to load boot fit\n");
+			hl_err(hdev, "failed to load boot fit\n");
 			goto protocol_err;
 		}
 
@@ -3059,7 +3059,7 @@ static int hl_fw_dynamic_init_cpu(struct hl_device *hdev,
 					le32_to_cpu(dyn_regs->cpu_boot_status),
 					fw_loader->cpu_timeout);
 		if (rc) {
-			dev_err(hdev->dev, "failed to wait for PLL re-init\n");
+			hl_err(hdev, "failed to wait for PLL re-init\n");
 			goto protocol_err;
 		}
 	}
@@ -3070,7 +3070,7 @@ static int hl_fw_dynamic_init_cpu(struct hl_device *hdev,
 							true,
 							fw_loader->cpu_timeout);
 		if (rc) {
-			dev_err(hdev->dev, "failed to load boot fit\n");
+			hl_err(hdev, "failed to load boot fit\n");
 			goto protocol_err;
 		}
 	}
@@ -3079,7 +3079,7 @@ static int hl_fw_dynamic_init_cpu(struct hl_device *hdev,
 	rc = hl_fw_dynamic_load_image(hdev, fw_loader, FW_COMP_LINUX,
 							fw_loader->cpu_timeout);
 	if (rc) {
-		dev_err(hdev->dev, "failed to load Linux\n");
+		hl_err(hdev, "failed to load Linux\n");
 		goto protocol_err;
 	}
 
@@ -3138,7 +3138,7 @@ static int hl_fw_static_init_cpu(struct hl_device *hdev,
 	cpu_boot_dev_status1_reg = static_loader->cpu_boot_dev_status1_reg;
 	cpu_boot_status_reg = static_loader->cpu_boot_status_reg;
 
-	dev_info(hdev->dev, "Going to wait for device boot (up to %lds)\n",
+	hl_info(hdev, "Going to wait for device boot (up to %lds)\n",
 		cpu_timeout / USEC_PER_SEC);
 
 	/* Wait for boot FIT request */
@@ -3151,7 +3151,7 @@ static int hl_fw_static_init_cpu(struct hl_device *hdev,
 		fw_loader->boot_fit_timeout);
 
 	if (rc) {
-		dev_dbg(hdev->dev,
+		hl_dbg(hdev,
 			"No boot fit request received (status = %d), resuming boot\n", status);
 	} else {
 		rc = hdev->asic_funcs->load_boot_fit_to_device(hdev);
@@ -3174,7 +3174,7 @@ static int hl_fw_static_init_cpu(struct hl_device *hdev,
 			fw_loader->boot_fit_timeout);
 
 		if (rc) {
-			dev_err(hdev->dev,
+			hl_err(hdev,
 				"Timeout waiting for boot fit load ack (status = %d)\n", status);
 			goto out;
 		}
@@ -3202,7 +3202,7 @@ static int hl_fw_static_init_cpu(struct hl_device *hdev,
 		hdev->fw_poll_interval_usec,
 		cpu_timeout);
 
-	dev_dbg(hdev->dev, "uboot status = %d\n", status);
+	hl_dbg(hdev, "uboot status = %d\n", status);
 
 	/* Read U-Boot version now in case we will later fail */
 	hl_fw_static_read_device_fw_version(hdev, FW_COMP_BOOT_FIT);
@@ -3223,7 +3223,7 @@ static int hl_fw_static_init_cpu(struct hl_device *hdev,
 	hdev->asic_funcs->init_cpu_scrambler_dram(hdev);
 
 	if (!(hdev->fw_components & FW_TYPE_LINUX)) {
-		dev_info(hdev->dev, "Skip loading Linux F/W\n");
+		hl_info(hdev, "Skip loading Linux F/W\n");
 		rc = 0;
 		goto out;
 	}
@@ -3257,7 +3257,7 @@ static int hl_fw_static_init_cpu(struct hl_device *hdev,
 		WREG32(msg_to_cpu_reg, KMD_MSG_NA);
 
 		if (rc) {
-			dev_err(hdev->dev,
+			hl_err(hdev,
 				"Timeout waiting for low frequency ack (status = %d)\n", status);
 			goto out;
 		}
@@ -3278,7 +3278,7 @@ static int hl_fw_static_init_cpu(struct hl_device *hdev,
 		}
 	}
 
-	dev_info(hdev->dev,
+	hl_info(hdev,
 		"Loading firmware to device, may take some time...\n");
 
 	rc = hdev->asic_funcs->load_firmware_to_device(hdev);
@@ -3297,7 +3297,7 @@ static int hl_fw_static_init_cpu(struct hl_device *hdev,
 			cpu_timeout);
 
 		if (rc) {
-			dev_err(hdev->dev,
+			hl_err(hdev,
 				"Failed to get ACK on skipping BMC (status = %d)\n",
 				status);
 			WREG32(msg_to_cpu_reg, KMD_MSG_NA);
@@ -3321,10 +3321,10 @@ static int hl_fw_static_init_cpu(struct hl_device *hdev,
 
 	if (rc) {
 		if (status == CPU_BOOT_STATUS_FIT_CORRUPTED)
-			dev_err(hdev->dev,
+			hl_err(hdev,
 				"Device reports FIT image is corrupted\n");
 		else
-			dev_err(hdev->dev,
+			hl_err(hdev,
 				"Failed to load firmware to device (status = %d)\n",
 				status);
 
@@ -3396,7 +3396,7 @@ int hl_fw_get_clk_rate(struct hl_device *hdev, u32 *cur_clk, u32 *max_clk)
 	value = hl_fw_get_frequency(hdev, hdev->asic_prop.clk_pll_index, false);
 
 	if (value < 0) {
-		dev_err(hdev->dev, "Failed to retrieve device max clock %ld\n", value);
+		hl_err(hdev, "Failed to retrieve device max clock %ld\n", value);
 		return value;
 	}
 
@@ -3405,7 +3405,7 @@ int hl_fw_get_clk_rate(struct hl_device *hdev, u32 *cur_clk, u32 *max_clk)
 	value = hl_fw_get_frequency(hdev, hdev->asic_prop.clk_pll_index, true);
 
 	if (value < 0) {
-		dev_err(hdev->dev, "Failed to retrieve device current clock %ld\n", value);
+		hl_err(hdev, "Failed to retrieve device current clock %ld\n", value);
 		return value;
 	}
 
@@ -3438,7 +3438,7 @@ long hl_fw_get_frequency(struct hl_device *hdev, u32 pll_index, bool curr)
 	rc = hdev->asic_funcs->send_cpu_message(hdev, (u32 *) &pkt, sizeof(pkt), 0, &result);
 	if (rc) {
 		if (rc != -EAGAIN)
-			dev_err(hdev->dev, "Failed to get frequency of PLL %d, error %d\n",
+			hl_err(hdev, "Failed to get frequency of PLL %d, error %d\n",
 				used_pll_idx, rc);
 		return rc;
 	}
@@ -3464,7 +3464,7 @@ void hl_fw_set_frequency(struct hl_device *hdev, u32 pll_index, u64 freq)
 
 	rc = hdev->asic_funcs->send_cpu_message(hdev, (u32 *) &pkt, sizeof(pkt), 0, NULL);
 	if (rc && rc != -EAGAIN)
-		dev_err(hdev->dev, "Failed to set frequency to PLL %d, error %d\n",
+		hl_err(hdev, "Failed to set frequency to PLL %d, error %d\n",
 			used_pll_idx, rc);
 }
 
@@ -3481,7 +3481,7 @@ long hl_fw_get_max_power(struct hl_device *hdev)
 	rc = hdev->asic_funcs->send_cpu_message(hdev, (u32 *) &pkt, sizeof(pkt), 0, &result);
 	if (rc) {
 		if (rc != -EAGAIN)
-			dev_err(hdev->dev, "Failed to get max power, error %d\n", rc);
+			hl_err(hdev, "Failed to get max power, error %d\n", rc);
 		return rc;
 	}
 
@@ -3504,7 +3504,7 @@ void hl_fw_set_max_power(struct hl_device *hdev)
 
 	rc = hdev->asic_funcs->send_cpu_message(hdev, (u32 *) &pkt, sizeof(pkt), 0, NULL);
 	if (rc && rc != -EAGAIN)
-		dev_err(hdev->dev, "Failed to set max power, error %d\n", rc);
+		hl_err(hdev, "Failed to set max power, error %d\n", rc);
 }
 
 int hl_fw_send_binning_info(struct hl_device *hdev)
@@ -3517,7 +3517,7 @@ int hl_fw_send_binning_info(struct hl_device *hdev)
 	int rc;
 
 	if (!hdev->supports_custom_fw_binning) {
-		dev_info(hdev->dev, "sending binning info not supported for this ASIC\n");
+		hl_info(hdev, "sending binning info not supported for this ASIC\n");
 		return 0;
 	}
 
@@ -3529,7 +3529,7 @@ int hl_fw_send_binning_info(struct hl_device *hdev)
 
 	/* Total_pkt_size is casted to u16 later on when calling send_cpu_message */
 	if (total_pkt_size > USHRT_MAX) {
-		dev_err(hdev->dev, "CPUCP array data is too big\n");
+		hl_err(hdev, "CPUCP array data is too big\n");
 		return -EINVAL;
 	}
 
@@ -3552,7 +3552,7 @@ int hl_fw_send_binning_info(struct hl_device *hdev)
 
 	rc = hdev->asic_funcs->send_cpu_message(hdev, (u32 *)pkt, total_pkt_size, 0, &result);
 	if (rc)
-		dev_err(hdev->dev, "failed to send CPUCP array data\n");
+		hl_err(hdev, "failed to send CPUCP array data\n");
 
 	kfree(pkt);
 
@@ -3569,7 +3569,7 @@ static int hl_fw_get_sec_attest_data(struct hl_device *hdev, u32 packet_id, void
 
 	req_cpu_addr = hl_cpu_accessible_dma_pool_alloc(hdev, size, &req_dma_addr);
 	if (!req_cpu_addr) {
-		dev_err(hdev->dev,
+		hl_err(hdev,
 			"Failed to allocate DMA memory for CPU-CP packet %u\n", packet_id);
 		return -ENOMEM;
 	}
@@ -3584,7 +3584,7 @@ static int hl_fw_get_sec_attest_data(struct hl_device *hdev, u32 packet_id, void
 	rc = hdev->asic_funcs->send_cpu_message(hdev, (u32 *) &pkt, sizeof(pkt), timeout, NULL);
 	if (rc) {
 		if (rc != -EAGAIN)
-			dev_err(hdev->dev,
+			hl_err(hdev,
 				"Failed to handle CPU-CP pkt %u, error %d\n", packet_id, rc);
 		goto out;
 	}
@@ -3629,9 +3629,9 @@ int hl_fw_send_generic_request(struct hl_device *hdev, enum hl_passthrough_type 
 						HL_CPUCP_INFO_TIMEOUT_USEC, &result);
 	if (rc) {
 		if (rc != -EAGAIN)
-			dev_err(hdev->dev, "failed to send CPUCP data of generic fw pkt\n");
+			hl_err(hdev, "failed to send CPUCP data of generic fw pkt\n");
 	} else {
-		dev_dbg(hdev->dev, "generic pkt was successful, result: 0x%llx\n", result);
+		hl_dbg(hdev, "generic pkt was successful, result: 0x%llx\n", result);
 	}
 
 	*size = (u32)result;
@@ -3664,7 +3664,7 @@ int hl_fw_set_host_date_and_time(struct hl_device *hdev)
 
 	rc = hdev->asic_funcs->send_cpu_message(hdev, (u32 *) &pkt, sizeof(pkt), 0, NULL);
 	if (rc)
-		dev_err(hdev->dev, "Failed to set host date and time, rc %d\n", rc);
+		hl_err(hdev, "Failed to set host date and time, rc %d\n", rc);
 
 	return rc;
 }
@@ -3684,7 +3684,7 @@ int hl_fw_send_memory_consumption(struct hl_device *hdev, u64 total_mem, u64 fre
 
 	rc = hdev->asic_funcs->send_cpu_message(hdev, (u32 *) &pkt, sizeof(pkt), 0, NULL);
 	if (rc)
-		dev_warn(hdev->dev, "failed to send memory consumption msg to FW\n");
+		hl_warn(hdev, "failed to send memory consumption msg to FW\n");
 
 	return rc;
 }
@@ -3705,7 +3705,7 @@ int hl_fw_send_driver_version(struct hl_device *hdev)
 
 	rc = hdev->asic_funcs->send_cpu_message(hdev, (u32 *) &pkt, sizeof(pkt), 0, NULL);
 	if (rc)
-		dev_err(hdev->dev, "failed to send driver version msg to FW, error %d\n", rc);
+		hl_err(hdev, "failed to send driver version msg to FW, error %d\n", rc);
 
 	return rc;
 }

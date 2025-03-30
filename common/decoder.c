@@ -39,7 +39,7 @@ static void dec_print_abnrm_intr_source(struct hl_device *hdev, u32 irq_status)
 	if (irq_status & VCMD_IRQ_STATUS_RESET_MASK)
 		intr_source[i++] = " RESET";
 
-	dev_err(hdev->dev, format, intr_source[0], intr_source[1],
+	hl_err(hdev, format, intr_source[0], intr_source[1],
 		intr_source[2], intr_source[3], intr_source[4], intr_source[5]);
 }
 
@@ -52,7 +52,7 @@ static void dec_abnrm_intr_work(struct work_struct *work)
 
 	irq_status = RREG32(dec->base_addr + VCMD_IRQ_STATUS_OFFSET);
 
-	dev_err(hdev->dev, "Decoder abnormal interrupt %#x, core %d\n", irq_status, dec->core_id);
+	hl_err(hdev, "Decoder abnormal interrupt %#x, core %d\n", irq_status, dec->core_id);
 
 	dec_print_abnrm_intr_source(hdev, irq_status);
 
@@ -110,7 +110,7 @@ int hl_dec_init(struct hl_device *hdev)
 		dec->core_id = j;
 		dec->base_addr = hdev->asic_funcs->get_dec_base_addr(hdev, j);
 		if (!dec->base_addr) {
-			dev_err(hdev->dev, "Invalid base address of decoder %d\n", j);
+			hl_err(hdev, "Invalid base address of decoder %d\n", j);
 			rc = -EINVAL;
 			goto err_dec_fini;
 		}

@@ -50,7 +50,7 @@ unsigned long hl_asid_alloc(struct hl_device *hdev)
 void hl_asid_free(struct hl_device *hdev, unsigned long asid)
 {
 	if (asid == HL_KERNEL_ASID_ID || asid >= hdev->asic_prop.max_asid) {
-		dev_crit(hdev->dev, "Invalid ASID %lu", asid);
+		hl_crit(hdev, "Invalid ASID %lu", asid);
 		return;
 	}
 

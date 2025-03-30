@@ -74,13 +74,13 @@ static int hl_dio_fd_register(struct hl_ctx *ctx, int fd, struct hl_dio_fd *f)
 	}
 
 	if (!(f->filp->f_flags & O_DIRECT)) {
-		dev_err(hdev->dev, "File is not in the direct mode\n");
+		hl_err(hdev, "File is not in the direct mode\n");
 		rc = -EINVAL;
 		goto fput;
 	}
 
 	if (!f->filp->f_op->read_iter) {
-		dev_err(hdev->dev, "Read iter is not supported, need to fall back to legacy\n");
+		hl_err(hdev, "Read iter is not supported, need to fall back to legacy\n");
 		rc = -EINVAL;
 		goto fput;
 	}
@@ -91,19 +91,19 @@ static int hl_dio_fd_register(struct hl_ctx *ctx, int fd, struct hl_dio_fd *f)
 	gd = bd->bd_disk;
 
 	if (inode->i_blocks << sb->s_blocksize_bits < i_size_read(inode)) {
-		dev_err(hdev->dev, "Sparse files are not currently supported\n");
+		hl_err(hdev, "Sparse files are not currently supported\n");
 		rc = -EINVAL;
 		goto fput;
 	}
 
 	if (sb->s_magic != EXT4_SUPER_MAGIC) {
-		dev_err(hdev->dev, "Only ext4 filesystem is supported\n");
+		hl_err(hdev, "Only ext4 filesystem is supported\n");
 		rc = -EINVAL;
 		goto fput;
 	}
 
 	if (strncmp("nvme", gd->disk_name, 4)) {
-		dev_err(hdev->dev, "The physical disk is not an NVME disk\n");
+		hl_err(hdev, "The physical disk is not an NVME disk\n");
 		rc = -EINVAL;
 		goto fput;
 	}
@@ -175,17 +175,17 @@ static void hl_dio_set_io_enabled(struct hl_device *hdev, bool enabled)
 static bool hl_dio_validate_io(struct hl_device *hdev, struct hl_direct_io *io)
 {
 	if ((u64)io->device_va & ~PAGE_MASK) {
-		dev_dbg(hdev->dev, "Device address must be 4K aligned\n");
+		hl_dbg(hdev, "Device address must be 4K aligned\n");
 		return false;
 	}
 
 	if (io->len_bytes & ~PAGE_MASK) {
-		dev_dbg(hdev->dev, "IO length must be 4K aligned\n");
+		hl_dbg(hdev, "IO length must be 4K aligned\n");
 		return false;
 	}
 
 	if (io->off_bytes & ~PAGE_MASK) {
-		dev_dbg(hdev->dev, "IO offset must be 4K aligned\n");
+		hl_dbg(hdev, "IO offset must be 4K aligned\n");
 		return false;
 	}
 
@@ -200,7 +200,7 @@ static struct page *hl_dio_va2page(struct hl_device *hdev, struct hl_ctx *ctx, u
 
 	rc = hl_mmu_va_to_pa(ctx, device_va, &device_pa);
 	if (rc) {
-		dev_err(hdev->dev, "Device virtual address translation error: %#llx (%d)",
+		hl_err(hdev, "Device virtual address translation error: %#llx (%d)",
 					device_va, rc);
 		return NULL;
 	}
@@ -225,7 +225,7 @@ static ssize_t hl_direct_io(struct hl_device *hdev, struct hl_direct_io *io)
 		return -EINVAL;
 
 	if (!hl_dio_get_iopath(io->f.ctx)) {
-		dev_info(hdev->dev, "Can't schedule a new IO, IO is disabled\n");
+		hl_info(hdev, "Can't schedule a new IO, IO is disabled\n");
 		return -ESHUTDOWN;
 	}
 
@@ -246,7 +246,7 @@ static ssize_t hl_direct_io(struct hl_device *hdev, struct hl_direct_io *io)
 	for (i = 0, device_va = io->device_va; i < npages ; ++i, device_va += PAGE_SIZE) {
 		io->bv[i].bv_page = hl_dio_va2page(hdev, io->f.ctx, device_va);
 		if (!io->bv[i].bv_page) {
-			dev_err(hdev->dev, "Error getting page struct for device va %#llx",
+			hl_err(hdev, "Error getting page struct for device va %#llx",
 					device_va);
 			rc = -EFAULT;
 			goto cleanup;
@@ -262,7 +262,7 @@ cleanup:
 	vfree(io->bv); /* @TODO: skip this label in async IO */
 	hl_dio_put_iopath(io->f.ctx);
 
-	dev_dbg(hdev->dev, "IO ended with %ld\n", rc);
+	hl_dbg(hdev, "IO ended with %ld\n", rc);
 
 	return rc;
 }
@@ -276,7 +276,7 @@ __maybe_unused static void hl_direct_io_complete(struct kiocb *kio, long ret, lo
 {
 	struct hl_direct_io *io = container_of(kio, struct hl_direct_io, kio);
 
-	dev_dbg(io->f.ctx->hdev->dev, "IO completed with %ld\n", ret);
+	hl_dbg(io->f.ctx->hdev, "IO completed with %ld\n", ret);
 
 	/* Do something to copy result to user / notify completion */
 
@@ -294,7 +294,7 @@ int hl_dio_ssd2hl(struct hl_device *hdev, struct hl_ctx *ctx, int fd, u64 device
 	struct hl_direct_io *io;
 	ssize_t rc;
 
-	dev_dbg(hdev->dev, "SSD2HL fd=%d va=%#llx len=%#lx\n", fd, device_va, len_bytes);
+	hl_dbg(hdev, "SSD2HL fd=%d va=%#llx len=%#lx\n", fd, device_va, len_bytes);
 
 	/* TODO: This allocation should be done from a genpool */
 	io = kzalloc(sizeof(*io), GFP_KERNEL);
@@ -336,7 +336,7 @@ static void hl_p2p_region_fini(struct hl_device *hdev, struct hl_p2p_region *p2p
 	}
 
 	if (p2pr->p2pmem) {
-		dev_dbg(hdev->dev, "Freeing P2P mem from %px, size=%#llx\n",
+		hl_dbg(hdev, "Freeing P2P mem from %px, size=%#llx\n",
 				p2pr->p2pmem, p2pr->size);
 		pci_free_p2pmem(hdev->pdev, p2pr->p2pmem, p2pr->size);
 		p2pr->p2pmem = NULL;
@@ -363,14 +363,14 @@ int hl_p2p_region_init(struct hl_device *hdev, struct hl_p2p_region *p2pr)
 	/* Start by publishing our p2p memory */
 	rc = pci_p2pdma_add_resource(hdev->pdev, p2pr->bar, p2pr->size, p2pr->bar_offset);
 	if (rc) {
-		dev_err(hdev->dev, "Error adding p2p resource: %d\n", rc);
+		hl_err(hdev, "Error adding p2p resource: %d\n", rc);
 		goto err;
 	}
 
 	/* Alloc all p2p mem */
 	p2pr->p2pmem = pci_alloc_p2pmem(hdev->pdev, p2pr->size);
 	if (!p2pr->p2pmem) {
-		dev_err(hdev->dev, "Error allocating p2p memory\n");
+		hl_err(hdev, "Error allocating p2p memory\n");
 		rc = -ENOMEM;
 		goto err;
 	}
@@ -398,7 +398,7 @@ err:
 /* Placeholder for now */
 int hl_dio_start(struct hl_device *hdev)
 {
-	dev_dbg(hdev->dev, "Initializing HLDIO\n");
+	hl_dbg(hdev, "Initializing HLDIO\n");
 
 	/* Initialize the IO counter and enable IO */
 	hdev->hldio.inflight_ios = alloc_percpu(s64);
@@ -413,7 +413,7 @@ int hl_dio_start(struct hl_device *hdev)
 /* Placeholder for now */
 void hl_dio_stop(struct hl_device *hdev)
 {
-	dev_dbg(hdev->dev, "Deinitializing HLDIO\n");
+	hl_dbg(hdev, "Deinitializing HLDIO\n");
 
 	if (hdev->hldio.io_enabled) {
 		/* Wait for all the IO to finish */

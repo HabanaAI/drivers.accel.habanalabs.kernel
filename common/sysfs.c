@@ -219,11 +219,11 @@ static ssize_t soft_reset_store(struct device *dev,
 	}
 
 	if (!hdev->asic_prop.allow_inference_soft_reset) {
-		dev_err(hdev->dev, "Device does not support inference soft-reset\n");
+		hl_err(hdev, "Device does not support inference soft-reset\n");
 		goto out;
 	}
 
-	dev_warn(hdev->dev, "Inference Soft-Reset requested through sysfs\n");
+	hl_warn(hdev, "Inference Soft-Reset requested through sysfs\n");
 
 	hl_device_reset(hdev, 0);
 
@@ -246,7 +246,7 @@ static ssize_t hard_reset_store(struct device *dev,
 		goto out;
 	}
 
-	dev_warn(hdev->dev, "Hard-Reset requested through sysfs\n");
+	hl_warn(hdev, "Hard-Reset requested through sysfs\n");
 
 	hl_device_reset(hdev, HL_DRV_RESET_HARD);
 
@@ -367,7 +367,7 @@ static ssize_t device_type_show(struct device *dev,
 		str = "GAUDI3D HL-338";
 		break;
 	default:
-		dev_err(hdev->dev, "Unrecognized ASIC type %d\n",
+		hl_err(hdev, "Unrecognized ASIC type %d\n",
 				hdev->asic_type);
 		return -EINVAL;
 	}
@@ -626,7 +626,7 @@ int hl_sysfs_init(struct hl_device *hdev)
 
 	rc = device_add_groups(hdev->dev, hl_dev_attr_groups);
 	if (rc) {
-		dev_err(hdev->dev,
+		hl_err(hdev,
 			"Failed to add groups to device, error %d\n", rc);
 		return rc;
 	}
@@ -636,7 +636,7 @@ int hl_sysfs_init(struct hl_device *hdev)
 
 	rc = device_add_groups(hdev->dev, hl_dev_inference_attr_groups);
 	if (rc) {
-		dev_err(hdev->dev,
+		hl_err(hdev,
 			"Failed to add groups to device, error %d\n", rc);
 		goto remove_groups;
 	}
@@ -658,7 +658,7 @@ int hl_sysfs_init(struct hl_device *hdev)
 
 	rc = hl_accel_device_add_groups(hdev->dev, hl_dev_attr_groups);
 	if (rc) {
-		dev_err(hdev->dev, "Failed to add groups to device, error %d\n", rc);
+		hl_err(hdev, "Failed to add groups to device, error %d\n", rc);
 		return rc;
 	}
 
@@ -667,7 +667,7 @@ int hl_sysfs_init(struct hl_device *hdev)
 
 	rc = hl_accel_device_add_groups(hdev->dev, hl_dev_inference_attr_groups);
 	if (rc) {
-		dev_err(hdev->dev, "Failed to add groups to device, error %d\n", rc);
+		hl_err(hdev, "Failed to add groups to device, error %d\n", rc);
 		goto remove_groups;
 	}
 
