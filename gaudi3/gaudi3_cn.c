@@ -150,7 +150,7 @@ static int gaudi3_cn_override_ports_masks(struct hl_device *hdev, u32 serdes_typ
 				ports_ext_mask = 0x3FF000;
 				goto out;
 			default:
-				dev_err(hdev->dev, "Invalid card location %u\n",
+				hl_err(hdev, "Invalid card location %u\n",
 					hdev->cn.card_location);
 				rc = -EINVAL;
 				break;
@@ -186,7 +186,7 @@ static int gaudi3_cn_override_ports_masks(struct hl_device *hdev, u32 serdes_typ
 				ports_ext_mask = 0x08C000;
 				goto out;
 			default:
-				dev_err(hdev->dev, "Invalid card location %u\n",
+				hl_err(hdev, "Invalid card location %u\n",
 					hdev->cn.card_location);
 				rc = -EINVAL;
 				break;
@@ -220,7 +220,7 @@ static int gaudi3_cn_override_ports_masks(struct hl_device *hdev, u32 serdes_typ
 				ports_ext_mask = 0x1DC000;
 				goto out;
 			default:
-				dev_err(hdev->dev, "Invalid card location %u\n",
+				hl_err(hdev, "Invalid card location %u\n",
 					hdev->cn.card_location);
 				rc = -EINVAL;
 				break;
@@ -254,7 +254,7 @@ static int gaudi3_cn_override_ports_masks(struct hl_device *hdev, u32 serdes_typ
 				ports_ext_mask = 0x08C000;
 				goto out;
 			default:
-				dev_err(hdev->dev, "Invalid card location %u\n",
+				hl_err(hdev, "Invalid card location %u\n",
 					hdev->cn.card_location);
 				rc = -EINVAL;
 				break;
@@ -274,7 +274,7 @@ static int gaudi3_cn_override_ports_masks(struct hl_device *hdev, u32 serdes_typ
 			ports_ext_mask = hdev->cn.ports_mask;
 			break;
 		default:
-			dev_err(hdev->dev, "Invalid serdes_type %u\n", serdes_type);
+			hl_err(hdev, "Invalid serdes_type %u\n", serdes_type);
 			rc = -EINVAL;
 			break;
 		}
@@ -311,7 +311,7 @@ static int gaudi3_cn_override_ports_masks(struct hl_device *hdev, u32 serdes_typ
 			ports_ext_mask = 0x08C000;
 			goto out;
 		default:
-			dev_err(hdev->dev, "Invalid card location %u\n", hdev->cn.card_location);
+			hl_err(hdev, "Invalid card location %u\n", hdev->cn.card_location);
 			rc = -EINVAL;
 			break;
 		}
@@ -335,7 +335,7 @@ static int gaudi3_cn_override_ports_masks(struct hl_device *hdev, u32 serdes_typ
 		ports_ext_mask = hdev->cn.ports_mask;
 		goto out;
 	default:
-		dev_err(hdev->dev, "Invalid gaudi3_setup_type %u\n", hdev->gaudi3_setup_type);
+		hl_err(hdev, "Invalid gaudi3_setup_type %u\n", hdev->gaudi3_setup_type);
 		rc = -EINVAL;
 		break;
 	}
@@ -369,7 +369,7 @@ int gaudi3_cn_set_info(struct hl_device *hdev, bool get_from_fw)
 			return rc;
 
 		if (hdev->pci_rev_id_override) {
-			dev_dbg(hdev->dev,
+			hl_dbg(hdev,
 				"skipping NIC FW ports info with an overridden pci revision id\n");
 		} else {
 			hdev->cn.ports_mask &= cn_cpucp_info->link_mask[0];
@@ -397,13 +397,13 @@ int gaudi3_cn_set_info(struct hl_device *hdev, bool get_from_fw)
 			mac_addr = mac_arr[i].mac_addr;
 			if (!gaudi3_cn_check_oui_prefix_validity(mac_addr)) {
 				if (hdev->ignore_eeprom_errors) {
-					dev_dbg(hdev->dev,
+					hl_dbg(hdev,
 						"bad MAC OUI %pM, port %d - setting a valid MAC\n",
 						mac_addr, i);
 					mac[ETH_ALEN - 1] = i;
 					memcpy(mac_addr, mac, ETH_ALEN);
 				} else {
-					dev_warn(hdev->dev, "unrecognized MAC OUI %pM, port %d\n",
+					hl_warn(hdev, "unrecognized MAC OUI %pM, port %d\n",
 						 mac_addr, i);
 				}
 			}
@@ -449,7 +449,7 @@ int gaudi3_cn_set_info(struct hl_device *hdev, bool get_from_fw)
 				serdes_type = hdev->serdes_type;
 				cn->card_location = hdev->card_location_override;
 			} else {
-				dev_warn(hdev->dev,
+				hl_warn(hdev,
 					 "can't read card location as FW security is enabled\n");
 			}
 		}
@@ -486,7 +486,7 @@ int gaudi3_cn_set_info(struct hl_device *hdev, bool get_from_fw)
 		hdev->asic_prop.server_type = HL_SERVER_TYPE_UNKNOWN;
 		/* pldm needs to be verified since not handled by pldm FW */
 		if (get_from_fw && !hdev->pldm) {
-			dev_err(hdev->dev, "bad SerDes type %d\n", serdes_type);
+			hl_err(hdev, "bad SerDes type %d\n", serdes_type);
 			return -EFAULT;
 		}
 		break;
@@ -743,7 +743,7 @@ void gaudi3_cn_quiescence(struct hl_device *hdev)
 	if (gaudi3_cn_get_hw_cap(hdev))
 		return;
 
-	dev_dbg(hdev->dev, "Quiescence the NICs\n");
+	hl_dbg(hdev, "Quiescence the NICs\n");
 
 	gaudi3_cn_disable_nics_interrupts(hdev);
 }
@@ -751,7 +751,7 @@ void gaudi3_cn_quiescence(struct hl_device *hdev)
 u32 gaudi3_cn_handle_bmon_spmu_event(struct hl_device *hdev)
 {
 	/* We're not supposed to get this event, however it should be safe to ignore */
-	dev_dbg_ratelimited(hdev->dev, "Got an SPI BMON SPMU event");
+	hl_dbg_ratelimited(hdev, "Got an SPI BMON SPMU event");
 	return 0;
 }
 
@@ -839,7 +839,7 @@ static int gaudi3_cn_dump_port_statistics(struct hl_device *hdev, u32 port, u64 
 static int gaudi3_reserve_irqs(struct hl_device *hdev, u32 num, int *base_irq)
 {
 	if (num > MAX_NUM_OF_NIC_INTERRUPTS) {
-		dev_err(hdev->dev, "CN requested %u interrupts but only %u may be reserved\n",
+		hl_err(hdev, "CN requested %u interrupts but only %u may be reserved\n",
 			num, MAX_NUM_OF_NIC_INTERRUPTS);
 		return -EINVAL;
 	}

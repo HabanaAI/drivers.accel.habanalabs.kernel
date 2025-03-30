@@ -121,7 +121,7 @@ static int gaudi3_fpga_early_init(struct hl_device *hdev)
 	/* Check BAR sizes */
 	if (pci_resource_len(pdev, CFG_BAR_ID) !=
 		GAUDI3_FPGA_CFG_BAR_SIZE) {
-		dev_err(hdev->dev,
+		hl_err(hdev,
 			"Not " HL_NAME "? BAR %d size %llu, expecting %llu\n",
 			CFG_BAR_ID,
 			pci_resource_len(pdev, CFG_BAR_ID),
@@ -131,7 +131,7 @@ static int gaudi3_fpga_early_init(struct hl_device *hdev)
 	}
 
 	if (pci_resource_len(pdev, MSIX_BAR_ID) != GAUDI3_FPGA_MSIX_BAR_SIZE) {
-		dev_err(hdev->dev,
+		hl_err(hdev,
 			"Not " HL_NAME "? BAR %d size %llu, expecting %llu\n",
 			MSIX_BAR_ID, pci_resource_len(pdev, MSIX_BAR_ID),
 			GAUDI3_FPGA_MSIX_BAR_SIZE);
@@ -217,13 +217,13 @@ static int gaudi3_fpga_enable_msix(struct hl_device *hdev)
 
 	rc = hl_alloc_irq_vectors(hdev, 1, 1, PCI_IRQ_MSI);
 	if (rc < 0) {
-		dev_err(hdev->dev, "MSI-X: Failed to enable support -- %d/%d\n", 1, rc);
+		hl_err(hdev, "MSI-X: Failed to enable support -- %d/%d\n", 1, rc);
 		return rc;
 	}
 
 	rc = gaudi3_eq_enable_msix(hdev);
 	if (rc) {
-		dev_err(hdev->dev, "MSI-X: Failed to enable EQ interrupt, %d", rc);
+		hl_err(hdev, "MSI-X: Failed to enable EQ interrupt, %d", rc);
 		goto free_irq_vectors;
 	}
 
@@ -285,13 +285,13 @@ static int gaudi3_fpga_hw_init(struct hl_device *hdev)
 
 	rc = gaudi3_init_cpu(hdev);
 	if (rc) {
-		dev_err(hdev->dev, "failed to initialize CPU\n");
+		hl_err(hdev, "failed to initialize CPU\n");
 		return rc;
 	}
 
 	rc = gaudi3_init_cpu_queues(hdev, GAUDI3_FPGA_CPU_Q_TIMEOUT);
 	if (rc) {
-		dev_err(hdev->dev, "failed to initialize CPU H/W queues\n");
+		hl_err(hdev, "failed to initialize CPU H/W queues\n");
 		return rc;
 	}
 
@@ -313,7 +313,7 @@ static int gaudi3_fpga_hw_fini(struct hl_device *hdev, bool hard_reset, bool fw_
 	gaudi3_fpga_disable_msix(hdev);
 	rc = gaudi3_hw_fini(hdev, hard_reset, fw_reset);
 	if (rc) {
-		dev_err(hdev->dev, "Failed in HW finish\n");
+		hl_err(hdev, "Failed in HW finish\n");
 		return rc;
 	}
 

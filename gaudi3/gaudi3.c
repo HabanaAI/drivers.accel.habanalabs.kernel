@@ -2772,7 +2772,7 @@ void gaudi3_iterate_cache_slices(struct hl_device *hdev, struct iterate_module_c
 								(cslice * CSLICE_OFFSET);
 			ctx->fn(hdev, hdcore, cslice, (u32)offset, ctx);
 			if (ctx->rc) {
-				dev_err(hdev->dev, "CACHE iterator failed for HDCORE%u CS%u\n",
+				hl_err(hdev, "CACHE iterator failed for HDCORE%u CS%u\n",
 							hdcore, cslice);
 				return;
 			}
@@ -2793,7 +2793,7 @@ void gaudi3_iterate_rrtrs(struct hl_device *hdev, struct iterate_module_ctx *ctx
 			offset = mmHD0_RRTR0_BASE + (hdcore * HDCORE_OFFSET) + (rrtr * RRTR_OFFSET);
 			ctx->fn(hdev, hdcore, rrtr, (u32)offset, ctx);
 			if (ctx->rc) {
-				dev_err(hdev->dev, "RRTR iterator failed for HDCORE%u RRTR%u\n",
+				hl_err(hdev, "RRTR iterator failed for HDCORE%u RRTR%u\n",
 							hdcore, rrtr);
 				return;
 			}
@@ -2841,7 +2841,7 @@ static const char *gaudi3_axid_mapping(struct hl_device *hdev, u64 axid,
 
 	*initiator = GAUDI3_ENGINE_ID_SIZE;
 	if (hd == -1) {
-		dev_err(hdev->dev, "bad hd_val: %u\n", hd_val);
+		hl_err(hdev, "bad hd_val: %u\n", hd_val);
 		goto out;
 	}
 
@@ -3148,7 +3148,7 @@ static u32 handle_pmmu_spi_events(struct hl_device *hdev, u32 die, u64 *event_ma
 		 * addition inside. Therefore if the page fault initiator is the PDMA,
 		 * the va will be the original va aligned to 128 bytes
 		 */
-		dev_err(hdev->dev, "page fault: va=0x%llx axi id=0x%.16llx initiator=%s",
+		hl_err(hdev, "page fault: va=0x%llx axi id=0x%.16llx initiator=%s",
 			va, axi_id, initiator_str);
 
 		hl_handle_page_fault(hdev, va, initiator, true, event_mask);
@@ -3159,7 +3159,7 @@ static u32 handle_pmmu_spi_events(struct hl_device *hdev, u32 die, u64 *event_ma
 		axi_id = le64_to_cpu(acc_data->axid);
 
 		initiator_str = gaudi3_axid_mapping(hdev, axi_id, die, is_read, &initiator);
-		dev_err(hdev->dev, "access error: va=0x%llx axi id=0x%16llx initiator=%s",
+		hl_err(hdev, "access error: va=0x%llx axi id=0x%16llx initiator=%s",
 			va, axi_id, initiator_str);
 		err_cnt++;
 	}
@@ -3226,7 +3226,7 @@ static u32 hmmu_event_get_stlb_desc(struct hl_device *hdev,
 	if (cause & 0x2) {
 		dti_opcode = FIELD_GET(GENMASK_ULL(7, 4), intr_log);
 		if (dti_opcode != 0x6) {
-			dev_err(hdev->dev,
+			hl_err(hdev,
 				"got permission fault but dti opcode isn't 0x6 (dti=0x%llx)\n",
 				intr_log);
 		} else {
@@ -3269,7 +3269,7 @@ static u32 handle_hmmu_spi_events(struct hl_device *hdev, u16 data_size,
 	err_cnt += hmmu_event_get_dtlb_desc(hdev, hdcore, die, spi_data->dtlb_data,
 					    dtlb_str, sizeof(dtlb_str), event_mask);
 
-	dev_err(hdev->dev,
+	hl_err(hdev,
 		"STLB info: %s, DTLB info: %s\n", stlb_str, dtlb_str);
 
 	return err_cnt;
@@ -3368,34 +3368,34 @@ static bool gaudi3_validate_hmmu_props(struct hl_device *hdev)
 
 	/* make sure only valid pages are set */
 	if (hmmu_pages_mask & (~GAUDI3_HMMU_VALID_PAGES_MASK)) {
-		dev_err(hdev->dev, "HMMU unsupported pages (mask %#llx)\n", hmmu_pages_mask);
+		hl_err(hdev, "HMMU unsupported pages (mask %#llx)\n", hmmu_pages_mask);
 		return false;
 	}
 
 	/* make sure at least one valid page is set */
 	if (!(hmmu_pages_mask & GAUDI3_HMMU_VALID_PAGES_MASK)) {
-		dev_err(hdev->dev, "No valid HMMU pages size specified (mask %#llx)\n",
+		hl_err(hdev, "No valid HMMU pages size specified (mask %#llx)\n",
 				hmmu_pages_mask);
 		return false;
 	}
 
 	/* make sure valid number of small pages */
 	if (hweight64(hmmu_small_pages_mask) > GAUDI3_HMMU_MAX_SMALL_PAGES_NUM) {
-		dev_err(hdev->dev, "HMMU supports at most - %u small pages (mask %#llx)\n",
+		hl_err(hdev, "HMMU supports at most - %u small pages (mask %#llx)\n",
 				GAUDI3_HMMU_MAX_SMALL_PAGES_NUM, hmmu_small_pages_mask);
 		return false;
 	}
 
 	/* make sure valid number of large pages */
 	if (hweight64(hmmu_large_pages_mask) > GAUDI3_HMMU_MAX_LARGE_PAGES_NUM) {
-		dev_err(hdev->dev, "HMMU supports at most - %u large pages (mask %#llx)\n",
+		hl_err(hdev, "HMMU supports at most - %u large pages (mask %#llx)\n",
 				GAUDI3_HMMU_MAX_LARGE_PAGES_NUM, hmmu_large_pages_mask);
 		return false;
 	}
 
 	/* verify the default page size is part of supported pages */
 	if (!(default_page_size | hmmu_pages_mask)) {
-		dev_err(hdev->dev,
+		hl_err(hdev,
 		"default page size not part of HMMU supported pages (size: %#llx, mask %#llx)\n",
 			default_page_size, hmmu_pages_mask);
 		return false;
@@ -3415,7 +3415,7 @@ static int set_number_of_functional_hbms(struct hl_device *hdev)
 
 	/* check if all HBMs should be used */
 	if (!faulty_hbms) {
-		dev_dbg(hdev->dev, "All HBM are in use (no binning)\n");
+		hl_dbg(hdev, "All HBM are in use (no binning)\n");
 		prop->num_functional_hbms = max_hbms;
 		goto set_dram_mask;
 	}
@@ -3427,7 +3427,7 @@ static int set_number_of_functional_hbms(struct hl_device *hdev)
 	 * set the default)
 	 */
 	if (faulty_hbms > MAX_FAULTY_HBMS) {
-		dev_err(hdev->dev,
+		hl_err(hdev,
 			"HBM binning supports max of %d faulty HBMs, supplied mask 0x%llx.\n",
 			MAX_FAULTY_HBMS, hdev->dram_binning);
 		return -EINVAL;
@@ -3508,7 +3508,7 @@ int gaudi3_validate_set_tpc_binning(struct hl_device *hdev)
 	tpc_full_mask = GENMASK_ULL((prop->num_of_hdcores * NUM_OF_TPC_PER_HDCORE) - 1, 0);
 
 	if (hdev->tpc_mask != tpc_full_mask) {
-		dev_err(hdev->dev,
+		hl_err(hdev,
 			"TPC binning is valid only with full TPC enabled mask\n");
 		return -EINVAL;
 	}
@@ -3526,7 +3526,7 @@ int gaudi3_validate_set_tpc_binning(struct hl_device *hdev)
 
 		num_binned = hweight64(dcore_tpc_binning_mask);
 		if (num_binned > MAX_BINNED_TPCS_PER_DCORE) {
-			dev_err(hdev->dev, "too many binned TPCs (%#llx)\n", hdev->tpc_binning);
+			hl_err(hdev, "too many binned TPCs (%#llx)\n", hdev->tpc_binning);
 			return -EINVAL;
 		}
 	}
@@ -3556,7 +3556,7 @@ static int gaudi3_validate_set_decoder_binning(struct hl_device *hdev)
 		dec_binning_mask_per_die = (hdev->decoder_binning >> shift) & full_dec_mask_per_die;
 		num_binned = hweight32(dec_binning_mask_per_die);
 		if (num_binned > MAX_BINNED_DECODERS_PER_DIE) {
-			dev_err(hdev->dev, "too many binned decoders (%#x)\n",
+			hl_err(hdev, "too many binned decoders (%#x)\n",
 					hdev->decoder_binning);
 			return -EINVAL;
 		}
@@ -3591,7 +3591,7 @@ static int gaudi3_validate_set_rotator_binning(struct hl_device *hdev)
 		rot_binning_mask_per_die = (hdev->rotator_binning >> shift) & full_rot_mask_per_die;
 		num_binned = hweight32(rot_binning_mask_per_die);
 		if (num_binned > MAX_BINNED_ROTATORS_PER_DIE) {
-			dev_err(hdev->dev, "too many binned rotators (%#x)\n",
+			hl_err(hdev, "too many binned rotators (%#x)\n",
 					hdev->rotator_binning);
 			return -EINVAL;
 		}
@@ -4105,7 +4105,7 @@ static void gaudi3_remap_pci_memory_regions(struct hl_device *hdev, bool sram_en
 	if (sram_enable) {
 		/* Map BAR first 256MB to SRAM  */
 		if (sram_region->used) {
-			dev_err(hdev->dev,
+			hl_err(hdev,
 				"try to expose sram in bar when it is already exposed!\n");
 			return;
 		}
@@ -4116,7 +4116,7 @@ static void gaudi3_remap_pci_memory_regions(struct hl_device *hdev, bool sram_en
 		hdev->dram_pci_bar_start += SRAM_SIZE;
 	} else {
 		if (!sram_region->used) {
-			dev_err(hdev->dev,
+			hl_err(hdev,
 				"try to remove sram from bar when it is already removed!\n");
 			return;
 		}
@@ -4143,7 +4143,7 @@ static int gaudi3_init_iatu(struct hl_device *hdev)
 	rc |= hl_pci_elbi_read(hdev, CFG_BAR_BASE + mmD0_PCIE_DBI_SIG_BASE + mmPCIE_DBI_BAR0_REG,
 			&bar_addr_low);
 	if (rc) {
-		dev_err(hdev->dev, "failed to read DBI BAR0/1 register through elbi\n");
+		hl_err(hdev, "failed to read DBI BAR0/1 register through elbi\n");
 		goto done;
 	}
 
@@ -4155,7 +4155,7 @@ static int gaudi3_init_iatu(struct hl_device *hdev)
 	rc |= hl_pci_elbi_read(hdev, CFG_BAR_BASE + mmD0_PCIE_DBI_SIG_BASE + mmPCIE_DBI_BAR4_REG,
 			&bar_addr_low);
 	if (rc) {
-		dev_err(hdev->dev, "failed to read DBI BAR4/5 register through elbi\n");
+		hl_err(hdev, "failed to read DBI BAR4/5 register through elbi\n");
 		goto done;
 	}
 
@@ -4265,7 +4265,7 @@ timeout:
 	if (hdev->simulator_crashed)
 		return 0;
 
-	dev_err_ratelimited(hdev->dev,
+	hl_err_ratelimited(hdev,
 			"CQ completion: timeout waiting for job (%s), SOB val: %#x, q_id: 0x%x, poll_addr %p, pi: 0x%x, ci: 0x%x\n",
 			    cq_params->job_str,
 			    RREG32(mmHD0_SYNC_MNGR_OBJS_BASE + mmSOB_OBJS_SOB_OBJ_0_0 + sob_off),
@@ -4442,7 +4442,7 @@ int gaudi3_scrub_device_dram(struct hl_device *hdev, u64 val)
 	rc = gaudi3_memset_device_memory(hdev, prop->dram_user_base_address, size, val,
 						"DRAM scrub");
 	if (rc)
-		dev_err(hdev->dev, "Failed to scrub dram, address: 0x%llx size: %llu\n",
+		hl_err(hdev, "Failed to scrub dram, address: 0x%llx size: %llu\n",
 				prop->dram_user_base_address, size);
 
 	return rc;
@@ -4460,7 +4460,7 @@ static int gaudi3_scrub_device_sram(struct hl_device *hdev, u64 val)
 	rc = gaudi3_memset_device_memory(hdev, prop->sram_user_base_address, size, val,
 						"SRAM scrub");
 	if (rc)
-		dev_err(hdev->dev, "Failed to scrub SRAM, address 0x%llx size: %llu\n",
+		hl_err(hdev, "Failed to scrub SRAM, address 0x%llx size: %llu\n",
 				prop->sram_user_base_address, size);
 
 	return rc;
@@ -4493,7 +4493,7 @@ static int gaudi3_scrub_arc_dccm(struct hl_device *hdev, u32 cpu_id)
 	rc = gaudi3_memset_device_memory(hdev, hdev->asic_prop.cfg_base_address + reg_base,
 						size, 0, "ARC scrub");
 	if (rc)
-		dev_err(hdev->dev, "Failed to scrub ARC %u\n", cpu_id);
+		hl_err(hdev, "Failed to scrub ARC %u\n", cpu_id);
 
 	return rc;
 }
@@ -4645,7 +4645,7 @@ void gaudi3_init_pdma(struct hl_device *hdev)
 	if ((gaudi3->hw_cap_pdma_initialized & HW_CAP_PDMA_MASK) == HW_CAP_PDMA_MASK)
 		return;
 
-	dev_dbg(hdev->dev, "Initializing PDMA\n");
+	hl_dbg(hdev, "Initializing PDMA\n");
 
 	prop->pdma_user_owned_ch_mask = 0;
 
@@ -4725,7 +4725,7 @@ static int gaudi3_early_init(struct hl_device *hdev)
 	pci_bar_size = pci_resource_len(pdev, CFG_BAR_ID);
 
 	if (pci_bar_size != CFG_BAR_SIZE) {
-		dev_err(hdev->dev, "Not " HL_NAME "? BAR %d size %pa, expecting %llu\n",
+		hl_err(hdev, "Not " HL_NAME "? BAR %d size %pa, expecting %llu\n",
 			CFG_BAR_ID, &pci_bar_size, CFG_BAR_SIZE);
 		rc = -ENODEV;
 		goto free_queue_props;
@@ -4734,7 +4734,7 @@ static int gaudi3_early_init(struct hl_device *hdev)
 	pci_bar_size = pci_resource_len(pdev, MSIX_BAR_ID);
 
 	if (pci_bar_size != MSIX_BAR_SIZE) {
-		dev_err(hdev->dev, "Not " HL_NAME "? BAR %d size %pa, expecting %llu\n",
+		hl_err(hdev, "Not " HL_NAME "? BAR %d size %pa, expecting %llu\n",
 			MSIX_BAR_ID, &pci_bar_size, MSIX_BAR_SIZE);
 		rc = -ENODEV;
 		goto free_queue_props;
@@ -4768,7 +4768,7 @@ static int gaudi3_early_init(struct hl_device *hdev)
 	if (hdev->pldm && (hdev->fw_components == FW_TYPE_PREBOOT_CPU)) {
 		status = RREG32(mmD0_PSOC_SECURITY_BASE + mmPSOC_SECURITY_SW_STATUS_0);
 		if (status) {
-			dev_dbg(hdev->dev, "Loading LKD with full Preboot for embedded regression\n");
+			hl_dbg(hdev, "Loading LKD with full Preboot for embedded regression\n");
 			hdev->fw_components |= FW_TYPE_BOOT_CPU;
 			hdev->cpu_queues_enable = 1;
 			hdev->heartbeat = 1;
@@ -4776,10 +4776,10 @@ static int gaudi3_early_init(struct hl_device *hdev)
 	}
 
 	if (gaudi3_get_hw_state(hdev) == HL_DEVICE_HW_STATE_DIRTY) {
-		dev_dbg(hdev->dev, "H/W state is dirty, must reset before initializing\n");
+		hl_dbg(hdev, "H/W state is dirty, must reset before initializing\n");
 		rc = hdev->asic_funcs->hw_fini(hdev, true, false);
 		if (rc) {
-			dev_err(hdev->dev, "failed to reset HW in dirty state (%d)\n", rc);
+			hl_err(hdev, "failed to reset HW in dirty state (%d)\n", rc);
 			goto pci_fini;
 		}
 
@@ -4827,13 +4827,13 @@ int gaudi3_late_init(struct hl_device *hdev)
 
 	rc = gaudi3_fetch_psoc_frequency(hdev);
 	if (rc) {
-		dev_err(hdev->dev, "Failed to fetch psoc frequency\n");
+		hl_err(hdev, "Failed to fetch psoc frequency\n");
 		return rc;
 	}
 
 	rc = gaudi3_fetch_nic_frequency(hdev);
 	if (rc) {
-		dev_err(hdev->dev, "Failed to fetch NIC frequency\n");
+		hl_err(hdev, "Failed to fetch NIC frequency\n");
 		return rc;
 	}
 
@@ -4844,7 +4844,7 @@ int gaudi3_late_init(struct hl_device *hdev)
 		hdev->hldio.np2prs = 1;
 		hdev->hldio.p2prs = vzalloc(hdev->hldio.np2prs * sizeof(*hdev->hldio.p2prs));
 		if (!hdev->hldio.p2prs) {
-			dev_err(hdev->dev, "P2P mem init error\n");
+			hl_err(hdev, "P2P mem init error\n");
 			hdev->hldio.np2prs = 0;
 			return -ENOMEM;
 		}
@@ -4856,7 +4856,7 @@ int gaudi3_late_init(struct hl_device *hdev)
 				prop->dram_pci_bar_size - hdev->hldio.p2prs[0].bar_offset;
 		rc = hl_p2p_region_init(hdev, &hdev->hldio.p2prs[0]);
 		if (rc) {
-			dev_err(hdev->dev, "P2P mem init error %d\n", rc);
+			hl_err(hdev, "P2P mem init error %d\n", rc);
 			vfree(hdev->hldio.p2prs);
 			hdev->hldio.p2prs = NULL;
 		} else {
@@ -4904,7 +4904,7 @@ int gaudi3_alloc_cpu_accessible_dma_mem(struct hl_device *hdev)
 	}
 
 	if (i == GAUDI3_ALLOC_CPU_MEM_RETRY_CNT) {
-		dev_err(hdev->dev,
+		hl_err(hdev,
 			"MSB of ARC accessible DMA memory are not identical in all range\n");
 		rc = -EFAULT;
 		goto free_dma_mem_arr;
@@ -4951,7 +4951,7 @@ static bool gaudi3_special_blocks_skip_with_mask(struct hl_device *hdev,
 	 * or specs file structure has changed unexpectedly.
 	 */
 	if (block_info->major == 0) {
-		dev_err(hdev->dev, "Illegal value! block_info->major == 0'\n");
+		hl_err(hdev, "Illegal value! block_info->major == 0'\n");
 		return true;
 	}
 
@@ -4977,7 +4977,7 @@ static bool gaudi3_special_blocks_skip_with_mask(struct hl_device *hdev,
 
 	/* Sanity check */
 	if (instance_idx >= num_of_instances) {
-		dev_err(hdev->dev, "[blk_idx %u]: instance_idx (%u) must be bounded by num_of_instances (%u)!\n",
+		hl_err(hdev, "[blk_idx %u]: instance_idx (%u) must be bounded by num_of_instances (%u)!\n",
 				blk_idx, instance_idx, num_of_instances);
 		return true;
 	}
@@ -4992,7 +4992,7 @@ static bool gaudi3_special_blocks_skip_with_mask(struct hl_device *hdev,
 
 		max_instances = NIC_NUMBER_OF_MACROS;
 		if (instance_idx >= max_instances) {
-			dev_err(hdev->dev, "[blk_idx %u]: instance_idx (%u) exceeded max NIC macros (%u)!\n",
+			hl_err(hdev, "[blk_idx %u]: instance_idx (%u) exceeded max NIC macros (%u)!\n",
 					blk_idx, instance_idx, max_instances);
 			return true;
 		}
@@ -5004,7 +5004,7 @@ static bool gaudi3_special_blocks_skip_with_mask(struct hl_device *hdev,
 	case GAUDI3_BLOCK_TYPE_PDMA:
 		max_instances = NUM_OF_PDMA_CH;
 		if (instance_idx >= max_instances) {
-			dev_err(hdev->dev, "[blk_idx %u]: instance_idx (%u) exceeded max PDMA channels (%u)!\n",
+			hl_err(hdev, "[blk_idx %u]: instance_idx (%u) exceeded max PDMA channels (%u)!\n",
 					blk_idx, instance_idx, max_instances);
 			return true;
 		}
@@ -5014,7 +5014,7 @@ static bool gaudi3_special_blocks_skip_with_mask(struct hl_device *hdev,
 				return false;
 		} else if (num_of_instances == NUM_OF_PDMA_GRP) {
 			if (instance_idx >= NUM_OF_PDMA_GRP) {
-				dev_err(hdev->dev, "[blk_idx %u]: instance_idx (%u) exceeded max PDMA groups (%u)!\n",
+				hl_err(hdev, "[blk_idx %u]: instance_idx (%u) exceeded max PDMA groups (%u)!\n",
 						blk_idx, instance_idx, NUM_OF_PDMA_GRP);
 				return true;
 			}
@@ -5029,7 +5029,7 @@ static bool gaudi3_special_blocks_skip_with_mask(struct hl_device *hdev,
 		max_instances = MAX_NUM_OF_DIES * NUM_OF_HDCORES_PER_DIE *
 				NUM_OF_TPC_PER_HDCORE;
 		if (instance_idx >= max_instances) {
-			dev_err(hdev->dev, "[blk_idx %u]: instance_idx (%u) exceeded max TPCs (%u)!\n",
+			hl_err(hdev, "[blk_idx %u]: instance_idx (%u) exceeded max TPCs (%u)!\n",
 					blk_idx, instance_idx, max_instances);
 			return true;
 		}
@@ -5046,7 +5046,7 @@ static bool gaudi3_special_blocks_skip_with_mask(struct hl_device *hdev,
 		max_instances = MAX_NUM_OF_DIES * NUM_OF_HDCORES_PER_DIE *
 				NUM_OF_MME_PER_HDCORE;
 		if (instance_idx >= max_instances) {
-			dev_err(hdev->dev, "[blk_idx %u]: instance_idx (%u) exceeded max MMEs (%u)!\n",
+			hl_err(hdev, "[blk_idx %u]: instance_idx (%u) exceeded max MMEs (%u)!\n",
 					blk_idx, instance_idx, max_instances);
 			return true;
 		}
@@ -5059,7 +5059,7 @@ static bool gaudi3_special_blocks_skip_with_mask(struct hl_device *hdev,
 		max_instances = MAX_NUM_OF_DIES * NUM_OF_HDCORES_PER_DIE *
 				NUM_OF_DECODER_PER_HDCORE;
 		if (instance_idx >= max_instances) {
-			dev_err(hdev->dev, "[blk_idx %u]: instance_idx (%u) exceeded max DECs (%u)!\n",
+			hl_err(hdev, "[blk_idx %u]: instance_idx (%u) exceeded max DECs (%u)!\n",
 					blk_idx, instance_idx, max_instances);
 			return true;
 		}
@@ -5072,7 +5072,7 @@ static bool gaudi3_special_blocks_skip_with_mask(struct hl_device *hdev,
 		max_instances = MAX_NUM_OF_DIES * NUM_OF_HDCORES_PER_DIE *
 				NUM_OF_ROTATOR_PER_HDCORE;
 		if (instance_idx >= max_instances) {
-			dev_err(hdev->dev, "[blk_idx %u]: instance_idx (%u) exceeded max ROTs (%u)!\n",
+			hl_err(hdev, "[blk_idx %u]: instance_idx (%u) exceeded max ROTs (%u)!\n",
 					blk_idx, instance_idx, max_instances);
 			return true;
 		}
@@ -5085,7 +5085,7 @@ static bool gaudi3_special_blocks_skip_with_mask(struct hl_device *hdev,
 		max_instances = MAX_NUM_OF_DIES * NUM_OF_HDCORES_PER_DIE *
 				NUM_OF_EDMA_PER_HDCORE;
 		if (instance_idx >= max_instances) {
-			dev_err(hdev->dev, "[blk_idx %u]: instance_idx (%u) exceeded max EDMA (%u)!\n",
+			hl_err(hdev, "[blk_idx %u]: instance_idx (%u) exceeded max EDMA (%u)!\n",
 					blk_idx, instance_idx, max_instances);
 			return true;
 		}
@@ -5097,7 +5097,7 @@ static bool gaudi3_special_blocks_skip_with_mask(struct hl_device *hdev,
 	default:
 		/* TODO - uncomment once SW-104756 is resolved, and all block-types
 		 * are fully handled here:
-		 * dev_err(hdev->dev, "Block type %d isn't currently supported!\n",
+		 * hl_err(hdev, "Block type %d isn't currently supported!\n",
 		 *		block_info->block_type);
 		 */
 		break;
@@ -5323,7 +5323,7 @@ static int gaudi3_cpucp_handshake_info_get(struct hl_device *hdev)
 	hdev->decoder_binning = lower_32_bits(le64_to_cpu(prop->cpucp_info.decoder_binning_mask));
 	hdev->rotator_binning = le32_to_cpu(prop->cpucp_info.rot_binning_mask);
 
-	dev_dbg(hdev->dev, "Read binning masks: tpc: 0x%llx, dram: 0x%llx, dec: 0x%x, rot: 0x%x\n",
+	hl_dbg(hdev, "Read binning masks: tpc: 0x%llx, dram: 0x%llx, dec: 0x%x, rot: 0x%x\n",
 			hdev->tpc_binning, hdev->dram_binning, hdev->decoder_binning,
 			hdev->rotator_binning);
 
@@ -5459,7 +5459,7 @@ int gaudi3_test_qmans_msgs_alloc(struct hl_device *hdev)
 			(void *)hl_asic_dma_pool_zalloc(hdev, sizeof(struct packet_msg_short),
 							GFP_KERNEL, &msg_info[i].dma_addr);
 		if (!msg_info[i].kern_addr) {
-			dev_err(hdev->dev,
+			hl_err(hdev,
 				"Failed to allocate dma memory for H/W queue %d testing\n", i);
 			rc = -ENOMEM;
 			goto err_exit;
@@ -5505,7 +5505,7 @@ int gaudi3_sw_init(struct hl_device *hdev)
 	hdev->dma_pool = dma_pool_create(dev_name(hdev->dev), &hdev->pdev->dev,
 					GAUDI3_DMA_POOL_BLK_SIZE, NIC_CACHE_LINE_SIZE, 0);
 	if (!hdev->dma_pool) {
-		dev_err(hdev->dev, "failed to create DMA pool\n");
+		hl_err(hdev, "failed to create DMA pool\n");
 		rc = -ENOMEM;
 		goto free_gaudi3_device;
 	}
@@ -5516,7 +5516,7 @@ int gaudi3_sw_init(struct hl_device *hdev)
 
 	hdev->cpu_accessible_dma_pool = gen_pool_create(ilog2(32), -1);
 	if (!hdev->cpu_accessible_dma_pool) {
-		dev_err(hdev->dev, "Failed to create CPU accessible DMA pool\n");
+		hl_err(hdev, "Failed to create CPU accessible DMA pool\n");
 		rc = -ENOMEM;
 		goto free_cpu_dma_mem;
 	}
@@ -5524,14 +5524,14 @@ int gaudi3_sw_init(struct hl_device *hdev)
 	rc = gen_pool_add(hdev->cpu_accessible_dma_pool, (uintptr_t) hdev->cpu_accessible_dma_mem,
 				HL_CPU_ACCESSIBLE_MEM_SIZE, -1);
 	if (rc) {
-		dev_err(hdev->dev, "Failed to add memory to CPU accessible DMA pool\n");
+		hl_err(hdev, "Failed to add memory to CPU accessible DMA pool\n");
 		rc = -EFAULT;
 		goto free_cpu_accessible_dma_pool;
 	}
 
 	rc = gaudi3_etr_buf_store_sw_init(hdev);
 	if (rc) {
-		dev_err(hdev->dev, "Failed to init ETR buffer storing S/W\n");
+		hl_err(hdev, "Failed to init ETR buffer storing S/W\n");
 		goto free_cpu_accessible_dma_pool;
 	}
 
@@ -5630,7 +5630,7 @@ static int gaudi3_pmmu_update_asid_hop0_addr(struct hl_device *hdev, u32 asid, u
 		timeout_usec);
 
 	if (rc)
-		dev_err(hdev->dev, "Timeout during PMMU hop0 config of asid %d\n", asid);
+		hl_err(hdev, "Timeout during PMMU hop0 config of asid %d\n", asid);
 
 	return rc;
 }
@@ -5655,7 +5655,7 @@ static int gaudi3_pmmu_update_hop0_addr(struct hl_device *hdev, bool host_reside
 
 		rc = gaudi3_pmmu_update_asid_hop0_addr(hdev, asid, hop0_addr);
 		if (rc) {
-			dev_err(hdev->dev, "failed to set hop0 addr for asid %d\n", asid);
+			hl_err(hdev, "failed to set hop0 addr for asid %d\n", asid);
 			return rc;
 		}
 	}
@@ -5674,7 +5674,7 @@ static int gaudi3_pci_mmu_init(struct hl_device *hdev)
 	if (gaudi3->hw_cap_initialized & HW_CAP_PMMU)
 		return 0;
 
-	dev_dbg(hdev->dev, "Initializing PCI MMU\n");
+	hl_dbg(hdev, "Initializing PCI MMU\n");
 
 	/* not using RMWREG32 since the internal shift makes it more complicated */
 	val = FIELD_PREP(PSTLB_HOP_CONFIGURATION_FIRST_HOP_M, 0) |
@@ -5717,7 +5717,7 @@ static int gaudi3_pci_mmu_init(struct hl_device *hdev)
 	WREG32(mmD0_PMMU_HBW_MMU_BASE + mmMMU_INV_CPL_ADDR, sob_lbw_off);
 	WREG32(mmD0_PMMU_HBW_MMU_BASE + mmMMU_INV_CPL_DATA, inc_sob_value);
 
-	dev_dbg(hdev->dev, "Finished initializing PCI MMU\n");
+	hl_dbg(hdev, "Finished initializing PCI MMU\n");
 
 	gaudi3->hw_cap_initialized |= HW_CAP_PMMU;
 
@@ -5835,7 +5835,7 @@ static void gaudi3_hbm_mmu_init(struct hl_device *hdev)
 	if (gaudi3->hw_cap_initialized & HW_CAP_HMMU_MASK)
 		return;
 
-	dev_dbg(hdev->dev, "Initializing HBM MMU\n");
+	hl_dbg(hdev, "Initializing HBM MMU\n");
 
 	/*
 	 * not much of a reuse as it's the only thing done here but keep
@@ -6118,7 +6118,7 @@ void gaudi3_init_edma(struct hl_device *hdev)
 	if ((gaudi3->hw_cap_initialized & HW_CAP_EDMA_MASK) == HW_CAP_EDMA_MASK)
 		return;
 
-	dev_dbg(hdev->dev, "Initializing EDMAs\n");
+	hl_dbg(hdev, "Initializing EDMAs\n");
 
 	gaudi3_iterate_edmas(hdev, &iter_ctx);
 }
@@ -6203,7 +6203,7 @@ void gaudi3_init_tpc(struct hl_device *hdev)
 	if ((gaudi3->hw_cap_tpc_initialized & HW_CAP_TPC_MASK) == HW_CAP_TPC_MASK)
 		return;
 
-	dev_dbg(hdev->dev, "Initializing TPCs\n");
+	hl_dbg(hdev, "Initializing TPCs\n");
 
 	gaudi3_iterate_tpcs(hdev, &iter_ctx);
 }
@@ -6286,7 +6286,7 @@ void gaudi3_init_mme(struct hl_device *hdev)
 	if ((gaudi3->hw_cap_initialized & HW_CAP_MME_MASK) == HW_CAP_MME_MASK)
 		return;
 
-	dev_dbg(hdev->dev, "Initializing MMEs\n");
+	hl_dbg(hdev, "Initializing MMEs\n");
 
 	gaudi3_iterate_mmes(hdev, &iter_ctx);
 }
@@ -6342,7 +6342,7 @@ void gaudi3_init_rotator(struct hl_device *hdev)
 	if ((gaudi3->hw_cap_initialized & HW_CAP_ROT_MASK) == HW_CAP_ROT_MASK)
 		return;
 
-	dev_dbg(hdev->dev, "Initializing ROTs\n");
+	hl_dbg(hdev, "Initializing ROTs\n");
 
 	gaudi3_iterate_rotators(hdev, &iter_ctx);
 }
@@ -6397,7 +6397,7 @@ void gaudi3_init_decoder(struct hl_device *hdev)
 	if ((gaudi3->hw_cap_dec_initialized & HW_CAP_DEC_MASK) == HW_CAP_DEC_MASK)
 		return;
 
-	dev_dbg(hdev->dev, "Initializing DECs\n");
+	hl_dbg(hdev, "Initializing DECs\n");
 
 	gaudi3_iterate_decoders(hdev, &iter_ctx);
 }
@@ -6841,7 +6841,7 @@ static bool gaudi3_process_page_fault(struct hl_device *hdev,
 
 	ctx = hl_get_compute_ctx(hdev);
 	if (!ctx) {
-		dev_err_ratelimited(hdev->dev, "Page fault for a dead ctx arrived, discarding\n");
+		hl_err_ratelimited(hdev, "Page fault for a dead ctx arrived, discarding\n");
 		goto report_outcome;
 	}
 
@@ -6851,12 +6851,12 @@ static bool gaudi3_process_page_fault(struct hl_device *hdev,
 
 	hl_odp_page_fault_read_ahead_size(rg, entry->va, &ra_start_va, &ra_npages);
 
-	dev_dbg(hdev->dev, "Paging in %#llx + %#x for va %#llx\n",
+	hl_dbg(hdev, "Paging in %#llx + %#x for va %#llx\n",
 		ra_start_va, ra_npages, entry->va);
 
 	rc = hl_odp_page_in(rg, ra_start_va, ra_npages);
 	if (rc) {
-		dev_err(hdev->dev,
+		hl_err(hdev,
 			"Error %d during the page in procedure\n", rc);
 		goto put_ctx;
 	}
@@ -6949,15 +6949,15 @@ static irqreturn_t gaudi3_page_fault_queue_threaded_irq_handler(int irq, void *p
 
 		if (pgf_q_entry->asid == HL_KERNEL_ASID_ID ||
 				pgf_q_entry->asid > hdev->asic_prop.max_asid)
-			dev_err(hdev->dev,
+			hl_err(hdev,
 				"Page fault on bad asid %d VA=%#llx\n",
 				pgf_q_entry->asid, pgf_q_entry->va);
 		else if (pgf_q_entry->cause >= GAUDI3_PGF_CAUSE_RESERVED)
-			dev_err(hdev->dev,
+			hl_err(hdev,
 				"Bad page fault cause %d VA=%#llx\n",
 				pgf_q_entry->cause, pgf_q_entry->va);
 		else if (pgf_q_entry->hop >= MMU_ARCH_6_HOPS)
-			dev_err(hdev->dev,
+			hl_err(hdev,
 				"Bad page fault hop %d VA=%#llx\n",
 				pgf_q_entry->hop, pgf_q_entry->va);
 		else
@@ -7069,7 +7069,7 @@ static int gaudi3_enable_user_msix(struct hl_device *hdev)
 				&hdev->user_interrupt[j]);
 
 		if (rc) {
-			dev_err(hdev->dev, "Failed to request decoder IRQ %d", irq);
+			hl_err(hdev, "Failed to request decoder IRQ %d", irq);
 			goto free_decoder_irqs;
 		}
 	}
@@ -7082,7 +7082,7 @@ static int gaudi3_enable_user_msix(struct hl_device *hdev)
 		rc = request_irq(irq, hl_irq_user_interrupt_handler, 0, gaudi3_irq_name(intr_id),
 				&hdev->user_interrupt[j]);
 		if (rc) {
-			dev_err(hdev->dev, "Failed to request user IRQ %d", irq);
+			hl_err(hdev, "Failed to request user IRQ %d", irq);
 			goto free_user_irqs;
 		}
 	}
@@ -7092,7 +7092,7 @@ static int gaudi3_enable_user_msix(struct hl_device *hdev)
 					gaudi3_irq_name(GAUDI3_IRQ_NUM_UNEXPECTED_ERROR),
 					&hdev->unexpected_error_interrupt);
 	if (rc) {
-		dev_err(hdev->dev, "Failed to request IRQ %d", irq);
+		hl_err(hdev, "Failed to request IRQ %d", irq);
 		goto free_user_irqs;
 	}
 
@@ -7632,7 +7632,7 @@ static irqreturn_t gaudi3_etr_threaded_irq_handler(int irq, void *param)
 
 	rc = gaudi3_etr_fetch_buffer_to_host(hdev, etr_idx, false);
 	if (rc)
-		dev_err(hdev->dev, "Error fetching ETR buffer: %d\n", rc);
+		hl_err(hdev, "Error fetching ETR buffer: %d\n", rc);
 
 	return IRQ_HANDLED;
 }
@@ -7710,7 +7710,7 @@ void gaudi3_eq_handler(struct work_struct *work)
 
 		cur_eqe_index = FIELD_GET(EQ_CTL_INDEX_MASK, ctl);
 		if (((eq->prev_eqe_index + 1) & EQ_CTL_INDEX_MASK) != cur_eqe_index) {
-			dev_err_ratelimited(hdev->dev,
+			hl_err_ratelimited(hdev,
 					"eqe %#x in queue is ready but index does not match %d!=%d",
 					ctl,
 					(eq->prev_eqe_index + 1) & EQ_CTL_INDEX_MASK,
@@ -7724,7 +7724,7 @@ void gaudi3_eq_handler(struct work_struct *work)
 		dma_rmb();
 
 		if (hdev->disabled && !hdev->reset_info.in_compute_reset)
-			dev_dbg_ratelimited(hdev->dev, "Device disabled. Discard eqe %#x.\n", ctl);
+			hl_dbg_ratelimited(hdev, "Device disabled. Discard eqe %#x.\n", ctl);
 		else
 			gaudi3_handle_eqe(hdev, eq_entry);
 
@@ -7743,7 +7743,7 @@ static irqreturn_t gaudi3_eq_irq_handler(int irq, void *arg)
 	struct hl_device *hdev = arg;
 
 	if (hdev->disabled && !hdev->reset_info.in_compute_reset) {
-		dev_warn_ratelimited(hdev->dev, "Device disabled but received an EQ event\n");
+		hl_warn_ratelimited(hdev, "Device disabled but received an EQ event\n");
 		goto out;
 	}
 
@@ -7755,7 +7755,7 @@ static irqreturn_t gaudi3_eq_irq_handler(int irq, void *arg)
 	 * So just log this.
 	 */
 	if (!queue_work(hdev->eq_wq, &eq_work->work))
-		dev_info_ratelimited(hdev->dev,
+		hl_info_ratelimited(hdev,
 				     "EQ event queue_work was rejected, work is already on a queue\n");
 
 out:
@@ -7891,7 +7891,7 @@ int gaudi3_enable_msix(struct hl_device *hdev)
 	n_msix = hdev->pldm ? GAUDI3_PLDM_MSIX_ENTRIES : GAUDI3_MSIX_ENTRIES;
 	rc = hl_alloc_irq_vectors(hdev, n_msix, n_msix, PCI_IRQ_MSIX);
 	if (rc < 0) {
-		dev_err(hdev->dev,
+		hl_err(hdev,
 			"MSI-X: Failed to enable support (%d-%d) - %d\n",
 			n_msix, n_msix, rc);
 		return rc;
@@ -7899,7 +7899,7 @@ int gaudi3_enable_msix(struct hl_device *hdev)
 
 	rc = gaudi3_page_fault_queue_enable_msix(hdev);
 	if (rc) {
-		dev_err(hdev->dev,
+		hl_err(hdev,
 			"MSI-X: Failed to enable page fault queue - %d\n", rc);
 		goto free_irq_vectors;
 	}
@@ -7910,32 +7910,32 @@ int gaudi3_enable_msix(struct hl_device *hdev)
 
 	rc = gaudi3_etrs_enable_msix(hdev);
 	if (rc) {
-		dev_err(hdev->dev,
+		hl_err(hdev,
 			"MSI-X: Failed to enable ETR buffer interrupts - %d\n", rc);
 		goto free_user_irqs;
 	}
 
 	rc = gaudi3_eq_enable_msix(hdev);
 	if (rc) {
-		dev_err(hdev->dev, "MSI-X: Failed to enable EQ interrupt - %d\n", rc);
+		hl_err(hdev, "MSI-X: Failed to enable EQ interrupt - %d\n", rc);
 		goto free_etr_irqs;
 	}
 
 	rc = gaudi3_pldm_enable_msix(hdev);
 	if (rc) {
-		dev_err(hdev->dev, "MSI-X: Failed to enable PLDM interrupts - %d\n", rc);
+		hl_err(hdev, "MSI-X: Failed to enable PLDM interrupts - %d\n", rc);
 		goto free_eq_irqs;
 	}
 
 	rc = gaudi3_tpc_assert_enable_msix(hdev);
 	if (rc) {
-		dev_err(hdev->dev, "MSI-X: Failed to enable TPC assert interrupt - %d\n", rc);
+		hl_err(hdev, "MSI-X: Failed to enable TPC assert interrupt - %d\n", rc);
 		goto free_pldm_irqs;
 	}
 
 	rc = gaudi3_eq_error_enable_msix(hdev);
 	if (rc) {
-		dev_err(hdev->dev, "MSI-X: Failed to enable EQ error interrupt - %d\n", rc);
+		hl_err(hdev, "MSI-X: Failed to enable EQ error interrupt - %d\n", rc);
 		goto free_tpc_assert_irq;
 	}
 
@@ -8126,7 +8126,7 @@ static int gaudi3_fw_send_eqe_size(struct hl_device *hdev)
 	rc = hdev->asic_funcs->send_cpu_message(hdev, (u32 *) &pkt, sizeof(pkt), 0, NULL);
 
 	if (rc)
-		dev_err(hdev->dev, "Failed to send eq entry size, error %d\n", rc);
+		hl_err(hdev, "Failed to send eq entry size, error %d\n", rc);
 
 	return rc;
 }
@@ -8186,7 +8186,7 @@ int gaudi3_init_cpu_queues(struct hl_device *hdev, u32 cpu_timeout)
 		1000,
 		cpu_timeout);
 	if (err) {
-		dev_err(hdev->dev, "Failed to communicate with device CPU (timeout)\n");
+		hl_err(hdev, "Failed to communicate with device CPU (timeout)\n");
 		return -EIO;
 	}
 
@@ -8251,7 +8251,7 @@ static int gaudi3_hw_init(struct hl_device *hdev)
 
 	rc = gaudi3_init_plls(hdev);
 	if (rc) {
-		dev_err(hdev->dev, "failed to initialize PLLs\n");
+		hl_err(hdev, "failed to initialize PLLs\n");
 		return rc;
 	}
 
@@ -8267,13 +8267,13 @@ static int gaudi3_hw_init(struct hl_device *hdev)
 	 * base address of dram
 	 */
 	if (gaudi3_set_hbm_bar_base(hdev, DRAM_PHYS_BASE) == U64_MAX) {
-		dev_err(hdev->dev, "failed to map HBM bar to DRAM base address\n");
+		hl_err(hdev, "failed to map HBM bar to DRAM base address\n");
 		return -EIO;
 	}
 
 	rc = gaudi3_init_cpu(hdev);
 	if (rc) {
-		dev_err(hdev->dev, "failed to initialize CPU\n");
+		hl_err(hdev, "failed to initialize CPU\n");
 		return rc;
 	}
 
@@ -8288,7 +8288,7 @@ static int gaudi3_hw_init(struct hl_device *hdev)
 	if (hdev->cache_enable) {
 		rc = gaudi3_set_cache_mode(hdev);
 		if (rc) {
-			dev_err(hdev->dev, "failed setting cache mode\n");
+			hl_err(hdev, "failed setting cache mode\n");
 			return rc;
 		}
 	}
@@ -8319,13 +8319,13 @@ static int gaudi3_hw_init(struct hl_device *hdev)
 	 */
 	rc = gaudi3_init_cpu_queues(hdev, GAUDI3_CPU_TIMEOUT_USEC);
 	if (rc) {
-		dev_err(hdev->dev, "failed to initialize CPU H/W queues %d\n", rc);
+		hl_err(hdev, "failed to initialize CPU H/W queues %d\n", rc);
 		return rc;
 	}
 
 	rc = gaudi3->cpucp_info_get(hdev);
 	if (rc) {
-		dev_err(hdev->dev, "Failed to get cpucp info\n");
+		hl_err(hdev, "Failed to get cpucp info\n");
 		return rc;
 	}
 
@@ -8448,7 +8448,7 @@ static void gaudi3_execute_hard_reset(struct hl_device *hdev)
 	}
 
 	gaudi3_send_hard_reset_cmd(hdev);
-	dev_dbg(hdev->dev, "Firmware performs HARD reset\n");
+	hl_dbg(hdev, "Firmware performs HARD reset\n");
 }
 
 void gaudi3_clear_hw_cap(struct hl_device *hdev, bool hard_reset)
@@ -8481,7 +8481,7 @@ static int gaudi3_wait_reset(struct hl_device *hdev, u32 reset_poll_timeout_us,
 	u32 status;
 	int rc;
 
-	dev_dbg(hdev->dev, "Wait %u ms after reset\n", reset_sleep_ms);
+	hl_dbg(hdev, "Wait %u ms after reset\n", reset_sleep_ms);
 	msleep(reset_sleep_ms);
 
 	if (hard_reset && (hdev->fw_components & FW_TYPE_PREBOOT_CPU)) {
@@ -8496,7 +8496,7 @@ static int gaudi3_wait_reset(struct hl_device *hdev, u32 reset_poll_timeout_us,
 		1000,
 		reset_poll_timeout_us);
 	if (rc)
-		dev_err(hdev->dev, "Error %d while waiting for device to reset\n", rc);
+		hl_err(hdev, "Error %d while waiting for device to reset\n", rc);
 	return rc;
 }
 
@@ -8511,7 +8511,7 @@ int gaudi3_hw_fini(struct hl_device *hdev, bool hard_reset, bool fw_reset)
 					: hdev->asic_prop.soft_reset_sleep_ms;
 
 	if (fw_reset) {
-		dev_dbg(hdev->dev, "Firmware performs self HARD reset\n");
+		hl_dbg(hdev, "Firmware performs self HARD reset\n");
 		goto wait_reset_done;
 	}
 
@@ -8782,7 +8782,7 @@ static bool gaudi3_is_engine_enabled(struct hl_device *hdev, u32 eng_id)
 				BIT(eng_id - GAUDI3_HDCORE1_ENGINE_ID_ROT_0));
 
 	default:
-		dev_err(hdev->dev, "Invalid engine id (%u)\n", eng_id);
+		hl_err(hdev, "Invalid engine id (%u)\n", eng_id);
 	}
 
 	return false;
@@ -8938,7 +8938,7 @@ static void gaudi3_mmu_prepare(struct hl_device *hdev, u32 asid)
 	int i;
 
 	if (asid & ~PSTLB_ASID_ASID_M) {
-		dev_crit(hdev->dev, "asid %u is too big\n", asid);
+		hl_crit(hdev, "asid %u is too big\n", asid);
 		return;
 	}
 
@@ -9432,7 +9432,7 @@ static void gaudi3_stop_decoder_engine(struct hl_device *hdev, int hdcore, int i
 			1000,
 			timeout_usec);
 	if (rc)
-		dev_err(hdev->dev, "Failed to stop traffic from HD%d DEC%d\n", hdcore, inst);
+		hl_err(hdev, "Failed to stop traffic from HD%d DEC%d\n", hdcore, inst);
 }
 
 void gaudi3_stop_decoder(struct hl_device *hdev)
@@ -9509,7 +9509,7 @@ int gaudi3_set_engine_cores(struct hl_device *hdev, u32 *core_ids,
 			rc = gaudi3_verify_arc_running_mode(hdev, core_ids[i], core_command);
 
 			if (rc) {
-				dev_err(hdev->dev, "failed to %s arc: %d\n",
+				hl_err(hdev, "failed to %s arc: %d\n",
 					(core_command == HL_ENGINE_CORE_HALT) ?
 					"HALT" : "RUN", core_ids[i]);
 				return rc;
@@ -9625,7 +9625,7 @@ static int gaudi3_set_engine_modes(struct hl_device *hdev,
 
 			break;
 		default:
-			dev_err(hdev->dev, "Invalid engine ID %u\n", engine_ids[i]);
+			hl_err(hdev, "Invalid engine ID %u\n", engine_ids[i]);
 			return -EINVAL;
 		}
 	}
@@ -9646,7 +9646,7 @@ int gaudi3_set_engines(struct hl_device *hdev, u32 *engine_ids,
 		return gaudi3_set_engine_modes(hdev, engine_ids, num_engines, engine_command);
 
 	default:
-		dev_err(hdev->dev, "failed to execute command id %u\n", engine_command);
+		hl_err(hdev, "failed to execute command id %u\n", engine_command);
 		return -EINVAL;
 	}
 }
@@ -9681,15 +9681,15 @@ static void gaudi3_verify_mstr_if_dbg_counters_func(struct hl_device *hdev,
 			(operation->dbg_lbw_base_addr & ~(HL_BLOCK_SIZE - 1));
 
 	if (operation->dbg_hbw_base_addr && operation->dbg_lbw_base_addr)
-		dev_err(hdev->dev,
+		hl_err(hdev,
 			"active transactions in mstr_if %#x: hbw wr %u, hbw rd %u, lbw wr %u, lbw rd %u\n",
 			addr, hbw_otf_wr_cnt, hbw_otf_rd_cnt, lbw_otf_wr_cnt, lbw_otf_rd_cnt);
 	else if (operation->dbg_hbw_base_addr)
-		dev_err(hdev->dev,
+		hl_err(hdev,
 			"active transactions in mstr_if %#x: hbw wr %u, hbw rd %u\n",
 			addr, hbw_otf_wr_cnt, hbw_otf_rd_cnt);
 	else
-		dev_err(hdev->dev,
+		hl_err(hdev,
 			"active transactions in mstr_if %#x: lbw wr %u, lbw rd %u\n",
 			addr, lbw_otf_wr_cnt, lbw_otf_rd_cnt);
 }
@@ -9812,7 +9812,7 @@ int gaudi3_mmap(struct hl_device *hdev, struct vm_area_struct *vma,
 
 	rc = dma_mmap_coherent(hdev->dev, vma, cpu_addr, dma_addr, size);
 	if (rc)
-		dev_err(hdev->dev, "dma_mmap_coherent error %d", rc);
+		hl_err(hdev, "dma_mmap_coherent error %d", rc);
 
 #else
 
@@ -9820,7 +9820,7 @@ int gaudi3_mmap(struct hl_device *hdev, struct vm_area_struct *vma,
 				virt_to_phys(cpu_addr) >> PAGE_SHIFT,
 				size, vma->vm_page_prot);
 	if (rc)
-		dev_err(hdev->dev, "remap_pfn_range error %d", rc);
+		hl_err(hdev, "remap_pfn_range error %d", rc);
 
 #endif
 
@@ -9874,7 +9874,7 @@ static int gaudi3_kernel_ctx_unmap_addr(struct hl_device *hdev, u64 virt_addr, i
 
 	rc |= hl_unreserve_va_block(hdev, hdev->kernel_ctx, virt_addr, size);
 	if (rc)
-		dev_err(hdev->dev, "failed to unreserve va 0x%llx\n", virt_addr);
+		hl_err(hdev, "failed to unreserve va 0x%llx\n", virt_addr);
 
 	return rc;
 }
@@ -9905,7 +9905,7 @@ static int gaudi3_kernel_ctx_map_addr(struct hl_device *hdev, u64 phys_addr, u64
 	rc = hl_mmu_map_contiguous(hdev->kernel_ctx, va, phys_addr, size);
 	if (rc) {
 		mutex_unlock(&hdev->mmu_lock);
-		dev_err(hdev->dev, "Failed to create mapping in kernel\n");
+		hl_err(hdev, "Failed to create mapping in kernel\n");
 		goto err_unreserve_va;
 	}
 
@@ -9924,7 +9924,7 @@ err_mmu_unmap:
 	mutex_unlock(&hdev->mmu_lock);
 err_unreserve_va:
 	if (hl_unreserve_va_block(hdev, hdev->kernel_ctx, va, size))
-		dev_err(hdev->dev, "failed to unreserve va 0x%llx in failure flow\n", va);
+		hl_err(hdev, "failed to unreserve va 0x%llx in failure flow\n", va);
 
 	return rc;
 }
@@ -9937,7 +9937,7 @@ static u32 __gaudi3_err_cause_iterator(struct hl_device *hdev, u32 err_msk,
 	char type_str[32] = "";
 
 	if (err_msk & ~err_tbl_mask)
-		dev_err_ratelimited(hdev->dev,
+		hl_err_ratelimited(hdev,
 				"error cause is %#x while error strings table has %zu entries (mask %#x)\n",
 				err_msk, err_tbl_size, err_tbl_mask);
 
@@ -9948,7 +9948,7 @@ static u32 __gaudi3_err_cause_iterator(struct hl_device *hdev, u32 err_msk,
 
 	while (err_msk) {
 		if (err_msk & 1) {
-			dev_err_ratelimited(hdev->dev, "%s %serror: %s\n",
+			hl_err_ratelimited(hdev, "%s %serror: %s\n",
 						initiator, type_str, err_tbl[err_idx]);
 			err_cnt++;
 		}
@@ -10026,7 +10026,7 @@ static void gaudi3_pdma_print_ch_status(struct hl_device *hdev, u32 ch_idx)
 	str_size += snprintf(debug_str + str_size, max_size - str_size,
 			"[CH_B_DBG_STS] channel dbg info: 0x%X (default=0x929)\n", read_val);
 
-	dev_dbg(hdev->dev, "%s", debug_str);
+	hl_dbg(hdev, "%s", debug_str);
 }
 
 static void gaudi3_pdma_print_grp_status(struct hl_device *hdev, u32 ch_idx)
@@ -10102,7 +10102,7 @@ static void gaudi3_pdma_print_grp_status(struct hl_device *hdev, u32 ch_idx)
 			FIELD_GET(PDMA_CMN_B_STS0_RD_REQ_CNT_M, read_val),
 			FIELD_GET(PDMA_CMN_B_STS0_WR_REQ_CNT_M, read_val));
 
-	dev_dbg(hdev->dev, "%s", debug_str);
+	hl_dbg(hdev, "%s", debug_str);
 }
 
 void gaudi3_pdma_print_debug_info(struct hl_device *hdev, u32 ch_idx)
@@ -10191,7 +10191,7 @@ static int gaudi3_scrub_device_memory(struct hl_device *hdev,
 		device_data += 0x11111111;
 
 		if (rc) {
-			dev_crit(hdev->dev, "Failed to writel to dev_mem type %d, addr 0x%llx\n",
+			hl_crit(hdev, "Failed to writel to dev_mem type %d, addr 0x%llx\n",
 				 test_params->region_type, device_addr + i);
 			return rc;
 		}
@@ -10347,7 +10347,7 @@ static int gaudi3_test_pdma_verify_result(struct hl_device *hdev,
 			if (hdev->simulator_crashed)
 				return 0;
 
-			dev_err(hdev->dev,
+			hl_err(hdev,
 				"PDMA ch %u test Device <--> Host, data validation failed",
 				ch_idx);
 
@@ -10360,16 +10360,16 @@ static int gaudi3_test_pdma_verify_result(struct hl_device *hdev,
 								device_addr, &device_data,
 								DEBUGFS_READ32);
 				if (rc)
-					dev_crit(hdev->dev,
+					hl_crit(hdev,
 						 "Failed to readl from dev_mem type %d, addr 0x%llx\n",
 						 test_params->region_type, device_addr);
 
-				dev_err(hdev->dev, "src: %8x, data: %8x, dst: %8x region: %s",
+				hl_err(hdev, "src: %8x, data: %8x, dst: %8x region: %s",
 					val, (u32)device_data, test_params->host_ptr[offset + i],
 					(test_params->region_type == PCI_REGION_DRAM) ?
 										"DRAM":"SRAM");
 			} else {
-				dev_err(hdev->dev, "src: %8x, dst: %8x region: %s",
+				hl_err(hdev, "src: %8x, dst: %8x region: %s",
 					val, test_params->host_ptr[offset + i],
 					(test_params->region_type == PCI_REGION_DRAM) ?
 										"DRAM":"SRAM");
@@ -10410,20 +10410,20 @@ static int gaudi3_test_pdma_access(struct hl_device *hdev)
 
 	/* No PDMA channel is initialized */
 	if (!gaudi3->hw_cap_pdma_initialized) {
-		dev_dbg(hdev->dev, "No PDMA channel initialized - aborting PDMA test");
+		hl_dbg(hdev, "No PDMA channel initialized - aborting PDMA test");
 		return 0;
 	}
 
 	/* Neither DRAM nor SRAM is available for PDMA testing */
 	if (hdev->cache_enable && !hdev->dram_enable) {
-		dev_dbg(hdev->dev,
+		hl_dbg(hdev,
 			"Neither DRAM nor SRAM is available for PDMA testing - aborting PDMA test");
 		return 0;
 	}
 
 	rc = gaudi3_test_pdma_job_init(hdev, &test_params);
 	if (rc) {
-		dev_err(hdev->dev,
+		hl_err(hdev,
 			"PDMA test failed at init (rc = %d)\n", rc);
 		return rc;
 	}
@@ -10442,7 +10442,7 @@ static int gaudi3_test_pdma_access(struct hl_device *hdev)
 	rc =  gaudi3_wait_for_cq_completion(hdev, &cq_params);
 	gaudi3_test_pdma_clear_ctrl_regs(hdev);
 	if (rc) {
-		dev_err(hdev->dev,
+		hl_err(hdev,
 			"PDMA test Device <--> Host, did not complete in time (rc = %d)\n", rc);
 		goto exit;
 	}
@@ -10541,7 +10541,7 @@ static int gaudi3_test_kdma_access(struct hl_device *hdev)
 		/* Verify data had been DMAed */
 		for (i = 0 ; i < num_regs * sizeof(u32) ; i += sizeof(u32)) {
 			if (RREG32(regs_address + i) != val) {
-				dev_err(hdev->dev,
+				hl_err(hdev,
 					"KDMA Host->Registers test, data validation failed\n");
 				ret_val = -EIO;
 				break;
@@ -10568,7 +10568,7 @@ static int gaudi3_test_kdma_access(struct hl_device *hdev)
 	} else {
 		for (i = 0 ; i < num_regs ; i++) {
 			if (host_mem_virtual_addr[i] != val) {
-				dev_err(hdev->dev,
+				hl_err(hdev,
 					"KDMA test Registers->Host, data validation failed\n");
 				ret_val = -EIO;
 				break;
@@ -10606,7 +10606,7 @@ static int gaudi3_test_qman_wait_completion(struct hl_device *hdev, u32 engine_i
 	rc = hl_poll_timeout(hdev, sob_addr, tmp, (tmp == sob_val),
 					HL_POLL_SLEEP_US, timeout_usec);
 	if (rc == -ETIMEDOUT) {
-		dev_err(hdev->dev,
+		hl_err(hdev,
 			"%s test for engine %s failed\n",
 			test_name, GAUDI3_ENG_ID_TO_STR(engine_id));
 		rc = -EIO;
@@ -10673,7 +10673,7 @@ static int gaudi3_test_qmans_kdma_and_cpu(struct hl_device *hdev)
 	int rc = 0, i, j;
 
 	/* send messages on all QMANs */
-	dev_dbg(hdev->dev, "Starting QMAN Engines testing");
+	hl_dbg(hdev, "Starting QMAN Engines testing");
 
 	for (i = GAUDI3_HDCORE1_ENGINE_ID_EDMA_0 ; i <= GAUDI3_HDCORE6_ENGINE_ID_ROT_1 ; i++) {
 		if (!gaudi3_is_engine_enabled(hdev, i))
@@ -10703,15 +10703,15 @@ static int gaudi3_test_qmans_kdma_and_cpu(struct hl_device *hdev)
 	}
 
 	/* test the KDMA while QMANs are working */
-	dev_dbg(hdev->dev, "Starting KDMA testing");
+	hl_dbg(hdev, "Starting KDMA testing");
 
 	rc = gaudi3_test_kdma_access(hdev);
 	if (rc) {
-		dev_dbg(hdev->dev, "KDMA testing failed");
+		hl_dbg(hdev, "KDMA testing failed");
 		return rc;
 	}
 
-	dev_dbg(hdev->dev, "KDMA testing passed");
+	hl_dbg(hdev, "KDMA testing passed");
 
 	/* wait for QMANs completion */
 	for (i = GAUDI3_HDCORE1_ENGINE_ID_EDMA_0 ; i <= GAUDI3_HDCORE6_ENGINE_ID_ROT_1 ; i++) {
@@ -10725,15 +10725,15 @@ static int gaudi3_test_qmans_kdma_and_cpu(struct hl_device *hdev)
 		/* Clear the SOB value */
 		WREG32(sob->addr, 0);
 		if (rc) {
-			dev_dbg(hdev->dev, "QMAN Engines testing failed on engine %d", i);
+			hl_dbg(hdev, "QMAN Engines testing failed on engine %d", i);
 			return rc;
 		}
 	}
-	dev_dbg(hdev->dev, "QMAN Engines testing passed");
+	hl_dbg(hdev, "QMAN Engines testing passed");
 
 
 	/* send messages on all QMAN ARCs */
-	dev_dbg(hdev->dev, "Starting QMAN ARCs testing");
+	hl_dbg(hdev, "Starting QMAN ARCs testing");
 	for (i = GAUDI3_HDCORE1_ENGINE_ID_EDMA_0 ; i <= GAUDI3_HDCORE6_ENGINE_ID_ROT_1 ; i++) {
 		if (!gaudi3_is_engine_enabled(hdev, i))
 			continue;
@@ -10745,14 +10745,14 @@ static int gaudi3_test_qmans_kdma_and_cpu(struct hl_device *hdev)
 	}
 
 	/* test the CPU-Q while QMAN ARCs are working */
-	dev_dbg(hdev->dev, "Starting CPU Queue testing");
+	hl_dbg(hdev, "Starting CPU Queue testing");
 	rc = gaudi3_test_cpu_queue(hdev);
 	if (rc) {
-		dev_dbg(hdev->dev, "CPU Queue testing failed");
+		hl_dbg(hdev, "CPU Queue testing failed");
 		return rc;
 	}
 
-	dev_dbg(hdev->dev, "CPU Queue testing passed");
+	hl_dbg(hdev, "CPU Queue testing passed");
 
 	/* wait for ARCs completion */
 	for (i = GAUDI3_HDCORE1_ENGINE_ID_EDMA_0 ; i <= GAUDI3_HDCORE6_ENGINE_ID_ROT_1 ; i++) {
@@ -10770,11 +10770,11 @@ static int gaudi3_test_qmans_kdma_and_cpu(struct hl_device *hdev)
 		gaudi3_qman_set_test_mode(hdev, i, false);
 
 		if (rc) {
-			dev_dbg(hdev->dev, "QMAN ARCs testing failed on ARC %d", i);
+			hl_dbg(hdev, "QMAN ARCs testing failed on ARC %d", i);
 			return rc;
 		}
 	}
-	dev_dbg(hdev->dev, "QMAN ARCs testing passed");
+	hl_dbg(hdev, "QMAN ARCs testing passed");
 
 	return 0;
 }
@@ -10795,20 +10795,20 @@ int gaudi3_test_queues(struct hl_device *hdev)
 	struct gaudi3_device *gaudi3 = hdev->asic_specific;
 	int rc;
 
-	dev_dbg(hdev->dev, "Testing PDMA access on %lu channels\n",
+	hl_dbg(hdev, "Testing PDMA access on %lu channels\n",
 						hweight_long(gaudi3->hw_cap_pdma_initialized));
 
 	rc = gaudi3_test_pdma_access(hdev);
 	if (rc)
 		return rc;
 
-	dev_dbg(hdev->dev, "PDMA testing passed");
+	hl_dbg(hdev, "PDMA testing passed");
 
 	rc = gaudi3_test_qmans_kdma_and_cpu(hdev);
 	if (rc)
 		return rc;
 
-	dev_dbg(hdev->dev, "Test queues done successfully\n");
+	hl_dbg(hdev, "Test queues done successfully\n");
 
 	return 0;
 }
@@ -10934,7 +10934,7 @@ int gaudi3_debugfs_read_dma(struct hl_device *hdev, u64 addr, u32 size, void *bl
 	/* Fetch the ctx */
 	ctx = hl_get_compute_ctx(hdev);
 	if (!ctx) {
-		dev_err(hdev->dev, "No ctx available\n");
+		hl_err(hdev, "No ctx available\n");
 		return -EINVAL;
 	}
 
@@ -10950,7 +10950,7 @@ int gaudi3_debugfs_read_dma(struct hl_device *hdev, u64 addr, u32 size, void *bl
 	reserved_va_base = hl_reserve_va_block(hdev, ctx, HL_VA_RANGE_TYPE_HOST, SZ_2M,
 						HL_MMU_VA_ALIGNMENT_NOT_NEEDED);
 	if (!reserved_va_base) {
-		dev_err(hdev->dev, "Failed to reserve vmem on asic\n");
+		hl_err(hdev, "Failed to reserve vmem on asic\n");
 		rc = -ENOMEM;
 		goto free_data_buffer;
 	}
@@ -10960,7 +10960,7 @@ int gaudi3_debugfs_read_dma(struct hl_device *hdev, u64 addr, u32 size, void *bl
 
 	rc = hl_mmu_map_contiguous(ctx, reserved_va_base, host_mem_dma_addr, SZ_2M);
 	if (rc) {
-		dev_err(hdev->dev, "Failed to map asic side");
+		hl_err(hdev, "Failed to map asic side");
 		goto unreserve_va;
 	}
 
@@ -11787,7 +11787,7 @@ void gaudi3_init_cbc(struct hl_device *hdev)
 
 	cbc_mode = FIELD_PREP(CBC_CBC_MODE_RANGE_MODE_M, 0x1);
 
-	dev_dbg(hdev->dev, "Initializing CBC\n");
+	hl_dbg(hdev, "Initializing CBC\n");
 
 	for (range = 0 ; range < NUM_OF_CBC_RANGES ; range++)
 		WREG32(mmD0_PMMU_CBC_BASE + mmCBC_CBC_RANGE_ASID_CHK_EN_0 + range * sizeof(u32),
@@ -11863,7 +11863,7 @@ static int gaudi3_reinit_cbc(struct hl_device *hdev)
 
 	rc = gaudi3_trigger_job_and_wait_for_cq_completion(hdev, &cq_mode_params);
 	if (rc)
-		dev_err(hdev->dev, "Failed to invalidate CBC\n");
+		hl_err(hdev, "Failed to invalidate CBC\n");
 
 	gaudi3_set_cbc_lbw_prot(hdev, false);
 
@@ -11976,7 +11976,7 @@ static void gaudi3_pb_print_security_errors(struct hl_device *hdev,
 u32 gaudi3_get_dec_base_addr(struct hl_device *hdev, u32 core_id)
 {
 	if (core_id >= NUMBER_OF_DEC) {
-		dev_err(hdev->dev, "Unexpected decoder core number %d\n", core_id);
+		hl_err(hdev, "Unexpected decoder core number %d\n", core_id);
 		return 0x0;
 	}
 
@@ -12003,7 +12003,7 @@ int gaudi3_get_hw_block_id(struct hl_device *hdev, u64 block_addr,
 		}
 	}
 
-	dev_err(hdev->dev, "Invalid block address %#llx", block_addr);
+	hl_err(hdev, "Invalid block address %#llx", block_addr);
 
 	return -EINVAL;
 }
@@ -12017,13 +12017,13 @@ int gaudi3_block_mmap(struct hl_device *hdev, struct vm_area_struct *vma,
 	int rc;
 
 	if (block_id >= NUM_USER_MAPPED_BLOCKS) {
-		dev_err(hdev->dev, "Invalid block id %u", block_id);
+		hl_err(hdev, "Invalid block id %u", block_id);
 		return -EINVAL;
 	}
 
 	/* we allow mapping only an entire block */
 	if (block_size != gaudi3->mapped_blocks[block_id].size) {
-		dev_err(hdev->dev, "Invalid block size %u", block_size);
+		hl_err(hdev, "Invalid block size %u", block_size);
 		return -EINVAL;
 	}
 
@@ -12037,7 +12037,7 @@ int gaudi3_block_mmap(struct hl_device *hdev, struct vm_area_struct *vma,
 	rc = remap_pfn_range(vma, vma->vm_start, address >> PAGE_SHIFT,
 			block_size, vma->vm_page_prot);
 	if (rc)
-		dev_err(hdev->dev, "remap_pfn_range error %d", rc);
+		hl_err(hdev, "remap_pfn_range error %d", rc);
 
 	return rc;
 }
@@ -12052,7 +12052,7 @@ void gaudi3_enable_events_from_fw(struct hl_device *hdev)
 
 	rc = hdev->asic_funcs->send_cpu_message(hdev, (u32 *) &pkt, sizeof(pkt), 0, NULL);
 	if (rc)
-		dev_err(hdev->dev, "failed to send interrupt register msg (err = %d)\n", rc);
+		hl_err(hdev, "failed to send interrupt register msg (err = %d)\n", rc);
 }
 
 int gaudi3_ack_mmu_page_fault_or_access_error(struct hl_device *hdev, u64 mmu_cap_mask)
@@ -12221,7 +12221,7 @@ static bool gaudi3_razwi_status(struct hl_device *hdev, struct razwi_initiator_i
 		razwi_type = "ADDR_DEC_READ";
 		break;
 	default:
-		dev_err(hdev->dev, "Wrong razwi type (%u)\n", type);
+		hl_err(hdev, "Wrong razwi type (%u)\n", type);
 		return false;
 	}
 
@@ -12236,7 +12236,7 @@ static bool gaudi3_razwi_status(struct hl_device *hdev, struct razwi_initiator_i
 	addr_lo = RREG32(base + mmRTR_CTRL_CH_RAZWI_HBW_RR_RAZWI_AW_ADDR_LO);
 	razwi_addr = ((u64)addr_hi << 32) + addr_lo + razwi_offset;
 
-	dev_err(hdev->dev, "%s %s : %s, address 0x%llX, captured eng %s\n",
+	hl_err(hdev, "%s %s : %s, address 0x%llX, captured eng %s\n",
 				bw_type, razwi_type, initiator->initiator_name,
 				razwi_addr, GAUDI3_ENG_ID_TO_STR(eng_id));
 
@@ -12307,7 +12307,7 @@ static void gaudi3_check_for_tpc_razwi(struct hl_device *hdev, u8 hdcore, u8 ini
 
 	/* does not suppose to happen but just in case */
 	if (idx == 255) {
-		dev_err(hdev->dev, "initiator is %u but hdcore is %u\n", initiator_idx, hdcore);
+		hl_err(hdev, "initiator is %u but hdcore is %u\n", initiator_idx, hdcore);
 		return;
 	}
 
@@ -12650,7 +12650,7 @@ static void gaudi3_sei_razwi_handler_no_fw(struct hl_device *hdev,
 					event_mask);
 		break;
 	default:
-		dev_err(hdev->dev, "Component type %u doesn't have a razwi handler\n",
+		hl_err(hdev, "Component type %u doesn't have a razwi handler\n",
 			agg_component_type);
 		break;
 	}
@@ -12731,7 +12731,7 @@ int gaudi3_mmu_get_real_page_size(struct hl_device *hdev, struct hl_mmu_properti
 		return 0;
 	}
 
-	dev_err(hdev->dev, "page size of %u is not %uKB aligned, can't map\n",
+	hl_err(hdev, "page size of %u is not %uKB aligned, can't map\n",
 						page_size, mmu_prop->page_size >> 10);
 
 	return -EFAULT;
@@ -12808,7 +12808,7 @@ static void gaudi3_validate_eqe_data_size(struct hl_device *hdev, void *data, u1
 						u16 expected_size)
 {
 	if (actual_size != expected_size)
-		dev_dbg_ratelimited(hdev->dev, "EQ entry data size is %u while expecting %u\n",
+		hl_dbg_ratelimited(hdev, "EQ entry data size is %u while expecting %u\n",
 					actual_size, expected_size);
 
 	/*
@@ -12892,7 +12892,7 @@ static void gaudi3_handle_qm_undef_cmd_err(struct hl_device *hdev,
 	u32 cq_size = le32_to_cpu(qm_sei_data->undef_op_data.cq_tsize);
 	u64 cq_ptr = le64_to_cpu(qm_sei_data->undef_op_data.cq_ptr);
 
-	dev_err_ratelimited(hdev->dev,
+	hl_err_ratelimited(hdev,
 			"QM_%sCQ: {ptr %#llx, size %u}, QM_CP: {instruction %#018llx}\n",
 			is_arc_cq ? "ARC_" : "",
 			cq_ptr,
@@ -12955,7 +12955,7 @@ static u32 gaudi3_handle_edma_sei_err(struct hl_device *hdev, u16 data_size,
 			err_num_tmp = gaudi3_err_cause_iterator(hdev, err_mask,
 								gaudi3_edma_err_cause, buf, "SEI");
 			if (err_num_tmp)
-				dev_err_ratelimited(hdev->dev, "%s context ID: %u\n",
+				hl_err_ratelimited(hdev, "%s context ID: %u\n",
 							buf, le16_to_cpu(edma_chn_data->ctx_id));
 			err_num += err_num_tmp;
 		}
@@ -13034,7 +13034,7 @@ static u32 handle_tpc_spi_events(struct hl_device *hdev, u16 data_size,
 
 	err_num = handle_tpc_events(hdev, &spi_data->data, INT_GRP_TYPE_SPI);
 	if (err_num)
-		dev_err_ratelimited(hdev->dev, "TPC KERNEL ID: 0x%x\n",
+		hl_err_ratelimited(hdev, "TPC KERNEL ID: 0x%x\n",
 				le16_to_cpu(spi_data->data.kernel_id));
 
 	return err_num;
@@ -13055,7 +13055,7 @@ static u32 gaudi3_handle_mme_acc_event(struct hl_device *hdev, struct hl_eq_mme_
 		u32 ch = i / 2, set = i % 2;
 
 		if (acc_data->ctx_id[i])
-			dev_err_ratelimited(hdev->dev,
+			hl_err_ratelimited(hdev,
 					"MME ACC %s event context ch%u set%u: 0x%x\n",
 						event, ch, set, le16_to_cpu(acc_data->ctx_id[i]));
 	}
@@ -13096,7 +13096,7 @@ static u32 gaudi3_handle_mme_spi_events(struct hl_device *hdev, u16 data_size,
 				err_num += gaudi3_err_cause_iterator(hdev, cause,
 					gaudi3_cs_dbg_spmu_pmintenset_el1, "MME SPMU", "SPI");
 			} else {
-				dev_err_ratelimited(hdev->dev,
+				hl_err_ratelimited(hdev,
 					"MME BMON%u event. Trigger threshold is 0x%x\n",
 						i - CS_DBG_BMON0, cause);
 				err_num++;
@@ -13133,7 +13133,7 @@ static u32 gaudi3_handle_mme_sei_err(struct hl_device *hdev, u16 data_size,
 		err_num = gaudi3_err_cause_iterator(hdev, cause, gaudi3_mme_sbte_intr_cause,
 								initiator_str, "SEI");
 		if (err_num)
-			dev_err_ratelimited(hdev->dev, "MME context ID: %u\n",
+			hl_err_ratelimited(hdev, "MME context ID: %u\n",
 							le16_to_cpu(sbte->ctx_id));
 		break;
 	case MME_DATA_TYPE_ACC:
@@ -13162,15 +13162,15 @@ static u32 gaudi3_handle_nch_sei_err(struct hl_device *hdev, u16 data_size, u32 
 
 	cause = le64_to_cpu(sei_data->xresp_lbw.intr_cause_data);
 	if (cause & MSTR_IF_V1_XRESP_LBW_INTR_CTRL_CAUSE_BRESP_ERR_M)
-		dev_err_ratelimited(hdev->dev, "nch lbw write err\n");
+		hl_err_ratelimited(hdev, "nch lbw write err\n");
 	if (cause & MSTR_IF_V1_XRESP_LBW_INTR_CTRL_CAUSE_RRESP_ERR_M)
-		dev_err_ratelimited(hdev->dev, "nch lbw read err\n");
+		hl_err_ratelimited(hdev, "nch lbw read err\n");
 
 	cause = le64_to_cpu(sei_data->xresp_hbw.intr_cause_data);
 	if (cause & MSTR_IF_V1_XRESP_HBW_INTR_CTRL_CAUSE_BRESP_ERR_M)
-		dev_err_ratelimited(hdev->dev, "nch hbw write err\n");
+		hl_err_ratelimited(hdev, "nch hbw write err\n");
 	if (cause & MSTR_IF_V1_XRESP_HBW_INTR_CTRL_CAUSE_RRESP_ERR_M)
-		dev_err_ratelimited(hdev->dev, "nch hbw read err\n");
+		hl_err_ratelimited(hdev, "nch hbw read err\n");
 
 	cause = le64_to_cpu(sei_data->apb_arb.intr_cause_data);
 	err_num = gaudi3_err_cause_iterator(hdev, cause, gaudi3_apb_arb_intr_cause, "NCH", "SEI");
@@ -13257,7 +13257,7 @@ static u32 handle_hmmu_sei_events(struct hl_device *hdev, u16 data_size,
 						le64_to_cpu(sei_data->fault_data.syndrom_dti),
 						dtlb_str, sizeof(dtlb_str));
 
-	dev_err(hdev->dev,
+	hl_err(hdev,
 		"STLB info: %s, DTLB info: %s\n", stlb_str, dtlb_str);
 
 	return err_cnt;
@@ -13272,7 +13272,7 @@ static u32 handle_tpc_sei_events(struct hl_device *hdev, u16 data_size,
 
 	err_num = handle_tpc_events(hdev, &sei_data->data, INT_GRP_TYPE_SEI);
 	if (err_num)
-		dev_err_ratelimited(hdev->dev, "TPC KERNEL ID: 0x%x\n",
+		hl_err_ratelimited(hdev, "TPC KERNEL ID: 0x%x\n",
 				le16_to_cpu(sei_data->data.kernel_id));
 
 	err_num += gaudi3_handle_qm_sei_err(hdev, &sei_data->qm_data, "TPC", eng_id, event_mask);
@@ -13316,20 +13316,20 @@ static void gaudi3_handle_sob_sei_log(struct hl_device *hdev, u32 log_idx, u32 l
 {
 	switch (log_idx) {
 	case 0:
-		dev_err(hdev->dev, "SO ID which cause overflow is 0x%x\n", log);
+		hl_err(hdev, "SO ID which cause overflow is 0x%x\n", log);
 		break;
 	case 1:
-		dev_err(hdev->dev, "monitor address[15:0] is 0x%x\n", log);
+		hl_err(hdev, "monitor address[15:0] is 0x%x\n", log);
 		break;
 	case 2:
-		dev_err(hdev->dev,
+		hl_err(hdev,
 			"the AXID of the write transaction which got SLVERR/DECERR is 0x%x\n", log);
 		break;
 	case 3:
-		dev_err(hdev->dev, "the CQ that caused overflow is 0x%x\n", log);
+		hl_err(hdev, "the CQ that caused overflow is 0x%x\n", log);
 		break;
 	default:
-		dev_err(hdev->dev, "Invalid log idx for SM sei event: 0x%x\n", log_idx);
+		hl_err(hdev, "Invalid log idx for SM sei event: 0x%x\n", log_idx);
 		break;
 	}
 }
@@ -13351,10 +13351,10 @@ static u32 gaudi3_handle_sob_sei_err(struct hl_device *hdev, u16 data_size,
 		gaudi3_handle_sob_sei_log(hdev, log_idx, sm_cause_log);
 	} else {
 		if (!sei_data->cq_data.cq_intr) {
-			dev_err(hdev->dev, "No error cause for sob sei event\n");
+			hl_err(hdev, "No error cause for sob sei event\n");
 		} else {
 			cq_intr_queue_idx = sei_data->cq_data.cq_intr_queue_idx;
-			dev_err(hdev->dev,
+			hl_err(hdev,
 				"SOB CQ security event, cq intr queue index is 0x%x\n",
 						cq_intr_queue_idx);
 			err_num = 1;
@@ -13373,7 +13373,7 @@ static void gaudi3_rotator_spi_err_sts_iterator(struct hl_device *hdev,
 	while (err_status) {
 		if (err_status & 0x1) {
 			err_id = idx + err_id_offset;
-			dev_err_ratelimited(hdev->dev, "ROT %s. ctx_id %u\n",
+			hl_err_ratelimited(hdev, "ROT %s. ctx_id %u\n",
 						err_tbl[idx],
 						le16_to_cpu(rot_spi_data->data.ctx_id[err_id]));
 		}
@@ -13424,7 +13424,7 @@ static u32 gaudi3_handle_rotator_spi_err(struct hl_device *hdev, u16 data_size,
 static inline u32 gaudi3_handle_single_err_mask(struct hl_device *hdev, u32 err_msk, char *err_name)
 {
 	if (err_msk & 0x1) {
-		dev_err_ratelimited(hdev->dev, "%s event\n", err_name);
+		hl_err_ratelimited(hdev, "%s event\n", err_name);
 		return 1;
 	}
 
@@ -13443,7 +13443,7 @@ static u32 gaudi3_handle_pcie_spi_drain(struct hl_device *hdev,
 		err_num++;
 		wr_addr = le64_to_cpu(dc->drain_wr_addr_lbw);
 		rd_addr = le64_to_cpu(dc->drain_rd_addr_lbw);
-		dev_err_ratelimited(hdev->dev,
+		hl_err_ratelimited(hdev,
 				"PCIE SPI LBW drain error WR 0x%llX, RD 0x%llX (cause 0x%llX)\n",
 				wr_addr ? LBW_TO_FULL_DEV_VA_OFFSET + wr_addr : wr_addr,
 				rd_addr ? LBW_TO_FULL_DEV_VA_OFFSET + rd_addr : rd_addr,
@@ -13453,7 +13453,7 @@ static u32 gaudi3_handle_pcie_spi_drain(struct hl_device *hdev,
 	if (cause & (PCIE_WRAP_AXI_DRAIN_IND_HBW_AXI_DRAIN_IND_M |
 			PCIE_WRAP_AXI_DRAIN_IND_HBW_AXI_DRAIN_BP_IND_M)) {
 		err_num++;
-		dev_err_ratelimited(hdev->dev,
+		hl_err_ratelimited(hdev,
 				"PCIE SPI HBW drain error WR 0x%llX, RD 0x%llX (cause 0x%llX\n",
 				le64_to_cpu(dc->drain_wr_addr_hbw),
 				le64_to_cpu(dc->drain_rd_addr_hbw),
@@ -13482,7 +13482,7 @@ static u32 gaudi3_handle_pcie0_spi_err(struct hl_device *hdev, u16 data_size,
 
 	case PCIE_SPI_APB_ACCESS_TIMEOUT:
 		err_num = 1;
-		dev_err_ratelimited(hdev->dev, "PCIE SPI APB access timeout error\n");
+		hl_err_ratelimited(hdev, "PCIE SPI APB access timeout error\n");
 		break;
 
 	case PCIE_SPI_FATAL_ERR:
@@ -13505,7 +13505,7 @@ static u32 gaudi3_handle_pcie0_spi_err(struct hl_device *hdev, u16 data_size,
 		break;
 
 	default:
-		dev_err_ratelimited(hdev->dev, "Error: PCIE SPI unknown error type (%u)\n",
+		hl_err_ratelimited(hdev, "Error: PCIE SPI unknown error type (%u)\n",
 				pcie_spi_data->spi_type);
 		break;
 	}
@@ -13572,7 +13572,7 @@ static void gaudi3_handle_ecc_event(struct hl_device *hdev, struct hl_eq_ecc_dat
 	memory_wrapper_idx = ecc_data->memory_wrapper_idx;
 	block_base = FIELD_PREP(ECC_BLOCK_LBW_BASE_ADDR_M, le16_to_cpu(ecc_data->block_id));
 
-	dev_err(hdev->dev,
+	hl_err(hdev,
 		"ECC error detected. block base %#x. memory idx %u. address %#llx. syndrome: %#llx. critical %u.\n",
 		block_base, memory_wrapper_idx, ecc_address, ecc_syndrome, ecc_data->is_critical);
 }
@@ -13593,7 +13593,7 @@ static u32 gaudi3_handle_nic_status_event(struct hl_device *hdev,
 			continue;
 
 		if (!(hdev->cn.ports_mask & BIT(port))) {
-			dev_err(hdev->dev, "port %d is disabled, can't send CN status\n", port);
+			hl_err(hdev, "port %d is disabled, can't send CN status\n", port);
 			continue;
 		}
 
@@ -13620,7 +13620,7 @@ static void gaudi3_handle_eq_cpld_reset_reason_event(struct hl_device *hdev,
 			offset += snprintf(tmp_buf + offset, 128 - offset, ", 0x%x", reg[i]);
 
 		snprintf(tmp_buf + offset, 128 - offset, "\n");
-		dev_info(hdev->dev, tmp_buf);
+		hl_info(hdev, tmp_buf);
 		*event_mask |= HL_NOTIFIER_EVENT_GENERAL_HW_ERR;
 	}
 }
@@ -13648,21 +13648,21 @@ static int gaudi3_handle_msg_event(struct hl_device *hdev,
 	case EQ_EVENT_PWR_MODE_1:
 	case EQ_EVENT_PWR_MODE_2:
 	case EQ_EVENT_PWR_MODE_3:
-		dev_info(hdev->dev, "EQ_EVENT_PWR_MODE_%d event received\n",
+		hl_info(hdev, "EQ_EVENT_PWR_MODE_%d event received\n",
 					event_type - EQ_EVENT_PWR_MODE_0);
 		break;
 	case EQ_EVENT_PWR_BRK_ENTRY:
-		dev_info(hdev->dev, "EQ_EVENT_PWR_BRK_ENTRY event received\n");
+		hl_info(hdev, "EQ_EVENT_PWR_BRK_ENTRY event received\n");
 		break;
 	case EQ_EVENT_PWR_BRK_EXIT:
-		dev_info(hdev->dev, "EQ_EVENT_PWR_BRK_EXIT event received\n");
+		hl_info(hdev, "EQ_EVENT_PWR_BRK_EXIT event received\n");
 		break;
 	case EQ_EVENT_CPLD_RESET_REASON:
 		gaudi3_handle_eq_cpld_reset_reason_event(hdev,
 				&eq_dynamic_entry->cpld_reset_reason, event_mask);
 		break;
 	case EQ_EVENT_CPLD_SHUTDOWN:
-		dev_info(hdev->dev, "EQ_EVENT_CPLD_SHUTDOWN event received\n");
+		hl_info(hdev, "EQ_EVENT_CPLD_SHUTDOWN event received\n");
 		hl_eq_cpld_shutdown_event_handle(hdev, event_type, event_mask);
 		break;
 	case EQ_EVENT_POWER_EVT_START:
@@ -13672,25 +13672,25 @@ static int gaudi3_handle_msg_event(struct hl_device *hdev,
 		hl_handle_clk_change_event(hdev, event_type, event_mask);
 		break;
 	case EQ_EVENT_PVT_ALARM_EVT:
-		dev_err(hdev->dev, "Received temperature die %u pvt %u channel bit_mask %u",
+		hl_err(hdev, "Received temperature die %u pvt %u channel bit_mask %u",
 		eq_dynamic_entry->pvt_alarm_data.die_id, eq_dynamic_entry->pvt_alarm_data.hdcore,
 		eq_dynamic_entry->pvt_alarm_data.chn_bitmask);
 		if (eq_dynamic_entry->pvt_alarm_data.alarm_type == PVT_TS_ALARM_A)
-			dev_err(hdev->dev, "dts alarm_a event\n");
+			hl_err(hdev, "dts alarm_a event\n");
 		else if (eq_dynamic_entry->pvt_alarm_data.alarm_type == PVT_TS_ALARM_B)
-			dev_err(hdev->dev, "dts alarm_b event\n");
+			hl_err(hdev, "dts alarm_b event\n");
 	break;
 	case EQ_EVENT_BIS_VIOLATION:
-		dev_err(hdev->dev, "BIS restrictions violation detected\n");
+		hl_err(hdev, "BIS restrictions violation detected\n");
 		break;
 	case EQ_EVENT_VR_OC_VIOLATION:
-		dev_warn(hdev->dev, "VR over current violation event\n");
+		hl_warn(hdev, "VR over current violation event\n");
 		break;
 	case EQ_EVENT_FW_RESET:
-		dev_warn(hdev->dev, "FW reset event\n");
+		hl_warn(hdev, "FW reset event\n");
 		break;
 	default:
-		dev_err(hdev->dev, "undefined msg event %d received\n", event_type);
+		hl_err(hdev, "undefined msg event %d received\n", event_type);
 		rc = -EINVAL;
 		break;
 	}
@@ -13746,9 +13746,9 @@ static void gaudi3_print_hw_event_info(struct hl_device *hdev, struct hl_agg_eq_
 
 	/* NIC SPI events are events that HW can overcome */
 	if (gaudi3_is_nic_spi_event(agg_hdr))
-		dev_dbg(hdev->dev, "Received H/W event %s\n", agg_eq_header_str);
+		hl_dbg(hdev, "Received H/W event %s\n", agg_eq_header_str);
 	else
-		dev_err(hdev->dev, "Received H/W event %s\n", agg_eq_header_str);
+		hl_err(hdev, "Received H/W event %s\n", agg_eq_header_str);
 }
 
 static void gaudi3_print_hw_event_invalid(struct hl_device *hdev, struct hl_agg_eq_header *agg_hdr)
@@ -13757,7 +13757,7 @@ static void gaudi3_print_hw_event_invalid(struct hl_device *hdev, struct hl_agg_
 
 	gaudi3_stringify_agg_eq_header(agg_eq_header_str, sizeof(agg_eq_header_str), agg_hdr);
 
-	dev_err(hdev->dev, "H/W event was received without a valid cause %s\n", agg_eq_header_str);
+	hl_err(hdev, "H/W event was received without a valid cause %s\n", agg_eq_header_str);
 }
 
 static void gaudi3_set_initial_reset_flags_and_event_mask(struct hl_device *hdev,
@@ -13863,11 +13863,11 @@ static u32 gaudi3_cs_sei_err_cause_iterator(struct hl_device *hdev,
 			/* no error */
 			continue;
 		case CACHE_MAIN_SEI_CAUSE_REG_MAINT_CMD_LOST_M:
-			dev_warn_ratelimited(hdev->dev, "CS SEI: warning: %s\n",
+			hl_warn_ratelimited(hdev, "CS SEI: warning: %s\n",
 				gaudi3_cs_sei_err_cause[i]);
 			break;
 		case CACHE_MAIN_SEI_CAUSE_REG_C2M_R_SLV_ERR_ORIG_WRITE_M:
-			dev_err_ratelimited(hdev->dev, "CS SEI error: %s, addr 0x%llx\n",
+			hl_err_ratelimited(hdev, "CS SEI error: %s, addr 0x%llx\n",
 					    gaudi3_cs_sei_err_cause[i],
 					    le64_to_cpu(sei_data->err_data.slv_err_addr));
 			break;
@@ -13876,14 +13876,14 @@ static u32 gaudi3_cs_sei_err_cause_iterator(struct hl_device *hdev,
 		case CACHE_MAIN_SEI_CAUSE_REG_POISON_LOCAL_M_WR_M:
 		case CACHE_MAIN_SEI_CAUSE_REG_POISON_REMOTE_AR_M:
 		case CACHE_MAIN_SEI_CAUSE_REG_POISON_REMOTE_AWW_M:
-			dev_err_ratelimited(hdev->dev,
+			hl_err_ratelimited(hdev,
 					    "CS SEI error: %s, addr 0x%llx, id 0x%llx\n",
 					    gaudi3_cs_sei_err_cause[i],
 					    le64_to_cpu(sei_data->err_data.poison_data.addr),
 					    le64_to_cpu(sei_data->err_data.poison_data.id));
 			break;
 		case CACHE_MAIN_SEI_CAUSE_REG_FAR_HOST_REDUC_NUM_ERR_M:
-			dev_err_ratelimited(hdev->dev,
+			hl_err_ratelimited(hdev,
 					    "CS SEI error: %s, err 0x%x, info 0x%llx, addr 0x%llx\n",
 					    gaudi3_cs_sei_err_cause[i],
 					    sei_data->err_data.far_data.num_err,
@@ -13891,7 +13891,7 @@ static u32 gaudi3_cs_sei_err_cause_iterator(struct hl_device *hdev,
 					    le64_to_cpu(sei_data->err_data.far_data.addr));
 			break;
 		case CACHE_MAIN_SEI_CAUSE_REG_CLOSE_HOST_REDUC_NUM_ERR_M:
-			dev_err_ratelimited(hdev->dev,
+			hl_err_ratelimited(hdev,
 					    "CS SEI error: %s, err 0x%x, info 0x%llx, addr 0x%llx\n",
 					    gaudi3_cs_sei_err_cause[i],
 					    sei_data->err_data.close_data.num_err,
@@ -13899,19 +13899,19 @@ static u32 gaudi3_cs_sei_err_cause_iterator(struct hl_device *hdev,
 					    le64_to_cpu(sei_data->err_data.close_data.addr));
 			break;
 		case CACHE_MAIN_SEI_CAUSE_REG_AAB_REDUC_NUM_ERR_M:
-			dev_err_ratelimited(hdev->dev,
+			hl_err_ratelimited(hdev,
 					    "CS SEI error: %s, num_err 0x%x\n",
 					    gaudi3_cs_sei_err_cause[i],
 					    sei_data->err_data.aab_num_err);
 			break;
 		case CACHE_MAIN_SEI_CAUSE_REG_DN_CONV_NUM_ERR_M:
-			dev_err_ratelimited(hdev->dev,
+			hl_err_ratelimited(hdev,
 					    "CS SEI error: %s, dn_conv_id 0x%llx\n",
 					    gaudi3_cs_sei_err_cause[i],
 					    le64_to_cpu(sei_data->err_data.dn_conv_id));
 			break;
 		default:
-			dev_err_ratelimited(hdev->dev,
+			hl_err_ratelimited(hdev,
 					    "CS SEI error: %s\n", gaudi3_cs_sei_err_cause[i]);
 			break;
 		}
@@ -13937,34 +13937,34 @@ static int gaudi3_validate_eq_agg_header(struct hl_device *hdev, struct hl_agg_e
 	struct asic_fixed_properties *prop = &hdev->asic_prop;
 
 	if (agg_hdr->int_grp_type >= INT_GRP_TYPE_MAX) {
-		dev_err_ratelimited(hdev->dev,
+		hl_err_ratelimited(hdev,
 					"eq_agg_header: interrupt group type %u is invalid\n",
 					agg_hdr->int_grp_type);
 		return -EINVAL;
 	}
 
 	if (agg_hdr->int_comp_type >= INT_COMP_TYPE_MAX) {
-		dev_err_ratelimited(hdev->dev,
+		hl_err_ratelimited(hdev,
 					"eq_agg_header: interrupt component type %u is invalid\n",
 					agg_hdr->int_comp_type);
 		return -EINVAL;
 	}
 
 	if (agg_hdr->die_id >= prop->num_of_dies) {
-		dev_err_ratelimited(hdev->dev, "eq_agg_header: die id %u is invalid\n",
+		hl_err_ratelimited(hdev, "eq_agg_header: die id %u is invalid\n",
 					agg_hdr->die_id);
 		return -EINVAL;
 	}
 
 	if (agg_hdr->hdcore_type >= INT_HDCORE_MAX) {
-		dev_err_ratelimited(hdev->dev, "eq_agg_header: hdcore type %u is invalid\n",
+		hl_err_ratelimited(hdev, "eq_agg_header: hdcore type %u is invalid\n",
 					agg_hdr->hdcore_type);
 		return -EINVAL;
 	}
 
 	/* Max possible instance value is 8 and it is for TPC */
 	if (agg_hdr->comp_instance >= NUM_HDCORE0_TPC) {
-		dev_err_ratelimited(hdev->dev, "eq_agg_header: component instance %u is invalid\n",
+		hl_err_ratelimited(hdev, "eq_agg_header: component instance %u is invalid\n",
 					agg_hdr->comp_instance);
 		return -EINVAL;
 	}
@@ -13978,7 +13978,7 @@ static void gaudi3_handle_razwi_info(struct hl_device *hdev, struct hl_eq_razwi_
 	u64 addr = ((u64)le32_to_cpu(r->hi_reg) << 32) + le32_to_cpu(r->lo_reg);
 	u32 id = le32_to_cpu(r->id);
 
-	dev_err(hdev->dev, "%s RAZWI happened: addr 0x%llX, id 0x%X", type, addr, id);
+	hl_err(hdev, "%s RAZWI happened: addr 0x%llX, id 0x%X", type, addr, id);
 
 	hl_handle_razwi(hdev, addr, &eng_id, 1, flags, event_mask);
 }
@@ -14074,15 +14074,15 @@ static void gaudi3_handle_razwi_mstr_if(struct hl_device *hdev, struct hl_eq_raz
 
 	intr_cause = lower_32_bits(le64_to_cpu(rd->xresp.hbw.intr_cause_data));
 	if (FIELD_GET(MSTR_IF_XRESP_HBW_INTR_CTRL_CAUSE_BRESP_ERR_M, intr_cause))
-		dev_err(hdev->dev, "MSTR_IF XRESP HBW RAZWI happened: BRESP_ERR\n");
+		hl_err(hdev, "MSTR_IF XRESP HBW RAZWI happened: BRESP_ERR\n");
 	if (FIELD_GET(MSTR_IF_XRESP_HBW_INTR_CTRL_CAUSE_RRESP_ERR_M, intr_cause))
-		dev_err(hdev->dev, "MSTR_IF XRESP HBW RAZWI happened: RRESP_ERR\n");
+		hl_err(hdev, "MSTR_IF XRESP HBW RAZWI happened: RRESP_ERR\n");
 
 	intr_cause = lower_32_bits(le64_to_cpu(rd->xresp.lbw.intr_cause_data));
 	if (FIELD_GET(MSTR_IF_XRESP_LBW_INTR_CTRL_CAUSE_BRESP_ERR_M, intr_cause))
-		dev_err(hdev->dev, "MSTR_IF XRESP LBW RAZWI happened: BRESP_ERR\n");
+		hl_err(hdev, "MSTR_IF XRESP LBW RAZWI happened: BRESP_ERR\n");
 	if (FIELD_GET(MSTR_IF_XRESP_LBW_INTR_CTRL_CAUSE_RRESP_ERR_M, intr_cause))
-		dev_err(hdev->dev, "MSTR_IF XRESP LBW RAZWI happened: RRESP_ERR\n");
+		hl_err(hdev, "MSTR_IF XRESP LBW RAZWI happened: RRESP_ERR\n");
 }
 
 static void gaudi3_sei_razwi_handler(struct hl_device *hdev, struct hl_eq_dynamic_entry *eq,
@@ -14244,7 +14244,7 @@ static void gaudi3_sei_razwi_handler(struct hl_device *hdev, struct hl_eq_dynami
 		break;
 
 	default:
-		dev_err(hdev->dev, "Component type %u doesn't have a razwi handler\n",
+		hl_err(hdev, "Component type %u doesn't have a razwi handler\n",
 			agg_component_type);
 		break;
 	}
@@ -14360,11 +14360,11 @@ static void gaudi3_print_hbm_mc_sei_ca_par_intr_info(struct hl_device *hdev,
 		pc = pc_idx % NUM_PC_PER_CH;
 		ca_parity_info = &sei_data->ca_parity_info[pc_idx];
 
-		dev_err_ratelimited(hdev->dev, "CA PAR error in CH%u PC%u: count %u\n",
+		hl_err_ratelimited(hdev, "CA PAR error in CH%u PC%u: count %u\n",
 					ch, pc, le32_to_cpu(ca_parity_info->ca_err_cnt));
 
 		for (cmd_idx = 0 ; cmd_idx < HBM_CA_ERR_CMD_LIFO_LEN ; ++cmd_idx) {
-			dev_err_ratelimited(hdev->dev,
+			hl_err_ratelimited(hdev,
 					"LAST_CMD[%u]: row: {odd %#x, even %#x}, col: {odd %#x, even %#x}\n",
 					cmd_idx,
 					le16_to_cpu(ca_parity_info->odd_row_data[cmd_idx]),
@@ -14391,11 +14391,11 @@ static void gaudi3_print_hbm_mc_sei_wr_par_intr_info(struct hl_device *hdev,
 		pc = pc_idx % NUM_PC_PER_CH;
 		wr_parity_info = &sei_data->wr_parity_info[pc_idx];
 
-		dev_err_ratelimited(hdev->dev, "WR PAR error in CH%u PC%u: count %u\n",
+		hl_err_ratelimited(hdev, "WR PAR error in CH%u PC%u: count %u\n",
 					ch, pc, le32_to_cpu(wr_parity_info->wr_par_cnt));
 
 		for (cmd_idx = 0 ; cmd_idx < HBM_WR_PAR_CMD_LIFO_LEN ; ++cmd_idx) {
-			dev_err_ratelimited(hdev->dev,
+			hl_err_ratelimited(hdev,
 					"LAST_CMD[%u]: sid %u, bg %u, ba %u, col %u, derr %u\n",
 					cmd_idx,
 					wr_parity_info->last_wr_cmds[cmd_idx].sid,
@@ -14424,7 +14424,7 @@ static void gaudi3_print_hbm_mc_sei_rd_err_intr_info(struct hl_device *hdev,
 		pc = pc_idx % NUM_PC_PER_CH;
 		rd_error_info = &sei_data->rd_error_info[pc_idx];
 
-		dev_err_ratelimited(hdev->dev,
+		hl_err_ratelimited(hdev,
 				"RD error in CH%u PC%u: rd_par_cnt %u, serr_cnt %u, scrb_serr_cnt %u, derr_cnt %u\n",
 				ch, pc,
 				le32_to_cpu(rd_error_info->rd_par_cnt),
@@ -14432,7 +14432,7 @@ static void gaudi3_print_hbm_mc_sei_rd_err_intr_info(struct hl_device *hdev,
 				le32_to_cpu(rd_error_info->scrb_serr_cnt),
 				le32_to_cpu(rd_error_info->derr_cnt));
 
-		dev_err_ratelimited(hdev->dev,
+		hl_err_ratelimited(hdev,
 				"RD error address: sid %u , bg %u, ba %u, col %u, row %u\n",
 				rd_error_info->rd_err_addr.rd_err_addr_sid,
 				rd_error_info->rd_err_addr.rd_err_addr_bg,
@@ -14443,7 +14443,7 @@ static void gaudi3_print_hbm_mc_sei_rd_err_intr_info(struct hl_device *hdev,
 		for (beat = 0 ; beat < NUM_BEAT_PER_PC ; ++beat) {
 			rd_err_beat = &rd_error_info->rd_err_beat[beat];
 
-			dev_err_ratelimited(hdev->dev,
+			hl_err_ratelimited(hdev,
 					"BEAT[%u]: serr %#x, derr %#x, dm %#x, syndrome %#x\n",
 					beat,
 					rd_err_beat->rd_err_serr,
@@ -14452,7 +14452,7 @@ static void gaudi3_print_hbm_mc_sei_rd_err_intr_info(struct hl_device *hdev,
 					rd_err_beat->rd_err_syndrome);
 
 			for (dw = 0 ; dw < NUM_DW_PER_PC ; ++dw) {
-				dev_err_ratelimited(hdev->dev,
+				hl_err_ratelimited(hdev,
 						"BEAT[%u] DW[%u]: data %#x, par_err %#x, par_data %#x\n,",
 						beat, dw,
 						le32_to_cpu(rd_err_beat->rd_err_data[dw]),
@@ -14599,7 +14599,7 @@ static void gaudi3_check_for_glbl_errors(struct hl_device *hdev,
 		glbl_err_data = &eq_dynamic_entry->tpc_sei_data.glbl_err_data;
 		break;
 	default:
-		dev_err(hdev->dev, "Global error data is not handled for component type %u\n",
+		hl_err(hdev, "Global error data is not handled for component type %u\n",
 			agg_component_type);
 		break;
 	}
@@ -14717,7 +14717,7 @@ static u32 gaudi3_handle_sei_event(struct hl_device *hdev,
 						eng_id, event_mask);
 		break;
 	default:
-		dev_err(hdev->dev, "SEI event handling for component type %u is missing\n",
+		hl_err(hdev, "SEI event handling for component type %u is missing\n",
 			agg_component_type);
 		break;
 	}
@@ -14785,7 +14785,7 @@ static u32 gaudi3_handle_spi_event(struct hl_device *hdev,
 		err_cnt = handle_tpc_spi_events(hdev, data_size, &eq_dynamic_entry->tpc_spi_data);
 		break;
 	default:
-		dev_err(hdev->dev, "SPI event handling for component type %u is missing\n",
+		hl_err(hdev, "SPI event handling for component type %u is missing\n",
 			agg_component_type);
 		break;
 	}
@@ -14841,7 +14841,7 @@ static int gaudi3_handle_hw_event(struct hl_device *hdev,
 		err_cnt = gaudi3_handle_spi_event(hdev, eq_dynamic_entry, reset_flags, event_mask);
 		break;
 	default:
-		dev_dbg(hdev->dev, "Unexpected HW event group type %u\n", agg_grp_type);
+		hl_dbg(hdev, "Unexpected HW event group type %u\n", agg_grp_type);
 		break;
 	}
 
@@ -14864,7 +14864,7 @@ static void gaudi3_notifier_events_and_device_reset(struct hl_device *hdev,
 	bool skip_reset_on_fw_events, hard_reset;
 
 	if (is_critical_event) {
-		dev_err(hdev->dev,
+		hl_err(hdev,
 			"Critical event indication. Device is going to be reset by FW.\n");
 
 		reset_flags &= ~HL_DRV_RESET_DELAY;
@@ -14877,7 +14877,7 @@ static void gaudi3_notifier_events_and_device_reset(struct hl_device *hdev,
 	}
 
 	if (reset_flags || event_mask)
-		dev_dbg(hdev->dev, "reset_flags %#x, event_mask %#llx\n", reset_flags, event_mask);
+		hl_dbg(hdev, "reset_flags %#x, event_mask %#llx\n", reset_flags, event_mask);
 
 	skip_reset_on_fw_events = (!hdev->hard_reset_on_fw_events &&
 					!(reset_flags & HL_DRV_RESET_BYPASS_REQ_TO_FW));
@@ -14970,7 +14970,7 @@ static u64 gaudi3_read_pte(struct hl_device *hdev, u64 addr)
 
 	rc = hdev->asic_funcs->access_dev_mem(hdev, PCI_REGION_DRAM, addr, &val, DEBUGFS_READ64);
 	if (rc)
-		dev_err(hdev->dev, "failed to read pte\n");
+		hl_err(hdev, "failed to read pte\n");
 
 	return val;
 }
@@ -14984,7 +14984,7 @@ static void gaudi3_write_pte(struct hl_device *hdev, u64 addr, u64 val)
 
 	rc = hdev->asic_funcs->access_dev_mem(hdev, PCI_REGION_DRAM, addr, &val, DEBUGFS_WRITE64);
 	if (rc)
-		dev_err(hdev->dev, "failed to write pte\n");
+		hl_err(hdev, "failed to write pte\n");
 }
 
 static int gaudi3_get_reg_pcie_addr(struct hl_device *hdev, u32 reg, u64 *pci_addr)

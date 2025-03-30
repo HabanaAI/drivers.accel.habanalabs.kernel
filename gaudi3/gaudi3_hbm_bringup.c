@@ -109,7 +109,7 @@ static int poll_on_phy_init(struct hl_device *hdev, u32 dev)
 		timeout);
 
 	if (rc) {
-		dev_err(hdev->dev,
+		hl_err(hdev,
 			"Timeout while polling on HBM%d dfi_init_complete assertion\n",
 			dev);
 		return status_fail;
@@ -205,7 +205,7 @@ static int phy_poll_on_training(struct hl_device *hdev, u32 hbm_dev)
 		timeout);
 
 	if (rc) {
-		dev_err(hdev->dev,
+		hl_err(hdev,
 			"HBM%d Timeout while polling for training FSM completion. TrainStatus: 0x%x\n",
 			hbm_dev, reg_val);
 		rc = status_fail;
@@ -268,7 +268,7 @@ int gaudi3_init_hbm(struct hl_device *hdev)
 		return 0;
 
 	if (!hdev->hbm_compression_enable)
-		dev_dbg(hdev->dev, "HBM compression is disabled\n");
+		hl_dbg(hdev, "HBM compression is disabled\n");
 
 	/* if preboot does HBM init then skip it */
 	if ((hdev->fw_components & FW_TYPE_PREBOOT_CPU) &&
