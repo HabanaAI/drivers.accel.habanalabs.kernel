@@ -4282,6 +4282,32 @@ struct hl_device {
 			((hdev)->sdev ? dev_name((hdev)->sdev) : \
 					"NA-DEVICE"))
 
+/* device logging functions */
+#define hl_info(hdev, fmt, ...) \
+	dev_info(HL_PARENT_DEV(hdev), fmt, ##__VA_ARGS__)
+#define hl_dbg(hdev, fmt, ...) \
+	dev_dbg(HL_PARENT_DEV(hdev), fmt, ##__VA_ARGS__)
+#define hl_warn(hdev, fmt, ...) \
+	dev_warn(HL_PARENT_DEV(hdev), fmt, ##__VA_ARGS__)
+#define hl_err(hdev, fmt, ...) \
+	dev_err(HL_PARENT_DEV(hdev), fmt, ##__VA_ARGS__)
+#define hl_crit(hdev, fmt, ...) \
+	dev_crit(HL_PARENT_DEV(hdev), fmt, ##__VA_ARGS__)
+#define hl_notice(hdev, fmt, ...) \
+	dev_notice(HL_PARENT_DEV(hdev), fmt, ##__VA_ARGS__)
+#define hl_info_ratelimited(hdev, fmt, ...) \
+	dev_info_ratelimited(HL_PARENT_DEV(hdev), fmt, ##__VA_ARGS__)
+#define hl_dbg_ratelimited(hdev, fmt, ...) \
+	dev_dbg_ratelimited(HL_PARENT_DEV(hdev), fmt, ##__VA_ARGS__)
+#define hl_warn_ratelimited(hdev, fmt, ...) \
+	dev_warn_ratelimited(HL_PARENT_DEV(hdev), fmt, ##__VA_ARGS__)
+#define hl_err_ratelimited(hdev, fmt, ...) \
+	dev_err_ratelimited(HL_PARENT_DEV(hdev), fmt, ##__VA_ARGS__)
+#define hl_crit_ratelimited(hdev, fmt, ...) \
+	dev_crit_ratelimited(HL_PARENT_DEV(hdev), fmt, ##__VA_ARGS__)
+#define hl_notice_ratelimited(hdev, fmt, ...) \
+	dev_notice_ratelimited(HL_PARENT_DEV(hdev), fmt, ##__VA_ARGS__)
+
 /**
  * struct hl_cs_irq_info - IRQ info structure for CS completion interrupt.
  * @hdev: pointer to habanalabs device structure.
