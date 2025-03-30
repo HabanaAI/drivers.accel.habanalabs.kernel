@@ -10287,13 +10287,13 @@ static int gaudi3_test_pdma_job_init(struct hl_device *hdev,
 							   GFP_KERNEL);
 	if (!test_params->host_ptr) {
 		rc = -ENOMEM;
-		goto kernel_unmap_dev;
+		goto err_alloc_host_ptr;
 	}
 
 	rc = gaudi3_kernel_ctx_map_addr(hdev, test_params->host_mem_dma_addr,
 					&test_params->host_va, test_params->transfer_size, false);
 	if (rc)
-		goto free_host;
+		goto err_map_host_va;
 
 	for (ch_idx = 0 ; ch_idx < hdev->asic_prop.pdma_ch_max ; ch_idx++) {
 		if (!(gaudi3->hw_cap_pdma_initialized & BIT(ch_idx)))
@@ -10308,7 +10308,7 @@ static int gaudi3_test_pdma_job_init(struct hl_device *hdev,
 			rc = gaudi3_scrub_device_memory(hdev, test_params, ch_idx);
 			/* Don't bother reverting HW cfg, the device is not usable if we fail */
 			if (rc)
-				goto mmu_unmap_host;
+				goto err_scrub;
 		}
 
 		ch_reg_base = gaudi3_pdma_get_ch_reg_base(hdev, ch_idx);
@@ -10323,13 +10323,13 @@ static int gaudi3_test_pdma_job_init(struct hl_device *hdev,
 
 	return 0;
 
-mmu_unmap_host:
+err_scrub:
 	gaudi3_kernel_ctx_unmap_addr(hdev, test_params->host_va,
 				     test_params->transfer_size, false);
-free_host:
+err_map_host_va:
 	hl_asic_dma_free_coherent(hdev, test_params->transfer_size,
 				  test_params->host_ptr, test_params->host_mem_dma_addr);
-kernel_unmap_dev:
+err_alloc_host_ptr:
 	if (is_dram_test)
 		gaudi3_kernel_ctx_unmap_addr(hdev, test_params->device_va,
 					     test_params->transfer_size, true);
