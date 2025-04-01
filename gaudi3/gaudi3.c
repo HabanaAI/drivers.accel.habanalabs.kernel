@@ -7047,6 +7047,9 @@ static void gaudi3_msix_gw_table_enable_range(struct hl_device *hdev, u32 irq_fi
 void gaudi3_init_msix_gw_table(struct hl_device *hdev)
 {
 	gaudi3_msix_gw_table_enable_range(hdev,
+				GAUDI3_IRQ_NUM_TPC_ASSERT, GAUDI3_IRQ_NUM_TPC_ASSERT);
+
+	gaudi3_msix_gw_table_enable_range(hdev,
 				GAUDI3_IRQ_NUM_USER_FIRST, GAUDI3_IRQ_NUM_USER_LAST);
 
 	gaudi3_msix_gw_table_enable_range(hdev,
