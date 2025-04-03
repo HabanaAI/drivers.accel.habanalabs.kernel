@@ -187,7 +187,7 @@ static int hw_ip_info(struct hl_device *hdev, struct hl_info_args *args)
 		min(CARD_NAME_MAX_LEN, HL_INFO_CARD_NAME_MAX_LEN));
 
 	hw_ip.cpld_version = le32_to_cpu(prop->cpucp_info.cpld_version);
-	hw_ip.module_id = le32_to_cpu(prop->cpucp_info.card_location);
+	hw_ip.module_id = hl_get_module_id(hdev);
 	hw_ip.interposer_version = prop->cpucp_info.interposer_version;
 	hw_ip.substrate_version = prop->cpucp_info.substrate_version;
 

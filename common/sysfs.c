@@ -507,7 +507,7 @@ static ssize_t module_id_show(struct device *dev,
 {
 	struct hl_device *hdev = dev_get_drvdata(dev);
 
-	return sprintf(buf, "%u\n", le32_to_cpu(hdev->asic_prop.cpucp_info.card_location));
+	return sprintf(buf, "%u\n", hl_get_module_id(hdev));
 }
 
 static ssize_t parent_device_show(struct device *dev, struct device_attribute *attr, char *buf)

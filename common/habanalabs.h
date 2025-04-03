@@ -1280,7 +1280,7 @@ struct hl_encaps_signals_mgr {
  * @kernel_address: holds the queue's kernel virtual address.
  * @bus_address: holds the queue's DMA address.
  * @pq_dram_address: hold the dram address when the PQ is allocated, used when dram_bd is true in
- *                   queue properites.
+ *                   queue properties.
  * @pi: holds the queue's pi value.
  * @ci: holds the queue's ci value, AS CALCULATED BY THE DRIVER (not real ci).
  * @hw_queue_id: the id of the H/W queue.
@@ -3759,7 +3759,7 @@ struct hl_p2p_region {
 };
 
 /**
- * struct hl_dio - describes habanalabs direct storage interraction interface
+ * struct hl_dio - describes habanalabs direct storage interaction interface
  * @p2prs: array of p2p regions
  * @inflight_ios: percpu counter for inflight ios
  * @np2prs: number of elements in p2prs
@@ -3884,8 +3884,8 @@ struct hl_version {
  * @dbg_binning_conf: holds the binning masks needed by fw_binning_set debugfs node
  * @etr_buf_store: datastructure holding the descriptors of all the full etr
  *                 buffers in the system, ready to be fetched by the user
- * @heartbeat_debug_info: counters used to debug hearbeat failures.
- * @hldio:  describes habanalabs direct storage interraction interface.
+ * @heartbeat_debug_info: counters used to debug heartbeat failures.
+ * @hldio:  describes habanalabs direct storage interaction interface.
  * @fw_sw_ver: version structure for FW's SW version.
  * @cpucp_ver: version structure for CPUCP.
  * @irq_affinity_mask: mask of available CPU cores for user and decoder interrupt handling.
@@ -5241,5 +5241,19 @@ int hl_importer_exit(void);
 /* END OF IMPORTER CODE */
 
 bool hl_check_fd(struct file *file);
+
+static inline u32 hl_get_module_id(const struct hl_device *hdev)
+{
+	u32 card_location = le32_to_cpu(hdev->asic_prop.cpucp_info.card_location);
+
+	switch (hdev->serdes_type) {
+	case GAUDI3_RACK_SERDES_TYPE:
+		return card_location % 16;
+	case GAUDI3_RACK_WHITEBOX_SERDES_TYPE:
+		return card_location % 4;
+	default:
+		return card_location;
+	}
+}
 
 #endif /* HABANALABSP_H_ */
