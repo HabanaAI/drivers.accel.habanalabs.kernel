@@ -2554,6 +2554,19 @@ const u64 gaudi3_etr_base[GAUDI3_NUM_ETR] = {
 	[GAUDI3_D1_NCH_ETR]  = mmD1_NCH_ETR_BASE,
 };
 
+enum eco_bfe {
+	NIC_ENABLE_H9_RX_DROP_ECO = 0,
+	NIC_ENABLE_H9_QP_DOORBELLS_ECO,
+	NIC_ENABLE_H9_CC_MSG_DROPS_ECO,
+	NIC_ENABLE_H9_REMOTE_PI_UPDATE_ECO,
+	NIC_ENABLE_H9_RXB_MEM_DEADLOCK_ECO,
+	NIC_ENABLE_H9_SINGLE_QP_PERF_FIX_ECO,
+	NIC_ENABLE_H9_SAL_OVERRIDE_ECO,
+	NIC_ENABLE_H9_SACK_DEADLOCK_ECO,
+	NIC_ENABLE_H9_TXE_BUFF_ALLOC_ECO,
+	NIC_ENABLE_H9_PHY_MAC_HANG_ECO,
+};
+
 static void gaudi3_validate_eqe_data_size(struct hl_device *hdev, void *data, u16 actual_size,
 						u16 expected_size);
 
@@ -7147,6 +7160,37 @@ static void gaudi3_disable_user_msix(struct hl_device *hdev)
 
 	irq = hl_irq_vector(hdev, GAUDI3_IRQ_NUM_UNEXPECTED_ERROR);
 	free_irq(irq, &hdev->unexpected_error_interrupt);
+}
+
+bool gaudi3_get_bfe_status(struct hbl_aux_dev *aux_dev, u8 bfe)
+{
+	struct hl_cn *cn = container_of(aux_dev, struct hl_cn, cn_aux_dev);
+	struct hl_device *hdev = container_of(cn, struct hl_device, cn);
+
+	switch (bfe) {
+	case NIC_ENABLE_H9_RX_DROP_ECO:
+		return hdev->nic_enable_h9_rx_drop_eco;
+	case NIC_ENABLE_H9_QP_DOORBELLS_ECO:
+		return hdev->nic_enable_h9_qp_doorbells_eco;
+	case NIC_ENABLE_H9_CC_MSG_DROPS_ECO:
+		return hdev->nic_enable_h9_cc_msg_drops_eco;
+	case NIC_ENABLE_H9_REMOTE_PI_UPDATE_ECO:
+		return hdev->nic_enable_h9_remote_pi_update_eco;
+	case NIC_ENABLE_H9_RXB_MEM_DEADLOCK_ECO:
+		return hdev->nic_enable_h9_rxb_mem_deadlock_eco;
+	case NIC_ENABLE_H9_SINGLE_QP_PERF_FIX_ECO:
+		return hdev->nic_enable_h9_single_qp_perf_fix_eco;
+	case NIC_ENABLE_H9_SAL_OVERRIDE_ECO:
+		return hdev->nic_enable_h9_sal_override_eco;
+	case NIC_ENABLE_H9_SACK_DEADLOCK_ECO:
+		return hdev->nic_enable_h9_sack_deadlock_eco;
+	case NIC_ENABLE_H9_TXE_BUFF_ALLOC_ECO:
+		return hdev->nic_enable_h9_txe_buff_alloc_eco;
+	case NIC_ENABLE_H9_PHY_MAC_HANG_ECO:
+		return hdev->nic_enable_h9_phy_mac_hang_eco;
+	}
+
+	return false;
 }
 
 static struct hl_etr_buf *gaudi3_etr_buf_store_create_host_buf(struct hl_device *hdev)
