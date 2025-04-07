@@ -843,7 +843,7 @@ int hl_device_open(struct drm_device *ddev, struct drm_file *file_priv)
 	mutex_lock(&hdev->fpriv_list_lock);
 
 	if (!hl_device_operational(hdev, &status)) {
-		hl_dbg_ratelimited(hdev,
+		dev_dbg_ratelimited(hdev->dev,
 			"Can't open %s because it is %s\n",
 			dev_name(hdev->dev), hdev->status[status]);
 
@@ -857,7 +857,7 @@ int hl_device_open(struct drm_device *ddev, struct drm_file *file_priv)
 	}
 
 	if (hdev->is_in_dram_scrub) {
-		hl_dbg_ratelimited(hdev,
+		dev_dbg_ratelimited(hdev->dev,
 			"Can't open %s during dram scrub\n",
 			dev_name(hdev->dev));
 		rc = -EAGAIN;
@@ -865,7 +865,7 @@ int hl_device_open(struct drm_device *ddev, struct drm_file *file_priv)
 	}
 
 	if (hdev->compute_ctx_in_release) {
-		hl_dbg_ratelimited(hdev,
+		dev_dbg_ratelimited(hdev->dev,
 			"Can't open %s because another user is still releasing it\n",
 			dev_name(hdev->dev));
 		rc = -EAGAIN;
@@ -873,7 +873,7 @@ int hl_device_open(struct drm_device *ddev, struct drm_file *file_priv)
 	}
 
 	if (hdev->is_compute_ctx_active) {
-		hl_dbg_ratelimited(hdev,
+		dev_dbg_ratelimited(hdev->dev,
 			"Can't open %s because another user is working on it\n",
 			dev_name(hdev->dev));
 		rc = -EBUSY;
@@ -882,7 +882,7 @@ int hl_device_open(struct drm_device *ddev, struct drm_file *file_priv)
 
 	rc = hl_ctx_create(hdev, hpriv);
 	if (rc) {
-		hl_err(hdev, "Failed to create context %d\n", rc);
+		dev_err(hdev->dev, "Failed to create context %d\n", rc);
 		goto out_err;
 	}
 
@@ -1953,16 +1953,16 @@ hl_pci_err_detected(struct pci_dev *pdev, pci_channel_state_t state)
 
 	switch (state) {
 	case pci_channel_io_normal:
-		hl_warn(hdev, "PCI normal state error detected\n");
+		dev_warn(hdev->dev, "PCI normal state error detected\n");
 		return PCI_ERS_RESULT_CAN_RECOVER;
 
 	case pci_channel_io_frozen:
-		hl_warn(hdev, "PCI frozen state error detected\n");
+		dev_warn(hdev->dev, "PCI frozen state error detected\n");
 		result = PCI_ERS_RESULT_NEED_RESET;
 		break;
 
 	case pci_channel_io_perm_failure:
-		hl_warn(hdev, "PCI failure state error detected\n");
+		dev_warn(hdev->dev, "PCI failure state error detected\n");
 		result = PCI_ERS_RESULT_DISCONNECT;
 		break;
 
@@ -1985,7 +1985,7 @@ static void hl_pci_err_resume(struct pci_dev *pdev)
 {
 	struct hl_device *hdev = pci_get_drvdata(pdev);
 
-	hl_warn(hdev, "Resuming device after PCI slot reset\n");
+	dev_warn(hdev->dev, "Resuming device after PCI slot reset\n");
 	hl_device_resume(hdev);
 }
 
@@ -2000,7 +2000,7 @@ static pci_ers_result_t hl_pci_err_slot_reset(struct pci_dev *pdev)
 {
 	struct hl_device *hdev = pci_get_drvdata(pdev);
 
-	hl_warn(hdev, "PCI slot reset detected\n");
+	dev_warn(hdev->dev, "PCI slot reset detected\n");
 
 	return PCI_ERS_RESULT_RECOVERED;
 }

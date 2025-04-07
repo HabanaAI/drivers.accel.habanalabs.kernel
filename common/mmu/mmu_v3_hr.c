@@ -137,10 +137,10 @@ static void hl_mmu_v3_hr_ctx_fini(struct hl_ctx *ctx)
 	int i;
 
 	if (!hash_empty(ctx->hr_hmmu_phys_hash))
-		hl_err(hdev, "ctx %d is freed while it has pgts in use\n", ctx->asid);
+		dev_err(hdev->dev, "ctx %d is freed while it has pgts in use\n", ctx->asid);
 
 	hash_for_each_safe(ctx->hr_hmmu_phys_hash, i, tmp, pgt_info, node) {
-		hl_err_ratelimited(hdev,
+		dev_err_ratelimited(hdev->dev,
 			"pgt_info of addr 0x%llx of asid %d was not destroyed, num_ptes: %d\n",
 			pgt_info->phys_addr, ctx->asid, pgt_info->num_of_ptes);
 		hl_mmu_hr_free_hop_remove_pgt(pgt_info, &hdev->hmmu_info.priv.hr,
@@ -202,10 +202,10 @@ static int hl_mmu_v3_hr_create_single_pte(struct hl_ctx *ctx, u64 virt_addr, u64
 	}
 
 	if (curr_pte & PAGE_PRESENT_MASK) {
-		hl_err(hdev, "mapping already exists for virt_addr 0x%llx\n", virt_addr);
+		dev_err(hdev->dev, "mapping already exists for virt_addr 0x%llx\n", virt_addr);
 
 		for (i = 0 ; i < num_hops ; i++)
-			hl_dbg(hdev, "hop%d pte: 0x%llx (0x%llx)\n",
+			dev_dbg(hdev->dev, "hop%d pte: 0x%llx (0x%llx)\n",
 					i,
 					*(u64 *) (uintptr_t)
 						hl_mmu_hr_pte_phys_to_virt(ctx, hops_pgt_info[i],
@@ -329,7 +329,7 @@ mapped:
 	return 0;
 
 not_mapped:
-	hl_err(hdev, "virt addr 0x%llx is not mapped to phys addr\n", virt_addr);
+	dev_err(hdev->dev, "virt addr 0x%llx is not mapped to phys addr\n", virt_addr);
 
 	return -EINVAL;
 }
@@ -380,7 +380,7 @@ static int hl_mmu_hr_v3_get_tlb_mapping_params(struct hl_device *hdev,
 						prop->dmmu.end_addr);
 
 	if (!is_dram_addr) {
-		hl_err(hdev, "MMU V3 is only for DRAM mappings\n");
+		dev_err(hdev->dev, "MMU V3 is only for DRAM mappings\n");
 		return -EINVAL;
 	}
 

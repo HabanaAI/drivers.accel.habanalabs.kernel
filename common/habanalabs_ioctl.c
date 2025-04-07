@@ -233,7 +233,7 @@ static int hw_events_info(struct hl_device *hdev, bool aggregate,
 
 	arr = hdev->asic_funcs->get_events_stat(hdev, aggregate, &size);
 	if (!arr) {
-		hl_err(hdev, "Events info not supported\n");
+		dev_err(hdev->dev, "Events info not supported\n");
 		return -EOPNOTSUPP;
 	}
 
@@ -353,7 +353,7 @@ static int debug_read_dev_mem_block(struct hl_fpriv *hpriv, struct hl_debug_args
 		return -EFAULT;
 
 	if (!read_args.size || read_args.size > HL_DEBUG_MAX_READ_BLOCK_SIZE) {
-		hl_err(hdev, "Read debug device memory invalid size %d\n", read_args.size);
+		dev_err(hdev->dev, "Read debug device memory invalid size %d\n", read_args.size);
 		return -EINVAL;
 	}
 
@@ -366,7 +366,7 @@ static int debug_read_dev_mem_block(struct hl_fpriv *hpriv, struct hl_debug_args
 
 	rc = hl_read_memory_block(hdev, buf, read_args.cfg_address, size);
 	if (rc) {
-		hl_err(hdev, "Read debug device memory failed address: %#llx size: %u\n",
+		dev_err(hdev->dev, "Read debug device memory failed address: %#llx size: %u\n",
 					read_args.cfg_address, size);
 		goto out;
 	}
@@ -403,7 +403,7 @@ static int debug_coresight(struct hl_device *hdev, struct hl_ctx *ctx, struct hl
 		if (copy_from_user(input, u64_to_user_ptr(args->input_ptr),
 					args->input_size)) {
 			rc = -EFAULT;
-			hl_err(hdev, "failed to copy input debug data\n");
+			dev_err(hdev->dev, "failed to copy input debug data\n");
 			goto out;
 		}
 
@@ -423,14 +423,14 @@ static int debug_coresight(struct hl_device *hdev, struct hl_ctx *ctx, struct hl
 
 	rc = hdev->asic_funcs->debug_coresight(hdev, ctx, params);
 	if (rc) {
-		hl_err(hdev,
+		dev_err(hdev->dev,
 			"debug coresight operation failed %d\n", rc);
 		goto out;
 	}
 
 	if (output && copy_to_user((void __user *) (uintptr_t) args->output_ptr,
 					output, args->output_size)) {
-		hl_err(hdev, "copy to user failed in debug ioctl\n");
+		dev_err(hdev->dev, "copy to user failed in debug ioctl\n");
 		rc = -EFAULT;
 		goto out;
 	}
@@ -1080,7 +1080,7 @@ static int engine_status_info(struct hl_fpriv *hpriv, struct hl_info_args *args)
 	hdev->asic_funcs->is_device_idle(hdev, NULL, 0, &eng_data);
 
 	if (eng_data.actual_size > eng_data.allocated_buf_size) {
-		hl_err(hdev,
+		dev_err(hdev->dev,
 			"Engines data size (%d Bytes) is bigger than allocated size (%u Bytes)\n",
 			eng_data.actual_size, status_buf_size);
 		vfree(eng_data.buf);
@@ -1296,7 +1296,7 @@ static int send_fw_generic_request(struct hl_device *hdev, struct hl_info_args *
 	}
 
 	if (size > SZ_1M) {
-		hl_err(hdev, "buffer size cannot exceed 1MB\n");
+		dev_err(hdev->dev, "buffer size cannot exceed 1MB\n");
 		return -EINVAL;
 	}
 
@@ -1306,7 +1306,7 @@ static int send_fw_generic_request(struct hl_device *hdev, struct hl_info_args *
 
 
 	if (need_input_buff && copy_from_user(fw_buff, buff, size)) {
-		hl_dbg(hdev, "Failed to copy from user FW buff\n");
+		dev_dbg(hdev->dev, "Failed to copy from user FW buff\n");
 		rc = -EFAULT;
 		goto free_buff;
 	}
@@ -1316,7 +1316,7 @@ static int send_fw_generic_request(struct hl_device *hdev, struct hl_info_args *
 		goto free_buff;
 
 	if (copy_to_user(buff, fw_buff, min(size, info_args->return_size))) {
-		hl_dbg(hdev, "Failed to copy to user FW generic req output\n");
+		dev_dbg(hdev->dev, "Failed to copy to user FW generic req output\n");
 		rc = -EFAULT;
 	}
 
@@ -1333,24 +1333,25 @@ static int report_memory_consumption_ioctl(struct hl_device *hdev, struct hl_inf
 	u32 input_size = info_args->return_size;
 
 	if (input_size != sizeof(struct hl_info_memory_consumption)) {
-		hl_dbg(hdev, "Unexpected size of user input buffer\n");
+		dev_dbg(hdev->dev, "Unexpected size of user input buffer\n");
 		return -EINVAL;
 	}
 
 	if (copy_from_user((void *) &input, buff, input_size)) {
-		hl_dbg(hdev, "Failed to copy from user input buffer\n");
+		dev_dbg(hdev->dev, "Failed to copy from user input buffer\n");
 		return -EFAULT;
 	}
 
 	if (input.used_mem > atomic64_read(&hdev->dram_used_mem)) {
-		hl_dbg(hdev, "Reported used memory is larger than allocated\n");
+		dev_dbg(hdev->dev, "Reported used memory is larger than allocated\n");
 		return -EINVAL;
 	}
 
 	return hl_report_memory_consumption_to_fw(hdev, input.used_mem, input.timestamp_sec);
 }
 
-static int _hl_info_ioctl(struct hl_fpriv *hpriv, void *data, char *prefix)
+static int _hl_info_ioctl(struct hl_fpriv *hpriv, void *data,
+				struct device *dev)
 {
 	enum hl_device_status status;
 	struct hl_info_args *args = data;
@@ -1358,7 +1359,7 @@ static int _hl_info_ioctl(struct hl_fpriv *hpriv, void *data, char *prefix)
 	int rc;
 
 	if (args->pad) {
-		hl_dbg(hdev, "%sPadding bytes must be 0\n", prefix);
+		dev_dbg(hdev->dev, "Padding bytes must be 0\n");
 		return -EINVAL;
 	}
 
@@ -1440,9 +1441,9 @@ static int _hl_info_ioctl(struct hl_fpriv *hpriv, void *data, char *prefix)
 	}
 
 	if (!hl_device_operational(hdev, &status)) {
-		hl_dbg_ratelimited(hdev,
-			"%sDevice is %s. Can't execute INFO IOCTL\n",
-			prefix, hdev->status[status]);
+		dev_dbg_ratelimited(dev,
+			"Device is %s. Can't execute INFO IOCTL\n",
+			hdev->status[status]);
 		return -EBUSY;
 	}
 
@@ -1508,7 +1509,7 @@ static int _hl_info_ioctl(struct hl_fpriv *hpriv, void *data, char *prefix)
 		return report_memory_consumption_ioctl(hdev, args);
 
 	default:
-		hl_err(hdev, "%sInvalid request %d\n", prefix, args->op);
+		dev_err(dev, "Invalid request %d\n", args->op);
 		rc = -EINVAL;
 		break;
 	}
@@ -1520,7 +1521,7 @@ int hl_info_ioctl(struct drm_device *ddev, void *data, struct drm_file *file_pri
 {
 	struct hl_fpriv *hpriv = file_priv->driver_priv;
 
-	return _hl_info_ioctl(hpriv, data, "");
+	return _hl_info_ioctl(hpriv, data, hpriv->hdev->dev);
 }
 
 static int hl_info_ioctl_control(struct hl_fpriv *hpriv, void *data)
@@ -1536,7 +1537,7 @@ static int hl_info_ioctl_control(struct hl_fpriv *hpriv, void *data)
 		break;
 	}
 
-	return _hl_info_ioctl(hpriv, data, "(control) ");
+	return _hl_info_ioctl(hpriv, data, hpriv->hdev->dev_ctrl);
 }
 
 static int debug_dio_ioctl(struct drm_file *file_priv, struct hl_debug_args *args)
@@ -1565,20 +1566,20 @@ static int debug_dio_ioctl(struct drm_file *file_priv, struct hl_debug_args *arg
 				dio_data.ssd2hl.len_bytes,
 				&len_read);
 		if (rc < 0) {
-			hl_err(hdev, "SSD2HL error: %d\n", rc);
+			dev_err(hdev->dev, "SSD2HL error: %d\n", rc);
 		} else {
 			if (copy_to_user((void __user *)(uintptr_t) args->output_ptr, &len_read,
 					sizeof(len_read))) {
-				hl_err(hdev, "Error copying IO outcome to the user\n");
+				dev_err(hdev->dev, "Error copying IO outcome to the user\n");
 				rc = -EFAULT;
 			}
 		} break;
 	case HL_DIO_CMD_HL2SSD:
-		hl_err(hdev, "HL2SSD is not supported at this time\n");
+		dev_err(hdev->dev, "HL2SSD is not supported at this time\n");
 		rc = -EINVAL;
 		break;
 	default:
-		hl_err(hdev, "Invalid HLDIO request %u\n", dio_data.op);
+		dev_err(hdev->dev, "Invalid HLDIO request %u\n", dio_data.op);
 		rc = -EINVAL;
 		break;
 	}
@@ -1596,7 +1597,7 @@ int hl_debug_ioctl(struct drm_device *ddev, void *data, struct drm_file *file_pr
 	int rc = 0;
 
 	if (!hl_device_operational(hdev, &status)) {
-		hl_dbg_ratelimited(hdev,
+		dev_dbg_ratelimited(hdev->dev,
 			"Device is %s. Can't execute DEBUG IOCTL\n",
 			hdev->status[status]);
 		return -EBUSY;
@@ -1612,7 +1613,7 @@ int hl_debug_ioctl(struct drm_device *ddev, void *data, struct drm_file *file_pr
 	case HL_DEBUG_OP_TIMESTAMP:
 	case HL_DEBUG_OP_FETCH_TRACE:
 		if (!hdev->in_debug) {
-			hl_err_ratelimited(hdev,
+			dev_err_ratelimited(hdev->dev,
 				"Rejecting debug configuration request because device not in debug mode\n");
 			return -EFAULT;
 		}
@@ -1628,7 +1629,7 @@ int hl_debug_ioctl(struct drm_device *ddev, void *data, struct drm_file *file_pr
 	case HL_DEBUG_OP_READMEM:
 	case HL_DEBUG_OP_MEMCPY:
 		if (hdev->pdev) {
-			hl_err_ratelimited(hdev,
+			dev_err_ratelimited(hdev->dev,
 				"Rejecting memory access debug request, because device not in simulator mode\n");
 			return -EFAULT;
 		}
@@ -1649,7 +1650,7 @@ int hl_debug_ioctl(struct drm_device *ddev, void *data, struct drm_file *file_pr
 		rc = debug_dio_ioctl(file_priv, args);
 		break;
 	default:
-		hl_err(hdev, "Invalid request %d\n", args->op);
+		dev_err(hdev->dev, "Invalid request %d\n", args->op);
 		rc = -EINVAL;
 		break;
 	}
@@ -1673,7 +1674,7 @@ static int cn_control(struct hl_fpriv *hpriv, struct hl_nic_args *args)
 		if (copy_from_user(input, u64_to_user_ptr(args->input_ptr),
 					args->input_size)) {
 			rc = -EFAULT;
-			hl_dbg(hdev, "failed to copy input NIC data\n");
+			dev_dbg(hdev->dev, "failed to copy input NIC data\n");
 			goto out;
 		}
 	}
@@ -1693,17 +1694,17 @@ static int cn_control(struct hl_fpriv *hpriv, struct hl_nic_args *args)
 		 */
 		if ((rc == -EBUSY) &&
 			(args->op == HL_NIC_OP_ALLOC_CONN || args->op == HL_NIC_OP_ALLOC_COLL_CONN))
-			hl_dbg_ratelimited(hdev,
+			dev_dbg_ratelimited(hdev->dev,
 					"Need to retry NIC control operation %d (RC %d)\n",
 					args->op, rc);
 		else
-			hl_dbg_ratelimited(hdev,
+			dev_dbg_ratelimited(hdev->dev,
 					"NIC control operation %d failed %d\n", args->op, rc);
 	}
 
 	if (output && copy_to_user((void __user *) (uintptr_t) args->output_ptr,
 					output, args->output_size)) {
-		hl_dbg(hdev, "copy to user failed in nic ioctl\n");
+		dev_dbg(hdev->dev, "copy to user failed in nic ioctl\n");
 		rc = -EFAULT;
 		goto out;
 	}
@@ -1725,7 +1726,7 @@ int hl_nic_ioctl(struct drm_device *ddev, void *data, struct drm_file *file_priv
 	int rc;
 
 	if (!hl_device_operational(hdev, &status)) {
-		hl_dbg_ratelimited(hdev,
+		dev_dbg_ratelimited(hdev->dev,
 			"Device is %s. Can't execute NIC IOCTL\n",
 			hdev->status[status]);
 		return -EBUSY;
@@ -1764,7 +1765,7 @@ int hl_nic_ioctl(struct drm_device *ddev, void *data, struct drm_file *file_priv
 		rc = cn_control(hpriv, args);
 		break;
 	default:
-		hl_dbg(hdev, "Invalid request %d\n", args->op);
+		dev_dbg(hdev->dev, "Invalid request %d\n", args->op);
 		rc = -EINVAL;
 		break;
 	}
@@ -1792,7 +1793,7 @@ static const struct hl_ioctl_desc hl_ioctls_control[] = {
 };
 
 static long _hl_ioctl(struct hl_fpriv *hpriv, unsigned int cmd, unsigned long arg,
-		      const char *prefix, const struct hl_ioctl_desc *ioctl)
+			const struct hl_ioctl_desc *ioctl, struct device *dev)
 {
 	unsigned int nr = _IOC_NR(cmd);
 	char stack_kdata[128] = {0};
@@ -1806,7 +1807,7 @@ static long _hl_ioctl(struct hl_fpriv *hpriv, unsigned int cmd, unsigned long ar
 	func = ioctl->func;
 
 	if (unlikely(!func)) {
-		hl_dbg(hpriv->hdev, "%sno function\n", prefix);
+		dev_dbg(dev, "no function\n");
 		retcode = -ENOTTY;
 		goto out_err;
 	}
@@ -1846,10 +1847,9 @@ out_err:
 	if (retcode) {
 		char task_comm[TASK_COMM_LEN];
 
-		hl_dbg_ratelimited(hpriv->hdev,
-				"%serror in ioctl: pid=%d, comm=\"%s\", cmd=%#010x, nr=%#04x\n",
-				prefix, task_pid_nr(current), get_task_comm(task_comm, current),
-				cmd, nr);
+		dev_dbg_ratelimited(dev,
+				"error in ioctl: pid=%d, comm=\"%s\", cmd=%#010x, nr=%#04x\n",
+				task_pid_nr(current), get_task_comm(task_comm, current), cmd, nr);
 	}
 
 	if (kdata != stack_kdata)
@@ -1877,13 +1877,13 @@ long hl_ioctl(struct file *filep, unsigned int cmd, unsigned long arg)
 	} else {
 		char task_comm[TASK_COMM_LEN];
 
-		hl_dbg_ratelimited(hdev,
+		dev_dbg_ratelimited(hdev->dev,
 				"invalid ioctl: pid=%d, comm=\"%s\", cmd=%#010x, nr=%#04x\n",
 				task_pid_nr(current), get_task_comm(task_comm, current), cmd, nr);
 		return -ENOTTY;
 	}
 
-	return _hl_ioctl(hpriv, cmd, arg, "", ioctl);
+	return _hl_ioctl(hpriv, cmd, arg, ioctl, hdev->dev);
 }
 #endif /* !IS_ENABLED(CONFIG_DRM_ACCEL) */
 
@@ -1904,11 +1904,11 @@ long hl_ioctl_control(struct file *filep, unsigned int cmd, unsigned long arg)
 	} else {
 		char task_comm[TASK_COMM_LEN];
 
-		hl_dbg_ratelimited(hdev,
+		dev_dbg_ratelimited(hdev->dev_ctrl,
 				"invalid ioctl: pid=%d, comm=\"%s\", cmd=%#010x, nr=%#04x\n",
 				task_pid_nr(current), get_task_comm(task_comm, current), cmd, nr);
 		return -ENOTTY;
 	}
 
-	return _hl_ioctl(hpriv, cmd, arg, "(control) ",ioctl);
+	return _hl_ioctl(hpriv, cmd, arg, ioctl, hdev->dev_ctrl);
 }

@@ -105,7 +105,7 @@ static void cs_finish(struct hl_device *hdev, u16 cs_seq, ktime_t timestamp)
 
 	cs = hdev->shadow_cs_queue[cs_seq & (prop->max_pending_cs - 1)];
 	if (!cs) {
-		hl_warn(hdev,
+		dev_warn(hdev->dev,
 			"No pointer to CS in shadow array at index %d\n",
 			cs_seq);
 		return;
@@ -137,7 +137,7 @@ irqreturn_t hl_irq_handler_cq(int irq, void *arg)
 	ktime_t timestamp = ktime_get();
 
 	if (hdev->disabled) {
-		hl_dbg(hdev,
+		dev_dbg(hdev->dev,
 			"Device disabled but received IRQ %d for CQ %d\n",
 			irq, cq->hw_queue_id);
 		return IRQ_HANDLED;
@@ -211,7 +211,7 @@ static void hl_ts_free_objects(struct work_struct *work)
 	struct hl_device *hdev = job->hdev;
 
 	list_for_each_entry_safe(free_obj, temp_free_obj, free_list_head, free_objects_node) {
-		hl_dbg(hdev, "About to put refcount to buf (%p) cq_cb(%p)\n",
+		dev_dbg(hdev->dev, "About to put refcount to buf (%p) cq_cb(%p)\n",
 					free_obj->buf,
 					free_obj->cq_cb);
 
@@ -225,7 +225,7 @@ static void hl_ts_free_objects(struct work_struct *work)
 	if (dynamic_alloc_free_list_head) {
 		list_for_each_entry_safe(free_obj, temp_free_obj, dynamic_alloc_free_list_head,
 								free_objects_node) {
-			hl_dbg(hdev,
+			dev_dbg(hdev->dev,
 				"Dynamic_Alloc list: About to put refcount to buf (%p) cq_cb(%p)\n",
 						free_obj->buf,
 						free_obj->cq_cb);
@@ -276,7 +276,7 @@ static int handle_registration_node(struct hl_device *hdev, struct hl_user_pendi
 
 	free_node = &ts_free_jobs_data->free_nodes_pool[free_node_index];
 	if (atomic_cmpxchg(&free_node->in_use, 0, 1)) {
-		hl_dbg(hdev,
+		dev_dbg(hdev->dev,
 			"Timestamp free node pool is full, buff: %p, record: %p, irq: %u\n",
 				pend->ts_reg_info.buf,
 				pend,
@@ -301,7 +301,7 @@ static int handle_registration_node(struct hl_device *hdev, struct hl_user_pendi
 
 	*pend->ts_reg_info.timestamp_kernel_addr = timestamp;
 
-	hl_dbg(hdev, "Irq handle: Timestamp record (%p) ts cb address (%p), interrupt_id: %u\n",
+	dev_dbg(hdev->dev, "Irq handle: Timestamp record (%p) ts cb address (%p), interrupt_id: %u\n",
 			pend, pend->ts_reg_info.timestamp_kernel_addr, intr->interrupt_id);
 
 	list_del(&pend->list_node);
@@ -402,13 +402,13 @@ static void handle_tpc_interrupt(struct hl_device *hdev)
 
 	flags = HL_DRV_RESET_DELAY;
 
-	hl_err_ratelimited(hdev, "Received TPC assert\n");
+	dev_err_ratelimited(hdev->dev, "Received TPC assert\n");
 	hl_device_cond_reset(hdev, flags, event_mask);
 }
 
 static void handle_unexpected_user_interrupt(struct hl_device *hdev)
 {
-	hl_err_ratelimited(hdev, "Received unexpected user error interrupt\n");
+	dev_err_ratelimited(hdev->dev, "Received unexpected user error interrupt\n");
 }
 
 /**
@@ -479,7 +479,7 @@ irqreturn_t hl_irq_eq_error_interrupt_thread_handler(int irq, void *arg)
 	u64 event_mask = HL_NOTIFIER_EVENT_DEVICE_RESET | HL_NOTIFIER_EVENT_DEVICE_UNAVAILABLE;
 	struct hl_device *hdev = arg;
 
-	hl_err(hdev, "EQ error interrupt received\n");
+	dev_err(hdev->dev, "EQ error interrupt received\n");
 
 	hl_device_cond_reset(hdev, HL_DRV_RESET_HARD, event_mask);
 
@@ -516,7 +516,7 @@ irqreturn_t hl_irq_handler_eq(int irq, void *arg)
 		cur_eqe_index = FIELD_GET(EQ_CTL_INDEX_MASK, cur_eqe);
 		if ((hdev->event_queue.check_eqe_index) &&
 				(((eq->prev_eqe_index + 1) & EQ_CTL_INDEX_MASK) != cur_eqe_index)) {
-			hl_err(hdev,
+			dev_err(hdev->dev,
 				"EQE %#x in queue is ready but index does not match %d!=%d",
 				cur_eqe,
 				((eq->prev_eqe_index + 1) & EQ_CTL_INDEX_MASK),
@@ -537,7 +537,7 @@ irqreturn_t hl_irq_handler_eq(int irq, void *arg)
 		if (hdev->disabled && !hdev->reset_info.in_compute_reset) {
 			ctl = le32_to_cpu(eq_entry->hdr.ctl);
 			event_type = ((ctl & EQ_CTL_EVENT_TYPE_MASK) >> EQ_CTL_EVENT_TYPE_SHIFT);
-			hl_warn(hdev,
+			dev_warn(hdev->dev,
 				"Device disabled but received an EQ event (%u)\n", event_type);
 			goto skip_irq;
 		}
@@ -553,7 +553,7 @@ irqreturn_t hl_irq_handler_eq(int irq, void *arg)
 			if (!queue_work(hdev->eq_wq, &handle_eqe_work->eq_work)) {
 				/* This should not have happened, report it as critical */
 				kfree(handle_eqe_work);
-				hl_crit_ratelimited(hdev,
+				dev_crit_ratelimited(hdev->dev,
 						     "EQ event queue_work FAILED, work is already on a queue\n");
 			}
 		}
@@ -713,7 +713,7 @@ void hl_eq_dump(struct hl_device *hdev, struct hl_eq *q)
 	eq_length = HL_EQ_LENGTH;
 	eqe_size = q->size / HL_EQ_LENGTH;
 
-	hl_info(hdev, "Contents of EQ entries headers:\n");
+	dev_info(hdev->dev, "Contents of EQ entries headers:\n");
 
 	for (i = 0, ptr = q->kernel_address ; i < eq_length ; ++i, ptr += eqe_size) {
 		hdr = (struct hl_eq_header *) ptr;
@@ -723,7 +723,7 @@ void hl_eq_dump(struct hl_device *hdev, struct hl_eq *q)
 		type = FIELD_GET(EQ_CTL_EVENT_TYPE_MASK, ctl);
 		index = FIELD_GET(EQ_CTL_INDEX_MASK, ctl);
 
-		hl_info(hdev, "%02u: %#010x [ready: %u, mode %u, type %04u, index %05u]\n",
+		dev_info(hdev->dev, "%02u: %#010x [ready: %u, mode %u, type %04u, index %05u]\n",
 				i, ctl, ready, mode, type, index);
 	}
 }

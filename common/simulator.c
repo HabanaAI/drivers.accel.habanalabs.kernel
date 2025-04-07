@@ -98,7 +98,7 @@ static int hl_sim_access_sram_region(struct hl_device *hdev, u64 addr, u64 *val,
 				(addr - sram_region->region_base)) = *val;
 		break;
 	default:
-		hl_err(hdev, "sram access-type %d is not supported\n", acc_type);
+		dev_err(hdev->dev, "sram access-type %d is not supported\n", acc_type);
 		return -EOPNOTSUPP;
 	}
 
@@ -113,11 +113,11 @@ int hl_sim_dma_map_sgtable(struct hl_device *hdev, struct sg_table *sgt,
 	int i;
 
 	if (sgt->nents == 0 || sgt->sgl[0].length == 0)
-		hl_crit(hdev, "no scatterlist entries\n");
+		dev_crit(hdev->dev, "no scatterlist entries\n");
 
 	for_each_sgtable_sg(sgt, sg, i) {
 		if (!sg_page(sg))
-			hl_crit(hdev, "error getting scatterlist page\n");
+			dev_crit(hdev->dev, "error getting scatterlist page\n");
 		sg->dma_address = sg_phys(sg);
 		sg->dma_length = sg->length;
 
@@ -539,7 +539,7 @@ u32 hl_sim_rreg(struct hl_device *hdev, u64 reg_addr, struct hl_simulator_device
 
 	if (hl_sim_send_cmd_msg(edev, msg)) {
 		if (edev->open)
-			hl_crit(hdev, "Read register 0x%llx request to simulator failed\n",
+			dev_crit(hdev->dev, "Read register 0x%llx request to simulator failed\n",
 				reg_addr);
 		kfree(msg);
 		return U32_MAX;
@@ -558,7 +558,7 @@ hl_sim_rreg_try_c2h:
 		if ((edev->rw_reg_timeout && ktime_compare(ktime_get(), timeout) > 0) ||
 									!edev->open) {
 			if (edev->open)
-				hl_crit(hdev, "Read register 0x%llx from simulator failed\n",
+				dev_crit(hdev->dev, "Read register 0x%llx from simulator failed\n",
 					reg_addr);
 			edev->reg_err_cnt++;
 			return U32_MAX;
@@ -617,7 +617,7 @@ void hl_sim_wreg(struct hl_device *hdev, u64 reg_addr, struct hl_simulator_devic
 
 	if (hl_sim_send_cmd_msg(edev, msg)) {
 		if (edev->open)
-			hl_crit(hdev, "Write register 0x%llx to simulator failed\n",
+			dev_crit(hdev->dev, "Write register 0x%llx to simulator failed\n",
 				reg_addr);
 		kfree(msg);
 	}
@@ -647,7 +647,7 @@ void hl_sim_notify_reset(struct hl_device *hdev, struct hl_simulator_device *ede
 	msg->cmd = SIM_CMD_RESET;
 
 	if (hl_sim_send_cmd_msg(edev, msg)) {
-		hl_crit(hdev,
+		dev_crit(hdev->dev,
 		"Failed to send reset request to simulator. Maybe the simulator crashed ?\n");
 		kfree(msg);
 	}
@@ -810,7 +810,7 @@ int sim_mem_access_debug_handler(struct hl_device *hdev, void *info)
 	int rc = 0;
 
 	if (args->input_size != sizeof(struct hl_debug_params_mem_access)) {
-		hl_err(hdev, "invalid input size\n");
+		dev_err(hdev->dev, "invalid input size\n");
 		rc = -EINVAL;
 		goto out;
 	}
@@ -823,7 +823,7 @@ int sim_mem_access_debug_handler(struct hl_device *hdev, void *info)
 
 	if (copy_from_user(user_data, u64_to_user_ptr(args->input_ptr),
 						args->input_size)) {
-		hl_err(hdev, "failed to copy input debug data\n");
+		dev_err(hdev->dev, "failed to copy input debug data\n");
 		rc = -EFAULT;
 		goto free_user_data;
 	}
@@ -831,7 +831,7 @@ int sim_mem_access_debug_handler(struct hl_device *hdev, void *info)
 	data = (struct hl_debug_params_mem_access *) user_data;
 
 	if (data->size == 0 || !data->user_address || data->size > SZ_64K) {
-		hl_err(hdev, "invalid request inputs\n");
+		dev_err(hdev->dev, "invalid request inputs\n");
 		rc = -EINVAL;
 		goto free_user_data;
 	}
@@ -839,7 +839,7 @@ int sim_mem_access_debug_handler(struct hl_device *hdev, void *info)
 	rc = hdev->asic_funcs->get_hw_block_id(hdev, data->cfg_address, NULL,
 						&block_id);
 	if (rc) {
-		hl_err(hdev, "failed to get block id for addr 0x%llx\n",
+		dev_err(hdev->dev, "failed to get block id for addr 0x%llx\n",
 			data->cfg_address);
 		rc = -EINVAL;
 		goto free_user_data;
@@ -869,7 +869,7 @@ int sim_mem_access_debug_handler(struct hl_device *hdev, void *info)
 
 		if (copy_to_user(u64_to_user_ptr(data->user_address),
 				output, data->size)) {
-			hl_err(hdev, "failed to copy output to user\n");
+			dev_err(hdev->dev, "failed to copy output to user\n");
 			rc = -EFAULT;
 			kfree(output);
 			goto free_user_data;
@@ -891,7 +891,7 @@ int sim_mem_access_debug_handler(struct hl_device *hdev, void *info)
 
 		if (copy_from_user(inputs, u64_to_user_ptr(data->user_address),
 				data->size)) {
-			hl_err(hdev, "failed to copy input debug data\n");
+			dev_err(hdev->dev, "failed to copy input debug data\n");
 			rc = -EFAULT;
 			kfree(inputs);
 			goto free_user_data;

@@ -46,7 +46,7 @@ static u32 fixup_flags_legacy_fw(struct hl_device *hdev, enum hwmon_sensor_types
 		break;
 
 	default:
-		hl_err_ratelimited(hdev, "unsupported h/w sensor type %d\n", type);
+		dev_err_ratelimited(hdev->dev, "unsupported h/w sensor type %d\n", type);
 		flags = cpucp_flags;
 		break;
 	}
@@ -134,7 +134,7 @@ static u32 adjust_hwmon_flags(struct hl_device *hdev, enum hwmon_sensor_types ty
 			break;
 
 		default:
-			hl_err_ratelimited(hdev, "unsupported h/w sensor type %d\n", type);
+			dev_err_ratelimited(hdev->dev, "unsupported h/w sensor type %d\n", type);
 			flags = cpucp_flags;
 			break;
 		}
@@ -162,7 +162,7 @@ int hl_build_hwmon_channel_info(struct hl_device *hdev, struct cpucp_sensor *sen
 			break;
 
 		if (type >= HWMON_NR_SENSOR_TYPES) {
-			hl_err_ratelimited(hdev,
+			dev_err_ratelimited(hdev->dev,
 				"Got wrong sensor type %d from device\n", type);
 			return -EINVAL;
 		}
@@ -176,7 +176,7 @@ int hl_build_hwmon_channel_info(struct hl_device *hdev, struct cpucp_sensor *sen
 			continue;
 
 		num_sensors_for_type = counts[i] + 1;
-		hl_dbg(hdev, "num_sensors_for_type %d = %d\n", i, num_sensors_for_type);
+		dev_dbg(hdev->dev, "num_sensors_for_type %d = %d\n", i, num_sensors_for_type);
 
 		curr_arr = kcalloc(num_sensors_for_type, sizeof(*curr_arr), GFP_KERNEL);
 		if (!curr_arr) {
@@ -586,7 +586,7 @@ int hl_get_temperature(struct hl_device *hdev,
 
 	if (rc) {
 		if (rc != -EAGAIN)
-			hl_err_ratelimited(hdev,
+			dev_err_ratelimited(hdev->dev,
 				"Failed to get temperature from sensor %d, error %d\n",
 				sensor_index, rc);
 		*value = 0;
@@ -612,7 +612,7 @@ int hl_set_temperature(struct hl_device *hdev,
 	rc = hdev->asic_funcs->send_cpu_message(hdev, (u32 *) &pkt, sizeof(pkt),
 						0, NULL);
 	if (rc && rc != -EAGAIN)
-		hl_err_ratelimited(hdev,
+		dev_err_ratelimited(hdev->dev,
 			"Failed to set temperature of sensor %d, error %d\n",
 			sensor_index, rc);
 
@@ -640,7 +640,7 @@ int hl_get_voltage(struct hl_device *hdev,
 
 	if (rc) {
 		if (rc != -EAGAIN)
-			hl_err_ratelimited(hdev,
+			dev_err_ratelimited(hdev->dev,
 				"Failed to get voltage from sensor %d, error %d\n",
 				sensor_index, rc);
 		*value = 0;
@@ -670,7 +670,7 @@ int hl_get_current(struct hl_device *hdev,
 
 	if (rc) {
 		if (rc != -EAGAIN)
-			hl_err_ratelimited(hdev,
+			dev_err_ratelimited(hdev->dev,
 				"Failed to get current from sensor %d, error %d\n",
 				sensor_index, rc);
 		*value = 0;
@@ -700,7 +700,7 @@ int hl_get_fan_speed(struct hl_device *hdev,
 
 	if (rc) {
 		if (rc != -EAGAIN)
-			hl_err_ratelimited(hdev,
+			dev_err_ratelimited(hdev->dev,
 				"Failed to get fan speed from sensor %d, error %d\n",
 				sensor_index, rc);
 		*value = 0;
@@ -730,7 +730,7 @@ int hl_get_pwm_info(struct hl_device *hdev,
 
 	if (rc) {
 		if (rc != -EAGAIN)
-			hl_err_ratelimited(hdev,
+			dev_err_ratelimited(hdev->dev,
 				"Failed to get pwm info from sensor %d, error %d\n",
 				sensor_index, rc);
 		*value = 0;
@@ -756,7 +756,7 @@ void hl_set_pwm_info(struct hl_device *hdev, int sensor_index, u32 attr,
 	rc = hdev->asic_funcs->send_cpu_message(hdev, (u32 *) &pkt, sizeof(pkt),
 						0, NULL);
 	if (rc && rc != -EAGAIN)
-		hl_err_ratelimited(hdev,
+		dev_err_ratelimited(hdev->dev,
 			"Failed to set pwm info to sensor %d, error %d\n",
 			sensor_index, rc);
 }
@@ -778,7 +778,7 @@ int hl_set_voltage(struct hl_device *hdev,
 	rc = hdev->asic_funcs->send_cpu_message(hdev, (u32 *) &pkt, sizeof(pkt),
 						0, NULL);
 	if (rc && rc != -EAGAIN)
-		hl_err_ratelimited(hdev,
+		dev_err_ratelimited(hdev->dev,
 			"Failed to set voltage of sensor %d, error %d\n",
 			sensor_index, rc);
 
@@ -801,7 +801,7 @@ int hl_set_current(struct hl_device *hdev,
 
 	rc = hdev->asic_funcs->send_cpu_message(hdev, (u32 *) &pkt, sizeof(pkt), 0, NULL);
 	if (rc && rc != -EAGAIN)
-		hl_err_ratelimited(hdev,
+		dev_err_ratelimited(hdev->dev,
 			"Failed to set current of sensor %d, error %d\n",
 			sensor_index, rc);
 
@@ -831,7 +831,7 @@ int hl_set_power(struct hl_device *hdev,
 	rc = hdev->asic_funcs->send_cpu_message(hdev, (u32 *) &pkt, sizeof(pkt),
 						0, NULL);
 	if (rc && rc != -EAGAIN)
-		hl_err_ratelimited(hdev,
+		dev_err_ratelimited(hdev->dev,
 			"Failed to set power of sensor %d, error %d\n",
 			sensor_index, rc);
 
@@ -859,7 +859,7 @@ int hl_get_power(struct hl_device *hdev,
 
 	if (rc) {
 		if (rc != -EAGAIN)
-			hl_err_ratelimited(hdev,
+			dev_err_ratelimited(hdev->dev,
 				"Failed to get power of sensor %d, error %d\n",
 				sensor_index, rc);
 		*value = 0;
@@ -885,17 +885,17 @@ int hl_hwmon_init(struct hl_device *hdev)
 					hdev->hl_chip_info, NULL);
 		if (IS_ERR(hdev->hwmon_dev)) {
 			rc = PTR_ERR(hdev->hwmon_dev);
-			hl_err(hdev,
+			dev_err(hdev->dev,
 				"Unable to register hwmon device: %d\n", rc);
 			return rc;
 		}
 
-		hl_info(hdev, "%s: add sensors information\n",
+		dev_info(hdev->dev, "%s: add sensors information\n",
 			dev_name(hdev->hwmon_dev));
 
 		hdev->hwmon_initialized = true;
 	} else {
-		hl_info(hdev, "no available sensors\n");
+		dev_info(hdev->dev, "no available sensors\n");
 	}
 
 	return 0;
