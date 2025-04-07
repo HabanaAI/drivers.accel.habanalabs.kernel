@@ -31,7 +31,7 @@ void goya_set_pll_profile(struct hl_device *hdev, enum hl_pll_frequency freq)
 		hl_fw_set_frequency(hdev, HL_GOYA_IC_PLL, goya->ic_clk);
 		break;
 	default:
-		dev_err(hdev->dev, "unknown frequency setting\n");
+		hl_err(hdev, "unknown frequency setting\n");
 	}
 }
 
@@ -262,7 +262,7 @@ static ssize_t pm_mng_profile_store(struct device *dev,
 	mutex_lock(&hdev->fpriv_list_lock);
 
 	if (hdev->is_compute_ctx_active) {
-		dev_err(hdev->dev,
+		hl_err(hdev,
 			"Can't change PM profile while compute context is opened on the device\n");
 		count = -EPERM;
 		goto unlock_mutex;
@@ -295,7 +295,7 @@ static ssize_t pm_mng_profile_store(struct device *dev,
 			return count;
 		}
 	} else {
-		dev_err(hdev->dev, "value should be auto or manual\n");
+		hl_err(hdev, "value should be auto or manual\n");
 		count = -EINVAL;
 	}
 

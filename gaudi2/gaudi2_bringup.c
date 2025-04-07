@@ -2216,7 +2216,7 @@ static int __gaudi2_async_if_write(struct hl_device *hdev,
 	/* validate write operation succeeded from master side */
 	wr_status = RREG32(mmPSOC_GLOBAL_CONF_ASIF_MSTR_REQ_STATUS_0);
 	if (wr_status != 0) {
-		dev_err(hdev->dev,
+		hl_err(hdev,
 		"Failed to write register(0x%x) dst_id(%u)\n", addr, dst_id);
 		return -EIO;
 	}
@@ -2234,7 +2234,7 @@ static int __gaudi2_init_slave_pll_async_if(struct hl_device *hdev,
 	dst_id = gaudi2_pll_block_async_if[pll_index].dst_id;
 	slv_cfg = gaudi2_pll_block_async_if[pll_index].slv_cfg;
 
-	dev_info(hdev->dev, "pll_index: %u, dst_id: %u\n", pll_index, dst_id);
+	hl_info(hdev, "pll_index: %u, dst_id: %u\n", pll_index, dst_id);
 
 	/* set operation mode to Early-B response
 	 * meaning, master shouldn't read result status after setting slaves
@@ -2285,7 +2285,7 @@ static int __gaudi2_init_slave_pll_async_if(struct hl_device *hdev,
 	return 0;
 
 write_error:
-	dev_err(hdev->dev, "Failed to write register through async if\n");
+	hl_err(hdev, "Failed to write register through async if\n");
 	return rc;
 }
 
@@ -2335,7 +2335,7 @@ static int __gaudi2_init_pll(struct hl_device *hdev,
 			GAUDI2_PLL_TIMEOUT_USEC);
 
 		if (rc) {
-			dev_err(hdev->dev, "Failed to get PLL %d lock\n",
+			hl_err(hdev, "Failed to get PLL %d lock\n",
 				pll_index);
 			return -EIO;
 		}
@@ -2546,7 +2546,7 @@ static int __gauid2_init_hbm_pll(struct hl_device *hdev,
 		GAUID2_INIT_PLL_COEFFICIENT(pll, 1, 64, 4, 1);
 		break;
 	default:
-		dev_err(hdev->dev, "Illegal HBM PLL frequency\n");
+		hl_err(hdev, "Illegal HBM PLL frequency\n");
 		return -EINVAL;
 	}
 
@@ -2681,10 +2681,10 @@ again_with_async_if:
 
 	if (hdev->pll_async_if_enable) {
 		__gaudi2_init_pll_async_if_enable(hdev);
-		dev_dbg(hdev->dev, "PLL Async IF enabled\n");
+		hl_dbg(hdev, "PLL Async IF enabled\n");
 	}
 
-	dev_dbg(hdev->dev, "Configure PCI PLL\n");
+	hl_dbg(hdev, "Configure PCI PLL\n");
 
 	/* 500Mhz FBDIV 60 POSTDIV1 3 POSTDIV2 2 REFDIV 1 */
 	pll_params.div_cfg = FIELD_PREP(PLL_DIV_CFG_FBDIV_MASK, 60);
@@ -2709,27 +2709,27 @@ again_with_async_if:
 	if (rc)
 		return rc;
 
-	dev_dbg(hdev->dev, "Configure SRAM PLLs\n");
+	hl_dbg(hdev, "Configure SRAM PLLs\n");
 	rc = __gaudi2_init_sram_pll(hdev, gaudi2, &pll_params);
 	if (rc)
 		return rc;
 
-	dev_dbg(hdev->dev, "Configure North/South IF PLLs\n");
+	hl_dbg(hdev, "Configure North/South IF PLLs\n");
 	rc = __gauid2_init_north_south_if_pll(hdev, gaudi2, &pll_params);
 	if (rc)
 		return rc;
 
-	dev_dbg(hdev->dev, "Configure MESH PLL\n");
+	hl_dbg(hdev, "Configure MESH PLL\n");
 	rc = __gauid2_init_mesh_pll(hdev, gaudi2, &pll_params);
 	if (rc)
 		return rc;
 
-	dev_dbg(hdev->dev, "Configure DMA PLLs\n");
+	hl_dbg(hdev, "Configure DMA PLLs\n");
 	rc = __gauid2_init_dma_pll(hdev, gaudi2, &pll_params);
 	if (rc)
 		return rc;
 
-	dev_dbg(hdev->dev, "Configure NIC_PHY PLLs\n");
+	hl_dbg(hdev, "Configure NIC_PHY PLLs\n");
 	rc = __gauid2_init_nic_pll(hdev, gaudi2, &pll_params);
 	if (rc)
 		return rc;
@@ -2741,7 +2741,7 @@ again_with_async_if:
 	if (!set_hbm_pll)
 		goto configure_mss_pll;
 
-	dev_dbg(hdev->dev, "Configure HBM PLL\n");
+	hl_dbg(hdev, "Configure HBM PLL\n");
 
 	rc = __gauid2_init_hbm_pll(hdev, gaudi2, &pll_params);
 	if (rc)
@@ -2752,22 +2752,22 @@ configure_mss_pll:
 	 * passes through XBAR which goes to MMU, regardless MMU is set
 	 * to bypass or not.
 	 */
-	dev_dbg(hdev->dev, "Configure MMU/MSS PLL\n");
+	hl_dbg(hdev, "Configure MMU/MSS PLL\n");
 	rc = __gaudi2_init_mss_pll(hdev, gaudi2, &pll_params);
 	if (rc)
 		return rc;
 
-	dev_dbg(hdev->dev, "Configure MME PLL\n");
+	hl_dbg(hdev, "Configure MME PLL\n");
 	rc = __gaudi2_init_mme_pll(hdev, gaudi2, &pll_params);
 	if (rc)
 		return rc;
 
-	dev_dbg(hdev->dev, "Configure TPC PLL\n");
+	hl_dbg(hdev, "Configure TPC PLL\n");
 	rc = __gaudi2_init_tpc_pll(hdev, gaudi2, &pll_params);
 	if (rc)
 		return rc;
 
-	dev_dbg(hdev->dev, "Configure VIDEO PLL\n");
+	hl_dbg(hdev, "Configure VIDEO PLL\n");
 	rc = __gaudi2_init_dec_pll(hdev, gaudi2, &pll_params);
 	if (rc)
 		return rc;
@@ -3023,7 +3023,7 @@ int gaudi2_init_scrambler_sram(struct hl_device *hdev)
 								== FW_TYPE_BOOT_CPU;
 
 	if (!hdev->pldm && boot_cpu_only) {
-		dev_info(hdev->dev,
+		hl_info(hdev,
 			"Waiting for u-boot to finish before enabling SRAM scrambler\n");
 
 		/*
@@ -3044,7 +3044,7 @@ int gaudi2_init_scrambler_sram(struct hl_device *hdev)
 			GAUDI2_NIC_FW_TIMEOUT_USEC);
 
 		if (rc) {
-			dev_err(hdev->dev,
+			hl_err(hdev,
 				"Failed to wait for uboot to be active (status = %d)\n", status);
 			return -EIO;
 		}
@@ -3065,7 +3065,7 @@ int gaudi2_init_scrambler_sram(struct hl_device *hdev)
 				GAUDI2_NIC_FW_TIMEOUT_USEC);
 
 			if (rc) {
-				dev_err(hdev->dev,
+				hl_err(hdev,
 					"Failed to wait for uboot to free the SRAM (status = %d)\n",
 					status);
 				return -EIO;
@@ -3811,7 +3811,7 @@ static void gaudi2_init_dcore_tpcs_e2e(struct hl_device *hdev, int dcore,
 		init_e2e_emem_config(&e2e_data->emem_wr_sz, 23, 28, 35, 38);
 		break;
 	default:
-		dev_err(hdev->dev, "Illegal dcore (%d) in TPC e2e config\n",
+		hl_err(hdev, "Illegal dcore (%d) in TPC e2e config\n",
 				dcore);
 		return;
 	}
@@ -3833,7 +3833,7 @@ static void gaudi2_init_dcore_mme_sbte_e2e(struct hl_device *hdev, int dcore,
 		init_e2e_emem_config(&e2e_data->emem_wr_sz, 42, 42, 57, 57);
 		break;
 	default:
-		dev_err(hdev->dev, "Illegal dcore (%d) in MME SBTE e2e config\n",
+		hl_err(hdev, "Illegal dcore (%d) in MME SBTE e2e config\n",
 				dcore);
 		return;
 	}
@@ -3856,7 +3856,7 @@ static void gaudi2_init_dcore_mme_wap_e2e(struct hl_device *hdev, int dcore, int
 		init_e2e_emem_config(&e2e_data->emem_rd_sz, 39, 39, 52, 52);
 		break;
 	default:
-		dev_err(hdev->dev, "Illegal dcore (%d) in MME WAP e2e config\n", dcore);
+		hl_err(hdev, "Illegal dcore (%d) in MME WAP e2e config\n", dcore);
 		return;
 	}
 
@@ -3915,7 +3915,7 @@ static void gaudi2_init_dcore_edma_e2e_5hbms(struct hl_device *hdev, int dcore,
 		init_e2e_emem_config(&e2e_data->emem_wr_sz, 31, 43, 64, 68);
 		break;
 	default:
-		dev_err(hdev->dev, "Illegal dcore (%d) in EDMA e2e config\n",
+		hl_err(hdev, "Illegal dcore (%d) in EDMA e2e config\n",
 				dcore);
 		return;
 	}
@@ -3943,7 +3943,7 @@ static void gaudi2_init_dcore_edma_e2e_6hbms(struct hl_device *hdev, int dcore,
 		init_e2e_emem_config(&e2e_data->emem_wr_sz, 28, 32, 63, 69);
 		break;
 	default:
-		dev_err(hdev->dev, "Illegal dcore (%d) in EDMA e2e config\n",
+		hl_err(hdev, "Illegal dcore (%d) in EDMA e2e config\n",
 				dcore);
 		return;
 	}
@@ -3974,7 +3974,7 @@ static void gaudi2_init_dcore_vdec_e2e(struct hl_device *hdev, int dcore,
 		init_e2e_emem_config(&e2e_data->emem_wr_sz, 7, 7, 9, 9);
 		break;
 	default:
-		dev_err(hdev->dev, "Illegal dcore (%d) in VDEC e2e config\n",
+		hl_err(hdev, "Illegal dcore (%d) in VDEC e2e config\n",
 				dcore);
 		return;
 	}
@@ -4261,7 +4261,7 @@ static void gaudi2_init_e2e(struct hl_device *hdev)
 			CPU_BOOT_DEV_STS0_E2E_CRED_EN)
 		return;
 
-	dev_dbg(hdev->dev, "Init E2E Credits\n");
+	hl_dbg(hdev, "Init E2E Credits\n");
 
 	/* enable PCIe E2E credits */
 	WREG32(mmPMMU_PIF_DISABLE_E2E_CREDITS, 0);
@@ -4356,7 +4356,7 @@ static void gaudi2_tpc_binning_reconfigure_rtr_addr_dec(struct hl_device *hdev,
 		offset = LBW_LBW_AUTO_DCORE3_TPC_BASE_OFFSET;
 		break;
 	default:
-		dev_err(hdev->dev, "Illegal faulty TPC's dcore %u\n",
+		hl_err(hdev, "Illegal faulty TPC's dcore %u\n",
 						tpc_data->faulty_dcore);
 		return;
 	}
@@ -4720,7 +4720,7 @@ static int gaudi2_init_binning_tpc(struct hl_device *hdev)
 	if (prop->tpc_binning_mask == 0)
 		return 0;
 
-	dev_dbg(hdev->dev, "TPC Binning (%#llx)\n", prop->tpc_binning_mask);
+	hl_dbg(hdev, "TPC Binning (%#llx)\n", prop->tpc_binning_mask);
 
 	faulty_count = hweight64(prop->tpc_binning_mask);
 
@@ -4782,7 +4782,7 @@ static int gaudi2_apply_cluster_masks(struct hl_device *hdev)
 	num_faulty_clusters = hweight32(prop->faulty_dram_cluster_map);
 
 	if (num_faulty_clusters > MAX_FAULTY_HBMS) {
-		dev_err(hdev->dev, "more than a single faulty cluster (%x)\n",
+		hl_err(hdev, "more than a single faulty cluster (%x)\n",
 				prop->faulty_dram_cluster_map);
 		return -EINVAL;
 	}
@@ -4908,7 +4908,7 @@ static void gaudi2_dec_binning_reconfigure_rtr_addr_dec(struct hl_device *hdev,
 		offset = LBW_LBW_AUTO_PCIE_DEC_BASE_OFFSET;
 		break;
 	default:
-		dev_err(hdev->dev, "Illegal faulty DEC sequence %u\n",
+		hl_err(hdev, "Illegal faulty DEC sequence %u\n",
 							dec_data->dec_seq);
 		return;
 	}
@@ -4989,7 +4989,7 @@ static void gaudi2_dec_binning_reconfigure_rtr_addr_dec_dbg(
 		offset = DBG_AUTO_PCIE_DEC_BASE_OFFSET;
 		break;
 	default:
-		dev_err(hdev->dev, "Illegal faulty DEC sequence %u\n",
+		hl_err(hdev, "Illegal faulty DEC sequence %u\n",
 							dec_data->dec_seq);
 		return;
 	}
@@ -5199,7 +5199,7 @@ static void gaudi2_init_binning_dec(struct hl_device *hdev)
 	if (!prop->decoder_binning_mask)
 		return;
 
-	dev_dbg(hdev->dev, "Decoder Binning (%#x)\n", prop->decoder_binning_mask);
+	hl_dbg(hdev, "Decoder Binning (%#x)\n", prop->decoder_binning_mask);
 
 	/*
 	 * decoder binning cases:
@@ -5513,7 +5513,7 @@ static void gaudi2_init_dram_binning(struct hl_device *hdev)
 	if (prop->num_functional_hbms == GAUDI2_HBM_NUM)
 		return;
 
-	dev_dbg(hdev->dev, "DRAM Binning (%#llx)\n", prop->dram_binning_mask);
+	hl_dbg(hdev, "DRAM Binning (%#llx)\n", prop->dram_binning_mask);
 
 	/* prepare binning data */
 	gaudi2_calc_dram_hbm_map(hdev, prop->dram_binning_mask,
@@ -5769,7 +5769,7 @@ static void gaudi2_init_edma_binning(struct hl_device *hdev)
 	if (!prop->edma_binning_mask)
 		return;
 
-	dev_dbg(hdev->dev, "EDMA Binning (%#x)\n", prop->edma_binning_mask);
+	hl_dbg(hdev, "EDMA Binning (%#x)\n", prop->edma_binning_mask);
 
 	faulty_idx = __ffs(prop->edma_binning_mask);
 	binning_data.faulty_idx = faulty_idx;
@@ -6539,7 +6539,7 @@ static void gaudi2_init_dcore_mme_fw_config(struct hl_device *hdev, int dcore_id
 		clk_en_addr = mmDCORE3_MME_CTRL_LO_QM_SLV_CLK_EN;
 		break;
 	default:
-		dev_err(hdev->dev, "Invalid dcore id %u\n", dcore_id);
+		hl_err(hdev, "Invalid dcore id %u\n", dcore_id);
 		return;
 	}
 
@@ -7069,7 +7069,7 @@ void gaudi2_no_fw_monitor(struct hl_device *hdev, bool *stop_monitor)
 
 	drain_indication = RREG32(mmPCIE_WRAP_AXI_DRAIN_IND);
 	if (drain_indication == 0xFFFFFFFF) {
-		dev_err(hdev->dev, "PCI link error\n");
+		hl_err(hdev, "PCI link error\n");
 		*stop_monitor = true;
 		return;
 	}
@@ -7088,7 +7088,7 @@ void gaudi2_no_fw_monitor(struct hl_device *hdev, bool *stop_monitor)
 		wr_addr = (wr_addr_high << 32) + wr_addr_low;
 		rd_addr = (rd_addr_high << 32) + rd_addr_low;
 
-		dev_err(hdev->dev,
+		hl_err(hdev,
 			"PCIE AXI drain LBW completed, read_err %u, write_err %u\n",
 			!!rd_addr, !!wr_addr);
 
@@ -7107,7 +7107,7 @@ void gaudi2_no_fw_monitor(struct hl_device *hdev, bool *stop_monitor)
 		wr_addr = (wr_addr_high << 32) + wr_addr_low;
 		rd_addr = (rd_addr_high << 32) + rd_addr_low;
 
-		dev_err(hdev->dev,
+		hl_err(hdev,
 			"AXI drain HBW event: read address 0x%llX, write address 0x%llX\n",
 			rd_addr, wr_addr);
 
@@ -7131,22 +7131,22 @@ void gaudi2_map_usr_hbm_pll_request_no_fw(struct hl_device *hdev, struct gaudi2_
 	switch (hdev->usr_hbm_pll_freq) {
 	case 800:
 		gaudi2->hbm_pll_freq = HBM_PLL_800;
-		dev_dbg(hdev->dev, "HBM PLLs set to 800MHz - Test mode ONLY!");
+		hl_dbg(hdev, "HBM PLLs set to 800MHz - Test mode ONLY!");
 		break;
 	case 1200:
 		gaudi2->hbm_pll_freq = HBM_PLL_1200;
-		dev_dbg(hdev->dev, "HBM PLLs set to 1200MHz");
+		hl_dbg(hdev, "HBM PLLs set to 1200MHz");
 		break;
 	case 1600:
 		gaudi2->hbm_pll_freq = HBM_PLL_1600;
-		dev_dbg(hdev->dev, "HBM PLLs set to 1600MHz");
+		hl_dbg(hdev, "HBM PLLs set to 1600MHz");
 		break;
 	case 1800:
 		gaudi2->hbm_pll_freq = HBM_PLL_1800;
-		dev_dbg(hdev->dev, "HBM PLLs set to 1800MHz");
+		hl_dbg(hdev, "HBM PLLs set to 1800MHz");
 		break;
 	default:
 		gaudi2->hbm_pll_freq = HBM_PLL_1600;
-		dev_dbg(hdev->dev, "Invalid User request, HBM PLLs set to 1600MHz");
+		hl_dbg(hdev, "Invalid User request, HBM PLLs set to 1600MHz");
 	}
 }

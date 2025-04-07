@@ -354,7 +354,7 @@ static int gaudi_simulator_reset_device_ioctl(struct hl_simulator_device *edev, 
 {
 	struct hl_device *hdev = edev->hdev;
 
-	dev_warn(hdev->dev, "Gaudi simulator encountered a failure, going to reset device\n");
+	hl_warn(hdev, "Gaudi simulator encountered a failure, going to reset device\n");
 
 	return hl_device_reset(hdev, HL_DRV_RESET_HARD);
 }
@@ -900,7 +900,7 @@ static int gaudi_sim_set_fixed_properties(struct hl_device *hdev)
 
 	rc = gaudi_set_fixed_properties(hdev);
 	if (rc) {
-		dev_err(hdev->dev, "Failed setting fixed properties\n");
+		hl_err(hdev, "Failed setting fixed properties\n");
 		return rc;
 	}
 
@@ -929,11 +929,11 @@ static int gaudi_sim_pci_bars_map(struct hl_device *hdev)
 
 	/* Simulate SRAM & SM BAR */
 	hdev->pcie_bar[SRAM_BAR_ID] = (void __iomem *) edev->sram;
-	dev_dbg(hdev->dev, "SRAM at 0x%px\n", hdev->pcie_bar[SRAM_BAR_ID]);
+	hl_dbg(hdev, "SRAM at 0x%px\n", hdev->pcie_bar[SRAM_BAR_ID]);
 
 	/* Simulate HBM BAR */
 	hdev->pcie_bar[HBM_BAR_ID] = (void __iomem *) edev->dram;
-	dev_dbg(hdev->dev, "HBM at 0x%px\n", hdev->pcie_bar[HBM_BAR_ID]);
+	hl_dbg(hdev, "HBM at 0x%px\n", hdev->pcie_bar[HBM_BAR_ID]);
 
 	/* CFG is not simulated as BAR */
 	hdev->rmmio = NULL;
@@ -1044,7 +1044,7 @@ static int gaudi_sim_cpucp_info_get(struct hl_device *hdev)
 	dram_size = le64_to_cpu(prop->cpucp_info.dram_size);
 	if (dram_size) {
 		if (dram_size != edev->dram_size) {
-			dev_err(hdev->dev,
+			hl_err(hdev,
 				"F/W reported invalid HBM size %llu != %llu\n",
 				dram_size, edev->dram_size);
 			dram_size = edev->dram_size;
@@ -1081,7 +1081,7 @@ static int gaudi_sim_sw_init(struct hl_device *hdev)
 
 	hdev->cpu_accessible_dma_pool = gen_pool_create(ilog2(32), -1);
 	if (!hdev->cpu_accessible_dma_pool) {
-		dev_err(hdev->dev,
+		hl_err(hdev,
 			"Failed to create CPU accessible DMA pool\n");
 		rc = -ENOMEM;
 		goto free_cpu_dma_mem;
@@ -1091,7 +1091,7 @@ static int gaudi_sim_sw_init(struct hl_device *hdev)
 				(uintptr_t) hdev->cpu_accessible_dma_mem,
 				HL_CPU_ACCESSIBLE_MEM_SIZE, -1);
 	if (rc) {
-		dev_err(hdev->dev,
+		hl_err(hdev,
 			"Failed to add memory to CPU accessible DMA pool\n");
 		rc = -EFAULT;
 		goto free_cpu_accessible_dma_pool;
@@ -1219,7 +1219,7 @@ static int gaudi_sim_mmu_init(struct hl_device *hdev)
 
 		rc = gaudi_mmu_update_asid_hop0_addr(hdev, i, hop0_addr);
 		if (rc) {
-			dev_err(hdev->dev,
+			hl_err(hdev,
 				"failed to set hop0 addr for asid %d\n", i);
 			return rc;
 		}
@@ -1261,13 +1261,13 @@ static int gaudi_sim_hw_init(struct hl_device *hdev)
 
 	rc = gaudi_sim_init_cpu(hdev);
 	if (rc) {
-		dev_err(hdev->dev, "failed to initialize CPU\n");
+		hl_err(hdev, "failed to initialize CPU\n");
 		return rc;
 	}
 
 	rc = gaudi_sim_mmu_init(hdev);
 	if (rc) {
-		dev_err(hdev->dev, "failed to init MMU, error: %d\n", rc);
+		hl_err(hdev, "failed to init MMU, error: %d\n", rc);
 		return rc;
 	}
 
@@ -1281,7 +1281,7 @@ static int gaudi_sim_hw_init(struct hl_device *hdev)
 
 	rc = gaudi_init_cpu_queues(hdev, GAUDI_CPU_TIMEOUT_USEC);
 	if (rc) {
-		dev_err(hdev->dev, "failed to initialize CPU H/W queues %d\n",
+		hl_err(hdev, "failed to initialize CPU H/W queues %d\n",
 			rc);
 		return rc;
 	}
@@ -1298,7 +1298,7 @@ static int gaudi_sim_hw_fini(struct hl_device *hdev, bool hard_reset, bool fw_re
 	int rc;
 
 	if (!hard_reset) {
-		dev_err(hdev->dev, "GAUDI doesn't support soft-reset\n");
+		hl_err(hdev, "GAUDI doesn't support soft-reset\n");
 		return 0;
 	}
 
@@ -1334,7 +1334,7 @@ static int gaudi_sim_hw_fini(struct hl_device *hdev, bool hard_reset, bool fw_re
 	WREG32(mmPSOC_GLOBAL_CONF_SW_ALL_RST,
 		1 << PSOC_GLOBAL_CONF_SW_ALL_RST_IND_SHIFT);
 
-	dev_dbg(hdev->dev,
+	hl_dbg(hdev,
 		"Issued HARD reset command, going to wait %dms\n",
 		reset_timeout_ms);
 
@@ -1346,7 +1346,7 @@ static int gaudi_sim_hw_fini(struct hl_device *hdev, bool hard_reset, bool fw_re
 		10000, reset_timeout_us);
 
 	if (rc == -ETIMEDOUT)
-		dev_err(hdev->dev,
+		hl_err(hdev,
 			"Timeout while waiting for device to reset (status = 0x%x)\n",
 			status);
 
@@ -1371,7 +1371,7 @@ static int gaudi_sim_mmap(struct hl_device *hdev, struct vm_area_struct *vma,
 
 	rc = remap_vmalloc_range(vma, cpu_addr, 0);
 	if (rc)
-		dev_err(hdev->dev, "remap vmalloc error %d", rc);
+		hl_err(hdev, "remap vmalloc error %d", rc);
 
 	return rc;
 }
@@ -1389,7 +1389,7 @@ static void *gaudi_sim_dma_alloc_coherent(struct hl_device *hdev, size_t size,
 
 		*dma_handle = virt_to_phys(address);
 		if (*dma_handle > HOST_PHYS_SIZE)
-			dev_crit(hdev->dev, "invalid dma addr 0x%llx\n",
+			hl_crit(hdev, "invalid dma addr 0x%llx\n",
 					*dma_handle);
 
 		/* Shift to the device's base physical address of host memory */
@@ -1457,7 +1457,7 @@ static int gaudi_sim_resume(struct hl_device *hdev)
 
 static int gaudi_sim_debug_coresight(struct hl_device *hdev, struct hl_ctx *ctx, void *data)
 {
-	dev_err(hdev->dev, "CoreSight not supported in simulator\n");
+	hl_err(hdev, "CoreSight not supported in simulator\n");
 
 	return -ENXIO;
 }

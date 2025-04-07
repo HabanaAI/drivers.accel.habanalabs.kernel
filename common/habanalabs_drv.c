@@ -843,7 +843,7 @@ int hl_device_open(struct drm_device *ddev, struct drm_file *file_priv)
 	mutex_lock(&hdev->fpriv_list_lock);
 
 	if (!hl_device_operational(hdev, &status)) {
-		dev_dbg_ratelimited(hdev->dev,
+		hl_dbg_ratelimited(hdev,
 			"Can't open %s because it is %s\n",
 			dev_name(hdev->dev), hdev->status[status]);
 
@@ -857,7 +857,7 @@ int hl_device_open(struct drm_device *ddev, struct drm_file *file_priv)
 	}
 
 	if (hdev->is_in_dram_scrub) {
-		dev_dbg_ratelimited(hdev->dev,
+		hl_dbg_ratelimited(hdev,
 			"Can't open %s during dram scrub\n",
 			dev_name(hdev->dev));
 		rc = -EAGAIN;
@@ -865,7 +865,7 @@ int hl_device_open(struct drm_device *ddev, struct drm_file *file_priv)
 	}
 
 	if (hdev->compute_ctx_in_release) {
-		dev_dbg_ratelimited(hdev->dev,
+		hl_dbg_ratelimited(hdev,
 			"Can't open %s because another user is still releasing it\n",
 			dev_name(hdev->dev));
 		rc = -EAGAIN;
@@ -873,7 +873,7 @@ int hl_device_open(struct drm_device *ddev, struct drm_file *file_priv)
 	}
 
 	if (hdev->is_compute_ctx_active) {
-		dev_dbg_ratelimited(hdev->dev,
+		hl_dbg_ratelimited(hdev,
 			"Can't open %s because another user is working on it\n",
 			dev_name(hdev->dev));
 		rc = -EBUSY;
@@ -882,7 +882,7 @@ int hl_device_open(struct drm_device *ddev, struct drm_file *file_priv)
 
 	rc = hl_ctx_create(hdev, hpriv);
 	if (rc) {
-		dev_err(hdev->dev, "Failed to create context %d\n", rc);
+		hl_err(hdev, "Failed to create context %d\n", rc);
 		goto out_err;
 	}
 
@@ -952,7 +952,7 @@ int hl_device_open_ctrl(struct inode *inode, struct file *filp)
 	mutex_lock(&hdev->fpriv_ctrl_list_lock);
 
 	if (!hl_ctrl_device_operational(hdev, NULL)) {
-		dev_dbg_ratelimited(hdev->dev_ctrl,
+		hl_dbg_ratelimited(hdev,
 			"Can't open %s because it is disabled\n",
 			dev_name(hdev->dev_ctrl));
 		rc = -EPERM;
@@ -1770,7 +1770,7 @@ int create_hdev(struct hl_device **dev, struct pci_dev *pdev, struct device *par
 	if (hdev->pdev) {
 		hdev->asic_type = get_asic_type(hdev);
 		if (hdev->asic_type == ASIC_INVALID) {
-			dev_err(&pdev->dev, "Unsupported ASIC\n");
+			hl_err(hdev, "Unsupported ASIC\n");
 			rc = -ENODEV;
 			goto out_err;
 		}
@@ -1895,8 +1895,8 @@ static int hl_pci_probe(struct pci_dev *pdev, const struct pci_device_id *id)
 
 	rc = hl_device_init(hdev);
 	if (rc) {
-		dev_err(&pdev->dev,
-			"Fatal error during habanalabs device init\n");
+		hl_err(hdev,
+		       "Fatal error during habanalabs device init\n");
 		rc = -ENODEV;
 		goto disable_device;
 	}
@@ -1953,16 +1953,16 @@ hl_pci_err_detected(struct pci_dev *pdev, pci_channel_state_t state)
 
 	switch (state) {
 	case pci_channel_io_normal:
-		dev_warn(hdev->dev, "PCI normal state error detected\n");
+		hl_warn(hdev, "PCI normal state error detected\n");
 		return PCI_ERS_RESULT_CAN_RECOVER;
 
 	case pci_channel_io_frozen:
-		dev_warn(hdev->dev, "PCI frozen state error detected\n");
+		hl_warn(hdev, "PCI frozen state error detected\n");
 		result = PCI_ERS_RESULT_NEED_RESET;
 		break;
 
 	case pci_channel_io_perm_failure:
-		dev_warn(hdev->dev, "PCI failure state error detected\n");
+		hl_warn(hdev, "PCI failure state error detected\n");
 		result = PCI_ERS_RESULT_DISCONNECT;
 		break;
 
@@ -1985,7 +1985,7 @@ static void hl_pci_err_resume(struct pci_dev *pdev)
 {
 	struct hl_device *hdev = pci_get_drvdata(pdev);
 
-	dev_warn(hdev->dev, "Resuming device after PCI slot reset\n");
+	hl_warn(hdev, "Resuming device after PCI slot reset\n");
 	hl_device_resume(hdev);
 }
 
@@ -2000,7 +2000,7 @@ static pci_ers_result_t hl_pci_err_slot_reset(struct pci_dev *pdev)
 {
 	struct hl_device *hdev = pci_get_drvdata(pdev);
 
-	dev_warn(hdev->dev, "PCI slot reset detected\n");
+	hl_warn(hdev, "PCI slot reset detected\n");
 
 	return PCI_ERS_RESULT_RECOVERED;
 }

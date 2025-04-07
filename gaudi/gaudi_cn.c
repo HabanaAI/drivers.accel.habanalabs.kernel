@@ -113,7 +113,7 @@ static int gaudi_cn_pre_core_init(struct hl_device *hdev)
 
 	if (TMR_FSM_SIZE + TMR_FREE_SIZE + TMR_FIFO_SIZE + TMR_FIFO_STATIC_SIZE >
 			TMR_FSM_ENGINE_OFFS) {
-		dev_err(hdev->dev, "NIC TMR data shouldn't be bigger than %dMB\n",
+		hl_err(hdev, "NIC TMR data shouldn't be bigger than %dMB\n",
 			TMR_FSM_ENGINE_OFFS / SZ_1M);
 		return -ENOMEM;
 	}
@@ -158,7 +158,7 @@ static int gaudi_cn_pre_core_init(struct hl_device *hdev)
 
 			mac_addr = mac_arr[i].mac_addr;
 			if (strncmp(mac, mac_addr, 3)) {
-				dev_err(hdev->dev,
+				hl_err(hdev,
 					"bad MAC OUI %02x:%02x:%02x:%02x:%02x:%02x, port %d\n",
 					mac_addr[0], mac_addr[1], mac_addr[2], mac_addr[3],
 					mac_addr[4], mac_addr[5], i);
@@ -194,7 +194,7 @@ static int gaudi_cn_pre_core_init(struct hl_device *hdev)
 
 		/* TODO: remove when Autoneg is supported towards the switch */
 		if ((hdev->card_type == cpucp_card_type_pci) && (hdev->cn.auto_neg_mask)) {
-			dev_info(hdev->dev, "No Autoneg in PCI card\n");
+			hl_info(hdev, "No Autoneg in PCI card\n");
 			hdev->cn.auto_neg_mask = 0;
 		}
 	}
@@ -240,7 +240,7 @@ static int gaudi_cn_read_all_mac_cnts(struct hbl_aux_dev *aux_dev, u32 port, u64
 
 	buf_cpu_addr = hl_cpu_accessible_dma_pool_alloc(hdev, size, &buf_dma_addr);
 	if (!buf_cpu_addr) {
-		dev_err(hdev->dev, "Failed to allocate DMA memory for NIC MAC cnts packet\n");
+		hl_err(hdev, "Failed to allocate DMA memory for NIC MAC cnts packet\n");
 		return -ENOMEM;
 	}
 
@@ -253,7 +253,7 @@ static int gaudi_cn_read_all_mac_cnts(struct hbl_aux_dev *aux_dev, u32 port, u64
 
 	rc = hdev->asic_funcs->send_cpu_message(hdev, (u32 *) &pkt, sizeof(pkt), 0, NULL);
 	if (rc)
-		dev_err(hdev->dev, "failed to send NIC MAC cnts CPUCP pkt, port %d\n", port);
+		hl_err(hdev, "failed to send NIC MAC cnts CPUCP pkt, port %d\n", port);
 	else
 		memcpy(mac_cnts, buf_cpu_addr, size);
 
@@ -281,7 +281,7 @@ static int gaudi_cn_read_xpcs91_regs(struct hbl_aux_dev *aux_dev, u32 port, u64 
 
 		buf_cpu_addr = hl_cpu_accessible_dma_pool_alloc(hdev, size, &buf_dma_addr);
 		if (!buf_cpu_addr) {
-			dev_err(hdev->dev,
+			hl_err(hdev,
 				"Failed to allocate DMA memory for NIC MAC cnts packet\n");
 			return -ENOMEM;
 		}
@@ -299,7 +299,7 @@ static int gaudi_cn_read_xpcs91_regs(struct hbl_aux_dev *aux_dev, u32 port, u64 
 			regs[0] = buf_cpu_addr[0];
 			regs[1] = buf_cpu_addr[1];
 		} else {
-			dev_err(hdev->dev, "failed to send XPCS91 pkt, port %d\n", port);
+			hl_err(hdev, "failed to send XPCS91 pkt, port %d\n", port);
 		}
 
 		hl_cpu_accessible_dma_pool_free(hdev, size, buf_cpu_addr);
@@ -315,7 +315,7 @@ static int gaudi_cn_read_xpcs91_regs(struct hbl_aux_dev *aux_dev, u32 port, u64 
 
 		/* total_pkt_size is casted to u16 later on */
 		if (total_pkt_size > USHRT_MAX) {
-			dev_err(hdev->dev, "read XPCS91 registers pkt is too big\n");
+			hl_err(hdev, "read XPCS91 registers pkt is too big\n");
 			return -EIO;
 		}
 
@@ -336,7 +336,7 @@ static int gaudi_cn_read_xpcs91_regs(struct hbl_aux_dev *aux_dev, u32 port, u64 
 			regs[0] = le32_to_cpu(pkt->data[0]);
 			regs[1] = le32_to_cpu(pkt->data[1]);
 		} else {
-			dev_err(hdev->dev, "failed to send XPCS91 pkt, port %d\n", port);
+			hl_err(hdev, "failed to send XPCS91 pkt, port %d\n", port);
 		}
 
 		kfree(pkt);
@@ -363,7 +363,7 @@ static u32 gaudi_cn_get_fault_counters(struct hbl_aux_dev *aux_dev, u32 port, u6
 
 	rc = hdev->asic_funcs->send_cpu_message(hdev, (u32 *) &pkt, sizeof(pkt), 0, &result);
 	if (rc) {
-		dev_err(hdev->dev, "Failed to get remote fault cnt for port %d, error %d\n", port,
+		hl_err(hdev, "Failed to get remote fault cnt for port %d, error %d\n", port,
 			rc);
 		return 0;
 	}
@@ -388,7 +388,7 @@ static int gaudi_cn_config_port_mac_ch(struct hbl_aux_dev *aux_dev, u32 port, u3
 
 	rc = hdev->asic_funcs->send_cpu_message(hdev, (u32 *) &pkt, sizeof(pkt), 0, NULL);
 	if (rc) {
-		dev_err(hdev->dev, "Failed to init MAC via FW for port %d, %d\n", port, rc);
+		hl_err(hdev, "Failed to init MAC via FW for port %d, %d\n", port, rc);
 		return rc;
 	}
 
@@ -415,7 +415,7 @@ static int gaudi_cn_set_pfc(struct hbl_aux_dev *aux_dev, u32 port, u64 fw_tuning
 
 	rc = hdev->asic_funcs->send_cpu_message(hdev, (u32 *) &pkt, sizeof(pkt), 0, NULL);
 	if (rc) {
-		dev_err(hdev->dev, "Failed to %s PFC for port %d, %d\n",
+		hl_err(hdev, "Failed to %s PFC for port %d, %d\n",
 			enable ? "enable" : "disable", port, rc);
 		return rc;
 	}
@@ -443,7 +443,7 @@ static int gaudi_cn_set_lpbk(struct hbl_aux_dev *aux_dev, u32 port, u64 fw_tunin
 
 	rc = hdev->asic_funcs->send_cpu_message(hdev, (u32 *) &pkt, sizeof(pkt), 0, NULL);
 	if (rc) {
-		dev_err(hdev->dev, "Failed to %s MAC loopback for port %d, %d\n",
+		hl_err(hdev, "Failed to %s MAC loopback for port %d, %d\n",
 			enable ? "enable" : "disable", port, rc);
 		return rc;
 	}
@@ -474,7 +474,7 @@ static int gaudi_cn_read_mac_cnt(struct hbl_aux_dev *aux_dev, u32 port, int offs
 
 	rc = hdev->asic_funcs->send_cpu_message(hdev, (u32 *) &pkt, sizeof(pkt), 0, &result);
 	if (rc) {
-		dev_err(hdev->dev, "Failed to get NIC STAT counters for port %d, error %d\n", port,
+		hl_err(hdev, "Failed to get NIC STAT counters for port %d, error %d\n", port,
 			rc);
 		return 0;
 	}
@@ -497,7 +497,7 @@ static void gaudi_cn_reset_mac_stats(struct hbl_aux_dev *aux_dev, u32 port)
 
 	rc = hdev->asic_funcs->send_cpu_message(hdev, (u32 *) &pkt, sizeof(pkt), 0, NULL);
 	if (rc)
-		dev_err(hdev->dev, "Failed to clear NIC STAT registers, port %d, rc %d\n", port,
+		hl_err(hdev, "Failed to clear NIC STAT registers, port %d, rc %d\n", port,
 			rc);
 }
 

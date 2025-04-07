@@ -2800,7 +2800,7 @@ static void gaudi2_write_lbw_range_register(struct hl_device *hdev, u64 base, vo
 		break;
 
 	default:
-		dev_err(hdev->dev, "Invalid LBW RR type %u\n", rr_cfg->type);
+		hl_err(hdev, "Invalid LBW RR type %u\n", rr_cfg->type);
 		return;
 	}
 
@@ -2834,7 +2834,7 @@ void gaudi2_write_rr_to_all_lbw_rtrs(struct hl_device *hdev, u8 rr_type, u32 rr_
 	if ((rr_type == RR_TYPE_SHORT || rr_type == RR_TYPE_SHORT_PRIV) &&
 								rr_index >= NUM_SHORT_LBW_RR) {
 
-		dev_err(hdev->dev, "invalid short LBW %s range register index: %u",
+		hl_err(hdev, "invalid short LBW %s range register index: %u",
 			rr_type == RR_TYPE_SHORT ? "secure" : "privileged", rr_index);
 		return;
 	}
@@ -2842,7 +2842,7 @@ void gaudi2_write_rr_to_all_lbw_rtrs(struct hl_device *hdev, u8 rr_type, u32 rr_
 	if ((rr_type == RR_TYPE_LONG || rr_type == RR_TYPE_LONG_PRIV) &&
 								rr_index >= NUM_LONG_LBW_RR) {
 
-		dev_err(hdev->dev, "invalid long LBW %s range register index: %u",
+		hl_err(hdev, "invalid long LBW %s range register index: %u",
 			rr_type == RR_TYPE_LONG ? "secure" : "privileged", rr_index);
 		return;
 	}
@@ -3022,7 +3022,7 @@ static void gaudi2_write_hbw_range_register(struct hl_device *hdev, u64 base, vo
 		break;
 
 	default:
-		dev_err(hdev->dev, "Invalid HBW RR type %u\n", rr_cfg->type);
+		hl_err(hdev, "Invalid HBW RR type %u\n", rr_cfg->type);
 		return;
 	}
 
@@ -3062,7 +3062,7 @@ static void gaudi2_write_hbw_rr_to_all_mstr_if(struct hl_device *hdev, u8 rr_typ
 	if ((rr_type == RR_TYPE_SHORT || rr_type == RR_TYPE_SHORT_PRIV) &&
 								rr_index >= NUM_SHORT_HBW_RR) {
 
-		dev_err(hdev->dev, "invalid short HBW %s range register index: %u",
+		hl_err(hdev, "invalid short HBW %s range register index: %u",
 			rr_type == RR_TYPE_SHORT ? "secure" : "privileged", rr_index);
 		return;
 	}
@@ -3070,7 +3070,7 @@ static void gaudi2_write_hbw_rr_to_all_mstr_if(struct hl_device *hdev, u8 rr_typ
 	if ((rr_type == RR_TYPE_LONG || rr_type == RR_TYPE_LONG_PRIV) &&
 								rr_index >= NUM_LONG_HBW_RR) {
 
-		dev_err(hdev->dev, "invalid long HBW %s range register index: %u",
+		hl_err(hdev, "invalid long HBW %s range register index: %u",
 			rr_type == RR_TYPE_LONG ? "secure" : "privileged", rr_index);
 		return;
 	}
@@ -3151,7 +3151,7 @@ static void gaudi2_write_mmu_range_register(struct hl_device *hdev, u64 base,
 		break;
 
 	default:
-		dev_err(hdev->dev, "Invalid MMU RR type %u\n", rr_cfg->type);
+		hl_err(hdev, "Invalid MMU RR type %u\n", rr_cfg->type);
 		return;
 	}
 
@@ -3416,7 +3416,7 @@ static int gaudi2_init_protection_bits(struct hl_device *hdev)
 		user_regs_array = &engine_core_intr_reg;
 		user_regs_array_size = 1;
 	} else {
-		dev_err(hdev->dev,
+		hl_err(hdev,
 			"Engine cores register for interrupts (%#x) is not a PSOC scratchpad register\n",
 			engine_core_intr_reg);
 	}
@@ -3891,7 +3891,7 @@ void gaudi2_pb_print_security_errors(struct hl_device *hdev, u32 block_addr, u32
 	if (cause & SPECIAL_GLBL_ERR_CAUSE_EXT_UNMAPPED_WR)
 		mcause[i++] = "APB_EXT_UNMAPPED_WR";
 
-	dev_err_ratelimited(hdev->dev, error_format, block_addr, offended_addr,
+	hl_err_ratelimited(hdev, error_format, block_addr, offended_addr,
 			cause, mcause[0], mcause[1], mcause[2], mcause[3],
 			mcause[4], mcause[5], mcause[6], mcause[7]);
 }

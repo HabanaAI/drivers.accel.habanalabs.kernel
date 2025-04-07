@@ -347,7 +347,7 @@ int hl_access_cfg_region(struct hl_device *hdev, u64 addr, u64 *val,
 	u32 val_h, val_l;
 
 	if (!IS_ALIGNED(addr, sizeof(u32))) {
-		dev_err(hdev->dev, "address %#llx not a multiple of %zu\n", addr, sizeof(u32));
+		hl_err(hdev, "address %#llx not a multiple of %zu\n", addr, sizeof(u32));
 		return -EINVAL;
 	}
 
@@ -369,7 +369,7 @@ int hl_access_cfg_region(struct hl_device *hdev, u64 addr, u64 *val,
 		WREG32(addr + sizeof(u32) - cfg_region->region_base, upper_32_bits(*val));
 		break;
 	default:
-		dev_err(hdev->dev, "access type %d is not supported\n", acc_type);
+		hl_err(hdev, "access type %d is not supported\n", acc_type);
 		return -EOPNOTSUPP;
 	}
 
@@ -417,7 +417,7 @@ static int hl_fuse_init(struct hl_device *hdev)
 	}
 
 	if (i == FUSE_RETRIES) {
-		dev_err(hdev->dev, "timeout reading Fuse\n");
+		hl_err(hdev, "timeout reading Fuse\n");
 		return -ETIMEDOUT;
 	}
 
@@ -546,18 +546,18 @@ static void print_idle_status_mask(struct hl_device *hdev, const char *message,
 					u64 idle_mask[HL_BUSY_ENGINES_MASK_EXT_SIZE])
 {
 	if (idle_mask[3])
-		dev_err(hdev->dev, "%s %s (mask %#llx_%016llx_%016llx_%016llx)\n",
+		hl_err(hdev, "%s %s (mask %#llx_%016llx_%016llx_%016llx)\n",
 			HL_PARENT_DEV_NAME(hdev), message,
 			idle_mask[3], idle_mask[2], idle_mask[1], idle_mask[0]);
 	else if (idle_mask[2])
-		dev_err(hdev->dev, "%s %s (mask %#llx_%016llx_%016llx)\n",
+		hl_err(hdev, "%s %s (mask %#llx_%016llx_%016llx)\n",
 			HL_PARENT_DEV_NAME(hdev), message,
 			idle_mask[2], idle_mask[1], idle_mask[0]);
 	else if (idle_mask[1])
-		dev_err(hdev->dev, "%s %s (mask %#llx_%016llx)\n",
+		hl_err(hdev, "%s %s (mask %#llx_%016llx)\n",
 			HL_PARENT_DEV_NAME(hdev), message, idle_mask[1], idle_mask[0]);
 	else
-		dev_err(hdev->dev, "%s %s (mask %#llx)\n", HL_PARENT_DEV_NAME(hdev), message,
+		hl_err(hdev, "%s %s (mask %#llx)\n", HL_PARENT_DEV_NAME(hdev), message,
 			idle_mask[0]);
 }
 
@@ -622,7 +622,7 @@ static void hpriv_release(struct kref *ref)
 		int rc = hdev->asic_funcs->scrub_device_mem(hdev);
 
 		if (rc) {
-			dev_err(hdev->dev, "failed to scrub memory from hpriv release (%d)\n", rc);
+			hl_err(hdev, "failed to scrub memory from hpriv release (%d)\n", rc);
 			hl_device_reset(hdev, HL_DRV_RESET_HARD);
 		}
 	}
@@ -690,7 +690,7 @@ static void print_device_in_use_info(struct hl_device *hdev,
 	if (unknown_reason)
 		scnprintf(buf + offset, size - offset, " [unknown reason]");
 
-	dev_notice(hdev->dev, "%s%s\n", message, buf);
+	hl_notice(hdev, "%s%s\n", message, buf);
 }
 
 /*
@@ -894,14 +894,14 @@ static int cdev_sysfs_debugfs_add(struct hl_device *hdev)
 
 	rc = cdev_device_add(&hdev->cdev_ctrl, hdev->dev_ctrl);
 	if (rc) {
-		dev_err(hdev->dev_ctrl,
+		hl_err(hdev,
 			"failed to add an accel control char device to the system\n");
 		goto free_ctrl_device;
 	}
 
 	rc = hl_sysfs_init(hdev);
 	if (rc) {
-		dev_err(hdev->dev, "failed to initialize sysfs\n");
+		hl_err(hdev, "failed to initialize sysfs\n");
 		goto delete_ctrl_cdev_device;
 	}
 
@@ -924,13 +924,13 @@ static int cdev_sysfs_debugfs_add(struct hl_device *hdev)
 
 	rc = cdev_device_add(&hdev->cdev, hdev->dev);
 	if (rc) {
-		dev_err(hdev->dev, "failed to add an accel char device to the system\n");
+		hl_err(hdev, "failed to add an accel char device to the system\n");
 		return rc;
 	}
 
 	rc = cdev_device_add(&hdev->cdev_ctrl, hdev->dev_ctrl);
 	if (rc) {
-		dev_err(hdev->dev_ctrl,
+		hl_err(hdev,
 			"failed to add an accel control char device to the system\n");
 		goto delete_cdev_device;
 	}
@@ -938,7 +938,7 @@ static int cdev_sysfs_debugfs_add(struct hl_device *hdev)
 	/* hl_sysfs_init() must be done after adding the device to the system */
 	rc = hl_sysfs_init(hdev);
 	if (rc) {
-		dev_err(hdev->dev, "failed to initialize sysfs\n");
+		hl_err(hdev, "failed to initialize sysfs\n");
 		goto delete_ctrl_cdev_device;
 	}
 
@@ -1006,12 +1006,12 @@ static void device_hard_reset_pending(struct work_struct *work)
 			/* The read refcount value should subtracted by one, because the read is
 			 * protected with hl_get_compute_ctx().
 			 */
-			dev_info(hdev->dev,
+			hl_info(hdev,
 				"Could not reset device (compute_ctx refcount %u). will try again in %u seconds",
 				kref_read(&ctx->refcount) - 1, HL_PENDING_RESET_PER_SEC);
 			hl_ctx_put(ctx);
 		} else {
-			dev_info(hdev->dev, "Could not reset device. will try again in %u seconds",
+			hl_info(hdev, "Could not reset device. will try again in %u seconds",
 				HL_PENDING_RESET_PER_SEC);
 		}
 
@@ -1027,7 +1027,7 @@ static void device_release_watchdog_func(struct work_struct *work)
 	struct hl_device *hdev = watchdog_work->hdev;
 	u32 flags;
 
-	dev_dbg(hdev->dev, "Device wasn't released in time. Initiate hard-reset.\n");
+	hl_dbg(hdev, "Device wasn't released in time. Initiate hard-reset.\n");
 
 	flags = watchdog_work->flags | HL_DRV_RESET_HARD | HL_DRV_RESET_FROM_WD_THR;
 
@@ -1186,7 +1186,7 @@ static int device_early_init(struct hl_device *hdev)
 				sizeof(hdev->asic_name));
 		break;
 	default:
-		dev_err(hdev->dev, "Unrecognized ASIC type %d\n",
+		hl_err(hdev, "Unrecognized ASIC type %d\n",
 			hdev->asic_type);
 		return -EINVAL;
 	}
@@ -1213,7 +1213,7 @@ static int device_early_init(struct hl_device *hdev)
 		snprintf(workq_name, 32, "hl%u-free-jobs-%u", hdev->cdev_idx, (u32) i);
 		hdev->cq_wq[i] = create_singlethread_workqueue(workq_name);
 		if (hdev->cq_wq[i] == NULL) {
-			dev_err(hdev->dev, "Failed to allocate CQ workqueue\n");
+			hl_err(hdev, "Failed to allocate CQ workqueue\n");
 			rc = -ENOMEM;
 			goto free_cq_wq;
 		}
@@ -1222,7 +1222,7 @@ static int device_early_init(struct hl_device *hdev)
 	snprintf(workq_name, 32, "hl%u-events", hdev->cdev_idx);
 	hdev->eq_wq = create_singlethread_workqueue(workq_name);
 	if (hdev->eq_wq == NULL) {
-		dev_err(hdev->dev, "Failed to allocate EQ workqueue\n");
+		hl_err(hdev, "Failed to allocate EQ workqueue\n");
 		rc = -ENOMEM;
 		goto free_cq_wq;
 	}
@@ -1230,7 +1230,7 @@ static int device_early_init(struct hl_device *hdev)
 	snprintf(workq_name, 32, "hl%u-cs-completions", hdev->cdev_idx);
 	hdev->cs_cmplt_wq = alloc_workqueue(workq_name, WQ_UNBOUND, 0);
 	if (!hdev->cs_cmplt_wq) {
-		dev_err(hdev->dev,
+		hl_err(hdev,
 			"Failed to allocate CS completions workqueue\n");
 		rc = -ENOMEM;
 		goto free_eq_wq;
@@ -1239,7 +1239,7 @@ static int device_early_init(struct hl_device *hdev)
 	snprintf(workq_name, 32, "hl%u-ts-free-obj", hdev->cdev_idx);
 	hdev->ts_free_obj_wq = alloc_workqueue(workq_name, WQ_UNBOUND, 0);
 	if (!hdev->ts_free_obj_wq) {
-		dev_err(hdev->dev,
+		hl_err(hdev,
 			"Failed to allocate Timestamp registration free workqueue\n");
 		rc = -ENOMEM;
 		goto free_cs_cmplt_wq;
@@ -1248,7 +1248,7 @@ static int device_early_init(struct hl_device *hdev)
 	snprintf(workq_name, 32, "hl%u-prefetch", hdev->cdev_idx);
 	hdev->prefetch_wq = alloc_workqueue(workq_name, WQ_UNBOUND, 0);
 	if (!hdev->prefetch_wq) {
-		dev_err(hdev->dev, "Failed to allocate MMU prefetch workqueue\n");
+		hl_err(hdev, "Failed to allocate MMU prefetch workqueue\n");
 		rc = -ENOMEM;
 		goto free_ts_free_wq;
 	}
@@ -1269,7 +1269,7 @@ static int device_early_init(struct hl_device *hdev)
 	hdev->reset_wq = create_singlethread_workqueue(workq_name);
 	if (!hdev->reset_wq) {
 		rc = -ENOMEM;
-		dev_err(hdev->dev, "Failed to create device reset WQ\n");
+		hl_err(hdev, "Failed to create device reset WQ\n");
 		goto free_cb_mgr;
 	}
 
@@ -1386,9 +1386,9 @@ static bool hl_device_eq_heartbeat_received(struct hl_device *hdev)
 		return true;
 
 	if (!hdev->eq_heartbeat_received) {
-		dev_err(hdev->dev, "EQ heartbeat event was not received!\n");
+		hl_err(hdev, "EQ heartbeat event was not received!\n");
 
-		dev_err(hdev->dev,
+		hl_err(hdev,
 			"EQ: {CI %u, HB counter %u, last HB time: %ptTs}, PQ: {PI: %u, CI: %u (%u), last HB time: %ptTs}\n",
 			hdev->event_queue.ci,
 			heartbeat_debug_info->heartbeat_event_counter,
@@ -1428,7 +1428,7 @@ static void hl_device_heartbeat(struct work_struct *work)
 		goto reschedule;
 
 	if (hl_device_operational(hdev, NULL))
-		dev_err(hdev->dev, "Device heartbeat failed! PCI link is %s\n",
+		hl_err(hdev, "Device heartbeat failed! PCI link is %s\n",
 			is_pci_link_healthy(hdev) ? "healthy" : "broken");
 
 	info.err_type = HL_INFO_FW_HEARTBEAT_ERR;
@@ -1439,7 +1439,7 @@ static void hl_device_heartbeat(struct work_struct *work)
 		hl_device_cond_reset(hdev, HL_DRV_RESET_HARD | HL_DRV_RESET_HEARTBEAT, event_mask);
 	} else {
 		hdev->disabled = true;
-		dev_err(hdev->dev, "Heartbeat reset is disabled\n");
+		hl_err(hdev, "Heartbeat reset is disabled\n");
 	}
 
 	return;
@@ -1491,7 +1491,7 @@ static int device_late_init(struct hl_device *hdev)
 	if (hdev->asic_funcs->late_init) {
 		rc = hdev->asic_funcs->late_init(hdev);
 		if (rc) {
-			dev_err(hdev->dev,
+			hl_err(hdev,
 				"failed late initialization for the H/W\n");
 			return rc;
 		}
@@ -1539,7 +1539,7 @@ int hl_device_utilization(struct hl_device *hdev, u32 *utilization)
 	dc_power = hdev->asic_prop.dc_power_default;
 	divisor = max_power - dc_power;
 	if (!divisor) {
-		dev_warn(hdev->dev, "device utilization is not supported\n");
+		hl_warn(hdev, "device utilization is not supported\n");
 		return -EOPNOTSUPP;
 	}
 	rc = hl_fw_cpucp_power_get(hdev, &curr_power);
@@ -1621,7 +1621,7 @@ int hl_device_set_debug_mode(struct hl_device *hdev, struct hl_ctx *ctx, bool en
 
 	if (!enable) {
 		if (!hdev->in_debug) {
-			dev_err(hdev->dev,
+			hl_err(hdev,
 				"Failed to disable debug mode because device was not in debug mode\n");
 			rc = -EFAULT;
 			goto out;
@@ -1636,7 +1636,7 @@ int hl_device_set_debug_mode(struct hl_device *hdev, struct hl_ctx *ctx, bool en
 	}
 
 	if (hdev->in_debug) {
-		dev_err(hdev->dev,
+		hl_err(hdev,
 			"Failed to enable debug mode because device is already in debug mode\n");
 		rc = -EFAULT;
 		goto out;
@@ -1743,7 +1743,7 @@ int hl_device_suspend(struct hl_device *hdev)
 	spin_lock(&hdev->reset_info.lock);
 	if (hdev->reset_info.in_reset) {
 		spin_unlock(&hdev->reset_info.lock);
-		dev_err(hdev->dev, "Can't suspend while in reset\n");
+		hl_err(hdev, "Can't suspend while in reset\n");
 		return -EIO;
 	}
 	hdev->reset_info.in_reset = 1;
@@ -1756,7 +1756,7 @@ int hl_device_suspend(struct hl_device *hdev)
 
 	rc = hdev->asic_funcs->suspend(hdev);
 	if (rc)
-		dev_err(hdev->dev,
+		hl_err(hdev,
 			"Failed to disable PCI access of device CPU\n");
 
 	/* Shut down the device */
@@ -1783,7 +1783,7 @@ int hl_device_resume(struct hl_device *hdev)
 	pci_restore_state(hdev->pdev);
 	rc = pci_enable_device_mem(hdev->pdev);
 	if (rc) {
-		dev_err(hdev->dev,
+		hl_err(hdev,
 			"Failed to enable PCI device in resume\n");
 		return rc;
 	}
@@ -1792,7 +1792,7 @@ int hl_device_resume(struct hl_device *hdev)
 
 	rc = hdev->asic_funcs->resume(hdev);
 	if (rc) {
-		dev_err(hdev->dev, "Failed to resume device after suspend\n");
+		hl_err(hdev, "Failed to resume device after suspend\n");
 		goto disable_device;
 	}
 
@@ -1806,7 +1806,7 @@ int hl_device_resume(struct hl_device *hdev)
 
 	rc = hl_device_reset(hdev, HL_DRV_RESET_HARD);
 	if (rc) {
-		dev_err(hdev->dev, "Failed to reset device during resume\n");
+		hl_err(hdev, "Failed to reset device during resume\n");
 		goto disable_device;
 	}
 
@@ -1856,14 +1856,14 @@ static int device_kill_open_processes(struct hl_device *hdev, u32 timeout, bool 
 	list_for_each_entry(hpriv, hpriv_list, dev_node) {
 		task = get_pid_task(hpriv->taskpid, PIDTYPE_PID);
 		if (task) {
-			dev_info(hdev->dev, "Killing user process pid=%d\n",
+			hl_info(hdev, "Killing user process pid=%d\n",
 				task_pid_nr(task));
 			send_sig(SIGKILL, task, 1);
 			usleep_range(1000, 10000);
 
 			put_task_struct(task);
 		} else {
-			dev_dbg(hdev->dev,
+			hl_dbg(hdev,
 				"Can't get task struct for user process %d, process was killed from outside the driver\n",
 				pid_nr(hpriv->taskpid));
 		}
@@ -1882,7 +1882,7 @@ static int device_kill_open_processes(struct hl_device *hdev, u32 timeout, bool 
 
 wait_for_processes:
 	while ((!list_empty(hpriv_list)) && (pending_cnt)) {
-		dev_dbg(hdev->dev,
+		hl_dbg(hdev,
 			"Waiting for all unmap operations to finish before hard reset\n");
 
 		pending_cnt--;
@@ -2036,7 +2036,7 @@ int hl_device_reset(struct hl_device *hdev, u32 flags)
 	int i, rc, hw_fini_rc;
 
 	if (!hdev->init_done) {
-		dev_err(hdev->dev, "Can't reset before initialization is done\n");
+		hl_err(hdev, "Can't reset before initialization is done\n");
 		return 0;
 	}
 
@@ -2053,23 +2053,23 @@ int hl_device_reset(struct hl_device *hdev, u32 flags)
 		return 0;
 
 	if (hdev->cpld_shutdown) {
-		dev_err(hdev->dev, "Cannot reset device, cpld is shutdown! Device is NOT usable\n");
+		hl_err(hdev, "Cannot reset device, cpld is shutdown! Device is NOT usable\n");
 		return -EIO;
 	}
 
 	if (!hard_reset && (hl_device_status(hdev) == HL_DEVICE_STATUS_MALFUNCTION)) {
-		dev_dbg(hdev->dev, "soft-reset isn't supported on a malfunctioning device\n");
+		hl_dbg(hdev, "soft-reset isn't supported on a malfunctioning device\n");
 		return 0;
 	}
 
 	if (!hard_reset && !hdev->asic_prop.supports_compute_reset) {
-		dev_dbg(hdev->dev, "asic doesn't support compute reset - do hard-reset instead\n");
+		hl_dbg(hdev, "asic doesn't support compute reset - do hard-reset instead\n");
 		hard_reset = true;
 	}
 
 	if (reset_upon_device_release) {
 		if (hard_reset) {
-			dev_crit(hdev->dev,
+			hl_crit(hdev,
 				"Aborting reset because hard-reset is mutually exclusive with reset-on-device-release\n");
 			return -EINVAL;
 		}
@@ -2078,7 +2078,7 @@ int hl_device_reset(struct hl_device *hdev, u32 flags)
 	}
 
 	if (!hard_reset && !hdev->asic_prop.allow_inference_soft_reset) {
-		dev_dbg(hdev->dev,
+		hl_dbg(hdev,
 			"asic doesn't allow inference soft reset - do hard-reset instead\n");
 		hard_reset = true;
 	}
@@ -2146,11 +2146,11 @@ escalate_reset_flow:
 		take_release_locks(hdev);
 
 		if (hard_reset)
-			dev_info(hdev->dev, "Going to reset device\n");
+			hl_info(hdev, "Going to reset device\n");
 		else if (reset_upon_device_release)
-			dev_dbg(hdev->dev, "Going to reset device after release by user\n");
+			hl_dbg(hdev, "Going to reset device after release by user\n");
 		else
-			dev_dbg(hdev->dev, "Going to reset engines of inference device\n");
+			hl_dbg(hdev, "Going to reset engines of inference device\n");
 	}
 
 	if ((hard_reset) && (!from_hard_reset_thread)) {
@@ -2182,7 +2182,7 @@ kill_processes:
 
 		if (rc == -EBUSY) {
 			if (hdev->device_fini_pending) {
-				dev_crit(hdev->dev,
+				hl_crit(hdev,
 					"%s Failed to kill all open processes, stopping hard reset\n",
 					HL_PARENT_DEV_NAME(hdev));
 				goto out_err;
@@ -2193,7 +2193,7 @@ kill_processes:
 		}
 
 		if (rc) {
-			dev_crit(hdev->dev,
+			hl_crit(hdev,
 				"%s Failed to kill all open processes, stopping hard reset\n",
 				HL_PARENT_DEV_NAME(hdev));
 			goto out_err;
@@ -2255,7 +2255,7 @@ kill_processes:
 				(hdev->reset_info.prev_reset_trigger == HL_DRV_RESET_FW_FATAL_ERR ||
 						hdev->reset_info.prev_reset_trigger ==
 								HL_DRV_RESET_HEARTBEAT)) {
-			dev_crit(hdev->dev,
+			hl_crit(hdev,
 				"%s Consecutive fatal errors, stopping hard reset\n",
 				HL_PARENT_DEV_NAME(hdev));
 			rc = -EIO;
@@ -2263,18 +2263,18 @@ kill_processes:
 		}
 
 		if (hdev->kernel_ctx) {
-			dev_crit(hdev->dev,
+			hl_crit(hdev,
 				"%s kernel ctx was alive during hard reset, something is terribly wrong\n",
 				HL_PARENT_DEV_NAME(hdev));
 			rc = -EBUSY;
 			goto out_err;
 		}
 
-		dev_info(hdev->dev, "Driver version: %s\n", hdev->driver_ver);
+		hl_info(hdev, "Driver version: %s\n", hdev->driver_ver);
 
 		rc = hl_mmu_init(hdev);
 		if (rc) {
-			dev_err(hdev->dev,
+			hl_err(hdev,
 				"Failed to initialize MMU S/W after hard reset\n");
 			goto out_err;
 		}
@@ -2292,7 +2292,7 @@ kill_processes:
 
 		rc = hl_ctx_init(hdev, hdev->kernel_ctx, true);
 		if (rc) {
-			dev_err(hdev->dev,
+			hl_err(hdev,
 				"failed to init kernel ctx in hard reset\n");
 			kfree(hdev->kernel_ctx);
 			hdev->kernel_ctx = NULL;
@@ -2316,7 +2316,7 @@ kill_processes:
 
 	rc = hdev->asic_funcs->hw_init(hdev);
 	if (rc) {
-		dev_err(hdev->dev, "failed to initialize the H/W after reset\n");
+		hl_err(hdev, "failed to initialize the H/W after reset\n");
 		goto out_err;
 	}
 
@@ -2339,26 +2339,26 @@ kill_processes:
 	/* Check that the communication with the device is working */
 	rc = hdev->asic_funcs->test_queues(hdev);
 	if (rc) {
-		dev_err(hdev->dev, "Failed to detect if device is alive after reset\n");
+		hl_err(hdev, "Failed to detect if device is alive after reset\n");
 		goto out_err;
 	}
 
 	if (hard_reset) {
 		rc = device_late_init(hdev);
 		if (rc) {
-			dev_err(hdev->dev, "Failed late init after hard reset\n");
+			hl_err(hdev, "Failed late init after hard reset\n");
 			goto out_err;
 		}
 
 		rc = hl_vm_init(hdev);
 		if (rc) {
-			dev_err(hdev->dev, "Failed to init memory module after hard reset\n");
+			hl_err(hdev, "Failed to init memory module after hard reset\n");
 			goto out_err;
 		}
 
 		rc = hdev->asic_funcs->cn_init(hdev);
 		if (rc) {
-			dev_err(hdev->dev, "Failed to init CN driver\n");
+			hl_err(hdev, "Failed to init CN driver\n");
 			goto out_err;
 		}
 
@@ -2368,10 +2368,10 @@ kill_processes:
 		rc = hdev->asic_funcs->compute_reset_late_init(hdev);
 		if (rc) {
 			if (reset_upon_device_release)
-				dev_err(hdev->dev,
+				hl_err(hdev,
 					"Failed late init in reset after device release\n");
 			else
-				dev_err(hdev->dev, "Failed late init after compute reset\n");
+				hl_err(hdev, "Failed late init after compute reset\n");
 			goto out_err;
 		}
 	}
@@ -2380,7 +2380,7 @@ kill_processes:
 
 	rc = hdev->asic_funcs->scrub_device_mem(hdev);
 	if (rc) {
-		dev_err(hdev->dev, "scrub mem failed from device reset (%d)\n", rc);
+		hl_err(hdev, "scrub mem failed from device reset (%d)\n", rc);
 		goto out_err;
 	}
 
@@ -2401,11 +2401,11 @@ kill_processes:
 	hdev->reset_info.needs_reset = false;
 
 	if (hard_reset)
-		dev_info(hdev->dev,
+		hl_info(hdev,
 			"Successfully finished resetting the %s device\n",
 			HL_PARENT_DEV_NAME(hdev));
 	else
-		dev_dbg(hdev->dev,
+		hl_dbg(hdev,
 			"Successfully finished resetting the %s device\n",
 			HL_PARENT_DEV_NAME(hdev));
 
@@ -2425,7 +2425,7 @@ kill_processes:
 			hdev->reset_info.compute_reset_cnt++;
 
 		if (schedule_hard_reset) {
-			dev_info(hdev->dev, "Performing hard reset scheduled during compute reset\n");
+			hl_info(hdev, "Performing hard reset scheduled during compute reset\n");
 			flags = hdev->reset_info.hard_reset_schedule_flags;
 			hdev->reset_info.hard_reset_schedule_flags = 0;
 			hard_reset = true;
@@ -2442,19 +2442,19 @@ out_err:
 	hdev->reset_info.in_compute_reset = 0;
 
 	if (hdev->simulator_crashed) {
-		dev_err(hdev->dev,
+		hl_err(hdev,
 			"%s simulator was closed during reset, aborting execution\n",
 			HL_PARENT_DEV_NAME(hdev));
 	} else if (hard_reset) {
-		dev_err(hdev->dev,
+		hl_err(hdev,
 			"%s Failed to reset! Device is NOT usable\n", HL_PARENT_DEV_NAME(hdev));
 		hdev->reset_info.hard_reset_cnt++;
 	} else {
 		if (reset_upon_device_release) {
-			dev_err(hdev->dev, "Failed to reset device after user release\n");
+			hl_err(hdev, "Failed to reset device after user release\n");
 			flags &= ~HL_DRV_RESET_DEV_RELEASE;
 		} else {
-			dev_err(hdev->dev, "Failed to do compute reset\n");
+			hl_err(hdev, "Failed to do compute reset\n");
 			hdev->reset_info.compute_reset_cnt++;
 		}
 
@@ -2490,7 +2490,7 @@ int hl_device_cond_reset(struct hl_device *hdev, u32 flags, u64 event_mask)
 
 	/* Device release watchdog is relevant only if user exists and gets a reset notification */
 	if (!(event_mask & HL_NOTIFIER_EVENT_DEVICE_RESET)) {
-		dev_err(hdev->dev, "Resetting device without a reset indication to user\n");
+		hl_err(hdev, "Resetting device without a reset indication to user\n");
 		goto device_reset;
 	}
 
@@ -2522,7 +2522,7 @@ int hl_device_cond_reset(struct hl_device *hdev, u32 flags, u64 event_mask)
 	}
 
 	hdev->device_release_watchdog_work.flags = flags;
-	dev_dbg(hdev->dev, "Device is going to be hard-reset in %u sec unless being released\n",
+	hl_dbg(hdev, "Device is going to be hard-reset in %u sec unless being released\n",
 		hdev->device_release_watchdog_timeout_sec);
 	schedule_delayed_work(&hdev->device_release_watchdog_work.reset_work,
 				msecs_to_jiffies(hdev->device_release_watchdog_timeout_sec * 1000));
@@ -2571,7 +2571,7 @@ void hl_notifier_event_send_all(struct hl_device *hdev, u64 event_mask)
 	struct hl_fpriv	*hpriv;
 
 	if (!event_mask) {
-		dev_warn(hdev->dev, "Skip sending zero event");
+		hl_warn(hdev, "Skip sending zero event");
 		return;
 	}
 
@@ -2641,7 +2641,7 @@ static inline bool check_access_privileges(struct hl_device *hdev, u64 addr, u32
 	if (prop->support_glbl_priv_fetch) {
 		blk_addr = ALIGN_DOWN(addr, PAGE_SIZE);
 
-		dev_dbg(hdev->dev, "check access privileges: blk_addr: 0x%llx\n", blk_addr);
+		hl_dbg(hdev, "check access privileges: blk_addr: 0x%llx\n", blk_addr);
 
 		return !!hl_fetch_glbl_priv_data(hdev, blk_addr, glbl_priv_data);
 	}
@@ -2670,7 +2670,7 @@ int hl_read_memory_block(struct hl_device *hdev, u32 *buf, u64 start_addr, u32 s
 
 	/* verify that address and size are a multiple of 4 */
 	if ((start_addr & 0x3) || (size & 0x3)) {
-		dev_err(hdev->dev,
+		hl_err(hdev,
 			"Read debug device memory unaligned address %#llx, or size %u\n",
 			start_addr, size);
 
@@ -2726,7 +2726,7 @@ int hl_read_memory_block(struct hl_device *hdev, u32 *buf, u64 start_addr, u32 s
 					if (!(glbl_priv_arr[priv_arr_idx] & BIT(bit_num)) ||
 										priv_arr_idx > 28) {
 						buf[i] = 0x12345;
-						dev_dbg(hdev->dev,
+						hl_dbg(hdev,
 							"addr 0x%llx skipped, index: %u, priv bit: %u, priv_arr_idx: %u\n",
 								addr, i, bit_num, priv_arr_idx);
 						continue;
@@ -2737,7 +2737,7 @@ int hl_read_memory_block(struct hl_device *hdev, u32 *buf, u64 start_addr, u32 s
 access_addr:
 					rc = hl_access_cfg_region(hdev, addr, &val, DEBUGFS_READ32);
 					if (rc) {
-						dev_err(hdev->dev, "#2 hl_access_cfg_region failed addr 0x%llx\n",
+						hl_err(hdev, "#2 hl_access_cfg_region failed addr 0x%llx\n",
 											addr);
 						return rc;
 					}
@@ -2748,7 +2748,7 @@ access_addr:
 	} else { /* read from dram range */
 		if (prop->dram_supports_virtual_memory) {
 			if (!hl_is_device_va(hdev, start_addr)) {
-				dev_err(hdev->dev,
+				hl_err(hdev,
 					"addr %#llx isn't a config address nor a virtual address\n",
 					start_addr);
 				return -EINVAL;
@@ -2764,7 +2764,7 @@ access_addr:
 		dram_region = &hdev->pci_mem_region[PCI_REGION_DRAM];
 		if (!hl_mem_area_inside_range(phys_addr, size, dram_region->region_base,
 					dram_region->region_base + dram_region->region_size)) {
-			dev_err(hdev->dev, "address is not a config address nor a dram address\n");
+			hl_err(hdev, "address is not a config address nor a dram address\n");
 			return -EINVAL;
 		}
 
@@ -2927,7 +2927,7 @@ int hl_device_init(struct hl_device *hdev)
 	 */
 	rc = hl_hw_queues_create(hdev);
 	if (rc) {
-		dev_err(hdev->dev, "failed to initialize kernel queues\n");
+		hl_err(hdev, "failed to initialize kernel queues\n");
 		goto sw_fini;
 	}
 
@@ -2944,7 +2944,7 @@ int hl_device_init(struct hl_device *hdev)
 				GFP_KERNEL);
 
 		if (!hdev->completion_queue) {
-			dev_err(hdev->dev,
+			hl_err(hdev,
 				"failed to allocate completion queues\n");
 			rc = -ENOMEM;
 			goto hw_queues_destroy;
@@ -2955,7 +2955,7 @@ int hl_device_init(struct hl_device *hdev)
 		rc = hl_cq_init(hdev, &hdev->completion_queue[i],
 				hdev->asic_funcs->get_queue_id_for_cq(hdev, i));
 		if (rc) {
-			dev_err(hdev->dev,
+			hl_err(hdev,
 				"failed to initialize completion queue\n");
 			goto cq_fini;
 		}
@@ -2976,14 +2976,14 @@ int hl_device_init(struct hl_device *hdev)
 	 */
 	rc = hl_eq_init(hdev, &hdev->event_queue);
 	if (rc) {
-		dev_err(hdev->dev, "failed to initialize event queue\n");
+		hl_err(hdev, "failed to initialize event queue\n");
 		goto free_shadow_cs_queue;
 	}
 
 	/* MMU S/W must be initialized before kernel context is created */
 	rc = hl_mmu_init(hdev);
 	if (rc) {
-		dev_err(hdev->dev, "Failed to initialize MMU S/W structures\n");
+		hl_err(hdev, "Failed to initialize MMU S/W structures\n");
 		goto eq_fini;
 	}
 
@@ -3004,7 +3004,7 @@ int hl_device_init(struct hl_device *hdev)
 
 	rc = hl_debugfs_device_init(hdev);
 	if (rc) {
-		dev_err(hdev->dev, "failed to initialize debugfs entry structure\n");
+		hl_err(hdev, "failed to initialize debugfs entry structure\n");
 		kfree(hdev->kernel_ctx);
 		goto mmu_fini;
 	}
@@ -3014,20 +3014,20 @@ int hl_device_init(struct hl_device *hdev)
 	 */
 	rc = hl_ctx_init(hdev, hdev->kernel_ctx, true);
 	if (rc) {
-		dev_err(hdev->dev, "failed to initialize kernel context\n");
+		hl_err(hdev, "failed to initialize kernel context\n");
 		kfree(hdev->kernel_ctx);
 		goto debugfs_device_fini;
 	}
 
 	rc = hl_cb_pool_init(hdev);
 	if (rc) {
-		dev_err(hdev->dev, "failed to initialize CB pool\n");
+		hl_err(hdev, "failed to initialize CB pool\n");
 		goto release_ctx;
 	}
 
 	rc = hl_dec_init(hdev);
 	if (rc) {
-		dev_err(hdev->dev, "Failed to initialize the decoder module\n");
+		hl_err(hdev, "Failed to initialize the decoder module\n");
 		goto cb_pool_fini;
 	}
 
@@ -3045,7 +3045,7 @@ int hl_device_init(struct hl_device *hdev)
 
 	rc = hdev->asic_funcs->hw_init(hdev);
 	if (rc) {
-		dev_err(hdev->dev, "failed to initialize the H/W\n");
+		hl_err(hdev, "failed to initialize the H/W\n");
 		rc = 0;
 		goto out_disabled;
 	}
@@ -3053,25 +3053,25 @@ int hl_device_init(struct hl_device *hdev)
 	/* Check that the communication with the device is working */
 	rc = hdev->asic_funcs->test_queues(hdev);
 	if (rc) {
-		dev_err(hdev->dev, "Failed to detect if device is alive\n");
+		hl_err(hdev, "Failed to detect if device is alive\n");
 		rc = 0;
 		goto out_disabled;
 	}
 
 	rc = device_late_init(hdev);
 	if (rc) {
-		dev_err(hdev->dev, "Failed late initialization\n");
+		hl_err(hdev, "Failed late initialization\n");
 		rc = 0;
 		goto out_disabled;
 	}
 
-	dev_info(hdev->dev, "Found %s device with %lluGB DRAM\n",
+	hl_info(hdev, "Found %s device with %lluGB DRAM\n",
 		hdev->asic_name,
 		hdev->asic_prop.dram_size / SZ_1G);
 
 	rc = hl_vm_init(hdev);
 	if (rc) {
-		dev_err(hdev->dev, "Failed to initialize memory module\n");
+		hl_err(hdev, "Failed to initialize memory module\n");
 		rc = 0;
 		goto out_disabled;
 	}
@@ -3084,14 +3084,14 @@ int hl_device_init(struct hl_device *hdev)
 
 	rc = drm_dev_register(&hdev->drm, 0);
 	if (rc) {
-		dev_err(hdev->dev, "Failed to register DRM device, rc %d\n", rc);
+		hl_err(hdev, "Failed to register DRM device, rc %d\n", rc);
 		rc = 0;
 		goto out_disabled;
 	}
 
 	rc = cdev_sysfs_debugfs_add(hdev);
 	if (rc) {
-		dev_err(hdev->dev, "Failed to add char devices and sysfs/debugfs files\n");
+		hl_err(hdev, "Failed to add char devices and sysfs/debugfs files\n");
 		rc = 0;
 		goto out_disabled;
 	}
@@ -3099,7 +3099,7 @@ int hl_device_init(struct hl_device *hdev)
 	/* must be called after sysfs init for the auxiliary bus */
 	rc = hdev->asic_funcs->cn_init(hdev);
 	if (rc) {
-		dev_err(hdev->dev, "Failed to init CN driver\n");
+		hl_err(hdev, "Failed to init CN driver\n");
 		rc = 0;
 		goto out_disabled;
 	}
@@ -3121,7 +3121,7 @@ int hl_device_init(struct hl_device *hdev)
 	 */
 	rc = hl_hwmon_init(hdev);
 	if (rc) {
-		dev_err(hdev->dev, "Failed to initialize hwmon\n");
+		hl_err(hdev, "Failed to initialize hwmon\n");
 		rc = 0;
 		goto out_disabled;
 	}
@@ -3132,7 +3132,7 @@ int hl_device_init(struct hl_device *hdev)
 	 */
 	device_heartbeat_schedule(hdev);
 
-	dev_notice(hdev->dev,
+	hl_notice(hdev,
 		"Successfully added device %s to habanalabs driver\n", HL_PARENT_DEV_NAME(hdev));
 
 	/* After initialization is done, we are ready to receive events from
@@ -3152,7 +3152,7 @@ cb_pool_fini:
 	hl_cb_pool_fini(hdev);
 release_ctx:
 	if (hl_ctx_put(hdev->kernel_ctx) != 1)
-		dev_err(hdev->dev,
+		hl_err(hdev,
 			"kernel ctx is still alive on initialization failure\n");
 debugfs_device_fini:
 	hl_debugfs_device_fini(hdev);
@@ -3216,7 +3216,7 @@ void hl_device_fini(struct hl_device *hdev)
 	u64 reset_sec;
 	int i, rc;
 
-	dev_info(hdev->dev, "Removing device %s\n", HL_PARENT_DEV_NAME(hdev));
+	hl_info(hdev, "Removing device %s\n", HL_PARENT_DEV_NAME(hdev));
 
 	hdev->device_fini_pending = 1;
 	flush_delayed_work(&hdev->device_reset_work.reset_work);
@@ -3252,7 +3252,7 @@ void hl_device_fini(struct hl_device *hdev)
 		spin_unlock(&hdev->reset_info.lock);
 
 		if (ktime_compare(ktime_get(), timeout) > 0) {
-			dev_crit(hdev->dev,
+			hl_crit(hdev,
 				"%s Failed to remove device because reset function did not finish\n",
 				HL_PARENT_DEV_NAME(hdev));
 			return;
@@ -3289,12 +3289,12 @@ void hl_device_fini(struct hl_device *hdev)
 	 * do in cs rollback
 	 */
 	if (hdev->simulator_crashed) {
-		dev_info(hdev->dev,
+		hl_info(hdev,
 			"Waiting for all processes to exit (extended timeout of %u seconds)",
 			HL_PENDING_RESET_SIM_CRASH_SEC);
 		process_kill_timeout = HL_PENDING_RESET_SIM_CRASH_SEC;
 	} else {
-		dev_info(hdev->dev,
+		hl_info(hdev,
 			"Waiting for all processes to exit (timeout of %u seconds)",
 			HL_WAIT_PROCESS_KILL_ON_DEVICE_FINI);
 		process_kill_timeout = HL_WAIT_PROCESS_KILL_ON_DEVICE_FINI;
@@ -3303,14 +3303,14 @@ void hl_device_fini(struct hl_device *hdev)
 	hdev->process_kill_trial_cnt = 0;
 	rc = device_kill_open_processes(hdev, process_kill_timeout, false);
 	if (rc) {
-		dev_crit(hdev->dev, "Failed to kill all open processes (%d)\n", rc);
+		hl_crit(hdev, "Failed to kill all open processes (%d)\n", rc);
 		device_disable_open_processes(hdev, false);
 	}
 
 	hdev->process_kill_trial_cnt = 0;
 	rc = device_kill_open_processes(hdev, 0, true);
 	if (rc) {
-		dev_crit(hdev->dev, "Failed to kill all control device open processes (%d)\n", rc);
+		hl_crit(hdev, "Failed to kill all control device open processes (%d)\n", rc);
 		device_disable_open_processes(hdev, true);
 	}
 
@@ -3323,7 +3323,7 @@ void hl_device_fini(struct hl_device *hdev)
 	if (!hdev->cpld_shutdown) {
 		rc = hdev->asic_funcs->hw_fini(hdev, true, false);
 		if (rc)
-			dev_err(hdev->dev,
+			hl_err(hdev,
 				"hw_fini failed in device fini while removing device %d\n", rc);
 	}
 
@@ -3331,7 +3331,7 @@ void hl_device_fini(struct hl_device *hdev)
 
 	/* Release kernel context */
 	if ((hdev->kernel_ctx) && (hl_ctx_put(hdev->kernel_ctx) != 1))
-		dev_err(hdev->dev, "kernel ctx is still alive\n");
+		hl_err(hdev, "kernel ctx is still alive\n");
 
 	hl_dec_fini(hdev);
 
@@ -3426,7 +3426,7 @@ void hl_capture_razwi(struct hl_device *hdev, u64 addr, u16 *engine_id, u16 num_
 	struct razwi_info *razwi_info = &hdev->captured_err_info.razwi_info;
 
 	if (num_of_engines > HL_RAZWI_MAX_NUM_OF_ENGINES_PER_RTR) {
-		dev_err(hdev->dev,
+		hl_err(hdev,
 				"Number of possible razwi initiators (%u) exceeded limit (%u)\n",
 				num_of_engines, HL_RAZWI_MAX_NUM_OF_ENGINES_PER_RTR);
 		return;
@@ -3471,7 +3471,7 @@ static void hl_capture_user_mappings(struct hl_device *hdev, bool is_pmmu)
 
 	ctx = hl_get_compute_ctx(hdev);
 	if (!ctx) {
-		dev_err(hdev->dev, "Can't get user context for user mappings\n");
+		hl_err(hdev, "Can't get user context for user mappings\n");
 		return;
 	}
 
@@ -3627,7 +3627,7 @@ void hl_init_cpu_for_irq(struct hl_device *hdev)
 		return;
 
 	if (!cpumask_and(&cpu_mask, cpumask_of_node(numa_node), cpu_online_mask)) {
-		dev_err(hdev->dev, "No available affinities in current numa node\n");
+		hl_err(hdev, "No available affinities in current numa node\n");
 		return;
 	}
 
@@ -3645,12 +3645,12 @@ void hl_set_irq_affinity(struct hl_device *hdev, int irq)
 	}
 
 	if (cpumask_empty(&hdev->irq_affinity_mask)) {
-		dev_dbg(hdev->dev, "affinity mask is empty\n");
+		hl_dbg(hdev, "affinity mask is empty\n");
 		return;
 	}
 
 	if (irq_set_affinity_and_hint(irq, &hdev->irq_affinity_mask))
-		dev_err(hdev->dev, "Failed setting irq %d affinity\n", irq);
+		hl_err(hdev, "Failed setting irq %d affinity\n", irq);
 }
 
 void hl_eq_heartbeat_event_handle(struct hl_device *hdev)
@@ -3673,13 +3673,13 @@ void hl_handle_clk_change_event(struct hl_device *hdev, u16 event_type, u64 *eve
 		clk_throttle->aggregated_reason |= HL_CLK_THROTTLE_POWER;
 		clk_throttle->timestamp[HL_CLK_THROTTLE_TYPE_POWER].start = ktime_get();
 		clk_throttle->timestamp[HL_CLK_THROTTLE_TYPE_POWER].end = zero_time;
-		dev_dbg_ratelimited(hdev->dev, "Clock throttling due to power consumption\n");
+		hl_dbg_ratelimited(hdev, "Clock throttling due to power consumption\n");
 		break;
 
 	case EQ_EVENT_POWER_EVT_END:
 		clk_throttle->current_reason &= ~HL_CLK_THROTTLE_POWER;
 		clk_throttle->timestamp[HL_CLK_THROTTLE_TYPE_POWER].end = ktime_get();
-		dev_dbg_ratelimited(hdev->dev, "Power envelop is safe, back to optimal clock\n");
+		hl_dbg_ratelimited(hdev, "Power envelop is safe, back to optimal clock\n");
 		break;
 
 	case EQ_EVENT_THERMAL_EVT_START:
@@ -3688,18 +3688,18 @@ void hl_handle_clk_change_event(struct hl_device *hdev, u16 event_type, u64 *eve
 		clk_throttle->timestamp[HL_CLK_THROTTLE_TYPE_THERMAL].start = ktime_get();
 		clk_throttle->timestamp[HL_CLK_THROTTLE_TYPE_THERMAL].end = zero_time;
 		*event_mask |= HL_NOTIFIER_EVENT_USER_ENGINE_ERR;
-		dev_info_ratelimited(hdev->dev, "Clock throttling due to overheating\n");
+		hl_info_ratelimited(hdev, "Clock throttling due to overheating\n");
 		break;
 
 	case EQ_EVENT_THERMAL_EVT_END:
 		clk_throttle->current_reason &= ~HL_CLK_THROTTLE_THERMAL;
 		clk_throttle->timestamp[HL_CLK_THROTTLE_TYPE_THERMAL].end = ktime_get();
 		*event_mask |= HL_NOTIFIER_EVENT_USER_ENGINE_ERR;
-		dev_info_ratelimited(hdev->dev, "Thermal envelop is safe, back to optimal clock\n");
+		hl_info_ratelimited(hdev, "Thermal envelop is safe, back to optimal clock\n");
 		break;
 
 	default:
-		dev_err(hdev->dev, "Received invalid clock change event %d\n", event_type);
+		hl_err(hdev, "Received invalid clock change event %d\n", event_type);
 		break;
 	}
 

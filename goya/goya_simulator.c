@@ -857,7 +857,7 @@ static void goya_sim_notify_reset(struct hl_device *hdev)
 
 static int goya_sim_debug_coresight(struct hl_device *hdev, struct hl_ctx *ctx, void *data)
 {
-	dev_err(hdev->dev, "CoreSight not supported in simulator\n");
+	hl_err(hdev, "CoreSight not supported in simulator\n");
 
 	return -ENXIO;
 }
@@ -871,7 +871,7 @@ static int goya_sim_set_fixed_properties(struct hl_device *hdev)
 
 	rc = goya_set_fixed_properties(hdev);
 	if (rc) {
-		dev_err(hdev->dev, "Failed to get fixed properties\n");
+		hl_err(hdev, "Failed to get fixed properties\n");
 		return rc;
 	}
 
@@ -905,11 +905,11 @@ static int goya_sim_pci_bars_map(struct hl_device *hdev)
 
 	/* Simulate SRAM BAR */
 	hdev->pcie_bar[SRAM_CFG_BAR_ID] = (void __iomem *) edev->sram;
-	dev_dbg(hdev->dev, "CFG at 0x%px\n", hdev->pcie_bar[SRAM_CFG_BAR_ID]);
+	hl_dbg(hdev, "CFG at 0x%px\n", hdev->pcie_bar[SRAM_CFG_BAR_ID]);
 
 	/* Simulate DDR BAR */
 	hdev->pcie_bar[DDR_BAR_ID] = (void __iomem *) edev->dram;
-	dev_dbg(hdev->dev, "DDR at 0x%px\n", hdev->pcie_bar[DDR_BAR_ID]);
+	hl_dbg(hdev, "DDR at 0x%px\n", hdev->pcie_bar[DDR_BAR_ID]);
 
 	hdev->rmmio = NULL;
 
@@ -1005,7 +1005,7 @@ static int goya_sim_sw_init(struct hl_device *hdev)
 
 	hdev->cpu_accessible_dma_pool = gen_pool_create(ilog2(32), -1);
 	if (!hdev->cpu_accessible_dma_pool) {
-		dev_err(hdev->dev,
+		hl_err(hdev,
 			"Failed to create CPU accessible DMA pool\n");
 		rc = -ENOMEM;
 		goto free_cpu_dma_mem;
@@ -1015,7 +1015,7 @@ static int goya_sim_sw_init(struct hl_device *hdev)
 				(uintptr_t) hdev->cpu_accessible_dma_mem,
 				HL_CPU_ACCESSIBLE_MEM_SIZE, -1);
 	if (rc) {
-		dev_err(hdev->dev,
+		hl_err(hdev,
 			"Failed to add memory to CPU accessible DMA pool\n");
 		rc = -EFAULT;
 		goto free_cpu_accessible_dma_pool;
@@ -1146,7 +1146,7 @@ static int goya_sim_hw_fini(struct hl_device *hdev, bool hard_reset, bool fw_res
 	reset_timeout_us = reset_timeout_ms * 1000;
 
 	WREG32(mmPSOC_GLOBAL_CONF_SW_ALL_RST_CFG, RESET_ALL);
-	dev_dbg(hdev->dev,
+	hl_dbg(hdev,
 		"Issued HARD reset command, going to wait %dms\n",
 		reset_timeout_ms);
 
@@ -1158,7 +1158,7 @@ static int goya_sim_hw_fini(struct hl_device *hdev, bool hard_reset, bool fw_res
 		10000, reset_timeout_us);
 
 	if (rc == -ETIMEDOUT)
-		dev_err(hdev->dev,
+		hl_err(hdev,
 			"Timeout while waiting for device to reset 0x%x\n",
 			status);
 
@@ -1193,7 +1193,7 @@ static int goya_sim_mmap(struct hl_device *hdev, struct vm_area_struct *vma,
 
 	rc = remap_vmalloc_range(vma, cpu_addr, 0);
 	if (rc)
-		dev_err(hdev->dev, "remap vmalloc error %d", rc);
+		hl_err(hdev, "remap vmalloc error %d", rc);
 
 	return rc;
 }
@@ -1210,7 +1210,7 @@ static void *goya_sim_dma_alloc_coherent(struct hl_device *hdev, size_t size,
 
 		*dma_handle = virt_to_phys(address);
 		if (*dma_handle > HOST_PHYS_SIZE)
-			dev_crit(hdev->dev, "invalid dma addr 0x%llx\n",
+			hl_crit(hdev, "invalid dma addr 0x%llx\n",
 					*dma_handle);
 
 		/* Shift to the device's base physical address of host memory */

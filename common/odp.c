@@ -204,7 +204,7 @@ struct hl_odp_region_ctx *hl_odp_region_ctx_create(struct hl_device *hdev,
 					  addr, size, &odp_notifier_ops);
 
 	if (unlikely(rc)) {
-		dev_err(hdev->dev,
+		hl_err(hdev,
 			"Error trying to setup interval notifier for region %#llx of size %#llx: %d",
 			addr, size, rc);
 		goto free_rg;
@@ -245,7 +245,7 @@ void hl_odp_region_ctx_destroy(struct hl_odp_region_ctx *rg)
 		dma_addr = xa_to_value(entry);
 		rc = hl_mmu_unmap_page(ctx, device_addr, PAGE_SIZE, true);
 		if (rc)
-			dev_err(hdev->dev,
+			hl_err(hdev,
 				"Error while unmapping %#llx (device_addr=%#llx): %d",
 				dma_addr, device_addr, rc);
 		hl_dma_unmap_page(hdev, dma_addr, PAGE_SIZE, rg->userptr->dir);
@@ -401,7 +401,7 @@ static bool odp_mmu_update_page_out_locked(struct hl_odp_region_ctx *rg, u64 sta
 		device_addr = (va_pfn << PAGE_SHIFT);
 		rc = hl_mmu_unmap_page(ctx, device_addr, PAGE_SIZE, true);
 		if (rc) {
-			dev_err(hdev->dev,
+			hl_err(hdev,
 				"Error while unmapping %#llx (device_addr=%#llx): %d",
 				dma_addr, device_addr, rc);
 			return false;

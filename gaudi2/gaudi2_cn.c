@@ -108,7 +108,7 @@ void gaudi2_cn_quiescence(struct hl_device *hdev)
 	if (gaudi2_cn_get_hw_cap(hdev))
 		return;
 
-	dev_dbg(hdev->dev, "Quiescence the NICs\n");
+	hl_dbg(hdev, "Quiescence the NICs\n");
 
 	gaudi2_cn_disable_interrupts(hdev);
 
@@ -212,7 +212,7 @@ static int gaudi2_cn_override_ports_masks(struct hl_device *hdev, u32 serdes_typ
 			ports_ext_mask = 0x3FF000;
 			break;
 		default:
-			dev_dbg(hdev->dev, "Invalid card location %u\n", hdev->cn.card_location);
+			hl_dbg(hdev, "Invalid card location %u\n", hdev->cn.card_location);
 			rc = -EINVAL;
 			break;
 		}
@@ -224,7 +224,7 @@ static int gaudi2_cn_override_ports_masks(struct hl_device *hdev, u32 serdes_typ
 		ports_ext_mask = 0x3C0;
 		break;
 	default:
-		dev_dbg(hdev->dev, "Invalid gaudi2_setup_type %u\n", hdev->gaudi2_setup_type);
+		hl_dbg(hdev, "Invalid gaudi2_setup_type %u\n", hdev->gaudi2_setup_type);
 		rc = -EINVAL;
 		break;
 	}
@@ -287,7 +287,7 @@ int gaudi2_cn_set_info(struct hl_device *hdev, bool get_from_fw)
 		 * by that identifying as gaudi2.
 		 */
 		if ((hdev->asic_type == ASIC_GAUDI2) && hdev->pci_rev_id_override) {
-			dev_dbg(hdev->dev,
+			hl_dbg(hdev,
 				"skipping NIC FW ports info on gaudi2B device with an overridden pci revision id\n");
 		} else {
 			hdev->cn.ports_mask &= cn_cpucp_info->link_mask[0];
@@ -315,13 +315,13 @@ int gaudi2_cn_set_info(struct hl_device *hdev, bool get_from_fw)
 			mac_addr = mac_arr[i].mac_addr;
 			if (!gaudi2_cn_check_oui_prefix_validity(mac_addr)) {
 				if (hdev->ignore_eeprom_errors) {
-					dev_dbg(hdev->dev,
+					hl_dbg(hdev,
 						"bad MAC OUI %pM, port %d - setting a valid MAC\n",
 						mac_addr, i);
 					mac[ETH_ALEN - 1] = i;
 					memcpy(mac_addr, mac, ETH_ALEN);
 				} else {
-					dev_warn(hdev->dev, "unrecognized MAC OUI %pM, port %d\n",
+					hl_warn(hdev, "unrecognized MAC OUI %pM, port %d\n",
 						mac_addr, i);
 				}
 			}
@@ -361,7 +361,7 @@ int gaudi2_cn_set_info(struct hl_device *hdev, bool get_from_fw)
 				(PSOC_GLOBAL_CONF_BOOT_STRAP_PINS_H_RERERVED_STRAP_MASK | 0x0C00);
 			serdes_type >>= PSOC_GLOBAL_CONF_BOOT_STRAP_PINS_H_RERERVED_STRAP_SHIFT;
 		} else {
-			dev_warn(hdev->dev, "can't read card location as FW security is enabled\n");
+			hl_warn(hdev, "can't read card location as FW security is enabled\n");
 		}
 
 		/* copy the MAC OUI in reverse according to the flavor */
@@ -400,7 +400,7 @@ int gaudi2_cn_set_info(struct hl_device *hdev, bool get_from_fw)
 
 		/* SW-169172: For HLS3 setup don't fail device init on invalid serdes_type. */
 		if (get_from_fw && hdev->gaudi2_setup_type != GAUDI2_SETUP_TYPE_HLS3) {
-			dev_err(hdev->dev, "bad SerDes type %d\n", serdes_type);
+			hl_err(hdev, "bad SerDes type %d\n", serdes_type);
 			return -EFAULT;
 		}
 		break;
@@ -477,7 +477,7 @@ static int gaudi2_cn_get_tx_swap_map(struct hbl_aux_dev *aux_dev, u16 *tx_swap_m
 	cn_cpucp_info = &hdev->asic_prop.cn_props.cpucp_info;
 
 	if (tx_swap_map_size > CPUCP_MAX_NICS) {
-		dev_dbg(hdev->dev, "tx_swap_map_size (%d) > %d\n", tx_swap_map_size,
+		hl_dbg(hdev, "tx_swap_map_size (%d) > %d\n", tx_swap_map_size,
 			CPUCP_MAX_NICS);
 		return -EINVAL;
 	}
@@ -635,7 +635,7 @@ static int gaudi2_cn_dump_port_statistics(struct hl_device *hdev, u32 port, u64 
 static int gaudi2_reserve_irqs(struct hl_device *hdev, u32 num, int *base_irq)
 {
 	if (num > MAX_NUM_OF_NIC_INTERRUPTS) {
-		dev_err(hdev->dev, "CN requested %u interrupts but only %u may be reserved\n",
+		hl_err(hdev, "CN requested %u interrupts but only %u may be reserved\n",
 			num, MAX_NUM_OF_NIC_INTERRUPTS);
 		return -EINVAL;
 	}

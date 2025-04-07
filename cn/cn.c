@@ -47,7 +47,7 @@ static int hl_cn_send_empty_status(struct hl_device *hdev, int port)
 
 	/* total_pkt_size is casted to u16 later on */
 	if (total_pkt_size > USHRT_MAX) {
-		dev_err(hdev->dev, "NIC status data is too big\n");
+		hl_err(hdev, "NIC status data is too big\n");
 		rc = -EINVAL;
 		goto out;
 	}
@@ -69,7 +69,7 @@ static int hl_cn_send_empty_status(struct hl_device *hdev, int port)
 	rc = hdev->asic_funcs->send_cpu_message(hdev, (u32 *) pkt, total_pkt_size, 0, &result);
 
 	if (rc)
-		dev_err(hdev->dev, "failed to send NIC status, port %d\n", port);
+		hl_err(hdev, "failed to send NIC status, port %d\n", port);
 
 	kfree(pkt);
 out:
@@ -207,7 +207,7 @@ static struct hl_ctx *hl_cn_get_ctx(const struct hl_cn *cn, u64 vm_handle, int *
 	case HL_USER_VM_HANDLE:
 		return cn->ctx;
 	default:
-		dev_err(hdev->dev, "Unknown vm handle: %llx", vm_handle);
+		hl_err(hdev, "Unknown vm handle: %llx", vm_handle);
 		*rc = -EINVAL;
 		return NULL;
 	}
@@ -237,16 +237,16 @@ static void hl_cn_vm_dev_mmu_unmap(struct hbl_aux_dev *aux_dev, u64 vm_handle, u
 
 	ctx = hl_cn_get_ctx(cn, vm_handle, &rc);
 	if (!ctx) {
-		dev_crit(hdev->dev,
-			 "Failed to unmap dva 0x%llx with size 0x%lx, no context for vm_handle: %#llx, err %d\n",
-			 dva, size, vm_handle, rc);
+		hl_crit(hdev,
+			"Failed to unmap dva 0x%llx with size 0x%lx, no context for vm_handle: %#llx, err %d\n",
+			dva, size, vm_handle, rc);
 		return;
 	}
 
 	rc = hl_unmap_vmalloc_range(ctx, dva);
 	if (rc)
-		dev_crit(hdev->dev, "Failed to unmap dva 0x%llx with size 0x%lx, err %d\n", dva,
-			 size, rc);
+		hl_crit(hdev, "Failed to unmap dva 0x%llx with size 0x%lx, err %d\n", dva,
+			size, rc);
 }
 
 static int hl_cn_vm_reserve_dva_block(struct hbl_aux_dev *aux_dev, u64 vm_handle, u64 size,
@@ -281,9 +281,9 @@ static void hl_cn_vm_unreserve_dva_block(struct hbl_aux_dev *aux_dev, u64 vm_han
 
 	ctx = hl_cn_get_ctx(cn, vm_handle, &rc);
 	if (!ctx) {
-		dev_crit(hdev->dev,
-			 "Failed to unreserve dva 0x%llx with size 0x%llx, no context for vm_handle: %#llx, err %d\n",
-			 dva, size, vm_handle, rc);
+		hl_crit(hdev,
+			"Failed to unreserve dva 0x%llx with size 0x%llx, no context for vm_handle: %#llx, err %d\n",
+			dva, size, vm_handle, rc);
 		return;
 	}
 
@@ -381,7 +381,7 @@ static u32 hl_cn_read_mem(struct hbl_aux_dev *aux_dev, u64 addr)
 
 	rc = hdev->asic_funcs->access_dev_mem(hdev, PCI_REGION_DRAM, addr, &val, DEBUGFS_READ32);
 	if (rc)
-		dev_crit(hdev->dev, "Failed to readl from dev_mem addr 0x%llx\n", addr);
+		hl_crit(hdev, "Failed to readl from dev_mem addr 0x%llx\n", addr);
 
 	return val;
 }
@@ -395,7 +395,7 @@ static void hl_cn_write_mem(struct hbl_aux_dev *aux_dev, u32 val, u64 addr)
 
 	rc = hdev->asic_funcs->access_dev_mem(hdev, PCI_REGION_DRAM, addr, &data, DEBUGFS_WRITE32);
 	if (rc)
-		dev_crit(hdev->dev, "Failed to writel to dev_mem addr 0x%llx\n", addr);
+		hl_crit(hdev, "Failed to writel to dev_mem addr 0x%llx\n", addr);
 }
 
 static u32 hl_cn_rreg(struct hbl_aux_dev *aux_dev, u32 reg)
@@ -433,7 +433,7 @@ static int hl_cn_register_cn_user_context(struct hbl_aux_dev *aux_dev, int user_
 	int rc = 0;
 
 	if (atomic_cmpxchg(&cn->ctx_registered, 0, 1)) {
-		dev_dbg(hdev->dev, "user context is already registered\n");
+		hl_dbg(hdev, "user context is already registered\n");
 		return -EBUSY;
 	}
 
@@ -451,7 +451,7 @@ static int hl_cn_register_cn_user_context(struct hbl_aux_dev *aux_dev, int user_
 	mutex_lock(&hdev->fpriv_list_lock);
 
 	if (list_empty(&hdev->fpriv_list)) {
-		dev_dbg(hdev->dev, "no open user context\n");
+		hl_dbg(hdev, "no open user context\n");
 		rc = -ESRCH;
 		goto open_ctx_err;
 	}
@@ -463,7 +463,7 @@ static int hl_cn_register_cn_user_context(struct hbl_aux_dev *aux_dev, int user_
 
 	file_priv = file->private_data;
 	if (hpriv != file_priv->driver_priv) {
-		dev_dbg(hdev->dev, "user FD mismatch\n");
+		hl_dbg(hdev, "user FD mismatch\n");
 		rc = -EINVAL;
 		goto fd_mismatch_err;
 	}
@@ -654,7 +654,7 @@ static int hl_cn_get_nic_gen(struct hl_device *hdev, enum hbl_cn_aux_nic_gen *ni
 		*nic_gen = HBL_CN_AUX_NIC_GEN3;
 		break;
 	default:
-		dev_err(hdev->dev, "Unrecognized ASIC type %d\n", hdev->asic_type);
+		hl_err(hdev, "Unrecognized ASIC type %d\n", hdev->asic_type);
 		return -EINVAL;
 	}
 
@@ -746,7 +746,7 @@ static int hl_cn_aux_drv_init(struct hl_device *hdev)
 
 	rc = hl_cn_aux_data_init(hdev);
 	if (rc) {
-		dev_err(hdev->dev, "CN aux data init failed\n");
+		hl_err(hdev, "CN aux data init failed\n");
 		return rc;
 	}
 
@@ -758,13 +758,13 @@ static int hl_cn_aux_drv_init(struct hl_device *hdev)
 
 	rc = auxiliary_device_init(adev);
 	if (rc) {
-		dev_err(hdev->dev, "CN auxiliary_device_init failed\n");
+		hl_err(hdev, "CN auxiliary_device_init failed\n");
 		goto aux_data_free;
 	}
 
 	rc = auxiliary_device_add(adev);
 	if (rc) {
-		dev_err(hdev->dev, "CN auxiliary_device_add failed\n");
+		hl_err(hdev, "CN auxiliary_device_add failed\n");
 		goto uninit_adev;
 	}
 
@@ -810,7 +810,7 @@ int hl_cn_reopen(struct hl_device *hdev)
 	if (aux_ops->ports_reopen) {
 		rc = aux_ops->ports_reopen(aux_dev);
 		if (rc) {
-			dev_err(hdev->dev, "Failed to reopen the eth ports, %d\n", rc);
+			hl_err(hdev, "Failed to reopen the eth ports, %d\n", rc);
 			return rc;
 		}
 	}
@@ -844,13 +844,13 @@ int hl_cn_init(struct hl_device *hdev)
 
 	rc = cn_funcs->pre_core_init(hdev);
 	if (rc) {
-		dev_err(hdev->dev, "Failed to pre init the NIC, %d\n", rc);
+		hl_err(hdev, "Failed to pre init the NIC, %d\n", rc);
 		return rc;
 	}
 
 	/* check if all ports are disabled by the FW */
 	if (!hdev->cn.ports_mask) {
-		dev_dbg(hdev->dev, "all NIC ports are disabled by the FW\n");
+		hl_dbg(hdev, "all NIC ports are disabled by the FW\n");
 		return 0;
 	}
 
@@ -863,7 +863,7 @@ int hl_cn_init(struct hl_device *hdev)
 
 	rc = hl_cn_aux_drv_init(hdev);
 	if (rc) {
-		dev_err(hdev->dev, "Failed to init CN driver, %d\n", rc);
+		hl_err(hdev, "Failed to init CN driver, %d\n", rc);
 		return rc;
 	}
 
@@ -929,7 +929,7 @@ int hl_cn_control(struct hl_device *hdev, u32 op, void *input,	void *output, str
 	struct hl_cn_funcs *cn_funcs = hdev->asic_funcs->cn_funcs;
 
 	if (!cn_funcs->get_hw_cap(hdev)) {
-		dev_dbg(hdev->dev, "NIC is not initialized, can't execute request %d\n", op);
+		hl_dbg(hdev, "NIC is not initialized, can't execute request %d\n", op);
 		return -EFAULT;
 	}
 
@@ -1007,7 +1007,7 @@ static int hl_cn_aux_link_qual_to_hl_link_qual(struct hl_device *hdev,
 		*hl_link_qual = HL_LINK_QUAL_EXCELLENT;
 		break;
 	default:
-		dev_dbg(hdev->dev, "link_type %d is invalid\n", cn_aux_link_qual);
+		hl_dbg(hdev, "link_type %d is invalid\n", cn_aux_link_qual);
 		return -EINVAL;
 	}
 
@@ -1070,7 +1070,7 @@ int hl_cn_cpucp_info_get(struct hl_device *hdev)
 							sizeof(struct cpucp_nic_info),
 							&cpucp_nic_info_dma_addr);
 	if (!cpucp_nic_info) {
-		dev_err(hdev->dev,
+		hl_err(hdev,
 			"Failed to allocate DMA memory for CPU-CP NIC info packet\n");
 		return -ENOMEM;
 	}

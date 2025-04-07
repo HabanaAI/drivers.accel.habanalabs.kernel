@@ -422,9 +422,9 @@ static void ieee1500_inst(struct hl_device *hdev, int device, u32 ch,
 		timeout);
 
 	if (err)
-		dev_err(hdev->dev,
-			"Poll for MLB interrupt failed for HBM device: %d, ch %d, status: %d\n",
-			device, ch, status);
+		hl_err(hdev,
+		       "Poll for MLB interrupt failed for HBM device: %d, ch %d, status: %d\n",
+		       device, ch, status);
 
 	/* Clear MLB interrupts */
 	WREG32(base + 0x9034, 0);
@@ -436,7 +436,7 @@ static int extest_rx(struct hl_device *hdev, int device)
 	u32 received, expected, mask, addr, idx;
 	int pat, ch, i, err = 0;
 
-	dev_dbg(hdev->dev, "%s\n", __func__);
+	hl_dbg(hdev, "%s\n", __func__);
 
 	/* Enable all outputs, except for HBM TX-only signals */
 	for (ch = 0 ; ch < GAUDI_HBM_CHANNELS ; ch++) {
@@ -505,7 +505,7 @@ static int extest_rx(struct hl_device *hdev, int device)
 
 				if ((received & mask) != (expected & mask)) {
 					err++;
-					dev_dbg(hdev->dev,
+					hl_dbg(hdev,
 						"mismatch: pattern %d, ch %d, WDR[%02d:%02d], expected 0x%x, received 0x%x, mask 0x%x\n",
 						pat, ch, i * 32 + 31, i * 32,
 						expected, received, mask);
@@ -523,7 +523,7 @@ static int extest_tx(struct hl_device *hdev, int device)
 	u32 received, expected, mask, addr, idx;
 	int pat, ch, i, err = 0;
 
-	dev_dbg(hdev->dev, "%s\n", __func__);
+	hl_dbg(hdev, "%s\n", __func__);
 
 	/* Disable all outputs */
 	for (ch = 0 ; ch < GAUDI_HBM_CHANNELS ; ch++)
@@ -568,10 +568,10 @@ static int extest_tx(struct hl_device *hdev, int device)
 
 				if ((received & mask) != (expected & mask)) {
 					err++;
-					dev_err(hdev->dev,
-						"mismatch: pattern %d, ch %d, WDR[%02d:%02d], expected 0x%x, received 0x%x, mask 0x%x\n",
-						pat, ch, i * 32 + 31, i * 32,
-						expected, received, mask);
+					hl_err(hdev,
+					       "mismatch: pattern %d, ch %d, WDR[%02d:%02d], expected 0x%x, received 0x%x, mask 0x%x\n",
+					       pat, ch, i * 32 + 31, i * 32,
+					       expected, received, mask);
 				}
 			}
 
@@ -581,7 +581,7 @@ static int extest_tx(struct hl_device *hdev, int device)
 				if (((received >> 2) & 1) !=
 						((expected  >>  20) & 1)) {
 					err++;
-					dev_dbg(hdev->dev,
+					hl_dbg(hdev,
 						"mismatch: pattern %d, ch %d, WDR[212] (TEMP[2]), expected 0x%x, received 0x%x\n",
 						pat, ch, ((expected >> 20) & 1),
 						((received >> 2) & 1));
@@ -590,7 +590,7 @@ static int extest_tx(struct hl_device *hdev, int device)
 				if (((received >> 1) & 1) !=
 						((expected >> 21) & 1)) {
 					err++;
-					dev_dbg(hdev->dev,
+					hl_dbg(hdev,
 						"mismatch: pattern %d, ch %d, WDR[213] (TEMP[1]), expected 0x%x, received 0x%x\n",
 						pat, ch, ((expected >> 21) & 1),
 						((received >> 1) & 1));
@@ -599,7 +599,7 @@ static int extest_tx(struct hl_device *hdev, int device)
 				if (((received >> 0) & 1) !=
 						((expected  >>  22) & 1)) {
 					err++;
-					dev_dbg(hdev->dev,
+					hl_dbg(hdev,
 						"mismatch: pattern %d, ch %d, WDR[214] (TEMP[0]), expected 0x%x, received 0x%x\n",
 						pat, ch, ((expected >> 22) & 1),
 						((received >> 0) & 1));
@@ -611,7 +611,7 @@ static int extest_tx(struct hl_device *hdev, int device)
 				if (((received >> 3) & 1) !=
 						((expected >> 20) & 1)) {
 					err++;
-					dev_dbg(hdev->dev,
+					hl_dbg(hdev,
 						"mismatch: pattern %d, ch %d, WDR[212] (CATTRIP), expected 0x%x, received 0x%x\n",
 						pat, ch, ((expected >> 20) & 1),
 						((received >> 3) & 1));
@@ -660,7 +660,7 @@ static int extest_tx(struct hl_device *hdev, int device)
 
 				if ((received & mask) != (expected & mask)) {
 					err++;
-					dev_err(hdev->dev,
+					hl_err(hdev,
 						"mismatch: pattern %d, ch %d, WDR[%02d:%02d], expected 0x%x, received 0x%x, mask 0x%x\n",
 						pat, ch, i * 32 + 31, i * 32,
 						expected, received, mask);
@@ -673,7 +673,7 @@ static int extest_tx(struct hl_device *hdev, int device)
 				if (((received >> 2) & 1) !=
 						((expected  >>  20) & 1)) {
 					err++;
-					dev_dbg(hdev->dev,
+					hl_dbg(hdev,
 						"mismatch: pattern %d, ch %d, WDR[212] (TEMP[2]), expected 0x%x, received 0x%x\n",
 						pat, ch, ((expected >> 20) & 1),
 						((received >> 2) & 1));
@@ -682,7 +682,7 @@ static int extest_tx(struct hl_device *hdev, int device)
 				if (((received >> 1) & 1) !=
 						((expected >> 21) & 1)) {
 					err++;
-					dev_dbg(hdev->dev,
+					hl_dbg(hdev,
 						"mismatch: pattern %d, ch %d, WDR[213] (TEMP[1]), expected 0x%x, received 0x%x\n",
 						pat, ch, ((expected >> 21) & 1),
 						((received >> 1) & 1));
@@ -691,7 +691,7 @@ static int extest_tx(struct hl_device *hdev, int device)
 				if (((received >> 0) & 1) !=
 						((expected  >>  22) & 1)) {
 					err++;
-					dev_dbg(hdev->dev,
+					hl_dbg(hdev,
 						"mismatch: pattern %d, ch %d, WDR[214] (TEMP[0]), expected 0x%x, received 0x%x\n",
 						pat, ch, ((expected >> 22) & 1),
 						((received >> 0) & 1));
@@ -703,7 +703,7 @@ static int extest_tx(struct hl_device *hdev, int device)
 				if (((received >> 3) & 1) !=
 						((expected >> 20) & 1)) {
 					err++;
-					dev_dbg(hdev->dev,
+					hl_dbg(hdev,
 						"mismatch: pattern %d, ch %d, WDR[212] (CATTRIP), expected 0x%x, received 0x%x\n",
 						pat, ch, ((expected >> 20) & 1),
 						((received >> 3) & 1));
@@ -843,7 +843,7 @@ static void set_mode_reg_by_mlb(struct hl_device *hdev, u32 base,
 	u32 count = 0, i, one = 1, parity;
 	u32 value = (num << 8) | op;
 
-	dev_dbg(hdev->dev, "set mode by mlb, ch: %d\n", ch);
+	hl_dbg(hdev, "set mode by mlb, ch: %d\n", ch);
 
 	for (i = 0; i < 12; i++)
 		if (value & (one << i))
@@ -901,8 +901,7 @@ static void config_dram_state(struct hl_device *hdev, u32 base,
 		/* Adjust MLB for PL=2 */
 		RMWREG32(base + ch*0x1000 + 0x204, 0x2, 0x300);
 	} else {
-		dev_err(hdev->dev, "unknown dram state %d, ch: %d\n", state,
-				ch);
+		hl_err(hdev, "unknown dram state %d, ch: %d\n", state, ch);
 	}
 }
 
@@ -966,8 +965,8 @@ static void set_timing_params(struct hl_device *hdev, int device, int ch,
 		/* r_tcksre=r_tcksrx=14, trefi=109, txp=8, trfc=315 */
 		WREG32(base + (ch * 0x1000) + 0x05C, 0xEE6D813B);
 	} else {
-		dev_err(hdev->dev,
-			"missing timing parameters for frequency %d\n", freq);
+		hl_err(hdev,
+		       "missing timing parameters for frequency %d\n", freq);
 		return;
 	}
 
@@ -996,8 +995,8 @@ static void config_mc_state(struct hl_device *hdev, int device, int ch,
 		RMWREG32(base + ch * 0x1000 + 0x004, 0, 0x1);
 		set_timing_params(hdev, device, ch, gaudi->hbm_freq);
 	} else
-		dev_err(hdev->dev, "unknown mc state %d, device: %d, ch: %d\n",
-				state, device, ch);
+		hl_err(hdev, "unknown mc state %d, device: %d, ch: %d\n",
+		       state, device, ch);
 }
 
 static int read_interrupts(struct hl_device *hdev, int unused)
@@ -1065,7 +1064,7 @@ static int poll_mbist_completion(struct hl_device *hdev, int sid, int device)
 	int err, ch, rc = 0;
 	u32 base, status, timeout;
 
-	dev_dbg(hdev->dev, "%s\n", __func__);
+	hl_dbg(hdev, "%s\n", __func__);
 
 	if (hdev->pldm)
 		timeout = GAUDI_PLDM_HBM_ECC_CFG_TIMEOUT;
@@ -1094,9 +1093,9 @@ static int poll_mbist_completion(struct hl_device *hdev, int sid, int device)
 		if (((status >> 0  & 0x1) == 0x1) ||
 				((status >> 24 & 0x1) == 0x0)) {
 
-			dev_err(hdev->dev,
-				"MCBIST Error - failed for HBM device %d, pc %d, sid %d, status 0x%x\n",
-				device, 2 * ch, sid, status);
+			hl_err(hdev,
+			       "MCBIST Error - failed for HBM device %d, pc %d, sid %d, status 0x%x\n",
+			       device, 2 * ch, sid, status);
 
 			for (i = 2 ; i <= 6 ; i++) {
 				u64 reg_addr = base + ch * 0x1000 + 0x100 + i * 0x10;
@@ -1106,7 +1105,7 @@ static int poll_mbist_completion(struct hl_device *hdev, int sid, int device)
 				r3 = RREG32(reg_addr + 0x8);
 				r4 = RREG32(reg_addr + 0xC);
 
-				dev_err(hdev->dev,
+				hl_err(hdev,
 					"0x%x:\t0x%08x\t0x%08x\t0x%08x\t0x%08x\n",
 					0x100 + i * 0x10, r1, r2, r3, r4);
 			}
@@ -1119,7 +1118,7 @@ static int poll_mbist_completion(struct hl_device *hdev, int sid, int device)
 			/* Select PC1 for debug output */
 			RMWREG32(base + ch * 0x1000 + 0x100, 0x1, 0x20);
 
-			dev_err(hdev->dev,
+			hl_err(hdev,
 				"MCBIST Error - failed for HBM device %d, pc %d, sid %d, status 0x%x\n",
 				device, 2*ch+1, sid, status);
 
@@ -1131,7 +1130,7 @@ static int poll_mbist_completion(struct hl_device *hdev, int sid, int device)
 				r3 = RREG32(reg_addr + 0x8);
 				r4 = RREG32(reg_addr + 0xC);
 
-				dev_err(hdev->dev,
+				hl_err(hdev,
 					"0x%x:\t0x%08x\t0x%08x\t0x%08x\t0x%08x\n",
 					0x100 + i * 0x10, r1, r2, r3, r4);
 			}
@@ -1151,7 +1150,7 @@ static int dbg_write_read_full(struct hl_device *hdev, int unused)
 	u32 base, pseudo_rand = 0x1, interleave = 0x0;
 	enum mc_bist_mode bist_mode = mc_bist_mode_once;
 
-	dev_dbg(hdev->dev, "%s\n", __func__);
+	hl_dbg(hdev, "%s\n", __func__);
 
 	/* Clean transition from Functional mode to MCBIST mode */
 	for (device = 0 ; device < GAUDI_HBM_DEVICES ; device++) {
@@ -1228,7 +1227,7 @@ static int do_loopback(struct hl_device *hdev, u32 base, int ch,
 	}
 
 	if (state != loopback_state_check) {
-		dev_err(hdev->dev, "unknown loopback state %d, ch: %d\n", state,
+		hl_err(hdev, "unknown loopback state %d, ch: %d\n", state,
 				ch);
 		return -EINVAL;
 	}
@@ -1257,7 +1256,7 @@ static int do_loopback(struct hl_device *hdev, u32 base, int ch,
 
 	val = RREG32(base + ch * 0x1000 + 0x37C);
 	if (val) {
-		dev_err(hdev->dev, "hbm loopback wrong val: 0x%x, ch: %d\n",
+		hl_err(hdev, "hbm loopback wrong val: 0x%x, ch: %d\n",
 				val, ch);
 		return -EIO;
 	}
@@ -1274,7 +1273,7 @@ static int internal_loopback_test(struct hl_device *hdev, int device)
 	bool fail = false;
 	int ch, dw, continuous = gaudi->hbm_continuous;
 
-	dev_dbg(hdev->dev, "%s\n", __func__);
+	hl_dbg(hdev, "%s\n", __func__);
 
 	/* Add delay from previous SRX */
 	ndelay(500);
@@ -1327,13 +1326,13 @@ static int internal_loopback_test(struct hl_device *hdev, int device)
 			middle_t = max_pass_left_t + (window >> 1);
 
 			if (fail) {
-				dev_err(hdev->dev,
+				hl_err(hdev,
 					"HBM internal loopback failed, ch: %d\n",
 					ch);
-				dev_err(hdev->dev, "interval: 0x%x ~ 0x%x\n",
+				hl_err(hdev, "interval: 0x%x ~ 0x%x\n",
 					max_pass_left_t, right_t);
-				dev_err(hdev->dev, "window: %d\n", window);
-				dev_err(hdev->dev, "result: %d\n", middle_t);
+				hl_err(hdev, "window: %d\n", window);
+				hl_err(hdev, "result: %d\n", middle_t);
 
 				return -EIO;
 			}
@@ -1342,7 +1341,7 @@ static int internal_loopback_test(struct hl_device *hdev, int device)
 				set_dword_write_dll(hdev, base, ch, dw, 0x50);
 			if (do_loopback(hdev, base, ch, loopback_state_check,
 								continuous)) {
-				dev_err(hdev->dev,
+				hl_err(hdev,
 					"HBM internal loopback failed, ch: %d\n",
 					ch);
 				return -EIO;
@@ -1405,7 +1404,7 @@ static void acc_training(struct hl_device *hdev, int device)
 			timeout);
 
 		if (err) {
-			dev_err(hdev->dev,
+			hl_err(hdev,
 				"ACC done polling failed for HBM device %d, ch %d\n",
 				device, ch);
 			return;
@@ -1416,12 +1415,12 @@ static void acc_training(struct hl_device *hdev, int device)
 
 	for (ch = 0 ; ch < GAUDI_HBM_CHANNELS ; ch++) {
 		if (!aword_acc_window(hdev, base, ch))
-			dev_err(hdev->dev,
+			hl_err(hdev,
 				"aword acc_window for device %d, ch %d can't be 0\n",
 				device, ch);
 		for (dw = 0; dw < 4; dw++)
 			if (!dword_acc_window(hdev, base, ch, dw))
-				dev_err(hdev->dev,
+				hl_err(hdev,
 					"dword acc_window for device %d, ch %d, dw %d can't be 0\n",
 					device, ch, dw);
 	}
@@ -1433,56 +1432,56 @@ static void print_training_result(struct hl_device *hdev, int device)
 	int ch, dw, aw_ratio, wr_ratio, rd_ratio;
 	int min_window_size = 50; /* percentage of UI */
 
-	dev_dbg(hdev->dev,
+	hl_dbg(hdev,
 		"\n-----------------------------------------------------------------------\n");
-	dev_dbg(hdev->dev,
+	hl_dbg(hdev,
 		"The detail test item is shown as below.\n");
-	dev_dbg(hdev->dev,
+	hl_dbg(hdev,
 		"  <1> ACC training : Calculate one data (half ddr clock) period range.\n");
-	dev_dbg(hdev->dev,
+	hl_dbg(hdev,
 		"  <2> AWORD write training : Ensure Clock in the middle of Command/Address bus.\n");
-	dev_dbg(hdev->dev,
+	hl_dbg(hdev,
 		"  <3> DWORD write training : Ensure WDQS in the middle of DQ.\n");
-	dev_dbg(hdev->dev,
+	hl_dbg(hdev,
 		"  <4> DWORD read training : Ensure RDQS to align with DQ edge.\n");
-	dev_dbg(hdev->dev,
+	hl_dbg(hdev,
 		"-----------------------------------------------------------------------\n");
 
-	dev_dbg(hdev->dev,
+	hl_dbg(hdev,
 		"\n\t\t<1> ACC training\n");
-	dev_dbg(hdev->dev,
+	hl_dbg(hdev,
 		"    CH : start-end   start-end     start-end     start-end     start-end\n");
-	dev_dbg(hdev->dev,
+	hl_dbg(hdev,
 		"  ---- : ---AW---   ----DW0----    ---DW1----    ---DW2----    ---DW3----\n");
 
 	for (ch = 0 ; ch < GAUDI_HBM_CHANNELS ; ch++)
-		dev_dbg(hdev->dev,
+		hl_dbg(hdev,
 			"  CH-%d : 0x00-0x%x       0x00-0x%x       0x00-0x%x       0x00-0x%x       0x00-0x%x\n",
 			ch, acc[ch][0], acc[ch][1], acc[ch][2], acc[ch][3],
 			acc[ch][4]);
 
-	dev_dbg(hdev->dev, "\n\t\t<2> AWORD write training\n");
-	dev_dbg(hdev->dev, "    CH : result   ( ratio )  \tstart-end\n");
-	dev_dbg(hdev->dev, "  ---- : ---------------------------------\n");
+	hl_dbg(hdev, "\n\t\t<2> AWORD write training\n");
+	hl_dbg(hdev, "    CH : result   ( ratio )  \tstart-end\n");
+	hl_dbg(hdev, "  ---- : ---------------------------------\n");
 
 	for (ch = 0 ; ch < GAUDI_HBM_CHANNELS ; ch++) {
 		if (acc[ch][0]) {
 			aw_ratio = (aword[ch][3] * 100) / acc[ch][0];
-			dev_dbg(hdev->dev,
+			hl_dbg(hdev,
 					"  CH-%d : 0x%x       (%d%%)  \t0x%x-0x%x\n",
 					ch, aword[ch][0], aw_ratio,
 					aword[ch][1], aword[ch][2]);
 		} else {
-			dev_dbg(hdev->dev,
+			hl_dbg(hdev,
 					"  CH-%d : 0x%x       (None)  \t0x%x\n",
 					ch, aword[ch][0], aword[ch][1]);
 		}
 	}
 
-	dev_dbg(hdev->dev, "\n<3> DWORD write training\n");
-	dev_dbg(hdev->dev,
+	hl_dbg(hdev, "\n<3> DWORD write training\n");
+	hl_dbg(hdev,
 		"    CH : result   ( ratio )  \tstart-end\tresult   ( ratio )  \tstart-end\tresult   ( ratio )  \tstart-end\tresult   ( ratio )  \tstart-end\n");
-	dev_dbg(hdev->dev,
+	hl_dbg(hdev,
 		"  ---- : --------DW0---------\t\t       --------DW1---------\t\t       --------DW2---------\t\t       --------DW3---------\t\n");
 
 	for (ch = 0 ; ch < GAUDI_HBM_CHANNELS ; ch++) {
@@ -1508,13 +1507,13 @@ static void print_training_result(struct hl_device *hdev, int device)
 						dword_wr[ch][dw][2]);
 			}
 		}
-		dev_dbg(hdev->dev, "%s", s);
+		hl_dbg(hdev, "%s", s);
 	}
 
-	dev_dbg(hdev->dev, "\n<4> DWORD read training\n");
-	dev_dbg(hdev->dev,
+	hl_dbg(hdev, "\n<4> DWORD read training\n");
+	hl_dbg(hdev,
 		"    CH : result   ( ratio )  \tstart-end\tresult   ( ratio )  \tstart-end\tresult   ( ratio )  \tstart-end\tresult   ( ratio )  \tstart-end\n");
-	dev_dbg(hdev->dev,
+	hl_dbg(hdev,
 		"  ---- : --------DW0---------\t\t       --------DW1---------\t\t       --------DW2---------\t\t       --------DW3---------\t\n");
 
 	for (ch = 0 ; ch < GAUDI_HBM_CHANNELS ; ch++) {
@@ -1540,19 +1539,19 @@ static void print_training_result(struct hl_device *hdev, int device)
 						dword_rd[ch][dw][2]);
 			}
 		}
-		dev_dbg(hdev->dev, "%s", s);
+		hl_dbg(hdev, "%s", s);
 	}
 
 	for (ch = 0 ; ch < GAUDI_HBM_CHANNELS ; ch++) {
 		for (dw = 0 ; dw < 5 ; dw++)
 			if (acc[ch][dw] <= gaudi->hbm_acc_initial)
-				dev_err(hdev->dev,
+				hl_err(hdev,
 					"system error - failed to obtain the UI size (ACC) for channel %d\n",
 					ch);
 
 		if (aword[ch][1] == 0 || aword[ch][2] == 0 ||
 			aword[ch][3] < ((acc[ch][0] * min_window_size) / 100))
-			dev_err(hdev->dev,
+			hl_err(hdev,
 				"system error - failed to find a valid AWORD window for channel %d\n",
 				ch);
 
@@ -1560,7 +1559,7 @@ static void print_training_result(struct hl_device *hdev, int device)
 			if (dword_wr[ch][dw][2] == 0 ||
 				dword_wr[ch][dw][3] <
 				((acc[ch][dw + 1] * min_window_size) / 100))
-				dev_err(hdev->dev,
+				hl_err(hdev,
 					"system error - failed to find a valid DWORD Write window for channel %d dword %d\n",
 					ch, dw);
 
@@ -1568,7 +1567,7 @@ static void print_training_result(struct hl_device *hdev, int device)
 				dword_rd[ch][dw][3] <
 					((acc[ch][dw + 1] *
 							min_window_size) / 100))
-				dev_err(hdev->dev,
+				hl_err(hdev,
 					"system error - failed to find a valid DWORD Read window for channel %d dword %d\n",
 					ch, dw);
 		}
@@ -1581,7 +1580,7 @@ static void phy_init(struct hl_device *hdev, int device)
 	u32 ctrl_rddv_sel, rdatvld_dly;
 	int ch;
 
-	dev_dbg(hdev->dev, "%s\n", __func__);
+	hl_dbg(hdev, "%s\n", __func__);
 
 	if (hdev->pldm)
 		ctrl_rddv_sel = 6;
@@ -1693,7 +1692,7 @@ static void dram_rstn(struct hl_device *hdev, int device, enum cke_state cke)
 	u32 base = GAUDI_HBM_CFG_BASE + device * GAUDI_HBM_CFG_OFFSET;
 	int ch;
 
-	dev_dbg(hdev->dev, "%s\n", __func__);
+	hl_dbg(hdev, "%s\n", __func__);
 
 	/* SRE (CKE low) */
 	for (ch = 0 ; ch < GAUDI_HBM_CHANNELS ; ch++)
@@ -1752,7 +1751,7 @@ static void init_mc(struct hl_device *hdev, int device)
 	u32 base = GAUDI_HBM_CFG_BASE + device * GAUDI_HBM_CFG_OFFSET;
 	int ch;
 
-	dev_dbg(hdev->dev, "initializing MC for device %d\n", device);
+	hl_dbg(hdev, "initializing MC for device %d\n", device);
 
 	/* Cleanup: Reset HBM + MRS setup */
 	dram_rstn(hdev, device, cke_state_high);
@@ -1807,7 +1806,7 @@ static void enable_traffic(struct hl_device *hdev, int device)
 	u32 base = GAUDI_HBM_CFG_BASE + device * GAUDI_HBM_CFG_OFFSET;
 	int ch;
 
-	dev_dbg(hdev->dev, "enabling traffic for HBM device %d\n", device);
+	hl_dbg(hdev, "enabling traffic for HBM device %d\n", device);
 
 	/* Enable traffic */
 	for (ch = 0 ; ch < GAUDI_HBM_CHANNELS ; ch++) {
@@ -1820,7 +1819,7 @@ static void read_hardware_training_result(struct hl_device *hdev, u32 base)
 {
 	int ch;
 
-	dev_dbg(hdev->dev, "%s\n", __func__);
+	hl_dbg(hdev, "%s\n", __func__);
 
 	for (ch = 0; ch < GAUDI_HBM_CHANNELS; ch++) {
 		acc[ch][0] = RREG32_MASK(base + (ch * 0x1000) + 0x414,
@@ -1916,7 +1915,7 @@ static void hardware_training(struct hl_device *hdev, int device)
 	u32 dll_inc, status, timeout;
 	int ch, err;
 
-	dev_dbg(hdev->dev, "%s\n", __func__);
+	hl_dbg(hdev, "%s\n", __func__);
 
 	if (hdev->pldm)
 		timeout = GAUDI_PLDM_HBM_CFG_TIMEOUT;
@@ -1958,7 +1957,7 @@ static void hardware_training(struct hl_device *hdev, int device)
 			timeout);
 
 		if (err) {
-			dev_err(hdev->dev,
+			hl_err(hdev,
 				"AWORD write done test failed for HBM device %d, ch %d\n",
 				device, ch);
 			goto out;
@@ -1988,7 +1987,7 @@ static void hardware_training(struct hl_device *hdev, int device)
 			timeout);
 
 		if (err) {
-			dev_err(hdev->dev,
+			hl_err(hdev,
 				"DWORD read done test failed for HBM device %d, ch %d\n",
 				device, ch);
 			goto out;
@@ -2018,7 +2017,7 @@ static void hardware_training(struct hl_device *hdev, int device)
 			timeout);
 
 		if (err) {
-			dev_err(hdev->dev,
+			hl_err(hdev,
 				"DWORD write done test failed for HBM device %d, ch %d\n",
 				device, ch);
 			goto out;
@@ -2037,7 +2036,7 @@ static int init_ecc(struct hl_device *hdev, int unused)
 	u32 status, timeout;
 	int device, err, ch, sid;
 
-	dev_info(hdev->dev, "Initializing ECC\n");
+	hl_info(hdev, "Initializing ECC\n");
 
 	if (hdev->pldm)
 		timeout = GAUDI_PLDM_HBM_ECC_CFG_TIMEOUT;
@@ -2093,7 +2092,7 @@ static int init_ecc(struct hl_device *hdev, int unused)
 					timeout);
 
 				if (err) {
-					dev_err(hdev->dev,
+					hl_err(hdev,
 						"ECC init failed for HBM device %d, ch %d, sid %d, status 0x%x\n",
 						device, ch, sid, status);
 					config_mc_state(hdev, device, ch,
@@ -2122,7 +2121,7 @@ static int lane_detection(struct hl_device *hdev, int device)
 	u32 base = GAUDI_HBM_CFG_BASE + device * GAUDI_HBM_CFG_OFFSET;
 	int ch, rc;
 
-	dev_dbg(hdev->dev, "%s\n", __func__);
+	hl_dbg(hdev, "%s\n", __func__);
 
 	/* Enter IODC mode */
 	for (ch = 0 ; ch < GAUDI_HBM_CHANNELS ; ch++)
@@ -2130,13 +2129,13 @@ static int lane_detection(struct hl_device *hdev, int device)
 
 	rc = extest_rx(hdev, device);
 	if (rc) {
-		dev_err(hdev->dev, "extest_rx failed, device: %d\n", device);
+		hl_err(hdev, "extest_rx failed, device: %d\n", device);
 		/* TODO: debug failed EXTEST  return rc; */
 	}
 
 	rc = extest_tx(hdev, device);
 	if (rc) {
-		dev_err(hdev->dev, "extest_tx failed, device: %d\n", device);
+		hl_err(hdev, "extest_tx failed, device: %d\n", device);
 		/* TODO: debug failed EXTEST  return rc; */
 	}
 
@@ -2155,7 +2154,7 @@ static void lane_remap(struct hl_device *hdev, int device)
 	u32 remap_info_dw01, remap_info_dw23, remap_info_aw;
 	int ch;
 
-	dev_dbg(hdev->dev, "%s\n", __func__);
+	hl_dbg(hdev, "%s\n", __func__);
 
 	for (ch = 0 ; ch < GAUDI_HBM_CHANNELS ; ch++) {
 		/* Read HBM lane repair eFuse information */
@@ -2180,7 +2179,7 @@ static void lane_remap(struct hl_device *hdev, int device)
 		if ((remap_info_dw01 != 0xFFFFFFFF) ||
 			(remap_info_dw23 != 0xFFFFFFFF) ||
 				(remap_info_aw != 0xFF))
-			dev_err(hdev->dev,
+			hl_err(hdev,
 				"Lane remapping info FOUND in HBM %d ch %d - updating PHY remapping\n",
 				device, ch);
 	}
@@ -2202,16 +2201,16 @@ static void temperature_read(struct hl_device *hdev, int device)
 	temp = rdata & 0x7F;
 
 	if (invalid) {
-		dev_err(hdev->dev, "Temperature read from HBM %d is invalid\n",
+		hl_err(hdev, "Temperature read from HBM %d is invalid\n",
 				device);
 	} else {
 		/* Display temperatures - celsius degrees */
-		dev_info(hdev->dev,
+		hl_info(hdev,
 			"Temperature read from HBM %d: %d deg celsius\n",
 			device, temp);
 		if (temp > GAUDI_MAX_TEMP_THRESHOLD) {
 			/* system power down? */
-			dev_warn(hdev->dev,
+			hl_warn(hdev,
 				"Temperature read from HBM %d is high!\n",
 				device);
 		}
@@ -2229,13 +2228,13 @@ static void gaudi_pldm_init_hbm_bank(struct hl_device *hdev, int bank)
 	else
 		timeout = GAUDI_HBM_CFG_TIMEOUT;
 
-	dev_dbg(hdev->dev, "Starting to initialize HBM Bank %d\n", bank);
+	hl_dbg(hdev, "Starting to initialize HBM Bank %d\n", bank);
 
 	base_addr = bank * GAUDI_HBM_CFG_OFFSET;
 
 	rcv_data = RREG32(base_addr + 0x6001fc);
 	if (rcv_data & 0x01000000) {
-		dev_dbg(hdev->dev, "HBM Bank %d already initialized\n", bank);
+		hl_dbg(hdev, "HBM Bank %d already initialized\n", bank);
 		gaudi->hw_cap_initialized |= HW_CAP_HBM;
 		return;
 	}
@@ -2345,7 +2344,7 @@ static void gaudi_pldm_init_hbm_bank(struct hl_device *hdev, int bank)
 			timeout);
 
 		if (rc) {
-			dev_err(hdev->dev,
+			hl_err(hdev,
 				"Timeout while waiting for HBM %d MR0, ch %d\n",
 				bank, ch);
 			return;
@@ -2366,7 +2365,7 @@ static void gaudi_pldm_init_hbm_bank(struct hl_device *hdev, int bank)
 			timeout);
 
 		if (rc) {
-			dev_err(hdev->dev,
+			hl_err(hdev,
 				"Timeout while waiting for HBM %d MR1, ch %d\n",
 				bank, ch);
 			return;
@@ -2387,7 +2386,7 @@ static void gaudi_pldm_init_hbm_bank(struct hl_device *hdev, int bank)
 			timeout);
 
 		if (rc) {
-			dev_err(hdev->dev,
+			hl_err(hdev,
 				"Timeout while waiting for HBM %d MR2, ch %d\n",
 				bank, ch);
 			return;
@@ -2408,7 +2407,7 @@ static void gaudi_pldm_init_hbm_bank(struct hl_device *hdev, int bank)
 			timeout);
 
 		if (rc) {
-			dev_err(hdev->dev,
+			hl_err(hdev,
 				"Timeout while waiting for HBM %d MR3, ch %d\n",
 				bank, ch);
 			return;
@@ -2429,7 +2428,7 @@ static void gaudi_pldm_init_hbm_bank(struct hl_device *hdev, int bank)
 			timeout);
 
 		if (rc) {
-			dev_err(hdev->dev,
+			hl_err(hdev,
 				"Timeout while waiting for HBM %d MR4, ch %d\n",
 				bank, ch);
 			return;
@@ -2455,7 +2454,7 @@ static void gaudi_pldm_init_hbm_bank(struct hl_device *hdev, int bank)
 
 	WREG32_OR(base_addr + 0x6001FC, 0x01000000);
 
-	dev_dbg(hdev->dev, "Finished HBM Bank %d initialization\n", bank);
+	hl_dbg(hdev, "Finished HBM Bank %d initialization\n", bank);
 }
 
 /*    *** Replaced with init_ecc ***
@@ -2466,11 +2465,11 @@ static int gaudi_hbm_ecc_scrubbing(struct hl_device *hdev)
 	u32 val;
 	int rc, dma_id;
 
-	dev_info(hdev->dev, "ECC enabled so doing ECC scrubbing using DMA\n");
+	hl_info(hdev, "ECC enabled so doing ECC scrubbing using DMA\n");
 
 	total_size = prop->dram_end_address - cur_addr;
 	if ((total_size != SZ_16G) && (total_size != SZ_32G)) {
-		dev_err(hdev->dev, "total size of HBM is invalid 0x%llx\n",
+		hl_err(hdev, "total size of HBM is invalid 0x%llx\n",
 			total_size);
 		return -EINVAL;
 	}
@@ -2479,7 +2478,7 @@ static int gaudi_hbm_ecc_scrubbing(struct hl_device *hdev)
 		for (dma_id = 0 ; dma_id < DMA_NUMBER_OF_CHANNELS ; dma_id++) {
 			u32 dma_offset = dma_id * DMA_CORE_OFFSET;
 
-			dev_dbg(hdev->dev,
+			hl_dbg(hdev,
 				"Doing ECC scrubbing for 0x%09llx - 0x%09llx\n",
 				cur_addr, cur_addr + SZ_2G);
 
@@ -2509,7 +2508,7 @@ static int gaudi_hbm_ecc_scrubbing(struct hl_device *hdev)
 				ECC_SCRUBBING_TIMEOUT_US);
 
 			if (rc) {
-				dev_err(hdev->dev,
+				hl_err(hdev,
 					"DMA Timeout during ECC scrubbing of DMA #%d\n",
 					dma_id);
 				return -EIO;
@@ -2580,19 +2579,19 @@ int gaudi_init_hbm(struct hl_device *hdev)
 
 		/* Internal Loopback (bring-up only) */
 		if (internal_loopback_test(hdev, dev)) {
-			dev_err(hdev->dev,
+			hl_err(hdev,
 				"HBM internal loopback failed, device: %d\n",
 				dev);
 			return -EIO;
 		}
 
-		dev_dbg(hdev->dev,
+		hl_dbg(hdev,
 			"HBM finished internal_loopback_test, device: %d\n",
 			dev);
 
 		/* IO connectivity test (bring-up only) */
 		if (lane_detection(hdev, dev)) {
-			dev_err(hdev->dev,
+			hl_err(hdev,
 				"HBM lane detection failed, device: %d\n",
 				dev);
 			return -EIO;
@@ -2604,11 +2603,11 @@ int gaudi_init_hbm(struct hl_device *hdev)
 
 		/* Training */
 		hardware_training(hdev, dev);
-		dev_dbg(hdev->dev,
+		hl_dbg(hdev,
 				"hardware training finished, device: %d\n",
 				dev);
 		print_training_result(hdev, dev);
-		dev_dbg(hdev->dev, "printed training results, device: %d\n",
+		hl_dbg(hdev, "printed training results, device: %d\n",
 				dev);
 
 		if (gaudi->hbm_debug) {
@@ -2619,18 +2618,18 @@ int gaudi_init_hbm(struct hl_device *hdev)
 		/* Initialize MC for functional operation */
 		init_mc(hdev, dev);
 
-		dev_dbg(hdev->dev, "HBM device %d init finished\n", dev);
+		hl_dbg(hdev, "HBM device %d init finished\n", dev);
 	}
 
 	/* MC BIST (validate Training result) */
-	dev_info(hdev->dev, "Verifying HBM access (MCBIST)");
+	hl_info(hdev, "Verifying HBM access (MCBIST)");
 	if (dbg_write_read_full(hdev, 0)) {
 		if (read_interrupts(hdev, 0))
-			dev_err(hdev->dev, "Got INTERRUPTS after MCBIST\n");
+			hl_err(hdev, "Got INTERRUPTS after MCBIST\n");
 		return -EIO;
 	} else {
 		if (read_interrupts(hdev, 0))
-			dev_err(hdev->dev, "Got INTERRUPTS after MCBIST\n");
+			hl_err(hdev, "Got INTERRUPTS after MCBIST\n");
 	}
 
 	/* If ECC enabled, perform ECC scrubbing */
@@ -2638,7 +2637,7 @@ int gaudi_init_hbm(struct hl_device *hdev)
 		if (init_ecc(hdev, 0))
 			return -EIO;
 		if (read_interrupts(hdev, 0))
-			dev_err(hdev->dev, "Got INTERRUPTS after ECC init\n");
+			hl_err(hdev, "Got INTERRUPTS after ECC init\n");
 	}
 
 	/* Temperature readout */
@@ -2673,7 +2672,7 @@ void gaudi_init_pll(struct hl_device *hdev)
 		return;
 
 	if (hdev->fw_components & FW_TYPE_BOOT_CPU) {
-		dev_dbg(hdev->dev,
+		hl_dbg(hdev,
 			"Waiting 5s for u-boot before configuring PLLs\n");
 		ssleep(5);
 	}
@@ -2715,7 +2714,7 @@ void gaudi_init_pll(struct hl_device *hdev)
 
 	val = RREG32(mmPSOC_GLOBAL_CONF_COLD_RST_FLOPS_0);
 	if (val) {
-		dev_dbg(hdev->dev, "Configuring only clock switching\n");
+		hl_dbg(hdev, "Configuring only clock switching\n");
 		WREG32(mmPSOC_PCI_PLL_DIV_SEL_0, 0x1);
 		WREG32(mmPSOC_PCI_PLL_DIV_SEL_1, 0x1);
 		WREG32(mmPSOC_PCI_PLL_DIV_SEL_2, 0x3);
@@ -2781,7 +2780,7 @@ void gaudi_init_pll(struct hl_device *hdev)
 		return;
 	}
 
-	dev_dbg(hdev->dev, "Configure PCI PLL\n");
+	hl_dbg(hdev, "Configure PCI PLL\n");
 
 	WREG32(mmPSOC_PCI_PLL_RST, 1);
 	WREG32(mmPSOC_PCI_PLL_NR, pci_nr);
@@ -2821,7 +2820,7 @@ void gaudi_init_pll(struct hl_device *hdev)
 	udelay(1000);
 	WREG32(mmPSOC_PCI_PLL_DIV_SEL_3, 0x3);
 
-	dev_dbg(hdev->dev, "Configure SRAM PLL\n");
+	hl_dbg(hdev, "Configure SRAM PLL\n");
 
 	WREG32(mmSRAM_E_PLL_RST, 1);
 	WREG32(mmSRAM_E_PLL_NR, sram_nr);
@@ -2852,7 +2851,7 @@ void gaudi_init_pll(struct hl_device *hdev)
 	WREG32(mmSRAM_W_PLL_DIV_SEL_0, 0x1);
 
 	if (!(hdev->fw_components & FW_TYPE_BOOT_CPU)) {
-		dev_dbg(hdev->dev, "Configure HBM PLL\n");
+		hl_dbg(hdev, "Configure HBM PLL\n");
 
 		WREG32(mmPSOC_HBM_PLL_RST, 1);
 
@@ -2897,7 +2896,7 @@ void gaudi_init_pll(struct hl_device *hdev)
 	}
 
 	if (!hdev->pldm || (hdev->cn.ports_mask & GAUDI_NIC_MASK_NIC0)) {
-		dev_dbg(hdev->dev, "Configure NIC0 PLL\n");
+		hl_dbg(hdev, "Configure NIC0 PLL\n");
 
 		WREG32(mmNIC0_PLL_RST, 1);
 		WREG32(mmNIC0_PLL_NR, nic_nr);
@@ -2926,7 +2925,7 @@ void gaudi_init_pll(struct hl_device *hdev)
 		WREG32(mmNIC0_PLL_DIV_SEL_2, 0x3);
 	}
 
-	dev_dbg(hdev->dev, "Configure NIC1 PLL\n");
+	hl_dbg(hdev, "Configure NIC1 PLL\n");
 
 	WREG32(mmNIC1_PLL_RST, 1);
 	WREG32(mmNIC1_PLL_NR, nic_nr);
@@ -2954,7 +2953,7 @@ void gaudi_init_pll(struct hl_device *hdev)
 	udelay(1000);
 	WREG32(mmNIC1_PLL_DIV_SEL_2, 0x3);
 
-	dev_dbg(hdev->dev, "Configure DMA PLL\n");
+	hl_dbg(hdev, "Configure DMA PLL\n");
 
 	WREG32(mmDMA_E_PLL_RST, 1);
 	WREG32(mmDMA_E_PLL_NR, dma_mesh_nr);
@@ -2996,7 +2995,7 @@ void gaudi_init_pll(struct hl_device *hdev)
 	udelay(1000);
 	WREG32(mmDMA_W_PLL_DIV_SEL_1, 0x3);
 
-	dev_dbg(hdev->dev, "Configure MESH PLL\n");
+	hl_dbg(hdev, "Configure MESH PLL\n");
 
 	WREG32(mmMESH_E_PLL_RST, 1);
 	WREG32(mmMESH_E_PLL_NR, dma_mesh_nr);
@@ -3062,7 +3061,7 @@ void gaudi_init_pll(struct hl_device *hdev)
 	udelay(1000);
 	WREG32(mmMESH_W_PLL_DIV_SEL_3, 0x3);
 
-	dev_dbg(hdev->dev, "Configure MME PLL\n");
+	hl_dbg(hdev, "Configure MME PLL\n");
 
 	WREG32(mmPSOC_MME_PLL_RST, 1);
 	WREG32(mmPSOC_MME_PLL_NR, hbw_nr);
@@ -3128,7 +3127,7 @@ void gaudi_init_pll(struct hl_device *hdev)
 	udelay(1000);
 	WREG32(mmNIC2_MME_PLL_DIV_SEL_3, 0x3);
 
-	dev_dbg(hdev->dev, "Configure TPC PLL\n");
+	hl_dbg(hdev, "Configure TPC PLL\n");
 
 	WREG32(mmPSOC_TPC_PLL_RST, 1);
 	WREG32(mmPSOC_TPC_PLL_NR, hbw_nr);
@@ -3194,7 +3193,7 @@ void gaudi_init_pll(struct hl_device *hdev)
 	udelay(1000);
 	WREG32(mmNIC2_TPC_PLL_DIV_SEL_3, 0x3);
 
-	dev_dbg(hdev->dev, "Configure IF PLL\n");
+	hl_dbg(hdev, "Configure IF PLL\n");
 
 	WREG32(mmIF_E_PLL_RST, 1);
 	WREG32(mmIF_E_PLL_NR, hbw_nr);

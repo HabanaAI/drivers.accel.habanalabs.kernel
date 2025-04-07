@@ -410,7 +410,7 @@ static int gaudi_coresight_timeout(struct hl_device *hdev, u64 addr,
 		CORESIGHT_TIMEOUT_USEC);
 
 	if (rc) {
-		dev_err(hdev->dev,
+		hl_err(hdev,
 			"Timeout while waiting for coresight, addr: 0x%llx, position: %d, up: %d\n",
 				addr, position, up);
 		return -EFAULT;
@@ -428,7 +428,7 @@ static int gaudi_config_stm(struct hl_device *hdev,
 	int rc;
 
 	if (params->reg_idx >= ARRAY_SIZE(debug_stm_regs)) {
-		dev_err(hdev->dev, "Invalid register index in STM\n");
+		hl_err(hdev, "Invalid register index in STM\n");
 		return -EINVAL;
 	}
 
@@ -485,7 +485,7 @@ static int gaudi_config_stm(struct hl_device *hdev,
 
 		rc = gaudi_coresight_timeout(hdev, base_reg + 0xE80, 23, false);
 		if (rc) {
-			dev_err(hdev->dev,
+			hl_err(hdev,
 				"Failed to disable STM on timeout, error %d\n",
 				rc);
 			return rc;
@@ -506,7 +506,7 @@ static int gaudi_config_etf(struct hl_device *hdev,
 	int rc;
 
 	if (params->reg_idx >= ARRAY_SIZE(debug_etf_regs)) {
-		dev_err(hdev->dev, "Invalid register index in ETF\n");
+		hl_err(hdev, "Invalid register index in ETF\n");
 		return -EINVAL;
 	}
 
@@ -527,7 +527,7 @@ static int gaudi_config_etf(struct hl_device *hdev,
 
 	rc = gaudi_coresight_timeout(hdev, base_reg + 0x304, 6, false);
 	if (rc) {
-		dev_err(hdev->dev,
+		hl_err(hdev,
 			"Failed to %s ETF on timeout, error %d\n",
 				params->enable ? "enable" : "disable", rc);
 		return rc;
@@ -535,7 +535,7 @@ static int gaudi_config_etf(struct hl_device *hdev,
 
 	rc = gaudi_coresight_timeout(hdev, base_reg + 0xC, 2, true);
 	if (rc) {
-		dev_err(hdev->dev,
+		hl_err(hdev,
 			"Failed to %s ETF on timeout, error %d\n",
 				params->enable ? "enable" : "disable", rc);
 		return rc;
@@ -571,13 +571,13 @@ static bool gaudi_etr_validate_address(struct hl_device *hdev, u64 addr,
 
 	/* maximum address length is 50 bits */
 	if (addr >> 50) {
-		dev_err(hdev->dev,
+		hl_err(hdev,
 			"ETR buffer address shouldn't exceed 50 bits\n");
 		return false;
 	}
 
 	if (addr > (addr + size)) {
-		dev_err(hdev->dev,
+		hl_err(hdev,
 			"ETR buffer size %llu overflow\n", size);
 		return false;
 	}
@@ -602,7 +602,7 @@ static bool gaudi_etr_validate_address(struct hl_device *hdev, u64 addr,
 		return true;
 
 	if (!(gaudi->hw_cap_initialized & HW_CAP_MMU))
-		dev_err(hdev->dev, "ETR buffer should be in SRAM/DRAM\n");
+		hl_err(hdev, "ETR buffer should be in SRAM/DRAM\n");
 
 	return false;
 }
@@ -632,14 +632,14 @@ static int gaudi_config_etr(struct hl_device *hdev,
 
 	rc = gaudi_coresight_timeout(hdev, mmPSOC_ETR_FFCR, 6, false);
 	if (rc) {
-		dev_err(hdev->dev, "Failed to %s ETR on timeout, error %d\n",
+		hl_err(hdev, "Failed to %s ETR on timeout, error %d\n",
 				params->enable ? "enable" : "disable", rc);
 		return rc;
 	}
 
 	rc = gaudi_coresight_timeout(hdev, mmPSOC_ETR_STS, 2, true);
 	if (rc) {
-		dev_err(hdev->dev, "Failed to %s ETR on timeout, error %d\n",
+		hl_err(hdev, "Failed to %s ETR on timeout, error %d\n",
 				params->enable ? "enable" : "disable", rc);
 		return rc;
 	}
@@ -655,7 +655,7 @@ static int gaudi_config_etr(struct hl_device *hdev,
 			return -EINVAL;
 
 		if (input->buffer_size == 0) {
-			dev_err(hdev->dev,
+			hl_err(hdev,
 				"ETR buffer size should be bigger than 0\n");
 			return -EINVAL;
 		}
@@ -663,7 +663,7 @@ static int gaudi_config_etr(struct hl_device *hdev,
 		if (!gaudi_etr_validate_address(hdev,
 				input->buffer_address, input->buffer_size,
 				&is_host)) {
-			dev_err(hdev->dev, "ETR buffer address is invalid\n");
+			hl_err(hdev, "ETR buffer address is invalid\n");
 			return -EINVAL;
 		}
 
@@ -733,7 +733,7 @@ static int gaudi_config_funnel(struct hl_device *hdev,
 	u64 base_reg;
 
 	if (params->reg_idx >= ARRAY_SIZE(debug_funnel_regs)) {
-		dev_err(hdev->dev, "Invalid register index in FUNNEL\n");
+		hl_err(hdev, "Invalid register index in FUNNEL\n");
 		return -EINVAL;
 	}
 
@@ -753,7 +753,7 @@ static int gaudi_config_bmon(struct hl_device *hdev,
 	u64 base_reg;
 
 	if (params->reg_idx >= ARRAY_SIZE(debug_bmon_regs)) {
-		dev_err(hdev->dev, "Invalid register index in BMON\n");
+		hl_err(hdev, "Invalid register index in BMON\n");
 		return -EINVAL;
 	}
 
@@ -842,7 +842,7 @@ static int gaudi_config_spmu(struct hl_device *hdev,
 	int i;
 
 	if (params->reg_idx >= ARRAY_SIZE(debug_spmu_regs)) {
-		dev_err(hdev->dev, "Invalid register index in SPMU\n");
+		hl_err(hdev, "Invalid register index in SPMU\n");
 		return -EINVAL;
 	}
 
@@ -851,7 +851,7 @@ static int gaudi_config_spmu(struct hl_device *hdev,
 	 * and not accessible to user in dbg mode
 	 */
 	if (hdev->in_debug && gaudi_reg_is_cn_spmu(params->reg_idx)) {
-		dev_err(hdev->dev, "Rejecting user debug configuration for NIC spmu\n");
+		hl_err(hdev, "Rejecting user debug configuration for NIC spmu\n");
 		return -EFAULT;
 	}
 
@@ -864,12 +864,12 @@ static int gaudi_config_spmu(struct hl_device *hdev,
 			return -EINVAL;
 
 		if (input->event_types_num < 3) {
-			dev_err(hdev->dev, "not enough event types values for SPMU enable\n");
+			hl_err(hdev, "not enough event types values for SPMU enable\n");
 			return -EINVAL;
 		}
 
 		if (input->event_types_num > SPMU_MAX_COUNTERS) {
-			dev_err(hdev->dev, "too many event types values for SPMU enable\n");
+			hl_err(hdev, "too many event types values for SPMU enable\n");
 			return -EINVAL;
 		}
 
@@ -893,12 +893,12 @@ static int gaudi_config_spmu(struct hl_device *hdev,
 			return -EINVAL;
 
 		if (output_arr_len < 3) {
-			dev_err(hdev->dev, "not enough values for SPMU disable\n");
+			hl_err(hdev, "not enough values for SPMU disable\n");
 			return -EINVAL;
 		}
 
 		if (events_num > SPMU_MAX_COUNTERS) {
-			dev_err(hdev->dev, "too many events values for SPMU disable\n");
+			hl_err(hdev, "too many events values for SPMU disable\n");
 			return -EINVAL;
 		}
 
@@ -929,7 +929,7 @@ static int gaudi_sample_spmu(struct hl_device *hdev,
 	int i;
 
 	if (params->reg_idx >= ARRAY_SIZE(debug_spmu_regs)) {
-		dev_err(hdev->dev, "Invalid register index in SPMU\n");
+		hl_err(hdev, "Invalid register index in SPMU\n");
 		return -EINVAL;
 	}
 
@@ -940,12 +940,12 @@ static int gaudi_sample_spmu(struct hl_device *hdev,
 	events_num = output_arr_len;
 
 	if (output_arr_len < 1) {
-		dev_err(hdev->dev, "not enough values for SPMU sample\n");
+		hl_err(hdev, "not enough values for SPMU sample\n");
 		return -EINVAL;
 	}
 
 	if (events_num > SPMU_MAX_COUNTERS) {
-		dev_err(hdev->dev, "too many events values for SPMU sample\n");
+		hl_err(hdev, "too many events values for SPMU sample\n");
 		return -EINVAL;
 	}
 
@@ -998,7 +998,7 @@ int gaudi_cn_spmu_config(struct hl_device *hdev, u32 port, u32 num_event_types, 
 
 	/* validate nic port */
 	if  (!gaudi_reg_is_cn_spmu(GAUDI_SPMU_NIC0_0 + port)) {
-		dev_err(hdev->dev, "Invalid nic port %u\n", port);
+		hl_err(hdev, "Invalid nic port %u\n", port);
 		return -EINVAL;
 	}
 
@@ -1028,7 +1028,7 @@ int gaudi_cn_spmu_sample(struct hl_device *hdev, u32 port, u32 num_out_data, u64
 
 	/* validate CN port */
 	if  (!gaudi_reg_is_cn_spmu(GAUDI_SPMU_NIC0_0 + port)) {
-		dev_err(hdev->dev, "Invalid CN port %u\n", port);
+		hl_err(hdev, "Invalid CN port %u\n", port);
 		return -EINVAL;
 	}
 
@@ -1069,7 +1069,7 @@ int gaudi_debug_coresight(struct hl_device *hdev, struct hl_ctx *ctx, void *data
 		break;
 
 	default:
-		dev_err(hdev->dev, "Unknown coresight id %d\n", params->op);
+		hl_err(hdev, "Unknown coresight id %d\n", params->op);
 		return -EINVAL;
 	}
 
@@ -1088,10 +1088,10 @@ void gaudi_halt_coresight(struct hl_device *hdev, struct hl_ctx *ctx)
 		params.reg_idx = i;
 		rc = gaudi_config_etf(hdev, &params);
 		if (rc)
-			dev_err(hdev->dev, "halt ETF failed, %d/%d\n", rc, i);
+			hl_err(hdev, "halt ETF failed, %d/%d\n", rc, i);
 	}
 
 	rc = gaudi_config_etr(hdev, &params);
 	if (rc)
-		dev_err(hdev->dev, "halt ETR failed, %d\n", rc);
+		hl_err(hdev, "halt ETR failed, %d\n", rc);
 }

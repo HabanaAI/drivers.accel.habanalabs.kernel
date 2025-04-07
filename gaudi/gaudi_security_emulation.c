@@ -1453,7 +1453,7 @@ void gaudi_fw_security_emulation_fini(struct hl_device *hdev, bool asic_dirty)
 
 	if (hdev->priv_security_enable || asic_dirty) {
 		fw_secure_pll(hdev, false);
-		dev_info(hdev->dev, "Privileged security disabled\n");
+		hl_info(hdev, "Privileged security disabled\n");
 	}
 }
 
@@ -1497,7 +1497,7 @@ void gaudi_fw_security_emulation_init(struct hl_device *hdev)
 
 		fw_secure_dma(hdev);
 
-		dev_info(hdev->dev, "Privileged security enabled\n");
+		hl_info(hdev, "Privileged security enabled\n");
 	}
 }
 

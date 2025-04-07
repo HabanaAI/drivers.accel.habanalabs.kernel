@@ -300,7 +300,7 @@ static int gaudi2_simulator_gen_int_ioctl(struct hl_simulator_device *edev, void
 			hl_irq_handler_dec_abnrm(args->id, dec);
 		} else {
 			if (hdev->user_interrupt[dec->core_id].interrupt_id != args->id) {
-				dev_err(hdev->dev,
+				hl_err(hdev,
 					"decoder irq %d from sim doesn't match decoder interrupt %d\n",
 					args->id, hdev->user_interrupt[dec->core_id].interrupt_id);
 				goto out;
@@ -333,7 +333,7 @@ static int gaudi2_simulator_gen_int_ioctl(struct hl_simulator_device *edev, void
 		user_interrupt = &hdev->user_interrupt[int_idx];
 
 		if (user_interrupt->interrupt_id != args->id) {
-			dev_err(hdev->dev, "irq %d from sim doesn't match user interrupt %d\n",
+			hl_err(hdev, "irq %d from sim doesn't match user interrupt %d\n",
 				args->id, user_interrupt->interrupt_id);
 			goto out;
 		}
@@ -414,7 +414,7 @@ static int gaudi2_simulator_reset_device_ioctl(struct hl_simulator_device *edev,
 {
 	struct hl_device *hdev = edev->hdev;
 
-	dev_warn(hdev->dev, "Gaudi2 simulator encountered a failure, going to reset device\n");
+	hl_warn(hdev, "Gaudi2 simulator encountered a failure, going to reset device\n");
 
 	return hl_device_reset(hdev, HL_DRV_RESET_HARD);
 }
@@ -1066,12 +1066,12 @@ static int gaudi2_sim_pci_bars_map(struct hl_device *hdev)
 
 	/* Simulate SRAM BAR */
 	hdev->pcie_bar[SRAM_CFG_BAR_ID] = (void __iomem *) edev->sram;
-	dev_dbg(hdev->dev, "SRAM at 0x%px\n",
+	hl_dbg(hdev, "SRAM at 0x%px\n",
 			hdev->pcie_bar[SRAM_CFG_BAR_ID]);
 
 	/* Simulate DRAM BAR */
 	hdev->pcie_bar[DRAM_BAR_ID] = (void __iomem *) edev->dram;
-	dev_dbg(hdev->dev, "DRAM at 0x%px\n", hdev->pcie_bar[DRAM_BAR_ID]);
+	hl_dbg(hdev, "DRAM at 0x%px\n", hdev->pcie_bar[DRAM_BAR_ID]);
 
 	/* CFG is not simulated as BAR */
 	hdev->rmmio = NULL;
@@ -1185,7 +1185,7 @@ static int gaudi2_sim_cpucp_info_get(struct hl_device *hdev)
 	dram_size = le64_to_cpu(prop->cpucp_info.dram_size);
 	if (dram_size) {
 		if (dram_size != edev->dram_size) {
-			dev_err(hdev->dev,
+			hl_err(hdev,
 				"F/W reported invalid HBM size %llu != %llu\n",
 				dram_size, edev->dram_size);
 			dram_size = edev->dram_size;
@@ -1228,7 +1228,7 @@ static int gaudi2_sim_sw_init(struct hl_device *hdev)
 								&gaudi2->virt_msix_db_dma_addr,
 								GFP_KERNEL | __GFP_ZERO);
 	if (!gaudi2->virt_msix_db_cpu_addr) {
-		dev_err(hdev->dev, "Failed to allocate DMA memory for virtual MSI-X doorbell\n");
+		hl_err(hdev, "Failed to allocate DMA memory for virtual MSI-X doorbell\n");
 		rc = -ENOMEM;
 		goto free_gaudi2_device;
 	}
@@ -1388,7 +1388,7 @@ static int gaudi2_sim_hw_init(struct hl_device *hdev)
 
 	rc = hl_init_pb_security(hdev, true);
 	if (rc) {
-		dev_err(hdev->dev, "Configuring privileged PBs failed!");
+		hl_err(hdev, "Configuring privileged PBs failed!");
 		return rc;
 	}
 
@@ -1401,13 +1401,13 @@ static int gaudi2_sim_hw_init(struct hl_device *hdev)
 
 	rc = gaudi2->cpucp_info_get(hdev);
 	if (rc) {
-		dev_err(hdev->dev, "Failed to get cpucp info\n");
+		hl_err(hdev, "Failed to get cpucp info\n");
 		return rc;
 	}
 
 	rc = gaudi2_mmu_init(hdev);
 	if (rc) {
-		dev_err(hdev->dev, "failed to initialize MMU\n");
+		hl_err(hdev, "failed to initialize MMU\n");
 		return rc;
 	}
 
@@ -1443,7 +1443,7 @@ static int gaudi2_sim_hw_fini(struct hl_device *hdev, bool hard_reset, bool fw_r
 		reg_val = FIELD_PREP(PCIE_WRAP_PSOC_RST_CTRL_HARD_RST_MASK, 0x1);
 		WREG32(mmPCIE_WRAP_PSOC_RST_CTRL, reg_val);
 
-		dev_dbg(hdev->dev,
+		hl_dbg(hdev,
 			"Issued HARD reset command, waiting up to %dms\n",
 			reset_timeout_ms);
 	} else {
@@ -1465,7 +1465,7 @@ static int gaudi2_sim_hw_fini(struct hl_device *hdev, bool hard_reset, bool fw_r
 			FIELD_PREP(PCIE_WRAP_PSOC_RST_CTRL_SOFT_RST_MASK, 0x1);
 		WREG32(mmPCIE_WRAP_PSOC_RST_CTRL, reg_val);
 
-		dev_dbg(hdev->dev,
+		hl_dbg(hdev,
 			"Issued SOFT reset command, waiting up to %dms\n",
 			reset_timeout_ms);
 	}
@@ -1479,7 +1479,7 @@ static int gaudi2_sim_hw_fini(struct hl_device *hdev, bool hard_reset, bool fw_r
 		10000, reset_timeout_us);
 
 	if (rc == -ETIMEDOUT)
-		dev_err(hdev->dev,
+		hl_err(hdev,
 			"Timeout while waiting for device to reset 0x%x\n",
 			status);
 
@@ -1541,7 +1541,7 @@ static int gaudi2_sim_mmap(struct hl_device *hdev,
 
 	rc = remap_vmalloc_range(vma, cpu_addr, 0);
 	if (rc)
-		dev_err(hdev->dev, "remap vmalloc error %d", rc);
+		hl_err(hdev, "remap vmalloc error %d", rc);
 
 	return rc;
 }
@@ -1560,7 +1560,7 @@ static void *gaudi2_sim_dma_alloc_coherent(struct hl_device *hdev, size_t size,
 
 		*dma_handle = virt_to_phys(address);
 		if (!gaudi2_host_phys_addr_valid(*dma_handle))
-			dev_crit(hdev->dev, "invalid host phys addr 0x%llx\n",
+			hl_crit(hdev, "invalid host phys addr 0x%llx\n",
 					*dma_handle);
 	}
 
@@ -1681,7 +1681,7 @@ static int gaudi2_sim_get_hw_block_id(struct hl_device *hdev, u64 block_addr,
 		}
 	}
 
-	dev_err(hdev->dev, "Invalid block address %#llx", block_addr);
+	hl_err(hdev, "Invalid block address %#llx", block_addr);
 
 	return -EINVAL;
 }

@@ -100,11 +100,11 @@ static void hl_mmu_v2_hr_ctx_fini(struct hl_ctx *ctx)
 	int i;
 
 	if (!hash_empty(ctx->hr_mmu_phys_hash))
-		dev_err(hdev->dev, "ctx %d is freed while it has pgts in use\n",
+		hl_err(hdev, "ctx %d is freed while it has pgts in use\n",
 			ctx->asid);
 
 	hash_for_each_safe(ctx->hr_mmu_phys_hash, i, tmp, pgt_info, node) {
-		dev_err_ratelimited(hdev->dev,
+		hl_err_ratelimited(hdev,
 			"pgt_info of addr 0x%llx of asid %d was not destroyed, num_ptes: %d\n",
 			pgt_info->phys_addr, ctx->asid, pgt_info->num_of_ptes);
 		hl_mmu_hr_free_hop_remove_pgt(pgt_info, &ctx->hdev->mmu_priv.hr,
@@ -160,7 +160,7 @@ static int _hl_mmu_v2_hr_unmap(struct hl_ctx *ctx,
 	}
 
 	if (is_dram_addr && !is_huge) {
-		dev_err(hdev->dev, "DRAM unmapping should use huge pages only\n");
+		hl_err(hdev, "DRAM unmapping should use huge pages only\n");
 		return -EFAULT;
 	}
 
@@ -182,7 +182,7 @@ mapped:
 	return 0;
 
 not_mapped:
-	dev_err(hdev->dev, "virt addr 0x%llx is not mapped to phys addr\n", virt_addr);
+	hl_err(hdev, "virt addr 0x%llx is not mapped to phys addr\n", virt_addr);
 
 	return -EINVAL;
 }
@@ -231,7 +231,7 @@ static int _hl_mmu_v2_hr_map(struct hl_ctx *ctx,
 
 	hop_last = hl_mmu_v2_get_last_hop(mmu_prop, page_size);
 	if (hop_last <= 0) {
-		dev_err(ctx->hdev->dev, "Invalid last HOP %d\n", hop_last);
+		hl_err(ctx->hdev, "Invalid last HOP %d\n", hop_last);
 		return -EFAULT;
 	}
 
@@ -259,11 +259,11 @@ static int _hl_mmu_v2_hr_map(struct hl_ctx *ctx,
 	}
 
 	if (curr_pte & PAGE_PRESENT_MASK) {
-		dev_err(hdev->dev, "mapping already exists for virt_addr 0x%llx\n",
+		hl_err(hdev, "mapping already exists for virt_addr 0x%llx\n",
 									scrambled_virt_addr);
 
 		for (i = 0 ; i <= hop_last ; i++)
-			dev_dbg(hdev->dev, "hop%d pte: 0x%llx (0x%llx)\n",
+			hl_dbg(hdev, "hop%d pte: 0x%llx (0x%llx)\n",
 					i,
 					*(u64 *) (uintptr_t)
 					hl_mmu_hr_pte_phys_to_virt(ctx, hops_pgt_info[i],

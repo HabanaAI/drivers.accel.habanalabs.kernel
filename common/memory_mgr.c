@@ -25,7 +25,7 @@ struct hl_mmap_mem_buf *hl_mmap_mem_buf_get(struct hl_mem_mgr *mmg, u64 handle)
 	buf = idr_find(&mmg->handles, lower_32_bits(handle >> PAGE_SHIFT));
 	if (!buf) {
 		spin_unlock(&mmg->lock);
-		dev_dbg(mmg->hdev->dev, "Buff get failed, no match to handle %#llx\n", handle);
+		hl_dbg(mmg->hdev, "Buff get failed, no match to handle %#llx\n", handle);
 		return NULL;
 	}
 	kref_get(&buf->refcount);
@@ -118,7 +118,7 @@ int hl_mmap_mem_buf_put_handle(struct hl_mem_mgr *mmg, u64 handle)
 	buf = idr_find(&mmg->handles, lower_32_bits(handle >> PAGE_SHIFT));
 	if (!buf) {
 		spin_unlock(&mmg->lock);
-		dev_dbg(mmg->hdev->dev,
+		hl_dbg(mmg->hdev,
 			 "Buff put failed, no match to handle %#llx\n", handle);
 		return -EINVAL;
 	}
@@ -160,7 +160,7 @@ hl_mmap_mem_buf_alloc(struct hl_mem_mgr *mmg,
 	rc = idr_alloc(&mmg->handles, buf, 1, 0, GFP_ATOMIC);
 	spin_unlock(&mmg->lock);
 	if (rc < 0) {
-		dev_err(mmg->hdev->dev,
+		hl_err(mmg->hdev,
 			"%s: Failed to allocate IDR for a new buffer, rc=%d\n",
 			behavior->topic, rc);
 		goto free_buf;
@@ -173,7 +173,7 @@ hl_mmap_mem_buf_alloc(struct hl_mem_mgr *mmg,
 
 	rc = buf->behavior->alloc(buf, gfp, args);
 	if (rc) {
-		dev_err(mmg->hdev->dev, "%s: Failure in buffer alloc callback %d\n",
+		hl_err(mmg->hdev, "%s: Failure in buffer alloc callback %d\n",
 			behavior->topic, rc);
 		goto remove_idr;
 	}
@@ -244,7 +244,7 @@ int hl_mem_mgr_mmap(struct hl_mem_mgr *mmg, struct vm_area_struct *vma, void *ar
 	/* Reference was taken here */
 	buf = hl_mmap_mem_buf_get(mmg, handle);
 	if (!buf) {
-		dev_err(mmg->hdev->dev,
+		hl_err(mmg->hdev,
 			"Memory mmap failed, no match to handle %#llx\n", handle);
 		return -EINVAL;
 	}
@@ -252,7 +252,7 @@ int hl_mem_mgr_mmap(struct hl_mem_mgr *mmg, struct vm_area_struct *vma, void *ar
 	/* Validation check */
 	user_mem_size = vma->vm_end - vma->vm_start;
 	if (user_mem_size != ALIGN(buf->mappable_size, PAGE_SIZE)) {
-		dev_err(mmg->hdev->dev,
+		hl_err(mmg->hdev,
 			"%s: Memory mmap failed, mmap VM size 0x%llx != 0x%llx allocated physical mem size\n",
 			buf->behavior->topic, user_mem_size, buf->mappable_size);
 		rc = -EINVAL;
@@ -261,7 +261,7 @@ int hl_mem_mgr_mmap(struct hl_mem_mgr *mmg, struct vm_area_struct *vma, void *ar
 
 	if (!access_ok((void __user *)(uintptr_t)vma->vm_start,
 		       user_mem_size)) {
-		dev_err(mmg->hdev->dev, "%s: User pointer is invalid - 0x%lx\n",
+		hl_err(mmg->hdev, "%s: User pointer is invalid - 0x%lx\n",
 			buf->behavior->topic, vma->vm_start);
 
 		rc = -EINVAL;
@@ -269,7 +269,7 @@ int hl_mem_mgr_mmap(struct hl_mem_mgr *mmg, struct vm_area_struct *vma, void *ar
 	}
 
 	if (atomic_cmpxchg(&buf->mmap, 0, 1)) {
-		dev_err(mmg->hdev->dev,
+		hl_err(mmg->hdev,
 			"%s, Memory mmap failed, already mapped to user\n",
 			buf->behavior->topic);
 		rc = -EINVAL;
@@ -363,7 +363,7 @@ void hl_mem_mgr_fini(struct hl_mem_mgr *mmg, struct hl_mem_mgr_fini_stats *stats
 		topic = buf->behavior->topic;
 		mem_id = buf->behavior->mem_id;
 		if (hl_mmap_mem_buf_put(buf) != 1) {
-			dev_err(mmg->hdev->dev,
+			hl_err(mmg->hdev,
 				"%s: Buff handle %u for CTX is still alive\n",
 				topic, id);
 			hl_mem_mgr_fini_stats_inc(mem_id, stats);
@@ -381,7 +381,7 @@ void hl_mem_mgr_fini(struct hl_mem_mgr *mmg, struct hl_mem_mgr_fini_stats *stats
 void hl_mem_mgr_idr_destroy(struct hl_mem_mgr *mmg)
 {
 	if (!idr_is_empty(&mmg->handles))
-		dev_crit(mmg->hdev->dev, "memory manager IDR is destroyed while it is not empty\n");
+		hl_crit(mmg->hdev, "memory manager IDR is destroyed while it is not empty\n");
 
 	idr_destroy(&mmg->handles);
 }

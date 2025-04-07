@@ -503,7 +503,7 @@ static inline void hbm_phy_write(struct hl_device *hdev, u32 dev, u32 addr, u32 
 	}
 #ifdef DUMP_DYNAMIC
 	if (dev == 0)
-		dev_err(hdev->dev, "DUMP: phy addr: 0x%05x val: 0x%04x\n",
+		hl_err(hdev, "DUMP: phy addr: 0x%05x val: 0x%04x\n",
 			(chiplet_type << 16) | ((phy_addr & 0x3ffff) >> shift), val);
 #endif
 	WREG32(phy_addr, val);
@@ -547,7 +547,7 @@ static inline void hbm_phy_rmw(struct hl_device *hdev, u32 dev, u32 addr, u32 va
 	}
 #ifdef DUMP_DYNAMIC
 	if (dev == 0)
-		dev_err(hdev->dev, "DUMP: phy addr: 0x%05x val: 0x04%x mask: 0x%x\n",
+		hl_err(hdev, "DUMP: phy addr: 0x%05x val: 0x04%x mask: 0x%x\n",
 			(chiplet_type << 16) | ((phy_addr & 0x3ffff) >> 2), val, mask);
 #endif
 	RMWREG32(phy_addr, val, mask);
@@ -570,7 +570,7 @@ static void debug_print_pub_deviceid(struct hl_device *hdev, u32 dev)
 	return;
 #endif
 	for (i = 0; i < 6; i++) {
-		dev_dbg(hdev->dev, "HBM%d DramDeviceId%d: 0x%x\n", dev, i,
+		hl_dbg(hdev, "HBM%d DramDeviceId%d: 0x%x\n", dev, i,
 			hbm_phy_read(hdev, dev, mmHBM_PHY_MASTER_DRAMDEVICEID0 + i * 4));
 	}
 }
@@ -583,7 +583,7 @@ static void debug_print_mrs(struct hl_device *hdev, u32 dev)
 	return;
 #endif
 	for (i = 0; i < 8; i++) {
-		dev_dbg(hdev->dev, "HBM%d MR%d: 0x%x\n", dev, i,
+		hl_dbg(hdev, "HBM%d MR%d: 0x%x\n", dev, i,
 			hbm_phy_read(hdev, dev, mmHBM_PHY_MASTER_MR0 + i * 4));
 	}
 }
@@ -596,7 +596,7 @@ static void debug_print_pub_dramtiming(struct hl_device *hdev, u32 dev)
 	return;
 #endif
 	for (i = 0; i < 9; i++) {
-		dev_dbg(hdev->dev, "HBM%d DramTiming%d: 0x%x\n", dev, i,
+		hl_dbg(hdev, "HBM%d DramTiming%d: 0x%x\n", dev, i,
 			hbm_phy_read(hdev, dev, mmHBM_PHY_MASTER_DRAMTIMING0 + i * 4));
 	}
 }
@@ -622,7 +622,7 @@ static void debug_print_training_status(struct hl_device *hdev, u32 dev)
 		else
 			str = "FAILED";
 		size += snprintf(s + size, 100 - size, "%s ", str);
-		dev_dbg(hdev->dev, "%s\n", s);
+		hl_dbg(hdev, "%s\n", s);
 	}
 
 	size = 0;
@@ -634,7 +634,7 @@ static void debug_print_training_status(struct hl_device *hdev, u32 dev)
 		else
 			str = "FAILED";
 		size += snprintf(s + size, 100 - size, "%s ", str);
-		dev_dbg(hdev->dev, "%s\n", s);
+		hl_dbg(hdev, "%s\n", s);
 	}
 
 	size = 0;
@@ -646,7 +646,7 @@ static void debug_print_training_status(struct hl_device *hdev, u32 dev)
 		else
 			str = "FAILED";
 		size += snprintf(s + size, 100 - size, "%s ", str);
-		dev_dbg(hdev->dev, "%s\n", s);
+		hl_dbg(hdev, "%s\n", s);
 	}
 
 	size = 0;
@@ -658,7 +658,7 @@ static void debug_print_training_status(struct hl_device *hdev, u32 dev)
 		else
 			str = "FAILED";
 		size += snprintf(s + size, 100 - size, "%s ", str);
-		dev_dbg(hdev->dev, "%s\n", s);
+		hl_dbg(hdev, "%s\n", s);
 	}
 
 	size = 0;
@@ -670,7 +670,7 @@ static void debug_print_training_status(struct hl_device *hdev, u32 dev)
 		else
 			str = "FAILED";
 		size += snprintf(s + size, 100 - size, "%s ", str);
-		dev_dbg(hdev->dev, "%s\n", s);
+		hl_dbg(hdev, "%s\n", s);
 	}
 }
 
@@ -683,18 +683,18 @@ static void debug_print_lcdls_1ui(struct hl_device *hdev, int dev)
 	if (hdev->pldm || !PRINT_LCDL_1UI)
 		return;
 
-	dev_dbg(hdev->dev, "\n%s<0> *** HBM%d LCDLs 1UI ***\n", SPACES40, dev);
+	hl_dbg(hdev, "\n%s<0> *** HBM%d LCDLs 1UI ***\n", SPACES40, dev);
 	for (ch = 0; ch < HBM_PHY_CHANNELS_NUM; ch++) {
 		ch_offset = ch * PHY_CH_OFFSET;
-		dev_dbg(hdev->dev, "   CH%d Address/Command: 0x%03x  CK: 0x%03x\n", ch,
+		hl_dbg(hdev, "   CH%d Address/Command: 0x%03x  CK: 0x%03x\n", ch,
 			PHY_RREG(mmHBM_PHY_CHAN_CHAN0_AWORD_TXACLCDL1UI + ch_offset),
 			PHY_RREG(mmHBM_PHY_CHAN_CHAN0_AWORD_TXCKLCDL1UI + ch_offset));
 	}
-	dev_dbg(hdev->dev, "\n%s    CH%s%s%sDW-0%s%s%sDW-1%s%s%sDW-2%s%s%sDW-3\n",
+	hl_dbg(hdev, "\n%s    CH%s%s%sDW-0%s%s%sDW-1%s%s%sDW-2%s%s%sDW-3\n",
 		SPACES40, SPACES10, SPACES10, SPACES5, SPACES10, SPACES10, SPACES10,
 		SPACES10, SPACES10, SPACES10, SPACES10, SPACES10, SPACES10);
 
-	dev_dbg(hdev->dev,
+	hl_dbg(hdev,
 	"  ----- : ------------------------------------|-------------------------------|-------------------------------|-------------------------------|\n");
 	for (ch = 0; ch < HBM_PHY_CHANNELS_NUM; ch++) {
 		ch_offset = ch * PHY_CH_OFFSET;
@@ -711,7 +711,7 @@ static void debug_print_lcdls_1ui(struct hl_device *hdev, int dev)
 				hbm_phy_read(hdev, dev, mmHBM_PHY_CHAN_CHAN0_DWORD0_TXDQLCDL1UI
 				+ offset));
 		}
-		dev_dbg(hdev->dev, "   CH-%d :%s", ch, s);
+		hl_dbg(hdev, "   CH-%d :%s", ch, s);
 	}
 }
 
@@ -733,14 +733,14 @@ static int phy_error_aword(struct hl_device *hdev, int dev, int ch)
 
 	reg_val = PHY_RREG(mmHBM_PHY_CHAN_CHAN0_AWORD_AWDATABITERR0 + ch_offset);
 	if (reg_val) {
-		dev_dbg(hdev->dev, "CH%d AwDataBitErr0: 0x%x\n", ch, reg_val);
+		hl_dbg(hdev, "CH%d AwDataBitErr0: 0x%x\n", ch, reg_val);
 		rc++;
 	}
 
 	reg_val = PHY_RREG(mmHBM_PHY_CHAN_CHAN0_AWORD_AWDATABITERR1 + ch_offset);
 	/* Skip ARFU[1] & ARFU[3] */
 	if ((reg_val != 0x28) && (reg_val != 0)) {
-		dev_dbg(hdev->dev, "CH%d AwDataBitErr1: 0x%x\n", ch, reg_val);
+		hl_dbg(hdev, "CH%d AwDataBitErr1: 0x%x\n", ch, reg_val);
 		rc++;
 	}
 
@@ -754,14 +754,14 @@ static int phy_error_dword(struct hl_device *hdev, int dev, int ch, int dw)
 
 	reg_val = PHY_RREG(mmHBM_PHY_CHAN_CHAN0_DWORD0_DWDATASTATUS0 + dw_offset);
 	if (reg_val & HBM_PHY_CHAN_CHAN0_DWORD0_DWDATASTATUS0_DWDATAERR_MASK) {
-		dev_dbg(hdev->dev, "Errors found on CH%d DW%d. DwDataStatus0: 0x%x\n",
+		hl_dbg(hdev, "Errors found on CH%d DW%d. DwDataStatus0: 0x%x\n",
 			ch, dw, reg_val);
 		for (byte = 0; byte < 4; byte++) {
 			reg_val = PHY_RREG(mmHBM_PHY_CHAN_CHAN0_DWORD0_DWDB0DATABITERR +
 					   dw_offset + byte * BYTE_OFFSET);
 			if (reg_val == 0x0)
 				continue;
-			dev_dbg(hdev->dev, "\t\tCH%d DW%d byte%d DataBitErr: 0x%x\n",
+			hl_dbg(hdev, "\t\tCH%d DW%d byte%d DataBitErr: 0x%x\n",
 				ch, dw, byte, reg_val);
 		}
 		rc = 1;
@@ -785,7 +785,7 @@ static int phy_error(struct hl_device *hdev, u32 dev)
 			if (reg_val & BIT(ch))
 				size += snprintf(str + size, 100 - size, "%d ", ch);
 		}
-		dev_dbg(hdev->dev, "%s", str);
+		hl_dbg(hdev, "%s", str);
 	}
 
 	/* Although we read ChanStatus, we iterate over all channels and look for errors */
@@ -798,8 +798,8 @@ static int phy_error(struct hl_device *hdev, u32 dev)
 		/* TEMP[2:0] and CATTRRIP */
 		reg_val = PHY_RREG(mmHBM_PHY_MASTER_WSOREADSTATUS);
 		if ((reg_val & 0xf00) != 0x0 && !hdev->pldm) {
-			dev_dbg(hdev->dev, "Errors found on MISDTACK signals:\n");
-			dev_dbg(hdev->dev, "HBM%d CH%d WsoReadStatus: 0x%x\n", dev, ch, reg_val);
+			hl_dbg(hdev, "Errors found on MISDTACK signals:\n");
+			hl_dbg(hdev, "HBM%d CH%d WsoReadStatus: 0x%x\n", dev, ch, reg_val);
 			rc |= 1;
 		}
 	}
@@ -826,7 +826,7 @@ static int phy_print_remap_info(struct hl_device *hdev, u32 dev,
 		/* AWORD */
 		reg_val = hbm_phy_read(hdev, dev, mmHBM_PHY_CHAN_CHAN0_AWORD_AWREMAP + ch_offset);
 		if (reg_val != 0xff) {
-			dev_dbg(hdev->dev, "CH%d AWORD remapping: 0x%x\n", ch, reg_val);
+			hl_dbg(hdev, "CH%d AWORD remapping: 0x%x\n", ch, reg_val);
 			rc = 1;
 		}
 		/* DWORD */
@@ -835,7 +835,7 @@ static int phy_print_remap_info(struct hl_device *hdev, u32 dev,
 			reg_val = hbm_phy_read(hdev, dev, mmHBM_PHY_CHAN_CHAN0_DWORD0_DWREMAP +
 					       dw_offset);
 			if (reg_val != 0xffff) {
-				dev_dbg(hdev->dev, "CH%d dw%d DwRemap: 0x%x\n", ch, dw, reg_val);
+				hl_dbg(hdev, "CH%d dw%d DwRemap: 0x%x\n", ch, dw, reg_val);
 				rc = 1;
 			}
 		}
@@ -893,12 +893,12 @@ static int phy_test_loopback(struct hl_device *hdev, u32 dev)
 		100,
 		timeout);
 	if (rc) {
-		dev_err(hdev->dev, "Timeout while waiting for PHY loopback BIST to complete\n");
+		hl_err(hdev, "Timeout while waiting for PHY loopback BIST to complete\n");
 		return status_fail;
 	}
 
 	if (val != bist_status_valid) {
-		dev_err(hdev->dev, "HBM%d PHY loopback BIST failed. BistStatus: 0x%x\n",
+		hl_err(hdev, "HBM%d PHY loopback BIST failed. BistStatus: 0x%x\n",
 			dev, val);
 		phy_error(hdev, dev);
 		return status_fail;
@@ -906,12 +906,12 @@ static int phy_test_loopback(struct hl_device *hdev, u32 dev)
 
 	/* TODO - consider un-comment this code after 3.2 is stable */
 //	if (phy_error(hdev, dev)) {
-//		dev_err(hdev->dev, "Loopback passed but mismatches have been FOUND\n");
+//		hl_err(hdev, "Loopback passed but mismatches have been FOUND\n");
 //		return status_fail;
 //	}
 
 	phy_clear_errors(hdev, dev);
-	dev_dbg(hdev->dev, "HBM%d PHY internal loopback PASSED. BistStatus: 0x%x\n", dev, val);
+	hl_dbg(hdev, "HBM%d PHY internal loopback PASSED. BistStatus: 0x%x\n", dev, val);
 	return status_pass;
 }
 
@@ -934,19 +934,19 @@ static int phy_trigger_lanerepair_fsm(struct hl_device *hdev, u32 dev, u32 ctrl,
 		100,
 		timeout);
 	if (rc) {
-		dev_err(hdev->dev, "Timeout while waiting for PHY IO-DC to complete\n");
+		hl_err(hdev, "Timeout while waiting for PHY IO-DC to complete\n");
 		return status_fail;
 	}
 
 	if (reg_val != expected_status) {
-		dev_err(hdev->dev, "HBM%d LANEREPAIR FSM failed. LaneRepairCtrl = 0x%x LaneRepairStatus = 0x%x\n",
+		hl_err(hdev, "HBM%d LANEREPAIR FSM failed. LaneRepairCtrl = 0x%x LaneRepairStatus = 0x%x\n",
 			dev, expected_status, reg_val);
 		phy_error(hdev, dev);
 		return status_fail;
 	}
 
 	if (phy_error(hdev, dev)) {
-		dev_err(hdev->dev, "LANEREPAIR FSM operation passed but mismatches have been FOUND. LaneRepairStatus = 0x%x\n",
+		hl_err(hdev, "LANEREPAIR FSM operation passed but mismatches have been FOUND. LaneRepairStatus = 0x%x\n",
 			reg_val);
 		return status_fail;
 	}
@@ -969,7 +969,7 @@ static int phy_test_io_dc(struct hl_device *hdev, u32 dev)
 		HBM_PHY_MASTER_LANEREPAIRSTATUS_LANEREPAIRREMAPDONE_MASK;
 	rc = phy_trigger_lanerepair_fsm(hdev, dev, lanerepair_ctrl, lanerepair_status);
 	if (rc) {
-		dev_err(hdev->dev, "HBM%d PHY IO-DC test FAILED\n", dev);
+		hl_err(hdev, "HBM%d PHY IO-DC test FAILED\n", dev);
 		return rc;
 	}
 
@@ -996,11 +996,11 @@ static int phy_test_io_dc(struct hl_device *hdev, u32 dev)
 
 	rc = phy_trigger_lanerepair_fsm(hdev, dev, lanerepair_ctrl, lanerepair_status);
 	if (rc) {
-		dev_err(hdev->dev, "HBM%d PHY IO-DC test FAILED\n", dev);
+		hl_err(hdev, "HBM%d PHY IO-DC test FAILED\n", dev);
 		return rc;
 	}
 
-	dev_dbg(hdev->dev, "HBM%d PHY IO-DC test PASSED\n", dev);
+	hl_dbg(hdev, "HBM%d PHY IO-DC test PASSED\n", dev);
 	return rc;
 }
 
@@ -1011,7 +1011,7 @@ static void phy_test_io_ac(struct hl_device *hdev, u32 dev)
 
 	/* PLDM HBM model doesn't support 34bit MISR */
 	if (hdev->pldm) {
-		dev_dbg(hdev->dev,
+		hl_dbg(hdev,
 			"Skipping PHY IO-AC test - PLDM HBM model doesn't support 34bit MISR\n");
 		return;
 	}
@@ -1042,26 +1042,26 @@ static void phy_test_io_ac(struct hl_device *hdev, u32 dev)
 		100,
 		timeout);
 	if (rc) {
-		dev_err(hdev->dev,
+		hl_err(hdev,
 			"Timeout while waiting for PHY MISR to complete. LaneRepairStatus: 0x%x\n",
 			reg_val);
 		return;
 	}
 
 	if (reg_val & HBM_PHY_MASTER_LANEREPAIRSTATUS_LANEREPAIRMISRTESTERR_MASK) {
-		dev_dbg(hdev->dev, "HBM%d PHY IO-AC test FAILED. LaneRepairStatus: 0x%x\n",
+		hl_dbg(hdev, "HBM%d PHY IO-AC test FAILED. LaneRepairStatus: 0x%x\n",
 			dev, reg_val);
 		phy_error(hdev, dev);
 		return;
 	}
 
 	if (phy_error(hdev, dev)) {
-		dev_err(hdev->dev, "HBM%d PHY IO-AC test passed but mismatches have been FOUND. LaneRepairStatus = 0x%x\n",
+		hl_err(hdev, "HBM%d PHY IO-AC test passed but mismatches have been FOUND. LaneRepairStatus = 0x%x\n",
 			dev, reg_val);
 		return;
 	}
 
-	dev_dbg(hdev->dev, "HBM%d PHY IO-AC test PASSED. LaneRepairStatus = 0x%x\n", dev, reg_val);
+	hl_dbg(hdev, "HBM%d PHY IO-AC test PASSED. LaneRepairStatus = 0x%x\n", dev, reg_val);
 }
 
 static void phy_config_zq_cal(struct hl_device *hdev, u32 hbm_dev)
@@ -1787,7 +1787,7 @@ static int poll_on_phy_init(struct hl_device *hdev, u32 dev, u32 mc_idx)
 		timeout);
 
 	if (rc) {
-		dev_err(hdev->dev,
+		hl_err(hdev,
 			"Timeout while polling on HBM%d MC%d dfi_init_complete assertion\n",
 			dev, mc_idx);
 		return status_fail;
@@ -1820,8 +1820,8 @@ static void print_training_vref(struct hl_device *hdev, int hbm_dev,
 	if (training_cfg->training_type != train_type_hw_only)
 		return;
 
-	dev_dbg(hdev->dev, "<5> VREF training\n");
-	dev_dbg(hdev->dev, "VREF-Min = 0x%04x \t VREF-Max = 0x%04x\n",
+	hl_dbg(hdev, "<5> VREF training\n");
+	hl_dbg(hdev, "VREF-Min = 0x%04x \t VREF-Max = 0x%04x\n",
 		vref_res->min, vref_res->max);
 }
 
@@ -1849,9 +1849,9 @@ static void print_training_dw(struct hl_device *hdev, int hbm_dev,
 	return;
 #endif
 
-	dev_dbg(hdev->dev, "\n%s<2> *** HBM%d DWORDs DFIM read latency ***\n", SPACES40, hbm_dev);
-	dev_dbg(hdev->dev, "   CH%sDW-0  DW-1  DW-2  DW-3\n", SPACES10);
-	dev_dbg(hdev->dev, "  ----- : -------------------------------------\n");
+	hl_dbg(hdev, "\n%s<2> *** HBM%d DWORDs DFIM read latency ***\n", SPACES40, hbm_dev);
+	hl_dbg(hdev, "   CH%sDW-0  DW-1  DW-2  DW-3\n", SPACES10);
+	hl_dbg(hdev, "  ----- : -------------------------------------\n");
 	for (ch = 0; ch < HBM_PHY_CHANNELS_NUM; ch++) {
 		size = 0;
 		size += snprintf(s + size, 500 - size, "      ");
@@ -1859,17 +1859,17 @@ static void print_training_dw(struct hl_device *hdev, int hbm_dev,
 			size += snprintf(s + size, 500 - size, "0x%02x  ",
 					 dw_res[ch * HBM_CHANNEL_DWORDS_NUM + dw].rx.read_latency);
 		}
-		dev_dbg(hdev->dev, "   CH-%d :%s", ch, s);
+		hl_dbg(hdev, "   CH-%d :%s", ch, s);
 	}
 
-	dev_dbg(hdev->dev, "\n%s<3> *** HBM%d DWORDs RDQS rising edge delay ***\n",
+	hl_dbg(hdev, "\n%s<3> *** HBM%d DWORDs RDQS rising edge delay ***\n",
 		SPACES40, hbm_dev);
-	dev_dbg(hdev->dev, "  %s%sDW-0%s%s%sDW-1%s%s%sDW-2%s%s%sDW-3\n",
+	hl_dbg(hdev, "  %s%sDW-0%s%s%sDW-1%s%s%sDW-2%s%s%sDW-3\n",
 		SPACES10, SPACES10, SPACES10, SPACES10, SPACES10, SPACES10, SPACES10, SPACES10,
 		SPACES10, SPACES10, SPACES10);
-	dev_dbg(hdev->dev,
+	hl_dbg(hdev,
 		" ----- : --------------------------------------------------------------------------------------------------------------------------------\n");
-	dev_dbg(hdev->dev,
+	hl_dbg(hdev,
 		"  CH   :  result (ratio)  Min  -  Max%s result (ratio)  Min  -  Max%s result (ratio)  Min  -  Max%s result (ratio)  Min  -  Max\n",
 		SPACES5, SPACES5, SPACES5);
 	for (ch = 0; ch < HBM_PHY_CHANNELS_NUM; ch++) {
@@ -1899,17 +1899,17 @@ static void print_training_dw(struct hl_device *hdev, int hbm_dev,
 					 dw_res[dw_res_offset].rx.rdqs_rise.min,
 					 dw_res[dw_res_offset].rx.rdqs_rise.max);
 		}
-		dev_dbg(hdev->dev, "%s", s);
+		hl_dbg(hdev, "%s", s);
 	}
 
-	dev_dbg(hdev->dev, "\n%s<3> *** HBM%d DWORDs RDQS falling edge delay ***\n",
+	hl_dbg(hdev, "\n%s<3> *** HBM%d DWORDs RDQS falling edge delay ***\n",
 		SPACES40, hbm_dev);
-	dev_dbg(hdev->dev, "  %s%sDW-0%s%s%sDW-1%s%s%sDW-2%s%s%sDW-3\n",
+	hl_dbg(hdev, "  %s%sDW-0%s%s%sDW-1%s%s%sDW-2%s%s%sDW-3\n",
 		SPACES10, SPACES10, SPACES10, SPACES10, SPACES10, SPACES10, SPACES10, SPACES10,
 		SPACES10, SPACES10, SPACES10);
-	dev_dbg(hdev->dev,
+	hl_dbg(hdev,
 		 " ----- : --------------------------------------------------------------------------------------------------------------------------------\n");
-	dev_dbg(hdev->dev,
+	hl_dbg(hdev,
 		"  CH   :  result (ratio)  Min  -  Max%s result (ratio)  Min  -  Max%s result (ratio)  Min  -  Max%s result (ratio)  Min  -  Max\n",
 		SPACES5, SPACES5, SPACES5);
 	for (ch = 0; ch < HBM_PHY_CHANNELS_NUM; ch++) {
@@ -1939,10 +1939,10 @@ static void print_training_dw(struct hl_device *hdev, int hbm_dev,
 					 dw_res[dw_res_offset].rx.rdqs_fall.min,
 					 dw_res[dw_res_offset].rx.rdqs_fall.max);
 		}
-		dev_dbg(hdev->dev, "%s", s);
+		hl_dbg(hdev, "%s", s);
 	}
 
-	dev_dbg(hdev->dev,
+	hl_dbg(hdev,
 		 "\n%s%s%s%sFor all DWORDs - RD eye avg ratio: %d%% RD eye min ratio: %d%%\n\n",
 		SPACES10, SPACES10, SPACES10, SPACES5, ratio_sum /
 		(RDQS_RISING_FALLING_EDGES_FACTOR * 32), ratio_min);
@@ -1950,14 +1950,14 @@ static void print_training_dw(struct hl_device *hdev, int hbm_dev,
 	ratio_sum = 0;
 	ratio_min = 100;
 
-	dev_dbg(hdev->dev, "\n%s<4> *** HBM%d DWORDs DQ transmit delay ***\n",
+	hl_dbg(hdev, "\n%s<4> *** HBM%d DWORDs DQ transmit delay ***\n",
 	SPACES40, hbm_dev);
-	dev_dbg(hdev->dev, "  %s%sDW-0%s%s%sDW-1%s%s%sDW-2%s%s%sDW-3\n",
+	hl_dbg(hdev, "  %s%sDW-0%s%s%sDW-1%s%s%sDW-2%s%s%sDW-3\n",
 	SPACES10, SPACES10, SPACES10, SPACES10, SPACES10, SPACES10, SPACES10, SPACES10, SPACES10,
 	SPACES10, SPACES10);
-	dev_dbg(hdev->dev,
+	hl_dbg(hdev,
 	 " ----- : --------------------------------------------------------------------------------------------------------------------------------\n");
-	dev_dbg(hdev->dev, "  CH   :  result (ratio)  Min  -  Max%s result (ratio)  Min  -  Max%s result (ratio)  Min  -  Max%s result (ratio)  Min  -  Max\n",
+	hl_dbg(hdev, "  CH   :  result (ratio)  Min  -  Max%s result (ratio)  Min  -  Max%s result (ratio)  Min  -  Max%s result (ratio)  Min  -  Max\n",
 	SPACES5, SPACES5, SPACES5);
 	for (ch = 0; ch < HBM_PHY_CHANNELS_NUM; ch++) {
 		size = 0;
@@ -1986,10 +1986,10 @@ static void print_training_dw(struct hl_device *hdev, int hbm_dev,
 					 dw_res[dw_res_offset].tx.dq.min,
 					 dw_res[dw_res_offset].tx.dq.max);
 		}
-		dev_dbg(hdev->dev, "%s", s);
+		hl_dbg(hdev, "%s", s);
 	}
 
-	dev_dbg(hdev->dev,
+	hl_dbg(hdev,
 	 "\n%s%s%s%sFor all DWORDs - WR eye avg ratio: %d%% WR eye min ratio: %d%%\n\n",
 	SPACES10, SPACES10, SPACES10, SPACES5, ratio_sum / 32, ratio_min);
 }
@@ -2003,21 +2003,21 @@ static void print_training_ca(struct hl_device *hdev, int dev,
 #ifndef DEBUG
 	return;
 #endif
-	dev_dbg(hdev->dev, "\n%s<1> *** HBM%d Command-Address transmit delay ***\n", SPACES40, dev);
-	dev_dbg(hdev->dev, "  CH   :   result (ratio)%sMin  -  Max\n", SPACES5);
-	dev_dbg(hdev->dev, " ----- : -------------------------------------\n");
+	hl_dbg(hdev, "\n%s<1> *** HBM%d Command-Address transmit delay ***\n", SPACES40, dev);
+	hl_dbg(hdev, "  CH   :   result (ratio)%sMin  -  Max\n", SPACES5);
+	hl_dbg(hdev, " ----- : -------------------------------------\n");
 	for (ch = 0; ch < HBM_PHY_CHANNELS_NUM; ch++) {
 		ratio = ca_res[ch].ratio_1ui;
 		ratio_sum += ratio;
 		ratio_min = ratio < ratio_min ? ratio : ratio_min;
-		dev_dbg(hdev->dev, "  CH-%d :    0x%02x   (%02d%%)     0x%02x - 0x%02x\n",
+		hl_dbg(hdev, "  CH-%d :    0x%02x   (%02d%%)     0x%02x - 0x%02x\n",
 			ch,
 			ca_res[ch].final,
 			ratio,
 			ca_res[ch].min,
 			ca_res[ch].max);
 	}
-	dev_dbg(hdev->dev,
+	hl_dbg(hdev,
 	"\n%s%s%s%sFor all Channels - CA eye avg ratio: %d%% CA eye min ratio: %d%%\n\n",
 	SPACES10, SPACES10, SPACES10, SPACES5, ratio_sum / 8, ratio_min);
 }
@@ -2042,7 +2042,7 @@ static int phy_get_training_results(struct hl_device *hdev, int dev)
 	vref_res = kmalloc_array(HBM_PHY_CHANNELS_NUM, sizeof(u32),
 			       GFP_KERNEL);
 	if (dw_res == NULL || ca_res == NULL  || ck_res == NULL || vref_res == NULL) {
-		dev_err(hdev->dev, "Failed to allocate kernel memory for HW training results\n");
+		hl_err(hdev, "Failed to allocate kernel memory for HW training results\n");
 		rc = status_fail;
 		goto free_mem;
 	}
@@ -2115,7 +2115,7 @@ static int phy_get_training_results(struct hl_device *hdev, int dev)
 	}
 
 	if (fail_cntr)
-		dev_err(hdev->dev, "HBM%d - %d violations of eye width (<%d%%)\n",
+		hl_err(hdev, "HBM%d - %d violations of eye width (<%d%%)\n",
 			dev, fail_cntr, TRAINING_EYE_TH);
 
 	/* VREF */
@@ -2125,9 +2125,9 @@ static int phy_get_training_results(struct hl_device *hdev, int dev)
 			mmHBM_PHY_MASTER_VREFINDACSTATUS) & 0x3f80) >>
 			HBM_PHY_MASTER_VREFINDACSTATUS_GLOBALVREFINDACMAX_SHIFT;
 
-	dev_dbg(hdev->dev, "MiscStatus: 0x%x\n", hbm_phy_read(hdev, dev,
+	hl_dbg(hdev, "MiscStatus: 0x%x\n", hbm_phy_read(hdev, dev,
 			mmHBM_PHY_MASTER_MISCSTATUS));
-	dev_dbg(hdev->dev, "ChnStatus: 0x%x\n", hbm_phy_read(hdev, dev,
+	hl_dbg(hdev, "ChnStatus: 0x%x\n", hbm_phy_read(hdev, dev,
 			mmHBM_PHY_MASTER_CHNSTATUS));
 
 	debug_print_lcdls_1ui(hdev, dev);
@@ -2160,7 +2160,7 @@ static int phy_poll_on_training(struct hl_device *hdev, u32 hbm_dev)
 		timeout);
 
 	if (rc) {
-		dev_err(hdev->dev,
+		hl_err(hdev,
 			"HBM%d Timeout while polling for training FSM completion. TrainStatus: 0x%x\n",
 			hbm_dev, reg_val);
 		rc = status_fail;
@@ -2188,7 +2188,7 @@ static int hbm_mrs(struct hl_device *hdev, int hbm_dev)
 
 	reg_val = hbm_phy_read(hdev, hbm_dev, mmHBM_PHY_MASTER_TRAINSTATUS) & TRAINSTATUS_MASK;
 	if (reg_val != train_fsm_status_valid) {
-		dev_err(hdev->dev, "HBM%d - FAILED to set mode registers. TrainStatus: 0x%x\n",
+		hl_err(hdev, "HBM%d - FAILED to set mode registers. TrainStatus: 0x%x\n",
 			hbm_dev, reg_val);
 		return status_fail;
 	}
@@ -2215,7 +2215,7 @@ static int hbm_reset(struct hl_device *hdev, int hbm_dev)
 
 	reg_val = hbm_phy_read(hdev, hbm_dev, mmHBM_PHY_MASTER_TRAINSTATUS) & TRAINSTATUS_MASK;
 	if (reg_val != train_fsm_status_valid) {
-		dev_err(hdev->dev, "HBM%d - FAILED to reset HBM device. TrainStatus: 0x%x\n",
+		hl_err(hdev, "HBM%d - FAILED to reset HBM device. TrainStatus: 0x%x\n",
 			hbm_dev, reg_val);
 		return status_fail;
 	}
@@ -2256,7 +2256,7 @@ static int phy_hw_training(struct hl_device *hdev, int hbm_dev)
 
 	/* Reduce debug prints */
 	if (training_cfg->training_type == train_type_hw_only) {
-		dev_dbg(hdev->dev, "TrainCtrl: 0x%x | TrainCfg: 0x%x\n",
+		hl_dbg(hdev, "TrainCtrl: 0x%x | TrainCfg: 0x%x\n",
 			hbm_phy_read(hdev, hbm_dev, mmHBM_PHY_MASTER_TRAINCTRL),
 			hbm_phy_read(hdev, hbm_dev, mmHBM_PHY_MASTER_TRAINCFG));
 	}
@@ -2272,7 +2272,7 @@ static int phy_hw_training(struct hl_device *hdev, int hbm_dev)
 	if (reg_val != train_status_valid) {
 		rc = status_fail;
 		if (training_cfg->training_type == train_type_hw_only)
-			dev_err(hdev->dev, "HBM%d Training DID NOT COMPLETE AS EXPECTED\n",
+			hl_err(hdev, "HBM%d Training DID NOT COMPLETE AS EXPECTED\n",
 				hbm_dev);
 		if (rc)
 			goto exit;
@@ -2564,7 +2564,7 @@ static int set_timing_params(struct hl_device *hdev,
 	ac_params->trd_data_en = (ac_params->rd_lat - 2) - 17;
 	ac_params->ctrlupd_max_t = 54 + ac_params->extend_phased_time;
 
-	dev_dbg(hdev->dev, "Setting AC params for system frequency %dMHz\n", enum_to_freq(freq));
+	hl_dbg(hdev, "Setting AC params for system frequency %dMHz\n", enum_to_freq(freq));
 	return 0;
 }
 
@@ -2692,7 +2692,7 @@ static void mc_phy_config(struct hl_device *hdev, u32 dev)
 	int mc_idx;
 #ifdef DUMP_DYNAMIC
 	if (dev == 0)
-		dev_err(hdev->dev, "DUMP: %s +\n", __func__);
+		hl_err(hdev, "DUMP: %s +\n", __func__);
 #endif
 	phy_reset(hdev, dev);
 
@@ -2706,7 +2706,7 @@ static void mc_phy_config(struct hl_device *hdev, u32 dev)
 	phy_init_config(hdev, dev);
 #ifdef DUMP_DYNAMIC
 	if (dev == 0)
-		dev_err(hdev->dev, "DUMP: %s -\n", __func__);
+		hl_err(hdev, "DUMP: %s -\n", __func__);
 #endif
 }
 
@@ -2807,7 +2807,7 @@ static void enable_auto_temp(struct hl_device *hdev, u32 dev)
 	reg_val |= FIELD_PREP(HBM0_MC0_P1500_AUTO_TMP_INTERVAL_MASK, auto_temp_interval);
 	WREG32(mmHBM0_MC0_P1500_AUTO_TMP + mc1_offset, reg_val);
 
-	dev_dbg(hdev->dev, "Auto Temperature in HBM%d is enabled\n", dev);
+	hl_dbg(hdev, "Auto Temperature in HBM%d is enabled\n", dev);
 }
 
 static void enable_traffic_throttling(struct hl_device *hdev, u32 dev)
@@ -2832,7 +2832,7 @@ static void enable_traffic_throttling(struct hl_device *hdev, u32 dev)
 			reg_val = FIELD_PREP(HBM0_MC0_P1500_THROT_MON_THROT_MODE_MASK, 0x2);
 		WREG32(mmHBM0_MC0_P1500_THROT_MON + mc_offset, reg_val);
 	}
-	dev_dbg(hdev->dev, "Traffic Throttling in HBM%d is enabled\n", dev);
+	hl_dbg(hdev, "Traffic Throttling in HBM%d is enabled\n", dev);
 }
 
 static int phy_ch_mapping(int ch)
@@ -2878,7 +2878,7 @@ static int mc_mrs_cmd(struct hl_device *hdev, u32 hbm_dev, int mc_idx, int ch_id
 			((poll3 & HBM0_MC0_SEQ_PWR_STATE_MASK) == 0),
 			1, trig_delay);
 	if (timeout) {
-		dev_err(hdev->dev,
+		hl_err(hdev,
 			"MC MRS command FAILED (HBM%d MC%d CH%d) - Timeout while polling for idle state: MRS_COMMAND_TRIG=0x%08x, PWR_COMMAND_TRIG=0x%08x, PWR_STATE=0x%08x\n",
 			hbm_dev, mc_idx, ch_idx, poll1, poll2, poll3);
 		return status_fail;
@@ -2894,7 +2894,7 @@ static int mc_mrs_cmd(struct hl_device *hdev, u32 hbm_dev, int mc_idx, int ch_id
 			((poll1 & HBM0_MC0_SEQ_MRS_COMMAND_TRIG_VAL_MASK) == 0),
 			1, trig_delay);
 	if (timeout) {
-		dev_err(hdev->dev,
+		hl_err(hdev,
 			"MC MRS command FAILED (HBM%d MC%d CH%d) - Timeout while polling for MRS completion: MRS_COMMAND_TRIG=0x%08x\n",
 			hbm_dev, mc_idx, ch_idx, poll1);
 		return status_fail;
@@ -2942,14 +2942,14 @@ static int change_dbi(struct hl_device *hdev, u32 hbm_dev, int mc_idx, u32 dbi_m
 
 	for (ch_idx = ch_begin_idx; ch_idx < ch_end_idx; ch_idx++) {
 		if (mc_mrs_cmd(hdev, hbm_dev, mc_idx, ch_idx, 0, mr0.val)) {
-			dev_err(hdev->dev,
+			hl_err(hdev,
 				"MC %s FAILED (HBM%d MC%d CH%d) - MRS (MR0) command failure\n",
 				__func__, hbm_dev, mc_idx, ch_idx);
 			return status_fail;
 		}
 
 		if (mc_mrs_cmd(hdev, hbm_dev, mc_idx, ch_idx, 4, mr4.val)) {
-			dev_err(hdev->dev,
+			hl_err(hdev,
 				"MC %s FAILED (HBM%d MC%d CH%d) - MRS (MR4) command failure\n",
 				__func__, hbm_dev, mc_idx, ch_idx);
 			return status_fail;
@@ -2980,7 +2980,7 @@ static int change_dbi(struct hl_device *hdev, u32 hbm_dev, int mc_idx, u32 dbi_m
 	reg_val |= FIELD_PREP(HBM0_MC0_DFI_PHY_CFG_PARITY_RL_MASK, pl);
 	WREG32(mmHBM0_MC0_DFI_PHY_CFG + mc_offset, reg_val);
 
-	dev_dbg(hdev->dev, "DBI mode changed to %u (HBM%d MC%d)\n", dbi_mode, hbm_dev, mc_idx);
+	hl_dbg(hdev, "DBI mode changed to %u (HBM%d MC%d)\n", dbi_mode, hbm_dev, mc_idx);
 	return 0;
 }
 
@@ -3146,7 +3146,7 @@ static struct pc_err_bitmap syndrome_to_bitmap(struct hl_device *hdev, u8 syndro
 		map.dm = 0x80; break;
 
 	default:
-		dev_err(hdev->dev, "Received illegal ECC syndrome! 0x%02x\n", syndrome);
+		hl_err(hdev, "Received illegal ECC syndrome! 0x%02x\n", syndrome);
 	}
 
 	return map;
@@ -3325,10 +3325,10 @@ static int hbm_mcbist_run(struct hl_device *hdev, u32 hbm_dev, u16 sram_bist_sel
 			10,
 			timeout);
 		if (rc) {
-			dev_err(hdev->dev,
+			hl_err(hdev,
 				"HBM MCBIST FAILED - Timeout while polling on MCBIST end - HBM%d MC%d PC%02d\n",
 				hbm_dev, pc, mc_idx);
-			dev_err(hdev->dev, "SEI0: 0x%x, SEI1: 0x%x\n",
+			hl_err(hdev, "SEI0: 0x%x, SEI1: 0x%x\n",
 				RREG32(mmHBM0_MC0_SEI_STATUS_INTR_0 + mc_offset),
 				RREG32(mmHBM0_MC0_SEI_STATUS_INTR_1 + mc_offset));
 			return status_fail;
@@ -3382,21 +3382,21 @@ static u32 mcbist_error_parser(struct hl_device *hdev, u32 hbm_dev,
 			rc |= BIT(pc);
 			/* high 16b of rc denote CA error */
 			rc |= (BIT(pc) << 16);
-			dev_err(hdev->dev,
+			hl_err(hdev,
 				"HBM MCBIST FAILED - CA parity error(s) - HBM%d PC%d (MC%d)\n",
 				hbm_dev, pc, mc_idx);
 		}
 
 		if (rdpar & BIT(pc)) {
 			rc |= BIT(pc);
-			dev_err(hdev->dev,
+			hl_err(hdev,
 				"HBM MCBIST FAILED - RD parity error(s) - HBM%d PC%d (MC%d)\n",
 				hbm_dev, pc, mc_idx);
 		}
 
 		if (wrpar & BIT(pc)) {
 			rc |= BIT(pc);
-			dev_err(hdev->dev,
+			hl_err(hdev,
 				"HBM MCBIST FAILED - WR parity error(s) - HBM%d PC%d (MC%d)\n",
 				hbm_dev, pc, mc_idx);
 		}
@@ -3404,13 +3404,13 @@ static u32 mcbist_error_parser(struct hl_device *hdev, u32 hbm_dev,
 		/*** ECC errors ***/
 		if (serr & BIT(pc)) {
 			rc |= BIT(pc);
-			dev_err(hdev->dev,
+			hl_err(hdev,
 				"HBM MCBIST FAILED - %d ECC error(s) - HBM%d PC%d (MC%d)\n",
 				RREG32(mmHBM0_MC0_DFI_ECC_SERR_CNT_0  + pc_offset),
 				hbm_dev, pc, mc_idx);
 
 			addr = RREG32(mmHBM0_MC0_DFI_RD_ERR_REP_ADDR_0 + pc_offset);
-			dev_dbg(hdev->dev,
+			hl_dbg(hdev,
 				"\tECC 1st error: HBM address SID=%01x BG=%01x BA=%01x ROW=0x%04x COL=0x%02x\n",
 				(addr & HBM0_MC0_DFI_RD_ERR_REP_ADDR_SID_MASK) >>
 				    HBM0_MC0_DFI_RD_ERR_REP_ADDR_SID_SHIFT,
@@ -3433,7 +3433,7 @@ static u32 mcbist_error_parser(struct hl_device *hdev, u32 hbm_dev,
 					map = syndrome_to_bitmap(hdev, syndromes & 0xFF);
 					err_bitmaps_out[pc].dq |= map.dq;
 					err_bitmaps_out[pc].dm |= map.dm;
-					dev_dbg(hdev->dev,
+					hl_dbg(hdev,
 						"\tECC 1st error: error bitmap for beat %d: DQ = 0x%016llx, DM = 0x%02x\n",
 						i, map.dq, map.dm);
 				}
@@ -3443,14 +3443,14 @@ static u32 mcbist_error_parser(struct hl_device *hdev, u32 hbm_dev,
 		/*** Data Mismatch errors ***/
 		if (bisterr & BIT(pc)) {
 			rc |= BIT(pc);
-			dev_err(hdev->dev,
+			hl_err(hdev,
 				"HBM MCBIST FAILED - %d data mismatch errors - HBM%d PC%02d (MC%d)\n",
 				RREG32(mmHBM0_MC0BIST0_MISMATCH_CNT + mcbist_pc_offset),
 				hbm_dev, pc, mc_idx);
 #ifdef DEBUG
 			/******* Removing this section due to bug - JIRA H6-3233  *******
 			 *u32 addr = RREG32(mmHBM0_MC0BIST0_MISMATCH_FIRST_ADDR + mcbist_pc_offset);
-			 *dev_err(hdev->dev,
+			 *hl_err(hdev,
 			 *	"--> 1st mismatch HBM address: SID=%01x BG=%01x BA=%01x"
 			 *      "ROW=0x%04x COL=0x%02x\n",
 			 *	/-* addr mapping according to cfg at beginning of this function *-/
@@ -3487,10 +3487,10 @@ static u32 mcbist_error_parser(struct hl_device *hdev, u32 hbm_dev,
 				rcv |= RREG32(mmHBM0_MC0BIST0_FIRST_MISMATCH_RECEIVED +
 					      mcbist_pc_offset);
 
-				dev_dbg(hdev->dev,
+				hl_dbg(hdev,
 					"\t1st mismatch beat %d: expected = 0x%016llx , received = 0x%016llx\n",
 					i, exp, rcv);
-				dev_dbg(hdev->dev,
+				hl_dbg(hdev,
 					"\terror bitmap beat %d: DQ = 0x%016llx\n",
 					i, exp ^ rcv);
 
@@ -3643,7 +3643,7 @@ static u32 hbm_mcbist(struct hl_device *hdev, u32 hbm_dev,
 		if (cfg->dbi_mode != orig_dbi_mode) {
 			if (change_dbi(hdev, hbm_dev, mc, cfg->dbi_mode, mc_ch_begin_idx,
 				mc_ch_end_idx)) {
-				dev_err(hdev->dev,
+				hl_err(hdev,
 					"HBM%d MC%d MCBIST FAILED - cannot set DBI mode to %d\n",
 					hbm_dev, mc, cfg->dbi_mode);
 				return MCBIST_ERR;
@@ -3691,7 +3691,7 @@ static u32 hbm_mcbist(struct hl_device *hdev, u32 hbm_dev,
 				/* BIST address */
 				hbm_mcbist_load_sram(hdev, mcbist_mem_offset, row, 8, bist_addr);
 			}
-			dev_dbg(hdev->dev, "HBM%d MC%d MCBIST SRAM was loaded with address and data\n",
+			hl_dbg(hdev, "HBM%d MC%d MCBIST SRAM was loaded with address and data\n",
 				hbm_dev, mc);
 		}
 	}
@@ -3730,7 +3730,7 @@ static u32 hbm_mcbist(struct hl_device *hdev, u32 hbm_dev,
 		err_bitmaps[pc].dm = 0;
 	}
 
-	dev_dbg(hdev->dev, "HBM%d MCBIST settings: DATA_MODE=%d, POLY=0x%04x, SEED=0x%04x\n",
+	hl_dbg(hdev, "HBM%d MCBIST settings: DATA_MODE=%d, POLY=0x%04x, SEED=0x%04x\n",
 		hbm_dev, cfg->data_mode, poly, seed);
 
 	/* Iterate on all PCs selected for SRAM BIST +
@@ -3758,7 +3758,7 @@ static u32 hbm_mcbist(struct hl_device *hdev, u32 hbm_dev,
 				  (sram_bist_1hot_sel_mc1    << HBM0_MC0_BIST_EN_WITH_MEM_SHIFT);
 		WREG32(mmHBM0_MC0_BIST_EN + dev_offset, cfg_bist_en_mc0);
 		WREG32(mmHBM0_MC0_BIST_EN + dev_offset + MC_OFFSET, cfg_bist_en_mc1);
-		dev_dbg(hdev->dev,
+		hl_dbg(hdev,
 			"HBM%d MCBIST settings: cfg_bist_en_mc0 = 0x%08x , cfg_bist_en_mc1 = 0x%08x\n",
 			hbm_dev, cfg_bist_en_mc0, cfg_bist_en_mc1);
 
@@ -3834,7 +3834,7 @@ static u32 hbm_mcbist(struct hl_device *hdev, u32 hbm_dev,
 		if (cfg->dbi_mode != orig_dbi_mode)
 			if (change_dbi(hdev, hbm_dev, mc, orig_dbi_mode, mc_ch_begin_idx,
 				mc_ch_end_idx)) {
-				dev_err(hdev->dev,
+				hl_err(hdev,
 					"HBM MCBIST FAILED - cannot restore DBI mode to %d - HBM%d MC%d\n",
 					orig_dbi_mode, hbm_dev, mc);
 				return MCBIST_ERR;
@@ -3853,7 +3853,7 @@ static int soft_lane_repair(struct hl_device *hdev, u32 hbm_dev, u16 repair_map)
 	int mc, pc, phy_ch, dw_idx;
 
 	if (!SLR_ENABLE) {
-		dev_err(hdev->dev, "SOFT lane repair is disabled\n");
+		hl_err(hdev, "SOFT lane repair is disabled\n");
 		return status_fail;
 	}
 
@@ -3870,7 +3870,7 @@ static int soft_lane_repair(struct hl_device *hdev, u32 hbm_dev, u16 repair_map)
 		if (!(repair_map & BIT(pc)))
 			continue;
 
-		dev_dbg(hdev->dev, "Applying SOFT lane repair - HBM%d PC%d\n",
+		hl_dbg(hdev, "Applying SOFT lane repair - HBM%d PC%d\n",
 			hbm_dev, pc);
 
 		phy_ch = phy_ch_mapping(pc / 2);
@@ -3911,7 +3911,7 @@ static int soft_lane_repair(struct hl_device *hdev, u32 hbm_dev, u16 repair_map)
 			timeout);
 
 	if (polling_rc) {
-		dev_err(hdev->dev,
+		hl_err(hdev,
 			"HBM%d SOFT LANE REPAIR FAILED - Timeout while polling on LaneRepairDone\n",
 			hbm_dev);
 		return status_fail;
@@ -3982,16 +3982,16 @@ static u32 mcbist_analyzer(struct hl_device *hdev, u32 hbm_dev, u32 mcbist_rc,
 		/* CA parity error is un-repairable */
 		if (mcbist_rc & (BIT(pc) << 16)) {
 			analyzer_rc |= BIT(pc + MCBIST_FAIL_UNREPAIRABLE_SHIFT);
-			dev_err(hdev->dev,
+			hl_err(hdev,
 				"HBM MCBIST IO AC test - Unrepairable FAIL on CA parity - HBM%d PC%02d (MC%d)\n",
 				hbm_dev, pc, mc);
 			return analyzer_rc;
 		}
 
 		/* If reached here, we suspect 1 or more defect DWORD lanes */
-		dev_err(hdev->dev, "HBM%d PC%d defect DQ lanes bitmap = 0x%llx\n",
+		hl_err(hdev, "HBM%d PC%d defect DQ lanes bitmap = 0x%llx\n",
 			hbm_dev, pc, err_bitmaps[pc].dq);
-		dev_err(hdev->dev, "HBM%d PC%d defect DM lanes bitmap = 0x%x\n",
+		hl_err(hdev, "HBM%d PC%d defect DM lanes bitmap = 0x%x\n",
 			hbm_dev, pc, err_bitmaps[pc].dm);
 
 		/* Analyze whether lanes are repairable */
@@ -4002,7 +4002,7 @@ static u32 mcbist_analyzer(struct hl_device *hdev, u32 hbm_dev, u32 mcbist_rc,
 
 			if (hweight32(byte_pair) > 1) {
 				analyzer_rc |= BIT(pc + MCBIST_FAIL_UNREPAIRABLE_SHIFT);
-				dev_err(hdev->dev,
+				hl_err(hdev,
 					"HBM%d MCBIST IO AC test - Unrepairable FAIL: multiple lane errors in byte-pair %d - PC%d (MC%d)\n",
 					hbm_dev, i, pc, mc);
 				goto end;
@@ -4024,7 +4024,7 @@ static u32 mcbist_analyzer(struct hl_device *hdev, u32 hbm_dev, u32 mcbist_rc,
 		combined_remap = pc_current_remap & proposed_remap;
 		if (is_valid_repair(pc_current_remap, proposed_remap)) {
 			analyzer_rc |= BIT(pc + MCBIST_FAIL_REPAIRABLE_SHIFT);
-			dev_err(hdev->dev,
+			hl_err(hdev,
 				"HBM%d MCBIST IO AC test - Repairable FAIL: remap code = 0x%08x - PC%d (MC%d)\n",
 				hbm_dev, combined_remap, pc, mc);
 
@@ -4033,7 +4033,7 @@ static u32 mcbist_analyzer(struct hl_device *hdev, u32 hbm_dev, u32 mcbist_rc,
 			hbm_cfg->slr_info[phy_ch].dw[dw_idx + 1] = (combined_remap >> 16) & 0xFFFF;
 		} else {
 			analyzer_rc |= BIT(pc + MCBIST_FAIL_UNREPAIRABLE_SHIFT);
-			dev_err(hdev->dev,
+			hl_err(hdev,
 				"HBM%d MCBIST IO AC test - Unrepairable FAIL: inconsistency with existing remap (0x%08x vs 0x%08x) - PC%d (MC %d)\n",
 				hbm_dev, proposed_remap, pc_current_remap, pc, mc);
 			return analyzer_rc;
@@ -4057,11 +4057,11 @@ static int hbm_mcbist_io_ac(struct hl_device *hdev, u32 hbm_dev, struct mcbist_c
 		return status_fail;
 
 	if (io_ac_rc & rc_unrepairable_mask) {
-		dev_err(hdev->dev, "HBM%d MCBIST IO AC test (iter%d) FAILED Unrepairable\n",
+		hl_err(hdev, "HBM%d MCBIST IO AC test (iter%d) FAILED Unrepairable\n",
 			hbm_dev, iter);
 		return status_fail;
 	} else if (io_ac_rc & rc_repairable_mask) {
-		dev_err(hdev->dev,
+		hl_err(hdev,
 			"HBM%d MCBIST IO AC test (iter%d) FAILED Repairable\n",
 			hbm_dev, iter);
 		io_ac_rc = soft_lane_repair(hdev, hbm_dev, io_ac_rc & rc_repairable_mask);
@@ -4071,20 +4071,20 @@ static int hbm_mcbist_io_ac(struct hl_device *hdev, u32 hbm_dev, struct mcbist_c
 		mcbist_rc = hbm_mcbist(hdev, hbm_dev, err_bitmaps, cfg);
 		io_ac_rc = mcbist_analyzer(hdev, hbm_dev, mcbist_rc, err_bitmaps, cfg);
 		if (io_ac_rc) {
-			dev_err(hdev->dev, "HBM%d IO AC (iter%d) re-run after SOFT lane repair FAILED\n",
+			hl_err(hdev, "HBM%d IO AC (iter%d) re-run after SOFT lane repair FAILED\n",
 				hbm_dev, iter);
 			return status_fail;
 		}
-		dev_dbg(hdev->dev, "HBM%d IO AC test (iter%d) RE-RUN PASSED after SOFT lane repair\n",
+		hl_dbg(hdev, "HBM%d IO AC test (iter%d) RE-RUN PASSED after SOFT lane repair\n",
 					hbm_dev, iter);
 		return status_pass;
 	} else if (io_ac_rc != 0x0) {
-		dev_err(hdev->dev, "HBM%d IO AC test (iter%d) return code is invalid\n",
+		hl_err(hdev, "HBM%d IO AC test (iter%d) return code is invalid\n",
 			hbm_dev, iter);
 		return status_fail;
 	}
 
-	dev_dbg(hdev->dev, "HBM%d IO AC test (iter%d) PASSED\n", hbm_dev, iter);
+	hl_dbg(hdev, "HBM%d IO AC test (iter%d) PASSED\n", hbm_dev, iter);
 	return status_pass;
 }
 
@@ -4111,13 +4111,13 @@ static u16 hbm_mcbist_full_scrub(struct hl_device *hdev, u32 hbm_dev)
 
 	mcbist_rc = hbm_mcbist(hdev, hbm_dev, err_bitmaps, &mcbist_cfg);
 	if (mcbist_rc == 0) {
-		dev_dbg(hdev->dev, "HBM MCBIST Full Scrubbing PASSED - HBM%d\n", hbm_dev);
+		hl_dbg(hdev, "HBM MCBIST Full Scrubbing PASSED - HBM%d\n", hbm_dev);
 		return status_pass;
 	}
 
 	for (pc = 0; pc < HBM_PC_NUM; pc++) {
 		if (mcbist_rc & BIT(pc)) {
-			dev_err(hdev->dev,
+			hl_err(hdev,
 				"HBM MCBIST Full Scrubbing failed for HBM%d PC%02d (rc = 0x%08x)\n",
 				hbm_dev, pc, mcbist_rc);
 		}
@@ -4175,7 +4175,7 @@ static int mc_p1500_inst(struct hl_device *hdev, int dev, int ch,
 	wdr_regs_total = CEIL(remaining_data, BITS_PER_REG32);
 	trig_bit = HBM0_MC0_P1500_INST_CMD_START_MASK;
 	if (RREG32(mmHBM0_MC0_P1500_AUTO_TMP + mc1_offset) & HBM0_MC0_P1500_AUTO_TMP_ENABLE_MASK) {
-		dev_err(hdev->dev, "HBM%d IEEE15000 instruction FAILED - auto temperature is enabled\n",
+		hl_err(hdev, "HBM%d IEEE15000 instruction FAILED - auto temperature is enabled\n",
 			dev);
 		return status_fail;
 	}
@@ -4220,13 +4220,13 @@ static int mc_p1500_inst(struct hl_device *hdev, int dev, int ch,
 			timeout);
 
 		if (rc) {
-			dev_err(hdev->dev, "HBM%d IEEE15000 instruction code 0x%x failed\n",
+			hl_err(hdev, "HBM%d IEEE15000 instruction code 0x%x failed\n",
 				dev, inst);
 			return status_fail;
 		}
 
 		if (rc) {
-			dev_err(hdev->dev, "HBM%d IEEE15000 instruction paused WITHOUT SPI interrupt\n",
+			hl_err(hdev, "HBM%d IEEE15000 instruction paused WITHOUT SPI interrupt\n",
 				dev);
 			return status_fail;
 		}
@@ -4287,7 +4287,7 @@ static void print_auto_temp(struct hl_device *hdev, u32 dev)
 	min_temp = (auto_temp_data  & HBM0_MC0_P1500_TEMP_REP_AUTO_TEMP_MIN_MASK) >>
 	HBM0_MC0_P1500_TEMP_REP_AUTO_TEMP_MIN_SHIFT;
 
-	dev_dbg(hdev->dev, "Auto-Temp: current: %d, max:%d, min:%d\n",
+	hl_dbg(hdev, "Auto-Temp: current: %d, max:%d, min:%d\n",
 	curr_temp, max_temp, min_temp);
 }
 
@@ -4303,7 +4303,7 @@ static void clear_auto_temp_max_min(struct hl_device *hdev, u32 dev)
 	reg_val |= FIELD_PREP(HBM0_MC0_P1500_TEMP_REP_AUTO_TEMP_MIN_MASK, def_min_val);
 	WREG32(mmHBM0_MC0_P1500_TEMP_REP + mc1_offset, reg_val);
 
-	dev_dbg(hdev->dev, "Auto Temperature values in HBM%d have been restored to default\n", dev);
+	hl_dbg(hdev, "Auto Temperature values in HBM%d have been restored to default\n", dev);
 }
 
 static int hbm_temperature(struct hl_device *hdev, int dev)
@@ -4314,20 +4314,20 @@ static int hbm_temperature(struct hl_device *hdev, int dev)
 
 	rc = mc_p1500_inst(hdev, dev, 0xf, ieee1500_temperature, wir_read, &reg_val, mbist_off);
 	if (rc) {
-		dev_err(hdev->dev, "HBM%d temperature reading - IEEE1500 use FAILED\n", dev);
+		hl_err(hdev, "HBM%d temperature reading - IEEE1500 use FAILED\n", dev);
 		return status_fail;
 	}
 
 	if (reg_val & P1500_WDR_TEMP_VALID_BIT_MASK) {
-		dev_err(hdev->dev, "HBM%d temperature reading is INVALID\n", dev);
+		hl_err(hdev, "HBM%d temperature reading is INVALID\n", dev);
 		return status_fail;
 	}
 
 	temp_celsius = reg_val & 0x7F;
 	if (temp_celsius == 0)
-		dev_dbg(hdev->dev, "HBM%d temperature is 0C or less\n", dev);
+		hl_dbg(hdev, "HBM%d temperature is 0C or less\n", dev);
 	else
-		dev_dbg(hdev->dev, "HBM%d temperature: %dC\n", dev, temp_celsius);
+		hl_dbg(hdev, "HBM%d temperature: %dC\n", dev, temp_celsius);
 
 	return status_pass;
 }
@@ -4337,10 +4337,10 @@ static bool hbm_mbist_is_repairable(struct hl_device *hdev, u32 dev, u32 fail_ra
 {
 	/* check if mbist is repariable or not (0x11 means not repairable) */
 	if (fail_ra_cnt == 0x11) {
-		dev_err(hdev->dev, "MBIST is unrepairable, more then 16 rows failed");
+		hl_err(hdev, "MBIST is unrepairable, more then 16 rows failed");
 		return row_is_unrepairable;
 	}
-	dev_err(hdev->dev, "MBIST is repairable");
+	hl_err(hdev, "MBIST is repairable");
 	return row_is_repairable;
 }
 static int hbm_mbist_pbt_mode_parser(struct hl_device *hdev, u32 dev, u32 *result_raw,
@@ -4365,9 +4365,9 @@ static int hbm_mbist_pbt_mode_parser(struct hl_device *hdev, u32 dev, u32 *resul
 		if (mbist_status || fail_ra_cnt || pbt_run_fail) {
 			/* Maximum rows with repair vector defined */
 			err_count = MIN(fail_ra_cnt, MBIST_MAX_REPAIR_VECTORS_NUM);
-			dev_err(hdev->dev, "\n %s%sHBM%d CH%d MBIST STATUS: 0x%x\n",
+			hl_err(hdev, "\n %s%sHBM%d CH%d MBIST STATUS: 0x%x\n",
 				SPACES5, SPACES10, dev, ch_idx, status_data);
-			dev_err(hdev->dev, "STATUS: 0x%x, FAIL RA CNT: 0x%x, PBT Run Fail: 0x%x, SID: 0x%x\n\n",
+			hl_err(hdev, "STATUS: 0x%x, FAIL RA CNT: 0x%x, PBT Run Fail: 0x%x, SID: 0x%x\n\n",
 			mbist_status, fail_ra_cnt, pbt_run_fail, sid);
 
 			*mbist_is_repairable = hbm_mbist_is_repairable(hdev, dev, fail_ra_cnt);
@@ -4375,9 +4375,9 @@ static int hbm_mbist_pbt_mode_parser(struct hl_device *hdev, u32 dev, u32 *resul
 		}
 
 		if (err_count) {
-			dev_dbg(hdev->dev, "  repair vector : RA Master Bit%s   RA%sPBT Finish%sDQ Position%s\n",
+			hl_dbg(hdev, "  repair vector : RA Master Bit%s   RA%sPBT Finish%sDQ Position%s\n",
 				SPACES5, SPACES10, SPACES5, SPACES5);
-			dev_dbg(hdev->dev, "  ------------- : ------------------------------------------------------------\n");
+			hl_dbg(hdev, "  ------------- : ------------------------------------------------------------\n");
 		}
 
 		for (vec_idx = 0; vec_idx < err_count; vec_idx++) {
@@ -4389,7 +4389,7 @@ static int hbm_mbist_pbt_mode_parser(struct hl_device *hdev, u32 dev, u32 *resul
 			pbt_finish = FIELD_GET(MBIST_DATA_PBT_FINISH_MASK, repair_vec);
 			dq_position = FIELD_GET(MBIST_PBT_DATA_DQ_POSITION_MASK, repair_vec);
 
-			dev_dbg(hdev->dev, "%svec-%2d%s: %s0x%x%s 0x%03x%s 0x%x%s 0x%x\n",
+			hl_dbg(hdev, "%svec-%2d%s: %s0x%x%s 0x%03x%s 0x%x%s 0x%x\n",
 				SPACES5, vec_idx, SPACES5, SPACES5, ra_master_bit, SPACES10,
 				ra, SPACES10, pbt_finish, SPACES10, dq_position);
 
@@ -4488,9 +4488,9 @@ static int hbm_mbist_legacy_mode_parser(struct hl_device *hdev, u32 dev, u32 *re
 		if (mbist_status || fail_ra_cnt || rdqs_fail) {
 			/* Maximum rows with repair vector defined */
 			err_count = MIN(fail_ra_cnt, MBIST_MAX_REPAIR_VECTORS_NUM);
-			dev_err(hdev->dev, "\n %s%sHBM%d CH%d MBIST STATUS: 0x%x\n",
+			hl_err(hdev, "\n %s%sHBM%d CH%d MBIST STATUS: 0x%x\n",
 				SPACES5, SPACES10, dev, ch_idx, status_data);
-			dev_err(hdev->dev, "STATUS: 0x%x, FAIL RA CNT: 0x%x, RDQS Fail: 0x%x\n\n",
+			hl_err(hdev, "STATUS: 0x%x, FAIL RA CNT: 0x%x, RDQS Fail: 0x%x\n\n",
 			mbist_status, fail_ra_cnt, rdqs_fail);
 
 			*mbist_is_repairable = hbm_mbist_is_repairable(hdev, dev, fail_ra_cnt);
@@ -4498,9 +4498,9 @@ static int hbm_mbist_legacy_mode_parser(struct hl_device *hdev, u32 dev, u32 *re
 		}
 
 		if (err_count) {
-			dev_dbg(hdev->dev, "  repair vector : %sSID%s  RB%s  RA%s  DQ Position%s\n",
+			hl_dbg(hdev, "  repair vector : %sSID%s  RB%s  RA%s  DQ Position%s\n",
 				SPACES5, SPACES10, SPACES10, SPACES5, SPACES5);
-			dev_dbg(hdev->dev, "  ------------- : ------------------------------------------------------------\n");
+			hl_dbg(hdev, "  ------------- : ------------------------------------------------------------\n");
 		}
 
 		/* convert data for parsing from u32 regs to u32 bits array */
@@ -4526,7 +4526,7 @@ static int hbm_mbist_legacy_mode_parser(struct hl_device *hdev, u32 dev, u32 *re
 			ra = FIELD_GET(MBIST_LEGACY_DATA_RA_MASK, repair_vec);
 			dq_position = FIELD_GET(MBIST_LEGACY_DATA_DQ_POSITION_MASK, repair_vec);
 
-			dev_dbg(hdev->dev, "%svec-%2d%s: %s0x%x%s 0x%x%s 0x%03x%s    0x%x\n",
+			hl_dbg(hdev, "%svec-%2d%s: %s0x%x%s 0x%x%s 0x%03x%s    0x%x\n",
 				SPACES5, vec_idx, SPACES5, SPACES5, sid, SPACES10,
 				rb, SPACES10, ra, SPACES5, dq_position);
 
@@ -4574,7 +4574,7 @@ static int hbm_mbist_legacy_mode_parser(struct hl_device *hdev, u32 dev, u32 *re
 			MBIST_LEGACY_IGNORE_FIRST_BIT] << bit_idx);
 		}
 		if (mbist_status || fail_ra_cnt || rdqs_fail) {
-			dev_err(hdev->dev, "HBM%d CH%d - ERROR_CNT: 0x%x, IGNORE: 0x%08x%08x%08x\n\n",
+			hl_err(hdev, "HBM%d CH%d - ERROR_CNT: 0x%x, IGNORE: 0x%08x%08x%08x\n\n",
 				dev, ch_idx, error_cnt, ignore[2], ignore[1], ignore[0]);
 		}
 
@@ -4620,7 +4620,7 @@ static int hbm_mbist(struct hl_device *hdev, u32 dev,
 		wdr = hbm_mbist_config_pattern;
 		rc = mc_p1500_inst(hdev, dev, 0xf, ieee1500_mbist_a7, wir_write, wdr, mbist_mode);
 		if (rc) {
-			dev_err(hdev->dev, "HBM%d MBIST write A7 read instruction - IEEE1500 use FAILED\n",
+			hl_err(hdev, "HBM%d MBIST write A7 read instruction - IEEE1500 use FAILED\n",
 				dev);
 			return status_fail;
 		}
@@ -4631,7 +4631,7 @@ static int hbm_mbist(struct hl_device *hdev, u32 dev,
 			wdr = legacy_patterns_arr[pattern_idx];
 		rc = mc_p1500_inst(hdev, dev, 0xf, ieee1500_mbist_a6, wir_write, wdr, mbist_mode);
 		if (rc) {
-			dev_err(hdev->dev, "HBM%d MBIST A6 write instruction - IEEE1500 use FAILED\n",
+			hl_err(hdev, "HBM%d MBIST A6 write instruction - IEEE1500 use FAILED\n",
 				dev);
 			return status_fail;
 		}
@@ -4642,7 +4642,7 @@ static int hbm_mbist(struct hl_device *hdev, u32 dev,
 		wdr = mbist_result;
 		rc = mc_p1500_inst(hdev, dev, 0xf, ieee1500_mbist_a6, wir_read, wdr, mbist_mode);
 		if (rc) {
-			dev_err(hdev->dev, "HBM%d MBIST A6 read instruction - IEEE1500 use FAILED\n",
+			hl_err(hdev, "HBM%d MBIST A6 read instruction - IEEE1500 use FAILED\n",
 				dev);
 			return status_fail;
 		}
@@ -4656,18 +4656,18 @@ static int hbm_mbist(struct hl_device *hdev, u32 dev,
 
 		/* check MBIST status */
 		if (rc) {
-			dev_err(hdev->dev, "HBM%d MBIST pattern%d - %s FAILED\n",
+			hl_err(hdev, "HBM%d MBIST pattern%d - %s FAILED\n",
 			dev, pattern_idx, (mbist_mode == mbist_pbt_mode || pattern_idx >= 8) ?
 			pbt_pattern_names[pattern_idx] : legacy_pattern_names[pattern_idx]);
 
 			return status_fail;
 		}
-		dev_dbg(hdev->dev, "HBM%d MBIST pattern%d - %s PASSED\n", dev, pattern_idx,
+		hl_dbg(hdev, "HBM%d MBIST pattern%d - %s PASSED\n", dev, pattern_idx,
 			(mbist_mode == mbist_pbt_mode || pattern_idx >= 8) ?
 			pbt_pattern_names[pattern_idx] : legacy_pattern_names[pattern_idx]);
 	}
 
-	dev_dbg(hdev->dev, "HBM%d MBIST PASSED\n", dev);
+	hl_dbg(hdev, "HBM%d MBIST PASSED\n", dev);
 	return status_pass;
 }
 
@@ -4678,16 +4678,16 @@ static int hbm_row_repair(struct hl_device *hdev, u32 dev,
 	u32 repair_vector_reg, mc1_offset = dev * HBM_DEV_OFFSET + MC_OFFSET;
 
 	if (!ROW_REPAIR_ENABLE) {
-		dev_err(hdev->dev, "row repair is disabled\n");
+		hl_err(hdev, "row repair is disabled\n");
 		return status_fail;
 	}
 
 	if (*mbist_is_repairable) {
-		dev_err(hdev->dev, "row repair can not be done -  unrepairable\n");
+		hl_err(hdev, "row repair can not be done -  unrepairable\n");
 		return status_fail;
 	}
 
-	dev_err(hdev->dev, "HBM%d MBIST FAILED but trying to do row repair\n", dev);
+	hl_err(hdev, "HBM%d MBIST FAILED but trying to do row repair\n", dev);
 
 	for (row_idx = 0; row_idx < *vec_cnt; row_idx++) {
 		repair_vector_reg = 0;
@@ -4704,7 +4704,7 @@ static int hbm_row_repair(struct hl_device *hdev, u32 dev,
 		rc = mc_p1500_inst(hdev, dev, repair_vectors_arr[row_idx].ch, ieee1500_soft_repair,
 			wir_write, &repair_vector_reg, mbist_off);
 		if (rc) {
-			dev_err(hdev->dev, "HBM%d CH%d vector%d: 0x%x IEEE1500 soft repair FAILED\n",
+			hl_err(hdev, "HBM%d CH%d vector%d: 0x%x IEEE1500 soft repair FAILED\n",
 				dev, repair_vectors_arr[row_idx].ch, row_idx, repair_vector_reg);
 			return status_fail;
 		}
@@ -4726,7 +4726,7 @@ static void sw_training_print_eye(struct hl_device *hdev, u8 *mat_2d, int rows, 
 	char s[900];
 	char symbol;
 
-	dev_dbg(hdev->dev, "Extracted eye:\n");
+	hl_dbg(hdev, "Extracted eye:\n");
 
 	for (i = 0; i < rows; i++) {
 		size += snprintf(s + size, 900 - size, "|");
@@ -4739,7 +4739,7 @@ static void sw_training_print_eye(struct hl_device *hdev, u8 *mat_2d, int rows, 
 		}
 		size += snprintf(s + size, 900 - size, "|\n");
 	}
-	dev_dbg(hdev->dev, "%s\n", s);
+	hl_dbg(hdev, "%s\n", s);
 }
 
 static void sw_training_set_hbm_vref(struct hl_device *hdev, u32 dev, enum hbm_vref vref_val)
@@ -4820,7 +4820,7 @@ static int sw_training_find_com(struct hl_device *hdev, u8 *mat_2d, int rows, in
 		for (j = 0; j < cols; j++)
 			total += mat_2d[i * rows + j];
 	if (total == 0) {
-		dev_err(hdev->dev, "sum of all matrix entries equal to 0. Cannot calculate COM point\n");
+		hl_err(hdev, "sum of all matrix entries equal to 0. Cannot calculate COM point\n");
 		return status_fail;
 	}
 
@@ -4836,7 +4836,7 @@ static int sw_training_find_com(struct hl_device *hdev, u8 *mat_2d, int rows, in
 	center_of_mass->y_coord = tmp / total;
 
 	if (mat_2d[center_of_mass->x_coord * rows + center_of_mass->y_coord])
-		dev_err(hdev->dev, "COM point produce MCBIST failure\n");
+		hl_err(hdev, "COM point produce MCBIST failure\n");
 
 	return rc;
 }
@@ -4905,16 +4905,16 @@ static int software_training(struct hl_device *hdev, int dev)
 	training_cfg->train_wreye = 0;
 	training_cfg->train_vref = 0;
 
-	dev_dbg(hdev->dev, "Applying partial HW training for read-data and SW training for write-data\n");
+	hl_dbg(hdev, "Applying partial HW training for read-data and SW training for write-data\n");
 	rc = phy_hw_training(hdev, dev);
 	if (rc) {
-		dev_err(hdev->dev, "Partial HW training failed (C/A, RL and read-data)\n");
+		hl_err(hdev, "Partial HW training failed (C/A, RL and read-data)\n");
 		goto exit;
 	}
 
 	/* For each channel, apply 2D training for HBM-VREF and DQ transmit delay */
 	for (ch = 0; ch < HBM_PHY_CHANNELS_NUM; ch++) {
-		dev_dbg(hdev->dev, "* 2D training for HBM-VREF and DQ transmit delay - HBM%d CH%d *",
+		hl_dbg(hdev, "* 2D training for HBM-VREF and DQ transmit delay - HBM%d CH%d *",
 			dev, ch);
 		for (hbm_vref = 0; hbm_vref < hbm_vref_opt; hbm_vref++) {
 			/* Note - HBM VREF is common for all channels*/
@@ -4953,7 +4953,7 @@ static int software_training(struct hl_device *hdev, int dev)
 			goto exit;
 
 		/*  set optimal HBM-VREF and DQ TX LCDL */;
-		dev_dbg(hdev->dev, "HBM%d CH%d COM: (HBM-VREF = 0x%x, DQ TX LCDL = 0x%x\n",
+		hl_dbg(hdev, "HBM%d CH%d COM: (HBM-VREF = 0x%x, DQ TX LCDL = 0x%x\n",
 			dev, ch, com_point.x_coord, com_point.y_coord);
 		for (dw = 0; dw < HBM_CHANNEL_DWORDS_NUM; dw++) {
 			hbm_phy_write(hdev, dev,
@@ -4991,7 +4991,7 @@ static int software_training(struct hl_device *hdev, int dev)
 	 * Note: RDQS_t & RDQS_c delays will be kept identical along the read-data eye training
 	 */
 	for (ch = 0; ch < HBM_PHY_CHANNELS_NUM; ch++) {
-		dev_dbg(hdev->dev, "* 2D training for Host-VREF and RDQS_t/c receive delay - HBM%d CH%d *",
+		hl_dbg(hdev, "* 2D training for Host-VREF and RDQS_t/c receive delay - HBM%d CH%d *",
 			dev, ch);
 		for (host_vref = 0; host_vref < host_vref_opt; host_vref += host_vref_stride) {
 			/* Note - Host VREF is common for all channels*/
@@ -5031,7 +5031,7 @@ static int software_training(struct hl_device *hdev, int dev)
 			goto exit;
 
 		/*  set optimal Host-VREF and RDQS_t/c LCDLs */;
-		dev_dbg(hdev->dev, "HBM%d CH%d COM: (HBM-VREF = 0x%x, DQ TX LCDL = 0x%x\n",
+		hl_dbg(hdev, "HBM%d CH%d COM: (HBM-VREF = 0x%x, DQ TX LCDL = 0x%x\n",
 			dev, ch, com_point.x_coord, com_point.y_coord);
 		for (dw = 0; dw < HBM_CHANNEL_DWORDS_NUM; dw++) {
 			hbm_phy_write(hdev, dev,
@@ -5101,7 +5101,7 @@ static int semi_auto_training(struct hl_device *hdev, int dev)
 	rc = phy_hw_training(hdev, dev);
 	debug_print_training_status(hdev, dev);
 	if (rc) {
-		dev_err(hdev->dev, "HBM%d CA training FAILED\n", dev);
+		hl_err(hdev, "HBM%d CA training FAILED\n", dev);
 		return rc;
 	}
 
@@ -5120,7 +5120,7 @@ static int semi_auto_training(struct hl_device *hdev, int dev)
 				passing_region_size = valid_vref_end - valid_vref_start + 1;
 				opt_phy_vref = weighted_sum_valid_vref_eyes / sum_valid_vref_eyes;
 				passing_regions_cnt++;
-				dev_dbg(hdev->dev, "Passing region #%d: Range: (%d - %d), Optimal PHY VREF: (%d)\n",
+				hl_dbg(hdev, "Passing region #%d: Range: (%d - %d), Optimal PHY VREF: (%d)\n",
 					passing_regions_cnt, valid_vref_start,
 					valid_vref_end, opt_phy_vref);
 				if (passing_region_size > passing_region_max) {
@@ -5172,7 +5172,7 @@ static int semi_auto_training(struct hl_device *hdev, int dev)
 
 	phy_vref_valid_ratio = (passing_region_max * 100 + PHY_VREF_OPTIONS/2) / PHY_VREF_OPTIONS;
 	if (phy_vref_valid_ratio < PHY_VREF_RATIO_TH_PRCNT) {
-		dev_err(hdev->dev, "HBM%d PHY VREF passing regsion of %d%% doesn NOT meet TH\n",
+		hl_err(hdev, "HBM%d PHY VREF passing regsion of %d%% doesn NOT meet TH\n",
 			dev, phy_vref_valid_ratio);
 		return status_fail;
 	}
@@ -5232,7 +5232,7 @@ static int semi_auto_training(struct hl_device *hdev, int dev)
 	}
 
 	if (max_hbm_vref_eye == 0) {
-		dev_err(hdev->dev, "HBM%d - FAILED to find a valid HBM VREF\n", dev);
+		hl_err(hdev, "HBM%d - FAILED to find a valid HBM VREF\n", dev);
 		return status_fail;
 	}
 	sw_training_set_hbm_vref(hdev, dev, opt_hbm_vref);
@@ -5243,9 +5243,9 @@ static int semi_auto_training(struct hl_device *hdev, int dev)
 		return rc;
 
 	rc = phy_get_training_results(hdev, dev);
-	dev_dbg(hdev->dev, "Final PHY VREF: %d. Passing region size: %u\n",
+	hl_dbg(hdev, "Final PHY VREF: %d. Passing region size: %u\n",
 		final_opt_vref, passing_region_max);
-	dev_dbg(hdev->dev, "Final HBM VREF: %d\n",
+	hl_dbg(hdev, "Final HBM VREF: %d\n",
 		opt_hbm_vref);
 
 	return rc;
@@ -5278,29 +5278,29 @@ static int phy_training(struct hl_device *hdev, int dev)
 		hbm_phy_write(hdev, dev, mmHBM_PHY_MASTER_VREFSETTLINGTIME_P0, 0x1194);
 		rc = phy_hw_training(hdev, dev);
 		if (rc)
-			dev_err(hdev->dev, "HBM%d HW training FAILED\n", dev);
+			hl_err(hdev, "HBM%d HW training FAILED\n", dev);
 		break;
 
 	case train_type_semi_auto:
 		rc = semi_auto_training(hdev, dev);
 		if (rc)
-			dev_err(hdev->dev, "HBM%d semi-auto training FAILED\n", dev);
+			hl_err(hdev, "HBM%d semi-auto training FAILED\n", dev);
 		break;
 
 	case train_type_sw:
 		rc = software_training(hdev, dev);
 		if (rc)
-			dev_err(hdev->dev, "HBM%d SW training FAILED\n", dev);
+			hl_err(hdev, "HBM%d SW training FAILED\n", dev);
 		break;
 
 	case train_type_pldm:
-		dev_info(hdev->dev, "HBM%d - Skipping PHY training which is not supported by PLDM HBM model\n",
+		hl_info(hdev, "HBM%d - Skipping PHY training which is not supported by PLDM HBM model\n",
 			 dev);
 		rc = status_pass;
 		break;
 
 	default:
-		dev_err(hdev->dev, "Un-supported training type!\n");
+		hl_err(hdev, "Un-supported training type!\n");
 		rc = status_fail;
 	}
 
@@ -5364,8 +5364,8 @@ int gaudi2_init_hbm(struct hl_device *hdev)
 	if (gaudi2->hw_cap_initialized & HW_CAP_DRAM)
 		return 0;
 
-	dev_dbg(hdev->dev, "**** HBM subsystem init start ****\n");
-	dev_dbg(hdev->dev, "dram_enabled_mask = 0x%llx\n",
+	hl_dbg(hdev, "**** HBM subsystem init start ****\n");
+	hl_dbg(hdev, "dram_enabled_mask = 0x%llx\n",
 			prop->dram_enabled_mask);
 
 	gaudi2->hbm_cfg = kmalloc(sizeof(struct gaudi2_hbm), GFP_KERNEL);
@@ -5391,7 +5391,7 @@ int gaudi2_init_hbm(struct hl_device *hdev)
 	for (dev = 0 ; dev < GAUDI2_HBM_NUM ; dev++) {
 		/* Skip binned device/s */
 		if (!test_bit(dev, (unsigned long *)&hdev->asic_prop.dram_enabled_mask)) {
-			dev_dbg(hdev->dev, "HBM%d is binned out\n", dev);
+			hl_dbg(hdev, "HBM%d is binned out\n", dev);
 			continue;
 		}
 
@@ -5425,31 +5425,31 @@ int gaudi2_init_hbm(struct hl_device *hdev)
 			rc = hbm_mbist(hdev, dev, repair_vectors_arr, &vec_cnt,
 				&mbist_is_repairable);
 			if (rc) {
-				dev_err(hdev->dev, "HBM%d MBIST FAILED\n", dev);
+				hl_err(hdev, "HBM%d MBIST FAILED\n", dev);
 				rc = hbm_row_repair(hdev, dev, repair_vectors_arr, &vec_cnt,
 					&mbist_is_repairable);
 				if (rc) {
-					dev_err(hdev->dev, "HBM%d IEEE1500 soft repair FAILED\n",
+					hl_err(hdev, "HBM%d IEEE1500 soft repair FAILED\n",
 						dev);
 					kfree(repair_vectors_arr);
 					return rc;
 				}
 			}
 			kfree(repair_vectors_arr);
-			dev_info(hdev->dev, "HBM MBIST is done - Must reset system to gain memory access");
+			hl_info(hdev, "HBM MBIST is done - Must reset system to gain memory access");
 			goto exit;
 		}
 
 		rc = phy_pre_training_tests(hdev, dev);
 		if (rc) {
-			dev_err(hdev->dev, "HBM%d failure detected during pre-training tests\n",
+			hl_err(hdev, "HBM%d failure detected during pre-training tests\n",
 				dev);
 			return rc;
 		}
 
 		rc = phy_training(hdev, dev);
 		if (rc) {
-			dev_err(hdev->dev, "HBM%d training FAILED\n", dev);
+			hl_err(hdev, "HBM%d training FAILED\n", dev);
 			return rc;
 		}
 

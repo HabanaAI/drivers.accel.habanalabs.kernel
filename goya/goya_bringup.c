@@ -30,7 +30,7 @@ void goya_init_pll(struct hl_device *hdev)
 		return;
 
 	if (hdev->fw_components & FW_TYPE_BOOT_CPU) {
-		dev_info(hdev->dev,
+		hl_info(hdev,
 			"Waiting 5s for u-boot before configuring PLLs\n");
 		ssleep(5);
 	}
