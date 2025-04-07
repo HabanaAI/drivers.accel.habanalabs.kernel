@@ -920,7 +920,7 @@ static int gaudi3_init_pll(struct hl_device *hdev,
 				GAUDI3_PLL_TIMEOUT_USEC);
 
 		if (rc) {
-			hl_err(hdev, "Failed to get PLL %d lock, die 0 ()\n", pll_index);
+			dev_err(hdev->dev, "Failed to get PLL %d lock, die 0 ()\n", pll_index);
 			return -EIO;
 		}
 	}
@@ -982,7 +982,7 @@ static int gaudi3_init_pll(struct hl_device *hdev,
 				GAUDI3_PLL_TIMEOUT_USEC);
 
 		if (rc) {
-			hl_err(hdev, "Failed to get PLL %d lock, die 1 (%d)\n",
+			dev_err(hdev->dev, "Failed to get PLL %d lock, die 1 (%d)\n",
 						pll_index, rc);
 			return -EIO;
 		}
@@ -1251,7 +1251,7 @@ int gaudi3_init_plls(struct hl_device *hdev)
 	if (hdev->fw_components & FW_TYPE_PREBOOT_CPU)
 		return 0;
 
-	hl_dbg(hdev, "PLL init\n");
+	dev_dbg(hdev->dev, "PLL init\n");
 
 	rc = gaudi3_nominal_hbm_1800(hdev, gaudi3);
 	if (rc)
@@ -1342,7 +1342,7 @@ static void gaudi3_set_cache_mode_cslice(struct hl_device *hdev, int hdcore, int
 			GAUDI3_PLL_TIMEOUT_USEC);
 
 	if (rc) {
-		hl_err(hdev, "LTA (%#llx) still busy\n",
+		dev_err(hdev->dev, "LTA (%#llx) still busy\n",
 				offset + CSLICE_MISC_OFFSET + mmCACHE_MISC_LTA_INIT_BUSY);
 		ctx->rc = -EIO;
 		return;
@@ -1596,7 +1596,7 @@ static void gaudi3_print_axi_drain_address(struct hl_device *hdev, u64 drain_add
 	if ((wr_addr == 0) && (rd_addr == 0))
 		return;
 
-	hl_err(hdev, "AXI drain %s event: read address %#llx, write address %#llx\n",
+	dev_err(hdev->dev, "AXI drain %s event: read address %#llx, write address %#llx\n",
 						type, rd_addr, wr_addr);
 }
 
@@ -1606,7 +1606,7 @@ u32 gaudi3_handle_axi_drain(struct hl_device *hdev, bool *pci_link_error)
 
 	drain_indication = RREG32(mmD0_PCIE_WRAP_BASE + mmPCIE_WRAP_AXI_DRAIN_IND);
 	if (drain_indication == 0xFFFFFFFF) {
-		hl_err(hdev, "PCI link error\n");
+		dev_err(hdev->dev, "PCI link error\n");
 		*pci_link_error = true;
 		return 1;
 	}
@@ -1766,7 +1766,7 @@ static int gaudi3_d2d_psoc_dphy_fsm_init(struct hl_device *hdev)
 				timeout);
 
 		if (rc) {
-			hl_err(hdev, "Failed to get D2D FSM indication DONE on DIE%u (%d)\n",
+			dev_err(hdev->dev, "Failed to get D2D FSM indication DONE on DIE%u (%d)\n",
 						die, rc);
 			return -EIO;
 		}
@@ -1793,7 +1793,7 @@ static bool gaudi3_d2d_sanity_test(struct hl_device *hdev)
 			WREG32(addr, orig_id);
 			cmp_id = RREG32(addr);
 			if (cmp_id != orig_id) {
-				hl_err(hdev,
+				dev_err(hdev->dev,
 					"D2D sanity failed: %x, rtr: %x, orig: %x, cmp: %x\n",
 						hdcore, rtr, orig_id, cmp_id);
 				return false;
@@ -1819,7 +1819,7 @@ static int gaudi3_d2d_init(struct hl_device *hdev)
 	if (gaudi3->hw_cap_initialized & HW_CAP_D2D)
 		return 0;
 
-	hl_dbg(hdev, "D2D init\n");
+	dev_dbg(hdev->dev, "D2D init\n");
 
 	/*
 	 * remove protection to allow master d2d_spi to configure
@@ -2268,7 +2268,7 @@ static void gaudi3_init_cbc_fw_config(struct hl_device *hdev)
 		return;
 	}
 
-	hl_dbg(hdev, "Initializing CBC [F/W configuration]\n");
+	dev_dbg(hdev->dev, "Initializing CBC [F/W configuration]\n");
 
 	WREG32(mmD0_PMMU_CBC_BASE + mmCBC_SET_SCRAM_EN, 0x1);
 }
@@ -2312,7 +2312,7 @@ static void gaudi3_init_pdma_fw_config(struct hl_device *hdev)
 	if ((gaudi3->hw_cap_pdma_initialized & HW_CAP_PDMA_MASK) == HW_CAP_PDMA_MASK)
 		return;
 
-	hl_dbg(hdev, "Initializing PDMA [F/W configuration]\n");
+	dev_dbg(hdev->dev, "Initializing PDMA [F/W configuration]\n");
 
 	for (i = 0 ; i < prop->pdma_grp_max ; i++) {
 		reg_base = gaudi3_pdma_grp_blocks_bases[i];
@@ -2399,7 +2399,7 @@ static void gaudi3_init_edma_fw_config(struct hl_device *hdev)
 	if ((gaudi3->hw_cap_initialized & HW_CAP_EDMA_MASK) == HW_CAP_EDMA_MASK)
 		return;
 
-	hl_dbg(hdev, "Initializing EDMAs [F/W configuration]\n");
+	dev_dbg(hdev->dev, "Initializing EDMAs [F/W configuration]\n");
 
 	gaudi3_iterate_edmas(hdev, &iter_ctx);
 }
@@ -2474,7 +2474,7 @@ static void gaudi3_init_tpc_fw_config(struct hl_device *hdev)
 	if ((gaudi3->hw_cap_tpc_initialized & HW_CAP_TPC_MASK) == HW_CAP_TPC_MASK)
 		return;
 
-	hl_dbg(hdev, "Initializing TPCs [F/W configuration]\n");
+	dev_dbg(hdev->dev, "Initializing TPCs [F/W configuration]\n");
 
 	gaudi3_iterate_tpcs(hdev, &iter_ctx);
 }
@@ -2542,7 +2542,7 @@ static void gaudi3_init_mme_fw_config(struct hl_device *hdev)
 	if ((gaudi3->hw_cap_initialized & HW_CAP_MME_MASK) == HW_CAP_MME_MASK)
 		return;
 
-	hl_dbg(hdev, "Initializing MMEs [F/W configuration]\n");
+	dev_dbg(hdev->dev, "Initializing MMEs [F/W configuration]\n");
 
 	gaudi3_iterate_mmes(hdev, &iter_ctx);
 }
@@ -2581,7 +2581,7 @@ static void gaudi3_init_rotator_fw_config(struct hl_device *hdev)
 	if ((gaudi3->hw_cap_initialized & HW_CAP_ROT_MASK) == HW_CAP_ROT_MASK)
 		return;
 
-	hl_dbg(hdev, "Initializing ROTs [F/W configuration]\n");
+	dev_dbg(hdev->dev, "Initializing ROTs [F/W configuration]\n");
 
 	gaudi3_iterate_rotators(hdev, &iter_ctx);
 }
@@ -2653,7 +2653,7 @@ static void gaudi3_init_decoder_fw_config(struct hl_device *hdev)
 	if ((gaudi3->hw_cap_dec_initialized & HW_CAP_DEC_MASK) == HW_CAP_DEC_MASK)
 		return;
 
-	hl_dbg(hdev, "Initializing DECs [F/W configuration]\n");
+	dev_dbg(hdev->dev, "Initializing DECs [F/W configuration]\n");
 
 	gaudi3_iterate_decoders(hdev, &iter_ctx);
 }
@@ -2925,7 +2925,7 @@ static void gaudi3_init_hbm_mmu_fw_config(struct hl_device *hdev)
 	if (gaudi3->hw_cap_initialized & HW_CAP_HMMU_MASK)
 		return;
 
-	hl_dbg(hdev, "Initializing HBM MMU (FW init)\n");
+	dev_dbg(hdev->dev, "Initializing HBM MMU (FW init)\n");
 
 	dtlb_init_data.cntrl_page_size = build_tlb_ctrl_page_size(hdev);
 	gaudi3_iterate_dtlbs(hdev, &ctx);
@@ -2939,7 +2939,7 @@ static void gaudi3_init_pci_mmu_fw_config(struct hl_device *hdev)
 	if (gaudi3->hw_cap_initialized & HW_CAP_PMMU)
 		return;
 
-	hl_dbg(hdev, "Initializing PCI MMU (FW init)\n");
+	dev_dbg(hdev->dev, "Initializing PCI MMU (FW init)\n");
 
 	/* init PMMU prefetch-cache to store only hop5 */
 	RMWREG32(mmD0_PMMU_HBW_STLB_BASE + mmPSTLB_MEM_CACHE_CONFIG, 0x20,
@@ -3170,7 +3170,7 @@ static int gaudi3_wait_outbound_outsatnding_complete(struct hl_device *hdev)
 			1000,
 			200000);
 	if (rc) {
-		hl_err(hdev, "wait for PCIE OB outstanding timed out\n");
+		dev_err(hdev->dev, "wait for PCIE OB outstanding timed out\n");
 		return rc;
 	}
 
@@ -3212,7 +3212,7 @@ void gaudi3_execute_reset_no_fw(struct hl_device *hdev, bool hard_reset)
 	/* generate reset in DIE0 */
 	WREG32(d0_reset_reg, 0x1);
 
-	hl_dbg(hdev, "Driver issued %s reset command\n", hard_reset ? "HARD" : "SOFT");
+	dev_dbg(hdev->dev, "Driver issued %s reset command\n", hard_reset ? "HARD" : "SOFT");
 }
 
 static u32 gaudi3_get_qm_sw_map_idx(u32 base)
@@ -3239,7 +3239,7 @@ static void gaudi3_cfg_qm_sw_irq(struct hl_device *hdev, int block, int inst,
 
 	irq = gaudi3_get_qm_sw_map_idx(qm_reg_base);
 	if (irq == ARRAY_SIZE(gaudi3_qm_irq_map_table)) {
-		hl_err(hdev, "invalid qm sw base: 0x%x, first base: 0x%x\n", qm_reg_base,
+		dev_err(hdev->dev, "invalid qm sw base: 0x%x, first base: 0x%x\n", qm_reg_base,
 						first_qm_reg_base);
 		return;
 	}
@@ -3561,7 +3561,7 @@ static void gaudi3_handle_psoc_aggr(struct hl_device *hdev, u32 intr_aggr_irq, u
 	/* Handle PRSTN Aggr */
 	if (parc_block_idx == 10) {
 		idx = ffs(sts0 & sts0_prstn_mask) - 1;
-		hl_err(hdev, "Received PRSTN_SPI[%u] in D%u_PARC_INT_AGGR\n",
+		dev_err(hdev->dev, "Received PRSTN_SPI[%u] in D%u_PARC_INT_AGGR\n",
 			idx, die);
 
 		if (shared_handle_and_clear[SHARED_PSOC_EVENT])
@@ -3576,18 +3576,18 @@ static void gaudi3_handle_psoc_aggr(struct hl_device *hdev, u32 intr_aggr_irq, u
 	/* Handle VM_ALARMA_COMB Aggr */
 	if (parc_block_idx == 18) {
 		idx = ffs(sts0 & sts0_vm_alarm_mask) - 1;
-		hl_err(hdev, "Received VM_ALARMA_COMB_SPI[%u] in D%u_PARC_INT_AGGR\n",
+		dev_err(hdev->dev, "Received VM_ALARMA_COMB_SPI[%u] in D%u_PARC_INT_AGGR\n",
 			idx, die);
 	}
 
 	/* Handle COMBINED Aggr */
 	if (parc_block_idx == 24) {
 		idx = 0;
-		hl_err(hdev, "Received COMBINED_SPI[%u] in D%u_PARC_INT_AGGR\n",
+		dev_err(hdev->dev, "Received COMBINED_SPI[%u] in D%u_PARC_INT_AGGR\n",
 			idx, die);
 
 		if (sts0 & BIT(6))
-			hl_err(hdev, "PSOC AXI drain event\n");
+			dev_err(hdev->dev, "PSOC AXI drain event\n");
 	}
 
 	WREG32(mmD0_PARC_INT_AGGR_UART_COMB_BASE +
@@ -3980,7 +3980,7 @@ static void gaudi3_print_pcie_err_resp_data(struct hl_device *hdev, bool hbw, bo
 		}
 	}
 
-	hl_dbg(hdev, "PCIE error response 0x%llX\n", (addr_hi << 32) + addr_lo);
+	dev_dbg(hdev->dev, "PCIE error response 0x%llX\n", (addr_hi << 32) + addr_lo);
 }
 
 static void gaudi3_clear_xresp_block(struct hl_device *hdev, u64 base, bool is_read)
@@ -4044,7 +4044,7 @@ static void gaudi3_clear_pcie_sei_cause_events(struct hl_device *hdev, u32 err_m
 				break;
 
 			default:
-				hl_err(hdev, "SEI event %u does not have event clear flow\n",
+				dev_err(hdev->dev, "SEI event %u does not have event clear flow\n",
 						idx);
 				break;
 			}
@@ -4108,7 +4108,7 @@ static void handle_and_clear_pcie_events(struct hl_device *hdev, u32 die,
 	int rc;
 
 	if (die == 1) {
-		hl_err(hdev, "PCIE events from DIE1 are not supported\n");
+		dev_err(hdev->dev, "PCIE events from DIE1 are not supported\n");
 		return;
 	}
 
@@ -4186,7 +4186,7 @@ static void handle_and_clear_pcie_events(struct hl_device *hdev, u32 die,
 		while (err_msk) {
 			/* In case new event raised */
 			if ((err_msk & 1) && !(intr_cause & 1))
-				hl_err(hdev,
+				dev_err(hdev->dev,
 					"PCIE SEI event %u raised after PCIE SEI handling\n",
 					err_idx);
 			err_idx++;
@@ -4777,7 +4777,7 @@ static void handle_and_clear_rotator_events(struct hl_device *hdev, u32 die, u32
 	/* There are rotator blocks only in HD 1/3/4/6 */
 	if ((die == 0 && (hdcore == 0 || hdcore == 2)) ||
 			(die == 1 && (hdcore == 1 || hdcore == 3)))  {
-		hl_err(hdev, "No rotator interrupts are expected for DIE%u_HD%u!\n",
+		dev_err(hdev->dev, "No rotator interrupts are expected for DIE%u_HD%u!\n",
 			die, hdcore);
 		return;
 	}
@@ -5350,7 +5350,7 @@ static void handle_and_clear_edma_events(struct hl_device *hdev, u32 die, u32 hd
 	/* There are EDMA blocks only in HD 1/3/4/6 */
 	if ((die == 0 && (hdcore == 0 || hdcore == 2)) ||
 			(die == 1 && (hdcore == 1 || hdcore == 3)))  {
-		hl_err(hdev, "No EDMA interrupts are expected for DIE%u_HD%u!\n",
+		dev_err(hdev->dev, "No EDMA interrupts are expected for DIE%u_HD%u!\n",
 			die, hdcore);
 		return;
 	}
@@ -5780,7 +5780,7 @@ static void gaudi3_shared_spi_event_info(struct hl_device *hdev, u32 die,
 	/* Handle PCIE */
 	if (sts0 & sts0_pcie_mask0) {
 		idx = 1;
-		hl_err(hdev, "Received PCIE_SPI[%u] interrupt in D%u_CPU_INT_AGG_SHARED\n",
+		dev_err(hdev->dev, "Received PCIE_SPI[%u] interrupt in D%u_CPU_INT_AGG_SHARED\n",
 			idx, die);
 
 		if (shared_handle_and_clear[SHARED_PCIE_EVENT])
@@ -5793,7 +5793,7 @@ static void gaudi3_shared_spi_event_info(struct hl_device *hdev, u32 die,
 
 	if (sts0 & sts0_pcie_mask1) {
 		idx = ffs(sts0 & sts0_pcie_mask1) - 3;
-		hl_err(hdev, "Received PCIE_SPI[%u] interrupt in D%u_CPU_INT_AGG_SHARED\n",
+		dev_err(hdev->dev, "Received PCIE_SPI[%u] interrupt in D%u_CPU_INT_AGG_SHARED\n",
 			idx, die);
 
 		if (shared_handle_and_clear[SHARED_PCIE_EVENT])
@@ -5806,7 +5806,7 @@ static void gaudi3_shared_spi_event_info(struct hl_device *hdev, u32 die,
 
 	if (sts0 & sts0_pcie_mask2) {
 		idx = ffs(sts0 & sts0_pcie_mask2) - 3;
-		hl_err(hdev, "Received PCIE_SPI[%u] interrupt in D%u_CPU_INT_AGG_SHARED\n",
+		dev_err(hdev->dev, "Received PCIE_SPI[%u] interrupt in D%u_CPU_INT_AGG_SHARED\n",
 			idx, die);
 
 		if (shared_handle_and_clear[SHARED_PCIE_EVENT])
@@ -5820,7 +5820,7 @@ static void gaudi3_shared_spi_event_info(struct hl_device *hdev, u32 die,
 	/* Handle NIC */
 	if (sts0 & sts0_nic_mask) {
 		idx = ffs(sts0 & sts0_nic_mask) - 22;
-		hl_err(hdev, "Received NIC_SPI[%u] interrupt in D%u_CPU_INT_AGG_SHARED\n",
+		dev_err(hdev->dev, "Received NIC_SPI[%u] interrupt in D%u_CPU_INT_AGG_SHARED\n",
 			idx, die);
 
 		if (shared_handle_and_clear[SHARED_NIC_EVENT])
@@ -5833,7 +5833,7 @@ static void gaudi3_shared_spi_event_info(struct hl_device *hdev, u32 die,
 
 	if (sts1 & sts1_nic_mask) {
 		idx = 11;
-		hl_err(hdev, "Received NIC_SPI[%u] interrupt in D%u_CPU_INT_AGG_SHARED\n",
+		dev_err(hdev->dev, "Received NIC_SPI[%u] interrupt in D%u_CPU_INT_AGG_SHARED\n",
 			idx, die);
 
 		if (shared_handle_and_clear[SHARED_NIC_EVENT])
@@ -5847,7 +5847,7 @@ static void gaudi3_shared_spi_event_info(struct hl_device *hdev, u32 die,
 	/* Handle NCH */
 	if (sts1 & sts1_nch_mask) {
 		idx = ffs(sts1 & sts1_nch_mask) - 2;
-		hl_err(hdev, "Received NCH_SPI[%u] interrupt in D%u_CPU_INT_AGG_SHARED\n",
+		dev_err(hdev->dev, "Received NCH_SPI[%u] interrupt in D%u_CPU_INT_AGG_SHARED\n",
 			idx, die);
 
 		if (shared_handle_and_clear[SHARED_NCH_EVENT])
@@ -5861,7 +5861,7 @@ static void gaudi3_shared_spi_event_info(struct hl_device *hdev, u32 die,
 	/* Handle PMMU */
 	if (sts1 & sts1_pmmu_mask) {
 		idx = ffs(sts1 & sts1_pmmu_mask) - 4;
-		hl_err(hdev, "Received PMMU_SPI[%u] interrupt in D%u_CPU_INT_AGG_SHARED\n",
+		dev_err(hdev->dev, "Received PMMU_SPI[%u] interrupt in D%u_CPU_INT_AGG_SHARED\n",
 			idx, die);
 
 		if (shared_handle_and_clear[SHARED_PMMU_EVENT])
@@ -5875,7 +5875,7 @@ static void gaudi3_shared_spi_event_info(struct hl_device *hdev, u32 die,
 	/* Handle TS */
 	if (sts1 & sts1_ts_mask) {
 		idx = ffs(sts1 & sts1_ts_mask) - 9;
-		hl_err(hdev, "Received TS_SPI[%u] interrupt in D%u_CPU_INT_AGG_SHARED\n",
+		dev_err(hdev->dev, "Received TS_SPI[%u] interrupt in D%u_CPU_INT_AGG_SHARED\n",
 			idx, die);
 
 		if (shared_handle_and_clear[SHARED_TS_EVENT])
@@ -5889,7 +5889,7 @@ static void gaudi3_shared_spi_event_info(struct hl_device *hdev, u32 die,
 	/* Handle PDMA */
 	if (sts1 & sts1_pdma_mask) {
 		idx = 0;
-		hl_err(hdev, "Received PDMA_SPI[%u] interrupt in D%u_CPU_INT_AGG_SHARED\n",
+		dev_err(hdev->dev, "Received PDMA_SPI[%u] interrupt in D%u_CPU_INT_AGG_SHARED\n",
 			idx, die);
 
 		if (shared_handle_and_clear[SHARED_PDMA_EVENT])
@@ -5903,7 +5903,7 @@ static void gaudi3_shared_spi_event_info(struct hl_device *hdev, u32 die,
 	/* Handle D2D */
 	if (sts1 & sts1_d2d_mask) {
 		idx = ffs(sts1 & sts1_d2d_mask) - 18;
-		hl_err(hdev, "Received D2D_SPI[%u] interrupt in D%u_CPU_INT_AGG_SHARED\n",
+		dev_err(hdev->dev, "Received D2D_SPI[%u] interrupt in D%u_CPU_INT_AGG_SHARED\n",
 			idx, die);
 
 		if (shared_handle_and_clear[SHARED_D2D_EVENT])
@@ -5962,7 +5962,7 @@ static void gaudi3_hdcore_spi_event_info(struct hl_device *hdev, u32 offset, u32
 	/* Handle MME */
 	if (sts0 & sts0_mme_mask) {
 		idx = ffs(sts0 & sts0_mme_mask) - 1;
-		hl_err(hdev, "Received MME_SPI[%u] interrupt in D%u_CPU_INT_AGG_HDCORE%u\n",
+		dev_err(hdev->dev, "Received MME_SPI[%u] interrupt in D%u_CPU_INT_AGG_HDCORE%u\n",
 			idx, die, aggr_hdcore);
 
 		if (hdcore_handle_and_clear[HDCORE_MME_EVENT]) {
@@ -5980,7 +5980,7 @@ static void gaudi3_hdcore_spi_event_info(struct hl_device *hdev, u32 offset, u32
 	/* Handle TPC */
 	if (sts0 & sts0_tpc_mask) {
 		idx = ffs(sts0 & sts0_tpc_mask) - 16;
-		hl_err(hdev, "Received TPC_SPI[%u] interrupt in D%u_CPU_INT_AGG_HDCORE%u\n",
+		dev_err(hdev->dev, "Received TPC_SPI[%u] interrupt in D%u_CPU_INT_AGG_HDCORE%u\n",
 			idx, die, aggr_hdcore);
 
 		if (hdcore_handle_and_clear[HDCORE_TPC_EVENT]) {
@@ -5997,7 +5997,7 @@ static void gaudi3_hdcore_spi_event_info(struct hl_device *hdev, u32 offset, u32
 
 	if (sts1 & sts1_tpc_mask) {
 		idx = 17;
-		hl_err(hdev, "Received TPC_SPI[%u] interrupt in D%u_CPU_INT_AGG_HDCORE%u\n",
+		dev_err(hdev->dev, "Received TPC_SPI[%u] interrupt in D%u_CPU_INT_AGG_HDCORE%u\n",
 			idx, die, aggr_hdcore);
 
 		if (hdcore_handle_and_clear[HDCORE_TPC_EVENT]) {
@@ -6015,7 +6015,7 @@ static void gaudi3_hdcore_spi_event_info(struct hl_device *hdev, u32 offset, u32
 	/* Handle ROT */
 	if (sts1 & sts1_rot_mask) {
 		idx = ffs(sts1 & sts1_rot_mask) - 2;
-		hl_err(hdev, "Received ROT_SPI[%u] interrupt in D%u_CPU_INT_AGG_HDCORE%u\n",
+		dev_err(hdev->dev, "Received ROT_SPI[%u] interrupt in D%u_CPU_INT_AGG_HDCORE%u\n",
 			idx, die, aggr_hdcore);
 
 		if (hdcore_handle_and_clear[HDCORE_ROT_EVENT]) {
@@ -6033,7 +6033,7 @@ static void gaudi3_hdcore_spi_event_info(struct hl_device *hdev, u32 offset, u32
 	/* Handle Cache */
 	if (sts1 & sts1_cs_mask) {
 		idx = ffs(sts1 & sts1_cs_mask) - 6;
-		hl_err(hdev, "Received CS_SPI[%u] interrupt in D%u_CPU_INT_AGG_HDCORE%u\n",
+		dev_err(hdev->dev, "Received CS_SPI[%u] interrupt in D%u_CPU_INT_AGG_HDCORE%u\n",
 			idx, die, aggr_hdcore);
 
 		if (hdcore_handle_and_clear[HDCORE_CS_EVENT]) {
@@ -6051,7 +6051,7 @@ static void gaudi3_hdcore_spi_event_info(struct hl_device *hdev, u32 offset, u32
 	/* Handle STLB */
 	if (sts1 & sts1_stlb_mask) {
 		idx = ffs(sts1 & sts1_stlb_mask) - 22;
-		hl_err(hdev, "Received STLB_SPI[%u] interrupt in D%u_CPU_INT_AGG_HDCORE%u\n",
+		dev_err(hdev->dev, "Received STLB_SPI[%u] interrupt in D%u_CPU_INT_AGG_HDCORE%u\n",
 			idx, die, aggr_hdcore);
 
 		if (hdcore_handle_and_clear[HDCORE_STLB_EVENT]) {
@@ -6069,7 +6069,7 @@ static void gaudi3_hdcore_spi_event_info(struct hl_device *hdev, u32 offset, u32
 	/* Handle EDMA */
 	if (sts1 & sts1_edma_mask) {
 		idx = 0;
-		hl_err(hdev, "Received EDMA_SPI[%u] interrupt in D%u_CPU_INT_AGG_HDCORE%u\n",
+		dev_err(hdev->dev, "Received EDMA_SPI[%u] interrupt in D%u_CPU_INT_AGG_HDCORE%u\n",
 			idx, die, aggr_hdcore);
 
 		if (hdcore_handle_and_clear[HDCORE_EDMA_EVENT]) {
@@ -6087,7 +6087,7 @@ static void gaudi3_hdcore_spi_event_info(struct hl_device *hdev, u32 offset, u32
 	/* Handle SOB */
 	if (sts1 & sts1_sob_mask) {
 		idx = 0;
-		hl_err(hdev, "Received SOB_SPI[%u] interrupt in D%u_CPU_INT_AGG_HDCORE%u\n",
+		dev_err(hdev->dev, "Received SOB_SPI[%u] interrupt in D%u_CPU_INT_AGG_HDCORE%u\n",
 			idx, die, aggr_hdcore);
 
 		if (hdcore_handle_and_clear[HDCORE_SOB_EVENT]) {
@@ -6105,7 +6105,7 @@ static void gaudi3_hdcore_spi_event_info(struct hl_device *hdev, u32 offset, u32
 	/* Handle Decoder */
 	if (sts2 & sts2_dec_mask) {
 		idx = ffs(sts2 & sts2_dec_mask) - 3;
-		hl_err(hdev, "Received DEC_SPI[%u] interrupt in D%u_CPU_INT_AGG_HDCORE%u\n",
+		dev_err(hdev->dev, "Received DEC_SPI[%u] interrupt in D%u_CPU_INT_AGG_HDCORE%u\n",
 			idx, die, aggr_hdcore);
 
 		if (hdcore_handle_and_clear[HDCORE_DEC_EVENT]) {
@@ -6164,7 +6164,7 @@ static void gaudi3_hdcore_sei_event_info(struct hl_device *hdev, u32 offset, u32
 	/* Handle MME */
 	if (sts0 & sts0_mme_mask) {
 		idx = ffs(sts0 & sts0_mme_mask) - 1;
-		hl_err(hdev, "Received MME_SEI[%u] interrupt in D%u_CPU_INT_AGG_HDCORE%u\n",
+		dev_err(hdev->dev, "Received MME_SEI[%u] interrupt in D%u_CPU_INT_AGG_HDCORE%u\n",
 			idx, die, aggr_hdcore);
 
 		if (hdcore_handle_and_clear[HDCORE_MME_EVENT]) {
@@ -6182,7 +6182,7 @@ static void gaudi3_hdcore_sei_event_info(struct hl_device *hdev, u32 offset, u32
 	/* Handle TPC */
 	if (sts0 & sts0_tpc_mask) {
 		idx = ffs(sts0 & sts0_tpc_mask) - 13;
-		hl_err(hdev, "Received TPC_SEI[%u] interrupt in D%u_CPU_INT_AGG_HDCORE%u\n",
+		dev_err(hdev->dev, "Received TPC_SEI[%u] interrupt in D%u_CPU_INT_AGG_HDCORE%u\n",
 			idx, die, aggr_hdcore);
 
 		if (hdcore_handle_and_clear[HDCORE_TPC_EVENT]) {
@@ -6200,7 +6200,7 @@ static void gaudi3_hdcore_sei_event_info(struct hl_device *hdev, u32 offset, u32
 	/* Handle ROT */
 	if (sts0 & sts0_rot_mask) {
 		idx = ffs(sts0 & sts0_rot_mask) - 22;
-		hl_err(hdev, "Received ROT_SEI[%u] interrupt in D%u_CPU_INT_AGG_HDCORE%u\n",
+		dev_err(hdev->dev, "Received ROT_SEI[%u] interrupt in D%u_CPU_INT_AGG_HDCORE%u\n",
 			idx, die, aggr_hdcore);
 
 		if (hdcore_handle_and_clear[HDCORE_ROT_EVENT]) {
@@ -6218,7 +6218,7 @@ static void gaudi3_hdcore_sei_event_info(struct hl_device *hdev, u32 offset, u32
 	/* Handle Cache */
 	if (sts0 & sts0_cs_mask) {
 		idx = ffs(sts0 & sts0_cs_mask) - 24;
-		hl_err(hdev, "Received CS_SEI[%u] interrupt in D%u_CPU_INT_AGG_HDCORE%u\n",
+		dev_err(hdev->dev, "Received CS_SEI[%u] interrupt in D%u_CPU_INT_AGG_HDCORE%u\n",
 			idx, die, aggr_hdcore);
 
 		if (hdcore_handle_and_clear[HDCORE_CS_EVENT]) {
@@ -6236,7 +6236,7 @@ static void gaudi3_hdcore_sei_event_info(struct hl_device *hdev, u32 offset, u32
 	/* Handle STLB */
 	if (sts0 & sts0_stlb_mask) {
 		idx = 0;
-		hl_err(hdev, "Received STLB_SEI[%u] interrupt in D%u_CPU_INT_AGG_HDCORE%u\n",
+		dev_err(hdev->dev, "Received STLB_SEI[%u] interrupt in D%u_CPU_INT_AGG_HDCORE%u\n",
 			idx, die, aggr_hdcore);
 
 		if (hdcore_handle_and_clear[HDCORE_STLB_EVENT]) {
@@ -6254,7 +6254,7 @@ static void gaudi3_hdcore_sei_event_info(struct hl_device *hdev, u32 offset, u32
 	/* Handle EDMA */
 	if (sts1 & sts1_edma_mask) {
 		idx = 0;
-		hl_err(hdev, "Received EDMA_SEI[%u] interrupt in D%u_CPU_INT_AGG_HDCORE%u\n",
+		dev_err(hdev->dev, "Received EDMA_SEI[%u] interrupt in D%u_CPU_INT_AGG_HDCORE%u\n",
 			idx, die, aggr_hdcore);
 
 		if (hdcore_handle_and_clear[HDCORE_EDMA_EVENT]) {
@@ -6272,7 +6272,7 @@ static void gaudi3_hdcore_sei_event_info(struct hl_device *hdev, u32 offset, u32
 	/* Handle HBM */
 	if (sts1 & sts1_hbm_mask) {
 		idx = ffs(sts1 & sts1_hbm_mask) - 2;
-		hl_err(hdev, "Received HBM_SEI[%u] interrupt in D%u_CPU_INT_AGG_HDCORE%u\n",
+		dev_err(hdev->dev, "Received HBM_SEI[%u] interrupt in D%u_CPU_INT_AGG_HDCORE%u\n",
 			idx, die, aggr_hdcore);
 
 		if (hdcore_handle_and_clear[HDCORE_HBM_EVENT]) {
@@ -6290,7 +6290,7 @@ static void gaudi3_hdcore_sei_event_info(struct hl_device *hdev, u32 offset, u32
 	/* Handle SOB */
 	if (sts1 & sts1_sob_mask) {
 		idx = 0;
-		hl_err(hdev, "Received SOB_SEI[%u] interrupt in D%u_CPU_INT_AGG_HDCORE%u\n",
+		dev_err(hdev->dev, "Received SOB_SEI[%u] interrupt in D%u_CPU_INT_AGG_HDCORE%u\n",
 			idx, die, aggr_hdcore);
 
 		if (hdcore_handle_and_clear[HDCORE_SOB_EVENT]) {
@@ -6308,7 +6308,7 @@ static void gaudi3_hdcore_sei_event_info(struct hl_device *hdev, u32 offset, u32
 	/* Handle ARCFARM */
 	if (sts1 & sts1_arcfarm_mask) {
 		idx = 0;
-		hl_err(hdev,
+		dev_err(hdev->dev,
 			"Received ARC_FARM_SEI[%u] interrupt in D%u_CPU_INT_AGG_HDCORE%u\n",
 			idx, die, aggr_hdcore);
 
@@ -6327,7 +6327,7 @@ static void gaudi3_hdcore_sei_event_info(struct hl_device *hdev, u32 offset, u32
 	/* Handle DUP */
 	if (sts1 & sts1_dup_mask) {
 		idx = 0;
-		hl_err(hdev, "Received DUP_SEI[%u] interrupt in D%u_CPU_INT_AGG_HDCORE%u\n",
+		dev_err(hdev->dev, "Received DUP_SEI[%u] interrupt in D%u_CPU_INT_AGG_HDCORE%u\n",
 			idx, die, aggr_hdcore);
 
 		if (hdcore_handle_and_clear[HDCORE_DUP_EVENT]) {
@@ -6345,7 +6345,7 @@ static void gaudi3_hdcore_sei_event_info(struct hl_device *hdev, u32 offset, u32
 	/* Handle DEC */
 	if (sts1 & sts1_dec_mask) {
 		idx = ffs(sts1 & sts1_dec_mask) - 13;
-		hl_err(hdev, "Received DEC_SEI[%u] interrupt in D%u_CPU_INT_AGG_HDCORE%u\n",
+		dev_err(hdev->dev, "Received DEC_SEI[%u] interrupt in D%u_CPU_INT_AGG_HDCORE%u\n",
 			idx, die, aggr_hdcore);
 
 		if (hdcore_handle_and_clear[HDCORE_DEC_EVENT]) {
@@ -6406,7 +6406,7 @@ static void gaudi3_shared_sei_event_info(struct hl_device *hdev, u32 die,
 	/* Handle CPU */
 	if (sts0 & sts0_cpu_mask) {
 		idx = ffs(sts0 & sts0_cpu_mask) - 1;
-		hl_err(hdev, "Received CPU_SEI[%u] interrupt in D%u_CPU_INT_AGG_SHARED\n",
+		dev_err(hdev->dev, "Received CPU_SEI[%u] interrupt in D%u_CPU_INT_AGG_SHARED\n",
 			idx, die);
 
 		if (shared_handle_and_clear[SHARED_CPU_EVENT])
@@ -6420,7 +6420,7 @@ static void gaudi3_shared_sei_event_info(struct hl_device *hdev, u32 die,
 	/* Handle PCIE */
 	if (sts0 & sts0_pcie_mask) {
 		idx = 0;
-		hl_err(hdev, "Received PCIE_SEI[%u] interrupt in D%u_CPU_INT_AGG_SHARED\n",
+		dev_err(hdev->dev, "Received PCIE_SEI[%u] interrupt in D%u_CPU_INT_AGG_SHARED\n",
 			idx, die);
 
 		if (shared_handle_and_clear[SHARED_PCIE_EVENT])
@@ -6434,7 +6434,7 @@ static void gaudi3_shared_sei_event_info(struct hl_device *hdev, u32 die,
 	/* Handle NIC */
 	if (sts0 & sts0_nic_mask) {
 		idx = ffs(sts0 & sts0_nic_mask) - 6;
-		hl_err(hdev, "Received NIC_SEI[%u] interrupt in D%u_CPU_INT_AGG_SHARED\n",
+		dev_err(hdev->dev, "Received NIC_SEI[%u] interrupt in D%u_CPU_INT_AGG_SHARED\n",
 			idx, die);
 
 		if (shared_handle_and_clear[SHARED_NIC_EVENT])
@@ -6448,7 +6448,7 @@ static void gaudi3_shared_sei_event_info(struct hl_device *hdev, u32 die,
 	/* Handle NCH */
 	if (sts0 & sts0_nch_mask) {
 		idx = ffs(sts0 & sts0_nch_mask) - 12;
-		hl_err(hdev, "Received NCH_SEI[%u] interrupt in D%u_CPU_INT_AGG_SHARED\n",
+		dev_err(hdev->dev, "Received NCH_SEI[%u] interrupt in D%u_CPU_INT_AGG_SHARED\n",
 			idx, die);
 
 		if (shared_handle_and_clear[SHARED_NCH_EVENT])
@@ -6462,7 +6462,7 @@ static void gaudi3_shared_sei_event_info(struct hl_device *hdev, u32 die,
 	/* Handle PMMU */
 	if (sts0 & sts0_pmmu_mask) {
 		idx = 1;
-		hl_err(hdev, "Received PMMU_SEI[%u] interrupt in D%u_CPU_INT_AGG_SHARED\n",
+		dev_err(hdev->dev, "Received PMMU_SEI[%u] interrupt in D%u_CPU_INT_AGG_SHARED\n",
 			idx, die);
 
 		if (shared_handle_and_clear[SHARED_PMMU_EVENT])
@@ -6476,7 +6476,7 @@ static void gaudi3_shared_sei_event_info(struct hl_device *hdev, u32 die,
 	/* Handle VM */
 	if (sts0 & sts0_vm_mask) {
 		idx = ffs(sts0 & sts0_vm_mask) - 16;
-		hl_err(hdev, "Received VM_SEI[%u] interrupt in D%u_CPU_INT_AGG_SHARED\n",
+		dev_err(hdev->dev, "Received VM_SEI[%u] interrupt in D%u_CPU_INT_AGG_SHARED\n",
 			idx, die);
 
 		if (shared_handle_and_clear[SHARED_VM_EVENT])
@@ -6490,7 +6490,7 @@ static void gaudi3_shared_sei_event_info(struct hl_device *hdev, u32 die,
 	/* Handle PDMA */
 	if (sts0 & sts0_pdma_mask) {
 		idx = 0;
-		hl_err(hdev, "Received PDMA_SEI[%u] interrupt in D%u_CPU_INT_AGG_SHARED\n",
+		dev_err(hdev->dev, "Received PDMA_SEI[%u] interrupt in D%u_CPU_INT_AGG_SHARED\n",
 			idx, die);
 
 		if (shared_handle_and_clear[SHARED_PDMA_EVENT])
@@ -6504,7 +6504,7 @@ static void gaudi3_shared_sei_event_info(struct hl_device *hdev, u32 die,
 	/* Handle PSOC */
 	if (sts0 & sts0_psoc_mask) {
 		idx = 0;
-		hl_err(hdev, "Received PSOC_SEI[%u] interrupt in D%u_CPU_INT_AGG_SHARED\n",
+		dev_err(hdev->dev, "Received PSOC_SEI[%u] interrupt in D%u_CPU_INT_AGG_SHARED\n",
 			idx, die);
 
 		if (shared_handle_and_clear[SHARED_PSOC_EVENT])
@@ -6518,7 +6518,7 @@ static void gaudi3_shared_sei_event_info(struct hl_device *hdev, u32 die,
 	/* Handle PARC */
 	if (sts0 & sts0_parc_mask) {
 		idx = 0;
-		hl_err(hdev, "Received PARC_SEI[%u] interrupt in D%u_CPU_INT_AGG_SHARED\n",
+		dev_err(hdev->dev, "Received PARC_SEI[%u] interrupt in D%u_CPU_INT_AGG_SHARED\n",
 			idx, die);
 
 		if (shared_handle_and_clear[SHARED_PARC_EVENT])
@@ -6532,7 +6532,7 @@ static void gaudi3_shared_sei_event_info(struct hl_device *hdev, u32 die,
 	/* Handle D2D */
 	if (sts0 & sts0_d2d_mask) {
 		idx = ffs(sts0 & sts0_d2d_mask) - 27;
-		hl_err(hdev, "Received D2D_SEI[%u] interrupt in D%u_CPU_INT_AGG_SHARED\n",
+		dev_err(hdev->dev, "Received D2D_SEI[%u] interrupt in D%u_CPU_INT_AGG_SHARED\n",
 			idx, die);
 
 		if (shared_handle_and_clear[SHARED_D2D_EVENT])
@@ -6546,7 +6546,7 @@ static void gaudi3_shared_sei_event_info(struct hl_device *hdev, u32 die,
 	/* Handle GLINK */
 	if (sts0 & sts0_glink_mask) {
 		idx = ffs(sts0 & sts0_glink_mask) - 29;
-		hl_err(hdev, "Received GLINK_SEI[%u] interrupt in D%u_CPU_INT_AGG_SHARED\n",
+		dev_err(hdev->dev, "Received GLINK_SEI[%u] interrupt in D%u_CPU_INT_AGG_SHARED\n",
 			idx, die);
 
 		if (shared_handle_and_clear[SHARED_GLINK_EVENT])
@@ -6559,7 +6559,7 @@ static void gaudi3_shared_sei_event_info(struct hl_device *hdev, u32 die,
 
 	if (sts1 & sts1_glink_mask) {
 		idx = (ffs(sts0 & sts1_glink_mask)) + 3; /* +3 to distinguish name from sts0 */
-		hl_err(hdev, "Received GLINK_SEI[%u] interrupt in D%u_CPU_INT_AGG_SHARED\n",
+		dev_err(hdev->dev, "Received GLINK_SEI[%u] interrupt in D%u_CPU_INT_AGG_SHARED\n",
 			idx, die);
 
 		if (shared_handle_and_clear[SHARED_GLINK_EVENT])
@@ -6573,7 +6573,7 @@ static void gaudi3_shared_sei_event_info(struct hl_device *hdev, u32 die,
 	/* Handle PLL */
 	if (sts1 & sts1_pll_mask) {
 		idx = ffs(sts0 & sts1_pll_mask) - 7;
-		hl_err(hdev, "Received PLL_SEI[%u] interrupt in D%u_CPU_INT_AGG_SHARED\n",
+		dev_err(hdev->dev, "Received PLL_SEI[%u] interrupt in D%u_CPU_INT_AGG_SHARED\n",
 			idx, die);
 
 		if (shared_handle_and_clear[SHARED_PLL_EVENT])
@@ -6675,7 +6675,7 @@ static void gaudi3_hdcore_derr_event_info(struct hl_device *hdev, u32 offset, u3
 	/* Handle MME */
 	if (sts0 & sts0_mme_mask) {
 		idx = ffs(sts0 & sts0_mme_mask) - 1;
-		hl_err(hdev, "Received MME_DERR[%u] interrupt in D%u_CPU_INT_AGG_HDCORE%u\n",
+		dev_err(hdev->dev, "Received MME_DERR[%u] interrupt in D%u_CPU_INT_AGG_HDCORE%u\n",
 			idx, die, aggr_hdcore);
 
 		if (hdcore_handle_and_clear[HDCORE_MME_EVENT]) {
@@ -6693,7 +6693,7 @@ static void gaudi3_hdcore_derr_event_info(struct hl_device *hdev, u32 offset, u3
 	/* Handle TPC */
 	if (sts0 & sts0_tpc_mask) {
 		idx = ffs(sts0 & sts0_tpc_mask) - 12;
-		hl_err(hdev, "Received TPC_DERR[%u] interrupt in D%u_CPU_INT_AGG_HDCORE%u\n",
+		dev_err(hdev->dev, "Received TPC_DERR[%u] interrupt in D%u_CPU_INT_AGG_HDCORE%u\n",
 			idx, die, aggr_hdcore);
 
 		if (hdcore_handle_and_clear[HDCORE_TPC_EVENT]) {
@@ -6711,7 +6711,7 @@ static void gaudi3_hdcore_derr_event_info(struct hl_device *hdev, u32 offset, u3
 	/* Handle ROT */
 	if (sts0 & sts0_rot_mask) {
 		idx = ffs(sts0 & sts0_rot_mask) - 21;
-		hl_err(hdev, "Received ROT_DERR[%u] interrupt in D%u_CPU_INT_AGG_HDCORE%u\n",
+		dev_err(hdev->dev, "Received ROT_DERR[%u] interrupt in D%u_CPU_INT_AGG_HDCORE%u\n",
 			idx, die, aggr_hdcore);
 
 		if (hdcore_handle_and_clear[HDCORE_ROT_EVENT]) {
@@ -6729,7 +6729,7 @@ static void gaudi3_hdcore_derr_event_info(struct hl_device *hdev, u32 offset, u3
 	/* Handle CS */
 	if (sts0 & sts0_cs_mask) {
 		idx = ffs(sts0 & sts0_cs_mask) - 23;
-		hl_err(hdev, "Received CS_DERR[%u] interrupt in D%u_CPU_INT_AGG_HDCORE%u\n",
+		dev_err(hdev->dev, "Received CS_DERR[%u] interrupt in D%u_CPU_INT_AGG_HDCORE%u\n",
 			idx, die, aggr_hdcore);
 
 		if (hdcore_handle_and_clear[HDCORE_CS_EVENT]) {
@@ -6747,7 +6747,7 @@ static void gaudi3_hdcore_derr_event_info(struct hl_device *hdev, u32 offset, u3
 	/* Handle STLB */
 	if (sts0 & sts0_stlb_mask) {
 		idx = 0;
-		hl_err(hdev, "Received STLB_DERR[%u] interrupt in D%u_CPU_INT_AGG_HDCORE%u\n",
+		dev_err(hdev->dev, "Received STLB_DERR[%u] interrupt in D%u_CPU_INT_AGG_HDCORE%u\n",
 			idx, die, aggr_hdcore);
 
 		if (hdcore_handle_and_clear[HDCORE_STLB_EVENT]) {
@@ -6765,7 +6765,7 @@ static void gaudi3_hdcore_derr_event_info(struct hl_device *hdev, u32 offset, u3
 	/* Handle RTR */
 	if (sts0 & sts0_rtr_mask) {
 		idx = 0;
-		hl_err(hdev, "Received RTR_DERR[%u] interrupt in D%u_CPU_INT_AGG_HDCORE%u\n",
+		dev_err(hdev->dev, "Received RTR_DERR[%u] interrupt in D%u_CPU_INT_AGG_HDCORE%u\n",
 			idx, die, aggr_hdcore);
 
 		if (hdcore_handle_and_clear[HDCORE_RTR_EVENT]) {
@@ -6782,7 +6782,7 @@ static void gaudi3_hdcore_derr_event_info(struct hl_device *hdev, u32 offset, u3
 
 	if (sts1 & sts1_rtr_mask) {
 		idx = ffs(sts1 & sts1_rtr_mask);
-		hl_err(hdev, "Received RTR_DERR[%u] interrupt in D%u_CPU_INT_AGG_HDCORE%u\n",
+		dev_err(hdev->dev, "Received RTR_DERR[%u] interrupt in D%u_CPU_INT_AGG_HDCORE%u\n",
 			idx, die, aggr_hdcore);
 
 		if (hdcore_handle_and_clear[HDCORE_RTR_EVENT]) {
@@ -6800,7 +6800,7 @@ static void gaudi3_hdcore_derr_event_info(struct hl_device *hdev, u32 offset, u3
 	/* Handle EDMA */
 	if (sts1 & sts1_edma_mask) {
 		idx = 0;
-		hl_err(hdev, "Received EDMA_DERR[%u] interrupt in D%u_CPU_INT_AGG_HDCORE%u\n",
+		dev_err(hdev->dev, "Received EDMA_DERR[%u] interrupt in D%u_CPU_INT_AGG_HDCORE%u\n",
 			idx, die, aggr_hdcore);
 
 		if (hdcore_handle_and_clear[HDCORE_EDMA_EVENT]) {
@@ -6818,7 +6818,7 @@ static void gaudi3_hdcore_derr_event_info(struct hl_device *hdev, u32 offset, u3
 	/* Handle HBM */
 	if (sts1 & sts1_hbm_mask) {
 		idx = ffs(sts0 & sts1_hbm_mask) - 9;
-		hl_err(hdev, "Received HBM_DERR[%u] interrupt in D%u_CPU_INT_AGG_HDCORE%u\n",
+		dev_err(hdev->dev, "Received HBM_DERR[%u] interrupt in D%u_CPU_INT_AGG_HDCORE%u\n",
 			idx, die, aggr_hdcore);
 
 		if (hdcore_handle_and_clear[HDCORE_HBM_EVENT]) {
@@ -6836,7 +6836,7 @@ static void gaudi3_hdcore_derr_event_info(struct hl_device *hdev, u32 offset, u3
 	/* Handle SOB */
 	if (sts1 & sts1_sob_mask) {
 		idx = 0;
-		hl_err(hdev, "Received SOB_DERR[%u] interrupt in D%u_CPU_INT_AGG_HDCORE%u\n",
+		dev_err(hdev->dev, "Received SOB_DERR[%u] interrupt in D%u_CPU_INT_AGG_HDCORE%u\n",
 			idx, die, aggr_hdcore);
 
 		if (hdcore_handle_and_clear[HDCORE_SOB_EVENT]) {
@@ -6854,7 +6854,7 @@ static void gaudi3_hdcore_derr_event_info(struct hl_device *hdev, u32 offset, u3
 	/* Handle ARCFARM */
 	if (sts1 & sts1_arcfarm_mask) {
 		idx = 0;
-		hl_err(hdev,
+		dev_err(hdev->dev,
 			"Received ARC_FARM_DERR[%u] interrupt in D%u_CPU_INT_AGG_HDCORE%u\n",
 			idx, die, aggr_hdcore);
 
@@ -6873,7 +6873,7 @@ static void gaudi3_hdcore_derr_event_info(struct hl_device *hdev, u32 offset, u3
 	/* Handle DEC */
 	if (sts1 & sts1_dec_mask) {
 		idx = ffs(sts0 & sts1_dec_mask) - 15;
-		hl_err(hdev, "Received DEC_DERR[%u] interrupt in D%u_CPU_INT_AGG_HDCORE%u\n",
+		dev_err(hdev->dev, "Received DEC_DERR[%u] interrupt in D%u_CPU_INT_AGG_HDCORE%u\n",
 			idx, die, aggr_hdcore);
 
 		if (hdcore_handle_and_clear[HDCORE_DEC_EVENT]) {
@@ -6891,7 +6891,7 @@ static void gaudi3_hdcore_derr_event_info(struct hl_device *hdev, u32 offset, u3
 	/* Handle HIF */
 	if (sts1 & sts1_hif_mask) {
 		idx = 0;
-		hl_err(hdev, "Received HIF_DERR[%u] interrupt in D%u_CPU_INT_AGG_HDCORE%u\n",
+		dev_err(hdev->dev, "Received HIF_DERR[%u] interrupt in D%u_CPU_INT_AGG_HDCORE%u\n",
 			idx, die, aggr_hdcore);
 
 		if (hdcore_handle_and_clear[HDCORE_HIF_EVENT]) {
@@ -6940,7 +6940,7 @@ static void gaudi3_shared_derr_event_info(struct hl_device *hdev, u32 die,
 	/* Handle CPU */
 	if (sts0 & sts0_cpu_mask) {
 		idx = 0;
-		hl_err(hdev, "Received CPU_DERR[%u] interrupt in D%u_CPU_INT_AGG_SHARED\n",
+		dev_err(hdev->dev, "Received CPU_DERR[%u] interrupt in D%u_CPU_INT_AGG_SHARED\n",
 			idx, die);
 
 		if (shared_handle_and_clear[SHARED_CPU_EVENT])
@@ -6954,7 +6954,7 @@ static void gaudi3_shared_derr_event_info(struct hl_device *hdev, u32 die,
 	/* Handle PCIE */
 	if (sts0 & sts0_pcie_mask) {
 		idx = ffs(sts0 & sts0_pcie_mask) - 2;
-		hl_err(hdev, "Received PCIE_DERR[%u] interrupt in D%u_CPU_INT_AGG_SHARED\n",
+		dev_err(hdev->dev, "Received PCIE_DERR[%u] interrupt in D%u_CPU_INT_AGG_SHARED\n",
 			idx, die);
 
 		if (shared_handle_and_clear[SHARED_PCIE_EVENT])
@@ -6968,7 +6968,7 @@ static void gaudi3_shared_derr_event_info(struct hl_device *hdev, u32 die,
 	/* Handle NIC */
 	if (sts0 & sts0_nic_mask) {
 		idx = ffs(sts0 & sts0_nic_mask) - 5;
-		hl_err(hdev, "Received NIC_DERR[%u] interrupt in D%u_CPU_INT_AGG_SHARED\n",
+		dev_err(hdev->dev, "Received NIC_DERR[%u] interrupt in D%u_CPU_INT_AGG_SHARED\n",
 			idx, die);
 
 		if (shared_handle_and_clear[SHARED_NIC_EVENT])
@@ -6982,7 +6982,7 @@ static void gaudi3_shared_derr_event_info(struct hl_device *hdev, u32 die,
 	/* Handle NCH */
 	if (sts0 & sts0_nch_mask) {
 		idx = ffs(sts0 & sts0_nch_mask) - 11;
-		hl_err(hdev, "Received NCH_DERR[%u] interrupt in D%u_CPU_INT_AGG_SHARED\n",
+		dev_err(hdev->dev, "Received NCH_DERR[%u] interrupt in D%u_CPU_INT_AGG_SHARED\n",
 			idx, die);
 
 		if (shared_handle_and_clear[SHARED_NCH_EVENT])
@@ -6996,7 +6996,7 @@ static void gaudi3_shared_derr_event_info(struct hl_device *hdev, u32 die,
 	/* Handle PMMU */
 	if (sts0 & sts0_pmmu_mask) {
 		idx = 0;
-		hl_err(hdev, "Received PMMU_DERR[%u] interrupt in D%u_CPU_INT_AGG_SHARED\n",
+		dev_err(hdev->dev, "Received PMMU_DERR[%u] interrupt in D%u_CPU_INT_AGG_SHARED\n",
 			idx, die);
 
 		if (shared_handle_and_clear[SHARED_PMMU_EVENT])
@@ -7010,7 +7010,7 @@ static void gaudi3_shared_derr_event_info(struct hl_device *hdev, u32 die,
 	/* Handle PDMA */
 	if (sts0 & sts0_pdma_mask) {
 		idx = 0;
-		hl_err(hdev, "Received PDMA_DERR[%u] interrupt in D%u_CPU_INT_AGG_SHARED\n",
+		dev_err(hdev->dev, "Received PDMA_DERR[%u] interrupt in D%u_CPU_INT_AGG_SHARED\n",
 			idx, die);
 
 		if (shared_handle_and_clear[SHARED_PDMA_EVENT])
@@ -7024,7 +7024,7 @@ static void gaudi3_shared_derr_event_info(struct hl_device *hdev, u32 die,
 	/* Handle PARC */
 	if (sts0 & sts0_parc_mask) {
 		idx = 0;
-		hl_err(hdev, "Received PARC_DERR[%u] interrupt in D%u_CPU_INT_AGG_SHARED\n",
+		dev_err(hdev->dev, "Received PARC_DERR[%u] interrupt in D%u_CPU_INT_AGG_SHARED\n",
 			idx, die);
 
 		if (shared_handle_and_clear[SHARED_PARC_EVENT])
@@ -7038,7 +7038,7 @@ static void gaudi3_shared_derr_event_info(struct hl_device *hdev, u32 die,
 	/* Handle D2D */
 	if (sts0 & sts0_d2d_mask) {
 		idx = ffs(sts0 & sts0_d2d_mask) - 17;
-		hl_err(hdev, "Received D2D_DERR[%u] interrupt in D%u_CPU_INT_AGG_SHARED\n",
+		dev_err(hdev->dev, "Received D2D_DERR[%u] interrupt in D%u_CPU_INT_AGG_SHARED\n",
 			idx, die);
 
 		if (shared_handle_and_clear[SHARED_D2D_EVENT])
@@ -7052,7 +7052,7 @@ static void gaudi3_shared_derr_event_info(struct hl_device *hdev, u32 die,
 	/* Handle RTR */
 	if (sts0 & sts0_rtr_mask) {
 		idx = ffs(sts0 & sts0_rtr_mask) - 19;
-		hl_err(hdev, "Received RTR_DERR[%u] interrupt in D%u_CPU_INT_AGG_SHARED\n",
+		dev_err(hdev->dev, "Received RTR_DERR[%u] interrupt in D%u_CPU_INT_AGG_SHARED\n",
 			idx, die);
 
 		if (shared_handle_and_clear[SHARED_RTR_EVENT])
@@ -7154,32 +7154,32 @@ static void gaudi3_handle_qm_sw_event(struct hl_device *hdev,
 
 	switch (qm_info->comp) {
 	case INT_COMP_TYPE_MME:
-		hl_err(hdev, "Received QM SW event for D%u_HD%u_MME\n",
+		dev_err(hdev->dev, "Received QM SW event for D%u_HD%u_MME\n",
 			qm_info->die, hd_in_die);
 		qm_data = &eq_dynamic_entry->mme_sei_data.control_data.qm_data;
 		eq_dynamic_entry->mme_sei_data.type = MME_DATA_TYPE_CTRL;
 		eq_dynamic_entry->hdr.size = cpu_to_le16(sizeof(struct hl_eq_mme_sei_data));
 		break;
 	case INT_COMP_TYPE_TPC:
-		hl_err(hdev, "Received QM SW event for D%u_HD%u_TPC%u\n",
+		dev_err(hdev->dev, "Received QM SW event for D%u_HD%u_TPC%u\n",
 			qm_info->die, hd_in_die, qm_info->instance);
 		qm_data = &eq_dynamic_entry->tpc_sei_data.qm_data;
 		eq_dynamic_entry->hdr.size = cpu_to_le16(sizeof(struct hl_eq_tpc_sei_data));
 		break;
 	case INT_COMP_TYPE_ROT:
-		hl_err(hdev, "Received QM SW event for D%u_HD%u_ROT%u\n",
+		dev_err(hdev->dev, "Received QM SW event for D%u_HD%u_ROT%u\n",
 			qm_info->die, hd_in_die, qm_info->instance);
 		qm_data = &eq_dynamic_entry->rot_sei_data.qm_data;
 		eq_dynamic_entry->hdr.size = cpu_to_le16(sizeof(struct hl_eq_rot_sei_data));
 		break;
 	case INT_COMP_TYPE_EDMA:
-		hl_err(hdev, "Received QM SW event for D%u_HD%u_EDMA%u\n",
+		dev_err(hdev->dev, "Received QM SW event for D%u_HD%u_EDMA%u\n",
 			qm_info->die, hd_in_die, qm_info->instance);
 		qm_data = &eq_dynamic_entry->edma_sei_data.qm_data[qm_info->instance];
 		eq_dynamic_entry->hdr.size = cpu_to_le16(sizeof(struct hl_eq_edma_sei_data));
 		break;
 	default:
-		hl_err(hdev, "Received QM SW event with invalid component %u\n",
+		dev_err(hdev->dev, "Received QM SW event with invalid component %u\n",
 			qm_info->comp);
 		return;
 	}
@@ -7292,7 +7292,7 @@ static int calculate_pll_freq(struct hl_device *hdev, u64 pll_base_address, u16 
 	 * ref div must be set to 0x1, cannot be 0x0
 	 */
 	if (!refdiv) {
-		hl_err(hdev, "refdiv = 0x0 for pll base_address: 0x%llx\n", pll_base_address);
+		dev_err(hdev->dev, "refdiv = 0x0 for pll base_address: 0x%llx\n", pll_base_address);
 		return -EINVAL;
 	}
 
@@ -7605,7 +7605,7 @@ static void gaudi3_init_lbw_hbw_range_registers_privileged(struct hl_device *hde
 		.data = &rr_config,
 	};
 
-	hl_dbg(hdev, "Configure privileged LBW/HBW RRs\n");
+	dev_dbg(hdev->dev, "Configure privileged LBW/HBW RRs\n");
 
 	gaudi3_iterate_rtr_ctrls(hdev, &ctx);
 }
@@ -7621,7 +7621,7 @@ int gaudi3_init_security_privileged(struct hl_device *hdev)
 
 	rc = hl_init_pb_security(hdev, true);
 	if (rc) {
-		hl_err(hdev, "Configuring privileged PBs failed!\n");
+		dev_err(hdev->dev, "Configuring privileged PBs failed!\n");
 		return rc;
 	}
 

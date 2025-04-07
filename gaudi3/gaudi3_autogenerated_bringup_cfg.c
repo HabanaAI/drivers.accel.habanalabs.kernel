@@ -4044,7 +4044,7 @@ static void gaudi3_init_axiovrd_d2d_7_hbm(struct hl_device *hdev)
 
 void gaudi3_init_n2r_credits(struct hl_device *hdev)
 {
-	hl_dbg(hdev, "N2R_CREDITS version: %s\n", N2R_CREDITS_VERSION);
+	dev_dbg(hdev->dev, "N2R_CREDITS version: %s\n", N2R_CREDITS_VERSION);
 
 	if (hdev->asic_prop.num_of_dies == MAX_NUM_OF_DIES)
 		gaudi3_init_n2r_credits_d2d(hdev);
@@ -4054,7 +4054,7 @@ void gaudi3_init_n2r_credits(struct hl_device *hdev)
 
 void gaudi3_init_r2c_credits(struct hl_device *hdev)
 {
-	hl_dbg(hdev, "R2C_CREDITS version: %s\n", R2C_CREDITS_VERSION);
+	dev_dbg(hdev->dev, "R2C_CREDITS version: %s\n", R2C_CREDITS_VERSION);
 
 	if (hdev->asic_prop.num_of_dies == MAX_NUM_OF_DIES)
 		gaudi3_init_r2c_credits_d2d(hdev);
@@ -4070,7 +4070,7 @@ void gaudi3_init_scrambler(struct hl_device *hdev)
 		return;
 
 	if (!hdev->sram_scrambler_enable)
-		hl_info(hdev, "DRAM scrambler enable also the SRAM scrambler\n");
+		dev_info(hdev->dev, "DRAM scrambler enable also the SRAM scrambler\n");
 
 	if ((gaudi3->hw_cap_initialized & HW_CAP_SCRAMBLER_MASK) == HW_CAP_SCRAMBLER_MASK)
 		return;
@@ -4082,7 +4082,7 @@ void gaudi3_init_scrambler(struct hl_device *hdev)
 	if (hdev->fw_components & FW_TYPE_BOOT_CPU)
 		return;
 
-	hl_dbg(hdev, "SCRAMBLING version: %s\n", SCRAMBLING_VERSION);
+	dev_dbg(hdev->dev, "SCRAMBLING version: %s\n", SCRAMBLING_VERSION);
 
 	if (hdev->asic_prop.num_functional_hbms == 8)
 		gaudi3_init_scrambling_d2d_8_hbm(hdev);
@@ -4101,7 +4101,7 @@ void gaudi3_init_regulators(struct hl_device *hdev)
 	if ((gaudi3->hw_cap_initialized & HW_CAP_REGULATOR_MASK) == HW_CAP_REGULATOR_MASK)
 		return;
 
-	hl_dbg(hdev, "REGULATORS version: %s\n", REGULATORS_VERSION);
+	dev_dbg(hdev->dev, "REGULATORS version: %s\n", REGULATORS_VERSION);
 
 	if (hdev->asic_prop.num_functional_hbms == 8)
 		gaudi3_init_regulators_d2d_8_hbm(hdev);
@@ -4120,7 +4120,7 @@ void gaudi3_init_qos(struct hl_device *hdev)
 	if ((gaudi3->hw_cap_initialized & HW_CAP_QOS_MASK) == HW_CAP_QOS_MASK)
 		return;
 
-	hl_dbg(hdev, "QOS version: %s\n", QOS_VERSION);
+	dev_dbg(hdev->dev, "QOS version: %s\n", QOS_VERSION);
 
 	if (hdev->asic_prop.num_functional_hbms == 8)
 		gaudi3_init_qos_d2d_8_hbm(hdev);
@@ -4139,7 +4139,7 @@ void gaudi3_init_cache(struct hl_device *hdev)
 	if ((gaudi3->hw_cap_initialized & HW_CAP_CACHE_MASK) == HW_CAP_CACHE_MASK)
 		return;
 
-	hl_dbg(hdev, "CACHE version: %s\n", CACHE_VERSION);
+	dev_dbg(hdev->dev, "CACHE version: %s\n", CACHE_VERSION);
 
 	if (hdev->asic_prop.num_functional_hbms == 8)
 		gaudi3_init_cache_d2d_8_hbm(hdev);
@@ -4153,7 +4153,7 @@ void gaudi3_init_cache(struct hl_device *hdev)
 
 void gaudi3_init_mc(struct hl_device *hdev)
 {
-	hl_dbg(hdev, "MC version: %s\n", MC_VERSION);
+	dev_dbg(hdev->dev, "MC version: %s\n", MC_VERSION);
 
 	if (hdev->asic_prop.num_functional_hbms == 8)
 		gaudi3_init_mc_d2d_8_hbm(hdev);
@@ -4165,7 +4165,7 @@ void gaudi3_init_mc(struct hl_device *hdev)
 
 void gaudi3_init_axiovrd(struct hl_device *hdev)
 {
-	hl_dbg(hdev, "AXIOVRD version: %s\n", AXIOVRD_VERSION);
+	dev_dbg(hdev->dev, "AXIOVRD version: %s\n", AXIOVRD_VERSION);
 
 	if (hdev->asic_prop.num_functional_hbms == 8)
 		gaudi3_init_axiovrd_d2d_8_hbm(hdev);
@@ -4177,5 +4177,5 @@ void gaudi3_init_axiovrd(struct hl_device *hdev)
 
 void gaudi3_print_sol_config_version(struct hl_device *hdev)
 {
-	hl_dbg(hdev, "SOL_CONFIG version: %s\n", SOL_CONFIG_VERSION);
+	dev_dbg(hdev->dev, "SOL_CONFIG version: %s\n", SOL_CONFIG_VERSION);
 }

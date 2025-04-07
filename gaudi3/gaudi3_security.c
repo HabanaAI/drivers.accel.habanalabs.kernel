@@ -287,7 +287,7 @@ static void gaudi3_init_lbw_hbw_range_registers(struct hl_device *hdev)
  */
 static inline void gaudi3_init_range_registers(struct hl_device *hdev)
 {
-	hl_dbg(hdev, "Configure RRs\n");
+	dev_dbg(hdev->dev, "Configure RRs\n");
 	gaudi3_init_lbw_hbw_range_registers(hdev);
 	gaudi3_init_pa_range_registers(hdev);
 }
@@ -463,7 +463,7 @@ static int gaudi3_init_protection_bits(struct hl_device *hdev)
 	struct asic_fixed_properties *prop = &hdev->asic_prop;
 	int rc = 0;
 
-	hl_dbg(hdev, "Configure protection bits\n");
+	dev_dbg(hdev->dev, "Configure protection bits\n");
 
 	/* KDMA (D1_SPDMA1_CH5_A) */
 	rc |= hl_init_pb(hdev, HL_PB_SHARED, HL_PB_NA,
@@ -529,7 +529,7 @@ int gaudi3_init_security(struct hl_device *hdev)
 
 	rc = hl_init_pb_security(hdev, false);
 	if (rc) {
-		hl_err(hdev, "Configuring Secured PBs failed!\n");
+		dev_err(hdev->dev, "Configuring Secured PBs failed!\n");
 		return rc;
 	}
 

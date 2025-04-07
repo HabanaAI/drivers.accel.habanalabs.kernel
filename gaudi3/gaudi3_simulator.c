@@ -242,7 +242,7 @@ static int gaudi3_simulator_reset_device_ioctl(struct hl_simulator_device *edev,
 {
 	struct hl_device *hdev = edev->hdev;
 
-	hl_warn(hdev, "Gaudi3 simulator encountered a failure, going to reset device\n");
+	dev_warn(hdev->dev, "Gaudi3 simulator encountered a failure, going to reset device\n");
 
 	return hl_device_reset(hdev, HL_DRV_RESET_HARD);
 }
@@ -763,7 +763,7 @@ static int gaudi3_sim_validate_set_decoder_binning(struct hl_device *hdev)
 	decoder_full_mask = GENMASK((prop->num_of_hdcores * NUM_OF_DECODER_PER_HDCORE) - 1, 0);
 
 	if (hdev->decoder_mask != decoder_full_mask) {
-		hl_err(hdev,
+		dev_err(hdev->dev,
 			"Decoder binning is valid only with full decoder enabled mask\n");
 		return -EINVAL;
 	}
@@ -783,7 +783,7 @@ static int gaudi3_sim_validate_set_decoder_binning(struct hl_device *hdev)
 
 		num_binned = hweight32(die_decoder_binning_mask);
 		if (num_binned > MAX_BINNED_DECODERS_PER_DIE) {
-			hl_err(hdev, "too many binned decoders (%#x)\n",
+			dev_err(hdev->dev, "too many binned decoders (%#x)\n",
 							hdev->decoder_binning);
 			return -EINVAL;
 		}
@@ -813,7 +813,7 @@ static int gaudi3_sim_validate_set_rotator_binning(struct hl_device *hdev)
 	rotator_full_mask = GENMASK((prop->num_of_dies * NUM_OF_ROTATOR_PER_DIE) - 1, 0);
 
 	if (hdev->rotator_mask != rotator_full_mask) {
-		hl_err(hdev,
+		dev_err(hdev->dev,
 			"Rotator binning is valid only with full rotator enabled mask\n");
 		return -EINVAL;
 	}
@@ -832,7 +832,7 @@ static int gaudi3_sim_validate_set_rotator_binning(struct hl_device *hdev)
 
 		num_binned = hweight32(die_rotator_binning_mask);
 		if (num_binned > MAX_BINNED_ROTATORS_PER_DIE) {
-			hl_err(hdev, "too many binned rotators (%#x)\n",
+			dev_err(hdev->dev, "too many binned rotators (%#x)\n",
 							hdev->rotator_binning);
 			return -EINVAL;
 		}
@@ -901,7 +901,7 @@ static int gaudi3_sim_set_fixed_properties(struct hl_device *hdev)
 
 	rc = gaudi3_set_fixed_properties(hdev);
 	if (rc) {
-		hl_err(hdev, "Failed setting fixed properties\n");
+		dev_err(hdev->dev, "Failed setting fixed properties\n");
 		return rc;
 	}
 
@@ -909,12 +909,12 @@ static int gaudi3_sim_set_fixed_properties(struct hl_device *hdev)
 	 * regardless of SRAM's configuration (either as a memory or a cache).
 	 */
 	if (!prop->sram_base_address || !prop->sram_size) {
-		hl_err(hdev, "Simulator cannot run without SRAM\n");
+		dev_err(hdev->dev, "Simulator cannot run without SRAM\n");
 		return -EINVAL;
 	}
 
 	if (edev->sram_size != prop->sram_size) {
-		hl_err(hdev, "Simulator SRAM size is %#llx while expected value is %#x\n",
+		dev_err(hdev->dev, "Simulator SRAM size is %#llx while expected value is %#x\n",
 			edev->sram_size, prop->sram_size);
 		return -EINVAL;
 	}
@@ -944,7 +944,7 @@ static int gaudi3_sim_pci_bars_map(struct hl_device *hdev)
 	else
 		hdev->pcie_bar[SRAM_DRAM_BAR_ID] = (void __iomem *)edev->dram;
 
-	hl_dbg(hdev, "SRAM/HBM at %p\n",
+	dev_dbg(hdev->dev, "SRAM/HBM at %p\n",
 			hdev->pcie_bar[SRAM_DRAM_BAR_ID]);
 
 	/* CFG is not simulated as BAR */
@@ -1011,7 +1011,7 @@ static int gaudi3_sim_sw_init(struct hl_device *hdev)
 
 	hdev->cpu_accessible_dma_pool = gen_pool_create(ilog2(32), -1);
 	if (!hdev->cpu_accessible_dma_pool) {
-		hl_err(hdev, "Failed to create CPU accessible DMA pool\n");
+		dev_err(hdev->dev, "Failed to create CPU accessible DMA pool\n");
 		rc = -ENOMEM;
 		goto free_cpu_dma_mem;
 	}
@@ -1019,7 +1019,7 @@ static int gaudi3_sim_sw_init(struct hl_device *hdev)
 	rc = gen_pool_add(hdev->cpu_accessible_dma_pool, (uintptr_t) hdev->cpu_accessible_dma_mem,
 				HL_CPU_ACCESSIBLE_MEM_SIZE, -1);
 	if (rc) {
-		hl_err(hdev, "Failed to add memory to CPU accessible DMA pool\n");
+		dev_err(hdev->dev, "Failed to add memory to CPU accessible DMA pool\n");
 		rc = -EFAULT;
 		goto free_cpu_accessible_dma_pool;
 	}
@@ -1033,7 +1033,7 @@ static int gaudi3_sim_sw_init(struct hl_device *hdev)
 
 	rc = gaudi3_etr_buf_store_sw_init(hdev);
 	if (rc) {
-		hl_err(hdev, "Failed to init ETR buffer storing S/W\n");
+		dev_err(hdev->dev, "Failed to init ETR buffer storing S/W\n");
 		goto free_cpu_accessible_dma_pool;
 	}
 
@@ -1211,14 +1211,14 @@ static int gaudi3_sim_hw_init(struct hl_device *hdev)
 
 	rc = gaudi3_init_cpu(hdev);
 	if (rc) {
-		hl_err(hdev, "failed to initialize CPU\n");
+		dev_err(hdev->dev, "failed to initialize CPU\n");
 		return rc;
 	}
 
 	if (hdev->cache_enable) {
 		rc = gaudi3_set_cache_mode(hdev);
 		if (rc) {
-			hl_err(hdev, "failed setting cache mode\n");
+			dev_err(hdev->dev, "failed setting cache mode\n");
 			return rc;
 		}
 	}
@@ -1229,19 +1229,19 @@ static int gaudi3_sim_hw_init(struct hl_device *hdev)
 
 	rc = gaudi3_init_cpu_queues(hdev, GAUDI3_CPU_TIMEOUT_USEC);
 	if (rc) {
-		hl_err(hdev, "failed to initialize CPU H/W queues %d\n", rc);
+		dev_err(hdev->dev, "failed to initialize CPU H/W queues %d\n", rc);
 		return rc;
 	}
 
 	rc = gaudi3->cpucp_info_get(hdev);
 	if (rc) {
-		hl_err(hdev, "Failed to get cpucp info\n");
+		dev_err(hdev->dev, "Failed to get cpucp info\n");
 		return rc;
 	}
 
 	rc = gaudi3_mmu_init(hdev);
 	if (rc) {
-		hl_err(hdev, "failed to initialize MMU\n");
+		dev_err(hdev->dev, "failed to initialize MMU\n");
 		return rc;
 	}
 
@@ -1289,7 +1289,7 @@ static void gaudi3_sim_trigger_reset(struct hl_device *hdev, bool hard_reset, u3
 			(hard_reset ? mmPSOC_RESET_CONF_SW_ALL_RST : mmPSOC_RESET_CONF_SOFT_RST),
 			0x1);
 
-	hl_dbg(hdev,
+	dev_dbg(hdev->dev,
 		"Issued %s reset command to DIE%d, waiting up to %dms\n",
 		hard_reset ? "HARD" : "SOFT",
 		die, reset_timeout_ms);
@@ -1310,7 +1310,7 @@ static void gaudi3_sim_poll_on_reset_complete(struct hl_device *hdev, u32 die)
 			reg_val, reg_val == 0, 10000, reset_timeout_us);
 
 	if (rc == -ETIMEDOUT)
-		hl_err(hdev,
+		dev_err(hdev->dev,
 			"Timeout while waiting for device to reset 0x%x\n",
 			reg_val);
 }
@@ -1364,7 +1364,7 @@ static int gaudi3_sim_mmap(struct hl_device *hdev,
 
 	rc = remap_vmalloc_range(vma, cpu_addr, 0);
 	if (rc)
-		hl_err(hdev, "remap vmalloc error %d", rc);
+		dev_err(hdev->dev, "remap vmalloc error %d", rc);
 
 	return rc;
 }
@@ -1383,7 +1383,7 @@ static void *gaudi3_sim_dma_alloc_coherent(struct hl_device *hdev, size_t size,
 
 		*dma_handle = virt_to_phys(address);
 		if (!gaudi3_host_phys_addr_valid(*dma_handle))
-			hl_crit(hdev, "invalid host phys addr 0x%llx\n",
+			dev_crit(hdev->dev, "invalid host phys addr 0x%llx\n",
 					*dma_handle);
 	}
 
@@ -1497,7 +1497,7 @@ static int gaudi3_sim_get_hw_block_id(struct hl_device *hdev, u64 block_addr,
 		}
 	}
 
-	hl_err(hdev, "Invalid block address %#llx", block_addr);
+	dev_err(hdev->dev, "Invalid block address %#llx", block_addr);
 
 	return -EINVAL;
 }

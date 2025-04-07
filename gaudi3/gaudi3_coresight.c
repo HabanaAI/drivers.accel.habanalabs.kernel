@@ -5622,7 +5622,7 @@ static int gaudi3_coresight_timeout(struct hl_device *hdev, u64 addr,
 		timeout_usec);
 
 	if (rc)
-		hl_err(hdev,
+		dev_err(hdev->dev,
 			"Timeout while waiting for coresight, addr: 0x%llx, position: %d, up: %d\n",
 			addr, position, up);
 
@@ -5640,7 +5640,7 @@ static int gaudi3_unlock_coresight_unit(struct hl_device *hdev,
 					1, 0);
 
 	if (rc)
-		hl_err(hdev,
+		dev_err(hdev->dev,
 			"Failed to unlock register base addr: 0x%llx , position: 1, up: 0\n",
 			base_reg);
 
@@ -5655,7 +5655,7 @@ static int gaudi3_config_stm(struct hl_device *hdev, struct hl_debug_params *par
 	int rc;
 
 	if (params->reg_idx >= ARRAY_SIZE(debug_stm_regs)) {
-		hl_err(hdev, "Invalid register index in %s - %d\n",
+		dev_err(hdev->dev, "Invalid register index in %s - %d\n",
 			__func__, params->reg_idx);
 		return -EINVAL;
 	}
@@ -5716,7 +5716,7 @@ static int gaudi3_config_stm(struct hl_device *hdev, struct hl_debug_params *par
 
 		rc = gaudi3_coresight_timeout(hdev, base_reg + mmSTM_STMTCSR, 23, false);
 		if (rc) {
-			hl_err(hdev, "Failed to disable STM on timeout, error %d\n", rc);
+			dev_err(hdev->dev, "Failed to disable STM on timeout, error %d\n", rc);
 			return rc;
 		}
 
@@ -5734,7 +5734,7 @@ static int gaudi3_config_etf(struct hl_device *hdev, struct hl_debug_params *par
 	int rc;
 
 	if (params->reg_idx >= ARRAY_SIZE(debug_etf_regs)) {
-		hl_err(hdev, "Invalid register index in %s - %d\n",
+		dev_err(hdev->dev, "Invalid register index in %s - %d\n",
 			__func__, params->reg_idx);
 		return -EINVAL;
 	}
@@ -5764,14 +5764,14 @@ static int gaudi3_config_etf(struct hl_device *hdev, struct hl_debug_params *par
 
 	rc = gaudi3_coresight_timeout(hdev, base_reg + mmETF_1KB_FFCR, 6, false);
 	if (rc) {
-		hl_err(hdev, "Failed to %s ETF on timeout, error %d\n",
+		dev_err(hdev->dev, "Failed to %s ETF on timeout, error %d\n",
 			params->enable ? "enable" : "disable", rc);
 		return rc;
 	}
 
 	rc = gaudi3_coresight_timeout(hdev, base_reg + mmETF_1KB_STS, 2, true);
 	if (rc) {
-		hl_err(hdev, "Failed to %s ETF on timeout, error %d\n",
+		dev_err(hdev->dev, "Failed to %s ETF on timeout, error %d\n",
 			params->enable ? "enable" : "disable", rc);
 		return rc;
 	}
@@ -5811,7 +5811,7 @@ static int gaudi3_etr_validate_address(struct hl_device *hdev, u64 addr, u64 siz
 	struct gaudi3_device *gaudi3 = hdev->asic_specific;
 
 	if (addr > (addr + size)) {
-		hl_err(hdev, "ETR buffer size %llu overflow\n", size);
+		dev_err(hdev->dev, "ETR buffer size %llu overflow\n", size);
 		return false;
 	}
 
@@ -5843,7 +5843,7 @@ static int gaudi3_etr_validate_address(struct hl_device *hdev, u64 addr, u64 siz
 		return true;
 
 	if (!(gaudi3->hw_cap_initialized & HW_CAP_PMMU))
-		hl_err(hdev, "ETR buffer should be in SRAM/DRAM\n");
+		dev_err(hdev->dev, "ETR buffer should be in SRAM/DRAM\n");
 
 	return false;
 }
@@ -5870,7 +5870,7 @@ static void gaudi3_ac_start(struct hl_device *hdev, u32 etr_idx, u32 buf_size)
 		pkt.value = cpu_to_le64(buf_size);
 		rc = hdev->asic_funcs->send_cpu_message(hdev, (u32 *) &pkt, sizeof(pkt), 0, NULL);
 		if (rc && rc != -EAGAIN)
-			hl_err(hdev, "failed to send AC start msg (err = %d)\n", rc);
+			dev_err(hdev->dev, "failed to send AC start msg (err = %d)\n", rc);
 	} else {
 		gaudi3_ac_start_no_fw(hdev, etr_idx, buf_size);
 	}
@@ -5892,7 +5892,7 @@ static void gaudi3_ac_stop(struct hl_device *hdev, u32 etr_idx)
 		pkt.pkt_subidx = cpu_to_le32(AC_OP_STOP);
 		rc = hdev->asic_funcs->send_cpu_message(hdev, (u32 *) &pkt, sizeof(pkt), 0, NULL);
 		if (rc && rc != -EAGAIN)
-			hl_err(hdev, "failed to send AC stop msg (err = %d)\n", rc);
+			dev_err(hdev->dev, "failed to send AC stop msg (err = %d)\n", rc);
 	} else {
 		gaudi3_ac_stop_no_fw(hdev, etr_idx);
 	}
@@ -5948,7 +5948,7 @@ static int gaudi3_config_etr(struct hl_device *hdev, struct hl_ctx *ctx,
 		master_if_hbw_base_reg = mmD1_NCH_MSTR_IF_AXUSER_HBW_BASE;
 		break;
 	default:
-		hl_err(hdev, "%s - Invalid buffer Index %d", __func__, etr_idx);
+		dev_err(hdev->dev, "%s - Invalid buffer Index %d", __func__, etr_idx);
 		return -EINVAL;
 	}
 
@@ -5970,14 +5970,14 @@ static int gaudi3_config_etr(struct hl_device *hdev, struct hl_ctx *ctx,
 
 	rc = gaudi3_coresight_timeout(hdev, base_reg + mmETR_FFCR, 6, false);
 	if (rc) {
-		hl_err(hdev, "Failed to %s ETR on timeout, error %d\n",
+		dev_err(hdev->dev, "Failed to %s ETR on timeout, error %d\n",
 				params->enable ? "enable" : "disable", rc);
 		return rc;
 	}
 
 	rc = gaudi3_coresight_timeout(hdev, base_reg + mmETR_STS, 2, true);
 	if (rc) {
-		hl_err(hdev, "Failed to %s ETR on timeout, error %d\n",
+		dev_err(hdev->dev, "Failed to %s ETR on timeout, error %d\n",
 				params->enable ? "enable" : "disable", rc);
 		return rc;
 	}
@@ -5995,7 +5995,7 @@ static int gaudi3_config_etr(struct hl_device *hdev, struct hl_ctx *ctx,
 		}
 
 		if (!gaudi3_etr_validate_address(hdev, input->buffer_address, input->buffer_size)) {
-			hl_err(hdev, "ETR buffer address is invalid\n");
+			dev_err(hdev->dev, "ETR buffer address is invalid\n");
 			return -EINVAL;
 		}
 
@@ -6116,7 +6116,7 @@ static int gaudi3_fetch_trace(struct hl_device *hdev, struct hl_debug_params *pa
 				HL_DEBUG_FETCH_STATUS_STOPPED;
 		return 0;
 	} else { /* Return value < 0 (-ERESTARTSYS) if interrupted */
-		hl_err_ratelimited(hdev,
+		dev_err_ratelimited(hdev->dev,
 			"user process got signal while waiting for a buffer fetched from ETR ID %d\n",
 			etr_idx);
 		return -EINTR;
@@ -6128,7 +6128,7 @@ static int gaudi3_fetch_trace(struct hl_device *hdev, struct hl_debug_params *pa
 		copy_to_user((void __user *)(uintptr_t)input->buffer_address,
 			     buf->data_host_va, buf->used_size);
 	if (left_to_copy) {
-		hl_err(hdev,
+		dev_err(hdev->dev,
 			"copy to user failed - %ld bytes not copied out of %lld\n",
 			left_to_copy, buf->used_size);
 		rc = -EFAULT;
@@ -6139,7 +6139,7 @@ static int gaudi3_fetch_trace(struct hl_device *hdev, struct hl_debug_params *pa
 		copy_to_user((void __user *)(uintptr_t)input->copied_size_addr,
 			     &buf->used_size, sizeof(u64));
 	if (left_to_copy) {
-		hl_err(hdev,
+		dev_err(hdev->dev,
 			"copy to user (size) failed - %ld bytes not copied out of %ld\n",
 			left_to_copy, sizeof(u64));
 		rc = -EFAULT;
@@ -6155,7 +6155,7 @@ static int gaudi3_fetch_trace(struct hl_device *hdev, struct hl_debug_params *pa
 		copy_to_user((void __user *)(uintptr_t)input->buffer_index_address,
 			     &buf->idx, sizeof(u64));
 	if (left_to_copy) {
-		hl_err(hdev,
+		dev_err(hdev->dev,
 			"copy to user (index) failed - %ld bytes not copied out of %ld\n",
 			left_to_copy, sizeof(u64));
 		rc = -EFAULT;
@@ -6177,7 +6177,7 @@ static int gaudi3_config_funnel(struct hl_device *hdev, struct hl_debug_params *
 	u32 val;
 
 	if (params->reg_idx >= ARRAY_SIZE(debug_funnel_regs)) {
-		hl_err(hdev, "Invalid register index in %s - %d\n",
+		dev_err(hdev->dev, "Invalid register index in %s - %d\n",
 			__func__, params->reg_idx);
 		return -EINVAL;
 	}
@@ -6207,7 +6207,7 @@ static int gaudi3_config_bmon(struct hl_device *hdev, struct hl_debug_params *pa
 	u64 base_reg;
 
 	if (params->reg_idx >= ARRAY_SIZE(debug_bmon_regs)) {
-		hl_err(hdev, "Invalid register index in %s - %d\n",
+		dev_err(hdev->dev, "Invalid register index in %s - %d\n",
 			__func__, params->reg_idx);
 		return -EINVAL;
 	}
@@ -6317,7 +6317,7 @@ static int gaudi3_config_spmu(struct hl_device *hdev, struct hl_debug_params *pa
 	int i;
 
 	if (params->reg_idx >= ARRAY_SIZE(debug_spmu_regs)) {
-		hl_err(hdev, "Invalid register index in %s - %d\n",
+		dev_err(hdev->dev, "Invalid register index in %s - %d\n",
 			__func__, params->reg_idx);
 		return -EINVAL;
 	}
@@ -6337,7 +6337,7 @@ static int gaudi3_config_spmu(struct hl_device *hdev, struct hl_debug_params *pa
 			return -EINVAL;
 
 		if (input->event_types_num > SPMU_MAX_COUNTERS) {
-			hl_err(hdev, "too many event types values for SPMU enable\n");
+			dev_err(hdev->dev, "too many event types values for SPMU enable\n");
 			return -EINVAL;
 		}
 
@@ -6386,7 +6386,7 @@ static int gaudi3_config_spmu(struct hl_device *hdev, struct hl_debug_params *pa
 		if (output && output_arr_len > 2) {
 
 			if (events_num > SPMU_MAX_COUNTERS) {
-				hl_err(hdev, "too many events values for SPMU disable\n");
+				dev_err(hdev->dev, "too many events values for SPMU disable\n");
 				return -EINVAL;
 			}
 
@@ -6447,7 +6447,7 @@ int gaudi3_debug_coresight(struct hl_device *hdev, struct hl_ctx *ctx, void *dat
 		/* Do nothing as this opcode is deprecated */
 		break;
 	default:
-		hl_err(hdev, "Unknown coresight id %d\n", params->op);
+		dev_err(hdev->dev, "Unknown coresight id %d\n", params->op);
 		return -EINVAL;
 	}
 
@@ -6469,14 +6469,14 @@ void gaudi3_halt_coresight(struct hl_device *hdev, struct hl_ctx *ctx)
 		params.reg_idx = i;
 		rc = gaudi3_config_etf(hdev, &params);
 		if (rc)
-			hl_err(hdev, "halt ETF failed, %d/%d\n", rc, i);
+			dev_err(hdev->dev, "halt ETF failed, %d/%d\n", rc, i);
 	}
 
 	/* close all etrs (GAUDI3_NUM_ETR) */
 	for (input.pad = 0 ; input.pad < GAUDI3_NUM_ETR ; input.pad++) {
 		rc = gaudi3_config_etr(hdev, ctx, &params);
 		if (rc)
-			hl_err(hdev, "halt ETR(%d) failed, %d\n", input.pad, rc);
+			dev_err(hdev->dev, "halt ETR(%d) failed, %d\n", input.pad, rc);
 	}
 }
 
@@ -6503,7 +6503,7 @@ static int gaudi3_coresight_set_disabled_components(struct hl_device *hdev,
 		u64 component_mask = 1ULL << component_idx;
 
 		if (component_idx >= unit_count) {
-			hl_err(hdev, "index is out of range index(%u) >= units_count(%u)\n",
+			dev_err(hdev->dev, "index is out of range index(%u) >= units_count(%u)\n",
 				component_idx, unit_count);
 			return -EINVAL;
 		}
@@ -6576,7 +6576,7 @@ int gaudi3_coresight_init(struct hl_device *hdev)
 		ret = gaudi3_coresight_set_disabled_components(hdev, die_index, half_size,
 						enabled_mask, gaudi3_stlb_coresight_cfg_table);
 		if (ret) {
-			hl_err(hdev, "Failed to set disabled cs_dbg units for STLB coresight\n");
+			dev_err(hdev->dev, "Failed to set disabled cs_dbg units for STLB coresight\n");
 			return ret;
 		}
 
@@ -6586,7 +6586,7 @@ int gaudi3_coresight_init(struct hl_device *hdev)
 		ret = gaudi3_coresight_set_disabled_components(hdev, die_index, half_size,
 					enabled_mask, gaudi3_spdma_coresight_cfg_table);
 		if (ret) {
-			hl_err(hdev, "Failed to set disabled cs_dbg units for SPDMA coresight\n");
+			dev_err(hdev->dev, "Failed to set disabled cs_dbg units for SPDMA coresight\n");
 			return ret;
 		}
 
@@ -6596,7 +6596,7 @@ int gaudi3_coresight_init(struct hl_device *hdev)
 		ret = gaudi3_coresight_set_disabled_components(hdev, die_index, half_size,
 					enabled_mask, gaudi3_pmmu_coresight_cfg_table);
 		if (ret) {
-			hl_err(hdev, "Failed to set disabled cs_dbg units for PMMU coresight\n");
+			dev_err(hdev->dev, "Failed to set disabled cs_dbg units for PMMU coresight\n");
 			return ret;
 		}
 
@@ -6606,7 +6606,7 @@ int gaudi3_coresight_init(struct hl_device *hdev)
 		ret = gaudi3_coresight_set_disabled_components(hdev, die_index, half_size,
 					enabled_mask, gaudi3_cs_coresight_cfg_table);
 		if (ret) {
-			hl_err(hdev, "Failed to set disabled cs_dbg units for Cache Slice coresight\n");
+			dev_err(hdev->dev, "Failed to set disabled cs_dbg units for Cache Slice coresight\n");
 			return ret;
 		}
 
@@ -6616,7 +6616,7 @@ int gaudi3_coresight_init(struct hl_device *hdev)
 		ret = gaudi3_coresight_set_disabled_components(hdev, die_index, half_size,
 					enabled_mask, gaudi3_cpu_coresight_cfg_table);
 		if (ret) {
-			hl_err(hdev, "Failed to set disabled cs_dbg units for CPU coresight\n");
+			dev_err(hdev->dev, "Failed to set disabled cs_dbg units for CPU coresight\n");
 			return ret;
 		}
 
@@ -6626,7 +6626,7 @@ int gaudi3_coresight_init(struct hl_device *hdev)
 		ret = gaudi3_coresight_set_disabled_components(hdev, die_index, half_size,
 					enabled_mask, gaudi3_psoc_coresight_cfg_table);
 		if (ret) {
-			hl_err(hdev, "Failed to set disabled cs_dbg units for PSOC coresight\n");
+			dev_err(hdev->dev, "Failed to set disabled cs_dbg units for PSOC coresight\n");
 			return ret;
 		}
 
@@ -6655,7 +6655,7 @@ int gaudi3_coresight_init(struct hl_device *hdev)
 		ret = gaudi3_coresight_set_disabled_components(hdev, die_index, half_size,
 					enabled_mask, gaudi3_nic_coresight_cfg_table);
 		if (ret) {
-			hl_err(hdev, "Failed to set disabled cs_dbg units for NIC coresight\n");
+			dev_err(hdev->dev, "Failed to set disabled cs_dbg units for NIC coresight\n");
 			return ret;
 		}
 
@@ -6675,7 +6675,7 @@ int gaudi3_coresight_init(struct hl_device *hdev)
 		ret = gaudi3_coresight_set_disabled_components(hdev, die_index, half_size,
 					enabled_mask,	gaudi3_mme_sbte_coresight_cfg_table);
 		if (ret) {
-			hl_err(hdev, "Failed to set disabled cs_dbg units for SBTE coresight\n");
+			dev_err(hdev->dev, "Failed to set disabled cs_dbg units for SBTE coresight\n");
 			return ret;
 		}
 
@@ -6687,7 +6687,7 @@ int gaudi3_coresight_init(struct hl_device *hdev)
 		ret = gaudi3_coresight_set_disabled_components(hdev, die_index, half_size,
 					enabled_mask, gaudi3_mme_qman_coresight_cfg_table);
 		if (ret) {
-			hl_err(hdev, "Failed to set disabled cs_dbg units for mme_qman coresight\n");
+			dev_err(hdev->dev, "Failed to set disabled cs_dbg units for mme_qman coresight\n");
 			return ret;
 		}
 
@@ -6697,7 +6697,7 @@ int gaudi3_coresight_init(struct hl_device *hdev)
 		ret = gaudi3_coresight_set_disabled_components(hdev, die_index, half_size,
 					enabled_mask, gaudi3_pcie_coresight_cfg_table);
 		if (ret) {
-			hl_err(hdev, "Failed to set disabled cs_dbg units for pcie coresight\n");
+			dev_err(hdev->dev, "Failed to set disabled cs_dbg units for pcie coresight\n");
 			return ret;
 		}
 
@@ -6708,7 +6708,7 @@ int gaudi3_coresight_init(struct hl_device *hdev)
 		ret = gaudi3_coresight_set_disabled_components(hdev, die_index, half_size,
 					enabled_mask, gaudi3_sm_coresight_cfg_table);
 		if (ret) {
-			hl_err(hdev, "Failed to set disabled cs_dbg units for sm coresight\n");
+			dev_err(hdev->dev, "Failed to set disabled cs_dbg units for sm coresight\n");
 			return ret;
 		}
 
@@ -6720,7 +6720,7 @@ int gaudi3_coresight_init(struct hl_device *hdev)
 		ret = gaudi3_coresight_set_disabled_components(hdev, die_index, half_size,
 					enabled_mask, gaudi3_d2d_mac_coresight_cfg_table);
 		if (ret) {
-			hl_err(hdev, "Failed to set disabled cs_dbg units for d2d_mac coresight\n");
+			dev_err(hdev->dev, "Failed to set disabled cs_dbg units for d2d_mac coresight\n");
 			return ret;
 		}
 
@@ -6732,7 +6732,7 @@ int gaudi3_coresight_init(struct hl_device *hdev)
 		ret = gaudi3_coresight_set_disabled_components(hdev, die_index, half_size,
 					enabled_mask, gaudi3_rot_coresight_cfg_table);
 		if (ret) {
-			hl_err(hdev, "Failed to set disabled cs_dbg units for rot coresight\n");
+			dev_err(hdev->dev, "Failed to set disabled cs_dbg units for rot coresight\n");
 			return ret;
 		}
 
@@ -6743,7 +6743,7 @@ int gaudi3_coresight_init(struct hl_device *hdev)
 		ret = gaudi3_coresight_set_disabled_components(hdev, die_index, half_size,
 					enabled_mask, gaudi3_parc_arc_coresight_cfg_table);
 		if (ret) {
-			hl_err(hdev, "Failed to set disabled cs_dbg units for parc_arc coresight\n");
+			dev_err(hdev->dev, "Failed to set disabled cs_dbg units for parc_arc coresight\n");
 			return ret;
 		}
 
@@ -6754,7 +6754,7 @@ int gaudi3_coresight_init(struct hl_device *hdev)
 		ret = gaudi3_coresight_set_disabled_components(hdev, die_index, half_size,
 					enabled_mask, gaudi3_arc_farm_coresight_cfg_table);
 		if (ret) {
-			hl_err(hdev, "Failed to set disabled cs_dbg units for arc_farm coresight\n");
+			dev_err(hdev->dev, "Failed to set disabled cs_dbg units for arc_farm coresight\n");
 			return ret;
 		}
 
@@ -6766,7 +6766,7 @@ int gaudi3_coresight_init(struct hl_device *hdev)
 		ret = gaudi3_coresight_set_disabled_components(hdev, die_index, half_size,
 					enabled_mask, gaudi3_tpc_coresight_cfg_table);
 		if (ret) {
-			hl_err(hdev, "Failed to set disabled cs_dbg units for tpc coresight\n");
+			dev_err(hdev->dev, "Failed to set disabled cs_dbg units for tpc coresight\n");
 			return ret;
 		}
 
@@ -6778,7 +6778,7 @@ int gaudi3_coresight_init(struct hl_device *hdev)
 		ret = gaudi3_coresight_set_disabled_components(hdev, die_index, half_size,
 					enabled_mask, gaudi3_vdec_coresight_cfg_table);
 		if (ret) {
-			hl_err(hdev, "Failed to set disabled cs_dbg units for decoder coresight\n");
+			dev_err(hdev->dev, "Failed to set disabled cs_dbg units for decoder coresight\n");
 			return ret;
 		}
 
@@ -6797,7 +6797,7 @@ int gaudi3_coresight_init(struct hl_device *hdev)
 		ret = gaudi3_coresight_set_disabled_components(hdev, die_index, half_size,
 					enabled_mask, gaudi3_hbm_coresight_cfg_table);
 		if (ret) {
-			hl_err(hdev, "Failed to set disabled cs_dbg units for hbm mc1 coresight\n");
+			dev_err(hdev->dev, "Failed to set disabled cs_dbg units for hbm mc1 coresight\n");
 			return ret;
 		}
 
@@ -6810,7 +6810,7 @@ int gaudi3_coresight_init(struct hl_device *hdev)
 		ret = gaudi3_coresight_set_disabled_components(hdev, die_index, half_size,
 					enabled_mask, gaudi3_sedma_coresight_cfg_table);
 		if (ret) {
-			hl_err(hdev, "Failed to set disabled cs_dbg units for edma coresight\n");
+			dev_err(hdev->dev, "Failed to set disabled cs_dbg units for edma coresight\n");
 			return ret;
 		}
 	}
@@ -6827,7 +6827,7 @@ static int gaudi3_sample_spmu(struct hl_device *hdev, struct hl_debug_params *pa
 	int i;
 
 	if (params->reg_idx >= ARRAY_SIZE(debug_spmu_regs)) {
-		hl_err(hdev, "Invalid register index in SPMU\n");
+		dev_err(hdev->dev, "Invalid register index in SPMU\n");
 		return -EINVAL;
 	}
 
@@ -6842,12 +6842,12 @@ static int gaudi3_sample_spmu(struct hl_device *hdev, struct hl_debug_params *pa
 	events_num = output_arr_len;
 
 	if (output_arr_len < 1) {
-		hl_err(hdev, "not enough values for SPMU sample\n");
+		dev_err(hdev->dev, "not enough values for SPMU sample\n");
 		return -EINVAL;
 	}
 
 	if (events_num > SPMU_MAX_COUNTERS) {
-		hl_err(hdev, "too many events values for SPMU sample\n");
+		dev_err(hdev->dev, "too many events values for SPMU sample\n");
 		return -EINVAL;
 	}
 
@@ -6904,7 +6904,7 @@ int gaudi3_cn_spmu_config(struct hl_device *hdev, u32 port, u32 num_event_types,
 
 	/* validate nic port */
 	if  (!gaudi3_reg_is_nic_spmu(GAUDI3_SPMU_D0_NIC0_CS_DBG + NIC_PORT_TO_MACRO(port))) {
-		hl_err(hdev, "Invalid nic port %u\n", port);
+		dev_err(hdev->dev, "Invalid nic port %u\n", port);
 		return -EINVAL;
 	}
 
@@ -6936,7 +6936,7 @@ int gaudi3_cn_spmu_sample(struct hl_device *hdev, u32 port, u32 num_out_data, u6
 
 	/* validate nic port */
 	if  (!gaudi3_reg_is_nic_spmu(GAUDI3_SPMU_D0_NIC0_CS_DBG + NIC_PORT_TO_MACRO(port))) {
-		hl_err(hdev, "Invalid nic port %u\n", port);
+		dev_err(hdev->dev, "Invalid nic port %u\n", port);
 		return -EINVAL;
 	}
 
