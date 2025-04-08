@@ -631,23 +631,11 @@ static const u32 gaudi3_pll_block_bases[] = {
 	[GAUDI3_D0_G2_NIC_PLL] = mmD0_G2_NIC_PLL_CTRL_BASE,
 };
 
-struct gaudi3_etr_ac_config gaudi3_etr_ac_config[GAUDI3_NUM_ETR] = {
-	[GAUDI3_D0_PSOC_ETR] = {
-		mmD0_PSOC_ETR_AC_BASE - mmD0_NCH_AC_BASE,
-		mmD0_PSOC_ETR_BASE - mmD0_NCH_ETR_BASE
-		},
-	[GAUDI3_D0_NCH_ETR] = {
-		mmD0_NCH_AC_BASE - mmD0_NCH_AC_BASE,
-		mmD0_NCH_ETR_BASE - mmD0_NCH_ETR_BASE
-		},
-	[GAUDI3_D1_PSOC_ETR] = {
-		mmD1_PSOC_ETR_AC_BASE - mmD0_NCH_AC_BASE,
-		mmD1_PSOC_ETR_BASE - mmD0_NCH_ETR_BASE
-		},
-	[GAUDI3_D1_NCH_ETR] = {
-		mmD1_NCH_AC_BASE - mmD0_NCH_AC_BASE,
-		mmD1_NCH_ETR_BASE - mmD0_NCH_ETR_BASE
-		},
+static const u64 gaudi3_etr_ac_base[GAUDI3_NUM_ETR] = {
+	[GAUDI3_D0_PSOC_ETR] = mmD0_PSOC_ETR_AC_BASE,
+	[GAUDI3_D0_NCH_ETR]  = mmD0_NCH_AC_BASE,
+	[GAUDI3_D1_PSOC_ETR] = mmD1_PSOC_ETR_AC_BASE,
+	[GAUDI3_D1_NCH_ETR]  = mmD1_NCH_AC_BASE,
 };
 
 #define GAUDI3_INIT_PLL_COEFFICIENT(pll, refdiv, fbdiv, pdiv1, pdiv2) \
@@ -2963,29 +2951,25 @@ static void gaudi3_ac_add_instruction(struct hl_device *hdev, u32 etr_idx,
 				      u8 pos, enum gaudi3_ac_instruction opcode,
 				      u32 addr, u32 data)
 {
-	u64 ac_off = gaudi3_etr_ac_config[etr_idx].ac_off;
+	u64 ac_off = gaudi3_etr_ac_base[etr_idx];
 
-	WREG32(mmD0_NCH_AC_BASE + mmAUTONOMOUS_CONTROL_CMD_ENTRY_0 + ac_off + pos * sizeof(u32),
+	WREG32(mmAUTONOMOUS_CONTROL_CMD_ENTRY_0 + ac_off + pos * sizeof(u32),
 			opcode);
-	WREG32(mmD0_NCH_AC_BASE + mmAUTONOMOUS_CONTROL_ADDR_ENTRY_0 + ac_off + pos * sizeof(u32),
+	WREG32(mmAUTONOMOUS_CONTROL_ADDR_ENTRY_0 + ac_off + pos * sizeof(u32),
 			addr);
-	WREG32(mmD0_NCH_AC_BASE + mmAUTONOMOUS_CONTROL_DATA_ENTRY_0 + ac_off + pos * sizeof(u32),
+	WREG32(mmAUTONOMOUS_CONTROL_DATA_ENTRY_0 + ac_off + pos * sizeof(u32),
 			data);
 }
 
 static void gaudi3_ac_program(struct hl_device *hdev, u32 etr_idx, u32 buf_size)
 {
+	u64 ac_off = gaudi3_etr_ac_base[etr_idx];
 	u32 doorbell, poll_mask, rwp, rwp_msb_mask;
-	u64 ac_off, etr_off;
 	u8 i = 0;
 
-	ac_off = gaudi3_etr_ac_config[etr_idx].ac_off;
-	etr_off = gaudi3_etr_ac_config[etr_idx].etr_off;
-
 	doorbell = CFG_BAR_BASE - LBW_BASE + mmD0_PCIE_DBI_SIG_BASE + mmPCIE_DBI_MSIX_DOORBELL_OFF;
-	poll_mask = CFG_BAR_BASE - LBW_BASE + mmD0_NCH_AC_BASE +
-			mmAUTONOMOUS_CONTROL_POLLING_MASK + ac_off;
-	rwp = CFG_BAR_BASE - LBW_BASE + mmD0_NCH_ETR_BASE + mmETR_RWP + etr_off;
+	poll_mask = CFG_BAR_BASE - LBW_BASE + mmAUTONOMOUS_CONTROL_POLLING_MASK + ac_off;
+	rwp = CFG_BAR_BASE - LBW_BASE + mmETR_RWP + gaudi3_etr_base[etr_idx];
 
 	/* This assumes etr_buf_dram_size is power of 2 */
 	rwp_msb_mask = buf_size >> 1;
@@ -3019,26 +3003,22 @@ static void gaudi3_ac_program(struct hl_device *hdev, u32 etr_idx, u32 buf_size)
 	/* At this point, AC will go back to the first instruction */
 
 	/* Modify the number of commands, without the activation bit */
-	RMWREG32(mmD0_NCH_AC_BASE + mmAUTONOMOUS_CONTROL_CTRL + ac_off, i - 1,
+	RMWREG32(ac_off + mmAUTONOMOUS_CONTROL_CTRL, i - 1,
 				AUTONOMOUS_CONTROL_CTRL_NUM_CMD_M);
 }
 
 void gaudi3_ac_start_no_fw(struct hl_device *hdev, u32 etr_idx, u32 buf_size)
 {
-	u64 base = gaudi3_etr_ac_config[etr_idx].ac_off;
-
 	/* program ac before enable */
 	gaudi3_ac_program(hdev, etr_idx, buf_size);
 
-	RMWREG32(mmD0_NCH_AC_BASE + mmAUTONOMOUS_CONTROL_CTRL + base, 1,
+	RMWREG32(gaudi3_etr_ac_base[etr_idx] + mmAUTONOMOUS_CONTROL_CTRL, 1,
 			AUTONOMOUS_CONTROL_CTRL_EN_M);
 }
 
 void gaudi3_ac_stop_no_fw(struct hl_device *hdev, u32 etr_idx)
 {
-	u64 base = gaudi3_etr_ac_config[etr_idx].ac_off;
-
-	RMWREG32(mmD0_NCH_AC_BASE + mmAUTONOMOUS_CONTROL_CTRL + base, 0,
+	RMWREG32(gaudi3_etr_ac_base[etr_idx] + mmAUTONOMOUS_CONTROL_CTRL, 0,
 			AUTONOMOUS_CONTROL_CTRL_EN_M);
 }
 
