@@ -328,6 +328,7 @@ struct gaudi3_etr_ac_config {
 extern const u32 gaudi3_arc_blocks_bases[NUM_ACTIVE_ARCS];
 extern const u32 gaudi3_pdma_grp_blocks_bases[NUM_OF_PDMA_GRP];
 extern struct gaudi3_etr_ac_config gaudi3_etr_ac_config[GAUDI3_NUM_ETR];
+extern const u64 gaudi3_etr_base[GAUDI3_NUM_ETR];
 
 /* User interrupt count is aligned with HW CQ count.
  * We have 64 CQ's per hdcore.

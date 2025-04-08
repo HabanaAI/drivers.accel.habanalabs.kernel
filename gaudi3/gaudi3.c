@@ -2547,6 +2547,13 @@ static const char * const gaudi3_interrupt_hdcore_name[INT_HDCORE_MAX] = {
 	[INT_PSOC]    = "PSOC"
 };
 
+const u64 gaudi3_etr_base[GAUDI3_NUM_ETR] = {
+	[GAUDI3_D0_PSOC_ETR] = mmD0_PSOC_ETR_BASE,
+	[GAUDI3_D0_NCH_ETR]  = mmD0_NCH_ETR_BASE,
+	[GAUDI3_D1_PSOC_ETR] = mmD1_PSOC_ETR_BASE,
+	[GAUDI3_D1_NCH_ETR]  = mmD1_NCH_ETR_BASE,
+};
+
 static void gaudi3_validate_eqe_data_size(struct hl_device *hdev, void *data, u16 actual_size,
 						u16 expected_size);
 
@@ -7528,7 +7535,7 @@ int gaudi3_etr_fetch_buffer_to_host(struct hl_device *hdev, u32 etr_idx,
 					    bool last_buffer)
 {
 	struct hl_etr_buf_store *store = &hdev->etr_buf_store;
-	u64 etr_base, dram_src, half_buf_size, act_buf_size;
+	u64 dram_src, half_buf_size, act_buf_size;
 	struct gaudi3_device *gaudi3 = hdev->asic_specific;
 	struct gaudi3_pdma_job_params job_params = {};
 	struct hl_etr_tracer *etr_tracer;
@@ -7537,7 +7544,6 @@ int gaudi3_etr_fetch_buffer_to_host(struct hl_device *hdev, u32 etr_idx,
 	u32 rwp_val;
 	int rc;
 
-	etr_base = gaudi3_etr_ac_config[etr_idx].etr_off;
 	etr_tracer = &store->etr_tracer[etr_idx];
 
 	if (!etr_tracer->ac_started)
@@ -7563,7 +7569,7 @@ int gaudi3_etr_fetch_buffer_to_host(struct hl_device *hdev, u32 etr_idx,
 	 * result from the previous step with the last buffer indicator to
 	 * get the final result.
 	 */
-	rwp_val = RREG32(mmD0_NCH_ETR_BASE + mmETR_RWP + etr_base);
+	rwp_val = RREG32(gaudi3_etr_base[etr_idx] + mmETR_RWP);
 
 	/* 'etr_buf_dram_size' is assumed to be a power of 2 */
 	first_half = half_buf_size & rwp_val;
