@@ -317,17 +317,11 @@ enum gaudi3_cache_maint_type {
 	GAUDI3_CACHE_MAINT_PF,
 };
 
-struct gaudi3_etr_ac_config {
-	u64 ac_off;
-	u64 etr_off;
-};
-
 #define GAUDI3_MIN_ETR_BUFS	16
 #define GAUDI3_MAX_ETR_BUFS	32
 
 extern const u32 gaudi3_arc_blocks_bases[NUM_ACTIVE_ARCS];
 extern const u32 gaudi3_pdma_grp_blocks_bases[NUM_OF_PDMA_GRP];
-extern struct gaudi3_etr_ac_config gaudi3_etr_ac_config[GAUDI3_NUM_ETR];
 extern const u64 gaudi3_etr_base[GAUDI3_NUM_ETR];
 
 /* User interrupt count is aligned with HW CQ count.
