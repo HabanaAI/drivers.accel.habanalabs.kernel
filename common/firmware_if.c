@@ -798,7 +798,7 @@ static bool fw_report_boot_dev0(struct hl_device *hdev, u32 err_val, u32 sts_val
 	if (err_val & CPU_BOOT_ERR0_DRAM_SKIPPED)
 		hl_err(hdev, "Device boot warning - Skipped DRAM initialization\n");
 
-	if (err_val & CPU_BOOT_ERR_ENG_ARC_MEM_SCRUB_FAIL)
+	if (err_val & CPU_BOOT_ERR0_ENG_ARC_MEM_SCRUB_FAIL)
 		hl_err(hdev, "Device boot error - ARC memory scrub failed\n");
 
 	/* All warnings should go here in order not to reach the unknown error validation */
