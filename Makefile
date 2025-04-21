@@ -31,3 +31,4 @@ habanalabs-y += common/habanalabs_compat_accel.o
 habanalabs-$(HL_DOWNSTREAM) += common/importer_drv.o common/simulator.o
 
 ccflags-y += -I$(src)
+ccflags-$(HL_GENERATE_USED_MACROS) += -fplugin=$(src)/../../../scripts/sanitize_headers/usedmacros.so
