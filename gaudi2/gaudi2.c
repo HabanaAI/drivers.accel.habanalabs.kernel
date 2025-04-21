@@ -4958,7 +4958,7 @@ static int gaudi2_dec_enable_msix(struct hl_device *hdev)
 		 * interrupt we pass hl_dec and for the regular interrupt we pass the relevant
 		 * user_interrupt entry
 		 *
-		 * TODO: change the dec abnrm to threaded irq
+		 * TODO: [SW-220009] change the dec abnrm to threaded irq
 		 */
 
 		dec = hdev->dec + relative_idx / 2;

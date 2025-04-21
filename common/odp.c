@@ -147,7 +147,7 @@ struct hl_odp_region_ctx *hl_odp_region_ctx_find(struct hl_ctx *ctx, u64 vaddr)
 	int i;
 
 	/*
-	 * TODO: Rather than iterating all possible regions, it is better to
+	 * TODO: [SW-220012] Rather than iterating all possible regions, it is better to
 	 * maintain an interval tree for efficient search.
 	 */
 
