@@ -10,7 +10,7 @@
  ************************************/
 
 #include "gaudi3P.h"
-#include "../include/gaudi3/asic_reg/gaudi3_regs.h"
+#include "../include/gaudi3/gaudi3_regs.h"
 
 #define N2R_CREDITS_VERSION		"0.6"
 #define R2C_CREDITS_VERSION		"0.7"

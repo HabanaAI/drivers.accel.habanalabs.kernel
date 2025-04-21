@@ -9,7 +9,7 @@
 
 #include "gaudi3P.h"
 #include "../common/habanalabs.h"
-#include "../include/gaudi3/asic_reg/gaudi3_regs.h"
+#include "../include/gaudi3/gaudi3_regs.h"
 
 #define GAUDI3_HB_RW_MMU_BYPASS_OVRD \
 		(PDMA_CH_B_AXUSER_HBW_HB_MMU_BYPASS_OVRD_WR_M | \

@@ -7,7 +7,7 @@
 
 #include "gaudi3P.h"
 #include "gaudi3_cn.h"
-#include "../include/gaudi3/asic_reg/gaudi3_regs.h"
+#include "../include/gaudi3/gaudi3_regs.h"
 
 #define RR_LBW_SEC_SHORT_NUM_RANGES		14
 #define RR_LBW_SEC_NUM_RANGES			4

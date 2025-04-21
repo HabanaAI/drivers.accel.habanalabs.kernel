@@ -9,7 +9,7 @@
 #define GAUDI3_CN_H_
 
 #include "gaudi3P.h"
-#include "../include/gaudi3/asic_reg/gaudi3_regs.h"
+#include "../include/gaudi3/gaudi3_regs.h"
 
 /* Parameters for bring-up (not to be upstreamed) - START */
 #define NIC_MAX_RC_MTU		SZ_8K

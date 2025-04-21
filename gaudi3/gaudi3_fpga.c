@@ -6,7 +6,7 @@
  */
 
 #include "gaudi3P.h"
-#include "../include/gaudi3/asic_reg/gaudi3_regs.h"
+#include "../include/gaudi3/gaudi3_regs.h"
 #include "../include/hw_ip/mmu/mmu_general.h"
 #include "../include/gaudi3/gaudi3_reg_map.h"
 

@@ -74,7 +74,7 @@
 #include "../include/gaudi3/gaudi3_special_blocks.h"
 #include "../include/gaudi3/gaudi3_sec_protbits_configs.h"
 #include "../include/gaudi3/gaudi3_priv_protbits_configs.h"
-#include "../include/gaudi3/asic_reg/gaudi3_regs.h"
+#include "../include/gaudi3/gaudi3_regs.h"
 #include "../include/gaudi3/gaudi3_reg_map.h"
 #include "../include/hw_ip/mmu/mmu_v2_0.h"
 #include "../include/hw_ip/mmu/mmu_v3_0.h"
