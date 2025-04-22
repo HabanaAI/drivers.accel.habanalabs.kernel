@@ -8,7 +8,11 @@
 #ifndef GAUDI3_REGS_H_
 #define GAUDI3_REGS_H_
 
+#if defined(HL_DOWNSTREAM) || defined(HL_GENERATE_USED_MACROS)
 #include "./asic_reg/gaudi3_regs.h"
+#else  /* Use sanitized header for upstream */
+#include "gaudi3_regs_asic.h"
+#endif
 
 
 #define BMON_BASE_OFFSET		(mmHD0_TPC0_CS_DBG_BMON1_BASE - \
