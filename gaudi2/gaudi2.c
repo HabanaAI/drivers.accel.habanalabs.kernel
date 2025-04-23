@@ -47,6 +47,9 @@ MODULE_FIRMWARE(GAUDI2_LINUX_FW_FILE);
 
 #define GAUDI2_ALLOC_CPU_MEM_RETRY_CNT		3
 
+/* Align to specs interrupt renaming without sacrificing readability */
+#define GAUDI2_EVENT_DEC1_BMON_SPMU GAUDI2_EVENT_DEC1_SPI_1
+
 /*
  * since the code already has built-in support for binning of up to MAX_FAULTY_TPCS TPCs
  * and the code relies on that value (for array size etc..) we define another value
