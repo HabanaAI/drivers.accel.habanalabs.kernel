@@ -1602,7 +1602,7 @@ static void gaudi3_init_dbi_gateway(struct hl_device *hdev)
 			FIELD_PREP(PCIE_WRAP_DBI_GW_M0_PROT_CTRL_PRIO_EN_M, 0x1));
 
 	/* DBI gateway should configure CS2=1 in PCIE_AUX.DBI when M0 is accessed */
-	WREG32(mmD0_PCIE_WRAP_DBI_ACCESS_BASE + mmPCIE_WRAP_DBI_ACCESS_DBI_GW_M0_ADDR_OVERRIDE_DATA,
+	WREG32(mmD0_PCIE_WRAP_DBI_ACCESS_BASE + mmPCIE_WRAP_DBI_ACCESS_DBI_GW_M0_ADDR_OVERIDE_DATA,
 			PCIE_AUX_DBI_CS2_1);
 
 	/* Enable the M0 address window */
@@ -1616,7 +1616,7 @@ static void gaudi3_init_dbi_gateway(struct hl_device *hdev)
 			FIELD_PREP(PCIE_WRAP_DBI_GW_M1_PROT_CTRL_PRIO_EN_M, 0x1));
 
 	/* DBI gateway should configure CS2=0 in PCIE_AUX.DBI when M1 is accessed */
-	WREG32(mmD0_PCIE_WRAP_DBI_ACCESS_BASE + mmPCIE_WRAP_DBI_ACCESS_DBI_GW_M1_ADDR_OVERRIDE_DATA,
+	WREG32(mmD0_PCIE_WRAP_DBI_ACCESS_BASE + mmPCIE_WRAP_DBI_ACCESS_DBI_GW_M1_ADDR_OVERIDE_DATA,
 			PCIE_AUX_DBI_CS2_0);
 
 	/* Enable the M1 address window */
@@ -4886,12 +4886,12 @@ static void handle_and_clear_stlb_spi_events(struct hl_device *hdev, u32 die, u3
 		mask = STLB_INTR_SPI_CAUSE_FAULT_UNMAPPED_M |
 			STLB_INTR_SPI_CAUSE_FAULT_PERMISSION_M |
 			STLB_INTR_SPI_CAUSE_FAULT_PTW_DATA_M;
-		syndrom_l = RREG32(base + mmSTLB_FAULT_SYNDROME1);
-		syndrom_h = RREG32(base + mmSTLB_FAULT_SYNDROME2);
+		syndrom_l = RREG32(base + mmSTLB_FAULT_SYNDROM1);
+		syndrom_h = RREG32(base + mmSTLB_FAULT_SYNDROM2);
 		spi_data->fault_data.syndrom_dti =
 				cpu_to_le64(((u64) syndrom_h << 32) | syndrom_l);
-		syndrom_l = RREG32(base + mmSTLB_FAULT_SYNDROME3);
-		syndrom_h = RREG32(base + mmSTLB_FAULT_SYNDROME4);
+		syndrom_l = RREG32(base + mmSTLB_FAULT_SYNDROM3);
+		syndrom_h = RREG32(base + mmSTLB_FAULT_SYNDROM4);
 		spi_data->fault_data.syndrom_pte =
 				cpu_to_le64(((u64) syndrom_h << 32) | syndrom_l);
 
@@ -4938,8 +4938,8 @@ static void handle_and_clear_stlb_sei_events(struct hl_device *hdev, u32 offset,
 	}
 
 	if (cause & STLB_INTR_SEI_CAUSE_PTW_RSP_ERR_M) {
-		syndrom_l = RREG32(base + mmSTLB_FAULT_SYNDROME1);
-		syndrom_h = RREG32(base + mmSTLB_FAULT_SYNDROME2);
+		syndrom_l = RREG32(base + mmSTLB_FAULT_SYNDROM1);
+		syndrom_h = RREG32(base + mmSTLB_FAULT_SYNDROM2);
 		sei_data->fault_data.syndrom_dti =
 				cpu_to_le64(((u64) syndrom_h << 32) | syndrom_l);
 	}

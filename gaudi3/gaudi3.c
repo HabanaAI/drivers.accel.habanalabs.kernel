@@ -4707,7 +4707,7 @@ void gaudi3_init_pdma(struct hl_device *hdev)
 
 static enum hl_device_hw_state gaudi3_get_hw_state(struct hl_device *hdev)
 {
-	return RREG32(mmD0_CPU_IF_BASE + mmHW_STATE);
+	return RREG32(mmHW_STATE);
 }
 
 static int gaudi3_fetch_frequency(struct hl_device *hdev, u32 pll_index, u16 *pll_freq_arr)
@@ -5346,10 +5346,10 @@ static int gaudi3_cpucp_handshake_info_get(struct hl_device *hdev)
 		return 0;
 
 	rc = hl_fw_cpucp_handshake(hdev,
-			mmD0_PSOC_GLOBAL_CONF_BASE + mmCPU_BOOT_DEV_STS0,
-			mmD0_PSOC_GLOBAL_CONF_BASE + mmCPU_BOOT_DEV_STS1,
-			mmD0_PSOC_GLOBAL_CONF_BASE + mmCPU_BOOT_ERR0,
-			mmD0_PSOC_GLOBAL_CONF_BASE + mmCPU_BOOT_ERR1);
+			mmCPU_BOOT_DEV_STS0,
+			mmCPU_BOOT_DEV_STS1,
+			mmCPU_BOOT_ERR0,
+			mmCPU_BOOT_ERR1);
 	if (rc)
 		return rc;
 
@@ -8304,11 +8304,11 @@ int gaudi3_init_cpu_queues(struct hl_device *hdev, u32 cpu_timeout)
 	/* update FW application security bits */
 	if (prop->fw_cpu_boot_dev_sts0_valid)
 		prop->fw_app_cpu_boot_dev_sts0 =
-				RREG32(mmD0_PSOC_GLOBAL_CONF_BASE + mmCPU_BOOT_DEV_STS0);
+				RREG32(mmCPU_BOOT_DEV_STS0);
 
 	if (prop->fw_cpu_boot_dev_sts1_valid)
 		prop->fw_app_cpu_boot_dev_sts1 =
-				RREG32(mmD0_PSOC_GLOBAL_CONF_BASE + mmCPU_BOOT_DEV_STS1);
+				RREG32(mmCPU_BOOT_DEV_STS1);
 
 	gaudi3->hw_cap_initialized |= HW_CAP_CPU_Q;
 
@@ -8357,10 +8357,10 @@ static int gaudi3_hw_init(struct hl_device *hdev)
 	 * we need to reset the chip before doing H/W init. This register is
 	 * cleared by the H/W upon H/W reset
 	 */
-	WREG32(mmD0_CPU_IF_BASE + mmHW_STATE, HL_DEVICE_HW_STATE_DIRTY);
+	WREG32(mmHW_STATE, HL_DEVICE_HW_STATE_DIRTY);
 
 	/* Perform read from the device to make sure device is up */
-	RREG32(mmD0_CPU_IF_BASE + mmHW_STATE);
+	RREG32(mmHW_STATE);
 
 #ifdef HL_DOWNSTREAM
 	rc = gaudi3_init_plls(hdev);
@@ -8505,7 +8505,7 @@ static int gaudi3_hw_init(struct hl_device *hdev)
 		return rc;
 
 	/* Perform read from the device to flush all configuration */
-	RREG32(mmD0_CPU_IF_BASE + mmHW_STATE);
+	RREG32(mmHW_STATE);
 
 	return 0;
 }
@@ -12267,10 +12267,10 @@ void gaudi3_init_firmware_preload_params(struct hl_device *hdev)
 
 	pre_fw_load->cpu_boot_status_reg = mmD0_PSOC_GLOBAL_CONF_BASE +
 			mmGLOBAL_CONF_CPU_BOOT_STATUS;
-	pre_fw_load->sts_boot_dev_sts0_reg = mmD0_PSOC_GLOBAL_CONF_BASE + mmCPU_BOOT_DEV_STS0;
-	pre_fw_load->sts_boot_dev_sts1_reg = mmD0_PSOC_GLOBAL_CONF_BASE + mmCPU_BOOT_DEV_STS1;
-	pre_fw_load->boot_err0_reg = mmD0_PSOC_GLOBAL_CONF_BASE + mmCPU_BOOT_ERR0;
-	pre_fw_load->boot_err1_reg = mmD0_PSOC_GLOBAL_CONF_BASE + mmCPU_BOOT_ERR1;
+	pre_fw_load->sts_boot_dev_sts0_reg = mmCPU_BOOT_DEV_STS0;
+	pre_fw_load->sts_boot_dev_sts1_reg = mmCPU_BOOT_DEV_STS1;
+	pre_fw_load->boot_err0_reg = mmCPU_BOOT_ERR0;
+	pre_fw_load->boot_err1_reg = mmCPU_BOOT_ERR1;
 	pre_fw_load->wait_for_preboot_timeout = GAUDI3_PREBOOT_REQ_TIMEOUT_USEC;
 	pre_fw_load->wait_for_preboot_extended_timeout = GAUDI3_PREBOOT_EXT_REQ_TIMEOUT_USEC;
 
@@ -12318,7 +12318,7 @@ void gaudi3_init_firmware_loader(struct hl_device *hdev)
 				cpu_to_le32(mmD0_PSOC_GLOBAL_CONF_BASE +
 						mmGLOBAL_CONF_KMD_MSG_TO_CPU);
 	dyn_regs->cpu_cmd_status_to_host =
-				cpu_to_le32(mmD0_PSOC_GLOBAL_CONF_BASE + mmCPU_CMD_STATUS_TO_HOST);
+				cpu_to_le32(mmCPU_CMD_STATUS_TO_HOST);
 
 	dynamic_loader->wait_for_bl_timeout = GAUDI3_WAIT_FOR_BL_TIMEOUT_USEC;
 #ifdef HL_DOWNSTREAM

@@ -103,8 +103,7 @@ static void gaudi3_fpga_init_firmware_loader(struct hl_device *hdev)
 	dyn_regs = &dynamic_loader->comm_desc.cpu_dyn_regs;
 	dyn_regs->kmd_msg_to_cpu = cpu_to_le32(mmD0_PSOC_GLOBAL_CONF_BASE +
 						mmGLOBAL_CONF_KMD_MSG_TO_CPU);
-	dyn_regs->cpu_cmd_status_to_host = cpu_to_le32(mmD0_PSOC_GLOBAL_CONF_BASE +
-							mmCPU_CMD_STATUS_TO_HOST);
+	dyn_regs->cpu_cmd_status_to_host = cpu_to_le32(mmCPU_CMD_STATUS_TO_HOST);
 	dynamic_loader->wait_for_bl_timeout = GAUDI3_FPGA_WAIT_FOR_BL_TIMEOUT_USEC;
 }
 
