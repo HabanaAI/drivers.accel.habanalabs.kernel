@@ -14250,11 +14250,36 @@ static void gaudi3_handle_razwi_mstr_if(struct hl_device *hdev, struct hl_eq_raz
 		hl_err(hdev, "MSTR_IF XRESP LBW RAZWI happened: RRESP_ERR\n");
 }
 
+static inline void gaudi3_print_xresp_reg_data(struct hl_device *hdev,
+					struct hl_eq_xresp_reg_data *data, char *type, char *acc_type)
+{
+	u64 addr = ((u64)le32_to_cpu(data->hi_reg) << 32) + le32_to_cpu(data->lo_reg);
+	u32 id = le32_to_cpu(data->id);
+	u32 misc = le32_to_cpu(data->misc);
+
+	if (addr)
+		dev_err_ratelimited(hdev->dev, "xresp %s %s info: addr: 0x%llX, id: 0x%X, misc: 0x%X\n",
+				type, acc_type, addr, id, misc);
+}
+
+static void gaudi3_handle_xresp_mstr_if_block_info(struct hl_device *hdev,
+					struct hl_eq_razwi_xresp_block_info *info)
+{
+	if (!info->size)
+		return;
+
+	gaudi3_print_xresp_reg_data(hdev, &info->hbw_data.ar, "HBW", "READ");
+	gaudi3_print_xresp_reg_data(hdev, &info->hbw_data.aw, "HBW", "WRITE");
+	gaudi3_print_xresp_reg_data(hdev, &info->lbw_data.ar, "LBW", "READ");
+	gaudi3_print_xresp_reg_data(hdev, &info->lbw_data.aw, "LBW", "WRITE");
+}
+
 static void gaudi3_sei_razwi_handler(struct hl_device *hdev, struct hl_eq_dynamic_entry *eq,
 					u64 *event_mask)
 {
 	enum hl_agg_component_type agg_component_type = eq->agg_hdr.int_comp_type;
 	u16 eng_id = eq_agg_header_to_engine_id(&eq->agg_hdr);
+	struct hl_eq_razwi_xresp_block_info *xresp_data;
 	struct hl_eq_razwi_mstr_if_data *mstr_if_data;
 	struct hl_eq_spdma_data *spdma_data;
 	u32 mstr_if, dma_id;
@@ -14276,6 +14301,8 @@ static void gaudi3_sei_razwi_handler(struct hl_device *hdev, struct hl_eq_dynami
 		for (mstr_if = ARCFARM_MSTR_IF ; mstr_if < ARCFARM_MSTR_IF_MAX ; ++mstr_if) {
 			mstr_if_data = &eq->arcfarm_sei_data.mstr_if_data[mstr_if];
 			gaudi3_handle_razwi_mstr_if(hdev, mstr_if_data, eng_id, event_mask);
+			xresp_data = &eq->arcfarm_sei_data.xresp_data[mstr_if];
+			gaudi3_handle_xresp_mstr_if_block_info(hdev, xresp_data);
 		}
 		break;
 
@@ -14284,6 +14311,8 @@ static void gaudi3_sei_razwi_handler(struct hl_device *hdev, struct hl_eq_dynami
 		for (mstr_if = CPU_MAIN_MSTR_IF ; mstr_if < CPU_MSTR_IF_MAX ; ++mstr_if) {
 			mstr_if_data = &eq->cpu_sei_data.mstr_if_data[mstr_if];
 			gaudi3_handle_razwi_mstr_if(hdev, mstr_if_data, eng_id, event_mask);
+			xresp_data = &eq->cpu_sei_data.xresp_data[mstr_if];
+			gaudi3_handle_xresp_mstr_if_block_info(hdev, xresp_data);
 		}
 		break;
 
@@ -14291,6 +14320,7 @@ static void gaudi3_sei_razwi_handler(struct hl_device *hdev, struct hl_eq_dynami
 		gaudi3_handle_razwi(hdev, &eq->razwi_with_intr_cause.rtr_data, eng_id, event_mask);
 		gaudi3_handle_razwi_mstr_if(hdev, &eq->razwi_with_intr_cause.mstr_if_data, eng_id,
 					    event_mask);
+		gaudi3_handle_xresp_mstr_if_block_info(hdev, &eq->razwi_with_intr_cause.xresp_data);
 		break;
 
 	case INT_COMP_TYPE_EDMA:
@@ -14300,6 +14330,8 @@ static void gaudi3_sei_razwi_handler(struct hl_device *hdev, struct hl_eq_dynami
 						event_mask);
 			gaudi3_handle_razwi_mstr_if(hdev, &eq->edma_sei_data.mstr_if_data[dma_id],
 							eng_id, event_mask);
+			xresp_data = &eq->edma_sei_data.xresp_data[dma_id];
+			gaudi3_handle_xresp_mstr_if_block_info(hdev, xresp_data);
 		}
 		break;
 
@@ -14307,6 +14339,7 @@ static void gaudi3_sei_razwi_handler(struct hl_device *hdev, struct hl_eq_dynami
 		gaudi3_handle_razwi(hdev, &eq->razwi_with_intr_cause.rtr_data, eng_id, event_mask);
 		gaudi3_handle_razwi_mstr_if(hdev, &eq->razwi_with_intr_cause.mstr_if_data, eng_id,
 					    event_mask);
+		gaudi3_handle_xresp_mstr_if_block_info(hdev, &eq->razwi_with_intr_cause.xresp_data);
 		break;
 
 	case INT_COMP_TYPE_MME:
@@ -14316,12 +14349,14 @@ static void gaudi3_sei_razwi_handler(struct hl_device *hdev, struct hl_eq_dynami
 					eng_id, event_mask);
 			gaudi3_handle_razwi_mstr_if(hdev, &eq->mme_sei_data.sbte_data.mstr_if_data,
 						    eng_id, event_mask);
+			gaudi3_handle_xresp_mstr_if_block_info(hdev, &eq->mme_sei_data.xresp_data);
 			break;
 		case MME_DATA_TYPE_ACC:
 			gaudi3_handle_razwi(hdev, &eq->mme_sei_data.acc_data.rtr_data,
 					eng_id, event_mask);
 			gaudi3_handle_razwi_mstr_if(hdev, &eq->mme_sei_data.acc_data.mstr_if_data,
 						    eng_id, event_mask);
+			gaudi3_handle_xresp_mstr_if_block_info(hdev, &eq->mme_sei_data.xresp_data);
 			break;
 		case MME_DATA_TYPE_CTRL:
 			gaudi3_handle_razwi(hdev,
@@ -14333,6 +14368,7 @@ static void gaudi3_sei_razwi_handler(struct hl_device *hdev, struct hl_eq_dynami
 			gaudi3_handle_razwi_mstr_if(hdev,
 						    &eq->mme_sei_data.control_data.mstr_if_data,
 						    eng_id, event_mask);
+			gaudi3_handle_xresp_mstr_if_block_info(hdev, &eq->mme_sei_data.xresp_data);
 			break;
 		default:
 			break;
@@ -14342,6 +14378,7 @@ static void gaudi3_sei_razwi_handler(struct hl_device *hdev, struct hl_eq_dynami
 		gaudi3_handle_razwi(hdev, &eq->nch_sei_data.rtr_data, eng_id, event_mask);
 		gaudi3_handle_razwi_mstr_if(hdev, &eq->nch_sei_data.mstr_if_data, eng_id,
 								event_mask);
+		gaudi3_handle_xresp_mstr_if_block_info(hdev, &eq->nch_sei_data.xresp_data);
 		break;
 
 	case INT_COMP_TYPE_NIC:
@@ -14353,6 +14390,8 @@ static void gaudi3_sei_razwi_handler(struct hl_device *hdev, struct hl_eq_dynami
 		for (mstr_if = PARC_MAIN_MSTR_IF ; mstr_if < PARC_MSTR_IF_MAX ; ++mstr_if) {
 			mstr_if_data = &eq->parc_sei_data.mstr_if_data[mstr_if];
 			gaudi3_handle_razwi_mstr_if(hdev, mstr_if_data, eng_id, event_mask);
+			xresp_data = &eq->parc_sei_data.xresp_data[mstr_if];
+			gaudi3_handle_xresp_mstr_if_block_info(hdev, xresp_data);
 		}
 		break;
 
@@ -14361,6 +14400,8 @@ static void gaudi3_sei_razwi_handler(struct hl_device *hdev, struct hl_eq_dynami
 		for (mstr_if = PCIE_MSTR_RR_MSTR_IF ; mstr_if < PCIE_MSTR_IF_MAX ; ++mstr_if) {
 			mstr_if_data = &eq->pcie_sei_data.mstr_if_data[mstr_if];
 			gaudi3_handle_razwi_mstr_if(hdev, mstr_if_data, eng_id, event_mask);
+			xresp_data = &eq->pcie_sei_data.xresp_data[mstr_if];
+			gaudi3_handle_xresp_mstr_if_block_info(hdev, xresp_data);
 		}
 		break;
 
@@ -14372,6 +14413,8 @@ static void gaudi3_sei_razwi_handler(struct hl_device *hdev, struct hl_eq_dynami
 			for (mstr_if = SPDMA_MAIN_MSTR_IF; mstr_if < SPDMA_MSTR_IF_MAX; ++mstr_if) {
 				mstr_if_data = &spdma_data->mstr_if_data[mstr_if];
 				gaudi3_handle_razwi_mstr_if(hdev, mstr_if_data, eng_id, event_mask);
+				xresp_data = &eq->pdma_sei_data.xresp_data[dma_id][mstr_if];
+				gaudi3_handle_xresp_mstr_if_block_info(hdev, xresp_data);
 			}
 		}
 		break;
@@ -14381,6 +14424,8 @@ static void gaudi3_sei_razwi_handler(struct hl_device *hdev, struct hl_eq_dynami
 		for (mstr_if = PSOC_DUP_MSTR_IF ; mstr_if < PSOC_MSTR_IF_MAX ; ++mstr_if) {
 			mstr_if_data = &eq->psoc_sei_data.mstr_if_data[mstr_if];
 			gaudi3_handle_razwi_mstr_if(hdev, mstr_if_data, eng_id, event_mask);
+			xresp_data = &eq->psoc_sei_data.xresp_data[mstr_if];
+			gaudi3_handle_xresp_mstr_if_block_info(hdev, xresp_data);
 		}
 		break;
 
@@ -14394,18 +14439,21 @@ static void gaudi3_sei_razwi_handler(struct hl_device *hdev, struct hl_eq_dynami
 		gaudi3_handle_razwi(hdev, &eq->sob_sei_data.rtr_data, eng_id, event_mask);
 		gaudi3_handle_razwi_mstr_if(hdev, &eq->sob_sei_data.mstr_if_data, eng_id,
 					    event_mask);
+		gaudi3_handle_xresp_mstr_if_block_info(hdev, &eq->sob_sei_data.xresp_data);
 		break;
 
 	case INT_COMP_TYPE_STLB:
 		gaudi3_handle_razwi(hdev, &eq->stlb_sei_data.rtr_data, eng_id, event_mask);
 		gaudi3_handle_razwi_mstr_if(hdev, &eq->stlb_sei_data.mstr_if_data, eng_id,
 					    event_mask);
+		gaudi3_handle_xresp_mstr_if_block_info(hdev, &eq->stlb_sei_data.xresp_data);
 		break;
 
 	case INT_COMP_TYPE_TPC:
 		gaudi3_handle_razwi(hdev, &eq->tpc_sei_data.rtr_data, eng_id, event_mask);
 		gaudi3_handle_razwi_mstr_if(hdev, &eq->tpc_sei_data.mstr_if_data, eng_id,
 					    event_mask);
+		gaudi3_handle_xresp_mstr_if_block_info(hdev, &eq->tpc_sei_data.xresp_data);
 		break;
 
 	default:
