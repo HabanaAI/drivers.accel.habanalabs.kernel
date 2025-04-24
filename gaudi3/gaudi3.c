@@ -4788,6 +4788,23 @@ static int gaudi3_early_init(struct hl_device *hdev)
 	if (rc)
 		goto free_queue_props;
 
+	/*
+	 * W/A for cases where host server does not send reboot to device, causing a corner case
+	 * where the device is not in a valid state after a reboot.
+	 * In such case, the device needs to be reset before initialization
+	 * TODO: should be removed once [SW-227103] is done
+	 */
+	 rc = hl_fw_verify_preboot_boot_status(hdev);
+	 if (rc) {
+		 hl_err(hdev, "preboot status verification failed, going to reset device\n");
+		 rc = hdev->asic_funcs->hw_fini(hdev, true, false);
+		 if (rc) {
+			 hl_err(hdev,
+				"failed to reset HW after preboot status verification failure\n");
+			 goto pci_fini;
+		 }
+	 }
+
 	/* Before continuing in the initialization, we need to read the
 	 * preboot state and capabilities
 	 */
