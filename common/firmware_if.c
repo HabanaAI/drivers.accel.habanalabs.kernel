@@ -1811,6 +1811,46 @@ static int hl_fw_static_read_preboot_status(struct hl_device *hdev)
 	return 0;
 }
 
+/**
+ * hl_fw_verify_preboot_boot_status -	verify that preboot has finished it's boot, and now we are
+ * 					in management FW, as when preboot finishes its boot process
+ *					process it sets the status to CPU_BOOT_STATUS_SRAM_AVAIL
+ *					indicating the end of the boot process.
+ *					this is part of a W/A for cases where host server
+ *					does not send reboot to device, causing a corner case
+ * 					where the device is not in a valid state after a reboot.
+ *					TODO: should be removed once [SW-227103] is done.
+ *
+ * @hdev: pointer to the habanalabs device structure
+ *
+ * @return 0 on success, otherwise non-zero error code
+ **/
+int hl_fw_verify_preboot_boot_status(struct hl_device *hdev)
+{
+	u32 cpu_boot_status, cpu_boot_status_reg;
+
+	if (!(hdev->fw_components & FW_TYPE_PREBOOT_CPU))
+		return 0;
+
+	/* get FW pre-load parameters  */
+	hdev->asic_funcs->init_firmware_preload_params(hdev);
+
+	cpu_boot_status_reg = hdev->fw_loader.pre_fw_load.cpu_boot_status_reg;
+	cpu_boot_status = RREG32(cpu_boot_status_reg);
+
+	/* CPU_BOOT_STATUS_SRAM_AVAIL is the current indication that preboot
+	 * stage was completed. In this case the device was already initialized
+	 * and preboot is not in boot process anymore.
+	 * TODO: change stage status once [SW-227106] is done.
+	 */
+	if (cpu_boot_status == CPU_BOOT_STATUS_SRAM_AVAIL) {
+		hl_dbg(hdev,"preboot process already done");
+		return -EIO;
+	}
+
+	return 0;
+}
+
 int hl_fw_read_preboot_status(struct hl_device *hdev)
 {
 	int rc;
