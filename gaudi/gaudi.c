@@ -822,6 +822,8 @@ static enum hl_device_hw_state gaudi_get_hw_state(struct hl_device *hdev)
 
 static int gaudi_early_init(struct hl_device *hdev)
 {
+	struct cpu_dyn_regs *dyn_regs =
+			&hdev->fw_loader.dynamic_loader.comm_desc.cpu_dyn_regs;
 	struct asic_fixed_properties *prop = &hdev->asic_prop;
 	struct pci_dev *pdev = hdev->pdev;
 	resource_size_t pci_bar_size;
@@ -897,6 +899,14 @@ pci_init:
 	rc = hl_fw_verify_preboot_boot_status(hdev);
 	if (rc) {
 		hl_err(hdev, "preboot status verification failed, going to reset device\n");
+		/* gic_host_halt_irq is the register to which a fw reset request should be sent
+		 * in secured fw case (since driver can't reset by itself). This register's address
+		 * is derrived from fw, but at this point we don't have the fw yet, so we need to
+		 * set it.
+		 */
+		dyn_regs->gic_host_halt_irq = mmGIC_HOST_HALT_IRQ_POLL_REG;
+		prop->hard_reset_done_by_fw = true;
+		hdev->fw_loader.fw_comp_loaded |= FW_TYPE_LINUX;
 		gaudi_fw_security_emulation_fini(hdev, true);
 		rc = hdev->asic_funcs->hw_fini(hdev, true, false);
 		if (rc) {
