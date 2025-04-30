@@ -3555,6 +3555,8 @@ static int gaudi2_mmu_clear_pgt_range(struct hl_device *hdev)
 
 static int gaudi2_early_init(struct hl_device *hdev)
 {
+	struct cpu_dyn_regs *dyn_regs =
+			&hdev->fw_loader.dynamic_loader.comm_desc.cpu_dyn_regs;
 	struct asic_fixed_properties *prop = &hdev->asic_prop;
 	struct pci_dev *pdev = hdev->pdev;
 	resource_size_t pci_bar_size;
@@ -3605,6 +3607,15 @@ static int gaudi2_early_init(struct hl_device *hdev)
 	rc = hl_fw_verify_preboot_boot_status(hdev);
 	if (rc) {
 		hl_err(hdev, "preboot status verification failed, going to reset device\n");
+		/* gic_host_halt_irq is the register to which a fw reset request should be sent
+		 * in secured fw case (since driver can't reset by itself). This register's address
+		 * is derrived from fw, but at this point we don't have the fw yet, so we need to
+		 * set it.
+		 * hard_reset_done_by_fw is forced to true to make the reset from fw and not by the
+		 * driver.
+		 */
+		dyn_regs->gic_host_halt_irq = mmGIC_HOST_HALT_IRQ_POLL_REG;
+		prop->hard_reset_done_by_fw = true;
 		rc = hdev->asic_funcs->hw_fini(hdev, true, false);
 		if (rc) {
 			hl_err(hdev,
@@ -6968,6 +6979,7 @@ static void gaudi2_send_hard_reset_cmd(struct hl_device *hdev)
 {
 	struct cpu_dyn_regs *dyn_regs = &hdev->fw_loader.dynamic_loader.comm_desc.cpu_dyn_regs;
 	bool heartbeat_reset, preboot_only, cpu_initialized = false;
+	struct asic_fixed_properties *prop = &hdev->asic_prop;
 	struct gaudi2_device *gaudi2 = hdev->asic_specific;
 	u32 cpu_boot_status;
 
@@ -6989,6 +7001,14 @@ static void gaudi2_send_hard_reset_cmd(struct hl_device *hdev)
 
 	if (gaudi2 && (gaudi2->hw_cap_initialized & HW_CAP_CPU) &&
 			(cpu_boot_status == CPU_BOOT_STATUS_SRAM_AVAIL))
+		cpu_initialized = true;
+
+	/*
+	 * W/A for the case where the device is not in preboot when driver is loading.
+	 * Should be removed when [SW-227103] is done
+	 */
+	if ((cpu_boot_status == CPU_BOOT_STATUS_SRAM_AVAIL) &&
+			(prop->hard_reset_done_by_fw))
 		cpu_initialized = true;
 
 	/*
