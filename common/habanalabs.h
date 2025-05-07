@@ -1534,9 +1534,11 @@ struct hl_dec {
  * @ASIC_GAUDI2E_HL_288: Gaudi2E HL-288 device.
  * @ASIC_GAUDI3: Gaudi3 device.
  * @ASIC_GAUDI3D: Gaudi3D device.
+ * @ASIC_GAUDI3E: Gaudi3E device.
  * @ASIC_GAUDI3_FPGA: Gaudi3 device FPGA.
  * @ASIC_GAUDI3_HL_338: Gaudi3 HL-338 device.
  * @ASIC_GAUDI3D_HL_338: Gaudi3D HL-338 device.
+ * @ASIC_GAUDI3E_HL_338: Gaudi3E HL-338 device.
  */
 enum hl_asic_type {
 	ASIC_INVALID,
@@ -1585,11 +1587,13 @@ enum hl_asic_type {
 	ASIC_GAUDI2E_HL_288,
 	ASIC_GAUDI3,
 	ASIC_GAUDI3D,
+	ASIC_GAUDI3E,
 #ifdef HL_DOWNSTREAM
 	ASIC_GAUDI3_FPGA,
 #endif /* HL_DOWNSTREAM */
 	ASIC_GAUDI3_HL_338,
 	ASIC_GAUDI3D_HL_338,
+	ASIC_GAUDI3E_HL_338,
 };
 
 struct hl_cs_parser;

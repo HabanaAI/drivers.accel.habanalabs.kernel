@@ -376,10 +376,16 @@ static ssize_t device_type_show(struct device *dev,
 	case ASIC_GAUDI3D:
 		str = "GAUDI3D";
 		break;
+	case ASIC_GAUDI3E:
+		str = "GAUDI3E";
+		break;
 	case ASIC_GAUDI3_HL_338:
 		str = "GAUDI3 HL-338";
 		break;
 	case ASIC_GAUDI3D_HL_338:
+		str = "GAUDI3D HL-338";
+		break;
+	case ASIC_GAUDI3E_HL_338:
 		str = "GAUDI3D HL-338";
 		break;
 	default:

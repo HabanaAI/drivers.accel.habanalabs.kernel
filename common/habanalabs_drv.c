@@ -745,6 +745,9 @@ static enum hl_asic_type get_asic_type(struct hl_device *hdev)
 		case REV_ID_D:
 			asic_type = ASIC_GAUDI3D;
 			break;
+		case REV_ID_E:
+			asic_type = ASIC_GAUDI3E;
+			break;
 		default:
 			asic_type = ASIC_GAUDI3;
 		}
@@ -753,6 +756,9 @@ static enum hl_asic_type get_asic_type(struct hl_device *hdev)
 	switch (hdev->pci_revision_id) {
 		case REV_ID_D:
 			asic_type = ASIC_GAUDI3D_HL_338;
+			break;
+		case REV_ID_E:
+			asic_type = ASIC_GAUDI3E_HL_338;
 			break;
 		default:
 			asic_type = ASIC_GAUDI3_HL_338;
@@ -788,8 +794,10 @@ static bool is_cpu_queue_enabled(struct hl_device *hdev)
 	switch (hdev->asic_type) {
 	case ASIC_GAUDI3:
 	case ASIC_GAUDI3D:
+	case ASIC_GAUDI3E:
 	case ASIC_GAUDI3_HL_338:
 	case ASIC_GAUDI3D_HL_338:
+	case ASIC_GAUDI3E_HL_338:
 #ifdef HL_DOWNSTREAM
 	case ASIC_GAUDI3_FPGA:
 	case ASIC_GAUDI3_SIM:
@@ -1016,11 +1024,13 @@ static u32 get_dev_nic_ports_mask(struct hl_device *hdev)
 	 */
 	case ASIC_GAUDI3_HL_338:
 	case ASIC_GAUDI3D:
+	case ASIC_GAUDI3E:
 #ifdef HL_DOWNSTREAM
 	case ASIC_GAUDI3D_SIM:
 	case ASIC_GAUDI3D_SIM_ARC:
 #endif /* HL_DOWNSTREAM */
 	case ASIC_GAUDI3D_HL_338:
+	case ASIC_GAUDI3E_HL_338:
 		mask = (nic_lanes_per_port == PORT_LANES_4) ? 0xFFF : 0xFFFFFF;
 		break;
 #ifdef HL_DOWNSTREAM
@@ -1194,8 +1204,10 @@ static void set_driver_behavior_per_device(struct hl_device *hdev)
 
 	case ASIC_GAUDI3:
 	case ASIC_GAUDI3D:
+	case ASIC_GAUDI3E:
 	case ASIC_GAUDI3_HL_338:
 	case ASIC_GAUDI3D_HL_338:
+	case ASIC_GAUDI3E_HL_338:
 		hdev->dram_enable = 1;
 		hdev->fw_components = FW_TYPE_BOOT_CPU | FW_TYPE_PREBOOT_CPU;
 		hdev->security_enable = 1;
@@ -1590,8 +1602,10 @@ static void fixup_device_params_per_asic(struct hl_device *hdev, int timeout)
 #endif /* HL_DOWNSTREAM */
 	case ASIC_GAUDI3:
 	case ASIC_GAUDI3D:
+	case ASIC_GAUDI3E:
 	case ASIC_GAUDI3_HL_338:
 	case ASIC_GAUDI3D_HL_338:
+	case ASIC_GAUDI3E_HL_338:
 		/* DRAM cannot be used if SRAM is enabled
 		 * Cache cannot be used if DRAM is disabled
 		 */
