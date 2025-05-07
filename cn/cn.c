@@ -653,13 +653,17 @@ static int hl_cn_get_nic_gen(struct hl_device *hdev, enum hbl_cn_aux_nic_gen *ni
 	case ASIC_GAUDI3E:
 #ifdef HL_DOWNSTREAM
 	case ASIC_GAUDI3D_SIM:
+	case ASIC_GAUDI3E_SIM:
 	case ASIC_GAUDI3D_SIM_ARC:
+	case ASIC_GAUDI3E_SIM_ARC:
 	case ASIC_GAUDI3_SIM:
 	case ASIC_GAUDI3_SIM_ARC:
 	case ASIC_GAUDI3_HL_338_SIM:
 	case ASIC_GAUDI3D_HL_338_SIM:
+	case ASIC_GAUDI3E_HL_338_SIM:
 	case ASIC_GAUDI3_HL_338_SIM_ARC:
 	case ASIC_GAUDI3D_HL_338_SIM_ARC:
+	case ASIC_GAUDI3E_HL_338_SIM_ARC:
 	case ASIC_GAUDI3_FPGA:
 #endif /* HL_DOWNSTREAM */
 	case ASIC_GAUDI3_HL_338:

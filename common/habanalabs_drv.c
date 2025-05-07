@@ -666,6 +666,10 @@ static void set_pci_revision_id(struct hl_device *hdev, enum hl_asic_type asic_t
 		case ASIC_GAUDI2E_SIM_ARC:
 		case ASIC_GAUDI2E_HL_288_SIM:
 		case ASIC_GAUDI2E_HL_288_SIM_ARC:
+		case ASIC_GAUDI3E_SIM:
+		case ASIC_GAUDI3E_SIM_ARC:
+		case ASIC_GAUDI3E_HL_338_SIM:
+		case ASIC_GAUDI3E_HL_338_SIM_ARC:
 			hdev->pci_revision_id = REV_ID_E;
 			break;
 #endif /* HL_DOWNSTREAM */
@@ -802,12 +806,16 @@ static bool is_cpu_queue_enabled(struct hl_device *hdev)
 	case ASIC_GAUDI3_FPGA:
 	case ASIC_GAUDI3_SIM:
 	case ASIC_GAUDI3D_SIM:
+	case ASIC_GAUDI3E_SIM:
 	case ASIC_GAUDI3_SIM_ARC:
 	case ASIC_GAUDI3D_SIM_ARC:
+	case ASIC_GAUDI3E_SIM_ARC:
 	case ASIC_GAUDI3_HL_338_SIM:
 	case ASIC_GAUDI3D_HL_338_SIM:
+	case ASIC_GAUDI3E_HL_338_SIM:
 	case ASIC_GAUDI3_HL_338_SIM_ARC:
 	case ASIC_GAUDI3D_HL_338_SIM_ARC:
+	case ASIC_GAUDI3E_HL_338_SIM_ARC:
 #endif /* HL_DOWNSTREAM */
 	case ASIC_GAUDI2:
 	case ASIC_GAUDI2B:
@@ -1027,7 +1035,9 @@ static u32 get_dev_nic_ports_mask(struct hl_device *hdev)
 	case ASIC_GAUDI3E:
 #ifdef HL_DOWNSTREAM
 	case ASIC_GAUDI3D_SIM:
+	case ASIC_GAUDI3E_SIM:
 	case ASIC_GAUDI3D_SIM_ARC:
+	case ASIC_GAUDI3E_SIM_ARC:
 #endif /* HL_DOWNSTREAM */
 	case ASIC_GAUDI3D_HL_338:
 	case ASIC_GAUDI3E_HL_338:
@@ -1037,7 +1047,9 @@ static u32 get_dev_nic_ports_mask(struct hl_device *hdev)
 	case ASIC_GAUDI3_HL_338_SIM:
 	case ASIC_GAUDI3_HL_338_SIM_ARC:
 	case ASIC_GAUDI3D_HL_338_SIM:
+	case ASIC_GAUDI3E_HL_338_SIM:
 	case ASIC_GAUDI3D_HL_338_SIM_ARC:
+	case ASIC_GAUDI3E_HL_338_SIM_ARC:
 		mask = (nic_lanes_per_port == PORT_LANES_4) ? 0xFFE : 0xFFFFFC;
 		break;
 	case ASIC_GAUDI2_SIM:
@@ -1235,8 +1247,10 @@ static void set_driver_behavior_per_device(struct hl_device *hdev)
 #ifdef HL_DOWNSTREAM
 	case ASIC_GAUDI3_SIM:
 	case ASIC_GAUDI3D_SIM:
+	case ASIC_GAUDI3E_SIM:
 	case ASIC_GAUDI3_HL_338_SIM:
 	case ASIC_GAUDI3D_HL_338_SIM:
+	case ASIC_GAUDI3E_HL_338_SIM:
 		hdev->dram_enable = 1;
 		hdev->fw_components = 0;
 		hdev->security_enable = 1;
@@ -1263,8 +1277,10 @@ static void set_driver_behavior_per_device(struct hl_device *hdev)
 
 	case ASIC_GAUDI3_SIM_ARC:
 	case ASIC_GAUDI3D_SIM_ARC:
+	case ASIC_GAUDI3E_SIM_ARC:
 	case ASIC_GAUDI3_HL_338_SIM_ARC:
 	case ASIC_GAUDI3D_HL_338_SIM_ARC:
+	case ASIC_GAUDI3E_HL_338_SIM_ARC:
 		hdev->dram_enable = 1;
 		hdev->fw_components = FW_TYPE_BOOT_CPU | FW_TYPE_PREBOOT_CPU;
 		hdev->security_enable = 1;
@@ -1525,6 +1541,7 @@ static void fixup_fw_components_param(struct hl_device *hdev)
 	case ASIC_GAUDI2E_SIM:
 	case ASIC_GAUDI3_SIM:
 	case ASIC_GAUDI3D_SIM:
+	case ASIC_GAUDI3E_SIM:
 		/* Enforce running without F/W for non SIM_ARC simulators */
 		hdev->fw_components = FW_TYPE_NONE;
 		break;
@@ -1594,11 +1611,15 @@ static void fixup_device_params_per_asic(struct hl_device *hdev, int timeout)
 	case ASIC_GAUDI3_SIM:
 	case ASIC_GAUDI3_SIM_ARC:
 	case ASIC_GAUDI3D_SIM:
+	case ASIC_GAUDI3E_SIM:
 	case ASIC_GAUDI3D_SIM_ARC:
+	case ASIC_GAUDI3E_SIM_ARC:
 	case ASIC_GAUDI3_HL_338_SIM:
 	case ASIC_GAUDI3D_HL_338_SIM:
+	case ASIC_GAUDI3E_HL_338_SIM:
 	case ASIC_GAUDI3_HL_338_SIM_ARC:
 	case ASIC_GAUDI3D_HL_338_SIM_ARC:
+	case ASIC_GAUDI3E_HL_338_SIM_ARC:
 #endif /* HL_DOWNSTREAM */
 	case ASIC_GAUDI3:
 	case ASIC_GAUDI3D:

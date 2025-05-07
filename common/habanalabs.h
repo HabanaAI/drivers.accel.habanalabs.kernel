@@ -1511,13 +1511,17 @@ struct hl_dec {
  * @ASIC_GAUDI2D_HL_288_SIM_ARC: Gaudi2D HL-288 device simulator with arc support.
  * @ASIC_GAUDI2E_HL_288_SIM_ARC: Gaudi2E HL-288 device simulator with arc support.
  * @ASIC_GAUDI3D_SIM: Gaudi3D device simulator.
+ * @ASIC_GAUDI3E_SIM: Gaudi3E device simulator.
  * @ASIC_GAUDI3_SIM: Gaudi3 device simulator.
  * @ASIC_GAUDI3_SIM_ARC: Gaudi3 device simulator with arc support.
  * @ASIC_GAUDI3D_SIM_ARC: Gaudi3D device simulator with arc support.
+ * @ASIC_GAUDI3E_SIM_ARC: Gaudi3E device simulator with arc support.
  * @ASIC_GAUDI3_HL_338_SIM: Gaudi3 HL-338 device simulator.
  * @ASIC_GAUDI3D_HL_338_SIM: Gaudi3D HL-338 device simulator.
+ * @ASIC_GAUDI3E_HL_338_SIM: Gaudi3E HL-338 device simulator.
  * @ASIC_GAUDI3_HL_338_SIM_ARC: Gaudi3 HL-338 device simulator with arc support.
  * @ASIC_GAUDI3D_HL_338_SIM_ARC: Gaudi3D HL-338 device simulator with arc support.
+ * @ASIC_GAUDI3E_HL_338_SIM_ARC: Gaudi3E HL-338 device simulator with arc support.
  * @ASIC_LAST_SIM: last ASIC type simulator.
  * @ASIC_GOYA: Goya device (HL-1000).
  * @ASIC_GAUDI: Gaudi device (HL-2000).
@@ -1563,13 +1567,17 @@ enum hl_asic_type {
 	ASIC_GAUDI2D_HL_288_SIM_ARC,
 	ASIC_GAUDI2E_HL_288_SIM_ARC,
 	ASIC_GAUDI3D_SIM,
+	ASIC_GAUDI3E_SIM,
 	ASIC_GAUDI3_SIM,
 	ASIC_GAUDI3_SIM_ARC,
 	ASIC_GAUDI3D_SIM_ARC,
+	ASIC_GAUDI3E_SIM_ARC,
 	ASIC_GAUDI3_HL_338_SIM,
 	ASIC_GAUDI3D_HL_338_SIM,
+	ASIC_GAUDI3E_HL_338_SIM,
 	ASIC_GAUDI3_HL_338_SIM_ARC,
 	ASIC_GAUDI3D_HL_338_SIM_ARC,
+	ASIC_GAUDI3E_HL_338_SIM_ARC,
 	ASIC_LAST_SIM,
 #endif /* HL_DOWNSTREAM */
 	ASIC_GOYA,
