@@ -1160,6 +1160,10 @@ static int device_early_init(struct hl_device *hdev)
 		gaudi2_set_asic_funcs(hdev);
 		strscpy(hdev->asic_name, "GAUDI2D", sizeof(hdev->asic_name));
 		break;
+	case ASIC_GAUDI2E:
+		gaudi2_set_asic_funcs(hdev);
+		strscpy(hdev->asic_name, "GAUDI2E", sizeof(hdev->asic_name));
+		break;
 	case ASIC_GAUDI2_HL_288:
 		gaudi2_set_asic_funcs(hdev);
 		strscpy(hdev->asic_name, "GAUDI2 HL-288", sizeof(hdev->asic_name));
@@ -1167,6 +1171,10 @@ static int device_early_init(struct hl_device *hdev)
 	case ASIC_GAUDI2D_HL_288:
 		gaudi2_set_asic_funcs(hdev);
 		strscpy(hdev->asic_name, "GAUDI2D HL-288", sizeof(hdev->asic_name));
+		break;
+	case ASIC_GAUDI2E_HL_288:
+		gaudi2_set_asic_funcs(hdev);
+		strscpy(hdev->asic_name, "GAUDI2E HL-288", sizeof(hdev->asic_name));
 		break;
 	case ASIC_GAUDI3:
 		gaudi3_set_asic_funcs(hdev);
@@ -1598,9 +1606,11 @@ const char *hl_get_default_card_name(struct hl_device *hdev)
 		case ASIC_GAUDI2B:
 		case ASIC_GAUDI2C:
 		case ASIC_GAUDI2D:
+		case ASIC_GAUDI2E:
 			return "HL225";
 		case ASIC_GAUDI2_HL_288:
 		case ASIC_GAUDI2D_HL_288:
+		case ASIC_GAUDI2E_HL_288:
 			return "HL288";
 		case ASIC_GAUDI3:
 #ifdef HL_DOWNSTREAM

@@ -712,6 +712,9 @@ static enum hl_asic_type get_asic_type(struct hl_device *hdev)
 		case REV_ID_D:
 			asic_type = ASIC_GAUDI2D;
 			break;
+		case REV_ID_E:
+			asic_type = ASIC_GAUDI2E;
+			break;
 		default:
 			break;
 		}
@@ -723,6 +726,9 @@ static enum hl_asic_type get_asic_type(struct hl_device *hdev)
 			break;
 		case REV_ID_D:
 			asic_type = ASIC_GAUDI2D_HL_288;
+			break;
+		case REV_ID_E:
+			asic_type = ASIC_GAUDI2E_HL_288;
 			break;
 		default:
 			break;
@@ -793,8 +799,10 @@ static bool is_cpu_queue_enabled(struct hl_device *hdev)
 	case ASIC_GAUDI2B:
 	case ASIC_GAUDI2C:
 	case ASIC_GAUDI2D:
+	case ASIC_GAUDI2E:
 	case ASIC_GAUDI2_HL_288:
 	case ASIC_GAUDI2D_HL_288:
+	case ASIC_GAUDI2E_HL_288:
 #ifdef HL_DOWNSTREAM
 	case ASIC_GAUDI2_SIM:
 	case ASIC_GAUDI2B_SIM:
@@ -1032,7 +1040,9 @@ static u32 get_dev_nic_ports_mask(struct hl_device *hdev)
 	case ASIC_GAUDI2D_SIM_ARC:
 #endif /* HL_DOWNSTREAM */
 	case ASIC_GAUDI2D:
+	case ASIC_GAUDI2E:
 	case ASIC_GAUDI2D_HL_288:
+	case ASIC_GAUDI2E_HL_288:
 #ifdef HL_DOWNSTREAM
 	case ASIC_GAUDI2_HL_288_SIM:
 	case ASIC_GAUDI2D_HL_288_SIM:
@@ -1136,8 +1146,10 @@ static void set_driver_behavior_per_device(struct hl_device *hdev)
 	case ASIC_GAUDI2B:
 	case ASIC_GAUDI2C:
 	case ASIC_GAUDI2D:
+	case ASIC_GAUDI2E:
 	case ASIC_GAUDI2_HL_288:
 	case ASIC_GAUDI2D_HL_288:
+	case ASIC_GAUDI2E_HL_288:
 		hdev->dram_enable = 1;
 		hdev->fw_components = FW_TYPE_ALL_TYPES;
 		hdev->security_enable = 1;
@@ -1518,19 +1530,25 @@ static void fixup_device_params_per_asic(struct hl_device *hdev, int timeout)
 	case ASIC_GAUDI2C_SIM:
 	case ASIC_GAUDI2D_SIM:
 	case ASIC_GAUDI2D_HL_288_SIM:
+	case ASIC_GAUDI2E_SIM:
+	case ASIC_GAUDI2E_HL_288_SIM:
 	case ASIC_GAUDI2_SIM_ARC:
 	case ASIC_GAUDI2_HL_288_SIM_ARC:
 	case ASIC_GAUDI2B_SIM_ARC:
 	case ASIC_GAUDI2C_SIM_ARC:
 	case ASIC_GAUDI2D_SIM_ARC:
 	case ASIC_GAUDI2D_HL_288_SIM_ARC:
+	case ASIC_GAUDI2E_SIM_ARC:
+	case ASIC_GAUDI2E_HL_288_SIM_ARC:
 #endif /* HL_DOWNSTREAM */
 	case ASIC_GAUDI2:
 	case ASIC_GAUDI2B:
 	case ASIC_GAUDI2C:
 	case ASIC_GAUDI2D:
+	case ASIC_GAUDI2E:
 	case ASIC_GAUDI2_HL_288:
 	case ASIC_GAUDI2D_HL_288:
+	case ASIC_GAUDI2E_HL_288:
 		/* TODO: remove this workaround after f/w fix the boot bug which cause us
 		 * to fail on reading ELBI. I keep an option for the user to force not to skip
 		 * for any strange reason he might have.
