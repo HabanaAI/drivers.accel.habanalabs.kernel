@@ -65,6 +65,10 @@ enum hlv_sim_dev_types {
 	HLV_SIM_GAUDI2D_HL_288 = 24,
 	HLV_SIM_GAUDI2_HL_288_ARC = 25,
 	HLV_SIM_GAUDI2D_HL_288_ARC = 26,
+	HLV_SIM_GAUDI2E = 27,
+	HLV_SIM_GAUDI2E_ARC = 28,
+	HLV_SIM_GAUDI2E_HL_288 = 29,
+	HLV_SIM_GAUDI2E_HL_288_ARC = 30,
 };
 
 struct hlv_sim_devtype_minor_args {

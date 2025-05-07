@@ -295,6 +295,10 @@ static ssize_t device_type_show(struct device *dev,
 	case ASIC_GAUDI2D_SIM_ARC:
 		str = "GAUDI2D Simulator";
 		break;
+	case ASIC_GAUDI2E_SIM:
+	case ASIC_GAUDI2E_SIM_ARC:
+			str = "GAUDI2E Simulator";
+			break;
 	case ASIC_GAUDI2_HL_288_SIM:
 	case ASIC_GAUDI2_HL_288_SIM_ARC:
 		str = "GAUDI2 HL-288 Simulator";
@@ -302,6 +306,10 @@ static ssize_t device_type_show(struct device *dev,
 	case ASIC_GAUDI2D_HL_288_SIM:
 	case ASIC_GAUDI2D_HL_288_SIM_ARC:
 		str = "GAUDI2D HL-288 Simulator";
+		break;
+	case ASIC_GAUDI2E_HL_288_SIM:
+	case ASIC_GAUDI2E_HL_288_SIM_ARC:
+		str = "GAUDI2E HL-288 Simulator";
 		break;
 	case ASIC_GAUDI3_SIM:
 	case ASIC_GAUDI3_SIM_ARC:

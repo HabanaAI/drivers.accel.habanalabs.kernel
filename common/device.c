@@ -1082,11 +1082,21 @@ static int device_early_init(struct hl_device *hdev)
 		gaudi2_sim_set_asic_funcs(hdev);
 		strscpy(hdev->asic_name, "GAUDI2D SIM", sizeof(hdev->asic_name));
 		break;
+	case ASIC_GAUDI2E_SIM:
+	case ASIC_GAUDI2E_SIM_ARC:
+		gaudi2_sim_set_asic_funcs(hdev);
+		strscpy(hdev->asic_name, "GAUDI2E SIM", sizeof(hdev->asic_name));
+		break;
 	case ASIC_GAUDI2D_HL_288_SIM:
 	case ASIC_GAUDI2D_HL_288_SIM_ARC:
 		gaudi2_sim_set_asic_funcs(hdev);
 		strscpy(hdev->asic_name, "GAUDI2D HL-288 SIM", sizeof(hdev->asic_name));
 		break;
+	case ASIC_GAUDI2E_HL_288_SIM:
+	case ASIC_GAUDI2E_HL_288_SIM_ARC:
+			gaudi2_sim_set_asic_funcs(hdev);
+			strscpy(hdev->asic_name, "GAUDI2E HL-288 SIM", sizeof(hdev->asic_name));
+			break;
 	case ASIC_GAUDI2_HL_288_SIM:
 	case ASIC_GAUDI2_HL_288_SIM_ARC:
 		gaudi2_sim_set_asic_funcs(hdev);
@@ -1579,11 +1589,15 @@ const char *hl_get_default_card_name(struct hl_device *hdev)
 		case ASIC_GAUDI2C_SIM_ARC:
 		case ASIC_GAUDI2D_SIM:
 		case ASIC_GAUDI2D_SIM_ARC:
+		case ASIC_GAUDI2E_SIM:
+		case ASIC_GAUDI2E_SIM_ARC:
 			return "HL225 SIM";
 		case ASIC_GAUDI2D_HL_288_SIM:
 		case ASIC_GAUDI2D_HL_288_SIM_ARC:
 		case ASIC_GAUDI2_HL_288_SIM:
 		case ASIC_GAUDI2_HL_288_SIM_ARC:
+		case ASIC_GAUDI2E_HL_288_SIM:
+		case ASIC_GAUDI2E_HL_288_SIM_ARC:
 			return "HL288 SIM";
 		case ASIC_GAUDI3_SIM:
 		case ASIC_GAUDI3_SIM_ARC:

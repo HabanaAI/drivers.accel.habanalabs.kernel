@@ -346,6 +346,10 @@ static int hl_sim_set_devtype_get_minor_ioctl(struct hl_sim_mode_device *sdev,
 		sim_start_args.virt_dev_type = ASIC_GAUDI2D_SIM;
 		simulator_start = gaudi2_simulator_start;
 		break;
+	case HLV_SIM_GAUDI2E:
+		sim_start_args.virt_dev_type = ASIC_GAUDI2E_SIM;
+		simulator_start = gaudi2_simulator_start;
+		break;
 	case HLV_SIM_GAUDI2_ARC:
 		sim_start_args.virt_dev_type = ASIC_GAUDI2_SIM_ARC;
 		simulator_start = gaudi2_simulator_start;
@@ -362,6 +366,10 @@ static int hl_sim_set_devtype_get_minor_ioctl(struct hl_sim_mode_device *sdev,
 		sim_start_args.virt_dev_type = ASIC_GAUDI2D_SIM_ARC;
 		simulator_start = gaudi2_simulator_start;
 		break;
+	case HLV_SIM_GAUDI2E_ARC:
+		sim_start_args.virt_dev_type = ASIC_GAUDI2E_SIM_ARC;
+		simulator_start = gaudi2_simulator_start;
+		break;
 	case HLV_SIM_GAUDI2_HL_288:
 		sim_start_args.virt_dev_type = ASIC_GAUDI2_HL_288_SIM;
 		simulator_start = gaudi2_simulator_start;
@@ -370,12 +378,20 @@ static int hl_sim_set_devtype_get_minor_ioctl(struct hl_sim_mode_device *sdev,
 		sim_start_args.virt_dev_type = ASIC_GAUDI2D_HL_288_SIM;
 		simulator_start = gaudi2_simulator_start;
 		break;
+	case HLV_SIM_GAUDI2E_HL_288:
+		sim_start_args.virt_dev_type = ASIC_GAUDI2E_HL_288_SIM;
+		simulator_start = gaudi2_simulator_start;
+		break;
 	case HLV_SIM_GAUDI2_HL_288_ARC:
 		sim_start_args.virt_dev_type = ASIC_GAUDI2_HL_288_SIM_ARC;
 		simulator_start = gaudi2_simulator_start;
 		break;
 	case HLV_SIM_GAUDI2D_HL_288_ARC:
 		sim_start_args.virt_dev_type = ASIC_GAUDI2D_HL_288_SIM_ARC;
+		simulator_start = gaudi2_simulator_start;
+		break;
+	case HLV_SIM_GAUDI2E_HL_288_ARC:
+		sim_start_args.virt_dev_type = ASIC_GAUDI2E_HL_288_SIM_ARC;
 		simulator_start = gaudi2_simulator_start;
 		break;
 	case HLV_SIM_GAUDI3:
@@ -1000,12 +1016,16 @@ static void hl_sim_destroy_devices(struct hl_sim_mode_device *sdev)
 		case ASIC_GAUDI2C_SIM:
 		case ASIC_GAUDI2D_SIM:
 		case ASIC_GAUDI2D_HL_288_SIM:
+		case ASIC_GAUDI2E_SIM:
+		case ASIC_GAUDI2E_HL_288_SIM:
 		case ASIC_GAUDI2_SIM_ARC:
 		case ASIC_GAUDI2_HL_288_SIM_ARC:
 		case ASIC_GAUDI2B_SIM_ARC:
 		case ASIC_GAUDI2C_SIM_ARC:
 		case ASIC_GAUDI2D_SIM_ARC:
 		case ASIC_GAUDI2D_HL_288_SIM_ARC:
+		case ASIC_GAUDI2E_SIM_ARC:
+		case ASIC_GAUDI2E_HL_288_SIM_ARC:
 			gaudi2_simulator_stop(minor);
 			break;
 		case ASIC_GAUDI3_SIM:
