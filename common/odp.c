@@ -164,6 +164,12 @@ struct hl_odp_region_ctx *hl_odp_region_ctx_find(struct hl_ctx *ctx, u64 vaddr)
 				PAGE_SIZE);
 		if (vaddr >= start && vaddr < end) {
 			mutex_unlock(&ctx->mem_hash_lock);
+			/*
+			 * if odp_rg is null here, it means that vaddr was mapped without odp
+			 * support. So we are not suppose to get a page fault and search for
+			 * the odp range
+			 */
+			WARN_ON_ONCE(!userptr->odp_rg);
 			return userptr->odp_rg;
 		}
 	}
