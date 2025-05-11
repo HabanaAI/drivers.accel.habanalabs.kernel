@@ -230,7 +230,7 @@ MODULE_PARM_DESC(nic_lanes_per_port,
 
 module_param(skip_iatu_for_unsecured_device, uint, 0444);
 MODULE_PARM_DESC(skip_iatu_for_unsecured_device,
-	"Skip the initialization of iATU for unsecured device and assume the F/W has done it (0 = no, 1 = yes, 2 = force no for Gaudi2, default yes for Gaudi2, no for all the rest)");
+	"Skip the initialization of iATU for unsecured device and assume the F/W has done it (0 = no, 1 = yes, default no)");
 
 module_param(reset_upon_device_release, bool, 0444);
 MODULE_PARM_DESC(reset_upon_device_release,
@@ -1597,15 +1597,6 @@ static void fixup_device_params_per_asic(struct hl_device *hdev, int timeout)
 	case ASIC_GAUDI2_HL_288:
 	case ASIC_GAUDI2D_HL_288:
 	case ASIC_GAUDI2E_HL_288:
-		/* TODO: remove this workaround after f/w fix the boot bug which cause us
-		 * to fail on reading ELBI. I keep an option for the user to force not to skip
-		 * for any strange reason he might have.
-		 */
-		if (!hdev->skip_iatu_for_unsecured_device)
-			hdev->skip_iatu_for_unsecured_device = 1;
-		else if (hdev->skip_iatu_for_unsecured_device == 2)
-			hdev->skip_iatu_for_unsecured_device = 0;
-
 		break;
 #ifdef HL_DOWNSTREAM
 	case ASIC_GAUDI3_SIM:
