@@ -6893,7 +6893,7 @@ int gaudi3_page_fault_queue_hw_init(struct hl_device *hdev)
 static bool gaudi3_process_page_fault(struct hl_device *hdev,
 				      struct gaudi3_page_fault_queue_entry *entry)
 {
-	struct hl_odp_region_ctx *rg;
+	struct hl_odp_region_ctx *rg = NULL;
 	struct hl_ctx *ctx;
 	bool success = false;
 	u32 ra_npages;
@@ -6918,7 +6918,7 @@ static bool gaudi3_process_page_fault(struct hl_device *hdev,
 	rc = hl_odp_page_in(rg, ra_start_va, ra_npages);
 	if (rc) {
 		hl_err(hdev,
-			"Error %d during the page in procedure\n", rc);
+			"ODP is on. Error %d during the page in procedure\n", rc);
 		goto put_ctx;
 	}
 
@@ -6937,9 +6937,9 @@ report_outcome:
 	else
 		hl_warn_ratelimited(
 			hdev,
-			"Page fault queue entry va=%#llx ptw_id=%d hop=%d asid=%d is_valid=%d cause=%d outcome => failure\n",
+			"Page fault queue entry va=%#llx ptw_id=%d hop=%d asid=%d is_valid=%d cause=%d outcome => failure, odp is %s\n",
 			entry->va, entry->ptw_id, entry->hop, entry->asid,
-			entry->is_valid, entry->cause);
+			entry->is_valid, entry->cause, rg ? "on" : "off");
 
 	return success;
 }
