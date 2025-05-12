@@ -55,6 +55,7 @@ struct hl_ctx;
  * @load_fw: load PHY FW from ASIC path.
  * @skip_phy_init: skip PHY init phase.
  * @eth_on_internal: set internal ports as Ethernet ports.
+ * @lane_speed_restricted: restrict lane speed.
  */
 struct hl_cn {
 	struct hbl_aux_dev	cn_aux_dev;
@@ -74,6 +75,7 @@ struct hl_cn {
 	u8			load_fw;
 	u8			skip_phy_init;
 	u8			eth_on_internal;
+	u8			lane_speed_restricted;
 };
 
 /*

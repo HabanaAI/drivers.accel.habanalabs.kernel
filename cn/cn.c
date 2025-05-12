@@ -575,6 +575,7 @@ static void hl_cn_get_ports_info(struct hbl_aux_dev *aux_dev,
 	hbl_cn_aux_ports_info->lanes_pol_rx_mask_lo = cn_cpucp_info->pol_rx_mask[0];
 	hbl_cn_aux_ports_info->ports_ext_mask = hdev->cn.ports_ext_mask;
 	hbl_cn_aux_ports_info->ports_auto_neg_mask = hdev->cn.auto_neg_mask;
+	hbl_cn_aux_ports_info->lane_speed_restricted = hdev->cn.lane_speed_restricted;
 }
 
 static void hl_cn_cpucp_info_le_to_cpu(struct cpucp_nic_info *cpucp_nic_info,
