@@ -352,7 +352,7 @@ rollback:
  *
  * Resolve the pfns represented by given hmm range
  */
-static void odp_resolve_pfns(struct hmm_range *range)
+static int odp_resolve_pfns(struct hmm_range *range)
 {
 	struct page *page;
 	u32 npages = (range->end - range->start) >> PAGE_SHIFT;
@@ -368,9 +368,12 @@ static void odp_resolve_pfns(struct hmm_range *range)
 #endif
 
 	for (i = 0; i < npages; ++i) {
+		if (!(pfns[i] & HMM_PFN_VALID))
+			return -EFAULT;
 		page = hmm_pfn_to_page(pfns[i]);
 		pfns[i] = page ? page_to_pfn(page) : 0;
 	}
+	return 0;
 }
 
 /**
@@ -525,10 +528,13 @@ again:
 		goto again;
 	}
 
-	odp_resolve_pfns(&range);
+	rc = odp_resolve_pfns(&range);
+	if (rc)
+		goto free_pfns;
 
 	rc = odp_mmu_update_page_in_locked(rg, pfns, start_page, npages);
 
+free_pfns:
 	kfree(pfns);
 
 	mutex_unlock(&hdev->mmu_lock);
