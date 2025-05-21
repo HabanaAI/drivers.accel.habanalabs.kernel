@@ -655,7 +655,7 @@ static void gaudi_cn_post_send_status(struct hl_device *hdev, u32 port)
 	hl_fw_unmask_irq(hdev, GAUDI_EVENT_STATUS_NIC0_ENG0 + port);
 }
 
-static void gaudi_cn_ports_stop_prepare(struct hl_device *hdev, bool fw_reset, bool in_teardown)
+static void gaudi_cn_ports_stop_prepare(struct hl_device *hdev, bool hard_reset, bool in_teardown)
 {
 	struct gaudi_device *gaudi = hdev->asic_specific;
 	struct gaudi_cn_aux_ops *gaudi_aux_ops;
@@ -666,7 +666,7 @@ static void gaudi_cn_ports_stop_prepare(struct hl_device *hdev, bool fw_reset, b
 	gaudi_aux_ops = &gaudi->cn_aux_ops;
 
 	if (gaudi_aux_ops->ports_stop_prepare)
-		gaudi_aux_ops->ports_stop_prepare(aux_dev, fw_reset, in_teardown);
+		gaudi_aux_ops->ports_stop_prepare(aux_dev, hard_reset, in_teardown);
 }
 
 static int gaudi_cn_send_port_cpucp_status(struct hl_device *hdev, u32 port, u8 cmd, u8 period)
