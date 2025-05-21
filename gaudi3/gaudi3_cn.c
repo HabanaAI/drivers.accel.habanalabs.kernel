@@ -790,7 +790,7 @@ static void gaudi3_cn_post_send_status(struct hl_device *hdev, u32 port)
 	/* FW does not mask MSG interrupts, so unmask_irq is not needed */
 }
 
-static void gaudi3_cn_ports_stop_prepare(struct hl_device *hdev, bool fw_reset, bool in_teardown)
+static void gaudi3_cn_ports_stop_prepare(struct hl_device *hdev, bool hard_reset, bool in_teardown)
 {
 	struct gaudi3_device *gaudi = hdev->asic_specific;
 	struct gaudi3_cn_aux_ops *gaudi3_aux_ops;
@@ -801,7 +801,7 @@ static void gaudi3_cn_ports_stop_prepare(struct hl_device *hdev, bool fw_reset, 
 	gaudi3_aux_ops = &gaudi->cn_aux_ops;
 
 	if (gaudi3_aux_ops->ports_stop_prepare)
-		gaudi3_aux_ops->ports_stop_prepare(aux_dev, fw_reset, in_teardown);
+		gaudi3_aux_ops->ports_stop_prepare(aux_dev, hard_reset, in_teardown);
 }
 
 static int gaudi3_cn_send_port_cpucp_status(struct hl_device *hdev, u32 port, u8 cmd, u8 period)
