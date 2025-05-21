@@ -939,8 +939,7 @@ void hl_cn_hard_reset_prepare(struct hl_device *hdev)
 	if (!cn_funcs->get_hw_cap(hdev))
 		return;
 
-	cn_funcs->port_funcs->ports_stop_prepare(hdev, hdev->reset_info.fw_reset,
-							hdev->device_fini_pending);
+	cn_funcs->port_funcs->ports_stop_prepare(hdev, true, hdev->device_fini_pending);
 }
 
 int hl_cn_control(struct hl_device *hdev, u32 op, void *input,	void *output, struct hl_ctx *ctx)

@@ -130,7 +130,7 @@ struct hl_cn_port_funcs {
 				bool enable);
 	int (*spmu_sample)(struct hl_device *hdev, u32 port, u32 num_out_data, u64 out_data[]);
 	void (*post_send_status)(struct hl_device *hdev, u32 port);
-	void (*ports_stop_prepare)(struct hl_device *hdev, bool fw_reset, bool in_teardown);
+	void (*ports_stop_prepare)(struct hl_device *hdev, bool hard_reset, bool in_teardown);
 	int (*send_port_cpucp_status)(struct hl_device *hdev, u32 port, u8 cmd, u8 period);
 	int (*dump_port_statistics)(struct hl_device *hdev, u32 port, u64 str_buf_ptr,
 					u64 val_buf_ptr, u32 *num_of_stat);
