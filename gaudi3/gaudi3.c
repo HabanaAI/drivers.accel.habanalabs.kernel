@@ -13982,6 +13982,9 @@ static void gaudi3_set_initial_reset_flags_and_event_mask(struct hl_device *hdev
 		hard_reset = true;
 		break;
 	case INT_COMP_TYPE_CPU:
+		*event_mask |= HL_NOTIFIER_EVENT_GENERAL_HW_ERR;
+		/* CPU events do not require HW reset */
+		break;
 	case INT_COMP_TYPE_PARC:
 		*event_mask |= HL_NOTIFIER_EVENT_CRITICL_FW_ERR;
 		hard_reset = true;
