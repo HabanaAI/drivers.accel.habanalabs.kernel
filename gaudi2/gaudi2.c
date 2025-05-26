@@ -2973,6 +2973,8 @@ int gaudi2_set_fixed_properties(struct hl_device *hdev)
 
 	prop->pcie_cfg_bar_id = SRAM_CFG_BAR_ID;
 	prop->num_phys_nics = NIC_NUMBER_OF_MACROS;
+	/* TODO: remove once [SW-227103] is done */
+	prop->force_device_reset_from_fw = false;
 
 	return 0;
 
@@ -3615,7 +3617,7 @@ static int gaudi2_early_init(struct hl_device *hdev)
 		 * driver.
 		 */
 		dyn_regs->gic_host_halt_irq = mmGIC_HOST_HALT_IRQ_POLL_REG;
-		prop->hard_reset_done_by_fw = true;
+		prop->force_device_reset_from_fw = true;
 		rc = hdev->asic_funcs->hw_fini(hdev, true, false);
 		if (rc) {
 			hl_err(hdev,
@@ -6983,6 +6985,19 @@ static void gaudi2_send_hard_reset_cmd(struct hl_device *hdev)
 	struct gaudi2_device *gaudi2 = hdev->asic_specific;
 	u32 cpu_boot_status;
 
+	/*
+	 * W/A for the case where the device is not in preboot when driver is loading.
+	 * Should be removed when [SW-227103] is done
+	 */
+	if (prop->force_device_reset_from_fw) {
+		WREG32(le32_to_cpu(dyn_regs->gic_host_halt_irq),
+			gaudi2_irq_map_table[GAUDI2_EVENT_CPU_HALT_MACHINE].cpu_id);
+
+		msleep(20 * GAUDI2_CPU_RESET_WAIT_MSEC);
+		prop->force_device_reset_from_fw = false;
+		return;
+	}
+
 	preboot_only = (hdev->fw_loader.fw_comp_loaded == FW_TYPE_PREBOOT_CPU);
 	heartbeat_reset = (hdev->reset_info.curr_reset_cause == HL_RESET_CAUSE_HEARTBEAT);
 
@@ -7001,14 +7016,6 @@ static void gaudi2_send_hard_reset_cmd(struct hl_device *hdev)
 
 	if (gaudi2 && (gaudi2->hw_cap_initialized & HW_CAP_CPU) &&
 			(cpu_boot_status == CPU_BOOT_STATUS_SRAM_AVAIL))
-		cpu_initialized = true;
-
-	/*
-	 * W/A for the case where the device is not in preboot when driver is loading.
-	 * Should be removed when [SW-227103] is done
-	 */
-	if ((cpu_boot_status == CPU_BOOT_STATUS_SRAM_AVAIL) &&
-			(prop->hard_reset_done_by_fw))
 		cpu_initialized = true;
 
 	/*
