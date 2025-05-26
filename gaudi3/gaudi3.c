@@ -3940,6 +3940,8 @@ int gaudi3_set_fixed_properties(struct hl_device *hdev)
 	prop->num_phys_nics = NIC_NUMBER_OF_MACROS;
 	prop->supports_nvme = false;
 	prop->supports_memory_consumption_report = true;
+	/* TODO: remove once [SW-227103] is done */
+	prop->force_device_reset_from_fw = false;
 
 	return 0;
 
@@ -4794,18 +4796,18 @@ static int gaudi3_early_init(struct hl_device *hdev)
 	 * In such case, the device needs to be reset before initialization
 	 * TODO: should be removed once [SW-227103] is done
 	 */
-	 rc = hl_fw_verify_preboot_boot_status(hdev);
-	 if (rc) {
-		 hl_err(hdev, "preboot status verification failed, going to reset device\n");
-		 hdev->fw_components |= FW_TYPE_PREBOOT_CPU;
-		 prop->hard_reset_done_by_fw = true;
-		 rc = hdev->asic_funcs->hw_fini(hdev, true, false);
-		 if (rc) {
-			 hl_err(hdev,
-				"failed to reset HW after preboot status verification failure\n");
-			 goto pci_fini;
-		 }
-	 }
+	rc = hl_fw_verify_preboot_boot_status(hdev);
+	if (rc) {
+		hl_err(hdev, "preboot status verification failed, going to reset device\n");
+		hdev->fw_components |= FW_TYPE_PREBOOT_CPU;
+		prop->force_device_reset_from_fw = true;
+		rc = hdev->asic_funcs->hw_fini(hdev, true, false);
+		if (rc) {
+			hl_err(hdev,
+			       "failed to reset HW after preboot status verification failure\n");
+			goto pci_fini;
+		}
+	}
 
 	/* Before continuing in the initialization, we need to read the
 	 * preboot state and capabilities
@@ -8523,6 +8525,18 @@ void gaudi3_send_hard_reset_cmd(struct hl_device *hdev)
 	struct gaudi3_device *gaudi3 = hdev->asic_specific;
 	struct asic_fixed_properties *prop = &hdev->asic_prop;
 
+	/*
+	 * W/A for the case where the device is not in preboot when driver is loading.
+	 * Should be removed when [SW-227103] is done
+	 */
+	if (prop->force_device_reset_from_fw) {
+		WREG32(mmD0_PARC_INT_GEN_BASE + mmINTR_GEN_MSG2WIRE_SW, 0x1);
+		/* 2s timeout needed to allow device finish reset */
+		msleep(20 * GAUDI3_CPU_RESET_WAIT_MSEC);
+		prop->force_device_reset_from_fw = false;
+		return;
+	}
+
 	preboot_only = (hdev->fw_loader.fw_comp_loaded == FW_TYPE_PREBOOT_CPU);
 	heartbeat_reset = (hdev->reset_info.curr_reset_cause == HL_RESET_CAUSE_HEARTBEAT);
 
@@ -8531,15 +8545,6 @@ void gaudi3_send_hard_reset_cmd(struct hl_device *hdev)
 	/* boot-fit stage case */
 	if (!preboot_only && gaudi3 && (gaudi3->hw_cap_initialized & HW_CAP_CPU) &&
 			(cpu_boot_status == CPU_BOOT_STATUS_SRAM_AVAIL)) {
-		WREG32(mmD0_PARC_INT_GEN_BASE + mmINTR_GEN_MSG2WIRE_SW, 0x1);
-		msleep(GAUDI3_CPU_RESET_WAIT_MSEC);
-	}
-
-	/*
-	 * W/A for the case where the device is not in preboot when driver is loading.
-	 * Should be removed when [SW-227103] is done
-	 */
-	if ((cpu_boot_status == CPU_BOOT_STATUS_SRAM_AVAIL) && (prop->hard_reset_done_by_fw)) {
 		WREG32(mmD0_PARC_INT_GEN_BASE + mmINTR_GEN_MSG2WIRE_SW, 0x1);
 		msleep(GAUDI3_CPU_RESET_WAIT_MSEC);
 	}
