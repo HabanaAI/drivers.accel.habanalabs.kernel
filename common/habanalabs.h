@@ -871,6 +871,9 @@ struct hl_cn_properties {
  * @supports_memory_consumption_report: true if device supports memory consumption reporting via FW
  * @supports_driver_version_report: true if device supports driver version reporting via FW
  * @fw_sram_remap_enabled: true if the fw has enabled the sram remap.
+ * @force_device_reset_from_fw: true if the device should be reset from the firmware
+ * 				as part of W/A for [SW-227103]. TODO: remove once this
+ * 				ticket is resolved.
  */
 struct asic_fixed_properties {
 	struct hw_queue_properties	*hw_queues_props;
@@ -1034,6 +1037,7 @@ struct asic_fixed_properties {
 	u8				supports_memory_consumption_report;
 	u8				supports_driver_version_report;
 	u8				fw_sram_remap_enabled;
+	u8 				force_device_reset_from_fw;
 };
 
 /**
