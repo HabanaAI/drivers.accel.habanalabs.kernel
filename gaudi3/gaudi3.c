@@ -5555,6 +5555,7 @@ int gaudi3_sw_init(struct hl_device *hdev)
 	gaudi3->eq_work.hdev = hdev;
 
 	hdev->asic_prop.supports_compute_reset = true;
+
 	gaudi3->cpucp_info_get = gaudi3_cpucp_info_get;
 	hdev->asic_specific = gaudi3;
 
@@ -8447,6 +8448,15 @@ static int gaudi3_hw_init(struct hl_device *hdev)
 		hl_err(hdev, "Failed to get cpucp info\n");
 		return rc;
 	}
+
+	/* Support for SPI coalescing is present from FW & driver version 1.23.0.
+	 * For compatibility reasons, driver notifies FW with its version to
+	 * enable the feature.
+	 * Greater than equals to means the current CPUCP version is either 1.23.0
+	 * or later. Less than implies the version is less than 1.23.0.
+	 */
+	if (hl_version_cmp(&hdev->cpucp_ver, 1, 23, 0) >= 0)
+		hdev->asic_prop.supports_driver_version_report = true;
 
 	rc = hl_fw_set_host_date_and_time(hdev);
 	if (rc)
