@@ -90,7 +90,7 @@ bool hl_is_odp_supported(struct hl_device *hdev)
 void hl_odp_page_fault_read_ahead_size(struct hl_odp_region_ctx *rg, u64 va,
 				       u64 *ra_start_va, u32 *ra_npages)
 {
-	u32 start_page, region_npages, npages;
+	u64 start_page, region_npages, npages;
 
 	start_page = (va - round_down(rg->device_vaddr, PAGE_SIZE)) >> PAGE_SHIFT;
 	region_npages =
@@ -274,7 +274,7 @@ void hl_odp_region_ctx_destroy(struct hl_odp_region_ctx *rg)
  * PMMU with the new page addresses.
  */
 static int odp_mmu_update_page_in_locked(struct hl_odp_region_ctx *rg,
-				  unsigned long *pfns, u32 start_page,
+				  unsigned long *pfns, u64 start_page,
 				  u64 npages)
 {
 	struct hl_device *hdev = rg->ctx->hdev;
@@ -453,7 +453,7 @@ int hl_odp_page_in(struct hl_odp_region_ctx *rg, u64 start_va, u64 npages)
 	struct hmm_range range;
 	unsigned long *pfns;
 	u64 start, end;
-	u32 start_page;
+	u64 start_page;
 	int rc, retries = MAX_PAGE_IN_RETRIES;
 
 	pfns = kvmalloc_array(npages, sizeof(*pfns), GFP_KERNEL);
