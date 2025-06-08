@@ -576,6 +576,9 @@ static void hl_cn_get_ports_info(struct hbl_aux_dev *aux_dev,
 	hbl_cn_aux_ports_info->ports_ext_mask = hdev->cn.ports_ext_mask;
 	hbl_cn_aux_ports_info->ports_auto_neg_mask = hdev->cn.auto_neg_mask;
 	hbl_cn_aux_ports_info->lane_speed_restricted = hdev->cn.lane_speed_restricted;
+
+	memcpy(&hbl_cn_aux_ports_info->tx_taps, &cn_cpucp_info->tx_taps, sizeof(struct tx_taps));
+	hbl_cn_aux_ports_info->use_taps_from_fw = cn_cpucp_info->use_taps_from_fw;
 }
 
 static void hl_cn_cpucp_info_le_to_cpu(struct cpucp_nic_info *cpucp_nic_info,
@@ -587,6 +590,14 @@ static void hl_cn_cpucp_info_le_to_cpu(struct cpucp_nic_info *cpucp_nic_info,
 		memcpy(&hbl_cn_cpucp_info->mac_addrs[i], &cpucp_nic_info->mac_addrs[i],
 			sizeof(cpucp_nic_info->mac_addrs[i]));
 		hbl_cn_cpucp_info->tx_swap_map[i] = le16_to_cpu(cpucp_nic_info->tx_swap_map[i]);
+	}
+
+	for (i = 0 ; i < CPUCP_NIC_DEFAULT_LANES_NUM ; i++) {
+		hbl_cn_cpucp_info->tx_taps.pre3[i] = le32_to_cpu(cpucp_nic_info->pre3[i]);
+		hbl_cn_cpucp_info->tx_taps.pre2[i] = le32_to_cpu(cpucp_nic_info->pre2[i]);
+		hbl_cn_cpucp_info->tx_taps.pre1[i] = le32_to_cpu(cpucp_nic_info->pre1[i]);
+		hbl_cn_cpucp_info->tx_taps.c0[i] = le32_to_cpu(cpucp_nic_info->c0[i]);
+		hbl_cn_cpucp_info->tx_taps.post1[i] = le32_to_cpu(cpucp_nic_info->post1[i]);
 	}
 
 	for (i = 0 ; i < CPUCP_NIC_MASK_ARR_LEN ; i++) {

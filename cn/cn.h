@@ -97,6 +97,8 @@ struct hbl_cn_cpucp_mac_addr {
  * @auto_neg_mask: mask of ports which supports Autonegotiation.
  * @serdes_type: type of serdes.
  * @tx_swap_map: lane swapping map.
+ * @tx_taps: struct of arrays of tx taps values per lane.
+ * @use_taps_from_fw: if true, use tx_taps received from FW, else use default values.
  */
 struct hbl_cn_cpucp_info {
 	struct hbl_cn_cpucp_mac_addr mac_addrs[CPUCP_MAX_NICS];
@@ -108,6 +110,8 @@ struct hbl_cn_cpucp_info {
 	u64 auto_neg_mask[CPUCP_NIC_MASK_ARR_LEN];
 	enum cpucp_serdes_type serdes_type;
 	u16 tx_swap_map[CPUCP_MAX_NICS];
+	struct tx_taps tx_taps;
+	bool use_taps_from_fw;
 };
 
 /**

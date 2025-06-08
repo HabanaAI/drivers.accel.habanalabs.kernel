@@ -478,9 +478,13 @@ int gaudi3_cn_set_info(struct hl_device *hdev, bool get_from_fw)
 		break;
 	case GAUDI3_RACK_SERDES_TYPE:
 		hdev->asic_prop.server_type = HL_SERVER_GAUDI3_RACK;
+		/* TODO - SW-220228 : define this param based on feature bitmask received from FW */
+		cn_cpucp_info->use_taps_from_fw = true;
 		break;
 	case GAUDI3_RACK_WHITEBOX_SERDES_TYPE:
 		hdev->asic_prop.server_type = HL_SERVER_GAUDI3_RACK_WHITEBOX;
+		/* TODO - SW-220228 : define this param based on feature bitmask received from FW */
+		cn_cpucp_info->use_taps_from_fw = true;
 		break;
 	default:
 		hdev->asic_prop.server_type = HL_SERVER_TYPE_UNKNOWN;
@@ -493,7 +497,7 @@ int gaudi3_cn_set_info(struct hl_device *hdev, bool get_from_fw)
 	}
 
 	/* As there are several code flows which can require us to modify the ports masks, whether
-	 * for debug purproses or when working without FW, we might need to override the ports
+	 * for debug purposes or when working without FW, we might need to override the ports
 	 * masks, both of the enable ports and the external ports.
 	 */
 	rc = gaudi3_cn_override_ports_masks(hdev, serdes_type, !get_from_fw);
