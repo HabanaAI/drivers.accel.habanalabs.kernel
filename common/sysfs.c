@@ -394,7 +394,7 @@ static ssize_t device_type_show(struct device *dev,
 		str = "GAUDI3D HL-338";
 		break;
 	case ASIC_GAUDI3E_HL_338:
-		str = "GAUDI3D HL-338";
+		str = "GAUDI3E HL-338";
 		break;
 	default:
 		hl_err(hdev, "Unrecognized ASIC type %d\n",
