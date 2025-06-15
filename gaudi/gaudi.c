@@ -898,7 +898,7 @@ pci_init:
 	 */
 	rc = hl_fw_verify_preboot_boot_status(hdev);
 	if (rc) {
-		hl_err(hdev, "preboot status verification failed, going to reset device\n");
+		hl_dbg(hdev, "preboot status verification failed, going to reset device\n");
 		/* gic_host_halt_irq is the register to which a fw reset request should be sent
 		 * in secured fw case (since driver can't reset by itself). This register's address
 		 * is derrived from fw, but at this point we don't have the fw yet, so we need to
