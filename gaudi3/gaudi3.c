@@ -4798,7 +4798,7 @@ static int gaudi3_early_init(struct hl_device *hdev)
 	 */
 	rc = hl_fw_verify_preboot_boot_status(hdev);
 	if (rc) {
-		hl_err(hdev, "preboot status verification failed, going to reset device\n");
+		hl_dbg(hdev, "preboot status verification failed, going to reset device\n");
 		hdev->fw_components |= FW_TYPE_PREBOOT_CPU;
 		prop->force_device_reset_from_fw = true;
 		rc = hdev->asic_funcs->hw_fini(hdev, true, false);
