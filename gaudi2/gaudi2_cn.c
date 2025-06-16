@@ -421,9 +421,6 @@ int gaudi2_cn_set_info(struct hl_device *hdev, bool get_from_fw)
 	/* Disable ANLT on NIC 0 ports (due to lane swapping) */
 	hdev->cn.auto_neg_mask &= ~0x3;
 
-	if (hdev->pci_revision_id == REV_ID_E)
-		hdev->cn.lane_speed_restricted = 1;
-
 	return 0;
 }
 
