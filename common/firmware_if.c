@@ -1534,6 +1534,9 @@ static void detect_cpu_boot_status(struct hl_device *hdev, u32 status)
 		hl_err(hdev,
 			"Device boot progress - Thermal Sensor initialization failed\n");
 		break;
+	case CPU_BOOT_STATUS_WAITING_FOR_BOOT_FIT:
+		hl_err(hdev, "Device boot progress - Waiting for boot fit\n");
+		break;
 	case CPU_BOOT_STATUS_SECURITY_READY:
 		hl_err(hdev,
 			"Device boot progress - Stuck in preboot after security initialization\n");
@@ -1624,8 +1627,9 @@ retry:
 					pre_fw_load->sts_boot_dev_sts1_reg);
 	if (rc || fw_err) {
 		detect_cpu_boot_status(hdev, status);
-		hl_err(hdev, "CPU boot %s (status = %d)\n",
-				fw_err ? "failed due to an error" : "ready timeout", status);
+		hl_err(hdev, "CPU boot %s (status = %d), err mask: 0x%x\n",
+		       fw_err ? "failed due to an error" : "ready timeout", status,
+		       RREG32(pre_fw_load->boot_err0_reg));
 		return -EIO;
 	}
 
