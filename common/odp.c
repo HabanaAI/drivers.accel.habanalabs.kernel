@@ -354,10 +354,11 @@ rollback:
  * odp_resolve_pfns - normalize and remove hmm flags from pfns
  *
  * @range: target hmm_range struct
+ * @hdev: habanalabs device pointer
  *
  * Resolve the pfns represented by given hmm range
  */
-static int odp_resolve_pfns(struct hmm_range *range)
+static int odp_resolve_pfns(struct hmm_range *range, struct hl_device *hdev)
 {
 	struct page *page;
 	u32 npages = (range->end - range->start) >> PAGE_SHIFT;
@@ -376,7 +377,11 @@ static int odp_resolve_pfns(struct hmm_range *range)
 		if (!(pfns[i] & HMM_PFN_VALID))
 			return -EFAULT;
 		page = hmm_pfn_to_page(pfns[i]);
-		pfns[i] = page ? page_to_pfn(page) : 0;
+		if (unlikely(!page)) {
+			hl_err(hdev, "Invalid page for PFN %lx\n", pfns[i]);
+			return -EFAULT;
+		}
+		pfns[i] = page_to_pfn(page);
 	}
 	return 0;
 }
@@ -533,7 +538,7 @@ again:
 		goto again;
 	}
 
-	rc = odp_resolve_pfns(&range);
+	rc = odp_resolve_pfns(&range, hdev);
 	if (rc)
 		goto free_pfns;
 
