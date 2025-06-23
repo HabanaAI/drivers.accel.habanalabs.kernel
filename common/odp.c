@@ -522,7 +522,7 @@ again:
 			else
 				goto again;
 		}
-		kfree(pfns);
+		kvfree(pfns);
 		return rc;
 	}
 	mmap_read_unlock(rg->notifier.mm);
@@ -532,7 +532,7 @@ again:
 	if (mmu_interval_read_retry(&rg->notifier, range.notifier_seq)) {
 		mutex_unlock(&hdev->mmu_lock);
 		if (!retries--) {
-			kfree(pfns);
+			kvfree(pfns);
 			return -ETIMEDOUT;
 		}
 		goto again;
@@ -545,7 +545,7 @@ again:
 	rc = odp_mmu_update_page_in_locked(rg, pfns, start_page, npages);
 
 free_pfns:
-	kfree(pfns);
+	kvfree(pfns);
 
 	mutex_unlock(&hdev->mmu_lock);
 
