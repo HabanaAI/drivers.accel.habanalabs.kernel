@@ -293,9 +293,8 @@ static int odp_mmu_update_page_in_locked(struct hl_odp_region_ctx *rg,
 
 	addr = round_down(rg->userptr->addr, PAGE_SIZE) +
 	       start_page * PAGE_SIZE;
-	start_device_addr = device_addr =
-		round_down(rg->device_vaddr, PAGE_SIZE) +
-		start_page * PAGE_SIZE;
+	start_device_addr = round_down(rg->device_vaddr, PAGE_SIZE) + start_page * PAGE_SIZE;
+	device_addr = start_device_addr;
 
 	for (i = 0; i < npages;
 	     ++i, device_addr += PAGE_SIZE, addr += PAGE_SIZE) {
