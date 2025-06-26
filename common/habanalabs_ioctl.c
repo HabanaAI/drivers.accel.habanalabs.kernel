@@ -1350,6 +1350,28 @@ static int report_memory_consumption_ioctl(struct hl_device *hdev, struct hl_inf
 	return hl_report_memory_consumption_to_fw(hdev, input.used_mem, input.timestamp_sec);
 }
 
+static int drm_accel_enabled_info(struct hl_fpriv *hpriv, struct hl_info_args *args)
+{
+	void __user *user_buf = (void __user *)(uintptr_t)args->return_pointer;
+	u32 user_buf_size = args->return_size;
+	u64 accel_enabled_info;
+	int rc;
+
+	if (!user_buf)
+		return -EINVAL;
+
+	if (user_buf_size < sizeof(accel_enabled_info))
+		return -EINVAL;
+
+#if IS_ENABLED(CONFIG_DRM_ACCEL)
+	accel_enabled_info = 1;
+#else
+	accel_enabled_info = 0;
+#endif
+	rc = copy_to_user(user_buf, &accel_enabled_info, sizeof(accel_enabled_info));
+	return rc ? -EFAULT : 0;
+}
+
 static int _hl_info_ioctl(struct hl_fpriv *hpriv, void *data, char *prefix)
 {
 	enum hl_device_status status;
@@ -1435,6 +1457,10 @@ static int _hl_info_ioctl(struct hl_fpriv *hpriv, void *data, char *prefix)
 
 	case HL_INFO_DRAM_USAGE:
 		return dram_usage_info(hpriv, args);
+
+	case HL_INFO_CONFIG_DRM_ACCEL_ENABLED:
+		return drm_accel_enabled_info(hpriv, args);
+
 	default:
 		break;
 	}
