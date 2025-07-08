@@ -583,7 +583,6 @@ static void hl_cn_get_ports_info(struct hbl_aux_dev *aux_dev,
 	hbl_cn_aux_ports_info->lanes_pol_rx_mask_lo = cn_cpucp_info->pol_rx_mask[0];
 	hbl_cn_aux_ports_info->ports_ext_mask = hdev->cn.ports_ext_mask;
 	hbl_cn_aux_ports_info->ports_auto_neg_mask = hdev->cn.auto_neg_mask;
-	hbl_cn_aux_ports_info->lane_speed_restricted = hdev->cn.lane_speed_restricted;
 
 	memcpy(&hbl_cn_aux_ports_info->tx_taps, &cn_cpucp_info->tx_taps, sizeof(struct tx_taps));
 	hbl_cn_aux_ports_info->use_taps_from_fw = cn_cpucp_info->use_taps_from_fw;

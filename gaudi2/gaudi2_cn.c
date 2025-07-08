@@ -5,7 +5,6 @@
  * All Rights Reserved.
  */
 
-#include "../include/hw_ip/pci/pci_general.h"
 #include "gaudi2_cn.h"
 #include "../include/gaudi2/asic_reg/gaudi2_regs.h"
 #include "../include/gaudi2/gaudi2_async_ids_map_extended.h"
