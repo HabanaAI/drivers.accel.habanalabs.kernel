@@ -477,7 +477,7 @@
 		 0xfc0fc, 0xfc0fc, 0xff0fffff, 0x701, 0xf000000 }
 
 #define GAUDI3_SEC_PROTBITS_DATA128 { \
-		 0xfc0fc, 0xf000000 }
+		 0xff0, 0xfc0fc, 0xf000000 }
 
 #define GAUDI3_SEC_PROTBITS_DATA129 { \
 		 0xfc000000, 0xfc0, 0x1fffff, 0x7fff, 0x1fffff, 0xf000000 }
@@ -1635,7 +1635,7 @@ static const uint32_t gaudi3_sec_protbits_data186[] = GAUDI3_SEC_PROTBITS_DATA18
 	}, \
 	{{ GAUDI3_BLOCK_TYPE_NIC, 0xfd027000, 2, 6, 0, 0x400000, 0x80000, 0x0 }, \
 	  .prot_map = 0x80000000, \
-	  .data_map = 0x40400000, \
+	  .data_map = 0x40404000, \
 	  .data = gaudi3_sec_protbits_data128, \
 	  .data_size = ARRAY_SIZE(gaudi3_sec_protbits_data128) \
 	}, \
