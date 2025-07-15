@@ -16,6 +16,7 @@
 #include <linux/hwmon.h>
 #include <linux/iommu.h>
 #include <linux/seq_file.h>
+#include <linux/string.h>
 
 /*
  * GOYA security scheme:
@@ -4439,10 +4440,10 @@ static void goya_get_event_desc(u16 event_type, char *desc, size_t size)
 		snprintf(desc, size, _goya_get_event_desc(event_type), index);
 		break;
 	case GOYA_ASYNC_EVENT_PKT_QUEUE_OUT_SYNC:
-		snprintf(desc, size, _goya_get_event_desc(event_type));
+		strscpy(desc, _goya_get_event_desc(event_type), size);
 		break;
 	default:
-		snprintf(desc, size, _goya_get_event_desc(event_type));
+		strscpy(desc, _goya_get_event_desc(event_type), size);
 		break;
 	}
 }
