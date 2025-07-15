@@ -20,6 +20,7 @@
 #include <linux/hwmon.h>
 #include <linux/iommu.h>
 #include <linux/seq_file.h>
+#include <linux/string.h>
 
 /*
  * Gaudi security scheme:
@@ -6939,7 +6940,7 @@ static void gaudi_get_event_desc(u16 event_type, char *desc, size_t size)
 	if (!gaudi_irq_map_table[event_type].valid)
 		goto event_not_supported;
 
-	snprintf(desc, size, gaudi_irq_map_table[event_type].name);
+	strscpy(desc, gaudi_irq_map_table[event_type].name, size);
 
 	return;
 
