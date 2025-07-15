@@ -11482,7 +11482,7 @@ static void gaudi3_get_pdma_idle_status(struct hl_device *hdev, struct gaudi3_id
 	};
 
 	if (idle_data->e)
-		hl_engine_data_sprintf(idle_data->e, header);
+		hl_engine_data_sprintf(idle_data->e, "%s", header);
 
 	gaudi3_iterate_pdma_grps(hdev, &iter_ctx);
 }
@@ -11524,7 +11524,7 @@ static void gaudi3_get_pdma_dup_idle_status(struct hl_device *hdev,
 	};
 
 	if (idle_data->e)
-		hl_engine_data_sprintf(idle_data->e, header);
+		hl_engine_data_sprintf(idle_data->e, "%s", header);
 
 	gaudi3_iterate_pdma_grps(hdev, &iter_ctx);
 }
@@ -11611,7 +11611,7 @@ static void gaudi3_get_emda_idle_status(struct hl_device *hdev, struct gaudi3_id
 	};
 
 	if (idle_data->e && hdev->asic_prop.edma_enabled_mask)
-		hl_engine_data_sprintf(idle_data->e, header);
+		hl_engine_data_sprintf(idle_data->e, "%s", header);
 
 	gaudi3_iterate_edmas(hdev, &iter_ctx);
 }
@@ -11674,7 +11674,7 @@ static void gaudi3_get_tpc_idle_status(struct hl_device *hdev, struct gaudi3_idl
 	};
 
 	if (idle_data->e && hdev->asic_prop.tpc_enabled_mask)
-		hl_engine_data_sprintf(idle_data->e, header);
+		hl_engine_data_sprintf(idle_data->e, "%s", header);
 
 	gaudi3_iterate_tpcs(hdev, &iter_ctx);
 }
@@ -11771,7 +11771,7 @@ static void gaudi3_get_mme_idle_status(struct hl_device *hdev, struct gaudi3_idl
 	};
 
 	if (idle_data->e && hdev->mme_mask)
-		hl_engine_data_sprintf(idle_data->e, header);
+		hl_engine_data_sprintf(idle_data->e, "%s", header);
 
 	gaudi3_iterate_mmes(hdev, &iter_ctx);
 }
@@ -11827,7 +11827,7 @@ static void gaudi3_get_rotator_idle_status(struct hl_device *hdev,
 	};
 
 	if (idle_data->e && hdev->asic_prop.rotator_enabled_mask)
-		hl_engine_data_sprintf(idle_data->e, header);
+		hl_engine_data_sprintf(idle_data->e, "%s", header);
 
 	gaudi3_iterate_rotators(hdev, &iter_ctx);
 }
@@ -11870,7 +11870,7 @@ static void gaudi3_get_decoder_idle_status(struct hl_device *hdev,
 	};
 
 	if (idle_data->e && hdev->asic_prop.decoder_enabled_mask)
-		hl_engine_data_sprintf(idle_data->e, header);
+		hl_engine_data_sprintf(idle_data->e, "%s", header);
 
 	gaudi3_iterate_decoders(hdev, &iter_ctx);
 }
@@ -11908,7 +11908,7 @@ static void gaudi3_get_arc_farm_dup_idle_status(struct hl_device *hdev,
 	u32 hdcore, inst, arc_id, offset;
 
 	if (idle_data->e && hdev->sched_arc_mask)
-		hl_engine_data_sprintf(idle_data->e, header);
+		hl_engine_data_sprintf(idle_data->e, "%s", header);
 
 	for (hdcore = 0 ; hdcore < hdev->asic_prop.num_of_hdcores ; hdcore++) {
 		for (inst = 0 ; inst < NUM_ARC_SCHED_PER_HDCORE ; inst++) {
@@ -13797,7 +13797,7 @@ static void gaudi3_handle_eq_cpld_reset_reason_event(struct hl_device *hdev,
 			offset += snprintf(tmp_buf + offset, 128 - offset, ", 0x%x", reg[i]);
 
 		snprintf(tmp_buf + offset, 128 - offset, "\n");
-		hl_info(hdev, tmp_buf);
+		hl_info(hdev, "%s", tmp_buf);
 		*event_mask |= HL_NOTIFIER_EVENT_GENERAL_HW_ERR;
 	}
 }
