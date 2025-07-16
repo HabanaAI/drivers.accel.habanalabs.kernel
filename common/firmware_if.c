@@ -388,7 +388,7 @@ int hl_fw_send_pci_access_msg(struct hl_device *hdev, u32 opcode, u64 value)
 
 	rc = hdev->asic_funcs->send_cpu_message(hdev, (u32 *) &pkt, sizeof(pkt), 0, NULL);
 	if (rc)
-		hl_err(hdev, "Failed to disable FW's PCI access\n");
+		hl_err_ratelimited(hdev, "Failed to disable FW's PCI access\n");
 
 	return rc;
 }
@@ -424,7 +424,7 @@ int hl_fw_send_cpu_message(struct hl_device *hdev, u32 hw_queue_id, u32 *msg,
 
 	pkt = hl_cpu_accessible_dma_pool_alloc(hdev, size, &pkt_dma_addr);
 	if (!pkt) {
-		hl_err(hdev, "Failed to allocate DMA memory for packet to CPU\n");
+		hl_err_ratelimited(hdev, "Failed to allocate DMA memory for packet to CPU\n");
 		return -ENOMEM;
 	}
 
@@ -471,17 +471,18 @@ int hl_fw_send_cpu_message(struct hl_device *hdev, u32 hw_queue_id, u32 *msg,
 		 * This is expected behavior, hence no need for error message.
 		 */
 		if (!hl_device_operational(hdev, NULL) && !hdev->reset_info.in_compute_reset) {
-			hl_dbg(hdev, "Device CPU packet timeout (0x%x) due to FW reset\n",
-					tmp);
+			hl_dbg_ratelimited(hdev,
+					   "Device CPU packet timeout (0x%x) due to FW reset\n",
+					   tmp);
 		} else {
 			struct hl_bd *bd = queue->kernel_address;
 
 			bd += hl_pi_2_offset(pi);
 
-			hl_err(hdev, "Device CPU packet timeout (status = 0x%x)\n"
-				"Pkt info[%u]: dma_addr: 0x%llx, kernel_addr: %p, len:0x%x, ctl: 0x%x, ptr:0x%llx, dram_bd:%u\n",
-				tmp, pi, pkt_dma_addr, (void *)pkt, bd->len, bd->ctl, bd->ptr,
-				queue->dram_bd);
+			hl_err_ratelimited(hdev, "Device CPU packet timeout (status = 0x%x)\n"
+					   "Pkt info[%u]: dma_addr: 0x%llx, kernel_addr: %p, len:0x%x, ctl: 0x%x, ptr:0x%llx, dram_bd:%u\n",
+					   tmp, pi, pkt_dma_addr, (void *)pkt, bd->len, bd->ctl,
+					   bd->ptr, queue->dram_bd);
 		}
 		hdev->device_cpu_disabled = true;
 		goto out;
@@ -494,32 +495,33 @@ int hl_fw_send_cpu_message(struct hl_device *hdev, u32 hw_queue_id, u32 *msg,
 		opcode = (tmp & CPUCP_PKT_CTL_OPCODE_MASK) >> CPUCP_PKT_CTL_OPCODE_SHIFT;
 
 		if (!prop->supports_advanced_cpucp_rc) {
-			hl_dbg(hdev, "F/W ERROR %d for CPU packet %d\n", rc, opcode);
+			hl_dbg_ratelimited(hdev, "F/W ERROR %d for CPU packet %d\n", rc, opcode);
 			rc = -EIO;
 			goto scrub_descriptor;
 		}
 
 		switch (fw_rc) {
 		case cpucp_packet_invalid:
-			hl_err(hdev,
-				"CPU packet %d is not supported by F/W\n", opcode);
+			hl_err_ratelimited(hdev,
+					   "CPU packet %d is not supported by F/W\n", opcode);
 			break;
 		case cpucp_packet_fault:
-			hl_err(hdev,
-				"F/W failed processing CPU packet %d\n", opcode);
+			hl_err_ratelimited(hdev,
+					   "F/W failed processing CPU packet %d\n", opcode);
 			break;
 		case cpucp_packet_invalid_pkt:
-			hl_dbg(hdev,
-				"CPU packet %d is not supported by F/W\n", opcode);
+			hl_dbg_ratelimited(hdev,
+					   "CPU packet %d is not supported by F/W\n", opcode);
 			break;
 		case cpucp_packet_invalid_params:
-			hl_err(hdev,
-				"F/W reports invalid parameters for CPU packet %d\n", opcode);
+			hl_err_ratelimited(hdev,
+					   "F/W reports invalid parameters for CPU packet %d\n",
+					   opcode);
 			break;
 
 		default:
-			hl_err(hdev,
-				"Unknown F/W ERROR %d for CPU packet %d\n", rc, opcode);
+			hl_err_ratelimited(hdev,
+					   "Unknown F/W ERROR %d for CPU packet %d\n", rc, opcode);
 		}
 
 		/* propagate the return code from the f/w to the callers who want to check it */
@@ -1059,8 +1061,8 @@ int hl_fw_get_eeprom_data(struct hl_device *hdev, void *data, size_t max_size)
 	eeprom_info_cpu_addr = hl_cpu_accessible_dma_pool_alloc(hdev, max_size,
 									&eeprom_info_dma_addr);
 	if (!eeprom_info_cpu_addr) {
-		hl_err(hdev,
-			"Failed to allocate DMA memory for CPU-CP EEPROM packet\n");
+		hl_err_ratelimited(hdev,
+				   "Failed to allocate DMA memory for CPU-CP EEPROM packet\n");
 		return -ENOMEM;
 	}
 
@@ -1075,8 +1077,9 @@ int hl_fw_get_eeprom_data(struct hl_device *hdev, void *data, size_t max_size)
 			HL_CPUCP_EEPROM_TIMEOUT_USEC, &result);
 	if (rc) {
 		if (rc != -EAGAIN)
-			hl_err(hdev,
-				"Failed to handle CPU-CP EEPROM packet, error %d\n", rc);
+			hl_err_ratelimited(hdev,
+					   "Failed to handle CPU-CP EEPROM packet, error %d\n",
+					   rc);
 		goto out;
 	}
 
@@ -1103,8 +1106,8 @@ int hl_fw_get_monitor_dump(struct hl_device *hdev, void *data)
 	data_size = sizeof(struct cpucp_monitor_dump);
 	mon_dump_cpu_addr = hl_cpu_accessible_dma_pool_alloc(hdev, data_size, &mon_dump_dma_addr);
 	if (!mon_dump_cpu_addr) {
-		hl_err(hdev,
-			"Failed to allocate DMA memory for CPU-CP monitor-dump packet\n");
+		hl_err_ratelimited(hdev,
+				   "Failed to allocate DMA memory for CPU-CP monitor-dump packet\n");
 		return -ENOMEM;
 	}
 
@@ -1118,8 +1121,9 @@ int hl_fw_get_monitor_dump(struct hl_device *hdev, void *data)
 							HL_CPUCP_MON_DUMP_TIMEOUT_USEC, &result);
 	if (rc) {
 		if (rc != -EAGAIN)
-			hl_err(hdev,
-				"Failed to handle CPU-CP monitor-dump packet, error %d\n", rc);
+			hl_err_ratelimited(hdev,
+					   "Failed to handle CPU-CP monitor-dump packet, error %d\n",
+					   rc);
 		goto out;
 	}
 
@@ -1263,8 +1267,8 @@ int get_used_pll_index(struct hl_device *hdev, u32 input_pll_index,
 	 */
 	fw_pll_idx = hdev->asic_funcs->map_pll_idx_to_fw_idx(input_pll_index);
 	if (fw_pll_idx < 0) {
-		hl_err(hdev, "Invalid PLL index (%u) error %d\n",
-			input_pll_index, fw_pll_idx);
+		hl_err_ratelimited(hdev, "Invalid PLL index (%u) error %d\n",
+				   input_pll_index, fw_pll_idx);
 		return -EINVAL;
 	}
 
@@ -1273,8 +1277,7 @@ int get_used_pll_index(struct hl_device *hdev, u32 input_pll_index,
 	pll_bit_off = fw_pll_idx & 0x7;
 
 	if (!(pll_byte & BIT(pll_bit_off))) {
-		hl_err(hdev, "PLL index %d is not supported\n",
-			fw_pll_idx);
+		hl_err_ratelimited(hdev, "PLL index %d is not supported\n", fw_pll_idx);
 		return -EINVAL;
 	}
 
@@ -3445,7 +3448,7 @@ int hl_fw_get_clk_rate(struct hl_device *hdev, u32 *cur_clk, u32 *max_clk)
 	value = hl_fw_get_frequency(hdev, hdev->asic_prop.clk_pll_index, false);
 
 	if (value < 0) {
-		hl_err(hdev, "Failed to retrieve device max clock %ld\n", value);
+		hl_err_ratelimited(hdev, "Failed to retrieve device max clock %ld\n", value);
 		return value;
 	}
 
@@ -3454,7 +3457,7 @@ int hl_fw_get_clk_rate(struct hl_device *hdev, u32 *cur_clk, u32 *max_clk)
 	value = hl_fw_get_frequency(hdev, hdev->asic_prop.clk_pll_index, true);
 
 	if (value < 0) {
-		hl_err(hdev, "Failed to retrieve device current clock %ld\n", value);
+		hl_err_ratelimited(hdev, "Failed to retrieve device current clock %ld\n", value);
 		return value;
 	}
 
@@ -3487,8 +3490,8 @@ long hl_fw_get_frequency(struct hl_device *hdev, u32 pll_index, bool curr)
 	rc = hdev->asic_funcs->send_cpu_message(hdev, (u32 *) &pkt, sizeof(pkt), 0, &result);
 	if (rc) {
 		if (rc != -EAGAIN)
-			hl_err(hdev, "Failed to get frequency of PLL %d, error %d\n",
-				used_pll_idx, rc);
+			hl_err_ratelimited(hdev, "Failed to get frequency of PLL %d, error %d\n",
+					   used_pll_idx, rc);
 		return rc;
 	}
 
@@ -3513,8 +3516,8 @@ void hl_fw_set_frequency(struct hl_device *hdev, u32 pll_index, u64 freq)
 
 	rc = hdev->asic_funcs->send_cpu_message(hdev, (u32 *) &pkt, sizeof(pkt), 0, NULL);
 	if (rc && rc != -EAGAIN)
-		hl_err(hdev, "Failed to set frequency to PLL %d, error %d\n",
-			used_pll_idx, rc);
+		hl_err_ratelimited(hdev, "Failed to set frequency to PLL %d, error %d\n",
+				   used_pll_idx, rc);
 }
 
 long hl_fw_get_max_power(struct hl_device *hdev)
@@ -3530,7 +3533,7 @@ long hl_fw_get_max_power(struct hl_device *hdev)
 	rc = hdev->asic_funcs->send_cpu_message(hdev, (u32 *) &pkt, sizeof(pkt), 0, &result);
 	if (rc) {
 		if (rc != -EAGAIN)
-			hl_err(hdev, "Failed to get max power, error %d\n", rc);
+			hl_err_ratelimited(hdev, "Failed to get max power, error %d\n", rc);
 		return rc;
 	}
 
@@ -3553,7 +3556,7 @@ void hl_fw_set_max_power(struct hl_device *hdev)
 
 	rc = hdev->asic_funcs->send_cpu_message(hdev, (u32 *) &pkt, sizeof(pkt), 0, NULL);
 	if (rc && rc != -EAGAIN)
-		hl_err(hdev, "Failed to set max power, error %d\n", rc);
+		hl_err_ratelimited(hdev, "Failed to set max power, error %d\n", rc);
 }
 
 int hl_fw_send_binning_info(struct hl_device *hdev)
@@ -3566,7 +3569,7 @@ int hl_fw_send_binning_info(struct hl_device *hdev)
 	int rc;
 
 	if (!hdev->supports_custom_fw_binning) {
-		hl_info(hdev, "sending binning info not supported for this ASIC\n");
+		hl_info_ratelimited(hdev, "sending binning info not supported for this ASIC\n");
 		return 0;
 	}
 
@@ -3578,7 +3581,7 @@ int hl_fw_send_binning_info(struct hl_device *hdev)
 
 	/* Total_pkt_size is casted to u16 later on when calling send_cpu_message */
 	if (total_pkt_size > USHRT_MAX) {
-		hl_err(hdev, "CPUCP array data is too big\n");
+		hl_err_ratelimited(hdev, "CPUCP array data is too big\n");
 		return -EINVAL;
 	}
 
@@ -3601,7 +3604,7 @@ int hl_fw_send_binning_info(struct hl_device *hdev)
 
 	rc = hdev->asic_funcs->send_cpu_message(hdev, (u32 *)pkt, total_pkt_size, 0, &result);
 	if (rc)
-		hl_err(hdev, "failed to send CPUCP array data\n");
+		hl_err_ratelimited(hdev, "failed to send CPUCP array data\n");
 
 	kfree(pkt);
 
@@ -3618,8 +3621,8 @@ static int hl_fw_get_sec_attest_data(struct hl_device *hdev, u32 packet_id, void
 
 	req_cpu_addr = hl_cpu_accessible_dma_pool_alloc(hdev, size, &req_dma_addr);
 	if (!req_cpu_addr) {
-		hl_err(hdev,
-			"Failed to allocate DMA memory for CPU-CP packet %u\n", packet_id);
+		hl_err_ratelimited(hdev, "Failed to allocate DMA memory for CPU-CP packet %u\n",
+				   packet_id);
 		return -ENOMEM;
 	}
 
@@ -3633,8 +3636,8 @@ static int hl_fw_get_sec_attest_data(struct hl_device *hdev, u32 packet_id, void
 	rc = hdev->asic_funcs->send_cpu_message(hdev, (u32 *) &pkt, sizeof(pkt), timeout, NULL);
 	if (rc) {
 		if (rc != -EAGAIN)
-			hl_err(hdev,
-				"Failed to handle CPU-CP pkt %u, error %d\n", packet_id, rc);
+			hl_err_ratelimited(hdev, "Failed to handle CPU-CP pkt %u, error %d\n",
+					   packet_id, rc);
 		goto out;
 	}
 
@@ -3678,9 +3681,9 @@ int hl_fw_send_generic_request(struct hl_device *hdev, enum hl_passthrough_type 
 						HL_CPUCP_INFO_TIMEOUT_USEC, &result);
 	if (rc) {
 		if (rc != -EAGAIN)
-			hl_err(hdev, "failed to send CPUCP data of generic fw pkt\n");
+			hl_err_ratelimited(hdev, "failed to send CPUCP data of generic fw pkt\n");
 	} else {
-		hl_dbg(hdev, "generic pkt was successful, result: 0x%llx\n", result);
+		hl_dbg_ratelimited(hdev, "generic pkt was successful, result: 0x%llx\n", result);
 	}
 
 	*size = (u32)result;
@@ -3713,7 +3716,7 @@ int hl_fw_set_host_date_and_time(struct hl_device *hdev)
 
 	rc = hdev->asic_funcs->send_cpu_message(hdev, (u32 *) &pkt, sizeof(pkt), 0, NULL);
 	if (rc)
-		hl_err(hdev, "Failed to set host date and time, rc %d\n", rc);
+		hl_err_ratelimited(hdev, "Failed to set host date and time, rc %d\n", rc);
 
 	return rc;
 }
@@ -3733,7 +3736,7 @@ int hl_fw_send_memory_consumption(struct hl_device *hdev, u64 total_mem, u64 fre
 
 	rc = hdev->asic_funcs->send_cpu_message(hdev, (u32 *) &pkt, sizeof(pkt), 0, NULL);
 	if (rc)
-		hl_warn(hdev, "failed to send memory consumption msg to FW\n");
+		hl_warn_ratelimited(hdev, "failed to send memory consumption msg to FW\n");
 
 	return rc;
 }
@@ -3754,7 +3757,8 @@ int hl_fw_send_driver_version(struct hl_device *hdev)
 
 	rc = hdev->asic_funcs->send_cpu_message(hdev, (u32 *) &pkt, sizeof(pkt), 0, NULL);
 	if (rc)
-		hl_err(hdev, "failed to send driver version msg to FW, error %d\n", rc);
+		hl_err_ratelimited(hdev,
+				   "failed to send driver version msg to FW, error %d\n", rc);
 
 	return rc;
 }

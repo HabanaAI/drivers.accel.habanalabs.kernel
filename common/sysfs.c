@@ -219,7 +219,7 @@ static ssize_t soft_reset_store(struct device *dev,
 	}
 
 	if (!hdev->asic_prop.allow_inference_soft_reset) {
-		hl_err(hdev, "Device does not support inference soft-reset\n");
+		hl_err_ratelimited(hdev, "Device does not support inference soft-reset\n");
 		goto out;
 	}
 
