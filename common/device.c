@@ -1251,7 +1251,7 @@ static int device_early_init(struct hl_device *hdev)
 	}
 
 	for (i = 0 ; i < hdev->asic_prop.completion_queues_count ; i++) {
-		snprintf(workq_name, 32, "hl%u-free-jobs-%u", hdev->cdev_idx, (u32) i);
+		snprintf(workq_name, sizeof(workq_name), "hl%u-free-jobs-%u", hdev->cdev_idx, i);
 		hdev->cq_wq[i] = create_singlethread_workqueue(workq_name);
 		if (hdev->cq_wq[i] == NULL) {
 			hl_err(hdev, "Failed to allocate CQ workqueue\n");
@@ -1260,7 +1260,7 @@ static int device_early_init(struct hl_device *hdev)
 		}
 	}
 
-	snprintf(workq_name, 32, "hl%u-events", hdev->cdev_idx);
+	snprintf(workq_name, sizeof(workq_name), "hl%u-events", hdev->cdev_idx);
 	hdev->eq_wq = create_singlethread_workqueue(workq_name);
 	if (hdev->eq_wq == NULL) {
 		hl_err(hdev, "Failed to allocate EQ workqueue\n");
@@ -1268,8 +1268,7 @@ static int device_early_init(struct hl_device *hdev)
 		goto free_cq_wq;
 	}
 
-	snprintf(workq_name, 32, "hl%u-cs-completions", hdev->cdev_idx);
-	hdev->cs_cmplt_wq = alloc_workqueue(workq_name, WQ_UNBOUND, 0);
+	hdev->cs_cmplt_wq = alloc_workqueue("hl%u-cs-completions", WQ_UNBOUND, 0, hdev->cdev_idx);
 	if (!hdev->cs_cmplt_wq) {
 		hl_err(hdev,
 			"Failed to allocate CS completions workqueue\n");
@@ -1277,8 +1276,7 @@ static int device_early_init(struct hl_device *hdev)
 		goto free_eq_wq;
 	}
 
-	snprintf(workq_name, 32, "hl%u-ts-free-obj", hdev->cdev_idx);
-	hdev->ts_free_obj_wq = alloc_workqueue(workq_name, WQ_UNBOUND, 0);
+	hdev->ts_free_obj_wq = alloc_workqueue("hl%u-ts-free-obj", WQ_UNBOUND, 0, hdev->cdev_idx);
 	if (!hdev->ts_free_obj_wq) {
 		hl_err(hdev,
 			"Failed to allocate Timestamp registration free workqueue\n");
@@ -1286,8 +1284,7 @@ static int device_early_init(struct hl_device *hdev)
 		goto free_cs_cmplt_wq;
 	}
 
-	snprintf(workq_name, 32, "hl%u-prefetch", hdev->cdev_idx);
-	hdev->prefetch_wq = alloc_workqueue(workq_name, WQ_UNBOUND, 0);
+	hdev->prefetch_wq = alloc_workqueue("hl%u-prefetch", WQ_UNBOUND, 0, hdev->cdev_idx);
 	if (!hdev->prefetch_wq) {
 		hl_err(hdev, "Failed to allocate MMU prefetch workqueue\n");
 		rc = -ENOMEM;
@@ -1306,7 +1303,7 @@ static int device_early_init(struct hl_device *hdev)
 
 	hl_mem_mgr_init(hdev, &hdev->kernel_mem_mgr);
 
-	snprintf(workq_name, 32, "hl%u_device_reset", hdev->cdev_idx);
+	snprintf(workq_name, sizeof(workq_name), "hl%u_device_reset", hdev->cdev_idx);
 	hdev->reset_wq = create_singlethread_workqueue(workq_name);
 	if (!hdev->reset_wq) {
 		rc = -ENOMEM;
