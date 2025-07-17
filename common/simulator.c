@@ -984,7 +984,7 @@ int hl_sim_init(struct class *hclass, u32 major, struct idr *hl_devs_idr,
 	}
 
 	sdev->hclass = hclass;
-	sdev->dev = device_create(sdev->hclass, NULL, devno, NULL, name);
+	sdev->dev = device_create(sdev->hclass, NULL, devno, NULL, "%s", name);
 	if (IS_ERR(sdev->dev)) {
 		pr_err("habanalabs: Failed to create device %s\n", name);
 		rc = PTR_ERR(sdev->dev);
