@@ -15238,6 +15238,11 @@ u8 gaudi3_is_irq_enabled(struct hl_device *hdev)
 	return !!(gaudi3->hw_cap_initialized & HW_CAP_MSIX);
 }
 
+int gaudi3_cs_parser(struct hl_device *hdev, struct hl_cs_parser *parser)
+{
+	return -EOPNOTSUPP;
+}
+
 static const struct hl_asic_funcs gaudi3_funcs = {
 	.early_init = gaudi3_early_init,
 	.early_fini = gaudi3_early_fini,
@@ -15266,6 +15271,7 @@ static const struct hl_asic_funcs gaudi3_funcs = {
 	.asic_dma_map_page = gaudi3_dma_map_page,
 	.asic_dma_unmap_page = gaudi3_dma_unmap_page,
 	.dma_unmap_sgtable = hl_asic_dma_unmap_sgtable,
+	.cs_parser = gaudi3_cs_parser,
 	.dma_map_sgtable = hl_asic_dma_map_sgtable,
 	.add_end_of_cb_packets = NULL,
 	.update_eq_ci = gaudi3_update_eq_ci,

@@ -1613,6 +1613,7 @@ static const struct hl_asic_funcs gaudi3_sim_funcs = {
 	.asic_dma_unmap_page = gaudi3_sim_dma_unmap_page,
 	.asic_dma_map_page = gaudi3_sim_dma_map_page,
 	.dma_unmap_sgtable = hl_sim_dma_unmap_sgtable,
+	.cs_parser = gaudi3_cs_parser,
 	.dma_map_sgtable = hl_sim_dma_map_sgtable,
 	.update_eq_ci = gaudi3_update_eq_ci,
 	.context_switch = gaudi3_context_switch,

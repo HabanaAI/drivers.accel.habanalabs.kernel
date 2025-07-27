@@ -862,6 +862,7 @@ void gaudi3_set_dram_binning_masks(struct hl_device *hdev);
 int gaudi3_test_qmans_msgs_alloc(struct hl_device *hdev);
 void gaudi3_test_qmans_msgs_free(struct hl_device *hdev);
 void gaudi3_eq_handler(struct work_struct *work);
+int gaudi3_cs_parser(struct hl_device *hdev, struct hl_cs_parser *parser);
 
 /* Functions exported for bring-up support */
 int gaudi3_pre_hw_init(struct hl_device *hdev);
