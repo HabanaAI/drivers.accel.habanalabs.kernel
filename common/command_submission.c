@@ -2472,12 +2472,27 @@ out:
 	return rc;
 }
 
+static int cs_verify_engines(struct hl_device *hdev, u32 *engines,
+			     u32 num_engines, u32 max_engine_id)
+{
+	u32 i;
+
+	for (i = 0 ; i < num_engines ; i++)
+		if (engines[i] > max_engine_id) {
+			hl_err_ratelimited(hdev, "Invalid engine id %u (max %u)\n",
+					   engines[i], max_engine_id);
+			return -EINVAL;
+		}
+
+	return 0;
+}
+
 static int cs_ioctl_engine_cores(struct hl_fpriv *hpriv, u64 engine_cores,
 						u32 num_engine_cores, u32 core_command)
 {
 	struct hl_device *hdev = hpriv->hdev;
 	void __user *engine_cores_arr;
-	u32 *cores;
+	u32 *cores, max_engine_core_id;
 	int rc;
 
 	if (!hdev->asic_prop.supports_engine_modes)
@@ -2503,6 +2518,11 @@ static int cs_ioctl_engine_cores(struct hl_fpriv *hpriv, u64 engine_cores,
 		kfree(cores);
 		return -EFAULT;
 	}
+
+	max_engine_core_id = hdev->asic_prop.num_engine_cores - 1;
+	rc = cs_verify_engines(hdev, cores, num_engine_cores, max_engine_core_id);
+	if (rc)
+		return rc;
 
 	rc = hdev->asic_funcs->set_engine_cores(hdev, cores, num_engine_cores, core_command);
 	kfree(cores);
@@ -2545,6 +2565,10 @@ static int cs_ioctl_engines(struct hl_fpriv *hpriv, u64 engines_arr_user_addr,
 		kfree(engines);
 		return -EFAULT;
 	}
+
+	rc = cs_verify_engines(hdev, engines, num_engines, max_num_of_engines - 1);
+	if (rc)
+		return rc;
 
 	rc = hdev->asic_funcs->set_engines(hdev, engines, num_engines, command);
 	kfree(engines);
