@@ -629,7 +629,7 @@ int hl_importer_init(void)
 		goto remove_class;
 	}
 
-	idev->dev = device_create(idev->iclass, NULL, dev, NULL, devname);
+	idev->dev = device_create(idev->iclass, NULL, dev, NULL, "%s", devname);
 	if (IS_ERR(idev->dev)) {
 		pr_err("Failed to create device %s\n", devname);
 		rc = PTR_ERR(idev->dev);
