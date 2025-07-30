@@ -905,7 +905,7 @@ pci_init:
 		 * is derrived from fw, but at this point we don't have the fw yet, so we need to
 		 * set it.
 		 */
-		dyn_regs->gic_host_halt_irq = mmGIC_HOST_HALT_IRQ_POLL_REG;
+		dyn_regs->gic_host_halt_irq = cpu_to_le32(mmGIC_HOST_HALT_IRQ_POLL_REG);
 		prop->hard_reset_done_by_fw = true;
 		hdev->fw_loader.fw_comp_loaded |= FW_TYPE_LINUX;
 		gaudi_fw_security_emulation_fini(hdev, true);
