@@ -3619,7 +3619,7 @@ static int gaudi2_early_init(struct hl_device *hdev)
 		 * hard_reset_done_by_fw is forced to true to make the reset from fw and not by the
 		 * driver.
 		 */
-		dyn_regs->gic_host_halt_irq = mmGIC_HOST_HALT_IRQ_POLL_REG;
+		dyn_regs->gic_host_halt_irq = cpu_to_le32(mmGIC_HOST_HALT_IRQ_POLL_REG);
 		prop->force_device_reset_from_fw = true;
 		rc = hdev->asic_funcs->hw_fini(hdev, true, false);
 		if (rc) {
