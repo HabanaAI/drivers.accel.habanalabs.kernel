@@ -62,16 +62,16 @@ enum gaudi2_fw_status {
 struct gaudi2_cold_rst_data {
 	union {
 		struct {
-			__le32 recovery_flag: 1;
-			__le32 validation_flag: 1;
-			__le32 efuse_read_flag: 1;
-			__le32 spsram_init_done : 1;
-			__le32 fake_security_enable : 1;
-			__le32 bist_skip_enable : 1;
-			__le32 reserved1 : 3;
-			__le32 wd_rst_cause_arm : 1;
-			__le32 wd_rst_cause_arcpid : 1;
-			__le32 reserved : 21;
+			u32 recovery_flag: 1;
+			u32 validation_flag: 1;
+			u32 efuse_read_flag: 1;
+			u32 spsram_init_done : 1;
+			u32 fake_security_enable : 1;
+			u32 bist_skip_enable : 1;
+			u32 reserved1 : 3;
+			u32 wd_rst_cause_arm : 1;
+			u32 wd_rst_cause_arcpid : 1;
+			u32 reserved : 21;
 		};
 		__le32 data;
 	};
