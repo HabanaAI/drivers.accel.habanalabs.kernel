@@ -14275,7 +14275,7 @@ static inline void gaudi3_print_xresp_reg_data(struct hl_device *hdev,
 {
 	u64 addr = ((u64)le32_to_cpu(data->hi_reg) << 32) + le32_to_cpu(data->lo_reg);
 	u32 id = le32_to_cpu(data->id);
-	u32 misc = le32_to_cpu(data->misc);
+	u16 misc = le16_to_cpu(data->misc);
 
 	if (addr)
 		dev_err_ratelimited(hdev->dev, "xresp %s %s info: addr: 0x%llX, id: 0x%X, misc: 0x%X\n",
