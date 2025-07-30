@@ -600,11 +600,11 @@ static void hl_cn_cpucp_info_le_to_cpu(struct cpucp_nic_info *cpucp_nic_info,
 	}
 
 	for (i = 0 ; i < CPUCP_NIC_DEFAULT_LANES_NUM ; i++) {
-		hbl_cn_cpucp_info->tx_taps.pre3[i] = le32_to_cpu(cpucp_nic_info->pre3[i]);
-		hbl_cn_cpucp_info->tx_taps.pre2[i] = le32_to_cpu(cpucp_nic_info->pre2[i]);
-		hbl_cn_cpucp_info->tx_taps.pre1[i] = le32_to_cpu(cpucp_nic_info->pre1[i]);
-		hbl_cn_cpucp_info->tx_taps.c0[i] = le32_to_cpu(cpucp_nic_info->c0[i]);
-		hbl_cn_cpucp_info->tx_taps.post1[i] = le32_to_cpu(cpucp_nic_info->post1[i]);
+		hbl_cn_cpucp_info->tx_taps.pre3[i] = cpucp_nic_info->pre3[i];
+		hbl_cn_cpucp_info->tx_taps.pre2[i] = cpucp_nic_info->pre2[i];
+		hbl_cn_cpucp_info->tx_taps.pre1[i] = cpucp_nic_info->pre1[i];
+		hbl_cn_cpucp_info->tx_taps.c0[i] = cpucp_nic_info->c0[i];
+		hbl_cn_cpucp_info->tx_taps.post1[i] = cpucp_nic_info->post1[i];
 	}
 
 	for (i = 0 ; i < CPUCP_NIC_MASK_ARR_LEN ; i++) {
