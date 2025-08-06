@@ -12280,15 +12280,10 @@ int gaudi2_block_mmap(struct hl_device *hdev, struct vm_area_struct *vma,
 
 void gaudi2_enable_events_from_fw(struct hl_device *hdev)
 {
+	struct gaudi2_device *gaudi2 = hdev->asic_specific;
+
 	struct cpu_dyn_regs *dyn_regs = &hdev->fw_loader.dynamic_loader.comm_desc.cpu_dyn_regs;
 	u32 irq_handler_offset = le32_to_cpu(dyn_regs->gic_host_ints_irq);
-	struct gaudi2_device *gaudi2 = hdev->asic_specific;
-	struct gaudi2_cn_aux_ops *gaudi2_aux_ops;
-
-	gaudi2_aux_ops = &gaudi2->cn_aux_ops;
-
-	if (!gaudi2_aux_ops->send_port_cpucp_status)
-		return;
 
 	if (gaudi2->hw_cap_initialized & HW_CAP_CPU_Q)
 		WREG32(irq_handler_offset,
