@@ -1722,27 +1722,27 @@ static const struct file_operations hl_debugfs_fops = {
 static void add_secured_nodes(struct hl_dbg_device_entry *dev_entry, struct dentry *root)
 {
 	debugfs_create_u8("i2c_bus",
-				0644,
+				0640,
 				root,
 				&dev_entry->i2c_bus);
 
 	debugfs_create_u8("i2c_addr",
-				0644,
+				0640,
 				root,
 				&dev_entry->i2c_addr);
 
 	debugfs_create_u8("i2c_reg",
-				0644,
+				0640,
 				root,
 				&dev_entry->i2c_reg);
 
 	debugfs_create_u8("i2c_len",
-				0644,
+				0640,
 				root,
 				&dev_entry->i2c_len);
 
 	debugfs_create_file("i2c_data",
-				0644,
+				0640,
 				root,
 				dev_entry,
 				&hl_i2c_data_fops);
@@ -1774,7 +1774,7 @@ static void add_files_to_device(struct hl_device *hdev, struct hl_dbg_device_ent
 	int i;
 
 	debugfs_create_x64("memory_scrub_val",
-				0644,
+				0640,
 				root,
 				&hdev->memory_scrub_val);
 
@@ -1785,42 +1785,42 @@ static void add_files_to_device(struct hl_device *hdev, struct hl_dbg_device_ent
 				&hl_mem_scrub_fops);
 
 	debugfs_create_x64("addr",
-				0644,
+				0640,
 				root,
 				&dev_entry->addr);
 
 	debugfs_create_file("data32",
-				0644,
+				0640,
 				root,
 				dev_entry,
 				&hl_data32b_fops);
 
 	debugfs_create_file("data64",
-				0644,
+				0640,
 				root,
 				dev_entry,
 				&hl_data64b_fops);
 
 	debugfs_create_file("set_power_state",
-				0644,
+				0640,
 				root,
 				dev_entry,
 				&hl_power_fops);
 
 	debugfs_create_file("device",
-				0644,
+				0640,
 				root,
 				dev_entry,
 				&hl_device_fops);
 
 	debugfs_create_file("clk_gate",
-				0644,
+				0640,
 				root,
 				dev_entry,
 				&hl_clk_gate_fops);
 
 	debugfs_create_file("stop_on_err",
-				0644,
+				0640,
 				root,
 				dev_entry,
 				&hl_stop_on_err_fops);
@@ -1860,18 +1860,18 @@ static void add_files_to_device(struct hl_device *hdev, struct hl_dbg_device_ent
 				&dev_entry->mon_dump_blob_desc);
 
 	debugfs_create_x8("skip_reset_on_timeout",
-				0644,
+				0640,
 				root,
 				&hdev->reset_info.skip_reset_on_timeout);
 
 	debugfs_create_file("state_dump",
-				0644,
+				0600,
 				root,
 				dev_entry,
 				&hl_state_dump_fops);
 
 	debugfs_create_file("timeout_locked",
-				0644,
+				0640,
 				root,
 				dev_entry,
 				&hl_timeout_locked_fops);
@@ -1889,7 +1889,7 @@ static void add_files_to_device(struct hl_device *hdev, struct hl_dbg_device_ent
 				&hl_fw_binning_set_fops);
 
 	debugfs_create_u32("device_release_watchdog_timeout",
-				0644,
+				0640,
 				root,
 				&hdev->device_release_watchdog_timeout_sec);
 
@@ -1906,7 +1906,8 @@ static void add_files_to_device(struct hl_device *hdev, struct hl_dbg_device_ent
 
 	for (i = 0, entry = dev_entry->entry_arr ; i < count ; i++, entry++) {
 		debugfs_create_file(hl_debugfs_list[i].name,
-					0644,
+					/* sensitive user info should be accessed by owner only */
+					hl_debugfs_list[i].write ? 0600 : 0400,
 					root,
 					entry,
 					&hl_debugfs_fops);
