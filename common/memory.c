@@ -21,7 +21,7 @@
 #include <linux/scatterlist.h>
 #endif
 
-MODULE_IMPORT_NS(DMA_BUF);
+MODULE_IMPORT_NS("DMA_BUF");
 
 #define HL_MMU_DEBUG	0
 
