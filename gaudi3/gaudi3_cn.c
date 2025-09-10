@@ -10,9 +10,11 @@
 #include "../include/hw_ip/nic/nic_general.h"
 #include "uapi/drm/habanalabs_accel.h"
 
-#define GAUDI3_DEFAULT_COLL_LAG_SIZE		0x3
-#define GAUDI3_HL338_COLL_LAG_SIZE		0x6
-#define GAUDI3_HL338_SCALE_OUT_COLL_LAG_SIZE	0x4
+#define GAUDI3_DEFAULT_COLL_LAG_SIZE			0x3
+#define GAUDI3_HL338_COLL_LAG_SIZE			0x6
+#define GAUDI3_HL338_SCALE_OUT_COLL_LAG_SIZE		0x4
+#define GAUDI3_RACKSCALE_COLL_LAG_SIZE			0x0
+#define GAUDI3_RACKSCALE_SCALE_OUT_COLL_LAG_SIZE	0x18
 
 #define MAX_NUM_OF_NIC_INTERRUPTS (GAUDI3_IRQ_NUM_NIC_PORT_LAST - GAUDI3_IRQ_NUM_NIC_PORT_FIRST + 1)
 
@@ -614,7 +616,6 @@ static void gaudi3_cn_set_cn_data(struct hl_device *hdev)
 	struct hbl_cn_aux_ops *aux_ops;
 	struct hl_cn *cn = &hdev->cn;
 	struct hbl_aux_dev *aux_dev;
-	bool hl338_server;
 
 	aux_dev = &cn->cn_aux_dev;
 	gaudi3_aux_data = &gaudi3->cn_aux_data;
@@ -622,13 +623,24 @@ static void gaudi3_cn_set_cn_data(struct hl_device *hdev)
 	gaudi3_aux_ops = &gaudi3->cn_aux_ops;
 	aux_ops = aux_dev->aux_ops;
 	aux_ops->asic_ops = gaudi3_aux_ops;
-	hl338_server = hdev->asic_prop.server_type == HL_SERVER_GAUDI3_HL338;
 
 	gaudi3_aux_data->num_of_hdcores = prop->num_of_hdcores;
-	gaudi3_aux_data->coll_lag_size = hl338_server ? GAUDI3_HL338_COLL_LAG_SIZE :
-							GAUDI3_DEFAULT_COLL_LAG_SIZE;
-	gaudi3_aux_data->scale_out_coll_lag_size =
-		hl338_server ? GAUDI3_HL338_SCALE_OUT_COLL_LAG_SIZE : GAUDI3_DEFAULT_COLL_LAG_SIZE;
+
+	switch (hdev->asic_prop.server_type) {
+	case HL_SERVER_GAUDI3_HL338:
+		gaudi3_aux_data->coll_lag_size = GAUDI3_HL338_COLL_LAG_SIZE;
+		gaudi3_aux_data->scale_out_coll_lag_size = GAUDI3_HL338_SCALE_OUT_COLL_LAG_SIZE;
+		break;
+	case HL_SERVER_GAUDI3_RACK:
+	case HL_SERVER_GAUDI3_RACK_WHITEBOX:
+		gaudi3_aux_data->coll_lag_size = GAUDI3_RACKSCALE_COLL_LAG_SIZE;
+		gaudi3_aux_data->scale_out_coll_lag_size = GAUDI3_RACKSCALE_SCALE_OUT_COLL_LAG_SIZE;
+		break;
+	default:
+		gaudi3_aux_data->coll_lag_size = GAUDI3_DEFAULT_COLL_LAG_SIZE;
+		gaudi3_aux_data->scale_out_coll_lag_size = GAUDI3_DEFAULT_COLL_LAG_SIZE;
+	}
+
 	gaudi3_aux_data->enable_h9_rx_drop_eco = hdev->nic_enable_h9_rx_drop_eco;
 	gaudi3_aux_data->setup_type = hdev->gaudi3_setup_type;
 	gaudi3_aux_data->vendor_part_id = prop->pci_id;
