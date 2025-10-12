@@ -4471,7 +4471,7 @@ static int hbm_mbist_legacy_mode_parser(struct hl_device *hdev, u32 dev, u32 *re
 {
 	int rc = status_pass, ch_idx, reg_idx, bit_idx;
 	u32 status_data, repair_vec, sid, rdqs_fail, fail_ra_cnt, mbist_status, rb, ra, dq_position,
-		err_count, ch_regs_count, vec_idx, error_cnt, ignore[3], ignore_idx;
+		err_count, ch_regs_count, vec_idx, error_cnt, ignore[3], ignore_idx, bit_pos;
 	u8 result_bit_arr[BITS_PER_REG32 *
 				CEIL(MBIST_LEGACY_RESULT_SIZE, BITS_PER_REG32)] = {0};
 
@@ -4568,10 +4568,9 @@ static int hbm_mbist_legacy_mode_parser(struct hl_device *hdev, u32 dev, u32 *re
 		ignore[2] = 0;
 		/* error cnt data bit are 395:474 */
 		for (bit_idx = 0; bit_idx < MBIST_LEGACY_IGNORE_SIZE; bit_idx++) {
-			if (bit_idx % 32 == 0 && bit_idx > 0)
-				ignore_idx++;
-			ignore[ignore_idx] |= (result_bit_arr[bit_idx +
-			MBIST_LEGACY_IGNORE_FIRST_BIT] << bit_idx);
+			ignore_idx = bit_idx / 32;
+			bit_pos = bit_idx % 32;
+			ignore[ignore_idx] |= (result_bit_arr[bit_idx +	MBIST_LEGACY_IGNORE_FIRST_BIT] << bit_pos);
 		}
 		if (mbist_status || fail_ra_cnt || rdqs_fail) {
 			hl_err(hdev, "HBM%d CH%d - ERROR_CNT: 0x%x, IGNORE: 0x%08x%08x%08x\n\n",
