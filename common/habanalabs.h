@@ -466,6 +466,7 @@ enum hl_cs_type {
 	CS_TYPE_ENGINE_CORE,
 	CS_TYPE_ENGINES,
 	CS_TYPE_FLUSH_PCI_HBW_WRITES,
+	CS_TYPE_FLUSH_HBW_WRITES_FSE,
 };
 
 /*
@@ -796,6 +797,8 @@ struct hl_cn_properties {
  * @glbl_err_max_cause_num: global err max cause number.
  * @pci_hbw_flush_reg: register to read to generate HBW flush. value of 0 means HBW flush is
  *                 not supported.
+ * @hbw_flush_reg_fse: register to *write* to generate HBW flush. value of 0 means FSE
+ *                 (Fabric Serialization Enhancement) HBW flush is not supported.
  * @hard_reset_sleep_ms: sleep time in ms for hard reset
  * @soft_reset_sleep_ms: sleep time in mms for soft reset
  * @reset_poll_timeout_us: timeout in us for poll reset indication
@@ -875,6 +878,7 @@ struct hl_cn_properties {
  * @force_device_reset_from_fw: true if the device should be reset from the firmware
  * 				as part of W/A for [SW-227103]. TODO: remove once this
  * 				ticket is resolved.
+ * @fse_enabled: In case FSE is supported, this bool tells if the FSE feature is enabled.
  */
 struct asic_fixed_properties {
 	struct hw_queue_properties	*hw_queues_props;
@@ -979,6 +983,7 @@ struct asic_fixed_properties {
 	u32				num_of_special_blocks;
 	u32				glbl_err_max_cause_num;
 	u32				pci_hbw_flush_reg;
+	u32				hbw_flush_reg_fse;
 	u32				hard_reset_sleep_ms;
 	u32				soft_reset_sleep_ms;
 	u32				reset_poll_timeout_us;
@@ -1039,6 +1044,7 @@ struct asic_fixed_properties {
 	u8				supports_driver_version_report;
 	u8				fw_sram_remap_enabled;
 	u8 				force_device_reset_from_fw;
+	u8				fse_enabled;
 };
 
 /**

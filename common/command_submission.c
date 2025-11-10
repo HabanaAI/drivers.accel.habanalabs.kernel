@@ -15,7 +15,8 @@
 #define HL_CS_FLAGS_TYPE_MASK	(HL_CS_FLAGS_SIGNAL | HL_CS_FLAGS_WAIT | \
 			HL_CS_FLAGS_COLLECTIVE_WAIT | HL_CS_FLAGS_RESERVE_SIGNALS_ONLY | \
 			HL_CS_FLAGS_UNRESERVE_SIGNALS_ONLY | HL_CS_FLAGS_ENGINE_CORE_COMMAND | \
-			HL_CS_FLAGS_ENGINES_COMMAND | HL_CS_FLAGS_FLUSH_PCI_HBW_WRITES)
+			HL_CS_FLAGS_ENGINES_COMMAND | HL_CS_FLAGS_FLUSH_PCI_HBW_WRITES | \
+			HL_CS_FLAGS_FLUSH_HBW_WRITES_FSE)
 
 
 #define MAX_TS_ITER_NUM 100
@@ -1349,6 +1350,8 @@ static enum hl_cs_type hl_cs_get_cs_type(u32 cs_type_flags)
 		return CS_TYPE_ENGINES;
 	else if (cs_type_flags & HL_CS_FLAGS_FLUSH_PCI_HBW_WRITES)
 		return CS_TYPE_FLUSH_PCI_HBW_WRITES;
+	else if (cs_type_flags & HL_CS_FLAGS_FLUSH_HBW_WRITES_FSE)
+		return CS_TYPE_FLUSH_HBW_WRITES_FSE;
 	else
 		return CS_TYPE_DEFAULT;
 }
@@ -2577,6 +2580,26 @@ static int cs_ioctl_engines(struct hl_fpriv *hpriv, u64 engines_arr_user_addr,
 	return rc;
 }
 
+static int cs_ioctl_flush_hbw_writes_fse(struct hl_fpriv *hpriv)
+{
+	struct hl_device *hdev = hpriv->hdev;
+	struct asic_fixed_properties *prop = &hdev->asic_prop;
+
+	if (!prop->hbw_flush_reg_fse) {
+		hl_dbg(hdev, "Fabric Serialization Enhancement is not supported\n");
+		return -EOPNOTSUPP;
+	}
+
+	if (!prop->fse_enabled) {
+		hl_dbg(hdev, "Fabric Serialization Enhancement is not enabled\n");
+		return -EINVAL;
+	}
+
+	WREG32(prop->hbw_flush_reg_fse, 0x1);
+
+	return 0;
+}
+
 static int cs_ioctl_flush_pci_hbw_writes(struct hl_fpriv *hpriv)
 {
 	struct hl_device *hdev = hpriv->hdev;
@@ -2655,6 +2678,9 @@ int hl_cs_ioctl(struct drm_device *ddev, void *data, struct drm_file *file_priv)
 		break;
 	case CS_TYPE_FLUSH_PCI_HBW_WRITES:
 		rc = cs_ioctl_flush_pci_hbw_writes(hpriv);
+		break;
+	case CS_TYPE_FLUSH_HBW_WRITES_FSE:
+		rc = cs_ioctl_flush_hbw_writes_fse(hpriv);
 		break;
 	default:
 		rc = cs_ioctl_default(hpriv, chunks, num_chunks, &cs_seq,
