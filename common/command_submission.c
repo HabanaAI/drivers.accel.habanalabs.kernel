@@ -2582,12 +2582,12 @@ static int cs_ioctl_flush_pci_hbw_writes(struct hl_fpriv *hpriv)
 	struct hl_device *hdev = hpriv->hdev;
 	struct asic_fixed_properties *prop = &hdev->asic_prop;
 
-	if (!prop->hbw_flush_reg) {
+	if (!prop->pci_hbw_flush_reg) {
 		hl_dbg(hdev, "HBW flush is not supported\n");
 		return -EOPNOTSUPP;
 	}
 
-	RREG32(prop->hbw_flush_reg);
+	RREG32(prop->pci_hbw_flush_reg);
 
 	return 0;
 }
