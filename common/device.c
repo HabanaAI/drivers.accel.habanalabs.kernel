@@ -616,6 +616,7 @@ static void hpriv_release(struct kref *ref)
 
 	put_pid(hpriv->taskpid);
 
+	hl_ewr_set(hdev, false);
 	if (reset_device) {
 		hl_device_reset(hdev, HL_DRV_RESET_DEV_RELEASE);
 	} else {

@@ -854,6 +854,14 @@ static bool is_cpu_queue_enabled(struct hl_device *hdev)
 	return (enabled && !!(hdev->fw_communication_enable));
 }
 
+int hl_ewr_set(struct hl_device *hdev, bool on)
+{
+	if (!(hdev->asic_prop.fw_app_cpu_boot_dev_sts1 & CPU_BOOT_DEV_STS1_EARLY_WRITE_RESP_SET))
+		return 0;
+
+	return hl_fw_ewr_set(hdev, on);
+}
+
 /*
  * hl_device_open() - open function for habanalabs device.
  * @ddev: pointer to DRM device structure.
@@ -923,10 +931,16 @@ int hl_device_open(struct drm_device *ddev, struct drm_file *file_priv)
 		goto out_err;
 	}
 
+	rc = hl_ewr_set(hdev, true);
+	if (rc) {
+		hl_err(hdev, "Failed to enable ewr %d\n", rc);
+		goto out_err;
+	}
+
 	rc = hl_ctx_create(hdev, hpriv);
 	if (rc) {
 		hl_err(hdev, "Failed to create context %d\n", rc);
-		goto out_err;
+		goto out_err_ewr;
 	}
 
 	list_add(&hpriv->dev_node, &hdev->fpriv_list);
@@ -947,6 +961,8 @@ int hl_device_open(struct drm_device *ddev, struct drm_file *file_priv)
 
 	return 0;
 
+out_err_ewr:
+	hl_ewr_set(hdev, false);
 out_err:
 	mutex_unlock(&hdev->fpriv_list_lock);
 	hl_mem_mgr_fini(&hpriv->mem_mgr, NULL);

@@ -4527,6 +4527,8 @@ int hl_fuse_read(struct hl_device *hdev, u32 word, u32 *val);
 
 int hl_mmap(struct file *filp, struct vm_area_struct *vma);
 
+int hl_ewr_set(struct hl_device *hdev, bool on);
+
 int hl_device_open(struct drm_device *drm, struct drm_file *file_priv);
 void hl_device_release(struct drm_device *ddev, struct drm_file *file_priv);
 
@@ -4813,6 +4815,7 @@ int hl_fw_dynamic_send_protocol_cmd(struct hl_device *hdev,
 int hl_fw_dram_replaced_row_get(struct hl_device *hdev,
 				struct cpucp_hbm_row_info *info);
 int hl_fw_dram_pending_row_get(struct hl_device *hdev, u32 *pend_rows_num);
+int hl_fw_ewr_set(struct hl_device *hdev, bool on);
 int hl_fw_cpucp_engine_core_asid_set(struct hl_device *hdev, u32 asid);
 int hl_fw_send_device_activity(struct hl_device *hdev, bool open);
 int hl_fw_send_soft_reset(struct hl_device *hdev);
