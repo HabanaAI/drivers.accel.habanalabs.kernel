@@ -72,7 +72,6 @@
 #include "gaudi3_masks.h"
 #include "../include/gaudi3/gaudi3_special_blocks.h"
 #include "../include/gaudi3/gaudi3_sec_protbits_configs.h"
-#include "../include/gaudi3/gaudi3_priv_protbits_configs.h"
 #include "../include/gaudi3/asic_reg/gaudi3_regs.h"
 #include "../include/gaudi3/gaudi3_reg_map.h"
 #include "../include/hw_ip/mmu/mmu_v2_0.h"
@@ -473,9 +472,6 @@ static struct hl_special_block_info gaudi3_special_blocks[] = GAUDI3_SPECIAL_BLO
 
 GAUDI3_SEC_PROTBITS_DATA;
 static struct hl_automated_pb_cfg gaudi3_sec_pb_cfg[] = GAUDI3_SEC_PROTBITS_CFG;
-
-GAUDI3_PRIV_PROTBITS_DATA;
-static struct hl_automated_pb_cfg gaudi3_priv_pb_cfg[] = GAUDI3_PRIV_PROTBITS_CFG;
 
 /*
  * Part of PSOC blocks cannot be accessed through PCIe, so need to skip.
@@ -4615,8 +4611,8 @@ static int gaudi3_pb_blocks_config(struct hl_device *hdev)
 	memset(&prop->pb_blocks_cfg, 0, sizeof(prop->pb_blocks_cfg));
 	prop->pb_blocks_cfg.sec_automated_pb_cfg = gaudi3_sec_pb_cfg;
 	prop->pb_blocks_cfg.sec_cfg_size = ARRAY_SIZE(gaudi3_sec_pb_cfg);
-	prop->pb_blocks_cfg.priv_automated_pb_cfg = gaudi3_priv_pb_cfg;
-	prop->pb_blocks_cfg.priv_cfg_size = ARRAY_SIZE(gaudi3_priv_pb_cfg);
+	prop->pb_blocks_cfg.priv_automated_pb_cfg = NULL;
+	prop->pb_blocks_cfg.priv_cfg_size = 0;
 
 	/* Configure when to skip PB blocks */
 	memset(&prop->skip_pb_blocks_cfg, 0, sizeof(prop->skip_pb_blocks_cfg));

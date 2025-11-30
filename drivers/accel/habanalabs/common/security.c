@@ -222,7 +222,7 @@ static int hl_unsecure_registers_range(struct hl_device *hdev,
  * @array_size: blocks array size
  *
  */
-static void hl_ack_pb_security_violations(struct hl_device *hdev,
+void hl_ack_pb_security_violations(struct hl_device *hdev,
 		const u32 pb_blocks[], u32 block_offset, int array_size)
 {
 	int i;
@@ -684,6 +684,65 @@ static bool hl_check_block_range_exclusion(struct hl_device *hdev,
 	return false;
 }
 
+static int hl_init_pb_block(struct hl_device *hdev,
+		u32 blk_idx, u32 major, u32 minor, u32 sub_minor, void *data)
+{
+	struct hl_special_blocks_cfg *special_blocks_cfg = (struct hl_special_blocks_cfg *) data;
+	struct hl_automated_pb_cfg *auto_pb_cfg_arr = special_blocks_cfg->prot_lvl_priv ?
+				special_blocks_cfg->priv_automated_pb_cfg :
+				special_blocks_cfg->sec_automated_pb_cfg;
+	struct hl_automated_pb_cfg *auto_pb_cfg = &auto_pb_cfg_arr[blk_idx];
+	struct hl_special_block_info *block_info = &auto_pb_cfg->addr;
+	u32 prot_lvl_reg_offset = special_blocks_cfg->prot_lvl_priv ?
+			HL_GLBL_PRIV_REG_OFFSET :
+			HL_GLBL_SEC_REG_OFFSET;
+	u32 block_base_addr, pb_reg_addr, val;
+	u8 b_idx = 0, d_idx = 0, pb_regs_num;
+
+	block_base_addr = hl_automated_get_block_base_addr(
+			hdev, block_info, major, minor, sub_minor);
+
+	/* The x32 PB regs represent 32bit bitmaps, each can protect x32 sequential PB regs.
+	 * If we configure privileged PBs, we will ONLY write to the first x29 PB regs,
+	 * excluding the last x3 PB regs which can protect x96 regs located between
+	 * address offsets 0xE80-0x1000. It's done to support reconfiguration of PB regs.
+	 */
+	pb_regs_num = special_blocks_cfg->prot_lvl_priv ?
+			HL_PROT_BITS_REGS_NUM - 3 :
+			HL_PROT_BITS_REGS_NUM;
+
+	while (b_idx < pb_regs_num) {
+		pb_reg_addr = block_base_addr + (b_idx * 4) + prot_lvl_reg_offset;
+		if (auto_pb_cfg->data_map & BIT(b_idx)) {
+			if (!auto_pb_cfg->data) {
+				dev_err(hdev->dev, "No data for config %d", blk_idx);
+				return -EINVAL;
+			}
+
+			if (d_idx >= auto_pb_cfg->data_size) {
+				dev_err(hdev->dev, "Invalid data index %d for config %d",
+						d_idx, blk_idx);
+				return -EINVAL;
+			}
+
+			val = auto_pb_cfg->data[d_idx];
+			d_idx++;
+		} else {
+			val = (auto_pb_cfg->prot_map & BIT(b_idx)) ?
+					HL_REGS_ALL_NON_PROT_MASK : HL_REGS_ALL_PROT_MASK;
+		}
+
+		WREG32(pb_reg_addr, val);
+		b_idx++;
+	}
+
+	/* Flush */
+	if (hdev->pldm && hdev->asic_prop.pcie_flush_reg_addr)
+		RREG32(hdev->asic_prop.pcie_flush_reg_addr);
+
+	return 0;
+}
+
 static int hl_read_glbl_errors(struct hl_device *hdev,
 		u32 blk_idx, u32 major, u32 minor, u32 sub_minor, void *data)
 {
@@ -720,12 +779,56 @@ static int hl_read_glbl_errors(struct hl_device *hdev,
 	return 0;
 }
 
+void hl_check_for_glbl_errors_from_fw(struct hl_device *hdev, struct hl_eq_glbl_err *glbl_err_data)
+{
+	struct asic_fixed_properties *prop = &hdev->asic_prop;
+	struct hl_eq_glbl_err_reg_info *info;
+	u32 block_addr, addr, cause;
+	int i;
+
+	if (!glbl_err_data) {
+		dev_err_ratelimited(hdev->dev, "Need to set the pointer to global err data!\n");
+		return;
+	}
+
+	if (glbl_err_data->num_valid_entries > GLBL_ERR_MAX) {
+		dev_err_ratelimited(hdev->dev,
+				"Invalid number of entries in global err data (%u)\n",
+				glbl_err_data->num_valid_entries);
+		return;
+	}
+
+	for (i = 0, info = glbl_err_data->info ; i < glbl_err_data->num_valid_entries ; i++) {
+		block_addr = le32_to_cpu(info[i].block_addr);
+		cause = le32_to_cpu(info[i].cause);
+		addr = le32_to_cpu(info[i].addr);
+
+		if (!cause) {
+			dev_err_ratelimited(hdev->dev, "No error cause in entry %u\n", i);
+			continue;
+		}
+
+		for (i = 0 ; i <= prop->glbl_err_max_cause_num ; ++i) {
+			if (cause & BIT(i))
+				dev_err_ratelimited(hdev->dev,
+						"%s, addr %#llx\n",
+						hl_glbl_error_cause[i],
+						((u64)upper_32_bits(prop->cfg_base_address) << 32) +
+							block_addr +
+							FIELD_GET(HL_GLBL_ERR_ADDRESS_MASK, addr));
+		}
+	}
+}
+
 void hl_check_for_glbl_errors(struct hl_device *hdev)
 {
 	struct asic_fixed_properties *prop = &hdev->asic_prop;
 	struct hl_special_blocks_cfg special_blocks_cfg;
 	struct iterate_special_ctx glbl_err_iter;
 	int rc;
+
+	if (!hdev->glbl_errors_read_enable)
+		return;
 
 	memset(&special_blocks_cfg, 0, sizeof(special_blocks_cfg));
 	special_blocks_cfg.skip_blocks_cfg = &prop->skip_special_blocks_cfg;
@@ -737,6 +840,73 @@ void hl_check_for_glbl_errors(struct hl_device *hdev)
 	if (rc)
 		dev_err_ratelimited(hdev->dev,
 			"Could not iterate special blocks, glbl error check failed\n");
+}
+
+static inline void fetch_glbl_priv_registers(struct hl_device *hdev,
+						u32 block_base_offset, u32 *glbl_priv_data)
+{
+	u32 i, reg_offset;
+
+	for (i = 0 ; i < (HL_PROT_BITS_REGS_NUM - 3) ; i++) {
+		reg_offset = block_base_offset + (i * 4) + HL_GLBL_PRIV_REG_OFFSET;
+		glbl_priv_data[i] = RREG32(reg_offset);
+
+		dev_dbg(hdev->dev, "read from addr 0x%x, data:0x%x\n",
+				reg_offset, glbl_priv_data[i]);
+	}
+}
+
+bool hl_fetch_glbl_priv_data(struct hl_device *hdev, u64 addr, u32 *glbl_priv_data)
+{
+	struct asic_fixed_properties *prop = &hdev->asic_prop;
+	u32 major, minor, sub_minor, blk_idx, num_blocks;
+	struct hl_special_block_info *block_info_arr;
+	u64 block_base_addr, block_base_offset;
+	bool rc = false;
+
+	block_info_arr = hdev->asic_prop.special_blocks;
+	if (!block_info_arr)
+		return false;
+
+	num_blocks = hdev->asic_prop.num_of_special_blocks;
+
+	hdev->asic_funcs->set_priv_assertions(hdev, false);
+
+	for (blk_idx = 0 ; blk_idx < num_blocks ; blk_idx++, block_info_arr++) {
+		for (major = 0 ; major < block_info_arr->major ; major++) {
+			minor = 0;
+			do {
+				sub_minor = 0;
+				do {
+					block_base_offset = hl_automated_get_block_base_addr(
+							hdev, block_info_arr, major,
+							minor, sub_minor);
+
+					block_base_addr = prop->cfg_base_address +
+									block_base_offset;
+
+					if (block_base_addr == addr) {
+						dev_dbg(hdev->dev, "addr 0x%llx found in PB iter\n",
+									addr);
+
+						fetch_glbl_priv_registers(hdev, block_base_offset,
+								glbl_priv_data);
+
+						rc = true;
+						goto exit;
+					}
+
+					sub_minor++;
+				} while (sub_minor < block_info_arr->sub_minor);
+
+				minor++;
+			} while (minor < block_info_arr->minor);
+		}
+	}
+exit:
+	hdev->asic_funcs->set_priv_assertions(hdev, true);
+
+	return rc;
 }
 
 int hl_iterate_special_blocks(struct hl_device *hdev, struct iterate_special_ctx *ctx)
@@ -789,4 +959,30 @@ int hl_iterate_special_blocks(struct hl_device *hdev, struct iterate_special_ctx
 	}
 
 	return 0;
+}
+
+int hl_init_pb_security(struct hl_device *hdev, bool prot_lvl_priv)
+{
+	struct asic_fixed_properties *prop = &hdev->asic_prop;
+	struct iterate_special_ctx pb_iter;
+	int rc;
+
+	if (prot_lvl_priv || !hdev->security_enable)
+		return 0;
+
+	dev_dbg(hdev->dev, "Configure automated %s protection bits\n",
+			prot_lvl_priv ? "privileged" : "secured");
+
+	prop->pb_blocks_cfg.prot_lvl_priv = prot_lvl_priv;
+	prop->pb_blocks_cfg.skip_blocks_cfg = &prop->skip_pb_blocks_cfg;
+
+	pb_iter.fn = hl_init_pb_block;
+	pb_iter.data = &prop->pb_blocks_cfg;
+
+	rc = hl_iterate_special_blocks(hdev, &pb_iter);
+	if (rc)
+		dev_err(hdev->dev, "Failed iterating in %s PB config\n",
+				prot_lvl_priv ? "PRIV" : "SEC");
+
+	return rc;
 }

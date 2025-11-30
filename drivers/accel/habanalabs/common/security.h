@@ -14,10 +14,20 @@ struct hl_device;
 
 /* special blocks */
 #define HL_GLBL_ERR_ADDRESS_MASK	GENMASK(11, 0)
+/* Number of GLBL_PRIV registers per 4K block for protection bit configuration */
+#define HL_PROT_BITS_REGS_NUM		32
+/* GLBL_PRIV/GLBL_SEC register value to specify all bits as protected */
+#define HL_REGS_ALL_PROT_MASK		0x0
+/* GLBL_PRIV/GLBL_SEC register value to specify all bits as non-protected */
+#define HL_REGS_ALL_NON_PROT_MASK	0xFFFFFFFF
+/* GLBL_PRIV register offset from the start of the block */
+#define HL_GLBL_PRIV_REG_OFFSET		0xE80
 /* GLBL_ERR_ADDR register offset from the start of the block */
 #define HL_GLBL_ERR_ADDR_OFFSET		0xF44
 /* GLBL_ERR_CAUSE register offset from the start of the block */
 #define HL_GLBL_ERR_CAUSE_OFFSET	0xF48
+/* GLBL_SEC register offset from the start of the block */
+#define HL_GLBL_SEC_REG_OFFSET		0xF80
 
 /*
  * struct hl_special_block_info - stores address details of a particular type of
@@ -158,5 +168,8 @@ struct iterate_special_ctx {
 
 int hl_iterate_special_blocks(struct hl_device *hdev, struct iterate_special_ctx *ctx);
 void hl_check_for_glbl_errors(struct hl_device *hdev);
+void hl_check_for_glbl_errors_from_fw(struct hl_device *hdev, struct hl_eq_glbl_err *glbl_err_data);
+int hl_init_pb_security(struct hl_device *hdev, bool prot_lvl_priv);
+bool hl_fetch_glbl_priv_data(struct hl_device *hdev, u64 addr, u32 *glbl_priv_data);
 
 #endif /* SECURITY_H_ */
