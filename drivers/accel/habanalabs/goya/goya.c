@@ -5216,6 +5216,11 @@ static u32 goya_get_pci_id(struct hl_device *hdev)
 	return hdev->pdev->device;
 }
 
+static int goya_pll_info_get(struct hl_device *hdev, u32 pll_index, u16 *pll_freq_arr)
+{
+	return hl_fw_cpucp_pll_info_get(hdev, pll_index, pll_freq_arr);
+}
+
 static int goya_get_eeprom_data(struct hl_device *hdev, void *data,
 				size_t max_size)
 {
@@ -5282,7 +5287,7 @@ static void goya_reset_sob_group(struct hl_device *hdev, u16 sob_group)
 
 }
 
-u64 goya_get_device_time(struct hl_device *hdev)
+u64 goya_get_device_time(struct hl_device *hdev, u32 die_index)
 {
 	u64 device_time = ((u64) RREG32(mmPSOC_TIMESTAMP_CNTCVU)) << 32;
 
@@ -5476,6 +5481,7 @@ static const struct hl_asic_funcs goya_funcs = {
 	.hw_queues_lock = goya_hw_queues_lock,
 	.hw_queues_unlock = goya_hw_queues_unlock,
 	.get_pci_id = goya_get_pci_id,
+	.pll_info_get = goya_pll_info_get,
 	.get_eeprom_data = goya_get_eeprom_data,
 	.get_monitor_dump = goya_get_monitor_dump,
 	.send_cpu_message = goya_send_cpu_message,

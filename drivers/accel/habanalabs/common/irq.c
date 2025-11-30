@@ -47,7 +47,7 @@ inline u32 hl_cq_inc_ptr(u32 ptr)
  * Increment ptr by 1. If it reaches the number of event queue
  * entries, set it to 0
  */
-static inline u32 hl_eq_inc_ptr(u32 ptr)
+inline u32 hl_eq_inc_ptr(u32 ptr)
 {
 	ptr++;
 	if (unlikely(ptr == HL_EQ_LENGTH))
@@ -723,4 +723,20 @@ void hl_eq_dump(struct hl_device *hdev, struct hl_eq *q)
 		dev_info(hdev->dev, "%02u: %#010x [ready: %u, mode %u, type %04u, index %05u]\n",
 				i, ctl, ready, mode, type, index);
 	}
+}
+
+int hl_alloc_irq_vectors(struct hl_device *hdev, unsigned int min_vecs,
+			unsigned int max_vecs, unsigned int flags)
+{
+	return hdev->asic_funcs->alloc_irq_vectors(hdev, min_vecs, max_vecs, flags);
+}
+
+void hl_free_irq_vectors(struct hl_device *hdev)
+{
+	hdev->asic_funcs->free_irq_vectors(hdev);
+}
+
+int hl_irq_vector(struct hl_device *hdev, unsigned int nr)
+{
+	return hdev->asic_funcs->irq_vector(hdev, nr);
 }

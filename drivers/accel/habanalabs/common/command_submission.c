@@ -1238,6 +1238,13 @@ static int validate_queue_index(struct hl_device *hdev,
 		return -EINVAL;
 	}
 
+	if (hw_queue_prop->slave) {
+		dev_err(hdev->dev,
+			"Queue index %d is in slave mode and can't be used directly\n",
+			chunk->queue_index);
+		return -EINVAL;
+	}
+
 	/* When hw queue type isn't QUEUE_TYPE_HW,
 	 * USER_ALLOC_CB flag shall be referred as "don't care".
 	 */
@@ -3259,7 +3266,7 @@ static int ts_get_and_handle_kernel_record(struct hl_device *hdev, struct hl_ctx
 	bool need_lock = false;
 	int rc;
 
-	rc = validate_and_get_ts_record(data->buf->mmg->dev, ts_buff, data->ts_offset,
+	rc = validate_and_get_ts_record(data->buf->mmg->hdev->dev, ts_buff, data->ts_offset,
 									&req_offset_record);
 	if (rc)
 		return rc;

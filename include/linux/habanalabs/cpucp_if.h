@@ -33,6 +33,7 @@
 #define PLL_MAP_MAX_BITS	128
 #define PLL_MAP_LEN		(PLL_MAP_MAX_BITS / 8)
 
+#define HL_EQ_LENGTH		64	/* Must be power of 2 */
 enum eq_event_id {
 	EQ_EVENT_NIC_STS_REQUEST = 0,
 	EQ_EVENT_PWR_MODE_0,
@@ -48,6 +49,7 @@ enum eq_event_id {
 	EQ_EVENT_POWER_EVT_END,
 	EQ_EVENT_THERMAL_EVT_START,
 	EQ_EVENT_THERMAL_EVT_END,
+	EQ_EVENT_PVT_ALARM_EVT,
 };
 
 /*
@@ -76,9 +78,81 @@ struct hl_eq_hbm_ecc_data {
  * EVENT QUEUE
  */
 
+enum hl_agg_grp_type {
+	INT_GRP_TYPE_SERR,
+	INT_GRP_TYPE_DERR,
+	INT_GRP_TYPE_SEI,
+	INT_GRP_TYPE_SPI,
+	INT_GRP_TYPE_ECO,
+	INT_GRP_TYPE_MAX
+};
+
+enum hl_agg_component_type {
+	INT_COMP_TYPE_ARC_FARM,
+	INT_COMP_TYPE_CPU,
+	INT_COMP_TYPE_CS,
+	INT_COMP_TYPE_D2D_MAC,
+	INT_COMP_TYPE_D2D_PHY,
+	INT_COMP_TYPE_DCH0,
+	INT_COMP_TYPE_DCH1,
+	INT_COMP_TYPE_DEC,
+	INT_COMP_TYPE_DRTR0,
+	INT_COMP_TYPE_DRTR1,
+	INT_COMP_TYPE_ECON,
+	INT_COMP_TYPE_EDMA,
+	INT_COMP_TYPE_EDUP,
+	INT_COMP_TYPE_GRTR1,
+	INT_COMP_TYPE_GRTR3,
+	INT_COMP_TYPE_HFT,
+	INT_COMP_TYPE_HIF,
+	INT_COMP_TYPE_MC,
+	INT_COMP_TYPE_MME,
+	INT_COMP_TYPE_NCH,
+	INT_COMP_TYPE_NCHL,
+	INT_COMP_TYPE_NIC,
+	INT_COMP_TYPE_NRTR0,
+	INT_COMP_TYPE_NRTR2,
+	INT_COMP_TYPE_PARC,
+	INT_COMP_TYPE_PCIE,
+	INT_COMP_TYPE_PDMA,
+	INT_COMP_TYPE_PLL,
+	INT_COMP_TYPE_PMMU,
+	INT_COMP_TYPE_PSOC,
+	INT_COMP_TYPE_RFT,
+	INT_COMP_TYPE_ROT,
+	INT_COMP_TYPE_RRTR,
+	INT_COMP_TYPE_SOB,
+	INT_COMP_TYPE_STLB,
+	INT_COMP_TYPE_TPC,
+	INT_COMP_TYPE_TS,
+	INT_COMP_TYPE_VM,
+	INT_COMP_TYPE_MAX
+};
+
+enum hl_agg_hdcore_type {
+	INT_HDCORE0,
+	INT_HDCORE1,
+	INT_HDCORE2,
+	INT_HDCORE3,
+	INT_SHARED,
+	INT_PSOC,
+	INT_HDCORE_MAX
+};
+
 struct hl_eq_header {
-	__le32 reserved;
+	__le16 flags;
+	__le16 size; /* actual data size */
 	__le32 ctl;
+};
+
+struct hl_agg_eq_header {
+	__u8 int_grp_type; /* hl_agg_grp_type */
+	__u8 int_comp_type; /* hl_agg_component_type */
+	__u8 die_id;
+	__u8 hdcore_type; /* hl_agg_hdcore_type */
+	__u8 comp_instance;
+	__u8 pad;
+	__le16 event_id; /* Unique event identifier */
 };
 
 struct hl_eq_ecc_data {
@@ -129,6 +203,145 @@ struct hl_eq_pcie_drain_ind_data {
 	__le64 drain_rd_addr_hbw;
 };
 
+enum hl_eq_glbl_err_idx {
+	GLBL_ERR_IDX0,
+	GLBL_ERR_IDX1,
+	GLBL_ERR_MAX
+};
+
+/**
+ * struct hl_eq_glbl_err_reg_info - Global error register information
+ * @block_addr: lower 32 bits of the block address where global error occurred
+ * @cause: Global error cause information
+ * @addr: Global error address information
+ * @pad: padding
+ */
+struct hl_eq_glbl_err_reg_info {
+	__le32 block_addr;
+	__le32 cause;
+	__le32 addr;
+	__u8 pad[4];
+};
+
+/**
+ * struct hl_eq_glbl_err - Global error information
+ * @num_valid_entries: number of valid entries in info array
+ * @pad: padding
+ * @info: Global error register information array
+ *
+ * Upon SPI and SEI events, FW will scan special blocks for
+ * global error occurred. FW will fill info array and update
+ * number of valid entries.
+ */
+struct hl_eq_glbl_err {
+	__u8 num_valid_entries;
+	__u8 pad[7];
+	struct hl_eq_glbl_err_reg_info info[GLBL_ERR_MAX];
+};
+
+/**
+ * struct hl_eq_razwi_regs - RAZWI register information
+ * @razwi_happened: flag to indicate RAZWI happened
+ * @pad: padding
+ * @hi_reg: 32 bit MSB register value
+ * @lo_reg: 32 bit LSB register value
+ * @id: RAZWI captured ID
+ */
+struct hl_eq_razwi_regs {
+	__u8 razwi_happened;
+	__u8 pad[3];
+	__le32 hi_reg;
+	__le32 lo_reg;
+	__le32 id;
+};
+
+/**
+ * struct hl_eq_razwi_block_info - RAZWI block information
+ * @rr_aw: RR_AW RAZWI register information
+ * @rr_ar: RR_AR RAZWI register information
+ * @adec_aw: ADEC_AW RAZWI register information
+ * @adec_ar: ADEC_AR RAZWI register information
+ */
+struct hl_eq_razwi_block_info {
+	struct hl_eq_razwi_regs rr_aw;
+	struct hl_eq_razwi_regs rr_ar;
+	struct hl_eq_razwi_regs adec_aw;
+	struct hl_eq_razwi_regs adec_ar;
+};
+
+/**
+ * struct hl_eq_razwi_mstr_if_reg_data - MSTR IF RAZWI register information
+ * @aw: MSTR IF AW RAZWI register information
+ * @ar: MSTR IF AR RAZWI register information
+ */
+struct hl_eq_razwi_mstr_if_reg_data {
+	struct hl_eq_razwi_regs aw;
+	struct hl_eq_razwi_regs ar;
+};
+
+/**
+ * struct hl_eq_razwi_mstr_if_block_data - MSTR IF RAZWI block information
+ * @lbw: MSTR IF RAZWI LBW information
+ * @hbw: MSTR IF RAZWI HBW information
+ */
+struct hl_eq_razwi_mstr_if_block_data {
+	struct hl_eq_razwi_mstr_if_reg_data lbw;
+	struct hl_eq_razwi_mstr_if_reg_data hbw;
+};
+
+/**
+ * struct hl_eq_razwi_xresp_data - MSTR IF XRESP information
+ * @lbw: LBW cause information
+ * @hbw: HBW cause information
+ */
+struct hl_eq_razwi_xresp_data {
+	struct hl_eq_intr_cause lbw;
+	struct hl_eq_intr_cause hbw;
+};
+
+/**
+ * struct hl_eq_razwi_mstr_if_data - RAZWI MSTR IF information
+ * @rr: RR RAZWI information
+ * @isec: ISEC RAZWI information
+ * @aw_dup_crdt: DUP credit AW RAZWI information
+ * @illegal_txn: Illegal TXN RAZWI information
+ * @xresp: Error response RAZWI information
+ */
+struct hl_eq_razwi_mstr_if_data {
+	struct hl_eq_razwi_mstr_if_block_data rr;
+	struct hl_eq_razwi_mstr_if_reg_data isec;
+	struct hl_eq_razwi_regs aw_dup_crdt;
+	struct hl_eq_razwi_mstr_if_block_data illegal_txn;
+	struct hl_eq_razwi_xresp_data xresp;
+};
+
+/**
+ * struct hl_eq_razwi_rtr_data - RAZWI RTR information
+ * @lbw: RAZWI LBW information
+ * @hbw: RAZWI HBW information
+ */
+struct hl_eq_razwi_rtr_data {
+	struct hl_eq_razwi_block_info lbw;
+	struct hl_eq_razwi_block_info hbw;
+};
+
+/**
+ * struct hl_eq_razwi_with_intr_cause_data - RAZWI information with interrupt cause
+ * @intr_cause: Interrupt cause information
+ * @rtr_data: RTR RAZWI LBW and HBW information
+ * @mstr_if_data: MSTR IF RAZWI information
+ * @glbl_err_data: Global error information
+ *
+ * This data structure will be used as part of hl_eq_dynamic_entry
+ * data structure.
+ */
+struct hl_eq_razwi_with_intr_cause_data {
+	struct hl_eq_intr_cause intr_cause;
+	struct hl_eq_razwi_rtr_data rtr_data;
+	struct hl_eq_razwi_mstr_if_data mstr_if_data;
+	struct hl_eq_glbl_err glbl_err_data;
+};
+
 struct hl_eq_razwi_lbw_info_regs {
 	__le32 rr_aw_razwi_reg;
 	__le32 rr_aw_razwi_id_reg;
@@ -168,6 +381,15 @@ struct hl_eq_razwi_with_intr_cause {
 #define HBM_CA_ERR_CMD_LIFO_LEN		8
 #define HBM_RD_ERR_DATA_LIFO_LEN	8
 #define HBM_WR_PAR_CMD_LIFO_LEN		11
+#define NUM_MC_CMN_PER_HBM		4
+#define NUM_PC_PER_MC_CMN		4
+#define NUM_CH_PER_MC_CMN		2
+#define NUM_PC_PER_CH			2
+#define NUM_BEAT_PER_PC			4
+#define NUM_DW_PER_PC			2
+#define MC_RD_ERR_DATA_ECC_M		0xff
+#define MC_RD_ERR_DATA_ECC_S		8
+#define CPLD_RESET_REASON_MAX_REGS	9
 
 enum hl_hbm_sei_cause {
 	/* Command/address parity error event is split into 2 events due to
@@ -237,6 +459,65 @@ struct hbm_rd_addr {
 		};
 		__le32 rd_addr_val;
 	};
+};
+
+/**
+ * struct hbm_rd_err_addr - HBM MC SEI RD PAR ERR address information.
+ * @rd_err_addr_sid: Holds last command hbm stack id number, range: 0-1.
+ * @rd_err_addr_bg: Holds last command hbm bank group number, range: 0-3.
+ * @rd_err_addr_ba: Holds last command hbm bank number, range: 0-3.
+ * @rd_err_addr_col: Holds last command hbm column address.
+ * @rd_err_addr_row: Holds last command hbm row address.
+ * @pad: Padding to 8B.
+ */
+struct hbm_rd_err_addr {
+	__u8 rd_err_addr_sid;
+	__u8 rd_err_addr_bg;
+	__u8 rd_err_addr_ba;
+	__u8 rd_err_addr_col;
+	__le16 rd_err_addr_row;
+	__u8 pad[2];
+};
+
+/**
+ * struct hbm_wr_err_addr - HBM MC SEI WR PAR ERR address information, row addr is not latched.
+ * @sid: Holds last command hbm stack id number, range: 0-1.
+ * @bg: Holds last command hbm bank group number, range: 0-3.
+ * @ba: Holds last command hbm bank number, range: 0-3.
+ * @col: Holds last command hbm column address.
+ * @derr: Indication for WR PAR error per BEAT(clock edge).
+ * @pad: Padding to 8B.
+ */
+struct hbm_wr_err_addr {
+	__u8 sid;
+	__u8 bg;
+	__u8 ba;
+	__u8 col;
+	__u8 derr;
+	__u8 pad[3];
+};
+
+/**
+ * struct hbm_rd_err_beat_data - HBM MC SEI RD ERR info per BEAT(1 HBM burst per 1 PC is 4 BEATS).
+ * @rd_err_data: Holds last data on the bus related to the interrupt, 2 DW(32b) per 1 PC(64b).
+ * @rd_err_par_err: Indicates in which beat(s) there was read parity error(s).
+ *                  Note there are 2 bits per beat because there's PAR signal 1b per DW.
+ * @rd_err_par_data: Complements DFI_RD_ERR_REP_DATA/DM.
+ *                   It provides the value of the 2 PAR signals during the 4 beats of the command
+ *                   1b per DW.
+ * @rd_err_serr: Indicates in which beat(s) there was single-bit error(s) 1b per PC.
+ * @rd_err_derr: Indicates in which beat(s) there was double-bit error(s) 1b per PC.
+ * @rd_err_dm: Holds DM for last command information(ECC calculation) 8b per PC.
+ * @rd_err_syndrome: Holds SYNDROME(DQ failure code) for last(bit error mapping) 8b per PC.
+ */
+struct hbm_rd_err_beat_data {
+	__le32 rd_err_data[NUM_DW_PER_PC];
+	__u8 rd_err_par_err[NUM_DW_PER_PC];
+	__u8 rd_err_par_data[NUM_DW_PER_PC];
+	__u8 rd_err_serr;
+	__u8 rd_err_derr;
+	__u8 rd_err_dm;
+	__u8 rd_err_syndrome;
 };
 
 #define HBM_RD_ERR_BEAT_SHIFT		2
@@ -337,6 +618,223 @@ struct hl_eq_hbm_sei_data {
 	};
 };
 
+/* Severe interrupts are mapped to SEI0 signal, non severe interrupts are mapped to SEI1 signal */
+enum hl_hbm_mc_sei_type {
+	HBM_MC_SEI0_SEVERE_ERR = 0x0,
+	HBM_MC_SEI1_NON_SEVERE_ERR = 0x1,
+	NONE_SEI = 0x2,
+};
+
+/**
+ * struct hl_eq_hbm_mc_sei0_header- HBM MC SEI0 interrupts error map.
+ * @sei0_status: SEI interrupt status for SEI0 signal per 2 mc ch.
+ * @is_sei0_set: Indication for SEI0 interrupt detection.
+ * @ecc_derr_err: Bit map indication for ECC DERR on all 4 PCs (2 PCs per CH).
+ * @ca_par_err: Bit map indication for CA PARITY on all 4 PCs (2 PCs per CH).
+ * @wr_par_err: Bit map indication for WR PARITY on all 4 PCs (2 PCs per CH).
+ * @rd_par_err: Bit map indication for RD PARITY on all 4 PCs (2 PCs per CH).
+ * @cattrip_asserted: Indication for CATTRIP assertion on the HBM.
+ * @sei0_false_alarm: Indication for SEI0 signal assertion with empty SEI0 status information.
+ * @pad: Padding to 8B.
+ */
+struct hl_eq_hbm_mc_sei0_header {
+	__le32 sei0_status;
+	__u8 is_sei0_set;
+	__u8 ecc_derr_err;
+	__u8 ca_par_err;
+	__u8 wr_par_err;
+	__u8 rd_par_err;
+	__u8 cattrip_asserted;
+	__u8 sei0_false_alarm;
+	__u8 pad[5];
+};
+
+/**
+ * struct hl_eq_hbm_mc_sei1_header- HBM MC SEI1 interrupts error map.
+ * @sei1_status: SEI interrupt status for SEI1 signal per 2 mc ch.
+ * @is_sei1_set: Indication for SEI1 interrupt detection.
+ * @ecc_serr_err: Bit map indication for ECC SERR on all 4 PCs (2 PCs per CH).
+ * @dfi_err: Bit map indication for DFI ERR on all 2 CHs.
+ *           DFI error per PC, indication on some interface issue PHY-HBM.
+ * @inv_temp_rdout: Indication for invalid temperature read out assertion on the HBM.
+ * @bist_fail: Bit map indication for BIST FAIL on all 4 PCs (2 PCs per CH).
+ *             MCBIST failure per PC, further information is printed during MCBIST run on boot.
+ *             above interrupts have no additional information and they only act as flags.
+ * @sei1_false_alarm: Indication for SEI1 signal assertion with empty SEI1 status information.
+ * @pad: Padding to 8B.
+ */
+struct hl_eq_hbm_mc_sei1_header {
+	__le32 sei1_status;
+	__u8 is_sei1_set;
+	__u8 ecc_serr_err;
+	__u8 dfi_err;
+	__u8 inv_temp_rdout;
+	__u8 bist_fail;
+	__u8 sei1_false_alarm;
+	__u8 pad[6];
+};
+
+/**
+ * struct hl_eq_hbm_mc_sei_header- HBM MC SEI interrupts general information.
+ * @hbm_num: HBM device number, range: 0-7.
+ * @mc_cmn_num: MC CMN (2 CH MC) device number, range: 0-3.
+ * @sei0_header: SEI0 interrupt general information.
+ * @sei1_header: SEI1 interrupt general information.
+ * @sei_type: SEI type - SEI0=severe interrupt / SEI1=non severe interrupt, enum hl_hbm_mc_sei_type.
+ *            In case of both SEI0 and SEI1 will set SEI0 due to severity.
+ * @mc_ch: Holds HBM channel index that interrupt occurred on, range: 0-7.
+ * @mc_pc: Holds HBM pseudo channel index that interrupt occurred on, range: 0-1.
+ * @pad: Padding to 8B.
+ */
+struct hl_eq_hbm_mc_sei_header {
+	__le32 hbm_num;
+	__le32 mc_cmn_num;
+	struct hl_eq_hbm_mc_sei0_header sei0_header;
+	struct hl_eq_hbm_mc_sei1_header sei1_header;
+	__u8 sei_type;
+	__u8 mc_ch[NUM_CH_PER_MC_CMN];
+	__u8 mc_pc[NUM_CH_PER_MC_CMN][NUM_PC_PER_CH];
+	__u8 pad;
+};
+/**
+ * struct hl_eq_hbm_mc_sei_ca_par_intr_info- HBM MC SEI CA PAR ERR information.
+ * @ca_err_cnt: CA error counter.
+ * @odd_row_data: Holds information for row bus data on odd clk cycle
+ * @even_row_data: Holds information for row bus data on even clk cycle
+ * @odd_col_data: Holds information for column bus data on odd clk cycle
+ * @even_col_data: Holds information for column bus data on even clk cycle
+ * @pad: Padding to 8B.
+ */
+struct hl_eq_hbm_mc_sei_ca_par_intr_info {
+	__le32 ca_err_cnt;
+	/* 14 LSBs */
+	__le16 odd_row_data[HBM_CA_ERR_CMD_LIFO_LEN];
+	__le16 even_row_data[HBM_CA_ERR_CMD_LIFO_LEN];
+	/* 18 LSBs */
+	__le32 odd_col_data[HBM_CA_ERR_CMD_LIFO_LEN];
+	__le32 even_col_data[HBM_CA_ERR_CMD_LIFO_LEN];
+	__u8 pad[4];
+};
+
+/**
+ * struct hl_eq_hbm_mc_sei_rd_err_intr_info - HBM MC SEI RD ERR information.
+ * @rd_err_addr: Holds last data command address.
+ * @rd_err_beat: Hold the data bus information related to the interrupt per BEAT.
+ *               4 BEAT per 1 HBM burst per 1 PC.
+ * @rd_par_cnt: Read parity error counter.
+ * @serr_cnt: ECC SERR error counter.
+ * @scrb_serr_cnt: ECC patrol scrubber SERR error counter.
+ * @derr_cnt: ECC DERR error counter.
+ */
+struct hl_eq_hbm_mc_sei_rd_err_intr_info {
+	struct hbm_rd_err_addr rd_err_addr;
+	struct hbm_rd_err_beat_data rd_err_beat[NUM_BEAT_PER_PC];
+	__le32 rd_par_cnt;
+	__le32 serr_cnt;
+	__le32 scrb_serr_cnt;
+	__le32 derr_cnt;
+};
+
+/**
+ * struct hl_eq_hbm_mc_sei_wr_par_intr_info- HBM MC SEI WR PAR ERR information.
+ * @last_wr_cmds: Lifo that holds last data related to the interrupt.
+ *                entry 0: WR command address from the 1st cycle prior to the error
+ *                entry 1: WR command address from the 2nd cycle prior to the error
+ *                and so on...
+ * @wr_par_cnt: Write parity error counter.
+ * @pad: Padding to 8B.
+ */
+struct hl_eq_hbm_mc_sei_wr_par_intr_info {
+	struct hbm_wr_err_addr last_wr_cmds[HBM_WR_PAR_CMD_LIFO_LEN];
+	__le32 wr_par_cnt;
+	__u8 pad[4];
+};
+
+/**
+ * struct hl_eq_hbm_mc_sei_data- HBM MC SEI severe interrupt information.
+ * @ca_parity_info: Holds the data, address and counter information of CA ERR interrupt.
+ * @rd_error_info: Holds the data, address and counter information of RD PAR, ECC SERR and
+ *                 ECC DERR interrupt. ECC error and RD PAR error are fed from the same registers.
+ * @wr_parity_info: Holds the data, address and counter information of WR PAR interrupt.
+
+ */
+struct hl_eq_hbm_mc_sei_data {
+	struct hl_eq_hbm_mc_sei_ca_par_intr_info ca_parity_info[NUM_PC_PER_MC_CMN];
+	struct hl_eq_hbm_mc_sei_rd_err_intr_info rd_error_info[NUM_PC_PER_MC_CMN];
+	struct hl_eq_hbm_mc_sei_wr_par_intr_info wr_parity_info[NUM_PC_PER_MC_CMN];
+};
+
+/**
+ * struct hl_eq_hbm_mc_cmn_sei_info- HBM MC SEI event cause information per MC CMN(2 channels).
+ * @sei_intr_header: Holds general interrupt info for SEI0 and SEI1.
+ * @sei_data: Holds the data SEI interrupts: ECC and PARITY.
+ * @is_fatal: Is interrupt fatal and a reset is needed or a correctable failure
+ * @pad: Padding to 8B.
+ */
+struct hl_eq_hbm_mc_cmn_sei_info {
+	struct hl_eq_hbm_mc_sei_header sei_header;
+	struct hl_eq_hbm_mc_sei_data sei_data;
+	__u8 is_fatal;
+	__u8 pad[7];
+};
+
+/**
+ * struct hl_eq_hbm_mc_spi_data- HBM MC SPI event cause information.
+ * @spi_cause: SPI interrupt status for SPI signal per HBM device.
+ * @temp_pins_chng: Indication for temperature read that passed the defined TH(by HBM vendor).
+ * @temp_traffic_throt_eng: Indication for engagement of traffic throttling mechanism due to
+ *                          temperature read higher then the configured engagement TH(85C).
+ * @temp_traffic_throt_dis: Indication for disengagement of traffic throttling mechanism due to
+ *                          temperature read lower then the configured disengagement TH(65C).
+ * @ieee1500_op_complete: Indication for completion of ieee1500 command.
+ * @ieee1500_op_paused: Indication for pausing of ieee1500 command, when ieee1500 command length is
+ *                      more then the maximum bus width of ieee1500(128 bit) a pause is triggered
+ *                      before continuing to the remaining of the command until completion.
+ * @mc_dbg: Indication that the MC debug counters has reached their TH.
+ * @pad: Padding to 8B.
+ */
+struct hl_eq_hbm_mc_spi_data {
+	__le32 spi_cause;
+	__u8 temp_pins_chng;
+	__u8 temp_traffic_throt_eng;
+	__u8 temp_traffic_throt_dis;
+	__u8 ieee1500_op_complete;
+	__u8 ieee1500_op_paused;
+	__u8 mc_dbg;
+	__u8 pad[6];
+};
+
+#define D2DMAC_NUM_OF_CAUSE	2
+
+/**
+ * struct hl_eq_d2dmac_sei_data - D2D MAC SEI event information
+ * @intr_cause[0]: for sei cause1
+ * @intr_cause[1]: for sei cause2
+ * @glbl_err_data: Global error information
+ *
+ * For any SEI event related to D2D MAC, FW will forward
+ * hl_eq_d2dmac_sei_data data structure to LKD. LKD should
+ * check type and read/process data accordingly.
+ */
+struct hl_eq_d2dmac_sei_data {
+	struct hl_eq_intr_cause intr_cause[D2DMAC_NUM_OF_CAUSE];
+	struct hl_eq_glbl_err glbl_err_data;
+};
+
+/**
+ * struct hl_eq_d2dphy_sei_data - D2D PHY SEI event information
+ * @intr_cause: SEI cause
+ * @glbl_err_data: Global error information
+ *
+ * For any SEI event related to D2D PHY, FW will forward
+ * hl_eq_d2dphy_sei_data data structure to LKD. LKD should
+ * check type and read/process data accordingly.
+ */
+struct hl_eq_d2dphy_sei_data {
+	struct hl_eq_intr_cause intr_cause;
+	struct hl_eq_glbl_err glbl_err_data;
+};
+
 /* Engine/farm arc interrupt type */
 enum hl_engine_arc_interrupt_type {
 	/* Qman/farm ARC DCCM QUEUE FULL interrupt type */
@@ -372,6 +870,955 @@ struct hl_eq_addr_dec_intr_data {
 	__u8 pad[7];
 };
 
+#define MAX_PORTS_PER_NIC	4
+
+/* NIC interrupt type */
+enum hl_nic_interrupt_type {
+	NIC_INTR_NONE = 0,
+	NIC_INTR_TMR = 1,
+	NIC_INTR_RXB_CORE_SPI,
+	NIC_INTR_RXB_CORE_SEI,
+	NIC_INTR_QPC_RESP_ERR,
+	NIC_INTR_RXE_SPI,
+	NIC_INTR_RXE_SEI,
+	NIC_INTR_TXS,
+	NIC_INTR_TXE,
+};
+
+struct hl_eq_nic_intr_cause {
+	__le32 intr_type; /* enum hl_nic_interrupt_type */
+	__le32 pad;
+	struct hl_eq_intr_cause intr_cause[MAX_PORTS_PER_NIC];
+};
+
+/* struct hl_eq_nic_sts_req_data is the data in hl_eq_dynamic_entry */
+struct hl_eq_nic_sts_req_data {
+	__le64 port_en_mask;	/* enabled ports 0-23 */
+	__u8 cmd;		/* 0 - one shot, 1 - periodic start, 2 - periodic stop */
+	__u8 period;		/* seconds */
+	__le16 reserved;
+	__le32 reserved2;
+};
+
+enum hl_pcie_sei_type {
+	PCIE_SEI_AXI_RESP_ERR,
+	PCIE_SEI_BUS_MSTR_EN_CLR
+};
+
+enum hl_eq_pcie_mstr_if {
+	PCIE_MSTR_RR_MSTR_IF,
+	PCIE_ELBI_RR_MSTR_IF,
+	PCIE_LBW_RR_MSTR_IF,
+	PCIE_PIF_ARC_MSTR_IF,
+	PCIE_MSTR_IF_MAX
+};
+
+struct hl_eq_pcie_sei_data {
+	__u8 sei_type; /* enum hl_pcie_sei_type */
+	__u8 pad[7];
+	struct hl_eq_intr_cause intr_cause; /* relevant only to PCIE_SEI_AXI_RESP_ERR */
+	struct hl_eq_razwi_rtr_data rtr_data;
+	struct hl_eq_razwi_mstr_if_data mstr_if_data[PCIE_MSTR_IF_MAX];
+	struct hl_eq_glbl_err glbl_err_data;
+};
+
+enum hl_cs_dbg_mme_sub_type {
+	CS_DBG_MME0_SBTE0_1,
+	CS_DBG_MME0_SBTE2_3,
+	CS_DBG_MME1_SBTE0_1,
+	CS_DBG_MME1_SBTE2_3,
+	CS_DBG_MME_QM
+};
+
+enum hl_cs_dbg_err_type {
+	CS_DBG_SPMU,
+	CS_DBG_BMON0,
+	CS_DBG_BMON1,
+	CS_DBG_BMON2,
+	CS_DBG_BMON3,
+	CS_DBG_BMON4,
+	CS_DBG_BMON5,
+	CS_DBG_BMON6,
+	CS_DBG_BMON7,
+	CS_DBG_BMON_MAX
+};
+
+/**
+ * struct hl_eq_tpc_data - TPC SEI and SPI event cause information
+ * @intr_cause: TPC configuration cause0
+ * @smt_th0_cause: TPC SMT TH0 cause
+ * @smt_th1_cause: TPC SMT TH1 cause
+ * @smt_th2_cause: TPC SMT TH2 cause
+ * @smt_th3_cause: TPC SMT TH3 cause
+ * @kernel_id: TPC kernel id
+ * @pad: padding
+ *
+ * Note: For more than 1 bit set in intr_cause or/and th*_cause for
+ * SPI/SEI event, only one kernel id information is passed. kernel id
+ * should be read if either of cause is non zero.
+ */
+struct hl_eq_tpc_data {
+	struct hl_eq_intr_cause intr_cause;
+	__le32 smt_th0_cause;
+	__le32 smt_th1_cause;
+	__le32 smt_th2_cause;
+	__le32 smt_th3_cause;
+	__le16 kernel_id;
+	__u8 pad[6];
+};
+
+/**
+ * struct hl_eq_spmu_bmon - SPMU/BMON event information
+ * @cause: SPMU and BMON cause for enum hl_cs_dbg_err_type
+ * @pad: padding
+ */
+struct hl_eq_spmu_bmon {
+	__le32 cause[CS_DBG_BMON_MAX];
+	__u8 pad[4];
+};
+
+/**
+ * struct hl_eq_nic_sw_err_data - NIC SW error event information
+ * @qpc_cause: QPC cause information
+ * @rxb_core_cause: RXB CORE cause information
+ * @rxe_cause_0: RXE cause information in first register
+ * @rxe_cause_1: RXE cause information in second register
+ */
+struct hl_eq_nic_sw_err_data {
+	struct hl_eq_intr_cause qpc_cause;
+	struct hl_eq_intr_cause rxb_core_cause;
+	struct hl_eq_intr_cause rxe_cause_0;
+	struct hl_eq_intr_cause rxe_cause_1;
+};
+
+enum hl_nic_spi_type {
+	NIC_SPI_BMON_SPMU,
+	NIC_SPI_SW_ERROR
+};
+
+/**
+ * struct hl_eq_nic_spi_data - NIC SPI event information
+ * @spi_type: enum hl_nic_spi_type
+ * @pad: padding bytes
+ * @hl_eq_nic_sw_err_data: sw error cause information
+ * @spmu_bmon_data: bmon cause information
+ */
+struct hl_eq_nic_spi_data {
+	__u8 spi_type;
+	__u8 pad[7];
+	union {
+		struct hl_eq_nic_sw_err_data sw_err_data;
+		struct hl_eq_spmu_bmon spmu_bmon_data;
+	};
+};
+
+enum hl_pcie_spi_type {
+	PCIE_SPI_FLR,
+	PCIE_SPI_APB_ACCESS_TIMEOUT,
+	PCIE_SPI_BMON_SPMU,
+	PCIE_SPI_FATAL_ERR,
+	PCIE_SPI_P2P_OR_MSIX_GW_INTR,
+	PCIE_SPI_DRAIN
+};
+
+/**
+ * struct hl_eq_pcie_p2p_msix_gw_spi_data -  PCIE P2P/MSIX_GW SPI event information
+ * @p2p_cause: P2P Interrupt cause information
+ * @msix_gw_cause: MSIX GW Interrupt cause information
+ */
+struct hl_eq_pcie_p2p_msix_gw_spi_data {
+	struct hl_eq_intr_cause p2p;
+	struct hl_eq_intr_cause msix_gw;
+};
+
+/**
+ * struct hl_eq_pcie_spi_data - PCIE SPI event information
+ * @spi_type: PCIE spi type
+ * @flr_cause: FLR Interrupt cause information
+ * @fatal_error: Fatal error cause information
+ * @spmu_bmon_data: PCIE SPMU/BMON event information
+ * @p2p_msix_cause: P2P/MSIX GW Interrupt cause information
+ * @drain_cause: Drain cause information
+ *
+ * Note: For some of the pcie interrupt there is no cause data
+ */
+struct hl_eq_pcie_spi_data {
+	__u8 spi_type; /* enum hl_pcie_spi_type */
+	__u8 pad[7];
+	union {
+		struct hl_eq_intr_cause flr_cause;
+		struct hl_eq_intr_cause fatal_error;
+		struct hl_eq_spmu_bmon spmu_bmon_data;
+		struct hl_eq_pcie_p2p_msix_gw_spi_data p2p_msix;
+		struct hl_eq_pcie_drain_ind_data drain_cause;
+	};
+};
+
+/**
+ * struct hl_eq_tpc_spi_data - TPC SPI event information
+ * @hl_eq_tpc_data: TPC configuration event information
+ * @hl_eq_spmu_bmon: TPC SPMU/BMON event information
+ *
+ * For any SPI event related to TPC, FW will forward
+ * hl_eq_tpc_spi_data data structure to LKD. LKD should
+ * check all the data structure values to identify the event type
+ * and process accordingly.
+ * Note: SPMU/BMON event bit is not available as part
+ * hl_eq_tpc_data for TPC SPI events.
+ */
+struct hl_eq_tpc_spi_data {
+	struct hl_eq_tpc_data data;
+	struct hl_eq_spmu_bmon spmu_bmon_data;
+};
+
+enum hl_eq_qm_undef_cmd_cq_type {
+	CQ_TYPE_LEGACY,
+	CQ_TYPE_ARC,
+	CQ_TYPE_MAX
+};
+
+/**
+ * struct hl_eq_qm_undef_cmd_data - QM undefined opcode command error information
+ * @cp_curr_inst: CP current instruction
+ * @cq_ptr: Current transfer base address
+ * @cq_tsize: Current transfer size in bytes
+ * @cq_type: CQ type refer enum hl_eq_qm_undef_cmd_cq_type
+ * @pad: padding
+ *
+ * This structure is valid only if QM UNDEFINED OPCODE bit is set
+ * in qm_cause structure.
+ */
+struct hl_eq_qm_undef_cmd_data {
+	__le64 cp_curr_inst;
+	__le64 cq_ptr;
+	__le32 cq_tsize;
+	__u8 cq_type;
+	__u8 pad[3];
+};
+
+/**
+ * struct hl_eq_qm_sei_data - QM SEI event information
+ * @qm_cause: QM error cause
+ * @arc_qm_cause: ARC error cause
+ * @undef_op_data: Undefined opcode command error data
+ */
+struct hl_eq_qm_sei_data {
+	struct hl_eq_intr_cause qm_cause;
+	struct hl_eq_intr_cause arc_qm_cause;
+	struct hl_eq_qm_undef_cmd_data undef_op_data;
+};
+
+/**
+ * struct hl_eq_tpc_sei_data - TPC SEI event information
+ * @data: TPC configuration event information
+ * @qm_data: TPC QM event information
+ * @rtr_data: RTR RAZWI LBW and HBW information
+ * @mstr_if_data: MSTR IF RAZWI information
+ * @glbl_err_data: Global error information
+ *
+ * For any SEI event related to TPC, FW will forward
+ * hl_eq_tpc_sei_data data structure to LKD. LKD should
+ * check all the data structure values to identify the event type
+ * and process accordingly.
+ */
+struct hl_eq_tpc_sei_data {
+	struct hl_eq_tpc_data data;
+	struct hl_eq_qm_sei_data qm_data;
+	struct hl_eq_razwi_rtr_data rtr_data;
+	struct hl_eq_razwi_mstr_if_data mstr_if_data;
+	struct hl_eq_glbl_err glbl_err_data;
+};
+
+#define HL_EQ_ROT_CTX_ID_MAX	28
+
+/**
+ * struct hl_eq_rot_data - ROTATOR event cause information
+ * @intr_cause: ROTATOR event cause
+ * @rsb_err_cause: RSB event, check based on intr_cause value
+ * @wch_err_cause: WCH event, check based on intr_cause value
+ * @ip_num_cause: IP NUM event, check based on intr_cause value
+ * @ctx_id: context id for RSB, WCH and IP number event
+ *		0 - 8: RSB event context id
+ *		9 - 18: WCH event context id
+ *		19 - 27: IP NUM event context id
+ * @pad: padding
+ */
+struct hl_eq_rot_data {
+	struct hl_eq_intr_cause intr_cause; /* 32 bit interrupt cause */
+	__le32 rsb_err_cause;
+	__le32 wch_err_cause;
+	__le32 ip_num_cause;
+	__le16 ctx_id[HL_EQ_ROT_CTX_ID_MAX];
+	__u8 pad[4];
+};
+
+/**
+ * struct hl_eq_rot_spi_data - ROTATOR SPI event information
+ * @data: ROTATOR event cause information
+ * @spmu_bmon_data: ROTATOR SPMU/BMON event information
+ *
+ * For any SPI event related to rotator, FW will forward
+ * hl_eq_rot_spi_data data structure to LKD. LKD should
+ * check all the data structure values to identify the event type
+ * and process accordingly.
+ * Note: SPMU/BMON event bit is available as part
+ * hl_eq_rot_data intr_cause field for ROTATOR SPI events.
+ */
+struct hl_eq_rot_spi_data {
+	struct hl_eq_rot_data data;
+	struct hl_eq_spmu_bmon spmu_bmon_data;
+};
+
+/**
+ * struct hl_eq_rot_sei_data - ROTATOR SEI event information
+ * @cause: ROTATOR SEI event cause
+ * @qm_data: ROTATOR QM event information
+ * @rtr_data: RTR RAZWI LBW and HBW information
+ * @mstr_if_data: MSTR IF RAZWI information
+ * @glbl_err_data: Global error information
+ *
+ * For any SEI event related to rotator, FW will forward
+ * hl_eq_rot_sei_data data structure to LKD. Refer QM data
+ * in case QM related bits are set in cause.
+ */
+struct hl_eq_rot_sei_data {
+	struct hl_eq_intr_cause cause;
+	struct hl_eq_qm_sei_data qm_data;
+	struct hl_eq_razwi_rtr_data rtr_data;
+	struct hl_eq_razwi_mstr_if_data mstr_if_data;
+	struct hl_eq_glbl_err glbl_err_data;
+};
+
+enum hl_eq_mme_acc_ctx_id {
+	MME_ACC_CTX_ID_CH0_SET0,
+	MME_ACC_CTX_ID_CH0_SET1,
+	MME_ACC_CTX_ID_CH1_SET0,
+	MME_ACC_CTX_ID_CH1_SET1,
+	MME_ACC_CTX_ID_MAX
+};
+
+enum hl_cs_mme_acc_type {
+	CS_DBG_MME_ACC0,
+	CS_DBG_MME_ACC1
+};
+
+enum hl_eq_mme_stbe_id {
+	MME_SBTE_ID0,
+	MME_SBTE_ID1,
+	MME_SBTE_ID2,
+	MME_SBTE_ID3
+};
+
+enum hl_eq_mme_eu_id {
+	MME_EU_ID0,
+	MME_EU_ID1
+};
+
+enum hl_eq_mme_qm_razwi_id {
+	MME_QM_RAZWI_RD,
+	MME_QM_RAZWI_WR,
+	MME_QM_RAZWI_MAX
+};
+
+enum hl_eq_mme_event_type {
+	MME_DATA_TYPE_SBTE,
+	MME_DATA_TYPE_ACC,
+	MME_DATA_TYPE_CTRL,
+	MME_DATA_TYPE_CS_DBG
+};
+
+/**
+ * struct hl_eq_mme_acc_data - MME SPI ACC information
+ * @intr_cause: MME ACC cause
+ * @ctxt_id: context information, refer intr_cause to check
+ *	     context array values.
+ * @id: MME ACC id refer hl_cs_mme_acc_type
+ * @pad: padding
+ * @rtr_data: RTR RAZWI LBW and HBW information
+ * @mstr_if_data: MSTR IF RAZWI information (valid in case of SEI interrupt)
+ */
+struct hl_eq_mme_acc_data {
+	struct hl_eq_intr_cause intr_cause;
+	__le16 ctx_id[MME_ACC_CTX_ID_MAX];
+	__u8 id;
+	__u8 pad[7];
+	struct hl_eq_razwi_rtr_data rtr_data;
+	struct hl_eq_razwi_mstr_if_data mstr_if_data;
+};
+
+/**
+ * struct hl_eq_mme_spmu_bmon - MME SPI SPMU/BMON information
+ * @data: MME SPMU/BMON event information
+ * @comp_sub_type: Component subtype within MME
+ *		   Refer enum hl_cs_dbg_mme_sub_type
+ * @pad: padding
+ */
+struct hl_eq_mme_spmu_bmon {
+	struct hl_eq_spmu_bmon data;
+	__u8 comp_sub_type;
+	__u8 pad[7];
+};
+
+/**
+ * struct hl_eq_mme_spi_data - MME SPI event information
+ * @type: MME event type, refer enum hl_eq_mme_event_type
+ * @pad: padding
+ * @spmu_bmon_data: MME SPMU/BMON event information
+ * @acc_data: MME ACC event information
+ *
+ * For any SPI event related to MME, FW will forward
+ * hl_eq_mme_spi_data data structure to LKD. LKD should
+ * check type and read/process data accordingly.
+ */
+struct hl_eq_mme_spi_data {
+	__u8 type;
+	__u8 pad[7];
+	union {
+		struct hl_eq_mme_spmu_bmon spmu_bmon_data;
+		struct hl_eq_mme_acc_data acc_data;
+	};
+};
+
+/**
+ * struct hl_eq_mme_sbte_data - MME SEI event information
+ * @cause: MME SBTE event cause
+ * @ctx_id: context information
+ * @sbte_id: SBTE ID, refer enum hl_eq_mme_sbte_id
+ * @mme_eu_id: MME EU ID, refer enum hl_eq_mme_eu_id
+ * @rtr_data: RTR RAZWI LBW and HBW information
+ * @mstr_if_data: MSTR IF RAZWI information
+ */
+struct hl_eq_mme_sbte_data {
+	struct hl_eq_intr_cause cause;
+	__le16 ctx_id;
+	__u8 sbte_id;
+	__u8 mme_eu_id;
+	__u8 pad[4];
+	struct hl_eq_razwi_rtr_data rtr_data;
+	struct hl_eq_razwi_mstr_if_data mstr_if_data;
+};
+
+/**
+ * struct hl_eq_mme_ctrl_data - MME CTRL event information
+ * @cause: MME CTRL event cause
+ * @qm_data: MME QM event information
+ * @rtr_data: RTR RAZWI LBW and HBW information
+ * @mstr_if_data: MSTR IF RAZWI information
+ *
+ * Refer QM data in case QM related bit is set in
+ * cause.
+ */
+struct hl_eq_mme_ctrl_data {
+	struct hl_eq_intr_cause cause;
+	struct hl_eq_qm_sei_data qm_data;
+	struct hl_eq_razwi_rtr_data qm_rtr_data[MME_QM_RAZWI_MAX];
+	struct hl_eq_razwi_mstr_if_data mstr_if_data;
+};
+
+/**
+ * struct hl_eq_mme_sei_data - MME SEI event information
+ * @type: MME event type, refer enum hl_eq_mme_event_type
+ * @pad: padding
+ * @sbte_data: MME SBTE event information
+ * @acc_data: MME ACC event information
+ * @control_data: MME CTRL event information
+ * @glbl_err_data: Global error information
+ *
+ * For any SEI event related to MME, FW will forward
+ * hl_eq_mme_sei_data data structure to LKD. LKD should
+ * check type and read/process data accordingly.
+ */
+struct hl_eq_mme_sei_data {
+	__u8 type;
+	__u8 pad[7];
+	union {
+		struct hl_eq_mme_sbte_data sbte_data;
+		struct hl_eq_mme_acc_data acc_data;
+		struct hl_eq_mme_ctrl_data control_data;
+	};
+	struct hl_eq_glbl_err glbl_err_data;
+};
+
+/**
+ * struct hl_eq_generic_spi_data - SPI generic event information
+ * @data: event cause information
+ * @spmu_bmon_data:  SPMU/BMON event information
+ *
+ * For any SPI event which falls in generic category where
+ * only single cause and BMON/SPMU event info needs to be provided,
+ * FW will forward hl_eq_generic_spi_data data structure to LKD. LKD should
+ * check all the data structure values to identify the event type
+ * and process accordingly.
+ */
+struct hl_eq_generic_spi_data {
+	struct hl_eq_intr_cause cause;
+	struct hl_eq_spmu_bmon spmu_bmon_data;
+};
+
+enum hl_eq_dtlb_id {
+	DTLB_RRTR0,
+	DTLB_RRTR1,
+	DTLB_RRTR2,
+	DTLB_RRTR3,
+	DTLB_RRTR4,
+	DTLB_RRTR5,
+	DTLB_RRTR6,
+	DTLB_RRTR7,
+	DTLB_NRTR0,
+	DTLB_NRTR1,
+	DTLB_ID_MAX
+};
+
+/**
+ * struct hl_eq_dtlb_fault_data - DTLB fault information
+ * @fault_type: Fault information
+ * @addr_47_20: Address 47_20 (address bits 47..20)
+ * @id: AXI ID
+ *
+ * Check other fields only if fault type is non zero.
+ */
+struct hl_eq_dtlb_fault_data {
+	__le32 fault_type;
+	__le32 addr_47_20;
+	__le64 id;
+};
+
+/**
+ * struct hl_eq_stlb_fault_data - STLB fault information
+ * @syndrom_dti: DTI syndrom information
+ * @syndrom_pte: PTE syndrom information
+ */
+struct hl_eq_stlb_fault_data {
+	__le64 syndrom_dti;
+	__le64 syndrom_pte;
+};
+
+/**
+ * struct hl_eq_stlb_spi_data - STLB SPI event information
+ * @data: STLB event cause information
+ * @fault_data: fault data information
+ * @dtlb_data: DTLB fault data information
+ *
+ * For any SPI event related to STLB, FW will forward
+ * hl_eq_stlb_spi_data data structure to LKD. LKD should
+ * check all the data structure values to identify the event type
+ * and process accordingly. LKD should check fault data only
+ * when fault cause bits are set in cause.
+ */
+struct hl_eq_stlb_spi_data {
+	struct hl_eq_intr_cause cause;
+	struct hl_eq_stlb_fault_data fault_data;
+	struct hl_eq_dtlb_fault_data dtlb_data[DTLB_ID_MAX];
+};
+
+/**
+ * struct hl_eq_stlb_lbw_data - STLB LBW information
+ * @addr: LBW address information
+ * @data: LBW data information
+ */
+struct hl_eq_stlb_lbw_data {
+	__le32 addr;
+	__le32 data;
+};
+
+/**
+ * struct hl_eq_stlb_sei_data - STLB SPI event information
+ * @cause: STLB event cause information
+ * @fault_data:  fault data information (only syndrom_dti valid)
+ * @lbw_data: LBW fault data information
+ * @dtlb_data:  DTLB fault data information
+ * @rtr_data: RTR RAZWI LBW and HBW information
+ * @mstr_if_data: MSTR IF RAZWI information
+ * @glbl_err_data: Global error information
+ *
+ * For any SEI event related to STLB, FW will forward
+ * hl_eq_stlb_sei_data data structure to LKD. LKD should
+ * refer to fault and lbw data based on relevant bits set in
+ * cause data. For further fault information, read dtlb
+ * fault data.
+ */
+struct hl_eq_stlb_sei_data {
+	struct hl_eq_intr_cause cause;
+	struct hl_eq_stlb_fault_data fault_data;
+	struct hl_eq_stlb_lbw_data lbw_data;
+	struct hl_eq_dtlb_fault_data dtlb_data[DTLB_ID_MAX];
+	struct hl_eq_razwi_rtr_data rtr_data;
+	struct hl_eq_razwi_mstr_if_data mstr_if_data;
+	struct hl_eq_glbl_err glbl_err_data;
+};
+
+/**
+ * struct hl_eq_cs_err_host_data - CS SEI host error information
+ * @info: Info error information (valid bits 39..0)
+ * @addr: Address information (valid bits 39..0)
+ * @num_err: Number of errors
+ * @pad: padding
+ */
+struct hl_eq_cs_err_host_data {
+	__le64 info;
+	__le64 addr;
+	__u8 num_err;
+	__u8 pad[7];
+};
+
+/**
+ * struct hl_eq_cs_err_poison_data - CS SEI poison error information
+ * @id: Info error information (valid bits 35..0)
+ * @addr: Address information (valid bits 39..0)
+ */
+struct hl_eq_cs_err_poison_data {
+	__le64 id;
+	__le64 addr;
+};
+
+/**
+ * struct hl_eq_cs_err_data - CS SEI error information
+ * @far_data: Far host error information
+ * @close_data: Close host error information
+ * @poison_data: Poison error information
+ * @slv_err_addr: Slave error address
+ * @dn_conv_id: DN conv id
+ * @aab_num_err: AAB reduce number of errors
+ * @pad: padding
+ */
+struct hl_eq_cs_err_data {
+	struct hl_eq_cs_err_host_data far_data;
+	struct hl_eq_cs_err_host_data close_data;
+	struct hl_eq_cs_err_poison_data poison_data;
+	__le64 slv_err_addr;
+	__le64 dn_conv_id;
+	__u8 aab_num_err;
+	__u8 pad[7];
+};
+
+/**
+ * struct hl_eq_cs_sei_data - CS SEI event information
+ * @cause: CS SEI event cause information
+ * @err_data: CS error data
+ * @glbl_err_data: Global error information
+ *
+ * For any SEI event related to CS, FW will forward
+ * hl_eq_cs_sei_data data structure to LKD. LKD should
+ * check cause bits and accordingly refer hl_eq_cs_err_data
+ * data structure elements.
+ */
+struct hl_eq_cs_sei_data {
+	struct hl_eq_intr_cause cause;
+	struct hl_eq_cs_err_data err_data;
+	struct hl_eq_glbl_err glbl_err_data;
+};
+
+enum hl_eq_edma_chn {
+	SEDMA_CHANNEL0,
+	SEDMA_CHANNEL1,
+	SEDMA_CHANNEL2,
+	SEDMA_CHANNEL_MAX
+};
+
+enum hl_eq_edma_id {
+	SEDMA_ID0,
+	SEDMA_ID1,
+	SEDMA_ID_MAX
+};
+
+#define SEDMA_NUM_CHN_DATA	(SEDMA_ID_MAX * SEDMA_CHANNEL_MAX)
+
+/**
+ * struct hl_eq_edma_chn_data - EDMA channel information
+ * @err_sts: EDMA0/1 CH0/1/2 error status information
+ * @ctx_id: EDMA0/1 CH0/1/2 context ID
+ * @pad: Padding
+ */
+struct hl_eq_edma_chn_data {
+	__le32 err_sts;
+	__le16 ctx_id;
+	__u8 pad[2];
+};
+
+/**
+ * struct hl_eq_edma_sei_data - EDMA SEI event information
+ * @qm_data: EDMA0/1 SEI QM information
+ * @chn_data: Channel data consisting of error status and context id
+ * @rtr_data: RTR RAZWI LBW and HBW information
+ * @mstr_if_data: MSTR IF RAZWI information
+ * @glbl_err_data: Global error information
+ *
+ * For any SEI event related to EDMA, FW will forward
+ * hl_eq_edma_sei_data data structure to LKD. LKD should
+ * check all the data structure values to identify the event type
+ * and process accordingly.
+ */
+struct hl_eq_edma_sei_data {
+	struct hl_eq_qm_sei_data qm_data[SEDMA_ID_MAX];
+	struct hl_eq_edma_chn_data chn_data[SEDMA_NUM_CHN_DATA];
+	struct hl_eq_razwi_rtr_data rtr_data[SEDMA_ID_MAX];
+	struct hl_eq_razwi_mstr_if_data mstr_if_data[SEDMA_ID_MAX];
+	struct hl_eq_glbl_err glbl_err_data;
+};
+
+enum hl_eq_arcfarm_mstr_if {
+	ARCFARM_MSTR_IF,
+	ARCFARM_MSTR_IF_ARC0_DUP,
+	ARCFARM_MSTR_IF_ARC1_DUP,
+	ARCFARM_MSTR_IF_MAX
+};
+
+/**
+ * struct hl_eq_arcfarm_sei_data - ARC FARM SEI event information
+ * @internal_cause: Internal ARC Farm error information
+ * @arc0_wrapper_cause: ARC0 wrapper system error
+ * @arc1_wrapper_cause: ARC1 wrapper system error
+ * @rtr_data: RTR RAZWI LBW and HBW information
+ * @mstr_if_data: MSTR IF RAZWI information
+ * @glbl_err_data: Global error information
+ *
+ * For any SEI event related to ARC FARM, FW will forward
+ * hl_eq_arcfarm_sei_data data structure to LKD. If internal cause
+ * value is zero, check ARC0/1 wrapper cause to identify event type
+ * and process accordingly.
+ */
+struct hl_eq_arcfarm_sei_data {
+	struct hl_eq_intr_cause internal_cause;
+	struct hl_eq_intr_cause arc0_wrapper_cause;
+	struct hl_eq_intr_cause arc1_wrapper_cause;
+	struct hl_eq_razwi_rtr_data rtr_data;
+	struct hl_eq_razwi_mstr_if_data mstr_if_data[ARCFARM_MSTR_IF_MAX];
+	struct hl_eq_glbl_err glbl_err_data;
+};
+
+enum hl_eq_nic_mstr_if {
+	NIC_MSTR_IF_CTRL,
+	NIC_MSTR_IF_DATA,
+	NIC_MSTR_IF_MAX
+};
+
+/**
+ * struct hl_eq_nic_sei_data - NIC SEI event information
+ * @rxb_core_cause: RXB CORE cause information
+ * @rxe_cause: RXE cause information
+ * @txe_cause: TXE cause information
+ * @txs_cause: TXS cause information
+ * @tmr_cause: TMR cause information
+ * @qpc_cause: QPC cause information
+ * @rtr_data: RTR RAZWI LBW and HBW information
+ * @mstr_if_data: MSTR IF RAZWI information
+ * @glbl_err_data: Global error information
+ */
+struct hl_eq_nic_sei_data {
+	struct hl_eq_intr_cause rxb_core_cause;
+	struct hl_eq_intr_cause rxe_cause;
+	struct hl_eq_intr_cause txe_cause;
+	struct hl_eq_intr_cause txs_cause;
+	struct hl_eq_intr_cause tmr_cause;
+	struct hl_eq_intr_cause qpc_cause;
+	struct hl_eq_razwi_rtr_data rtr_data;
+	struct hl_eq_razwi_mstr_if_data mstr_if_data[NIC_MSTR_IF_MAX];
+	struct hl_eq_glbl_err glbl_err_data;
+};
+
+enum hl_eq_spdma_chn {
+	SPDMA_CHANNEL0,
+	SPDMA_CHANNEL1,
+	SPDMA_CHANNEL2,
+	SPDMA_CHANNEL3,
+	SPDMA_CHANNEL4,
+	SPDMA_CHANNEL5,
+	SPDMA_CHANNEL_MAX
+};
+
+enum hl_eq_spdma_id {
+	SPDMA_ID0,
+	SPDMA_ID1,
+	SPDMA_ID_MAX
+};
+
+enum hl_eq_spdma_mstr_if {
+	SPDMA_MAIN_MSTR_IF,
+	SPDMA_DUP_MSTR_IF,
+	SPDMA_MSTR_IF_MAX
+};
+
+/**
+ * struct hl_eq_spdma_ch_b_data - SPDMA Channel B event information
+ * @pqm_chn_err_sts: PQM channel error status
+ * @err_sts: Error status
+ * @err_ctx_id: Error context id
+ * @pad: padding
+ */
+struct hl_eq_spdma_ch_b_data {
+	struct hl_eq_intr_cause pqm_chn_err_sts;
+	struct hl_eq_intr_cause err_sts;
+	__le32 err_ctx_id;
+	__u8 pad[4];
+};
+
+/**
+ * struct hl_eq_spdma_data - SPDMA SEI event information
+ * @ch_a_ctx_id: Channel A context id
+ * @ch_b_data: Channel B event information
+ * @cmn_b_cause: Common cause information
+ * @rtr_data: RTR RAZWI LBW and HBW information
+ * @mstr_if_data: MSTR IF RAZWI information
+ */
+struct hl_eq_spdma_data {
+	__le32 ch_a_ctx_id[SPDMA_CHANNEL_MAX];
+	struct hl_eq_spdma_ch_b_data ch_b_data[SPDMA_CHANNEL_MAX];
+	struct hl_eq_intr_cause cmn_b_cause;
+	struct hl_eq_razwi_rtr_data rtr_data;
+	struct hl_eq_razwi_mstr_if_data mstr_if_data[SPDMA_MSTR_IF_MAX];
+};
+
+/**
+ * struct hl_eq_pdma_sei_data - PDMA SEI event information
+ * @spdma_data: SPDMA0 and 1 event information
+ * @glbl_err_data: Global error information
+ */
+struct hl_eq_pdma_sei_data {
+	struct hl_eq_spdma_data spdma_data[SPDMA_ID_MAX];
+	struct hl_eq_glbl_err glbl_err_data;
+};
+
+/**
+ * struct hl_eq_nch_sei_data - NCH SEI event information
+ * @xresp_lbw: XRESP_LBW cause information
+ * @xresp_hbw: XRESP_HBW cause information
+ * @apb_arb: APB_ARB cause information
+ * @axi_split: AXI_SPLIT SEI cause information
+ * @rtr_data: RTR RAZWI LBW and HBW information
+ * @mstr_if_data: MSTR IF RAZWI information
+ * @glbl_err_data: Global error information
+ */
+struct hl_eq_nch_sei_data {
+	struct hl_eq_intr_cause xresp_lbw;
+	struct hl_eq_intr_cause xresp_hbw;
+	struct hl_eq_intr_cause apb_arb;
+	struct hl_eq_intr_cause axi_split;
+	struct hl_eq_razwi_rtr_data rtr_data;
+	struct hl_eq_razwi_mstr_if_data mstr_if_data;
+	struct hl_eq_glbl_err glbl_err_data;
+};
+
+enum hl_eq_cpu_mstr_if {
+	CPU_MAIN_MSTR_IF,
+	CPU_INT_AGGR_MSTR_IF,
+	CPU_MSTR_IF_MAX
+};
+
+struct hl_eq_cpu_sei_data {
+	struct hl_eq_intr_cause intr_cause;
+	struct hl_eq_razwi_rtr_data rtr_data;
+	struct hl_eq_razwi_mstr_if_data mstr_if_data[CPU_MSTR_IF_MAX];
+	struct hl_eq_glbl_err glbl_err_data;
+};
+
+enum hl_eq_parc_mstr_if {
+	PARC_MAIN_MSTR_IF,
+	PARC_ARC0_MSTR_IF,
+	PARC_ARC1_MSTR_IF,
+	PARC_ARC2_MSTR_IF,
+	PARC_MSTR_IF_MAX
+};
+
+struct hl_eq_parc_sei_data {
+	struct hl_eq_intr_cause intr_cause;
+	struct hl_eq_razwi_rtr_data rtr_data;
+	struct hl_eq_razwi_mstr_if_data mstr_if_data[PARC_MSTR_IF_MAX];
+	struct hl_eq_glbl_err glbl_err_data;
+};
+
+enum hl_eq_psoc_mstr_if {
+	PSOC_DUP_MSTR_IF,
+	PSOC_ETR_MSTR_IF,
+	PSOC_JT_MSTR_IF,
+	PSOC_SMI_MSTR_IF,
+	PSOC_I2C_S_MSTR_IF,
+	PSOC_MSTR_IF_MAX
+};
+
+struct hl_eq_psoc_sei_data {
+	struct hl_eq_intr_cause intr_cause;
+	struct hl_eq_razwi_rtr_data rtr_data;
+	struct hl_eq_razwi_mstr_if_data mstr_if_data[PSOC_MSTR_IF_MAX];
+	struct hl_eq_glbl_err glbl_err_data;
+};
+
+/**
+ * struct hl_eq_pll_sei_data - PLL SEI event information
+ * @index: PLL index. Refer to device specific pll index enum
+ * @pad: Padding
+ * @intr_cause: PLL cause information
+ * @glbl_err_data: Global error information
+ */
+struct hl_eq_pll_sei_data {
+	__u8 index;
+	__u8 pad[7];
+	struct hl_eq_intr_cause intr_cause;
+	struct hl_eq_glbl_err glbl_err_data;
+};
+
+/**
+ * struct hl_eq_sob_cq_data - SOB SEI event info related to CQ security event.
+ * @cq_intr: 1 if this is a CQ security event, 0 otherwise
+ * @cq_intr_queue_idx: If cq_intr is 1, this is the queue idx, unused otherwise.
+ * @pad: Padding
+ */
+struct hl_eq_sob_cq_data {
+	__u8 cq_intr;
+	__u8 cq_intr_queue_idx;
+	__u8 pad[6];
+};
+
+/**
+ * struct hl_eq_sob_sei_data sob_sei_data - SOB SEI event information
+ * @intr_cause: SM cause information
+ * @cq_data: Info related to the cause of CQ security event.
+ * @rtr_data: RTR RAZWI LBW and HBW information
+ * @mstr_if_data: MSTR IF RAZWI information
+ * @glbl_err_data: Global error information
+ */
+struct hl_eq_sob_sei_data {
+	struct hl_eq_intr_cause intr_cause;
+	struct hl_eq_sob_cq_data cq_data;
+	struct hl_eq_razwi_rtr_data rtr_data;
+	struct hl_eq_razwi_mstr_if_data mstr_if_data;
+	struct hl_eq_glbl_err glbl_err_data;
+};
+
+enum hl_eq_pmmu_err_type {
+	PMMU_ERR_TYPE_ACCESS_ERR,
+	PMMU_ERR_TYPE_PAGE_ERR,
+	PMMU_ERR_TYPE_MAX
+};
+
+/**
+ * struct hl_eq_pmmu_err_data - PMMU SPI error information
+ * @axid: AXI ID
+ * @va: the virtual address that caused the error
+ */
+struct hl_eq_pmmu_err_data {
+	__le64 axid;
+	__le64 va;
+};
+
+/**
+ * struct hl_eq_pmmu_spi_data - PMMU SPI event information
+ * @intr_cause: PMMU cause information
+ * @err_data: PMMU page and access error information
+ */
+struct hl_eq_pmmu_spi_data {
+	struct hl_eq_intr_cause intr_cause;
+	struct hl_eq_pmmu_err_data err_data[PMMU_ERR_TYPE_MAX];
+};
+
+/**
+ * struct hl_eq_cpld_reset_reason
+ * @reg: array of cause registers
+ */
+struct hl_eq_cpld_reset_reason {
+	__u8 reg[CPLD_RESET_REASON_MAX_REGS];
+	__u8 pad[7];
+};
+
 struct hl_eq_entry {
 	struct hl_eq_header hdr;
 	union {
@@ -388,15 +1835,86 @@ struct hl_eq_entry {
 		struct hl_eq_hbm_sei_data sei_data;	/* Gaudi2 HBM */
 		struct hl_eq_engine_arc_intr_data arc_data;
 		struct hl_eq_addr_dec_intr_data addr_dec;
+		struct hl_eq_nic_intr_cause nic_intr_cause;
 		__le64 data[7];
 	};
 };
 
+enum hl_pvt_alarm_type {
+	PVT_TS_ALARM_A,
+	PVT_TS_ALARM_B,
+	PVT_ALARM_MAX
+};
+
+/**
+ * struct hl_eq_pvt_alarm_data
+ * @hdcore: hdcore: enum hl_agg_hdcore_type
+ * @die_id: die id
+ * @alarm_type: enum hl_pvt_alarm_type
+ * @chn_bitmask: bit mask of dts channels in pvt eg: ch 0 & 1 chn_num = 0x3, ch 8 & 2 chn_num= 0x104
+ * @pad: align to 8 bytes
+ */
+struct hl_eq_pvt_alarm_data {
+	uint8_t hdcore;
+	uint8_t die_id;
+	uint8_t alarm_type;
+	uint16_t chn_bitmask;
+	uint8_t pad[3];
+};
+
+/* entry size is dynamic and maximum size is passed during boot */
+struct hl_eq_dynamic_entry {
+	struct hl_eq_header hdr;
+	struct hl_agg_eq_header agg_hdr; /* valid only for aggregator events */
+	union {
+		__le64 data_placeholder;
+		struct hl_eq_ecc_data ecc_data;
+		struct hl_eq_intr_cause intr_cause;
+		struct hl_eq_pcie_sei_data pcie_sei_data;
+		struct hl_eq_pcie_spi_data pcie_spi_data;
+		struct hl_eq_nic_spi_data nic_spi_data;
+		struct hl_eq_nic_sts_req_data nic_sts_req_data;
+		struct hl_eq_tpc_spi_data tpc_spi_data;
+		struct hl_eq_tpc_sei_data tpc_sei_data;
+		struct hl_eq_rot_spi_data rot_spi_data;
+		struct hl_eq_rot_sei_data rot_sei_data;
+		struct hl_eq_mme_spi_data mme_spi_data;
+		struct hl_eq_hbm_mc_spi_data hbm_mc_spi_data;
+		struct hl_eq_mme_sei_data mme_sei_data;
+		struct hl_eq_generic_spi_data spi_data;
+		struct hl_eq_stlb_spi_data stlb_spi_data;
+		struct hl_eq_stlb_sei_data stlb_sei_data;
+		struct hl_eq_cs_sei_data cs_sei_data;
+		struct hl_eq_edma_sei_data edma_sei_data;
+		struct hl_eq_arcfarm_sei_data arcfarm_sei_data;
+		struct hl_eq_razwi_with_intr_cause_data razwi_with_intr_cause;
+		struct hl_eq_nic_sei_data nic_sei_data;
+		struct hl_eq_d2dmac_sei_data d2dmac_sei_data;
+		struct hl_eq_d2dphy_sei_data d2dphy_sei_data;
+		struct hl_eq_pdma_sei_data pdma_sei_data;
+		struct hl_eq_nch_sei_data nch_sei_data;
+		struct hl_eq_cpu_sei_data cpu_sei_data;
+		struct hl_eq_parc_sei_data parc_sei_data;
+		struct hl_eq_psoc_sei_data psoc_sei_data;
+		struct hl_eq_pll_sei_data pll_sei_data;
+		struct hl_eq_sob_sei_data sob_sei_data;
+		struct hl_eq_pmmu_spi_data pmmu_spi_data;
+		struct hl_eq_hbm_mc_cmn_sei_info hbm_mc_cmn_sei_info;
+		struct hl_eq_cpld_reset_reason cpld_reset_reason;
+		struct hl_eq_pvt_alarm_data pvt_alarm_data;
+	};
+};
+
 #define HL_EQ_ENTRY_SIZE		sizeof(struct hl_eq_entry)
+#define HL_EQ_DYNAMIC_ENTRY_SIZE	sizeof(struct hl_eq_dynamic_entry)
 
 #define EQ_CTL_READY_SHIFT		31
 #define EQ_CTL_READY_MASK		0x80000000
 
+/*
+ * MODE 0 - struct hl_eq_header
+ * MODE 1 - struct hl_agg_eq_header
+ */
 #define EQ_CTL_EVENT_MODE_SHIFT		28
 #define EQ_CTL_EVENT_MODE_MASK		0x70000000
 
@@ -405,6 +1923,13 @@ struct hl_eq_entry {
 
 #define EQ_CTL_INDEX_SHIFT		0
 #define EQ_CTL_INDEX_MASK		0x0000FFFF
+
+/*
+ * 0 - non-critical event
+ * 1 - critical event
+ */
+#define EQ_FLAGS_CRITICAL_EVENT_SHIFT	0
+#define EQ_FLAGS_CRITICAL_EVENT_MASK	0x0001
 
 enum pq_init_status {
 	PQ_INIT_STATUS_NA = 0,
@@ -659,8 +2184,16 @@ enum pq_init_status {
  * CPUCP_PACKET_POWER_SET -
  *       Resets power history of device to 0
  *
+ * CPUCP_PACKET_SECURITY_SET -
+ *       Enable security with fake fuse support (flash memory used to store
+ *       security information) if efuse is not programmed to enable real
+ *       security. If security is enabled, this request will be NACKed
+ *
  * CPUCP_PACKET_ENGINE_CORE_ASID_SET -
  *       Packet to perform engine core ASID configuration
+ *
+ * CPUCP_PACKET_MMU_PAGES_GET -
+ *       Fetch all MMU page indexes which will be used in host MMU.
  *
  * CPUCP_PACKET_SEC_ATTEST_GET -
  *       Get the attestaion data that is collected during various stages of the
@@ -674,6 +2207,9 @@ enum pq_init_status {
  *       by the host to prevent replay attacks. public key and certificate also
  *       provided as part of the FW response.
  *
+ * CPUCP_PACKET_NIC_SET_CHECKERS -
+ *       Packet to set a specific NIC checker bit.
+ *
  * CPUCP_PACKET_MONITOR_DUMP_GET -
  *       Get monitors registers dump from the CpuCP kernel.
  *       The CPU will put the registers dump in the a buffer allocated by the driver
@@ -682,13 +2218,53 @@ enum pq_init_status {
  *       data corruption in case of mismatched driver/FW versions.
  *       Obsolete.
  *
+ * CPUCP_PACKET_BINNING_DONE -
+ *       Packet is sent when binning and isolation done in lkd is completed.
+ *       Before receiving this pkt, fw is not expected to handle GIC interrupts for
+ *       components which are binning candidates.
+ *
+ * CPUCP_PACKET_NIC_WQE_ASID_SET -
+ *       Packet to set nic wqe asid as the registers needed are privilege and to be configured by FW
+ *
+ * CPUCP_PACKET_NIC_ECC_INTRS_UNMASK -
+ *       Packet to unmask NIC memory registers which are masked at preboot stage. As per the Arch
+ *       team recommendation, NIC memory ECC errors should be unmasked after NIC driver is up and
+ *       running
+ *
  * CPUCP_PACKET_GENERIC_PASSTHROUGH -
  *       Generic opcode for all firmware info that is only passed to host
  *       through the LKD, without getting parsed there.
  *
+ * CPUCP_PACKET_BINNING_SET -
+ *       Packet is sent to set default binning masks in firmware shared via buffer allocated
+ *       by the driver, which address is passed via the CpuCp packet.
+ *       This can be used to for testing purposes to test various binning combinations.
+ *       Binning masks will be taken via debugfs and sent to fw via this packet.
+ *       Hard reset is required, as new masks will be applied in next boot.
+ *
  * CPUCP_PACKET_ACTIVE_STATUS_SET -
  *       LKD sends FW indication whether device is free or in use, this indication is reported
  *       also to the BMC.
+ *
+ * CPUCP_PACKET_NIC_MAC_TX_RESET -
+ *       Packet to reset the NIC MAC Tx.
+ *
+ * CPUCP_PACKET_WD_DISABLE -
+ *       Disable Watchdog. 1 - watchdog is disabled 0 - watchdog is enabled (default)
+ *       When disabled, watchdog reset is not triggered and can collect required debug information
+ *       when arc is hung
+ *       This packet is allowed only in pre-production environments.
+ *       If security is enabled or end of manufacturing bit is set, this request will be NACKed
+ *
+ * CPUCP_PACKET_NIC_WQE_ASID_UNSET -
+ *       Packet to unset nic wqe asid as the registers needed are privilege and to be configured
+ *       by FW.
+ *
+ * CPUCP_PACKET_EXPECTED_EQE_SIZE_SET -
+ *       LKD sends FW expected size (in bytes) of EQ entry.
+ *
+ * CPUCP_PACKET_AC_CONTROL -
+ *       host control over the Autonomous Controller used for profiler info collection
  *
  * CPUCP_PACKET_SOFT_RESET -
  *       Packet to perform soft-reset.
@@ -696,6 +2272,18 @@ enum pq_init_status {
  * CPUCP_PACKET_INTS_REGISTER -
  *       Packet to inform FW that queues have been established and LKD is ready to receive
  *       EQ events.
+ *
+ * CPUCP_PACKET_NIC_INIT_TXS_MEM -
+ *      Init TXS related memory in HBM.
+ *
+ * CPUCP_PACKET_NIC_INIT_TMR_MEM -
+ *      Init HW timer related memory in HBM.
+ *
+ * CPUCP_PACKET_NIC_CLR_MEM -
+ *      Clear NIC related memory in HBM.
+ *
+ * CPUCP_PACKET_SET_HOST_TIME -
+ *      Host time used for UART Logging
  */
 
 enum cpucp_packet_id {
@@ -744,26 +2332,30 @@ enum cpucp_packet_id {
 	CPUCP_PACKET_HBM_REPLACED_ROWS_INFO_GET,/* internal */
 	CPUCP_PACKET_HBM_PENDING_ROWS_STATUS,	/* internal */
 	CPUCP_PACKET_POWER_SET,			/* internal */
-	CPUCP_PACKET_RESERVED,			/* not used */
+	CPUCP_PACKET_SECURITY_SET,		/* debugfs */
 	CPUCP_PACKET_ENGINE_CORE_ASID_SET,	/* internal */
-	CPUCP_PACKET_RESERVED2,			/* not used */
+	CPUCP_PACKET_MMU_PAGES_GET,		/* internal */
 	CPUCP_PACKET_SEC_ATTEST_GET,		/* internal */
 	CPUCP_PACKET_INFO_SIGNED_GET,		/* internal */
-	CPUCP_PACKET_RESERVED4,			/* not used */
+	CPUCP_PACKET_NIC_SET_CHECKERS,		/* internal */
 	CPUCP_PACKET_MONITOR_DUMP_GET,		/* debugfs */
-	CPUCP_PACKET_RESERVED5,			/* not used */
-	CPUCP_PACKET_RESERVED6,			/* not used */
-	CPUCP_PACKET_RESERVED7,			/* not used */
+	CPUCP_PACKET_BINNING_DONE,		/* internal */
+	CPUCP_PACKET_NIC_WQE_ASID_SET,		/* internal */
+	CPUCP_PACKET_NIC_ECC_INTRS_UNMASK,	/* internal */
 	CPUCP_PACKET_GENERIC_PASSTHROUGH,	/* IOCTL */
-	CPUCP_PACKET_RESERVED8,			/* not used */
+	CPUCP_PACKET_BINNING_SET,		/* debugfs */
 	CPUCP_PACKET_ACTIVE_STATUS_SET,		/* internal */
-	CPUCP_PACKET_RESERVED9,			/* not used */
-	CPUCP_PACKET_RESERVED10,		/* not used */
-	CPUCP_PACKET_RESERVED11,		/* not used */
-	CPUCP_PACKET_RESERVED12,		/* internal */
-	CPUCP_PACKET_RESERVED13,                /* internal */
+	CPUCP_PACKET_NIC_MAC_TX_RESET,		/* internal */
+	CPUCP_PACKET_WD_DISABLE,		/* debugfs */
+	CPUCP_PACKET_NIC_WQE_ASID_UNSET,	/* internal */
+	CPUCP_PACKET_EXPECTED_EQE_SIZE_SET,	/* internal */
+	CPUCP_PACKET_AC_CONTROL,		/* internal */
 	CPUCP_PACKET_SOFT_RESET,		/* internal */
 	CPUCP_PACKET_INTS_REGISTER,		/* internal */
+	CPUCP_PACKET_NIC_INIT_TXS_MEM,		/* internal */
+	CPUCP_PACKET_NIC_INIT_TMR_MEM,		/* internal */
+	CPUCP_PACKET_NIC_CLR_MEM,		/* internal */
+	CPUCP_PACKET_SET_HOST_TIME,		/* internal */
 	CPUCP_PACKET_ID_MAX			/* must be last */
 };
 
@@ -803,6 +2395,19 @@ enum cpucp_packet_id {
 #define CPUCP_PKT_VAL_MAC_CNT_IN1_MASK	0x0000000000000001ull
 #define CPUCP_PKT_VAL_MAC_CNT_IN2_SHIFT	1
 #define CPUCP_PKT_VAL_MAC_CNT_IN2_MASK	0x00000000FFFFFFFEull
+
+#define CPUCP_PKT_VAL_YEAR_MASK		0x0000000000000FFFull
+#define CPUCP_PKT_VAL_YEAR_SHIFT	0
+#define CPUCP_PKT_VAL_MONTH_MASK	0x000000000000F000ull
+#define CPUCP_PKT_VAL_MONTH_SHIFT	12
+#define CPUCP_PKT_VAL_DAY_MASK		0x00000000001F0000ull
+#define CPUCP_PKT_VAL_DAY_SHIFT		16
+#define CPUCP_PKT_VAL_HOUR_MASK		0x0000000003E00000ull
+#define CPUCP_PKT_VAL_HOUR_SHIFT	21
+#define CPUCP_PKT_VAL_MINUTE_MASK	0x00000000FC000000ull
+#define CPUCP_PKT_VAL_MINUTE_SHIFT	26
+#define CPUCP_PKT_VAL_SECOND_MASK	0x0000003F00000000ull
+#define CPUCP_PKT_VAL_SECOND_SHIFT	32
 
 /* heartbeat status bits */
 #define CPUCP_PKT_HB_STATUS_EQ_FAULT_SHIFT		0
@@ -867,6 +2472,9 @@ struct cpucp_packet {
 	union {
 		/* For NIC requests */
 		__le32 port_index;
+
+		/* For NIC requests */
+		__le32 macro_index;
 
 		/* For Generic packet sub index */
 		__le32 pkt_subidx;
@@ -1067,10 +2675,34 @@ enum pvt_index {
 	PVT_NE
 };
 
+#define NIC_CHECKERS_TYPE_SHIFT		0
+#define NIC_CHECKERS_TYPE_MASK		0xFFFF
+#define NIC_CHECKERS_CHECK_SHIFT	16
+#define NIC_CHECKERS_CHECK_MASK		0x1
+#define NIC_CHECKERS_DROP_SHIFT		17
+#define NIC_CHECKERS_DROP_MASK		0x1
+
+enum nic_checkers_types {
+	RX_PKT_BAD_FORMAT = 0,
+	RX_INV_OPCODE,
+	RX_INV_SYNDROME,
+	RX_WQE_IDX_MISMATCH,
+	TX_WQE_IDX_MISMATCH = 0x80
+};
+
+enum ac_operation_types {
+	AC_OP_START,
+	AC_OP_STOP,
+	AC_OP_GET_STATUS,
+};
+
 /* Event Queue Packets */
 
 struct eq_generic_event {
-	__le64 data[7];
+	union {
+		__le64 data[7];
+		__u8 data_u8[56];
+	};
 };
 
 /*
@@ -1129,7 +2761,8 @@ struct cpucp_security_info {
  * struct cpucp_info - Info from CpuCP that is necessary to the host's driver
  * @sensors: available sensors description.
  * @kernel_version: CpuCP linux kernel version.
- * @reserved: reserved field.
+ * @rot_binning_mask: Rotator binning mask, 1 bit per Rotator instance
+ *                    (0 = functional 1 = binned)
  * @card_type: card configuration type.
  * @card_location: in a server, each card has different connections topology
  *                 depending on its location (relevant for PMC card type)
@@ -1175,7 +2808,7 @@ struct cpucp_security_info {
 struct cpucp_info {
 	struct cpucp_sensor sensors[CPUCP_MAX_SENSORS];
 	__u8 kernel_version[VERSION_MAX_LEN];
-	__le32 reserved1;
+	__le32 rot_binning_mask;
 	__le32 card_type;
 	__le32 card_location;
 	__le32 cpld_version;
@@ -1214,6 +2847,14 @@ enum cpucp_serdes_type {
 	HLS1H_SERDES_TYPE,
 	HLS2_SERDES_TYPE,
 	HLS2_TYPE_1_SERDES_TYPE,
+	HLS3_FULLSCALE_IN_SERDES_TYPE,
+	HLS3_FULLSCALE_OUT_SERDES_TYPE,
+	HLS3_FULL_OAM_3PORTS_SCALE_OUT_SERDES_TYPE,
+	HLS3_FULL_OAM_6PORTS_SCALE_OUT_SERDES_TYPE,
+	HLS3_SINGLEPORT_OAM_FULLSCALE_OUT_SERDES_TYPE,
+	HLS3_SERDES_TYPE_DEPRECATED,
+	HLB325_FULL_OAM_3PORTS_SCALE_OUT_SERDES_TYPE,
+	HL338_SERDES_TYPE,
 	MAX_NUM_SERDES_TYPE,		/* number of types */
 	UNKNOWN_SERDES_TYPE = 0xFFFF	/* serdes_type is u16 */
 };
@@ -1283,6 +2924,7 @@ struct ser_val {
  * @post_fec_ser: post FEC SER value.
  * @throughput: measured throughput.
  * @latency: measured latency.
+ * @port_toggle_cnt: counts how many times the link toggled since last port PHY init.
  */
 struct cpucp_nic_status {
 	__le32 port;
@@ -1302,6 +2944,8 @@ struct cpucp_nic_status {
 	struct ser_val post_fec_ser;
 	struct frac_val bandwidth;
 	struct frac_val lat;
+	__le32 port_toggle_cnt;
+	__u8 reserved[4];
 };
 
 enum cpucp_hbm_row_replace_cause {
@@ -1425,13 +3069,47 @@ struct cpucp_monitor_dump {
  * from "pkt_subidx" field in struct cpucp_packet.
  *
  * HL_PASSTHROUGHT_VERSIONS	- Fetch all firmware versions.
+ * HL_ECC_INJECTION		- Inject ecc, for debug and non-security only
+ * HL_PASSTHROUGH_PID_CMD	- Send commands to the ARCPID
  * HL_GET_ERR_COUNTERS_CMD	- Command to get error counters
- * HL_GET_P_STATE		- get performance state
  */
 enum hl_passthrough_type {
 	HL_PASSTHROUGH_VERSIONS,
+	HL_ECC_INJECTION,
+	HL_PASSTHROUGH_PID_CMD,
 	HL_GET_ERR_COUNTERS_CMD,
-	HL_GET_P_STATE,
+};
+
+/* structure cpucp_cn_init_hw_mem_packet - used for initializing the assoicated CN(Core NIC)
+ * hw(TIMER, TX-SCHEDQ) memory in HBM using the provided parameters.
+ * @cpucp_pkt: basic cpucp packet, the rest of the parameters extend the packet.
+ * @mem_base_addr: base address of the assoicated memory
+ * @num_entries: number of entries.
+ * @entry_size: size of entry.
+ * @granularity: base value for first element.
+ * @pad: padding
+ */
+struct cpucp_cn_init_hw_mem_packet {
+	struct cpucp_packet cpucp_pkt;
+	__le64 mem_base_addr;
+	__le16 num_entries;
+	__le16 entry_size;
+	__le16 granularity;
+	__u8 pad[2];
+};
+
+/* structure cpucp_cn_clear_mem_packet - used for clearing the assoicated CN(Core NIC)
+ * memory in HBM using the provided parameters.
+ * @cpucp_pkt: basic cpucp packet, the rest of the parameters extend the packet.
+ * @mem_base_addr: base address of the assoicated memory
+ * @size: size in bytes of the assoicated memory.
+ * @pad: padding
+ */
+struct cpucp_cn_clear_mem_packet {
+	struct cpucp_packet cpucp_pkt;
+	__le64 mem_base_addr;
+	__le32 size;
+	__u8 pad[4];
 };
 
 #endif /* CPUCP_IF_H */

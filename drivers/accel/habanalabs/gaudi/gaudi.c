@@ -8180,6 +8180,11 @@ static u32 gaudi_get_pci_id(struct hl_device *hdev)
 	return hdev->pdev->device;
 }
 
+static int gaudi_pll_info_get(struct hl_device *hdev, u32 pll_index, u16 *pll_freq_arr)
+{
+	return hl_fw_cpucp_pll_info_get(hdev, pll_index, pll_freq_arr);
+}
+
 static int gaudi_get_eeprom_data(struct hl_device *hdev, void *data,
 				size_t max_size)
 {
@@ -8773,7 +8778,7 @@ static void gaudi_reset_sob(struct hl_device *hdev, void *data)
 	kref_init(&hw_sob->kref);
 }
 
-static u64 gaudi_get_device_time(struct hl_device *hdev)
+static u64 gaudi_get_device_time(struct hl_device *hdev, u32 die_index)
 {
 	u64 device_time = ((u64) RREG32(mmPSOC_TIMESTAMP_CNTCVU)) << 32;
 
@@ -9175,6 +9180,7 @@ static const struct hl_asic_funcs gaudi_funcs = {
 	.hw_queues_lock = gaudi_hw_queues_lock,
 	.hw_queues_unlock = gaudi_hw_queues_unlock,
 	.get_pci_id = gaudi_get_pci_id,
+	.pll_info_get = gaudi_pll_info_get,
 	.get_eeprom_data = gaudi_get_eeprom_data,
 	.get_monitor_dump = gaudi_get_monitor_dump,
 	.send_cpu_message = gaudi_send_cpu_message,

@@ -6,24 +6,46 @@
  */
 
 #include <linux/slab.h>
-#include <linux/pci.h>
 
 #include "../habanalabs.h"
 
 #include <trace/events/habanalabs.h>
 
 /**
+ * is_gaudi3_hmmu_enabled() - test if HMMU is for gaudi3
+ * @hdev: habanalabs device structure.
+ *
+ * @return true if Gaudi3 MMU, otherwise false
+ *
+ * Note: This function is needed since Gaudi3 HMMU specific functions
+ *       and info does not reside in ASIC specific property.
+ */
+static inline bool is_gaudi3_hmmu_enabled(struct hl_device *hdev)
+{
+	/* non NULL init functions indicates gaudi3 HMMU enabled */
+	return (hdev->hmmu_info.func.init != NULL);
+}
+
+/**
  * hl_mmu_get_funcs() - get MMU functions structure
  * @hdev: habanalabs device structure.
  * @pgt_residency: page table residency.
- * @is_dram_addr: true if we need HMMU functions
+ * @is_dram_addr: true if we need HMMU functions (used for Gaudi3 HMMU).
  *
  * @return appropriate MMU functions structure
  */
 static struct hl_mmu_funcs *hl_mmu_get_funcs(struct hl_device *hdev, int pgt_residency,
 									bool is_dram_addr)
 {
-	return &hdev->mmu_func[pgt_residency];
+	static struct hl_mmu_funcs *funcs;
+
+	/* set MMU functions (special assignment for gaudi3 HMMU) */
+	if (is_dram_addr && is_gaudi3_hmmu_enabled(hdev))
+		funcs = &hdev->hmmu_info.func;
+	else
+		funcs = &hdev->mmu_func[pgt_residency];
+
+	return funcs;
 }
 
 bool hl_is_dram_va(struct hl_device *hdev, u64 virt_addr)
@@ -62,7 +84,17 @@ int hl_mmu_init(struct hl_device *hdev)
 			goto fini_dr_mmu;
 	}
 
+	if (hdev->hmmu_info.func.init != NULL) {
+		rc = hdev->hmmu_info.func.init(hdev);
+		if (rc)
+			goto fini_hr_mmu;
+	}
+
 	return 0;
+
+fini_hr_mmu:
+	if (hdev->mmu_func[MMU_HR_PGT].fini != NULL)
+		hdev->mmu_func[MMU_HR_PGT].fini(hdev);
 
 fini_dr_mmu:
 	if (hdev->mmu_func[MMU_DR_PGT].fini != NULL)
@@ -91,6 +123,9 @@ void hl_mmu_fini(struct hl_device *hdev)
 
 	if (hdev->mmu_func[MMU_HR_PGT].fini != NULL)
 		hdev->mmu_func[MMU_HR_PGT].fini(hdev);
+
+	if (hdev->hmmu_info.func.fini != NULL)
+		hdev->hmmu_info.func.fini(hdev);
 
 	mutex_destroy(&hdev->mmu_lock);
 }
@@ -123,7 +158,17 @@ int hl_mmu_ctx_init(struct hl_ctx *ctx)
 			goto fini_dr_ctx;
 	}
 
+	if (hdev->hmmu_info.func.ctx_init != NULL) {
+		rc = hdev->hmmu_info.func.ctx_init(ctx);
+		if (rc)
+			goto fini_hr_ctx;
+	}
+
 	return 0;
+
+fini_hr_ctx:
+	if (hdev->mmu_func[MMU_HR_PGT].fini != NULL)
+		hdev->mmu_func[MMU_HR_PGT].fini(hdev);
 
 fini_dr_ctx:
 	if (hdev->mmu_func[MMU_DR_PGT].fini != NULL)
@@ -154,6 +199,9 @@ void hl_mmu_ctx_fini(struct hl_ctx *ctx)
 
 	if (hdev->mmu_func[MMU_HR_PGT].ctx_fini != NULL)
 		hdev->mmu_func[MMU_HR_PGT].ctx_fini(ctx);
+
+	if (hdev->hmmu_info.func.ctx_fini != NULL)
+		hdev->hmmu_info.func.ctx_fini(ctx);
 }
 
 /*
@@ -252,7 +300,7 @@ int hl_mmu_unmap_page(struct hl_ctx *ctx, u64 virt_addr, u32 page_size, bool flu
 	real_virt_addr = virt_addr;
 
 	for (i = 0 ; i < npages ; i++) {
-		rc = mmu_funcs->unmap(ctx, real_virt_addr, is_dram_addr);
+		rc = mmu_funcs->unmap_page(ctx, real_virt_addr, page_size, is_dram_addr);
 		if (rc)
 			break;
 
@@ -337,7 +385,7 @@ int hl_mmu_map_page(struct hl_ctx *ctx, u64 virt_addr, u64 phys_addr, u32 page_s
 	real_phys_addr = phys_addr;
 
 	for (i = 0 ; i < npages ; i++) {
-		rc = mmu_funcs->map(ctx, real_virt_addr, real_phys_addr, real_page_size,
+		rc = mmu_funcs->map_page(ctx, real_virt_addr, real_phys_addr, real_page_size,
 										is_dram_addr);
 		if (rc)
 			goto err;
@@ -357,7 +405,7 @@ int hl_mmu_map_page(struct hl_ctx *ctx, u64 virt_addr, u64 phys_addr, u32 page_s
 err:
 	real_virt_addr = virt_addr;
 	for (i = 0 ; i < mapped_cnt ; i++) {
-		if (mmu_funcs->unmap(ctx, real_virt_addr, is_dram_addr))
+		if (mmu_funcs->unmap_page(ctx, real_virt_addr, page_size, is_dram_addr))
 			dev_warn_ratelimited(hdev->dev,
 				"failed to unmap va: 0x%llx\n", real_virt_addr);
 
@@ -592,11 +640,24 @@ int hl_mmu_if_set_funcs(struct hl_device *hdev)
 		return 0;
 
 	switch (hdev->asic_type) {
+	case ASIC_GOYA_SIM:
+	case ASIC_GAUDI_SIM:
+	case ASIC_GAUDI_HL2000M_SIM:
 	case ASIC_GOYA:
 	case ASIC_GAUDI:
 	case ASIC_GAUDI_SEC:
+	case ASIC_GAUDI_HL2000M:
+	case ASIC_GAUDI_HL2000M_SEC:
 		hl_mmu_v1_set_funcs(hdev, &hdev->mmu_func[MMU_DR_PGT]);
 		break;
+	case ASIC_GAUDI2_SIM:
+	case ASIC_GAUDI2B_SIM:
+	case ASIC_GAUDI2C_SIM:
+	case ASIC_GAUDI2D_SIM:
+	case ASIC_GAUDI2_SIM_ARC:
+	case ASIC_GAUDI2B_SIM_ARC:
+	case ASIC_GAUDI2C_SIM_ARC:
+	case ASIC_GAUDI2D_SIM_ARC:
 	case ASIC_GAUDI2:
 	case ASIC_GAUDI2B:
 	case ASIC_GAUDI2C:
@@ -604,6 +665,19 @@ int hl_mmu_if_set_funcs(struct hl_device *hdev)
 		hl_mmu_v2_set_funcs(hdev, &hdev->mmu_func[MMU_DR_PGT]);
 		if (prop->pmmu.host_resident)
 			hl_mmu_v2_hr_set_funcs(hdev, &hdev->mmu_func[MMU_HR_PGT]);
+		break;
+	case ASIC_GAUDI3_SIM:
+	case ASIC_GAUDI3_SIM_ARC:
+	case ASIC_GAUDI3_HL_338_SIM:
+	case ASIC_GAUDI3_HL_338_SIM_ARC:
+	case ASIC_GAUDI3:
+	case ASIC_GAUDI3_HL_338:
+		hl_mmu_v2_hr_set_funcs(hdev, &hdev->mmu_func[MMU_HR_PGT]);
+		/*
+		 * Gaudi3 HMMU funcs are not set under the hdev but rather in an HMMU specific
+		 * structure (handled inside the set function)
+		 */
+		hl_mmu_v3_set_funcs(hdev, &hdev->hmmu_info.func);
 		break;
 	default:
 		dev_err(hdev->dev, "Unrecognized ASIC type %d\n",
@@ -647,7 +721,7 @@ int hl_mmu_invalidate_cache(struct hl_device *hdev, bool is_hard, u32 flags)
 	if (rc)
 		dev_err_ratelimited(hdev->dev,
 				"%s: %s cache invalidation failed, rc=%d\n",
-				dev_name(&hdev->pdev->dev),
+				HL_PARENT_DEV_NAME(hdev),
 				flags == VM_TYPE_USERPTR ? "PMMU" : "HMMU", rc);
 
 	return rc;
@@ -663,7 +737,7 @@ int hl_mmu_invalidate_cache_range(struct hl_device *hdev, bool is_hard,
 	if (rc)
 		dev_err_ratelimited(hdev->dev,
 			"%s: %s cache range invalidation failed: va=%#llx, size=%llu, rc=%d",
-			dev_name(&hdev->pdev->dev), flags == VM_TYPE_USERPTR ? "PMMU" : "HMMU",
+			HL_PARENT_DEV_NAME(hdev), flags == VM_TYPE_USERPTR ? "PMMU" : "HMMU",
 			va, size, rc);
 
 	return rc;
@@ -1431,4 +1505,131 @@ void hl_mmu_dr_fini(struct hl_device *hdev)
 	 * example if we fail during hard reset code at certain points
 	 */
 	hdev->mmu_priv.dr.mmu_shadow_hop0 = NULL;
+}
+
+static int hl_mmu_map_page_using_multiple_ptes(struct hl_ctx *ctx, u64 virt_addr, u64 phys_addr,
+						u32 page_size, bool is_dram_addr)
+{
+	u8 num_ptes, tlb_page_size_code, pgt_residency;
+	struct hl_mmu_properties *mmu_prop;
+	struct hl_mmu_funcs *mmu_funcs;
+	u64 mem_chunk_size;
+	int i, rc;
+
+	tlb_page_size_code = hl_mmu_v3_page_map_size_to_code(page_size);
+
+	if (hl_mmu_v3_is_hop2_page_code(tlb_page_size_code)) {
+		num_ptes = page_size >> PAGE_SHIFT_1MB;
+		mem_chunk_size = PAGE_SIZE_1MB;
+	} else {
+		num_ptes = page_size >> PAGE_SHIFT_256MB;
+		mem_chunk_size = PAGE_SIZE_256MB;
+	}
+
+	mmu_prop = hl_mmu_get_prop(ctx->hdev, page_size, is_dram_addr);
+	pgt_residency = mmu_prop->host_resident ? MMU_HR_PGT : MMU_DR_PGT;
+	mmu_funcs = hl_mmu_get_funcs(ctx->hdev, pgt_residency, is_dram_addr);
+
+	/*
+	 * HOP2 basic page size is 1M and HOP1 basic page size is 256M.
+	 * for 32MB page 32 PTEs, each pointing to 1MB section, will be created in HOP2 and
+	 * for 1GB page 4 PTEs, each pointing to 256MB section, will be created in HOP1.
+	 * In both cases the TLB page size "hint" will create only single TLB entry.
+	 */
+	for (i = 0; i < num_ptes; i++) {
+		rc = mmu_funcs->map_page_pte(ctx, virt_addr, phys_addr, tlb_page_size_code);
+		if (rc)
+			goto unmap;
+
+		/* increment to map the next 1MB page */
+		virt_addr += mem_chunk_size;
+		phys_addr += mem_chunk_size;
+	}
+
+	return 0;
+
+unmap:
+	while (i > 0) {
+		/* go back to the former successful mapping */
+		i--;
+		virt_addr -= mem_chunk_size;
+		if (mmu_funcs->unmap_page_pte(ctx, virt_addr))
+			break;
+	}
+
+	return rc;
+}
+
+/**
+ * hl_mmu_map_page_by_multiple_ptes - add mapping for virtual address by multiple ptes.
+ *
+ * @ctx: pointer to the context structure
+ * @virt_addr: the virtual address to map to
+ * @phys_addr: the physical address to map
+ * @page_size: page size
+ * @is_dram_addr: true is DRAM address, otherwise false
+ *
+ * @return 0 on success otherwise non-zero error code
+ */
+int hl_mmu_map_page_by_multiple_ptes(struct hl_ctx *ctx, u64 virt_addr, u64 phys_addr,
+							u32 page_size, bool is_dram_addr)
+{
+	u64 supported_pages_mask = ctx->hdev->asic_prop.dmmu.supported_pages_mask;
+
+	if (!(page_size & supported_pages_mask)) {
+		dev_err(ctx->hdev->dev,
+				"%x page size not supported (supported_pages_mask: %llx)\n",
+				page_size, supported_pages_mask);
+		return -EINVAL;
+	}
+
+	return hl_mmu_map_page_using_multiple_ptes(ctx, virt_addr, phys_addr, page_size,
+								is_dram_addr);
+}
+
+/**
+ * hl_mmu_unmap_page_by_multiple_ptes - unmap a page which was mapped by multiple PTEs.
+ *
+ * @ctx: pointer to the context structure
+ * @virt_addr: the virtual address to unmap
+ * @page_size: MMU page size
+ * @is_dram_addr: true is DRAM address, otherwise false
+ *
+ * @return 0 on success otherwise non-zero error code
+ */
+int hl_mmu_unmap_page_by_multiple_ptes(struct hl_ctx *ctx, u64 virt_addr, u32 page_size,
+							bool is_dram_addr)
+{
+	struct hl_mmu_properties *mmu_prop;
+	struct hl_mmu_funcs *mmu_funcs;
+	u8 num_ptes, pgt_residency;
+	u64 mem_chunk_size;
+	int i, rc;
+
+	mmu_prop = hl_mmu_get_prop(ctx->hdev, page_size, is_dram_addr);
+	pgt_residency = mmu_prop->host_resident ? MMU_HR_PGT : MMU_DR_PGT;
+	mmu_funcs = hl_mmu_get_funcs(ctx->hdev, pgt_residency, is_dram_addr);
+
+	/*
+	 * page size below 256MB is divided to 1MB bytes pages while page size from 256MB on
+	 * is divided to 256MB pages
+	 */
+	if (hl_mmu_v3_is_hop2_page_code(hl_mmu_v3_page_map_size_to_code(page_size))) {
+		num_ptes = page_size >> PAGE_SHIFT_1MB;
+		mem_chunk_size = PAGE_SIZE_1MB;
+	} else {
+		num_ptes = page_size >> PAGE_SHIFT_256MB;
+		mem_chunk_size = PAGE_SIZE_256MB;
+	}
+
+	for (i = 0; i < num_ptes; i++) {
+		rc = mmu_funcs->unmap_page_pte(ctx, virt_addr);
+		if (rc)
+			return rc;
+
+		/* increment to unmap the next chunk */
+		virt_addr += mem_chunk_size;
+	}
+
+	return 0;
 }

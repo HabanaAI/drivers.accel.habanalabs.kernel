@@ -427,7 +427,7 @@ static int gaudi_config_stm(struct hl_device *hdev,
 		WREG32(base_reg + 0xE8C, frequency);
 		WREG32(base_reg + 0xE90, 0x1F00);
 
-		/* SW-2176 - SW WA for HW bug */
+		/* SW workaround for a hardware bug */
 		if ((CFG_BASE + base_reg) >= mmDMA_CH_0_CS_STM_BASE &&
 			(CFG_BASE + base_reg) <= mmDMA_CH_7_CS_STM_BASE) {
 

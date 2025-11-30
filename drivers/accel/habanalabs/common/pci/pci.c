@@ -12,7 +12,9 @@
 
 #include <trace/events/habanalabs.h>
 
-#define HL_PLDM_PCI_ELBI_TIMEOUT_MSEC	(HL_PCI_ELBI_TIMEOUT_MSEC * 100)
+#define PCI_DEVICE_ID_IBM_PHB4		0x04C1
+
+#define HL_PLDM_PCI_ELBI_TIMEOUT_MSEC	(HL_PCI_ELBI_TIMEOUT_MSEC * 300)
 
 #define IATU_REGION_CTRL_REGION_EN_MASK		BIT(31)
 #define IATU_REGION_CTRL_MATCH_MODE_MASK	BIT(30)
@@ -150,7 +152,7 @@ int hl_pci_elbi_read(struct hl_device *hdev, u64 addr, u32 *data)
  *
  * Return: 0 on success, negative value for failure.
  */
-static int hl_pci_elbi_write(struct hl_device *hdev, u64 addr, u32 data)
+int hl_pci_elbi_write(struct hl_device *hdev, u64 addr, u32 data)
 {
 	struct pci_dev *pdev = hdev->pdev;
 	ktime_t timeout;
@@ -230,6 +232,27 @@ int hl_pci_iatu_write(struct hl_device *hdev, u32 addr, u32 data)
 		return -EIO;
 
 	return 0;
+}
+
+/**
+ * hl_pci_reset_link_through_bridge() - Reset PCI link.
+ * @hdev: Pointer to hl_device structure.
+ */
+static void hl_pci_reset_link_through_bridge(struct hl_device *hdev)
+{
+	struct pci_dev *pdev = hdev->pdev;
+	struct pci_dev *parent_port;
+	u16 val;
+
+	parent_port = pdev->bus->self;
+	pci_read_config_word(parent_port, PCI_BRIDGE_CONTROL, &val);
+	val |= PCI_BRIDGE_CTL_BUS_RESET;
+	pci_write_config_word(parent_port, PCI_BRIDGE_CONTROL, val);
+	ssleep(1);
+
+	val &= ~(PCI_BRIDGE_CTL_BUS_RESET);
+	pci_write_config_word(parent_port, PCI_BRIDGE_CONTROL, val);
+	ssleep(3);
 }
 
 /**
@@ -381,6 +404,9 @@ int hl_pci_init(struct hl_device *hdev)
 	struct pci_dev *pdev = hdev->pdev;
 	int rc;
 
+	if (hdev->reset_pcilink)
+		hl_pci_reset_link_through_bridge(hdev);
+
 	rc = pci_enable_device_mem(pdev);
 	if (rc) {
 		dev_err(hdev->dev, "can't enable PCI device\n");
@@ -402,8 +428,12 @@ int hl_pci_init(struct hl_device *hdev)
 	}
 
 	/* Driver must sleep in order for FW to finish the iATU configuration */
-	if (hdev->asic_prop.iatu_done_by_fw)
-		usleep_range(2000, 3000);
+	if (hdev->asic_prop.iatu_done_by_fw) {
+		if (hdev->pldm)
+			ssleep(3);
+		else
+			usleep_range(2000, 3000);
+	}
 
 	rc = dma_set_mask_and_coherent(&pdev->dev, DMA_BIT_MASK(prop->dma_mask));
 	if (rc) {

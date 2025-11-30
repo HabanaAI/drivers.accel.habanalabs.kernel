@@ -6,7 +6,6 @@
  */
 
 #include "habanalabs.h"
-#include "hldio.h"
 #include "../include/hw_ip/mmu/mmu_general.h"
 
 #include <linux/pci.h>
@@ -612,13 +611,13 @@ static int dio_ssd2hl_show(struct seq_file *s, void *data)
 	struct hl_device *hdev = dev_entry->hdev;
 
 	if (!hdev->asic_prop.supports_nvme) {
-		seq_puts(s, "NVMe Direct I/O not supported\\n");
+		seq_puts(s, "NVMe Direct I/O not supported\n");
 		return 0;
 	}
 
 	seq_puts(s, "Usage: echo \"fd=N va=0xADDR off=N len=N\" > dio_ssd2hl\n");
-	seq_printf(s, "Last transfer: %zu bytes\\n", dev_entry->dio_stats.last_len_read);
-	seq_puts(s, "Note: All parameters must be page-aligned (4KB)\\n");
+	seq_printf(s, "Last transfer: %zu bytes\n", dev_entry->dio_stats.last_len_read);
+	seq_puts(s, "Note: All parameters must be page-aligned (4KB)\n");
 
 	return 0;
 }
@@ -652,13 +651,13 @@ static ssize_t dio_ssd2hl_write(struct file *file, const char __user *buf,
 	parsed = sscanf(kbuf, "fd=%u va=0x%llx off=%llu len=%llu",
 			&fd, &device_va, &off_bytes, &len_bytes);
 	if (parsed != 4) {
-		dev_err(hdev->dev, "Invalid format. Expected: fd=N va=0xADDR off=N len=N\\n");
+		dev_err(hdev->dev, "Invalid format. Expected: fd=N va=0xADDR off=N len=N\n");
 		return -EINVAL;
 	}
 
 	/* Validate file descriptor */
 	if (fd == 0) {
-		dev_err(hdev->dev, "Invalid file descriptor: %u\\n", fd);
+		dev_err(hdev->dev, "Invalid file descriptor: %u\n", fd);
 		return -EINVAL;
 	}
 
@@ -667,24 +666,24 @@ static ssize_t dio_ssd2hl_write(struct file *file, const char __user *buf,
 	    !IS_ALIGNED(off_bytes, PAGE_SIZE) ||
 	    !IS_ALIGNED(len_bytes, PAGE_SIZE)) {
 		dev_err(hdev->dev,
-			"All parameters must be page-aligned (4KB)\\n");
+			"All parameters must be page-aligned (4KB)\n");
 		return -EINVAL;
 	}
 
 	/* Validate transfer size */
 	if (len_bytes == 0 || len_bytes > SZ_1G) {
-		dev_err(hdev->dev, "Invalid length: %llu (max 1GB)\\n",
+		dev_err(hdev->dev, "Invalid length: %llu (max 1GB)\n",
 			len_bytes);
 		return -EINVAL;
 	}
 
-	dev_dbg(hdev->dev, "DIO SSD2HL: fd=%u va=0x%llx off=%llu len=%llu\\n",
+	dev_dbg(hdev->dev, "DIO SSD2HL: fd=%u va=0x%llx off=%llu len=%llu\n",
 		fd, device_va, off_bytes, len_bytes);
 
 	rc = hl_dio_ssd2hl(hdev, ctx, fd, device_va, off_bytes, len_bytes, &len_read);
 	if (rc < 0) {
 		dev_entry->dio_stats.failed_ops++;
-		dev_err(hdev->dev, "SSD2HL operation failed: %d\\n", rc);
+		dev_err(hdev->dev, "SSD2HL operation failed: %d\n", rc);
 		return rc;
 	}
 
@@ -694,14 +693,14 @@ static ssize_t dio_ssd2hl_write(struct file *file, const char __user *buf,
 	dev_entry->dio_stats.bytes_transferred += len_read;
 	dev_entry->dio_stats.last_len_read = len_read;
 
-	dev_dbg(hdev->dev, "DIO SSD2HL completed: %zu bytes transferred\\n", len_read);
+	dev_dbg(hdev->dev, "DIO SSD2HL completed: %zu bytes transferred\n", len_read);
 
 	return count;
 }
 
 static int dio_hl2ssd_show(struct seq_file *s, void *data)
 {
-	seq_puts(s, "HL2SSD (device-to-SSD) transfers not implemented\\n");
+	seq_puts(s, "HL2SSD (device-to-SSD) transfers not implemented\n");
 	return 0;
 }
 
@@ -716,7 +715,7 @@ static ssize_t dio_hl2ssd_write(struct file *file, const char __user *buf,
 	if (!hdev->asic_prop.supports_nvme)
 		return -EOPNOTSUPP;
 
-	dev_dbg(hdev->dev, "HL2SSD operation not implemented\\n");
+	dev_dbg(hdev->dev, "HL2SSD operation not implemented\n");
 	return -EOPNOTSUPP;
 }
 
@@ -729,7 +728,7 @@ static int dio_stats_show(struct seq_file *s, void *data)
 	u64 avg_bytes_per_op = 0, success_rate = 0;
 
 	if (!hdev->asic_prop.supports_nvme) {
-		seq_puts(s, "NVMe Direct I/O not supported\\n");
+		seq_puts(s, "NVMe Direct I/O not supported\n");
 		return 0;
 	}
 
@@ -739,21 +738,21 @@ static int dio_stats_show(struct seq_file *s, void *data)
 	if (stats->total_ops > 0)
 		success_rate = (stats->successful_ops * 100) / stats->total_ops;
 
-	seq_puts(s, "=== Habanalabs Direct I/O Statistics ===\\n");
-	seq_printf(s, "Total operations:     %llu\\n", stats->total_ops);
-	seq_printf(s, "Successful ops:       %llu\\n", stats->successful_ops);
-	seq_printf(s, "Failed ops:           %llu\\n", stats->failed_ops);
-	seq_printf(s, "Success rate:         %llu%%\\n", success_rate);
-	seq_printf(s, "Total bytes:          %llu\\n", stats->bytes_transferred);
-	seq_printf(s, "Avg bytes per op:     %llu\\n", avg_bytes_per_op);
-	seq_printf(s, "Last transfer:        %zu bytes\\n", stats->last_len_read);
+	seq_puts(s, "=== Habanalabs Direct I/O Statistics ===\n");
+	seq_printf(s, "Total operations:     %llu\n", stats->total_ops);
+	seq_printf(s, "Successful ops:       %llu\n", stats->successful_ops);
+	seq_printf(s, "Failed ops:           %llu\n", stats->failed_ops);
+	seq_printf(s, "Success rate:         %llu%%\n", success_rate);
+	seq_printf(s, "Total bytes:          %llu\n", stats->bytes_transferred);
+	seq_printf(s, "Avg bytes per op:     %llu\n", avg_bytes_per_op);
+	seq_printf(s, "Last transfer:        %zu bytes\n", stats->last_len_read);
 
 	return 0;
 }
 
 static int dio_reset_show(struct seq_file *s, void *data)
 {
-	seq_puts(s, "Write '1' to reset DIO statistics\\n");
+	seq_puts(s, "Write '1' to reset DIO statistics\n");
 	return 0;
 }
 
@@ -785,9 +784,9 @@ static ssize_t dio_reset_write(struct file *file, const char __user *buf,
 
 	if (val == 1) {
 		memset(&dev_entry->dio_stats, 0, sizeof(dev_entry->dio_stats));
-		dev_dbg(hdev->dev, "DIO statistics reset\\n");
+		dev_dbg(hdev->dev, "DIO statistics reset\n");
 	} else {
-		dev_err(hdev->dev, "Write '1' to reset statistics\\n");
+		dev_err(hdev->dev, "Write '1' to reset statistics\n");
 		return -EINVAL;
 	}
 
@@ -828,7 +827,7 @@ static ssize_t hl_memory_scrub(struct file *f, const char __user *buf,
 	return count;
 }
 
-static bool hl_is_device_va(struct hl_device *hdev, u64 addr)
+bool hl_is_device_va(struct hl_device *hdev, u64 addr)
 {
 	struct asic_fixed_properties *prop = &hdev->asic_prop;
 
@@ -872,8 +871,7 @@ static bool hl_is_device_internal_memory_va(struct hl_device *hdev, u64 addr,
 	return false;
 }
 
-static int device_va_to_pa(struct hl_device *hdev, u64 virt_addr, u32 size,
-			u64 *phys_addr)
+int hl_device_va_to_pa(struct hl_device *hdev, u64 virt_addr, u32 size, u64 *phys_addr)
 {
 	struct hl_vm_phys_pg_pack *phys_pg_pack;
 	struct hl_ctx *ctx;
@@ -1013,51 +1011,30 @@ static void dump_cfg_access_entry(struct hl_device *hdev,
 
 void hl_debugfs_cfg_access_history_dump(struct hl_device *hdev)
 {
-	struct hl_debugfs_cfg_access *dbgfs = &hdev->debugfs_cfg_accesses;
-	u32 i, head, count = 0;
-	time64_t entry_time, now;
-	unsigned long flags;
+	struct hl_debugfs_cfg_access_entry *accesses_list =
+				hdev->debugfs_cfg_accesses.cfg_access_list;
+	u32 head = hdev->debugfs_cfg_accesses.head, i;
+	ktime_t entry_seconds, current_seconds;
+	bool first_loop = true;
 
-	now = ktime_get_real_seconds();
+	i = (head - 1 + HL_DBGFS_CFG_ACCESS_HIST_LEN) % HL_DBGFS_CFG_ACCESS_HIST_LEN;
+	entry_seconds = accesses_list[i].seconds_since_epoch;
+	current_seconds = ktime_get_real_seconds();
 
-	spin_lock_irqsave(&dbgfs->lock, flags);
-	head = dbgfs->head;
-	if (head == 0)
-		i = HL_DBGFS_CFG_ACCESS_HIST_LEN - 1;
-	else
-		i = head - 1;
+	while ((current_seconds - entry_seconds <= HL_DBGFS_CFG_ACCESS_HIST_TIMEOUT_SEC)
+		&& accesses_list[i].valid) {
 
-	/* Walk back until timeout or invalid entry */
-	while (dbgfs->cfg_access_list[i].valid) {
-		entry_time = dbgfs->cfg_access_list[i].seconds_since_epoch;
-		/* Stop when entry is older than timeout */
-		if (now - entry_time > HL_DBGFS_CFG_ACCESS_HIST_TIMEOUT_SEC)
-			break;
-
-		/* print single entry under lock */
-		{
-			struct hl_debugfs_cfg_access_entry entry = dbgfs->cfg_access_list[i];
-			/*
-			 * We copy the entry out under lock and then print after
-			 * releasing the lock to minimize time under lock.
-			 */
-			spin_unlock_irqrestore(&dbgfs->lock, flags);
-			dump_cfg_access_entry(hdev, &entry);
-			spin_lock_irqsave(&dbgfs->lock, flags);
+		if (first_loop) {
+			dev_info(hdev->dev,
+				"Config region access requests from debugfs - history dump (new to old):\n");
+			first_loop = false;
 		}
 
-		/* mark consumed */
-		dbgfs->cfg_access_list[i].valid = false;
-
-		if (i == 0)
-			i = HL_DBGFS_CFG_ACCESS_HIST_LEN - 1;
-		else
-			i--;
-		count++;
-		if (count >= HL_DBGFS_CFG_ACCESS_HIST_LEN)
-			break;
+		dump_cfg_access_entry(hdev, &accesses_list[i]);
+		accesses_list[i].valid = false;
+		i = (i - 1 + HL_DBGFS_CFG_ACCESS_HIST_LEN) % HL_DBGFS_CFG_ACCESS_HIST_LEN;
+		entry_seconds = accesses_list[i].seconds_since_epoch;
 	}
-	spin_unlock_irqrestore(&dbgfs->lock, flags);
 }
 
 static void check_if_cfg_access_and_log(struct hl_device *hdev, u64 addr, size_t access_size,
@@ -1066,14 +1043,10 @@ static void check_if_cfg_access_and_log(struct hl_device *hdev, u64 addr, size_t
 	struct hl_debugfs_cfg_access *dbgfs_cfg_accesses = &hdev->debugfs_cfg_accesses;
 	struct pci_mem_region *mem_reg = &hdev->pci_mem_region[PCI_REGION_CFG];
 	struct hl_debugfs_cfg_access_entry *new_entry;
-	unsigned long flags;
 
 	/* Check if address is in config memory */
-	if (addr >= mem_reg->region_base &&
-		mem_reg->region_size >= access_size &&
-		addr <= mem_reg->region_base + mem_reg->region_size - access_size) {
-
-		spin_lock_irqsave(&dbgfs_cfg_accesses->lock, flags);
+	if (addr >= mem_reg->region_base && addr <= mem_reg->region_base +
+		mem_reg->region_size - access_size) {
 
 		new_entry = &dbgfs_cfg_accesses->cfg_access_list[dbgfs_cfg_accesses->head];
 		new_entry->seconds_since_epoch = ktime_get_real_seconds();
@@ -1082,9 +1055,6 @@ static void check_if_cfg_access_and_log(struct hl_device *hdev, u64 addr, size_t
 		new_entry->valid = true;
 		dbgfs_cfg_accesses->head = (dbgfs_cfg_accesses->head + 1)
 						% HL_DBGFS_CFG_ACCESS_HIST_LEN;
-
-		spin_unlock_irqrestore(&dbgfs_cfg_accesses->lock, flags);
-
 	}
 }
 
@@ -1100,7 +1070,7 @@ static int hl_access_mem(struct hl_device *hdev, u64 addr, u64 *val,
 
 	user_address = hl_is_device_va(hdev, addr);
 	if (user_address) {
-		rc = device_va_to_pa(hdev, addr, acc_size, &addr);
+		rc = hl_device_va_to_pa(hdev, addr, acc_size, &addr);
 		if (rc)
 			return rc;
 	}
@@ -1117,7 +1087,7 @@ static int hl_access_mem(struct hl_device *hdev, u64 addr, u64 *val,
 	if (found)
 		return 0;
 
-	if (!user_address || device_iommu_mapped(&hdev->pdev->dev)) {
+	if (!user_address || (hdev->pdev && device_iommu_mapped(&hdev->pdev->dev))) {
 		rc = -EINVAL;
 		goto err;
 	}
@@ -1722,6 +1692,75 @@ static ssize_t hl_check_razwi_happened(struct file *f, char __user *buf,
 	return 0;
 }
 
+static ssize_t hl_fw_security_write(struct file *f, const char __user *buf, size_t count,
+					loff_t *ppos)
+{
+	struct hl_dbg_device_entry *entry = file_inode(f)->i_private;
+	struct hl_device *hdev = entry->hdev;
+	struct cpucp_packet pkt = {};
+	u32 value;
+	int rc;
+
+	if (!hl_device_operational(hdev, NULL)) {
+		dev_warn_ratelimited(hdev->dev,
+				"Can't set F/W security while device is not operational\n");
+		return -EBUSY;
+	}
+
+	rc = kstrtouint_from_user(buf, count, 10, &value);
+	if (rc)
+		return rc;
+
+	pkt.ctl = cpu_to_le32(CPUCP_PACKET_SECURITY_SET << CPUCP_PKT_CTL_OPCODE_SHIFT);
+	pkt.value = cpu_to_le64(value);
+
+	rc = hdev->asic_funcs->send_cpu_message(hdev, (u32 *) &pkt, sizeof(pkt), 0, NULL);
+	if (rc) {
+		if (rc != -EAGAIN)
+			dev_err(hdev->dev, "Failed to set F/W security, error %d\n", rc);
+		return rc;
+	}
+
+	return count;
+}
+
+static ssize_t hl_fw_binning_set(struct file *f, const char __user *buf, size_t count,
+					loff_t *ppos)
+{
+	struct hl_dbg_device_entry *entry = file_inode(f)->i_private;
+	struct hl_device *hdev = entry->hdev;
+	int rc;
+
+	rc = hl_fw_send_binning_info(hdev);
+	if (rc) {
+		dev_err(hdev->dev, "Failed to send binning info, error %d\n", rc);
+		return rc;
+	}
+
+	return count;
+}
+
+static ssize_t hl_psoc_wdog_disable(struct file *f, const char __user *buf, size_t count,
+					loff_t *ppos)
+{
+	struct hl_dbg_device_entry *entry = file_inode(f)->i_private;
+	struct hl_device *hdev = entry->hdev;
+	u32 value;
+	int rc;
+
+	rc = kstrtou32_from_user(buf, count, 16, &value);
+	if (rc)
+		return rc;
+
+	rc = hl_fw_send_psoc_wd_disable_msg(hdev, value);
+	if (rc) {
+		dev_err(hdev->dev, "Failed to set PSOC watchdog, error %d\n", rc);
+		return rc;
+	}
+
+	return count;
+}
+
 static const struct file_operations hl_mem_scrub_fops = {
 	.owner = THIS_MODULE,
 	.write = hl_memory_scrub,
@@ -1814,6 +1853,21 @@ static const struct file_operations hl_timeout_locked_fops = {
 static const struct file_operations hl_razwi_check_fops = {
 	.owner = THIS_MODULE,
 	.read = hl_check_razwi_happened
+};
+
+static const struct file_operations hl_fw_security_fops = {
+	.owner = THIS_MODULE,
+	.write = hl_fw_security_write
+};
+
+static const struct file_operations hl_fw_binning_set_fops = {
+	.owner = THIS_MODULE,
+	.write = hl_fw_binning_set
+};
+
+static const struct file_operations hl_psoc_wdog_disable_fops = {
+	.owner = THIS_MODULE,
+	.write = hl_psoc_wdog_disable
 };
 
 static const struct hl_info_list hl_debugfs_list[] = {
@@ -2020,10 +2074,28 @@ static void add_files_to_device(struct hl_device *hdev, struct hl_dbg_device_ent
 				dev_entry,
 				&hl_timeout_locked_fops);
 
+	debugfs_create_file("fw_security",
+				0200,
+				root,
+				dev_entry,
+				&hl_fw_security_fops);
+
+	debugfs_create_file("fw_binning_set",
+				0200,
+				root,
+				dev_entry,
+				&hl_fw_binning_set_fops);
+
 	debugfs_create_u32("device_release_watchdog_timeout",
 				0644,
 				root,
 				&hdev->device_release_watchdog_timeout_sec);
+
+	debugfs_create_file("psoc_wdog_disable",
+				0200,
+				root,
+				dev_entry,
+				&hl_psoc_wdog_disable_fops);
 
 	debugfs_create_u16("server_type",
 				0444,
@@ -2031,11 +2103,6 @@ static void add_files_to_device(struct hl_device *hdev, struct hl_dbg_device_ent
 				&hdev->asic_prop.server_type);
 
 	for (i = 0, entry = dev_entry->entry_arr ; i < count ; i++, entry++) {
-		/* Skip DIO entries if NVMe is not supported */
-		if (strncmp(hl_debugfs_list[i].name, "dio_", 4) == 0 &&
-		    !hdev->asic_prop.supports_nvme)
-			continue;
-
 		debugfs_create_file(hl_debugfs_list[i].name,
 					0644,
 					root,
@@ -2075,14 +2142,6 @@ int hl_debugfs_device_init(struct hl_device *hdev)
 	spin_lock_init(&dev_entry->userptr_spinlock);
 	mutex_init(&dev_entry->ctx_mem_hash_mutex);
 
-	spin_lock_init(&hdev->debugfs_cfg_accesses.lock);
-	hdev->debugfs_cfg_accesses.head = 0; /* already zero by alloc but explicit init is fine */
-
-#ifdef CONFIG_HL_HLDIO
-	/* Initialize DIO statistics */
-	memset(&dev_entry->dio_stats, 0, sizeof(dev_entry->dio_stats));
-#endif
-
 	return 0;
 }
 
@@ -2101,12 +2160,12 @@ void hl_debugfs_device_fini(struct hl_device *hdev)
 		vfree(entry->state_dump[i]);
 
 	kfree(entry->entry_arr);
-
 }
 
 void hl_debugfs_add_device(struct hl_device *hdev)
 {
 	struct hl_dbg_device_entry *dev_entry = &hdev->hl_debugfs;
+	char name[64];
 
 	dev_entry->root = hdev->drm.accel->debugfs_root;
 
@@ -2115,6 +2174,16 @@ void hl_debugfs_add_device(struct hl_device *hdev)
 	if (!hdev->asic_prop.fw_security_enabled)
 		add_secured_nodes(dev_entry, dev_entry->root);
 
+	sprintf(name, "%d", hdev->cdev_idx);
+	dev_entry->accel_symlink =
+		debugfs_create_symlink(HL_PARENT_DEV_NAME(hdev), dev_entry->root->d_parent, name);
+}
+
+void hl_debugfs_remove_device(struct hl_device *hdev)
+{
+	struct hl_dbg_device_entry *entry = &hdev->hl_debugfs;
+
+	debugfs_remove(entry->accel_symlink);
 }
 
 void hl_debugfs_add_file(struct hl_fpriv *hpriv)
@@ -2247,4 +2316,3 @@ void hl_debugfs_set_state_dump(struct hl_device *hdev, char *data,
 
 	up_write(&dev_entry->state_dump_sem);
 }
-

@@ -6,7 +6,6 @@
  */
 
 #include "habanalabs.h"
-
 #include <linux/pci.h>
 #include <linux/types.h>
 
@@ -150,8 +149,8 @@ static ssize_t cpld_ver_show(struct device *dev, struct device_attribute *attr,
 	struct hl_device *hdev = dev_get_drvdata(dev);
 
 	return sprintf(buf, "0x%08x%08x\n",
-		le32_to_cpu(hdev->asic_prop.cpucp_info.cpld_timestamp),
-		le32_to_cpu(hdev->asic_prop.cpucp_info.cpld_version));
+			le32_to_cpu(hdev->asic_prop.cpucp_info.cpld_timestamp),
+			le32_to_cpu(hdev->asic_prop.cpucp_info.cpld_version));
 }
 
 static ssize_t cpucp_kernel_ver_show(struct device *dev,
@@ -253,6 +252,14 @@ out:
 	return count;
 }
 
+static ssize_t driver_ver_show(struct device *dev,
+				struct device_attribute *attr, char *buf)
+{
+	struct hl_device *hdev = dev_get_drvdata(dev);
+
+	return sprintf(buf, "%s\n", hdev->driver_ver);
+}
+
 static ssize_t device_type_show(struct device *dev,
 		struct device_attribute *attr, char *buf)
 {
@@ -260,6 +267,39 @@ static ssize_t device_type_show(struct device *dev,
 	char *str;
 
 	switch (hdev->asic_type) {
+	case ASIC_GOYA_SIM:
+		str = "GOYA Simulator";
+		break;
+	case ASIC_GAUDI_SIM:
+		str = "GAUDI Simulator";
+		break;
+	case ASIC_GAUDI_HL2000M_SIM:
+		str = "GAUDI HL2000M Simulator";
+		break;
+	case ASIC_GAUDI2_SIM:
+	case ASIC_GAUDI2_SIM_ARC:
+		str = "GAUDI2 Simulator";
+		break;
+	case ASIC_GAUDI2B_SIM:
+	case ASIC_GAUDI2B_SIM_ARC:
+		str = "GAUDI2B Simulator";
+		break;
+	case ASIC_GAUDI2C_SIM:
+	case ASIC_GAUDI2C_SIM_ARC:
+		str = "GAUDI2C Simulator";
+		break;
+	case ASIC_GAUDI2D_SIM:
+	case ASIC_GAUDI2D_SIM_ARC:
+		str = "GAUDI2D Simulator";
+		break;
+	case ASIC_GAUDI3_SIM:
+	case ASIC_GAUDI3_SIM_ARC:
+		str = "GAUDI3 Simulator";
+		break;
+	case ASIC_GAUDI3_HL_338_SIM:
+	case ASIC_GAUDI3_HL_338_SIM_ARC:
+		str = "GAUDI3 HL-338 Simulator";
+		break;
 	case ASIC_GOYA:
 		str = "GOYA";
 		break;
@@ -268,6 +308,12 @@ static ssize_t device_type_show(struct device *dev,
 		break;
 	case ASIC_GAUDI_SEC:
 		str = "GAUDI SEC";
+		break;
+	case ASIC_GAUDI_HL2000M:
+		str = "GAUDI HL2000M";
+		break;
+	case ASIC_GAUDI_HL2000M_SEC:
+		str = "GAUDI HL2000M SEC";
 		break;
 	case ASIC_GAUDI2:
 		str = "GAUDI2";
@@ -280,6 +326,15 @@ static ssize_t device_type_show(struct device *dev,
 		break;
 	case ASIC_GAUDI2D:
 		str = "GAUDI2D";
+		break;
+	case ASIC_GAUDI3:
+		str = "GAUDI3";
+		break;
+	case ASIC_GAUDI3_FPGA:
+		str = "GAUDI3 FPGA";
+		break;
+	case ASIC_GAUDI3_HL_338:
+		str = "GAUDI3 HL-338";
 		break;
 	default:
 		dev_err(hdev->dev, "Unrecognized ASIC type %d\n",
@@ -294,6 +349,10 @@ static ssize_t pci_addr_show(struct device *dev, struct device_attribute *attr,
 				char *buf)
 {
 	struct hl_device *hdev = dev_get_drvdata(dev);
+
+	/* Use dummy, fixed address for simulator */
+	if (!hdev->pdev)
+		return sprintf(buf, "0000:00:%02d.0\n", hdev->id);
 
 	return sprintf(buf, "%04x:%02x:%02x.%x\n",
 			pci_domain_nr(hdev->pdev->bus),
@@ -434,6 +493,7 @@ static DEVICE_ATTR_RO(cpld_ver);
 static DEVICE_ATTR_RO(cpucp_kernel_ver);
 static DEVICE_ATTR_RO(cpucp_ver);
 static DEVICE_ATTR_RO(device_type);
+static DEVICE_ATTR_RO(driver_ver);
 static DEVICE_ATTR_RO(fuse_ver);
 static DEVICE_ATTR_WO(hard_reset);
 static DEVICE_ATTR_RO(hard_reset_cnt);
@@ -463,6 +523,7 @@ static struct attribute *hl_dev_attrs[] = {
 	&dev_attr_cpucp_kernel_ver.attr,
 	&dev_attr_cpucp_ver.attr,
 	&dev_attr_device_type.attr,
+	&dev_attr_driver_ver.attr,
 	&dev_attr_fuse_ver.attr,
 	&dev_attr_hard_reset.attr,
 	&dev_attr_hard_reset_cnt.attr,

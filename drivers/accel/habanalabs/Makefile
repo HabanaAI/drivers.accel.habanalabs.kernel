@@ -17,4 +17,6 @@ habanalabs-y += $(HL_GAUDI_FILES)
 include $(src)/goya/Makefile
 habanalabs-y += $(HL_GOYA_FILES)
 
+habanalabs-y += common/importer_drv.o
+
 habanalabs-$(CONFIG_DEBUG_FS) += common/debugfs.o

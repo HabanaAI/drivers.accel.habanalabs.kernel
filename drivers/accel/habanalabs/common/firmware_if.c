@@ -8,7 +8,6 @@
 #include "habanalabs.h"
 #include <linux/habanalabs/hl_boot_if.h>
 
-#include <linux/pci.h>
 #include <linux/firmware.h>
 #include <linux/crc32.h>
 #include <linux/slab.h>
@@ -39,6 +38,14 @@ static char *comms_sts_str_arr[COMMS_STS_INVLD_LAST] = {
 	[COMMS_STS_ERR] = __stringify(COMMS_STS_ERR),
 	[COMMS_STS_VALID_ERR] = __stringify(COMMS_STS_VALID_ERR),
 	[COMMS_STS_TIMEOUT_ERR] = __stringify(COMMS_STS_TIMEOUT_ERR),
+};
+
+struct fw_binning_conf {
+	u64 tpc_binning;
+	u32 dec_binning;
+	u32 hbm_binning;
+	u32 edma_binning;
+	u32 mme_redundancy;
 };
 
 /**
@@ -674,6 +681,21 @@ int hl_fw_send_device_activity(struct hl_device *hdev, bool open)
 	return rc;
 }
 
+int hl_fw_send_psoc_wd_disable_msg(struct hl_device *hdev, bool disable)
+{
+	struct cpucp_packet pkt;
+	int rc;
+
+	memset(&pkt, 0, sizeof(pkt));
+	pkt.ctl = cpu_to_le32(CPUCP_PACKET_WD_DISABLE << CPUCP_PKT_CTL_OPCODE_SHIFT);
+	pkt.value = cpu_to_le64(disable);
+	rc = hdev->asic_funcs->send_cpu_message(hdev, (u32 *) &pkt, sizeof(pkt), 0, NULL);
+	if (rc && rc != -EAGAIN)
+		dev_err(hdev->dev, "failed to psoc watchdog disable msg(val: %u)\n", disable);
+
+	return rc;
+}
+
 int hl_fw_send_heartbeat(struct hl_device *hdev)
 {
 	struct cpucp_packet hb_pkt;
@@ -772,8 +794,16 @@ static bool fw_report_boot_dev0(struct hl_device *hdev, u32 err_val, u32 sts_val
 
 	/* All warnings should go here in order not to reach the unknown error validation */
 	if (err_val & CPU_BOOT_ERR0_EEPROM_FAIL) {
-		dev_err(hdev->dev, "Device boot error - EEPROM failure detected\n");
-		err_exists = true;
+		if (hdev->ignore_eeprom_errors) {
+			dev_warn(hdev->dev,
+				"Device boot warning - EEPROM failure detected, default settings applied\n");
+			/* This is a warning so we don't want it to disable the
+			 * device
+			 */
+			err_val &= ~CPU_BOOT_ERR0_EEPROM_FAIL;
+		} else {
+			dev_err(hdev->dev, "Device boot error - EEPROM failure detected\n");
+		}
 	}
 
 	if (err_val & CPU_BOOT_ERR0_PRI_IMG_VER_FAIL)
@@ -1091,6 +1121,26 @@ int hl_fw_get_monitor_dump(struct hl_device *hdev, void *data)
 
 out:
 	hl_cpu_accessible_dma_pool_free(hdev, data_size, mon_dump_cpu_addr);
+
+	return rc;
+}
+
+int hl_fw_cpucp_nic_info_get(struct hl_device *hdev, dma_addr_t cpucp_nic_info_dma_addr)
+{
+	struct cpucp_packet pkt = {};
+	u64 result;
+	int rc;
+
+	pkt.ctl = cpu_to_le32(CPUCP_PACKET_NIC_INFO_GET <<
+				CPUCP_PKT_CTL_OPCODE_SHIFT);
+	pkt.addr = cpu_to_le64(cpucp_nic_info_dma_addr);
+	pkt.data_max_size = cpu_to_le32(sizeof(struct cpucp_nic_info));
+
+	rc = hdev->asic_funcs->send_cpu_message(hdev, (u32 *) &pkt, sizeof(pkt),
+					HL_CPUCP_INFO_TIMEOUT_USEC, &result);
+	if (rc)
+		dev_err(hdev->dev,
+			"Failed to handle CPU-CP NIC info pkt, error %d\n", rc);
 
 	return rc;
 }
@@ -1492,6 +1542,27 @@ int hl_fw_wait_preboot_ready(struct hl_device *hdev)
 	u32 status = 0, timeout;
 	int rc, tries = 1, fw_err = 0;
 	bool preboot_still_runs;
+
+	if (hdev->pldm) {
+		dev_dbg(hdev->dev, "Waiting for preboot ready, might take few min...\n");
+
+		/* This section is only for PLDM to ensure that the boot status register
+		 * polling will be after iatu is configured.
+		 */
+		rc = hl_poll_timeout_elbi(
+				hdev,
+				hdev->asic_prop.cfg_base_address + pre_fw_load->cpu_boot_status_reg,
+				status,
+				(status == CPU_BOOT_STATUS_WAITING_FOR_BOOT_FIT),
+				hdev->fw_poll_interval_usec,
+				pre_fw_load->wait_for_preboot_timeout);
+		if (rc) {
+			dev_err(hdev->dev, "CPU boot ready ELBI timeout (status = %d)\n", status);
+			return -EIO;
+		}
+		/* Wait for prfeboot iatu setup */
+		ssleep(5);
+	}
 
 	/* Need to check two possible scenarios:
 	 *
@@ -2442,6 +2513,9 @@ static void hl_fw_boot_fit_update_state(struct hl_device *hdev,
 		prop->hard_reset_done_by_fw = !!(prop->fw_bootfit_cpu_boot_dev_sts0 &
 							CPU_BOOT_DEV_STS0_FW_HARD_RST_EN);
 
+		prop->pci_memory_regions_remapped_by_fw =
+			!!(prop->fw_bootfit_cpu_boot_dev_sts0 & CPU_BOOT_DEV_STS0_BMU_REMAP_EN);
+
 		dev_dbg(hdev->dev, "Firmware boot CPU status0 %#x\n",
 					prop->fw_bootfit_cpu_boot_dev_sts0);
 	}
@@ -2581,8 +2655,9 @@ static int hl_fw_dynamic_wait_for_boot_fit_active(struct hl_device *hdev,
 	return 0;
 }
 
-static int hl_fw_dynamic_wait_for_linux_active(struct hl_device *hdev,
-						struct fw_load_mgr *fw_loader)
+static int hl_fw_dynamic_wait_for_sram_available(struct hl_device *hdev,
+						 struct fw_load_mgr *fw_loader,
+						 const char *wait_str)
 {
 	struct dynamic_fw_load_mgr *dyn_loader;
 	u32 status;
@@ -2600,7 +2675,7 @@ static int hl_fw_dynamic_wait_for_linux_active(struct hl_device *hdev,
 		hdev->fw_poll_interval_usec,
 		fw_loader->cpu_timeout);
 	if (rc) {
-		dev_err(hdev->dev, "failed to wait for Linux (status = %d)\n", status);
+		dev_err(hdev->dev, "failed to wait for %s (status = %d)\n", wait_str, status);
 		return rc;
 	}
 
@@ -2608,6 +2683,22 @@ static int hl_fw_dynamic_wait_for_linux_active(struct hl_device *hdev,
 	return 0;
 }
 
+static int hl_fw_wait_for_bmu_remap(struct hl_device *hdev,
+						struct fw_load_mgr *fw_loader)
+{
+	struct asic_fixed_properties *prop = &hdev->asic_prop;
+
+	if (prop->pci_memory_regions_remapped_by_fw)
+		return hl_fw_dynamic_wait_for_sram_available(hdev, fw_loader, "SRAM available");
+
+	return 0;
+}
+
+static int hl_fw_dynamic_wait_for_linux_active(struct hl_device *hdev,
+						struct fw_load_mgr *fw_loader)
+{
+	return hl_fw_dynamic_wait_for_sram_available(hdev, fw_loader, "Linux");
+}
 /**
  * hl_fw_linux_update_state -	update internal data structures after Linux
  *				is loaded.
@@ -2693,6 +2784,14 @@ static int hl_fw_dynamic_send_msg(struct hl_device *hdev,
 	switch (msg_type) {
 	case HL_COMMS_RESET_CAUSE_TYPE:
 		msg->reset_cause = *(__u8 *) data;
+		break;
+
+	case HL_COMMS_FW_CFG_SKIP_TYPE:
+		msg->fw_cfg_skip = *(__u8 *) data;
+		break;
+
+	case HL_COMMS_EEPROM_DEFAULTS_TYPE:
+		msg->eeprom_defaults_on_err = *(__u8 *) data;
 		break;
 
 	default:
@@ -2781,6 +2880,20 @@ static int hl_fw_dynamic_init_cpu(struct hl_device *hdev,
 		hdev->reset_info.curr_reset_cause = HL_RESET_CAUSE_UNKNOWN;
 	}
 
+	if (hdev->fw_cfg_skip && hdev->supports_fw_cfg_skip) {
+		rc = hl_fw_dynamic_send_msg(hdev, fw_loader,
+				HL_COMMS_FW_CFG_SKIP_TYPE, &hdev->fw_cfg_skip);
+		if (rc)
+			goto protocol_err;
+	}
+
+	if (hdev->ignore_eeprom_errors) {
+		rc = hl_fw_dynamic_send_msg(hdev, fw_loader,
+				HL_COMMS_EEPROM_DEFAULTS_TYPE, &hdev->ignore_eeprom_errors);
+		if (rc)
+			goto protocol_err;
+	}
+
 	rc = hl_fw_dynamic_request_descriptor(hdev, fw_loader, sizeof(struct lkd_msg_comms));
 	if (rc)
 		goto protocol_err;
@@ -2805,6 +2918,8 @@ static int hl_fw_dynamic_init_cpu(struct hl_device *hdev,
 			hdev->dram_binning = le32_to_cpu(binning_info->dram_mask);
 			hdev->edma_binning = le32_to_cpu(binning_info->edma_mask);
 			hdev->decoder_binning = le32_to_cpu(binning_info->dec_mask);
+			hdev->mme_binning = (u64)le32_to_cpu(binning_info->mme_mask_h) << 32 |
+						le32_to_cpu(binning_info->mme_mask_l);
 			hdev->rotator_binning = le32_to_cpu(binning_info->rot_mask);
 
 			rc = hdev->asic_funcs->set_dram_properties(hdev);
@@ -2815,10 +2930,10 @@ static int hl_fw_dynamic_init_cpu(struct hl_device *hdev,
 			if (rc)
 				return rc;
 
-			dev_dbg(hdev->dev,
-				"Read binning masks: tpc: 0x%llx, dram: 0x%llx, edma: 0x%x, dec: 0x%x, rot:0x%x\n",
-				hdev->tpc_binning, hdev->dram_binning, hdev->edma_binning,
-				hdev->decoder_binning, hdev->rotator_binning);
+			dev_dbg(hdev->dev, "Read binning masks: tpc: 0x%llx, dram: 0x%llx, edma: 0x%x, dec: 0x%x, mme: 0x%llx, rot:0x%x\n",
+					hdev->tpc_binning, hdev->dram_binning, hdev->edma_binning,
+					hdev->decoder_binning, hdev->mme_binning,
+					hdev->rotator_binning);
 		}
 
 		return 0;
@@ -2839,6 +2954,10 @@ static int hl_fw_dynamic_init_cpu(struct hl_device *hdev,
 	hl_fw_boot_fit_update_state(hdev,
 			le32_to_cpu(dyn_regs->cpu_boot_dev_sts0),
 			le32_to_cpu(dyn_regs->cpu_boot_dev_sts1));
+
+	rc = hl_fw_wait_for_bmu_remap(hdev, fw_loader);
+	if (rc)
+		goto protocol_err;
 
 	/*
 	 * when testing FW load (without Linux) on PLDM we don't want to
@@ -3125,7 +3244,8 @@ int hl_fw_init_cpu(struct hl_device *hdev)
 
 void hl_fw_set_pll_profile(struct hl_device *hdev)
 {
-	hl_fw_set_frequency(hdev, hdev->asic_prop.clk_pll_index,
+	if (hdev->pdev && !hdev->low_freq)
+		hl_fw_set_frequency(hdev, hdev->asic_prop.clk_pll_index,
 				hdev->asic_prop.max_freq_value);
 }
 
@@ -3256,6 +3376,58 @@ void hl_fw_set_max_power(struct hl_device *hdev)
 		dev_err(hdev->dev, "Failed to set max power, error %d\n", rc);
 }
 
+int hl_fw_send_binning_info(struct hl_device *hdev)
+{
+	struct lkd_fw_binning_info *dbg_conf = &hdev->dbg_binning_conf;
+	struct lkd_fw_binning_info conf = {0};
+	struct cpucp_array_data_packet *pkt;
+	size_t total_pkt_size, data_size;
+	u64 result;
+	int rc;
+
+	if (!hdev->supports_custom_fw_binning) {
+		dev_info(hdev->dev, "sending binning info not supported for this ASIC\n");
+		return 0;
+	}
+
+	data_size = sizeof(struct lkd_fw_binning_info);
+	total_pkt_size = sizeof(struct cpucp_array_data_packet) + data_size;
+
+	/* Data should be aligned to 8 bytes in order to CPU-CP to copy it */
+	total_pkt_size = (total_pkt_size + 0x7) & ~0x7;
+
+	/* Total_pkt_size is casted to u16 later on when calling send_cpu_message */
+	if (total_pkt_size > USHRT_MAX) {
+		dev_err(hdev->dev, "CPUCP array data is too big\n");
+		return -EINVAL;
+	}
+
+	pkt = kzalloc(total_pkt_size, GFP_KERNEL);
+	if (!pkt)
+		return -ENOMEM;
+
+	pkt->length = cpu_to_le32(sizeof(struct lkd_fw_binning_info) / sizeof(u32));
+
+	memset((void *) &pkt->data, 0, data_size);
+	conf.tpc_mask_l = dbg_conf->tpc_mask_l;
+	conf.dram_mask = dbg_conf->dram_mask;
+	conf.dec_mask = dbg_conf->dec_mask;
+	conf.edma_mask = dbg_conf->edma_mask;
+	conf.mme_mask_l = dbg_conf->mme_mask_l;
+	conf.mme_mask_h = dbg_conf->mme_mask_h;
+	memcpy(pkt->data, &conf, data_size);
+
+	pkt->cpucp_pkt.ctl = cpu_to_le32(CPUCP_PACKET_BINNING_SET << CPUCP_PKT_CTL_OPCODE_SHIFT);
+
+	rc = hdev->asic_funcs->send_cpu_message(hdev, (u32 *)pkt, total_pkt_size, 0, &result);
+	if (rc)
+		dev_err(hdev->dev, "failed to send CPUCP array data\n");
+
+	kfree(pkt);
+
+	return rc;
+}
+
 static int hl_fw_get_sec_attest_data(struct hl_device *hdev, u32 packet_id, void *data, u32 size,
 					u32 nonce, u32 timeout)
 {
@@ -3334,4 +3506,39 @@ int hl_fw_send_generic_request(struct hl_device *hdev, enum hl_passthrough_type 
 	*size = (u32)result;
 
 	return rc;
+}
+
+/*
+ * NOTE: here, we may have compatibility issues that can cause packet failure.
+ * for example, when flash version (which is checked in hl_fw_version_cmp())
+ * differs from the preboot's.
+ * Failure to get this data should not be fatal but rather be reported
+ * as an info log to the user.
+ */
+void hl_fw_set_host_date_and_time(struct hl_device *hdev)
+{
+	struct cpucp_packet pkt = {};
+	struct tm tm;
+	u64 value;
+	int rc;
+
+	/* The 'SET_HOST_TIME' packet is supported from FW version 1.18.0 */
+	if (hl_fw_version_cmp(hdev, 1, 18, 0) < 0)
+		return;
+
+	time64_to_tm(ktime_get_real_seconds(), 0, &tm);
+
+	value = FIELD_PREP(CPUCP_PKT_VAL_YEAR_MASK, tm.tm_year + 1900) |
+		FIELD_PREP(CPUCP_PKT_VAL_MONTH_MASK, tm.tm_mon + 1) |
+		FIELD_PREP(CPUCP_PKT_VAL_DAY_MASK, tm.tm_mday) |
+		FIELD_PREP(CPUCP_PKT_VAL_HOUR_MASK, tm.tm_hour) |
+		FIELD_PREP(CPUCP_PKT_VAL_MINUTE_MASK, tm.tm_min) |
+		FIELD_PREP(CPUCP_PKT_VAL_SECOND_MASK, tm.tm_sec);
+
+	pkt.ctl = cpu_to_le32(CPUCP_PACKET_SET_HOST_TIME << CPUCP_PKT_CTL_OPCODE_SHIFT);
+	pkt.value = cpu_to_le64(value);
+
+	rc = hdev->asic_funcs->send_cpu_message(hdev, (u32 *) &pkt, sizeof(pkt), 0, NULL);
+	if (rc)
+		dev_info(hdev->dev, "Failed to set host date and time, rc %d\n", rc);
 }

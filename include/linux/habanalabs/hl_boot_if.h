@@ -9,6 +9,11 @@
 #define HL_BOOT_IF_H
 
 #define LKD_HARD_RESET_MAGIC		0xED7BD694 /* deprecated - do not use */
+
+/* This define is read by the Host driver when it needs to know
+ * if it is running on a POWER9 platform. The F/W is responsible to
+ * write this value.
+ */
 #define HL_POWER9_HOST_MAGIC		0x1DA30009
 
 #define BOOT_FIT_SRAM_OFFSET		0x200000
@@ -30,6 +35,10 @@ enum cpu_boot_err {
 	CPU_BOOT_ERR_SEC_IMG_VER_FAIL = 11,
 	CPU_BOOT_ERR_PLL_FAIL = 12,
 	CPU_BOOT_ERR_DEVICE_UNUSABLE_FAIL = 13,
+	CPU_BOOT_ERR_ARC0_HALT_ACK_NOT_RCVD = 14,
+	CPU_BOOT_ERR_ARC1_HALT_ACK_NOT_RCVD = 15,
+	CPU_BOOT_ERR_ARC0_RUN_ACK_NOT_RCVD = 16,
+	CPU_BOOT_ERR_ARC1_RUN_ACK_NOT_RCVD = 17,
 	CPU_BOOT_ERR_BOOT_FW_CRIT_ERR = 18,
 	CPU_BOOT_ERR_BINNING_FAIL = 19,
 	CPU_BOOT_ERR_TPM_FAIL = 20,
@@ -117,6 +126,26 @@ enum cpu_boot_err {
  * CPU_BOOT_ERR0_DEVICE_UNUSABLE_FAIL	Device is unusable and customer support
  *					should be contacted.
  *
+ * CPU_BOOT_ERR0_ARC0_HALT_ACK_NOT_RCVD	HALT ACK from ARC0 is not received
+ *					within specified retries after issuing
+ *					HALT request. ARC0 appears to be in bad
+ *					reset.
+ *
+ * CPU_BOOT_ERR0_ARC1_HALT_ACK_NOT_RCVD	HALT ACK from ARC1 is not received
+ *					within specified retries after issuing
+ *					HALT request. ARC1 appears to be in bad
+ *					reset.
+ *
+ * CPU_BOOT_ERR0_ARC0_RUN_ACK_NOT_RCVD	RUN ACK from ARC0 is not received
+ *					within specified timeout after issuing
+ *					RUN request. ARC0 appears to be in bad
+ *					reset.
+ *
+ * CPU_BOOT_ERR0_ARC1_RUN_ACK_NOT_RCVD	RUN ACK from ARC1 is not received
+ *					within specified timeout after issuing
+ *					RUN request. ARC1 appears to be in bad
+ *					reset.
+ *
  * CPU_BOOT_ERR0_BOOT_FW_CRIT_ERR	Critical error was detected during
  *					the execution of ppboot or preboot.
  *					for example: stack overflow.
@@ -156,6 +185,10 @@ enum cpu_boot_err {
 #define CPU_BOOT_ERR0_SEC_IMG_VER_FAIL		(1 << CPU_BOOT_ERR_SEC_IMG_VER_FAIL)
 #define CPU_BOOT_ERR0_PLL_FAIL			(1 << CPU_BOOT_ERR_PLL_FAIL)
 #define CPU_BOOT_ERR0_DEVICE_UNUSABLE_FAIL	(1 << CPU_BOOT_ERR_DEVICE_UNUSABLE_FAIL)
+#define CPU_BOOT_ERR0_ARC0_HALT_ACK_NOT_RCVD	(1 << CPU_BOOT_ERR_ARC0_HALT_ACK_NOT_RCVD)
+#define CPU_BOOT_ERR0_ARC1_HALT_ACK_NOT_RCVD	(1 << CPU_BOOT_ERR_ARC1_HALT_ACK_NOT_RCVD)
+#define CPU_BOOT_ERR0_ARC0_RUN_ACK_NOT_RCVD	(1 << CPU_BOOT_ERR_ARC0_RUN_ACK_NOT_RCVD)
+#define CPU_BOOT_ERR0_ARC1_RUN_ACK_NOT_RCVD	(1 << CPU_BOOT_ERR_ARC1_RUN_ACK_NOT_RCVD)
 #define CPU_BOOT_ERR0_BOOT_FW_CRIT_ERR		(1 << CPU_BOOT_ERR_BOOT_FW_CRIT_ERR)
 #define CPU_BOOT_ERR0_BINNING_FAIL		(1 << CPU_BOOT_ERR_BINNING_FAIL)
 #define CPU_BOOT_ERR0_TPM_FAIL			(1 << CPU_BOOT_ERR_TPM_FAIL)
@@ -195,6 +228,8 @@ enum cpu_boot_dev_sts {
 	CPU_BOOT_DEV_STS_MAP_HWMON_EN = 26,
 	CPU_BOOT_DEV_STS_NIC_MEM_CLEAR_EN = 27,
 	CPU_BOOT_DEV_STS_MMU_PGTBL_DRAM_EN = 28,
+	CPU_BOOT_DEV_STS_BMU_REMAP_DEPRECATED = 29, /* deprecated */
+	CPU_BOOT_DEV_STS_BMU_REMAP_EN = 30,
 	CPU_BOOT_DEV_STS_ENABLED = 31,
 	CPU_BOOT_DEV_STS_SCND_EN = 63,
 	CPU_BOOT_DEV_STS_LAST = 64 /* we have 2 registers of 32 bits */
@@ -343,6 +378,10 @@ enum cpu_boot_dev_sts {
  *					page tables to reside in DRAM.
  *					Initialized in: zephyr-mgmt
  *
+ * CPU_BOOT_DEV_STS0_BMU_REMAP_EN
+ *					BMU is remapped for runtime FW operation. Different BMU
+ *					mapping is used for boot phase, and runtime phase.
+ *
  * CPU_BOOT_DEV_STS0_ENABLED		Device status register enabled.
  *					This is a main indication that the
  *					running FW populates the device status
@@ -381,6 +420,8 @@ enum cpu_boot_dev_sts {
 #define CPU_BOOT_DEV_STS0_MAP_HWMON_EN		(1 << CPU_BOOT_DEV_STS_MAP_HWMON_EN)
 #define CPU_BOOT_DEV_STS0_NIC_MEM_CLEAR_EN	(1 << CPU_BOOT_DEV_STS_NIC_MEM_CLEAR_EN)
 #define CPU_BOOT_DEV_STS0_MMU_PGTBL_DRAM_EN	(1 << CPU_BOOT_DEV_STS_MMU_PGTBL_DRAM_EN)
+#define CPU_BOOT_DEV_STS0_BMU_REMAP_DEPRECATED	(1 << CPU_BOOT_DEV_STS_BMU_REMAP_DEPRECATED)
+#define CPU_BOOT_DEV_STS0_BMU_REMAP_EN		(1 << CPU_BOOT_DEV_STS_BMU_REMAP_EN)
 #define CPU_BOOT_DEV_STS0_ENABLED		(1 << CPU_BOOT_DEV_STS_ENABLED)
 #define CPU_BOOT_DEV_STS1_ENABLED		(1 << CPU_BOOT_DEV_STS_ENABLED)
 
@@ -417,7 +458,7 @@ enum kmd_msg {
 	KMD_MSG_GOTO_WFE,
 	KMD_MSG_FIT_RDY,
 	KMD_MSG_SKIP_BMC,
-	RESERVED,
+	KMD_MSG_LOW_PLL_OPP,
 	KMD_MSG_RST_DEV,
 	KMD_MSG_LAST
 };
@@ -507,6 +548,7 @@ enum comms_msg_type {
 	HL_COMMS_RESET_CAUSE_TYPE = 1,
 	HL_COMMS_FW_CFG_SKIP_TYPE = 2,
 	HL_COMMS_BINNING_CONF_TYPE = 3,
+	HL_COMMS_EEPROM_DEFAULTS_TYPE = 4,
 };
 
 /*
@@ -597,6 +639,9 @@ enum comms_reset_cause {
 	HL_RESET_CAUSE_TDR = 2,
 };
 
+/* each 6 bits represents a redundant column */
+#define MME_REDUNDANT_COLUMN(mask, mme_id) ((mask >> (mme_id * 6)) & 0x3F)
+
 /* TODO: remove define after struct name is aligned on all projects */
 #define lkd_msg_comms lkd_fw_comms_msg
 
@@ -624,6 +669,9 @@ struct lkd_fw_comms_msg {
 		};
 		struct {
 			__u8 fw_cfg_skip; /* 1 - skip, 0 - don't skip */
+		};
+		struct { /* 1 - use defaults on err, 0 - fail boot on err */
+			__u8 eeprom_defaults_on_err;
 		};
 		struct lkd_fw_binning_info binning_conf;
 	};
@@ -669,6 +717,8 @@ struct lkd_fw_comms_msg {
  * COMMS_SKIP_BMC		Perform actions required for BMC-less servers.
  *				Do not wait for BMC response.
  *
+ * COMMS_LOW_PLL_OPP		Initialize PLLs for low OPP.
+ *
  * COMMS_PREP_DESC_ELBI		Same as COMMS_PREP_DESC only that the memory
  *				space is allocated in a ELBI access only
  *				address range.
@@ -684,6 +734,7 @@ enum comms_cmd {
 	COMMS_RST_DEV = 6,
 	COMMS_GOTO_WFE = 7,
 	COMMS_SKIP_BMC = 8,
+	COMMS_LOW_PLL_OPP = 9,
 	COMMS_PREP_DESC_ELBI = 10,
 	COMMS_INVLD_LAST
 };

@@ -8,7 +8,13 @@
 #ifndef HABANALABS_H_
 #define HABANALABS_H_
 
+#include <linux/if_ether.h>
+
+#ifdef __KERNEL__
 #include <drm/drm.h>
+#else
+#include "drm.h"
+#endif
 
 /*
  * Defines that are asic-specific but constitutes as ABI between kernel driver
@@ -16,6 +22,7 @@
  */
 #define GOYA_KMD_SRAM_RESERVED_SIZE_FROM_START		0x8000	/* 32KB */
 #define GAUDI_DRIVER_SRAM_RESERVED_SIZE_FROM_START	0x80	/* 128 bytes */
+#define GRECO_DRIVER_SRAM_RESERVED_SIZE_FROM_START	0x80	/* 128 bytes */
 
 /*
  * 128 SOBs reserved for collective wait
@@ -28,6 +35,19 @@
  * 8 monitors reserved for sync stream
  */
 #define GAUDI_FIRST_AVAILABLE_W_S_MONITOR		72
+
+/*
+ * 64 SOBs reserved for completion Q
+ * 1 SOB reserved for KDMA completion
+ * 32 SOBs reserved for sync stream
+ */
+#define GRECO_FIRST_AVAILABLE_SYNC_OBJECT		97
+
+/*
+ * 64 monitors reserved for completion Q
+ * 16 monitors reserved for sync stream
+ */
+#define GRECO_FIRST_AVAILABLE_MONITOR			80
 
 /* Max number of elements in timestamps registration buffers */
 #define	TS_MAX_ELEMENTS_NUM				(1 << 20) /* 1MB */
@@ -181,6 +201,100 @@ enum gaudi_queue_id {
 	GAUDI_QUEUE_ID_NIC_9_2 = 111,	/* internal */
 	GAUDI_QUEUE_ID_NIC_9_3 = 112,	/* internal */
 	GAUDI_QUEUE_ID_SIZE
+};
+
+/*
+ * In GRECO, we have two modes of operation:
+ * - Full-Chip, where two DCOREs are used by a single user at the same time
+ * - Half-Chip, where each DCORE is used by a different user
+ *
+ * Therefore, the queue ids should represent the two modes. In Full-Chip mode,
+ * all queue ids are valid and in Half-Chip mode, only DCORE0 queue ids are
+ * valid
+ */
+enum greco_queue_id {
+	GRECO_QUEUE_ID_DCORE0_PDMA_0_0 = 0,
+	GRECO_QUEUE_ID_DCORE0_PDMA_0_1 = 1,
+	GRECO_QUEUE_ID_DCORE0_PDMA_0_2 = 2,
+	GRECO_QUEUE_ID_DCORE0_PDMA_0_3 = 3,
+	GRECO_QUEUE_ID_DCORE0_PDMA_1_0 = 4,
+	GRECO_QUEUE_ID_DCORE0_PDMA_1_1 = 5,
+	GRECO_QUEUE_ID_DCORE0_PDMA_1_2 = 6,
+	GRECO_QUEUE_ID_DCORE0_PDMA_1_3 = 7,
+	GRECO_QUEUE_ID_DCORE0_DDMA_0_0 = 8,
+	GRECO_QUEUE_ID_DCORE0_DDMA_0_1 = 9,
+	GRECO_QUEUE_ID_DCORE0_DDMA_0_2 = 10,
+	GRECO_QUEUE_ID_DCORE0_DDMA_0_3 = 11,
+	GRECO_QUEUE_ID_DCORE0_MME_0_0 = 12,
+	GRECO_QUEUE_ID_DCORE0_MME_0_1 = 13,
+	GRECO_QUEUE_ID_DCORE0_MME_0_2 = 14,
+	GRECO_QUEUE_ID_DCORE0_MME_0_3 = 15,
+	GRECO_QUEUE_ID_DCORE0_TPC_0_0 = 16,
+	GRECO_QUEUE_ID_DCORE0_TPC_0_1 = 17,
+	GRECO_QUEUE_ID_DCORE0_TPC_0_2 = 18,
+	GRECO_QUEUE_ID_DCORE0_TPC_0_3 = 19,
+	GRECO_QUEUE_ID_DCORE0_TPC_1_0 = 20,
+	GRECO_QUEUE_ID_DCORE0_TPC_1_1 = 21,
+	GRECO_QUEUE_ID_DCORE0_TPC_1_2 = 22,
+	GRECO_QUEUE_ID_DCORE0_TPC_1_3 = 23,
+	GRECO_QUEUE_ID_DCORE0_TPC_2_0 = 24,
+	GRECO_QUEUE_ID_DCORE0_TPC_2_1 = 25,
+	GRECO_QUEUE_ID_DCORE0_TPC_2_2 = 26,
+	GRECO_QUEUE_ID_DCORE0_TPC_2_3 = 27,
+	GRECO_QUEUE_ID_DCORE0_TPC_3_0 = 28,
+	GRECO_QUEUE_ID_DCORE0_TPC_3_1 = 29,
+	GRECO_QUEUE_ID_DCORE0_TPC_3_2 = 30,
+	GRECO_QUEUE_ID_DCORE0_TPC_3_3 = 31,
+	GRECO_QUEUE_ID_DCORE0_TPC_4_0 = 32,
+	GRECO_QUEUE_ID_DCORE0_TPC_4_1 = 33,
+	GRECO_QUEUE_ID_DCORE0_TPC_4_2 = 34,
+	GRECO_QUEUE_ID_DCORE0_TPC_4_3 = 35,
+	GRECO_QUEUE_ID_DCORE0_ROT_0_0 = 36,
+	GRECO_QUEUE_ID_DCORE0_ROT_0_1 = 37,
+	GRECO_QUEUE_ID_DCORE0_ROT_0_2 = 38,
+	GRECO_QUEUE_ID_DCORE0_ROT_0_3 = 39,
+	GRECO_QUEUE_ID_DCORE1_PDMA_0_0 = 40,
+	GRECO_QUEUE_ID_DCORE1_PDMA_0_1 = 41,
+	GRECO_QUEUE_ID_DCORE1_PDMA_0_2 = 42,
+	GRECO_QUEUE_ID_DCORE1_PDMA_0_3 = 43,
+	GRECO_QUEUE_ID_DCORE1_PDMA_1_0 = 44,
+	GRECO_QUEUE_ID_DCORE1_PDMA_1_1 = 45,
+	GRECO_QUEUE_ID_DCORE1_PDMA_1_2 = 46,
+	GRECO_QUEUE_ID_DCORE1_PDMA_1_3 = 47,
+	GRECO_QUEUE_ID_DCORE1_DDMA_0_0 = 48,
+	GRECO_QUEUE_ID_DCORE1_DDMA_0_1 = 49,
+	GRECO_QUEUE_ID_DCORE1_DDMA_0_2 = 50,
+	GRECO_QUEUE_ID_DCORE1_DDMA_0_3 = 51,
+	GRECO_QUEUE_ID_DCORE1_MME_0_0 = 52,
+	GRECO_QUEUE_ID_DCORE1_MME_0_1 = 53,
+	GRECO_QUEUE_ID_DCORE1_MME_0_2 = 54,
+	GRECO_QUEUE_ID_DCORE1_MME_0_3 = 55,
+	GRECO_QUEUE_ID_DCORE1_TPC_0_0 = 56,
+	GRECO_QUEUE_ID_DCORE1_TPC_0_1 = 57,
+	GRECO_QUEUE_ID_DCORE1_TPC_0_2 = 58,
+	GRECO_QUEUE_ID_DCORE1_TPC_0_3 = 59,
+	GRECO_QUEUE_ID_DCORE1_TPC_1_0 = 60,
+	GRECO_QUEUE_ID_DCORE1_TPC_1_1 = 61,
+	GRECO_QUEUE_ID_DCORE1_TPC_1_2 = 62,
+	GRECO_QUEUE_ID_DCORE1_TPC_1_3 = 63,
+	GRECO_QUEUE_ID_DCORE1_TPC_2_0 = 64,
+	GRECO_QUEUE_ID_DCORE1_TPC_2_1 = 65,
+	GRECO_QUEUE_ID_DCORE1_TPC_2_2 = 66,
+	GRECO_QUEUE_ID_DCORE1_TPC_2_3 = 67,
+	GRECO_QUEUE_ID_DCORE1_TPC_3_0 = 68,
+	GRECO_QUEUE_ID_DCORE1_TPC_3_1 = 69,
+	GRECO_QUEUE_ID_DCORE1_TPC_3_2 = 70,
+	GRECO_QUEUE_ID_DCORE1_TPC_3_3 = 71,
+	GRECO_QUEUE_ID_DCORE1_TPC_4_0 = 72,
+	GRECO_QUEUE_ID_DCORE1_TPC_4_1 = 73,
+	GRECO_QUEUE_ID_DCORE1_TPC_4_2 = 74,
+	GRECO_QUEUE_ID_DCORE1_TPC_4_3 = 75,
+	GRECO_QUEUE_ID_DCORE1_ROT_0_0 = 76,
+	GRECO_QUEUE_ID_DCORE1_ROT_0_1 = 77,
+	GRECO_QUEUE_ID_DCORE1_ROT_0_2 = 78,
+	GRECO_QUEUE_ID_DCORE1_ROT_0_3 = 79,
+	GRECO_QUEUE_ID_CPU_PQ = 80,
+	GRECO_QUEUE_ID_SIZE
 };
 
 /*
@@ -520,6 +634,41 @@ enum gaudi_engine_id {
 	GAUDI_ENGINE_ID_SIZE
 };
 
+enum greco_engine_id {
+	GRECO_DCORE0_ENGINE_ID_DDMA = 0,
+	GRECO_DCORE0_ENGINE_ID_PDMA_0,
+	GRECO_DCORE0_ENGINE_ID_PDMA_1,
+	GRECO_DCORE0_ENGINE_ID_MME,
+	GRECO_DCORE0_ENGINE_ID_TPC_0,
+	GRECO_DCORE0_ENGINE_ID_TPC_1,
+	GRECO_DCORE0_ENGINE_ID_TPC_2,
+	GRECO_DCORE0_ENGINE_ID_TPC_3,
+	GRECO_DCORE0_ENGINE_ID_TPC_4,
+	GRECO_DCORE0_ENGINE_ID_DEC_0,
+	GRECO_DCORE0_ENGINE_ID_DEC_1,
+	GRECO_DCORE0_ENGINE_ID_DEC_2,
+	GRECO_DCORE0_ENGINE_ID_DEC_3,
+	GRECO_DCORE0_ENGINE_ID_DEC_4,
+	GRECO_DCORE0_ENGINE_ID_ROT,
+	GRECO_DCORE1_ENGINE_ID_DDMA,
+	GRECO_DCORE1_ENGINE_ID_PDMA_0,
+	GRECO_DCORE1_ENGINE_ID_PDMA_1,
+	GRECO_DCORE1_ENGINE_ID_MME,
+	GRECO_DCORE1_ENGINE_ID_TPC_0,
+	GRECO_DCORE1_ENGINE_ID_TPC_1,
+	GRECO_DCORE1_ENGINE_ID_TPC_2,
+	GRECO_DCORE1_ENGINE_ID_TPC_3,
+	GRECO_DCORE1_ENGINE_ID_TPC_4,
+	GRECO_DCORE1_ENGINE_ID_DEC_0,
+	GRECO_DCORE1_ENGINE_ID_DEC_1,
+	GRECO_DCORE1_ENGINE_ID_DEC_2,
+	GRECO_DCORE1_ENGINE_ID_DEC_3,
+	GRECO_DCORE1_ENGINE_ID_DEC_4,
+	GRECO_DCORE1_ENGINE_ID_ROT,
+	GRECO_ENGINE_ID_ENC,
+	GRECO_ENGINE_ID_SIZE
+};
+
 enum gaudi2_engine_id {
 	GAUDI2_DCORE0_ENGINE_ID_EDMA_0 = 0,
 	GAUDI2_DCORE0_ENGINE_ID_EDMA_1,
@@ -603,6 +752,204 @@ enum gaudi2_engine_id {
 	GAUDI2_ENGINE_ID_SIZE
 };
 
+enum gaudi3_engine_id {
+	GAUDI3_HDCORE0_ENGINE_ID_DEC_0 = 0,
+	GAUDI3_HDCORE0_ENGINE_ID_DEC_1 = 1,
+	GAUDI3_HDCORE1_ENGINE_ID_DEC_0 = 2,
+	GAUDI3_HDCORE1_ENGINE_ID_DEC_1 = 3,
+	GAUDI3_HDCORE2_ENGINE_ID_DEC_0 = 4,
+	GAUDI3_HDCORE2_ENGINE_ID_DEC_1 = 5,
+	GAUDI3_HDCORE3_ENGINE_ID_DEC_0 = 6,
+	GAUDI3_HDCORE3_ENGINE_ID_DEC_1 = 7,
+	GAUDI3_HDCORE4_ENGINE_ID_DEC_0 = 8,
+	GAUDI3_HDCORE4_ENGINE_ID_DEC_1 = 9,
+	GAUDI3_HDCORE5_ENGINE_ID_DEC_0 = 10,
+	GAUDI3_HDCORE5_ENGINE_ID_DEC_1 = 11,
+	GAUDI3_HDCORE6_ENGINE_ID_DEC_0 = 12,
+	GAUDI3_HDCORE6_ENGINE_ID_DEC_1 = 13,
+	GAUDI3_HDCORE7_ENGINE_ID_DEC_0 = 14,
+	GAUDI3_HDCORE7_ENGINE_ID_DEC_1 = 15,
+	GAUDI3_HDCORE1_ENGINE_ID_EDMA_0 = 16,
+	GAUDI3_HDCORE1_ENGINE_ID_EDMA_1 = 17,
+	GAUDI3_HDCORE3_ENGINE_ID_EDMA_0 = 18,
+	GAUDI3_HDCORE3_ENGINE_ID_EDMA_1 = 19,
+	GAUDI3_HDCORE4_ENGINE_ID_EDMA_0 = 20,
+	GAUDI3_HDCORE4_ENGINE_ID_EDMA_1 = 21,
+	GAUDI3_HDCORE6_ENGINE_ID_EDMA_0 = 22,
+	GAUDI3_HDCORE6_ENGINE_ID_EDMA_1 = 23,
+	GAUDI3_HDCORE0_ENGINE_ID_MME_0 = 24,
+	GAUDI3_HDCORE1_ENGINE_ID_MME_0 = 25,
+	GAUDI3_HDCORE2_ENGINE_ID_MME_0 = 26,
+	GAUDI3_HDCORE3_ENGINE_ID_MME_0 = 27,
+	GAUDI3_HDCORE4_ENGINE_ID_MME_0 = 28,
+	GAUDI3_HDCORE5_ENGINE_ID_MME_0 = 29,
+	GAUDI3_HDCORE6_ENGINE_ID_MME_0 = 30,
+	GAUDI3_HDCORE7_ENGINE_ID_MME_0 = 31,
+	GAUDI3_HDCORE0_ENGINE_ID_TPC_0 = 32,
+	GAUDI3_HDCORE0_ENGINE_ID_TPC_1 = 33,
+	GAUDI3_HDCORE0_ENGINE_ID_TPC_2 = 34,
+	GAUDI3_HDCORE0_ENGINE_ID_TPC_3 = 35,
+	GAUDI3_HDCORE0_ENGINE_ID_TPC_4 = 36,
+	GAUDI3_HDCORE0_ENGINE_ID_TPC_5 = 37,
+	GAUDI3_HDCORE0_ENGINE_ID_TPC_6 = 38,
+	GAUDI3_HDCORE0_ENGINE_ID_TPC_7 = 39,
+	GAUDI3_HDCORE1_ENGINE_ID_TPC_0 = 40,
+	GAUDI3_HDCORE1_ENGINE_ID_TPC_1 = 41,
+	GAUDI3_HDCORE1_ENGINE_ID_TPC_2 = 42,
+	GAUDI3_HDCORE1_ENGINE_ID_TPC_3 = 43,
+	GAUDI3_HDCORE1_ENGINE_ID_TPC_4 = 44,
+	GAUDI3_HDCORE1_ENGINE_ID_TPC_5 = 45,
+	GAUDI3_HDCORE1_ENGINE_ID_TPC_6 = 46,
+	GAUDI3_HDCORE1_ENGINE_ID_TPC_7 = 47,
+	GAUDI3_HDCORE2_ENGINE_ID_TPC_0 = 48,
+	GAUDI3_HDCORE2_ENGINE_ID_TPC_1 = 49,
+	GAUDI3_HDCORE2_ENGINE_ID_TPC_2 = 50,
+	GAUDI3_HDCORE2_ENGINE_ID_TPC_3 = 51,
+	GAUDI3_HDCORE2_ENGINE_ID_TPC_4 = 52,
+	GAUDI3_HDCORE2_ENGINE_ID_TPC_5 = 53,
+	GAUDI3_HDCORE2_ENGINE_ID_TPC_6 = 54,
+	GAUDI3_HDCORE2_ENGINE_ID_TPC_7 = 55,
+	GAUDI3_HDCORE3_ENGINE_ID_TPC_0 = 56,
+	GAUDI3_HDCORE3_ENGINE_ID_TPC_1 = 57,
+	GAUDI3_HDCORE3_ENGINE_ID_TPC_2 = 58,
+	GAUDI3_HDCORE3_ENGINE_ID_TPC_3 = 59,
+	GAUDI3_HDCORE3_ENGINE_ID_TPC_4 = 60,
+	GAUDI3_HDCORE3_ENGINE_ID_TPC_5 = 61,
+	GAUDI3_HDCORE3_ENGINE_ID_TPC_6 = 62,
+	GAUDI3_HDCORE3_ENGINE_ID_TPC_7 = 63,
+	GAUDI3_HDCORE4_ENGINE_ID_TPC_0 = 64,
+	GAUDI3_HDCORE4_ENGINE_ID_TPC_1 = 65,
+	GAUDI3_HDCORE4_ENGINE_ID_TPC_2 = 66,
+	GAUDI3_HDCORE4_ENGINE_ID_TPC_3 = 67,
+	GAUDI3_HDCORE4_ENGINE_ID_TPC_4 = 68,
+	GAUDI3_HDCORE4_ENGINE_ID_TPC_5 = 69,
+	GAUDI3_HDCORE4_ENGINE_ID_TPC_6 = 70,
+	GAUDI3_HDCORE4_ENGINE_ID_TPC_7 = 71,
+	GAUDI3_HDCORE5_ENGINE_ID_TPC_0 = 72,
+	GAUDI3_HDCORE5_ENGINE_ID_TPC_1 = 73,
+	GAUDI3_HDCORE5_ENGINE_ID_TPC_2 = 74,
+	GAUDI3_HDCORE5_ENGINE_ID_TPC_3 = 75,
+	GAUDI3_HDCORE5_ENGINE_ID_TPC_4 = 76,
+	GAUDI3_HDCORE5_ENGINE_ID_TPC_5 = 77,
+	GAUDI3_HDCORE5_ENGINE_ID_TPC_6 = 78,
+	GAUDI3_HDCORE5_ENGINE_ID_TPC_7 = 79,
+	GAUDI3_HDCORE6_ENGINE_ID_TPC_0 = 80,
+	GAUDI3_HDCORE6_ENGINE_ID_TPC_1 = 81,
+	GAUDI3_HDCORE6_ENGINE_ID_TPC_2 = 82,
+	GAUDI3_HDCORE6_ENGINE_ID_TPC_3 = 83,
+	GAUDI3_HDCORE6_ENGINE_ID_TPC_4 = 84,
+	GAUDI3_HDCORE6_ENGINE_ID_TPC_5 = 85,
+	GAUDI3_HDCORE6_ENGINE_ID_TPC_6 = 86,
+	GAUDI3_HDCORE6_ENGINE_ID_TPC_7 = 87,
+	GAUDI3_HDCORE7_ENGINE_ID_TPC_0 = 88,
+	GAUDI3_HDCORE7_ENGINE_ID_TPC_1 = 89,
+	GAUDI3_HDCORE7_ENGINE_ID_TPC_2 = 90,
+	GAUDI3_HDCORE7_ENGINE_ID_TPC_3 = 91,
+	GAUDI3_HDCORE7_ENGINE_ID_TPC_4 = 92,
+	GAUDI3_HDCORE7_ENGINE_ID_TPC_5 = 93,
+	GAUDI3_HDCORE7_ENGINE_ID_TPC_6 = 94,
+	GAUDI3_HDCORE7_ENGINE_ID_TPC_7 = 95,
+	GAUDI3_HDCORE0_ENGINE_ID_TPC_8 = 96,
+	GAUDI3_HDCORE2_ENGINE_ID_TPC_8 = 97,
+	GAUDI3_HDCORE5_ENGINE_ID_TPC_8 = 98,
+	GAUDI3_HDCORE7_ENGINE_ID_TPC_8 = 99,
+	GAUDI3_DIE0_ENGINE_ID_NIC_0 = 100,
+	GAUDI3_DIE0_ENGINE_ID_NIC_1 = 101,
+	GAUDI3_DIE0_ENGINE_ID_NIC_2 = 102,
+	GAUDI3_DIE0_ENGINE_ID_NIC_3 = 103,
+	GAUDI3_DIE0_ENGINE_ID_NIC_4 = 104,
+	GAUDI3_DIE0_ENGINE_ID_NIC_5 = 105,
+	GAUDI3_DIE1_ENGINE_ID_NIC_0 = 106,
+	GAUDI3_DIE1_ENGINE_ID_NIC_1 = 107,
+	GAUDI3_DIE1_ENGINE_ID_NIC_2 = 108,
+	GAUDI3_DIE1_ENGINE_ID_NIC_3 = 109,
+	GAUDI3_DIE1_ENGINE_ID_NIC_4 = 110,
+	GAUDI3_DIE1_ENGINE_ID_NIC_5 = 111,
+	GAUDI3_HDCORE1_ENGINE_ID_ROT_0 = 112,
+	GAUDI3_HDCORE1_ENGINE_ID_ROT_1 = 113,
+	GAUDI3_HDCORE3_ENGINE_ID_ROT_0 = 114,
+	GAUDI3_HDCORE3_ENGINE_ID_ROT_1 = 115,
+	GAUDI3_HDCORE4_ENGINE_ID_ROT_0 = 116,
+	GAUDI3_HDCORE4_ENGINE_ID_ROT_1 = 117,
+	GAUDI3_HDCORE6_ENGINE_ID_ROT_0 = 118,
+	GAUDI3_HDCORE6_ENGINE_ID_ROT_1 = 119,
+	GAUDI3_DIE0_ENGINE_ID_PDMA_0_CH_0 = 120,
+	GAUDI3_DIE0_ENGINE_ID_PDMA_0_CH_1 = 121,
+	GAUDI3_DIE0_ENGINE_ID_PDMA_0_CH_2 = 122,
+	GAUDI3_DIE0_ENGINE_ID_PDMA_0_CH_3 = 123,
+	GAUDI3_DIE0_ENGINE_ID_PDMA_0_CH_4 = 124,
+	GAUDI3_DIE0_ENGINE_ID_PDMA_0_CH_5 = 125,
+	GAUDI3_DIE0_ENGINE_ID_PDMA_1_CH_0 = 126,
+	GAUDI3_DIE0_ENGINE_ID_PDMA_1_CH_1 = 127,
+	GAUDI3_DIE0_ENGINE_ID_PDMA_1_CH_2 = 128,
+	GAUDI3_DIE0_ENGINE_ID_PDMA_1_CH_3 = 129,
+	GAUDI3_DIE0_ENGINE_ID_PDMA_1_CH_4 = 130,
+	GAUDI3_DIE0_ENGINE_ID_PDMA_1_CH_5 = 131,
+	GAUDI3_DIE1_ENGINE_ID_PDMA_0_CH_0 = 132,
+	GAUDI3_DIE1_ENGINE_ID_PDMA_0_CH_1 = 133,
+	GAUDI3_DIE1_ENGINE_ID_PDMA_0_CH_2 = 134,
+	GAUDI3_DIE1_ENGINE_ID_PDMA_0_CH_3 = 135,
+	GAUDI3_DIE1_ENGINE_ID_PDMA_0_CH_4 = 136,
+	GAUDI3_DIE1_ENGINE_ID_PDMA_0_CH_5 = 137,
+	GAUDI3_DIE1_ENGINE_ID_PDMA_1_CH_0 = 138,
+	GAUDI3_DIE1_ENGINE_ID_PDMA_1_CH_1 = 139,
+	GAUDI3_DIE1_ENGINE_ID_PDMA_1_CH_2 = 140,
+	GAUDI3_DIE1_ENGINE_ID_PDMA_1_CH_3 = 141,
+	GAUDI3_DIE1_ENGINE_ID_PDMA_1_CH_4 = 142,
+	GAUDI3_DIE1_ENGINE_ID_PDMA_1_CH_5 = 143,
+	GAUDI3_HDCORE0_ENGINE_ID_STLB = 144,
+	GAUDI3_HDCORE1_ENGINE_ID_STLB = 145,
+	GAUDI3_HDCORE2_ENGINE_ID_STLB = 146,
+	GAUDI3_HDCORE3_ENGINE_ID_STLB = 147,
+	GAUDI3_HDCORE4_ENGINE_ID_STLB = 148,
+	GAUDI3_HDCORE5_ENGINE_ID_STLB = 149,
+	GAUDI3_HDCORE6_ENGINE_ID_STLB = 150,
+	GAUDI3_HDCORE7_ENGINE_ID_STLB = 151,
+	GAUDI3_HDCORE0_ENGINE_ID_SM = 152,
+	GAUDI3_HDCORE1_ENGINE_ID_SM = 153,
+	GAUDI3_HDCORE2_ENGINE_ID_SM = 154,
+	GAUDI3_HDCORE3_ENGINE_ID_SM = 155,
+	GAUDI3_HDCORE4_ENGINE_ID_SM = 156,
+	GAUDI3_HDCORE5_ENGINE_ID_SM = 157,
+	GAUDI3_HDCORE6_ENGINE_ID_SM = 158,
+	GAUDI3_HDCORE7_ENGINE_ID_SM = 159,
+	GAUDI3_HDCORE0_ENGINE_ID_ARCF_0 = 160,
+	GAUDI3_HDCORE0_ENGINE_ID_ARCF_1 = 161,
+	GAUDI3_HDCORE1_ENGINE_ID_ARCF_0 = 162,
+	GAUDI3_HDCORE1_ENGINE_ID_ARCF_1 = 163,
+	GAUDI3_HDCORE2_ENGINE_ID_ARCF_0 = 164,
+	GAUDI3_HDCORE2_ENGINE_ID_ARCF_1 = 165,
+	GAUDI3_HDCORE3_ENGINE_ID_ARCF_0 = 166,
+	GAUDI3_HDCORE3_ENGINE_ID_ARCF_1 = 167,
+	GAUDI3_HDCORE4_ENGINE_ID_ARCF_0 = 168,
+	GAUDI3_HDCORE4_ENGINE_ID_ARCF_1 = 169,
+	GAUDI3_HDCORE5_ENGINE_ID_ARCF_0 = 170,
+	GAUDI3_HDCORE5_ENGINE_ID_ARCF_1 = 171,
+	GAUDI3_HDCORE6_ENGINE_ID_ARCF_0 = 172,
+	GAUDI3_HDCORE6_ENGINE_ID_ARCF_1 = 173,
+	GAUDI3_HDCORE7_ENGINE_ID_ARCF_0 = 174,
+	GAUDI3_HDCORE7_ENGINE_ID_ARCF_1 = 175,
+	GAUDI3_DIE0_ENGINE_ID_PCIE = 176,
+	GAUDI3_DIE1_ENGINE_ID_PCIE = 177,
+	GAUDI3_DIE0_ENGINE_ID_ETR_PSOC = 178,
+	GAUDI3_DIE1_ENGINE_ID_ETR_PSOC = 179,
+	GAUDI3_DIE0_ENGINE_ID_ETR_NIC = 180,
+	GAUDI3_DIE1_ENGINE_ID_ETR_NIC = 181,
+	GAUDI3_DIE0_ENGINE_ID_PDMA_0_DUP = 182,
+	GAUDI3_DIE0_ENGINE_ID_PDMA_1_DUP = 183,
+	GAUDI3_DIE1_ENGINE_ID_PDMA_0_DUP = 184,
+	GAUDI3_DIE1_ENGINE_ID_PDMA_1_DUP = 185,
+	GAUDI3_HDCORE0_ENGINE_ID_EDUP = 186,
+	GAUDI3_HDCORE1_ENGINE_ID_EDUP = 187,
+	GAUDI3_HDCORE2_ENGINE_ID_EDUP = 188,
+	GAUDI3_HDCORE3_ENGINE_ID_EDUP = 189,
+	GAUDI3_HDCORE4_ENGINE_ID_EDUP = 190,
+	GAUDI3_HDCORE5_ENGINE_ID_EDUP = 191,
+	GAUDI3_HDCORE6_ENGINE_ID_EDUP = 192,
+	GAUDI3_HDCORE7_ENGINE_ID_EDUP = 193,
+	GAUDI3_ENGINE_ID_SIZE,
+};
+
 /*
  * ASIC specific PLL index
  *
@@ -636,6 +983,20 @@ enum hl_gaudi_pll_index {
 	HL_GAUDI_PLL_MAX
 };
 
+enum hl_greco_pll_index {
+	HL_GRECO_PCI_PLL = 0,
+	HL_GRECO_SIF_PLL,
+	HL_GRECO_MESH_PLL,
+	HL_GRECO_DDR0_PLL,
+	HL_GRECO_DDR1_PLL,
+	HL_GRECO_MME_PLL,
+	HL_GRECO_TPC_PLL,
+	HL_GRECO_VID_PLL,
+	HL_GRECO_SRAM_PLL,
+	HL_GRECO_MMU_PLL,
+	HL_GRECO_PLL_MAX
+};
+
 enum hl_gaudi2_pll_index {
 	HL_GAUDI2_CPU_PLL = 0,
 	HL_GAUDI2_PCI_PLL,
@@ -650,6 +1011,32 @@ enum hl_gaudi2_pll_index {
 	HL_GAUDI2_VID_PLL,
 	HL_GAUDI2_MSS_PLL,
 	HL_GAUDI2_PLL_MAX
+};
+
+enum hl_gaudi3_pll_index {
+	HL_GAUDI3_CPU_PLL = 0,
+	HL_GAUDI3_PCI_PLL,
+	HL_GAUDI3_HBM_PLL,
+	HL_GAUDI3_NIC_PLL,
+	HL_GAUDI3_DMA_PLL,
+	HL_GAUDI3_MESH_PLL,
+	HL_GAUDI3_MME_PLL,
+	HL_GAUDI3_TPC_PLL,
+	HL_GAUDI3_VID_PLL,
+	HL_GAUDI3_D2D_PLL,
+	HL_GAUDI3_CS_PLL,
+	HL_GAUDI3_C2C_PLL,
+	HL_GAUDI3_NCH_PLL,
+	HL_GAUDI3_C2M_PLL,
+	HL_GAUDI3_PLL_MAX
+};
+
+enum gaudi3_etrs {
+	GAUDI3_D0_PSOC_ETR,
+	GAUDI3_D0_NCH_ETR,
+	GAUDI3_D1_PSOC_ETR,
+	GAUDI3_D1_NCH_ETR,
+	GAUDI3_NUM_ETR,
 };
 
 /**
@@ -701,6 +1088,39 @@ enum hl_device_status {
 	HL_DEVICE_STATUS_LAST = HL_DEVICE_STATUS_IN_RESET_AFTER_DEVICE_RELEASE
 };
 
+/**
+ * enum hl_server_type - The server configuration that the device is part of.
+ * @HL_SERVER_TYPE_UNKNOWN: Unknown server configuration.
+ * @HL_SERVER_GAUDI_HLS1: HLS1, 8 OAMs, all ports are enabled
+ *                        7 internal
+ *                        3 external
+ * @HL_SERVER_GAUDI_HLS1H: 4 OAMs, all ports are enabled, all external
+ * @HL_SERVER_GAUDI_TYPE1: 7 ports enabled, all internal
+ * @HL_SERVER_GAUDI_TYPE2: 10 ports enabled
+ *                         7 internal
+ *                         3 external
+ * @HL_SERVER_GAUDI2_HLS2: HLS2, 8 OAMs, all ports are enabled
+ *                         21 internal
+ *                         3 external
+ * @HL_SERVER_GAUDI3_HLS3_DEPRECATED: Generic HLS3 configuration, deprecated.
+ * @HL_SERVER_GAUDI2_TYPE1: HLS2, 8 OAMs, 21 ports are enabled, all internal.
+ * @HL_SERVER_GAUDI3_HLS3_FULLSCALE_IN: HLS3, all ports are enabled and connected internally.
+ * @HL_SERVER_GAUDI3_HLS3_FULLSCALE_OUT: HLS3, all ports are enabled
+ *                                       14 internal (2 per card)
+ *                                       10 external
+ * @HL_SERVER_GAUDI3_HLS3_FULL_OAM_3PORTS_SCALE_OUT: HLS3, all ports are enabled
+ *                                                   21 internal
+ *                                                   3 external
+ * @HL_SERVER_GAUDI3_HLS3_FULL_OAM_6PORTS_SCALE_OUT: HLS3, all ports are enabled
+ *                                                   18 internal
+ *                                                   6 external
+ * @HL_SERVER_GAUDI3_HLS3_SINGLEPORT_OAM_FULLSCALE_OUT: HLS3, 10 ports are enabled
+ *                                                      7 internal
+ *                                                      3 external
+ * @HL_SERVER_GAUDI3_HL338: HL338, 4 OAMs, 22 ports are enabled
+ *                          18 internal (6 per card)
+ *                          4 external
+ */
 enum hl_server_type {
 	HL_SERVER_TYPE_UNKNOWN = 0,
 	HL_SERVER_GAUDI_HLS1 = 1,
@@ -708,7 +1128,14 @@ enum hl_server_type {
 	HL_SERVER_GAUDI_TYPE1 = 3,
 	HL_SERVER_GAUDI_TYPE2 = 4,
 	HL_SERVER_GAUDI2_HLS2 = 5,
-	HL_SERVER_GAUDI2_TYPE1 = 7
+	HL_SERVER_GAUDI3_HLS3_DEPRECATED = 6,
+	HL_SERVER_GAUDI2_TYPE1 = 7,
+	HL_SERVER_GAUDI3_HLS3_FULLSCALE_IN = 8,
+	HL_SERVER_GAUDI3_HLS3_FULLSCALE_OUT = 9,
+	HL_SERVER_GAUDI3_HLS3_FULL_OAM_3PORTS_SCALE_OUT = 10,
+	HL_SERVER_GAUDI3_HLS3_FULL_OAM_6PORTS_SCALE_OUT = 11,
+	HL_SERVER_GAUDI3_HLS3_SINGLEPORT_OAM_FULLSCALE_OUT = 12,
+	HL_SERVER_GAUDI3_HL338 = 13,
 };
 
 /*
@@ -776,6 +1203,8 @@ enum hl_server_type {
  * HL_INFO_PLL_FREQUENCY - Retrieve PLL frequency
  * HL_INFO_POWER         - Retrieve power information
  * HL_INFO_OPEN_STATS    - Retrieve info regarding recent device open calls
+ * HL_INFO_HABANA_LINK_STATE - Retrieve Habana link state
+ * HL_INFO_HABANA_LINK_COUNTERS - Retrieve Habana link counters
  * HL_INFO_DRAM_REPLACED_ROWS - Retrieve DRAM replaced rows info
  * HL_INFO_DRAM_PENDING_ROWS - Retrieve DRAM pending rows num
  * HL_INFO_LAST_ERR_OPEN_DEV_TIME - Retrieve timestamp of the last time the device was opened
@@ -809,6 +1238,8 @@ enum hl_server_type {
  *                          May return 0 even though no new data is available, in that case
  *                          timestamp will be 0.
  * HL_INFO_USER_ENGINE_ERR_EVENT - Retrieve the last engine id that reported an error.
+ * HL_INFO_MODULE_PARAMS - Retrieve the device's actual values of module
+ *                         parameters.
  */
 #define HL_INFO_HW_IP_INFO			0
 #define HL_INFO_HW_EVENTS			1
@@ -828,6 +1259,8 @@ enum hl_server_type {
 #define HL_INFO_PLL_FREQUENCY			16
 #define HL_INFO_POWER				17
 #define HL_INFO_OPEN_STATS			18
+#define HL_INFO_HABANA_LINK_STATE		19
+#define HL_INFO_HABANA_LINK_COUNTERS		20
 #define HL_INFO_DRAM_REPLACED_ROWS		21
 #define HL_INFO_DRAM_PENDING_ROWS		22
 #define HL_INFO_LAST_ERR_OPEN_DEV_TIME		23
@@ -846,10 +1279,14 @@ enum hl_server_type {
 #define HL_INFO_HW_ERR_EVENT			36
 #define HL_INFO_FW_ERR_EVENT			37
 #define HL_INFO_USER_ENGINE_ERR_EVENT		38
+#define HL_INFO_TIME_SYNC_PER_DIE		39
 #define HL_INFO_DEV_SIGNED			40
+#define HL_INFO_MODULE_PARAMS			255
 
 #define HL_INFO_VERSION_MAX_LEN			128
 #define HL_INFO_CARD_NAME_MAX_LEN		16
+
+#define HL_INFO_MAC_ADDR_MAX_NUM		128
 
 /* Maximum buffer size for retrieving engines status */
 #define HL_ENGINES_DATA_MAX_SIZE	SZ_1M
@@ -896,11 +1333,21 @@ enum hl_server_type {
  *                     Relevant for Gaudi2 and later.
  * @number_of_user_interrupts: The number of interrupts that are available to the userspace
  *                             application to use. Relevant for Gaudi2 and later.
+ * @interposer_version: Interposer version.
+ * @substrate_version: Substrate version.
+ * @pdma_user_owned_ch_mask: Bit-mask that represents which PDMA channels are
+ *                           enabled and can be used by the user.
  * @device_mem_alloc_default_page_size: default page size used in device memory allocation.
+ * @nic_ports_mask: Bit mask that represents the nic ports that are enabled.
+ * @nic_ports_external_mask: Bit mask that represents the nic ports that are external - used for
+ *                           scale-out and are exposed to Linux as network devices.
+ * @mme_enabled_mask: Bit-mask that represents which MMEs are enabled.
+ * @odp_supported: true if ODP is supported, otherwise false.
  * @revision_id: PCI revision ID of the ASIC.
  * @tpc_interrupt_id: interrupt id for TPC to use in order to raise events towards the host.
  * @rotator_enabled_mask: Bit-mask that represents which rotators are enabled.
  *                        Relevant for Gaudi3 and later.
+ * @sched_arc_enabled_mask: Bit-mask that represents which Sched arcs are enabled.
  * @engine_core_interrupt_reg_addr: interrupt register address for engine core to use
  *                                  in order to raise events toward FW.
  * @reserved_dram_size: DRAM size reserved for driver and firmware.
@@ -931,18 +1378,18 @@ struct hl_info_hw_ip_info {
 	__u64 dram_page_size;
 	__u32 edma_enabled_mask;
 	__u16 number_of_user_interrupts;
-	__u8 reserved1;
-	__u8 reserved2;
-	__u64 reserved3;
+	__u8 interposer_version;
+	__u8 substrate_version;
+	__u64 pdma_user_owned_ch_mask;
 	__u64 device_mem_alloc_default_page_size;
-	__u64 reserved4;
-	__u64 reserved5;
-	__u32 reserved6;
-	__u8 reserved7;
+	__u64 nic_ports_mask;
+	__u64 nic_ports_external_mask;
+	__u32 mme_enabled_mask;
+	__u8 odp_supported;
 	__u8 revision_id;
 	__u16 tpc_interrupt_id;
 	__u32 rotator_enabled_mask;
-	__u32 reserved9;
+	__u32 sched_arc_enabled_mask;
 	__u64 engine_core_interrupt_reg_addr;
 	__u64 reserved_dram_size;
 };
@@ -990,6 +1437,14 @@ struct hl_info_reset_count {
 };
 
 struct hl_info_time_sync {
+	__u64 device_time;
+	__u64 host_time;
+	__u64 tsc_time;
+};
+
+struct hl_info_time_sync_per_die {
+	__u32 die_index;
+	__u32 pad;
 	__u64 device_time;
 	__u64 host_time;
 	__u64 tsc_time;
@@ -1050,13 +1505,15 @@ struct hl_pll_frequency_info {
  * @last_open_period_ms: duration (ms) device was open last time
  * @is_compute_ctx_active: Whether there is an active compute context executing
  * @compute_ctx_in_release: true if the current compute context is being released
+ * @compute_ctx_has_mapped_resources: true if the current compute context has mapped resources
  */
 struct hl_open_stats_info {
 	__u64 open_counter;
 	__u64 last_open_period_ms;
 	__u8 is_compute_ctx_active;
 	__u8 compute_ctx_in_release;
-	__u8 pad[6];
+	__u8 compute_ctx_has_mapped_resources;
+	__u8 pad[5];
 };
 
 /**
@@ -1108,6 +1565,82 @@ struct hl_info_cs_counters {
 	__u64 ctx_max_cs_in_flight_drop_cnt;
 	__u64 total_validation_drop_cnt;
 	__u64 ctx_validation_drop_cnt;
+};
+
+struct hl_info_module_params {
+	__u64 tpc_mask;
+	__u32 gaudi_huge_page_optimization;
+	__u32 timeout_locked;
+	__u32 reset_on_lockup;
+	__u32 pldm;
+	__u32 mmu_enable;
+	__u32 clock_gating;
+	__u32 mme_enable;
+	__u32 nic_ports_mask;
+	__u32 dram_enable;
+	__u32 cpu_enable;
+	__u32 reset_pcilink;
+	__u32 config_pll;
+	__u32 cpu_queues_enable;
+	__u32 fw_loading;
+	__u32 heartbeat;
+	__u32 security_enable;
+	__u32 sram_scrambler_enable;
+	__u32 dram_scrambler_enable;
+	__u32 cache_enabled;
+	__u32 hbm_ecc_enable;
+	__u32 compatibility_mode;
+	__u32 hard_reset_on_fw_events;
+	__u32 decoder_mask;
+	__u32 rotator_mask;
+	__u32 dram_page_scrub;
+	__u32 clock_gating_ext;
+	__u32 fw_loading_ext;
+};
+
+/**
+ * enum hl_link_qual - Quality of a link
+ * HL_LINK_QUAL_POOR: Poor link quality.
+ * HL_LINK_QUAL_GOOD: Good link quality.
+ * HL_LINK_QUAL_EXCELLENT: Excellent link quality.
+ */
+enum hl_link_qual {
+	HL_LINK_QUAL_POOR,
+	HL_LINK_QUAL_GOOD,
+	HL_LINK_QUAL_EXCELLENT,
+};
+
+/**
+ * struct hl_info_habana_link_state - Get Habana link state.
+ * @up: Boolean for indicating if the link is up.
+ * @port_open: Boolean for indicating if the port is open.
+ * @link_qual: Quality of link as defined in hl_link_qual.
+ * @pad: Padding to 64 bit.
+ */
+struct hl_info_habana_link_state {
+	__u8 up;
+	__u8 port_open;
+	__u8 link_qual;
+	__u8 pad[5];
+};
+
+#define HABANA_LINK_CNT_MAX_NUM	256
+#define HABANA_LINK_STR_LEN	32
+
+/**
+ * struct hl_info_habana_link_counters - Get Habana link counters.
+ * @str_buf_ptr: User space address of buffer to hold the counters names. Recommended size is
+ *               HABANA_LINK_STR_LEN * HABANA_LINK_CNT_MAX_NUM.
+ * @val_buf_ptr: User space address of buffer to hold the counters values. Recommended size is
+ *               sizeof(__u64) * HABANA_LINK_CNT_MAX_NUM.
+ * @num_of_stat: Number of counters that were actually fetched.
+ * @pad: Padding to 64 bit.
+ */
+struct hl_info_habana_link_counters {
+	__u64 str_buf_ptr;
+	__u64 val_buf_ptr;
+	__u32 num_of_stat;
+	__u32 pad;
 };
 
 /**
@@ -1361,6 +1894,7 @@ enum gaudi_dcores {
  * @period_ms: Period value, in milliseconds, for utilization rate in range 100ms - 1000ms in 100 ms
  *             resolution. Currently not in use.
  * @pll_index: Index as defined in hl_<asic type>_pll_index enumeration.
+ * @habana_link_id: Habana link id.
  * @eventfd: event file descriptor for event notifications.
  * @user_buffer_actual_size: Actual data size which was copied to user allocated buffer by the
  *                           driver. It is possible for the user to allocate buffer larger than
@@ -1382,6 +1916,7 @@ struct hl_info_args {
 		__u32 ctx_id;
 		__u32 period_ms;
 		__u32 pll_index;
+		__u32 habana_link_id;
 		__u32 eventfd;
 		__u32 user_buffer_actual_size;
 		__u32 sec_attest_nonce;
@@ -1908,11 +2443,22 @@ union hl_wait_cs_args {
  */
 #define HL_MEM_OP_TS_ALLOC		6
 
+
+/* EXPERIMENTAL FEATURE!!!
+ * =======================
+ * Opcode to register a DMA-BUF object through its FD. The driver will attach
+ * to the DMA-BUF object and will map the PCI BAR bus addresses to the
+ * device's PMMU and will return a device VA to the user so it can use it
+ * in DMA workloads
+ */
+#define HL_MEM_OP_REG_DMABUF_FD		99
+
 /* Memory flags */
 #define HL_MEM_CONTIGUOUS	0x1
 #define HL_MEM_SHARED		0x2
 #define HL_MEM_USERPTR		0x4
 #define HL_MEM_FORCE_HINT	0x8
+#define HL_MEM_ODP		0x20
 #define HL_MEM_PREFETCH		0x40
 
 /**
@@ -1989,7 +2535,8 @@ struct hl_mem_in {
 
 		/**
 		 * structure for unmapping host memory (used with the HL_MEM_OP_UNMAP op)
-		 * @device_virt_addr: virtual address returned from HL_MEM_OP_MAP
+		 * @device_virt_addr: virtual address returned from HL_MEM_OP_MAP or
+		 *                    from HL_MEM_OP_REG_DMABUF_FD
 		 */
 		struct {
 			__u64 device_virt_addr;
@@ -2017,6 +2564,17 @@ struct hl_mem_in {
 			__u64 mem_size;
 			__u64 offset;
 		} export_dmabuf_fd;
+
+		/**
+		 * structure for registering DMABUF object (used with
+		 * the HL_MEM_OP_REG_DMABUF_FD op)
+		 * @fd: handle of DMA-BUF object to register.
+		 * @length: total length of device memory area that the dmabuf object represents
+		 */
+		struct {
+			__u64 fd;
+			__u64 length;
+		} reg_dmabuf_fd;
 	};
 
 	__u32 op;
@@ -2028,8 +2586,8 @@ struct hl_mem_in {
 struct hl_mem_out {
 	union {
 		/*
-		 * Used for HL_MEM_OP_MAP as the virtual address that was
-		 * assigned in the device VA space.
+		 * Used for HL_MEM_OP_MAP and HL_MEM_OP_REG_DMABUF_FD as the
+		 * virtual address that was assigned in the device VA space.
 		 * A value of 0 means the requested operation failed.
 		 */
 		__u64 device_virt_addr;
@@ -2071,6 +2629,7 @@ union hl_mem_args {
 };
 
 #define HL_DEBUG_MAX_AUX_VALUES		10
+#define HL_DEBUG_MAX_READ_BLOCK_SIZE	(4 * PAGE_SIZE_4KB)
 
 struct hl_debug_params_etr {
 	/* Address in memory to allocate buffer */
@@ -2083,6 +2642,30 @@ struct hl_debug_params_etr {
 	__u32 sink_mode;
 	__u32 pad;
 };
+
+struct hl_debug_params_fetch_trace {
+	/* Memory address to copy buffer to */
+	__u64 buffer_address;
+
+	/* Size of the buffer provided */
+	__u64 buffer_size;
+
+	/* Memory address to write buffer index to */
+	__u64 buffer_index_address;
+
+	/* Memory address to return number of copied bytes */
+	__u64 copied_size_addr;
+
+	/* Source ETR ID */
+	__u32 etr_id;
+
+	/* Timeout in milliseconds to wait for available buffer */
+	__u32 timeout_ms;
+};
+
+#define HL_DEBUG_FETCH_STATUS_OK      0
+#define HL_DEBUG_FETCH_STATUS_EMPTY   1 /* No available trace buffers */
+#define HL_DEBUG_FETCH_STATUS_STOPPED 2 /* No available buffers and trace fetch has not started */
 
 struct hl_debug_params_etf {
 	/* Address in memory to allocate buffer */
@@ -2147,6 +2730,51 @@ struct hl_debug_params_spmu {
 	__u32 trc_en_host_val;
 };
 
+struct hl_debug_params_mem_access {
+	/* Start address in configuration space to write/read to/from */
+	__u64 cfg_address;
+
+	/* User address to copy data from/to */
+	__u64 user_address;
+
+	/* Size of data (4 bytes aligned). Max size is 64KB */
+	__u32 size;
+
+	/* Pad */
+	__u32 reserved;
+};
+
+struct hl_debug_params_scheduler {
+	/* Scheduler cpu ID */
+	__u64 cpu_id;
+
+	/* Queue ID */
+	__u64 queue_id;
+
+	/* Input/output buffer */
+	__u64 buffer;
+
+	/* Buffer size */
+	__u32 size;
+
+	/* Pad */
+	__u32 reserved;
+};
+
+/**
+ * struct hl_debug_params_read_block - structure to read device config memory block data
+ * @cfg_address: start address in configuration space to read from
+ * @user_address: user address of a buffer to copy the data
+ * @size: the size of data to read (4 bytes aligned). Max size HL_DEBUG_MAX_READ_BLOCK_SIZE (16KB)
+ * @flags: flags for the read operation
+ */
+struct hl_debug_params_read_block {
+	__u64 cfg_address;
+	__u64 user_address;
+	__u32 size;
+	__u32 flags;
+};
+
 /* Opcode for ETR component */
 #define HL_DEBUG_OP_ETR		0
 /* Opcode for ETF component */
@@ -2165,6 +2793,21 @@ struct hl_debug_params_spmu {
  * variable should be 1 for enabling debug mode and 0 for disabling it
  */
 #define HL_DEBUG_OP_SET_MODE	7
+/* Opcode for fetching trace data */
+#define HL_DEBUG_OP_FETCH_TRACE	8
+/* Opcode for direct I/O operations */
+#define HL_DEBUG_OP_DIO		9
+
+/* Opcode for debug read memory */
+#define HL_DEBUG_OP_READMEM	1024
+/* Opcode for debug write to memory */
+#define HL_DEBUG_OP_MEMCPY	1025
+/* Opcode for submitting a buffer on a scheduler CCB */
+#define HL_DEBUG_OP_SCHED_SUBMIT_BUF	1031
+/* Opcode for debug read memory */
+#define HL_DEBUG_OP_READBLOCK	1032
+/* Opcode for re-enable capturing of error info */
+#define HL_DEBUG_ENABLE_ERR_INFO_CAPTURE 1033
 
 struct hl_debug_args {
 	/*
@@ -2191,12 +2834,843 @@ struct hl_debug_args {
 	__u32 ctx_id;
 };
 
+/* Requester */
+#define HL_NIC_CQE_TYPE_REQ	0
+/* Responder */
+#define HL_NIC_CQE_TYPE_RES	1
+
+/* Number of backpressure offsets */
+#define HL_NIC_USER_BP_OFFS_MAX	16
+
+/* Number of FnA addresses for SRAM/DCCM completion */
+#define HL_NIC_FNA_CMPL_ADDR_NUM 2
+
+/**
+ * struct hl_nic_cqe: NIC CQ entry. This structure is shared between the driver and the user
+ *                    application. It represents each entry of the NIC CQ buffer.
+ * @requester.wqe_index: work queue index - for requester only.
+ * @responder.msg_id: message ID to notify which receive action was completed - for responder only.
+ * @qp_err.syndrome: error syndrome of the QP error - for QP error only.
+ * @port: NIC port index of the related CQ.
+ * @qp_number: QP number - for requester or QP error only.
+ * @type: type of the CQE - requester or responder.
+ * @is_err: true for QP error entry, false otherwise.
+ */
+struct hl_nic_cqe {
+	union {
+		struct {
+			__u32 wqe_index;
+		} requester;
+
+		struct {
+			__u32 msg_id;
+		} responder;
+
+		struct {
+			__u32 syndrome;
+		} qp_err;
+	};
+
+	__u32 port;
+	__u32 qp_number;
+	__u8 type;
+	__u8 is_err;
+	__u8 pad[2];
+};
+
+/**
+ * struct hl_nic_alloc_conn_in - NIC ioctl opcode HL_NIC_OP_ALLOC_CONN in param
+ * @port: NIC port ID
+ * @hint: this may be used as the connection-number hint for the driver as a recommendation of user
+ */
+struct hl_nic_alloc_conn_in {
+	__u32 port;
+	__u32 hint;
+};
+
+/**
+ * struct hl_nic_alloc_conn_out - NIC ioctl opcode HL_NIC_OP_ALLOC_CONN out param
+ * @conn_id: Connection ID
+ */
+struct hl_nic_alloc_conn_out {
+	__u32 conn_id;
+	__u32 pad;
+};
+
+/**
+ * struct hl_nic_req_conn_ctx_in - NIC ioctl opcode HL_NIC_OP_SET_REQ_CONN_CTX in param
+ * @dst_ip_addr: Destination IP address in native endianness
+ * @dst_conn_id: Destination connection ID
+ * @last_index: Index of last entry [2..(2^22)-1]. NOTE: relevant for Gaudi1 (only)
+ * @port: NIC port ID
+ * @conn_id: Connection ID
+ * @dst_mac_addr: Destination MAC address
+ * @priority: Connection priority [0..3]
+ * @timer_granularity: Timer granularity [0..127]
+ * @swq_granularity: SWQ granularity [0 for 32B or 1 for 64B]
+ * @wq_type: Work queue type [1..3]
+ * @cq_number: Completion queue number
+ * @wq_remote_log_size: Remote Work queue log size [2^QPC] Rendezvous
+ * @congestion_en: Enable/disable Congestion-Control
+ * @congestion_wnd: Congestion-Window size
+ * @mtu: Max Transmit Unit
+ * @encap_en: used as boolean; indicates if this QP has encapsulation support
+ * @encap_id: Encapsulation-id; valid only if 'encap_en' is set
+ * @wq_size: Max number of elements in the work queue. NOTE: relevant for Gaudi2 (or higher)
+ * @loopback: used as boolean; indicates if this QP used for loopback mode.
+ * @coll_lag_idx: (Gaudi3 and above) The index of the specific NIC within the LAG. Note that the
+ *                advanced flag must be enabled in case it's being set.
+ * @coll_last_in_lag: (Gaudi3 and above) Is the specific NIC the last one within the collective LAG.
+ *                    Note that the advanced flag must be enabled in case it's being set.
+ * @compression_en: Enable compression
+ * @remote_key: Remote-key to be used to generate on outgoing packets
+ * @sack_en: (Gaudi3 and above) Enable Selective Acknowledgment (SACK)
+ * @coll_lag_size: (Fs1 and above) The collective LAG size (i.e. number of ports in this LAG)
+ */
+struct hl_nic_req_conn_ctx_in {
+	__u32 reserved;
+	__u32 dst_ip_addr;
+	__u32 dst_conn_id;
+	__u32 deprecated1;
+	__u32 last_index;
+	__u32 port;
+	__u32 conn_id;
+	__u8 dst_mac_addr[ETH_ALEN];
+	__u8 deprecated2;
+	__u8 priority;
+	__u8 deprecated3;
+	__u8 timer_granularity;
+	__u8 swq_granularity;
+	__u8 wq_type;
+	__u8 deprecated4;
+	__u8 cq_number;
+	__u8 wq_remote_log_size;
+	__u8 congestion_en;
+	__u32 congestion_wnd;
+	__u16 mtu;
+	__u8 encap_en;
+	__u8 encap_id;
+	__u32 wq_size;
+	__u8 loopback;
+	__u8 coll_lag_idx;
+	__u8 coll_last_in_lag;
+	__u8 compression_en;
+	__u32 remote_key;
+	__u8 sack_en;
+	__u8 coll_lag_size;
+	__u8 pad[6];
+};
+
+/**
+ * struct hl_nic_req_conn_ctx_out - NIC ioctl opcode HL_NIC_OP_SET_REQ_CONN_CTX out param
+ * @swq_mem_handle: Handle for send WQ memory.
+ * @rwq_mem_handle: Handle for receive WQ memory.
+ * @swq_mem_size: Size of the send WQ memory.
+ * @rwq_mem_size: Size of the receive WQ memory.
+ */
+struct hl_nic_req_conn_ctx_out {
+	__u64 swq_mem_handle;
+	__u64 rwq_mem_handle;
+	__u32 swq_mem_size;
+	__u32 rwq_mem_size;
+};
+
+/**
+ * struct hl_nic_res_conn_ctx_in - NIC ioctl opcode HL_NIC_OP_SET_RES_CONN_CTX in param
+ * @dst_ip_addr: Destination IP address in native endianness
+ * @dst_conn_id: Destination connection ID
+ * @port: NIC port ID
+ * @conn_id: Connection ID
+ * @dst_mac_addr: Destination MAC address
+ * @priority: Connection priority [0..3]
+ * @wq_peer_granularity: Work queue granularity
+ * @cq_number: Completion queue number
+ * @conn_peer: Connection peer
+ * @rdv: used as boolean; indicates if this QP is RDV (WRITE or READ)
+ * @loopback: used as boolean; indicates if this QP used for loopback mode.
+ * @encap_en: used as boolean; indicates if this QP has encapsulation support
+ * @encap_id: Encapsulation-id; valid only if 'encap_en' is set
+ * @wq_peer_size: size of the peer Work queue
+ * @local_key: Local-key to be used to validate against incoming packets
+ * @sack_en: (Gaudi3 and above) Enable Selective Acknowlegment (SACK)
+ */
+struct hl_nic_res_conn_ctx_in {
+	__u32 reserved;
+	__u32 dst_ip_addr;
+	__u32 dst_conn_id;
+	__u32 port;
+	__u32 conn_id;
+	__u8 dst_mac_addr[ETH_ALEN];
+	__u8 priority;
+	__u8 deprecated1;
+	__u8 deprecated2;
+	__u8 wq_peer_granularity;
+	__u8 cq_number;
+	__u8 deprecated3;
+	__u32 conn_peer;
+	__u8 rdv;
+	__u8 loopback;
+	__u8 encap_en;
+	__u8 encap_id;
+	__u32 wq_peer_size;
+	__u32 local_key;
+	__u8 sack_en;
+	__u8 pad[7];
+};
+
+/**
+ * struct hl_nic_destroy_conn_in - NIC ioctl opcode HL_NIC_OP_DESTROY_CONN in param
+ * @port: NIC port ID
+ * @conn_id: Connection ID
+ */
+struct hl_nic_destroy_conn_in {
+	__u32 port;
+	__u32 conn_id;
+};
+
+/**
+ * enum hl_nic_mem_type - NIC WQ memory allocation type
+ * @HL_NIC_USER_WQ_SEND: Allocate memory for the user send WQ array
+ * @HL_NIC_USER_WQ_RECV: Allocate memory for the user receive WQ array
+ * @HL_NIC_USER_COLL_WQ_SEND: Allocate memory for the user collective send WQ array
+ * @HL_NIC_USER_COLL_WQ_RECV: Allocate memory for the user collective receive WQ array
+ * @HL_NIC_USER_COLL_SCALE_OUT_WQ_SEND: Allocate memory for the user scale-out collective send WQ
+ *                                      array
+ * @HL_NIC_USER_COLL_SCALE_OUT_WQ_RECV: Allocate memory for the user scale-out collective receive
+ *                                      WQ array
+ * @HL_NIC_USER_WQ_TYPE_MAX: number of values in enum
+ */
+enum hl_nic_mem_type {
+	HL_NIC_USER_WQ_SEND,
+	HL_NIC_USER_WQ_RECV,
+	HL_NIC_USER_COLL_WQ_SEND,
+	HL_NIC_USER_COLL_WQ_RECV,
+	HL_NIC_USER_COLL_SCALE_OUT_WQ_SEND,
+	HL_NIC_USER_COLL_SCALE_OUT_WQ_RECV,
+	HL_NIC_USER_WQ_TYPE_MAX
+};
+
+/**
+ * enum hl_nic_mem_id - Gaudi2 (or higher) memory allocation methods
+ * @HL_NIC_MEM_HOST: memory allocated on the host memory
+ * @HL_NIC_MEM_DEVICE: memory allocated on the device memory
+ */
+enum hl_nic_mem_id {
+	HL_NIC_MEM_HOST = 1,
+	HL_NIC_MEM_DEVICE
+};
+
+/**
+ * enum hl_nic_swq_granularity - Gaudi2 (or higher) send WQE granularity
+ * @HL_NIC_SWQE_GRAN_32B: 32 byte WQE for linear write
+ * @HL_NIC_SWQE_GRAN_64B: 64 byte WQE for multi-stride write
+ */
+enum hl_nic_swq_granularity {
+	HL_NIC_SWQE_GRAN_32B,
+	HL_NIC_SWQE_GRAN_64B
+};
+
+/**
+ * struct hl_nic_user_wq_arr_set_in - NIC ioctl opcode HL_NIC_OP_USER_WQ_SET in param
+ * @addr: WQ array address, NOTE: relevant for Gaudi1 (only)
+ * @port: NIC port ID
+ * @num_of_wqs: Number of user WQs
+ * @num_of_wq_entries: Number of entries per user WQ
+ * @type: Type of user WQ array
+ * @mem_id: Specify host/device memory allocation. NOTE: relevant for Gaudi2 (or higher)
+ * @swq_granularity: Specify the granularity of send WQ, 0: 32 bytes, 1: 64 bytes
+ */
+struct hl_nic_user_wq_arr_set_in {
+	__u64 addr;
+	__u32 port;
+	__u32 num_of_wqs;
+	__u32 num_of_wq_entries;
+	__u32 type;
+	__u32 mem_id;
+	__u8  swq_granularity;
+	__u8  pad[3];
+};
+
+/**
+ * struct hl_nic_user_wq_arr_set_out - NIC ioctl opcode HL_NIC_OP_USER_WQ_SET out param
+ * @mem_handle: Handle of WQ array memory buffer
+ */
+struct hl_nic_user_wq_arr_set_out {
+	__u64 mem_handle;
+};
+
+/**
+ * struct hl_nic_user_wq_arr_unset_in - NIC ioctl opcode HL_NIC_OP_USER_WQ_UNSET in param
+ * @port: NIC port ID
+ * @type: Type of user WQ array
+ */
+struct hl_nic_user_wq_arr_unset_in {
+	__u32 port;
+	__u32 type;
+};
+
+/**
+ * struct hl_nic_user_cq_set_in - NIC ioctl opcode HL_NIC_OP_USER_CQ_SET in param, relevant for
+ *                                Gaudi only.
+ * @addr: CQ buffer address.
+ * @port: NIC port ID.
+ * @num_of_cqes: Number of CQ entries in the buffer.
+ */
+struct hl_nic_user_cq_set_in {
+	__u64 addr;
+	__u32 port;
+	__u32 num_of_cqes;
+};
+
+/**
+ * struct hl_nic_user_cq_unset_in - NIC ioctl opcode HL_NIC_OP_USER_CQ_UNSET in param, relevant for
+ *                                  Gaudi only.
+ * @port: NIC port ID.
+ */
+struct hl_nic_user_cq_unset_in {
+	__u32 port;
+	__u32 pad;
+};
+
+/**
+ * struct hl_nic_user_cq_update_ci_in - NIC ioctl opcode HL_NIC_OP_USER_CQ_UPDATE_CI in param,
+ *                                      relevant for Gaudi only.
+ * @port: NIC port ID.
+ * @ci: Consumer index value to update.
+ */
+struct hl_nic_user_cq_update_ci_in {
+	__u32 port;
+	__u32 ci;
+};
+
+/**
+ * struct hl_nic_alloc_user_cq_id_in - NIC ioctl opcode HL_NIC_OP_ALLOC_USER_CQ_ID in param,
+ *                                     relevant for Gaudi2 (or higher).
+ * @port: NIC port ID.
+ */
+struct hl_nic_alloc_user_cq_id_in {
+	__u32 port;
+	__u32 pad;
+};
+
+/**
+ * struct hl_nic_alloc_user_cq_id_out - NIC ioctl opcode HL_NIC_OP_ALLOC_USER_CQ_ID out param,
+ *                                      relevant for Gaudi2 (or higher).
+ * @id: CQ ID.
+ */
+struct hl_nic_alloc_user_cq_id_out {
+	__u32 id;
+	__u32 pad;
+};
+
+/**
+ * struct hl_nic_user_cq_id_set_in - NIC ioctl opcode HL_NIC_OP_USER_CQ_SET in param, relevant for
+ *                                   Gaudi2 (or higher).
+ * @port: NIC port ID.
+ * @num_of_cqes: Number of CQ entries in the buffer.
+ * @id: CQ ID.
+ */
+struct hl_nic_user_cq_id_set_in {
+	__u32 port;
+	__u32 num_of_cqes;
+	__u32 id;
+	__u32 pad;
+};
+
+/**
+ * struct hl_nic_user_cq_id_set_out - NIC ioctl opcode HL_NIC_OP_USER_CQ_ID_SET out param, relevant
+ *                                    for Gaudi2 (or higher).
+ * @mem_handle: Handle of CQ memory buffer.
+ * @pi_handle: Handle of CQ producer-inder memory buffer.
+ * @regs_handle: Handle of CQ Registers base-address.
+ * @regs_offset: CQ Registers sub-offset.
+ */
+struct hl_nic_user_cq_id_set_out {
+	__u64 mem_handle;
+	__u64 pi_handle;
+	__u64 regs_handle;
+	__u32 regs_offset;
+	__u32 pad;
+};
+
+/**
+ * struct hl_nic_user_cq_id_unset_in - NIC ioctl opcode HL_NIC_OP_USER_CQ_ID_UNSET in param,
+ *                                     relevant for Gaudi2 (or higher).
+ * @port: NIC port ID.
+ * @id: NIC CQ ID.
+ */
+struct hl_nic_user_cq_id_unset_in {
+	__u32 port;
+	__u32 id;
+};
+
+/**
+ * struct hl_nic_alloc_coll_conn_in - NIC ioctl opcode HL_NIC_OP_ALLOC_COLL_CONN in param,
+ *                                    relevant for Gaudi3 (or higher).
+ * @is_scale_out: Is this collective connection for scale out.
+ */
+struct hl_nic_alloc_coll_conn_in {
+	__u8 is_scale_out;
+	__u8 pad[7];
+};
+
+/**
+ * struct hl_nic_alloc_coll_conn_out - NIC ioctl opcode HL_NIC_OP_ALLOC_COLL_CONN out param,
+ *                                     relevant for Gaudi3 (or higher).
+ * @conn_id: Connection ID.
+ */
+struct hl_nic_alloc_coll_conn_out {
+	__u32 conn_id;
+	__u32 pad;
+};
+
+/**
+ * struct hl_nic_dump_qp_in - NIC ioctl opcode HL_NIC_OP_DUMP_QP in param.
+ * @user_buf_address: Pre-allocated user buffer address to hold the dump output.
+ * @user_buf_size: Size of the user buffer.
+ * @port: NIC port ID.
+ * @qpn: NIC QP ID.
+ * @req: is requester (otherwise responder).
+ */
+struct hl_nic_dump_qp_in {
+	__u64 user_buf;
+	__u32 user_buf_size;
+	__u32 port;
+	__u32 qpn;
+	__u8 req;
+	__u8 pad[3];
+};
+
+/**
+ * struct hl_nic_set_user_app_params_in - NIC ioctl opcode HL_NIC_OP_SET_USER_APP_PARAMS in param.
+ *                                        allow the user application to set general parameters
+ *                                        regarding the RDMA nic operation. These parameters stay
+ *                                        in effect until the application releases the device
+ * @port: NIC port ID
+ * @bp_offs: Offsets in NIC memory to signal a back pressure. Note that the advanced flag
+ *              must be enabled in case it's being set.
+ * @advanced: A boolean that indicates whether this WQ should support advanced operations, such as
+ *            RDV, QMan, WTD, etc.
+ * @fna_mask_size: Completion address value mask.
+ * @fna_fifo_offs: SRAM/DCCM addresses provided to the HW by the user when FnA completion is
+ *		configured in the SRAM/DDCM.
+ */
+struct hl_nic_set_user_app_params_in {
+	__u32 port;
+	__u32 bp_offs[HL_NIC_USER_BP_OFFS_MAX];
+	__u8 advanced;
+	__u8 pad1;
+	__u8 fna_mask_size;
+	__u8 pad2;
+	__u32 fna_fifo_offs[HL_NIC_FNA_CMPL_ADDR_NUM];
+};
+
+/**
+ * struct hl_nic_get_user_app_params_in - NIC ioctl opcode HL_NIC_OP_GET_USER_APP_PARAMS in param
+ * @port: NIC port ID
+ */
+struct hl_nic_get_user_app_params_in {
+	__u32 port;
+	__u8 pad[4];
+};
+
+/**
+ * struct hl_nic_get_user_app_params_out - NIC ioctl opcode HL_NIC_OP_GET_USER_APP_PARAMS out param
+ * @max_num_of_qps: Number of QPs that are supported by the driver. User must allocate enough room
+ *                  for his work-queues according to this number.
+ * @num_allocated_qps: Number of QPs that were already allocated (in use)
+ * @max_allocated_qp_idx: The highest index of the allocated QPs (i.e. this is where the
+ *                        driver may allocate its next QP).
+ * @max_cq_size: Maximum size of a CQ buffer.
+ * @advanced: true if advanced features are supported.
+ * @max_num_of_cqs: Maximum number of CQs.
+ * @max_num_of_db_fifos: Maximum number of DB-FIFOs.
+ * @max_num_of_encaps: Maximum number of encapsulations.
+ * @speed: port speed in Mbps.
+ * @nic_macro_idx: macro index of this specific port.
+ * @nic_phys_port_idx: physical port index (AKA lane) of this specific port.
+ * @max_num_of_scale_out_coll_qps: Number of scale-out collective QPs that are supported by the
+ *                                 driver. User must allocate enough room for his collective
+ *                                 work-queues according to this number.
+ * @max_num_of_coll_qps: Number of collective QPs that are supported by the driver. User must
+ *                       allocate enough room for his collective work-queues according to this
+ *                       number.
+ * @coll_qps_offset: Specific port collective QPs index offset.
+ * @base_scale_out_coll_qp_idx: The first scale-out collective QP id (common for all ports).
+ * @base_coll_qp_idx: The first collective QP id (common for all ports).
+ */
+struct hl_nic_get_user_app_params_out {
+	__u32 max_num_of_qps;
+	__u32 num_allocated_qps;
+	__u32 max_allocated_qp_idx;
+	__u32 max_cq_size;
+	__u8 advanced;
+	__u8 max_num_of_cqs;
+	__u8 max_num_of_db_fifos;
+	__u8 max_num_of_encaps;
+	__u32 speed;
+	__u8 nic_macro_idx;
+	__u8 nic_phys_port_idx;
+	__u8 pad[2];
+	__u32 max_num_of_scale_out_coll_qps;
+	__u32 max_num_of_coll_qps;
+	__u32 coll_qps_offset;
+	__u32 base_scale_out_coll_qp_idx;
+	__u32 base_coll_qp_idx;
+};
+
+/**
+ * struct hl_nic_alloc_user_db_fifo_in - NIC ioctl opcode HL_NIC_OP_ALLOC_USER_DB_FIFO in param
+ * @port: NIC port ID
+ * @id_hint: Hint to allocate a specific HW resource
+ */
+struct hl_nic_alloc_user_db_fifo_in {
+	__u32 port;
+	__u32 id_hint;
+};
+
+/**
+ * struct hl_nic_alloc_user_db_fifo_out - NIC ioctl opcode HL_NIC_OP_ALLOC_USER_DB_FIFO out param
+ * @id: DB-FIFO ID
+ */
+struct hl_nic_alloc_user_db_fifo_out {
+	__u32 id;
+	__u32 pad;
+};
+
+/**
+ * enum hl_nic_db_fifo_type - NIC users FIFO modes of operation.
+ * @HL_NIC_DB_FIFO_TYPE_DB: (Gaudi2 and above) mode for direct user door-bell submit.
+ * @HL_NIC_DB_FIFO_TYPE_CC: (Gaudi2 and above) mode for congestion control.
+ * @HL_NIC_DB_FIFO_TYPE_COLL_OPS_SHORT: (Gaudi3 and above) mode for short collective operations.
+ * @HL_NIC_DB_FIFO_TYPE_COLL_OPS_LONG: (Gaudi3 and above) mode for long collective operations.
+ * @HL_NIC_DB_FIFO_TYPE_DWQ_LIN: (Gaudi3 and above) mode for linear direct WQE submit.
+ * @HL_NIC_DB_FIFO_TYPE_DWQ_MS: (Gaudi3 and above) mode for multi-stride WQE submit.
+ * @HL_NIC_DB_FIFO_TYPE_COLL_DIR_OPS_SHORT: (Gaudi3 and above) mode for direct short collective
+ *                                                             operations.
+ * @HL_NIC_DB_FIFO_TYPE_COLL_DIR_OPS_LONG: (Gaudi3 and above) mode for direct long collective
+ *                                                             operations.
+ */
+enum hl_nic_db_fifo_type {
+	HL_NIC_DB_FIFO_TYPE_DB = 0,
+	HL_NIC_DB_FIFO_TYPE_CC,
+	HL_NIC_DB_FIFO_TYPE_COLL_OPS_SHORT,
+	HL_NIC_DB_FIFO_TYPE_COLL_OPS_LONG,
+	HL_NIC_DB_FIFO_TYPE_DWQ_LIN,
+	HL_NIC_DB_FIFO_TYPE_DWQ_MS,
+	HL_NIC_DB_FIFO_TYPE_COLL_DIR_OPS_SHORT,
+	HL_NIC_DB_FIFO_TYPE_COLL_DIR_OPS_LONG,
+};
+
+/**
+ * struct hl_nic_user_db_fifo_set_in - NIC ioctl opcode HL_NIC_OP_USER_DB_FIFO_SET in param
+ * @port: NIC port ID
+ * @id: NIC DB-FIFO ID
+ * @mode: represents desired mode of operation for provided FIFO, according to hl_nic_db_fifo_type
+ * @dir_dup_ports_mask: ports for which the hw should duplicate the direct patcher descriptor
+ *                                                                              (gaudi3 & above)
+ * @base_sob_addr: base address of the sync object (gaudi3 & above)
+ * @num_sobs: number of sync objects (gaudi3 & above)
+ */
+struct hl_nic_user_db_fifo_set_in {
+	__u32 port;
+	__u32 id;
+	__u8 mode;
+	__u8 dir_dup_ports_mask;
+	__u8 pad[6];
+	__u32 base_sob_addr;
+	__u32 num_sobs;
+};
+
+/**
+ * struct hl_nic_user_db_fifo_set_out - NIC ioctl opcode HL_NIC_OP_USER_DB_FIFO_SET out param
+ * @ci_handle: Handle of DB-FIFO consumer-inder memory buffer
+ * @regs_handle: Handle of DB-FIFO Registers base-address
+ * @regs_offset: Offset to the DB-FIFO Registers
+ * @fifo_size: fifo size that was allocated
+ * @fifo_bp_thresh: fifo threshold that was set by the driver
+ */
+struct hl_nic_user_db_fifo_set_out {
+	__u64 ci_handle;
+	__u64 regs_handle;
+	__u32 regs_offset;
+	__u32 pad;
+	__u32 fifo_size;
+	__u32 fifo_bp_thresh;
+};
+
+/**
+ * struct hl_nic_user_db_fifo_unset_in - NIC ioctl opcode HL_NIC_OP_USER_DB_FIFO_UNSET in param
+ * @port: NIC port ID
+ * @id: NIC DB-FIFO ID
+ */
+struct hl_nic_user_db_fifo_unset_in {
+	__u32 port;
+	__u32 id;
+};
+
+/* The operation completed successfully and an event was read */
+#define HL_NIC_EQ_POLL_STATUS_SUCCESS			0
+/* The operation completed successfully, no event was found */
+#define HL_NIC_EQ_POLL_STATUS_EQ_EMPTY			1
+/* The operation failed since it is not supported by the device/driver */
+#define HL_NIC_EQ_POLL_STATUS_ERR_UNSUPPORTED_OP	2
+/* The operation failed, port was not found */
+#define HL_NIC_EQ_POLL_STATUS_ERR_NO_SUCH_PORT		3
+/* The operation failed, port is disabled */
+#define HL_NIC_EQ_POLL_STATUS_ERR_PORT_DISABLED		4
+/* The operation failed, an event-queue associated with the app was not found */
+#define HL_NIC_EQ_POLL_STATUS_ERR_NO_SUCH_EQ		5
+/* The operation failed with an undefined error */
+#define HL_NIC_EQ_POLL_STATUS_ERR_UNDEF			6
+
+/* completion-queue events */
+#define HL_NIC_EQ_EVENT_TYPE_CQ_ERR 0
+/* Queue-pair events */
+#define HL_NIC_EQ_EVENT_TYPE_QP_ERR 1
+/* Doorbell events */
+#define HL_NIC_EQ_EVENT_TYPE_DB_FIFO_ERR 2
+/* congestion completion-queue events */
+#define HL_NIC_EQ_EVENT_TYPE_CCQ 3
+/* Direct WQE security error. */
+#define HL_NIC_EQ_EVENT_TYPE_WTD_SECURITY_ERR 4
+/* Numerical error */
+#define HL_NIC_EQ_EVENT_TYPE_NUMERICAL_ERR 5
+/* Link status. */
+#define HL_NIC_EQ_EVENT_TYPE_LINK_STATUS 6
+/* Queue-pair counters aligned */
+#define HL_NIC_EQ_EVENT_TYPE_QP_ALIGN_COUNTERS 7
+
+/**
+ * struct hl_nic_eq_poll_in - NIC ioctl opcode HL_NIC_OP_EQ_POLL in param
+ * @port: NIC port ID
+ */
+struct hl_nic_eq_poll_in {
+	__u32 port;
+	__u32 pad;
+};
+
+/**
+ * struct hl_nic_eq_poll_out - NIC ioctl opcode HL_NIC_OP_EQ_POLL out param
+ * @status: HL_NIC_EQ_POLL_STATUS_*
+ * @idx: Connection/CQ/DB-fifo index, depends on event type
+ * @ev_data: Event-specific data
+ * @ev_type: Event type
+ * @rest_occurred: Was the error due to reset
+ * @is_req: For QP events marks if corresponding QP is requestor
+ */
+struct hl_nic_eq_poll_out {
+	__u32 status;
+	__u32 idx;
+	__u32 ev_data;
+	__u8 ev_type;
+	__u8 rest_occurred;
+	__u8 is_req;
+	__u8 pad;
+};
+
+/**
+ * enum hl_nic_encap_type - Supported encapsulation types
+ * @HL_NIC_ENCAP_NONE: No Tunneling.
+ * @HL_NIC_ENCAP_OVER_IPV4: Tunnel RDMA packets through L3 layer
+ * @HL_NIC_ENCAP_OVER_UDP: Tunnel RDMA packets through L4 layer
+ */
+enum hl_nic_encap_type {
+	HL_NIC_ENCAP_NONE,
+	HL_NIC_ENCAP_OVER_IPV4,
+	HL_NIC_ENCAP_OVER_UDP,
+};
+
+/**
+ * struct hl_nic_user_encap_alloc_in - NIC ioctl opcode HL_NIC_OP_USER_ENCAP_ALLOC in param
+ * @port: NIC port ID
+ */
+struct hl_nic_user_encap_alloc_in {
+	__u32 port;
+	__u32 pad;
+};
+
+/**
+ * struct hl_nic_user_encap_alloc_out - NIC ioctl opcode HL_NIC_OP_USER_ENCAP_ALLOC out param
+ * @id: Encapsulation ID
+ */
+struct hl_nic_user_encap_alloc_out {
+	__u32 id;
+	__u32 pad;
+};
+
+/**
+ * struct hl_nic_user_encap_set_in - NIC ioctl opcode HL_NIC_OP_USER_ENCAP_SET in param
+ * @tnl_hdr_ptr: Pointer to the tunnel encapsulation header. i.e. specific tunnel header data to be
+ *               used in the encapsulation by the HW.
+ * @tnl_hdr_size: Tunnel encapsulation header size.
+ * @port: NIC port ID
+ * @id: Encapsulation ID
+ * @ipv4_addr: Source IP address, set regardless of encapsulation type.
+ * @udp_dst_port: The UDP destination-port. Valid for L4 tunnel.
+ * @ip_proto: IP protocol to use. Valid for L3 tunnel.
+ * @encap_type: Encapsulation type. May be either no-encapsulation or encapsulation over L3 or L4.
+ */
+struct hl_nic_user_encap_set_in {
+	__u64 tnl_hdr_ptr;
+	__u32 tnl_hdr_size;
+	__u32 port;
+	__u32 id;
+	__u32 ipv4_addr;
+	union {
+		__u16 udp_dst_port;
+		__u16 ip_proto;
+	};
+	__u8 encap_type;
+	__u8 pad[5];
+};
+
+/**
+ * struct hl_nic_user_encap_unset_in - NIC ioctl opcode HL_NIC_OP_USER_ENCAP_UNSET in param
+ * @port: NIC port ID
+ * @id: Encapsulation ID
+ */
+struct hl_nic_user_encap_unset_in {
+	__u32 port;
+	__u32 id;
+};
+
+/**
+ * struct hl_nic_user_ccq_set_in - NIC ioctl opcode HL_NIC_OP_USER_CCQ_SET in param
+ * @port: NIC port ID
+ * @num_of_entries: Number of CCQ entries in the buffer
+ */
+struct hl_nic_user_ccq_set_in {
+	__u32 port;
+	__u32 num_of_entries;
+};
+
+/**
+ * struct hl_nic_user_ccq_set_out - NIC ioctl opcode HL_NIC_OP_USER_CCQ_SET out param
+ * @mem_handle: Handle of CCQ memory buffer
+ * @pi_handle: Handle of CCQ producer-index memory buffer
+ * @id: CQ ID.
+ */
+struct hl_nic_user_ccq_set_out {
+	__u64 mem_handle;
+	__u64 pi_handle;
+	__u32 id;
+	__u32 pad;
+};
+
+/**
+ * struct hl_nic_user_ccq_unset_in - NIC ioctl opcode HL_NIC_OP_USER_CCQ_UNSET in param
+ * @port: NIC port ID
+ */
+struct hl_nic_user_ccq_unset_in {
+	__u32 port;
+	__u32 pad;
+};
+
+/* Opcode to allocate connection ID */
+#define HL_NIC_OP_ALLOC_CONN			0
+/* Opcode to set up a requester connection context */
+#define HL_NIC_OP_SET_REQ_CONN_CTX		1
+/* Opcode to set up a responder connection context */
+#define HL_NIC_OP_SET_RES_CONN_CTX		2
+/* Opcode to destroy a connection */
+#define HL_NIC_OP_DESTROY_CONN			3
+/* Opcode to create a CQ (deprecated) */
+#define HL_NIC_OP_CQ_CREATE			4
+/* Opcode to destroy a CQ (deprecated) */
+#define HL_NIC_OP_CQ_DESTROY			5
+/* Opcode to wait on CQ (deprecated) */
+#define HL_NIC_OP_CQ_WAIT			6
+/* Opcode to poll on CQ (deprecated) */
+#define HL_NIC_OP_CQ_POLL			7
+/* Opcode to update the number of consumed CQ entries (deprecated) */
+#define HL_NIC_OP_CQ_UPDATE_CONSUMED_CQES	8
+/* Opcode to set a user WQ array */
+#define HL_NIC_OP_USER_WQ_SET			9
+/* Opcode to unset a user WQ array */
+#define HL_NIC_OP_USER_WQ_UNSET			10
+/* Opcode to set user CQ; relevant for Gaudi only */
+#define HL_NIC_OP_USER_CQ_SET			11
+/* Opcode to unset user CQ; relevant for Gaudi only */
+#define HL_NIC_OP_USER_CQ_UNSET			12
+/* Opcode to update the user CQ consumer index; relevant for Gaudi only */
+#define HL_NIC_OP_USER_CQ_UPDATE_CI		13
+/* Opcode to allocate a CQ; relevant for Gaudi2 (or higher) */
+#define HL_NIC_OP_ALLOC_USER_CQ_ID		14
+/* Opcode to set specific user-application parameters
+ * relevant for Gaudi2 (or higher)
+ */
+#define HL_NIC_OP_SET_USER_APP_PARAMS		15
+/* Opcode to get specific user-application parameters
+ * relevant for Gaudi2 (or higher)
+ */
+#define HL_NIC_OP_GET_USER_APP_PARAMS		16
+/* Opcode to allocate a DB-FIFO; relevant for Gaudi2 (or higher) */
+#define HL_NIC_OP_ALLOC_USER_DB_FIFO		17
+/* Opcode to create a DB-FIFO; relevant for Gaudi2 (or higher) */
+#define HL_NIC_OP_USER_DB_FIFO_SET		18
+/* Opcode to destroy a DB-FIFO; relevant for Gaudi2 (or higher) */
+#define HL_NIC_OP_USER_DB_FIFO_UNSET		19
+/* Opcode to poll on EQ; relevant for Gaudi2 (or higher) */
+#define HL_NIC_OP_EQ_POLL			20
+/* Opcode to allocate encapsulation ID; relevant for Gaudi2 (or higher) */
+#define HL_NIC_OP_USER_ENCAP_ALLOC		21
+/* Opcode to create an encapsulation; relevant for Gaudi2 (or higher) */
+#define HL_NIC_OP_USER_ENCAP_SET		22
+/* Opcode to destroy an encapsulation; relevant for Gaudi2 (or higher) */
+#define HL_NIC_OP_USER_ENCAP_UNSET		23
+/* Opcode to create a CCQ; relevant for Gaudi2 (or higher) */
+#define HL_NIC_OP_USER_CCQ_SET			24
+/* Opcode to destroy a CCQ; relevant for Gaudi2 (or higher) */
+#define HL_NIC_OP_USER_CCQ_UNSET		25
+/* Opcode to set user CQ by ID; relevant for Gaudi2 (or higher) */
+#define HL_NIC_OP_USER_CQ_ID_SET		26
+/* Opcode to unset user CQ by ID; relevant for Gaudi2 (or higher) */
+#define HL_NIC_OP_USER_CQ_ID_UNSET		27
+/* Opcode to allocate collective connection ID; relevant for Gaudi3 (or higher) */
+#define HL_NIC_OP_ALLOC_COLL_CONN		28
+/* Opcode to dump the context of a QP */
+#define HL_NIC_OP_DUMP_QP			29
+
+/**
+ * struct hl_nic_args - This structure is used as the arguments container for DRM_IOCTL_HL_NIC IOCTL
+ * @input_ptr: Pointer to user input structure (relevant to specific opcodes)
+ * @output_ptr: Pointer to user output structure (relevant to specific opcodes)
+ * @input_size: Size of user input structure
+ * @output_size: Size of user output structure
+ * @ctx_id: Context ID - Currently not in use
+ * @op: HL_NIC_OP_*
+ */
+struct hl_nic_args {
+	__u64 input_ptr;
+	__u64 output_ptr;
+	__u32 input_size;
+	__u32 output_size;
+	__u32 ctx_id;
+	__u32 op;
+};
+
 #define HL_IOCTL_INFO		0x00
 #define HL_IOCTL_CB		0x01
 #define HL_IOCTL_CS		0x02
 #define HL_IOCTL_WAIT_CS	0x03
 #define HL_IOCTL_MEMORY		0x04
 #define HL_IOCTL_DEBUG		0x05
+#define HL_IOCTL_NIC		0x06
+
+#define HL_DIO_CMD_SSD2HL	1
+#define HL_DIO_CMD_HL2SSD	2
+
+struct hl_dio_args {
+	struct {
+		__u64 device_va;
+		__u64 off_bytes;
+		__u64 len_bytes;
+		__u32 fd;
+	} ssd2hl;
+
+	__u32 op;
+};
 
 /*
  * Various information operations such as:
@@ -2362,7 +3836,51 @@ struct hl_debug_args {
  */
 #define DRM_IOCTL_HL_DEBUG	DRM_IOWR(DRM_COMMAND_BASE + HL_IOCTL_DEBUG, struct hl_debug_args)
 
+/*
+ * NIC
+ *
+ * This IOCTL allows the user to manage and configure the device's NIC ports.
+ * The following operations are available:
+ * - Allocate connection ID
+ * - Set up a requester connection context
+ * - Set up a responder connection context
+ * - Destroy a connection
+ * - Create a completion queue
+ * - Destroy a completion queue
+ * - Wait on completion queue
+ * - Poll a completion queue
+ * - Update consumed completion queue entries
+ * - Set a work queue
+ * - Unset a work queue
+ * - Set a user completion queue
+ * - Unset a user completion queue
+ * - Update user completion queue consumer index
+ *
+ * For all operations, the user should provide a pointer to an input structure
+ * with the context parameters. Some of the operations also require a pointer to
+ * an output structure for result/status.
+ * The CQ create operation returns a handle which the user-space process needs
+ * to use to mmap the CQ buffer in order to access the CQ entries.
+ * This handle should be provided when destroying the CQ.
+ * The poll/wait CQ operations return the number of available CQ entries of type
+ * struct hl_nic_cqe.
+ * Since the CQ is a cyclic buffer, the user-space process needs to inform the
+ * driver regarding how many of the available CQEs were actually
+ * processed/consumed. Only then the driver will override them with newer
+ * entries.
+ * The set WQ operation should provide the device virtual address of the WQ with
+ * a matching size for the number of WQs and entries per WQ.
+ * While in legacy CQ, the driver polls on the CQ buffers to fetch CQEs and
+ * copies them to the user buffer, in user CQ the user polls on the CQ buffers
+ * directly and handles the CQEs with zero-copy.
+ * As in legacy CQ, also in user CQ, the user needs to inform the HW regarding
+ * the updated consumer index so new CQEs will be able to be pushed to the
+ * buffers.
+ *
+ */
+#define DRM_IOCTL_HL_NIC	DRM_IOWR(DRM_COMMAND_BASE + HL_IOCTL_NIC, struct hl_nic_args)
+
 #define HL_COMMAND_START	(DRM_COMMAND_BASE + HL_IOCTL_INFO)
-#define HL_COMMAND_END		(DRM_COMMAND_BASE + HL_IOCTL_DEBUG + 1)
+#define HL_COMMAND_END		(DRM_COMMAND_BASE + HL_IOCTL_NIC + 1)
 
 #endif /* HABANALABS_H_ */
