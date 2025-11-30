@@ -9,5 +9,6 @@ Compute Accelerators
 
    introduction
    amdxdna/index
+   habanalabs/index
    qaic/index
    rocket/index
