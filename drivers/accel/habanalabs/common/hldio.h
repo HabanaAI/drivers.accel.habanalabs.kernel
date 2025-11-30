@@ -119,24 +119,6 @@ static inline void hl_hldio_debugfs_fini(struct hl_device *hdev) { }
 
 #endif /* CONFIG_HL_HLDIO */
 
-/* Simplified polling macro for HLDIO (no simulator support) */
-#define hl_poll_timeout_condition(hdev, cond, sleep_us, timeout_us) \
-({ \
-	ktime_t __timeout = ktime_add_us(ktime_get(), timeout_us); \
-	might_sleep_if(sleep_us); \
-	(void)(hdev); /* keep signature consistent, hdev unused */ \
-	for (;;) { \
-		mb(); /* ensure ordering of memory operations */ \
-		if (cond) \
-			break; \
-		if (timeout_us && ktime_compare(ktime_get(), __timeout) > 0) \
-			break; \
-		if (sleep_us) \
-			usleep_range((sleep_us >> 2) + 1, sleep_us); \
-	} \
-	(cond) ? 0 : -ETIMEDOUT; \
-})
-
 #ifdef CONFIG_HL_HLDIO
 bool hl_device_supports_nvme(struct hl_device *hdev);
 #else

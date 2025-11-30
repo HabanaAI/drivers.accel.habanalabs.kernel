@@ -1238,6 +1238,13 @@ static int validate_queue_index(struct hl_device *hdev,
 		return -EINVAL;
 	}
 
+	if (hw_queue_prop->slave) {
+		dev_err(hdev->dev,
+			"Queue index %d is in slave mode and can't be used directly\n",
+			chunk->queue_index);
+		return -EINVAL;
+	}
+
 	/* When hw queue type isn't QUEUE_TYPE_HW,
 	 * USER_ALLOC_CB flag shall be referred as "don't care".
 	 */
@@ -1955,9 +1962,9 @@ static int cs_ioctl_signal_wait_create_jobs(struct hl_device *hdev,
 	}
 
 	if (cs->type == CS_TYPE_WAIT)
-		cb_size = hdev->asic_funcs->get_wait_cb_size(hdev);
+		cb_size = hdev->asic_prop.wait_cb_size;
 	else
-		cb_size = hdev->asic_funcs->get_signal_cb_size(hdev);
+		cb_size = hdev->asic_prop.signal_cb_size;
 
 	cb = hl_cb_kernel_create(hdev, cb_size, q_type == QUEUE_TYPE_HW);
 	if (!cb) {
@@ -2481,10 +2488,14 @@ static int cs_ioctl_engine_cores(struct hl_fpriv *hpriv, u64 engine_cores,
 	}
 
 	engine_cores_arr = (void __user *) (uintptr_t) engine_cores;
-	cores = memdup_array_user(engine_cores_arr, num_engine_cores, sizeof(u32));
-	if (IS_ERR(cores)) {
+	cores = kmalloc_array(num_engine_cores, sizeof(u32), GFP_KERNEL);
+	if (!cores)
+		return -ENOMEM;
+
+	if (copy_from_user(cores, engine_cores_arr, num_engine_cores * sizeof(u32))) {
 		dev_err(hdev->dev, "Failed to copy core-ids array from user\n");
-		return PTR_ERR(cores);
+		kfree(cores);
+		return -EFAULT;
 	}
 
 	rc = hdev->asic_funcs->set_engine_cores(hdev, cores, num_engine_cores, core_command);
@@ -2519,10 +2530,14 @@ static int cs_ioctl_engines(struct hl_fpriv *hpriv, u64 engines_arr_user_addr,
 	}
 
 	engines_arr = (void __user *) (uintptr_t) engines_arr_user_addr;
-	engines = memdup_array_user(engines_arr, num_engines, sizeof(u32));
-	if (IS_ERR(engines)) {
+	engines = kmalloc_array(num_engines, sizeof(u32), GFP_KERNEL);
+	if (!engines)
+		return -ENOMEM;
+
+	if (copy_from_user(engines, engines_arr, num_engines * sizeof(u32))) {
 		dev_err(hdev->dev, "Failed to copy engine-ids array from user\n");
-		return PTR_ERR(engines);
+		kfree(engines);
+		return -EFAULT;
 	}
 
 	rc = hdev->asic_funcs->set_engines(hdev, engines, num_engines, command);
@@ -2578,7 +2593,7 @@ int hl_cs_ioctl(struct drm_device *ddev, void *data, struct drm_file *file_priv)
 		cs_seq = args->in.seq;
 
 	timeout = flags & HL_CS_FLAGS_CUSTOM_TIMEOUT
-			? secs_to_jiffies(args->in.timeout)
+			? msecs_to_jiffies(args->in.timeout * 1000)
 			: hpriv->hdev->timeout_jiffies;
 
 	switch (cs_type) {
@@ -3005,6 +3020,7 @@ static int hl_multi_cs_wait_ioctl(struct hl_fpriv *hpriv, void *data)
 	struct hl_ctx *ctx = hpriv->ctx;
 	struct hl_fence **fence_arr;
 	void __user *seq_arr;
+	u32 size_to_copy;
 	u64 *cs_seq_arr;
 	u8 seq_arr_len;
 	int rc, i;
@@ -3028,12 +3044,19 @@ static int hl_multi_cs_wait_ioctl(struct hl_fpriv *hpriv, void *data)
 		return -EINVAL;
 	}
 
+	/* allocate memory for sequence array */
+	cs_seq_arr =
+		kmalloc_array(seq_arr_len, sizeof(*cs_seq_arr), GFP_KERNEL);
+	if (!cs_seq_arr)
+		return -ENOMEM;
+
 	/* copy CS sequence array from user */
 	seq_arr = (void __user *) (uintptr_t) args->in.seq;
-	cs_seq_arr = memdup_array_user(seq_arr, seq_arr_len, sizeof(*cs_seq_arr));
-	if (IS_ERR(cs_seq_arr)) {
+	size_to_copy = seq_arr_len * sizeof(*cs_seq_arr);
+	if (copy_from_user(cs_seq_arr, seq_arr, size_to_copy)) {
 		dev_err(hdev->dev, "Failed to copy multi-cs sequence array from user\n");
-		return PTR_ERR(cs_seq_arr);
+		rc = -EFAULT;
+		goto free_seq_arr;
 	}
 
 	/* allocate array for the fences */
@@ -3261,7 +3284,7 @@ static int ts_get_and_handle_kernel_record(struct hl_device *hdev, struct hl_ctx
 	bool need_lock = false;
 	int rc;
 
-	rc = validate_and_get_ts_record(data->buf->mmg->dev, ts_buff, data->ts_offset,
+	rc = validate_and_get_ts_record(data->buf->mmg->hdev->dev, ts_buff, data->ts_offset,
 									&req_offset_record);
 	if (rc)
 		return rc;

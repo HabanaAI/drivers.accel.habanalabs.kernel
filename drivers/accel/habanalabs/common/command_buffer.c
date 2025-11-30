@@ -307,7 +307,7 @@ int hl_cb_destroy(struct hl_mem_mgr *mmg, u64 cb_handle)
 
 	cb = hl_cb_get(mmg, cb_handle);
 	if (!cb) {
-		dev_dbg(mmg->dev, "CB destroy failed, no CB was found for handle %#llx\n",
+		dev_dbg(mmg->hdev->dev, "CB destroy failed, no CB was found for handle %#llx\n",
 			cb_handle);
 		return -EINVAL;
 	}
@@ -316,7 +316,7 @@ int hl_cb_destroy(struct hl_mem_mgr *mmg, u64 cb_handle)
 	rc = atomic_cmpxchg(&cb->is_handle_destroyed, 0, 1);
 	hl_cb_put(cb);
 	if (rc) {
-		dev_dbg(mmg->dev, "CB destroy failed, handle %#llx was already destroyed\n",
+		dev_dbg(mmg->hdev->dev, "CB destroy failed, handle %#llx was already destroyed\n",
 			cb_handle);
 		return -EINVAL;
 	}
@@ -326,7 +326,7 @@ int hl_cb_destroy(struct hl_mem_mgr *mmg, u64 cb_handle)
 		return rc; /* Invalid handle */
 
 	if (rc == 0)
-		dev_dbg(mmg->dev, "CB 0x%llx is destroyed while still in use\n", cb_handle);
+		dev_dbg(mmg->hdev->dev, "CB 0x%llx is destroyed while still in use\n", cb_handle);
 
 	return 0;
 }
@@ -339,7 +339,7 @@ static int hl_cb_info(struct hl_mem_mgr *mmg,
 
 	cb = hl_cb_get(mmg, handle);
 	if (!cb) {
-		dev_err(mmg->dev,
+		dev_err(mmg->hdev->dev,
 			"CB info failed, no match to handle 0x%llx\n", handle);
 		return -EINVAL;
 	}
@@ -348,7 +348,7 @@ static int hl_cb_info(struct hl_mem_mgr *mmg,
 		if (cb->is_mmu_mapped) {
 			*device_va = cb->virtual_addr;
 		} else {
-			dev_err(mmg->dev, "CB is not mapped to the device's MMU\n");
+			dev_err(mmg->hdev->dev, "CB is not mapped to the device's MMU\n");
 			rc = -EINVAL;
 			goto out;
 		}

@@ -12,55 +12,6 @@
 
 #define HWMON_NR_SENSOR_TYPES		(hwmon_max)
 
-#ifdef _HAS_HWMON_HWMON_T_ENABLE
-
-static u32 fixup_flags_legacy_fw(struct hl_device *hdev, enum hwmon_sensor_types type,
-					u32 cpucp_flags)
-{
-	u32 flags;
-
-	switch (type) {
-	case hwmon_temp:
-		flags = (cpucp_flags << 1) | HWMON_T_ENABLE;
-		break;
-
-	case hwmon_in:
-		flags = (cpucp_flags << 1) | HWMON_I_ENABLE;
-		break;
-
-	case hwmon_curr:
-		flags = (cpucp_flags << 1) | HWMON_C_ENABLE;
-		break;
-
-	case hwmon_fan:
-		flags = (cpucp_flags << 1) | HWMON_F_ENABLE;
-		break;
-
-	case hwmon_power:
-		flags = (cpucp_flags << 1) | HWMON_P_ENABLE;
-		break;
-
-	case hwmon_pwm:
-		/* enable bit was here from day 1, so no need to adjust */
-		flags = cpucp_flags;
-		break;
-
-	default:
-		dev_err_ratelimited(hdev->dev, "unsupported h/w sensor type %d\n", type);
-		flags = cpucp_flags;
-		break;
-	}
-
-	return flags;
-}
-
-static u32 fixup_attr_legacy_fw(u32 attr)
-{
-	return (attr - 1);
-}
-
-#else
-
 static u32 fixup_flags_legacy_fw(struct hl_device *hdev, enum hwmon_sensor_types type,
 						u32 cpucp_flags)
 {
@@ -71,8 +22,6 @@ static u32 fixup_attr_legacy_fw(u32 attr)
 {
 	return attr;
 }
-
-#endif /* !_HAS_HWMON_HWMON_T_ENABLE */
 
 static u32 adjust_hwmon_flags(struct hl_device *hdev, enum hwmon_sensor_types type, u32 cpucp_flags)
 {

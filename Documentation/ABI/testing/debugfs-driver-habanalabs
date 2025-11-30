@@ -132,6 +132,24 @@ Contact:        ogabbay@kernel.org
 Description:    Displays the status registers values of the device engines and
                 their derived idle status
 
+What:           /sys/kernel/debug/accel/<parent_device>/fw_binning_set
+Date:           Jun 2022
+KernelVersion:  N/A
+Contact:        fkassabri@habana.ai
+Description:    Allows the root user to set binning masks to FW.
+                This configuration is relevant only for Gaudi2/Gaudi3.
+                Usage: echo 1 > fw_binning_set
+
+What:           /sys/kernel/debug/accel/<parent_device>/fw_security
+Date:           Dec 2021
+KernelVersion:  N/A
+Contact:        ttayar@habana.ai
+Description:    Sets the security in F/W.
+                Setting bit 0 controls the security, setting bit 1 controls
+                image verifications.
+                For changes to take effect in Gaudi host reboot is required,
+                for Gaudi2 and above, device hard reset is enough
+
 What:           /sys/kernel/debug/accel/<parent_device>/i2c_addr
 Date:           Jan 2019
 KernelVersion:  5.1
@@ -253,9 +271,16 @@ Description:    Triggers dump of monitor data. The value to trigger the operatio
                 When the write is finished, the user can read the "monitor_dump"
                 blob
 
+What:           /sys/kernel/debug/accel/<parent_device>/psoc_wdog_disable
+Date:           Sep 2022
+KernelVersion:  N/A
+Contact:        fkassabri@habana.ai
+Description:    This node allow disable/enable the PSOC watchdog.
+                1-disable, 0-enable
+
 What:           /sys/kernel/debug/accel/<parent_device>/server_type
 Date:           Feb 2024
-KernelVersion:  6.11
+KernelVersion:  N/A
 Contact:        trisin@habana.ai
 Description:    Exposes the device's server type, maps to enum hl_server_type.
 

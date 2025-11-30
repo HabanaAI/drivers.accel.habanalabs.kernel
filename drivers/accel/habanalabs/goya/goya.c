@@ -5283,7 +5283,7 @@ static void goya_reset_sob_group(struct hl_device *hdev, u16 sob_group)
 
 }
 
-u64 goya_get_device_time(struct hl_device *hdev)
+u64 goya_get_device_time(struct hl_device *hdev, u32 die_index)
 {
 	u64 device_time = ((u64) RREG32(mmPSOC_TIMESTAMP_CNTCVU)) << 32;
 

@@ -245,7 +245,7 @@ void goya_cpu_accessible_dma_pool_free(struct hl_device *hdev, size_t size,
 void goya_mmu_remove_device_cpu_mappings(struct hl_device *hdev);
 
 u32 goya_get_queue_id_for_cq(struct hl_device *hdev, u32 cq_idx);
-u64 goya_get_device_time(struct hl_device *hdev);
+u64 goya_get_device_time(struct hl_device *hdev, u32 die_index);
 int goya_set_frequency(struct hl_device *hdev, enum hl_pll_frequency freq);
 
 #endif /* GOYAP_H_ */

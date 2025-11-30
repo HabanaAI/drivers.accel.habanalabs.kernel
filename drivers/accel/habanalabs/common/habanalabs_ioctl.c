@@ -9,6 +9,7 @@
 
 #include <uapi/drm/habanalabs_accel.h>
 #include "habanalabs.h"
+#include "habanalabs_compat_accel.h"
 
 #include <linux/fs.h>
 #include <linux/kernel.h>
@@ -17,18 +18,22 @@
 #include <linux/uaccess.h>
 #include <linux/vmalloc.h>
 
+#include <asm/msr.h>
+
 /* make sure there is space for all the signed info */
 static_assert(sizeof(struct cpucp_info) <= SEC_DEV_INFO_BUF_SZ);
 
-static u32 hl_debug_struct_size[HL_DEBUG_OP_TIMESTAMP + 1] = {
+#define MAX_SCHEDULER_BUF_SIZE	SZ_4K
+
+static u32 hl_debug_struct_size[HL_DEBUG_OP_FETCH_TRACE + 1] = {
 	[HL_DEBUG_OP_ETR] = sizeof(struct hl_debug_params_etr),
 	[HL_DEBUG_OP_ETF] = sizeof(struct hl_debug_params_etf),
 	[HL_DEBUG_OP_STM] = sizeof(struct hl_debug_params_stm),
 	[HL_DEBUG_OP_FUNNEL] = 0,
 	[HL_DEBUG_OP_BMON] = sizeof(struct hl_debug_params_bmon),
 	[HL_DEBUG_OP_SPMU] = sizeof(struct hl_debug_params_spmu),
-	[HL_DEBUG_OP_TIMESTAMP] = 0
-
+	[HL_DEBUG_OP_TIMESTAMP] = 0,
+	[HL_DEBUG_OP_FETCH_TRACE] = sizeof(struct hl_debug_params_fetch_trace)
 };
 
 static int device_status_info(struct hl_device *hdev, struct hl_info_args *args)
@@ -62,7 +67,7 @@ static int hw_ip_info(struct hl_device *hdev, struct hl_info_args *args)
 	dram_kmd_size = (prop->dram_user_base_address -
 				prop->dram_base_address);
 
-	hw_ip.device_id = hdev->asic_funcs->get_pci_id(hdev);
+	hw_ip.device_id = prop->pci_id;
 	hw_ip.sram_base_address = prop->sram_user_base_address;
 	hw_ip.dram_base_address =
 			prop->dram_supports_virtual_memory ?
@@ -70,12 +75,26 @@ static int hw_ip_info(struct hl_device *hdev, struct hl_info_args *args)
 	hw_ip.tpc_enabled_mask = prop->tpc_enabled_mask & 0xFF;
 	hw_ip.tpc_enabled_mask_ext = prop->tpc_enabled_mask;
 
-	hw_ip.sram_size = prop->sram_size - sram_kmd_size;
+	if (hdev->cache_enable)
+		hw_ip.sram_size = 0;
+	else
+		hw_ip.sram_size = prop->sram_size - sram_kmd_size;
 
-	dram_available_size = prop->dram_size - dram_kmd_size;
+	/*
+	 * dram size can't be smaller than minimal requirement.
+	 * Such a bug could appear, for example, when the user chooses dram_size
+	 * such as when running a simulator.
+	 */
+	if (prop->dram_size < dram_kmd_size)
+		dram_available_size = 0;
+	else
+		dram_available_size = prop->dram_size - dram_kmd_size;
 
-	hw_ip.dram_size = DIV_ROUND_DOWN_ULL(dram_available_size, prop->dram_page_size) *
-				prop->dram_page_size;
+	if (hdev->dram_enable)
+		hw_ip.dram_size = DIV_ROUND_DOWN_ULL(dram_available_size, prop->dram_page_size) *
+					prop->dram_page_size;
+	else
+		hw_ip.dram_size = dram_available_size;
 
 	if (hw_ip.dram_size > PAGE_SIZE)
 		hw_ip.dram_enabled = 1;
@@ -92,6 +111,8 @@ static int hw_ip_info(struct hl_device *hdev, struct hl_info_args *args)
 
 	hw_ip.cpld_version = le32_to_cpu(prop->cpucp_info.cpld_version);
 	hw_ip.module_id = le32_to_cpu(prop->cpucp_info.card_location);
+	hw_ip.interposer_version = prop->cpucp_info.interposer_version;
+	hw_ip.substrate_version = prop->cpucp_info.substrate_version;
 
 	hw_ip.psoc_pci_pll_nr = prop->psoc_pci_pll_nr;
 	hw_ip.psoc_pci_pll_nf = prop->psoc_pci_pll_nf;
@@ -105,10 +126,14 @@ static int hw_ip_info(struct hl_device *hdev, struct hl_info_args *args)
 	hw_ip.tpc_interrupt_id = prop->tpc_interrupt_id;
 
 	hw_ip.edma_enabled_mask = prop->edma_enabled_mask;
+	hw_ip.pdma_user_owned_ch_mask = prop->pdma_user_owned_ch_mask;
 	hw_ip.server_type = prop->server_type;
 	hw_ip.security_enabled = prop->fw_security_enabled;
-	hw_ip.revision_id = hdev->pdev->revision;
+	hw_ip.mme_enabled_mask = hdev->mme_mask;
+	hw_ip.odp_supported = hl_is_odp_supported(hdev);
+	hw_ip.revision_id = hdev->pci_revision_id;
 	hw_ip.rotator_enabled_mask = prop->rotator_enabled_mask;
+	hw_ip.sched_arc_enabled_mask = hdev->sched_arc_mask;
 	hw_ip.engine_core_interrupt_reg_addr = prop->engine_core_interrupt_reg_addr;
 	hw_ip.reserved_dram_size = dram_kmd_size;
 
@@ -193,6 +218,85 @@ static int hw_idle(struct hl_device *hdev, struct hl_info_args *args)
 
 	return copy_to_user(out, &hw_idle,
 		min((size_t) max_size, sizeof(hw_idle))) ? -EFAULT : 0;
+}
+
+static int debug_sched_ioctl(struct hl_device *hdev, struct hl_ctx *ctx,
+				struct hl_debug_args *args)
+{
+	struct hl_debug_params_scheduler sched_args;
+	int rc = -EINVAL;
+	void *buf;
+
+	if (args->input_size != sizeof(struct hl_debug_params_scheduler))
+		return -EINVAL;
+
+	if (copy_from_user(&sched_args, u64_to_user_ptr(args->input_ptr), args->input_size))
+		return -EFAULT;
+
+	switch (args->op) {
+	case HL_DEBUG_OP_SCHED_SUBMIT_BUF:
+		if (sched_args.size <= 0 || sched_args.size > MAX_SCHEDULER_BUF_SIZE)
+			return -EINVAL;
+		if (sched_args.size & 3) /* Size must be a multiple of 4 */
+			return -EINVAL;
+		buf = kmalloc(sched_args.size, GFP_KERNEL);
+		if (!buf)
+			return -ENOMEM;
+		if (copy_from_user(buf, u64_to_user_ptr(sched_args.buffer), sched_args.size)) {
+			kfree(buf);
+			return -EFAULT;
+		}
+		rc = hdev->asic_funcs->scheduler_submit_buf(hdev, sched_args.cpu_id,
+								sched_args.queue_id, buf,
+								sched_args.size);
+		kfree(buf);
+		break;
+	default:
+		return -EINVAL;
+	}
+
+	return rc;
+}
+
+static int debug_read_dev_mem_block(struct hl_fpriv *hpriv, struct hl_debug_args *args)
+{
+	struct hl_debug_params_read_block read_args;
+	struct hl_device *hdev = hpriv->hdev;
+	void __user *out_buf;
+	int rc = 0;
+	u32 size, *buf;
+
+	if (args->input_size != sizeof(read_args))
+		return -EINVAL;
+
+	if (copy_from_user(&read_args, u64_to_user_ptr(args->input_ptr), args->input_size))
+		return -EFAULT;
+
+	if (!read_args.size || read_args.size > HL_DEBUG_MAX_READ_BLOCK_SIZE) {
+		dev_err(hdev->dev, "Read debug device memory invalid size %d\n", read_args.size);
+		return -EINVAL;
+	}
+
+	size = read_args.size;
+	out_buf = (void __user *) (uintptr_t) read_args.user_address;
+
+	buf = kmalloc(size, GFP_KERNEL);
+	if (!buf)
+		return -ENOMEM;
+
+	rc = hl_read_memory_block(hdev, buf, read_args.cfg_address, size);
+	if (rc) {
+		dev_err(hdev->dev, "Read debug device memory failed address: %#llx size: %u\n",
+					read_args.cfg_address, size);
+		goto out;
+	}
+
+	if (copy_to_user(out_buf, buf, size))
+		rc = -EFAULT;
+
+out:
+	kfree(buf);
+	return rc;
 }
 
 static int debug_coresight(struct hl_device *hdev, struct hl_ctx *ctx, struct hl_debug_args *args)
@@ -321,12 +425,40 @@ static int time_sync_info(struct hl_device *hdev, struct hl_info_args *args)
 	if ((!max_size) || (!out))
 		return -EINVAL;
 
-	time_sync.device_time = hdev->asic_funcs->get_device_time(hdev);
+	time_sync.device_time = hdev->asic_funcs->get_device_time(hdev, 0);
 	time_sync.host_time = ktime_get_raw_ns();
 	time_sync.tsc_time = rdtsc();
 
 	return copy_to_user(out, &time_sync,
 		min((size_t) max_size, sizeof(time_sync))) ? -EFAULT : 0;
+}
+
+static int time_sync_info_per_die(struct hl_device *hdev, struct hl_info_args *args)
+{
+	struct hl_info_time_sync_per_die ts_info = {0};
+	u32 max_size = args->return_size;
+	void __user *out = (void __user *) (uintptr_t) args->return_pointer;
+	int rc;
+	u8 num_of_dies;
+
+	if ((!max_size) || (!out))
+		return -EINVAL;
+
+	rc = copy_from_user(&ts_info, out, min_t(size_t, max_size, sizeof(ts_info)));
+	if (rc)
+		return -EFAULT;
+
+	num_of_dies = hdev->asic_prop.num_of_dies != 0x0 ? hdev->asic_prop.num_of_dies : 0x1;
+	if (ts_info.die_index >= num_of_dies)
+		return -EINVAL;
+
+	ts_info.pad = 0x0;
+	ts_info.device_time = hdev->asic_funcs->get_device_time(hdev, ts_info.die_index);
+	ts_info.host_time = ktime_get_raw_ns();
+	ts_info.tsc_time = rdtsc();
+
+	return copy_to_user(out, &ts_info,
+		min((size_t) max_size, sizeof(ts_info))) ? -EFAULT : 0;
 }
 
 static int pci_counters_info(struct hl_fpriv *hpriv, struct hl_info_args *args)
@@ -495,7 +627,7 @@ static int pll_frequency_info(struct hl_fpriv *hpriv, struct hl_info_args *args)
 	if ((!max_size) || (!out))
 		return -EINVAL;
 
-	rc = hl_fw_cpucp_pll_info_get(hdev, args->pll_index, freq_info.output);
+	rc = hdev->asic_funcs->pll_info_get(hdev, args->pll_index, freq_info.output);
 	if (rc)
 		return rc;
 
@@ -537,6 +669,8 @@ static int open_stats_info(struct hl_fpriv *hpriv, struct hl_info_args *args)
 	open_stats_info.open_counter = hdev->open_counter;
 	open_stats_info.is_compute_ctx_active = hdev->is_compute_ctx_active;
 	open_stats_info.compute_ctx_in_release = hdev->compute_ctx_in_release;
+	open_stats_info.compute_ctx_has_mapped_resources =
+		atomic_read(&hdev->mapped_resource_cnt) > 0;
 
 	return copy_to_user(out, &open_stats_info,
 		min((size_t) max_size, sizeof(open_stats_info))) ? -EFAULT : 0;
@@ -948,6 +1082,59 @@ static int engine_err_info(struct hl_fpriv *hpriv, struct hl_info_args *args)
 	return rc ? -EFAULT : 0;
 }
 
+static int module_params_info(struct hl_device *hdev, struct hl_info_args *args)
+{
+	struct hl_info_module_params *module_params;
+	u32 max_size = args->return_size;
+	void __user *out = (void __user *) (uintptr_t) args->return_pointer;
+	int rc;
+
+	if (!max_size || !out)
+		return -EINVAL;
+
+	module_params = kzalloc(sizeof(*module_params), GFP_KERNEL);
+	if (!module_params)
+		return -ENOMEM;
+
+	module_params->gaudi_huge_page_optimization = hdev->mmu_huge_page_opt;
+	module_params->timeout_locked =
+			jiffies_to_msecs(hdev->timeout_jiffies) / 1000;
+	module_params->reset_on_lockup = hdev->reset_on_lockup;
+	module_params->pldm = hdev->pldm;
+	module_params->mmu_enable = true;
+	if (hdev->clock_gating_enabled) {
+		module_params->clock_gating = U32_MAX;
+		module_params->clock_gating_ext = U32_MAX;
+	}
+	module_params->mme_enable = hdev->mme_mask ? true : false;
+	module_params->tpc_mask = hdev->tpc_mask;
+	module_params->dram_enable = hdev->dram_enable;
+	module_params->cpu_enable = !!hdev->fw_components;
+	module_params->reset_pcilink = hdev->reset_pcilink;
+	module_params->config_pll = hdev->config_pll;
+	module_params->cpu_queues_enable = hdev->cpu_queues_enable;
+	module_params->fw_loading = lower_32_bits(hdev->fw_components);
+	module_params->fw_loading_ext = upper_32_bits(hdev->fw_components);
+	module_params->heartbeat = hdev->heartbeat;
+	module_params->security_enable = hdev->security_enable;
+	module_params->sram_scrambler_enable = hdev->sram_scrambler_enable;
+	module_params->dram_scrambler_enable = hdev->dram_scrambler_enable;
+	module_params->hbm_ecc_enable = hdev->hbm_ecc_enable;
+	module_params->compatibility_mode = hdev->compatibility_mode;
+	module_params->hard_reset_on_fw_events = hdev->hard_reset_on_fw_events;
+	module_params->decoder_mask = hdev->decoder_mask;
+	module_params->rotator_mask = hdev->rotator_mask;
+	module_params->dram_page_scrub = hdev->memory_scrub;
+	module_params->cache_enabled = hdev->cache_enable;
+
+	rc = copy_to_user(out, module_params,
+		min((size_t) max_size, sizeof(*module_params))) ? -EFAULT : 0;
+
+	kfree(module_params);
+
+	return rc;
+}
+
 static int send_fw_generic_request(struct hl_device *hdev, struct hl_info_args *info_args)
 {
 	void __user *buff = (void __user *) (uintptr_t) info_args->return_pointer;
@@ -961,11 +1148,14 @@ static int send_fw_generic_request(struct hl_device *hdev, struct hl_info_args *
 	case HL_PASSTHROUGH_VERSIONS:
 		need_input_buff = false;
 		break;
-	case  HL_GET_ERR_COUNTERS_CMD:
+	case HL_ECC_INJECTION:
 		need_input_buff = true;
 		break;
-	case HL_GET_P_STATE:
-		need_input_buff = false;
+	case HL_PASSTHROUGH_PID_CMD:
+		need_input_buff = true;
+		break;
+	case  HL_GET_ERR_COUNTERS_CMD:
+		need_input_buff = true;
 		break;
 	default:
 		return -EINVAL;
@@ -1025,6 +1215,9 @@ static int _hl_info_ioctl(struct hl_fpriv *hpriv, void *data,
 
 	case HL_INFO_DEVICE_STATUS:
 		return device_status_info(hdev, args);
+
+	case HL_INFO_MODULE_PARAMS:
+		return module_params_info(hdev, args);
 
 	case HL_INFO_RESET_COUNT:
 		return get_reset_count(hdev, args);
@@ -1143,6 +1336,9 @@ static int _hl_info_ioctl(struct hl_fpriv *hpriv, void *data,
 	case HL_INFO_FW_GENERIC_REQ:
 		return send_fw_generic_request(hdev, args);
 
+	case HL_INFO_TIME_SYNC_PER_DIE:
+		return time_sync_info_per_die(hdev, args);
+
 	case HL_INFO_DEV_SIGNED:
 		return dev_info_signed(hpriv, args);
 
@@ -1202,6 +1398,7 @@ int hl_debug_ioctl(struct drm_device *ddev, void *data, struct drm_file *file_pr
 	case HL_DEBUG_OP_BMON:
 	case HL_DEBUG_OP_SPMU:
 	case HL_DEBUG_OP_TIMESTAMP:
+	case HL_DEBUG_OP_FETCH_TRACE:
 		if (!hdev->in_debug) {
 			dev_err_ratelimited(hdev->dev,
 				"Rejecting debug configuration request because device not in debug mode\n");
@@ -1215,6 +1412,25 @@ int hl_debug_ioctl(struct drm_device *ddev, void *data, struct drm_file *file_pr
 		rc = hl_device_set_debug_mode(hdev, hpriv->ctx, (bool) args->enable);
 		break;
 
+	case HL_DEBUG_OP_READMEM:
+	case HL_DEBUG_OP_MEMCPY:
+		if (hdev->pdev) {
+			dev_err_ratelimited(hdev->dev,
+				"Rejecting memory access debug request, because device not in simulator mode\n");
+			return -EFAULT;
+		}
+		break;
+
+	case HL_DEBUG_OP_SCHED_SUBMIT_BUF:
+		rc = debug_sched_ioctl(hdev, hpriv->ctx, args);
+		break;
+
+	case HL_DEBUG_OP_READBLOCK:
+		rc = debug_read_dev_mem_block(hpriv, args);
+		break;
+	case HL_DEBUG_ENABLE_ERR_INFO_CAPTURE:
+		hl_enable_err_info_capture(&hdev->captured_err_info);
+		break;
 	default:
 		dev_err(hdev->dev, "Invalid request %d\n", args->op);
 		rc = -EINVAL;
@@ -1226,6 +1442,18 @@ int hl_debug_ioctl(struct drm_device *ddev, void *data, struct drm_file *file_pr
 
 #define HL_IOCTL_DEF(ioctl, _func) \
 	[_IOC_NR(ioctl) - HL_COMMAND_START] = {.cmd = ioctl, .func = _func}
+
+#if !IS_ENABLED(CONFIG_DRM_ACCEL)
+static const struct hl_ioctl_desc hl_ioctls[] = {
+	HL_IOCTL_DEF(DRM_IOCTL_HL_INFO, hl_accel_info_ioctl),
+	HL_IOCTL_DEF(DRM_IOCTL_HL_CB, hl_accel_cb_ioctl),
+	HL_IOCTL_DEF(DRM_IOCTL_HL_CS, hl_accel_cs_ioctl),
+	HL_IOCTL_DEF(DRM_IOCTL_HL_WAIT_CS, hl_accel_wait_ioctl),
+	HL_IOCTL_DEF(DRM_IOCTL_HL_MEMORY, hl_accel_mem_ioctl),
+	HL_IOCTL_DEF(DRM_IOCTL_HL_DEBUG, hl_accel_debug_ioctl),
+	HL_IOCTL_DEF(DRM_IOCTL_HL_NIC, hl_accel_nic_ioctl)
+};
+#endif /* !IS_ENABLED(CONFIG_DRM_ACCEL) */
 
 static const struct hl_ioctl_desc hl_ioctls_control[] = {
 	HL_IOCTL_DEF(DRM_IOCTL_HL_INFO, hl_info_ioctl_control)
@@ -1283,16 +1511,48 @@ static long _hl_ioctl(struct hl_fpriv *hpriv, unsigned int cmd, unsigned long ar
 		retcode = -EFAULT;
 
 out_err:
-	if (retcode)
+	if (retcode) {
+		char task_comm[TASK_COMM_LEN];
+
 		dev_dbg_ratelimited(dev,
 				"error in ioctl: pid=%d, comm=\"%s\", cmd=%#010x, nr=%#04x\n",
-				task_pid_nr(current), current->comm, cmd, nr);
+				task_pid_nr(current), get_task_comm(task_comm, current), cmd, nr);
+	}
 
 	if (kdata != stack_kdata)
 		kfree(kdata);
 
 	return retcode;
 }
+
+#if !IS_ENABLED(CONFIG_DRM_ACCEL)
+long hl_ioctl(struct file *filep, unsigned int cmd, unsigned long arg)
+{
+	struct drm_file *file_priv = filep->private_data;
+	struct hl_fpriv *hpriv = file_priv->driver_priv;
+	struct hl_device *hdev = hpriv->hdev;
+	const struct hl_ioctl_desc *ioctl = NULL;
+	unsigned int nr = _IOC_NR(cmd);
+
+	if (!hdev) {
+		pr_err_ratelimited("Sending ioctl after device was removed! Please close FD\n");
+		return -ENODEV;
+	}
+
+	if (nr >= HL_COMMAND_START && nr < HL_COMMAND_END) {
+		ioctl = &hl_ioctls[nr - HL_COMMAND_START];
+	} else {
+		char task_comm[TASK_COMM_LEN];
+
+		dev_dbg_ratelimited(hdev->dev,
+				"invalid ioctl: pid=%d, comm=\"%s\", cmd=%#010x, nr=%#04x\n",
+				task_pid_nr(current), get_task_comm(task_comm, current), cmd, nr);
+		return -ENOTTY;
+	}
+
+	return _hl_ioctl(hpriv, cmd, arg, ioctl, hdev->dev);
+}
+#endif /* !IS_ENABLED(CONFIG_DRM_ACCEL) */
 
 long hl_ioctl_control(struct file *filep, unsigned int cmd, unsigned long arg)
 {
@@ -1309,9 +1569,11 @@ long hl_ioctl_control(struct file *filep, unsigned int cmd, unsigned long arg)
 	if (nr == _IOC_NR(DRM_IOCTL_HL_INFO)) {
 		ioctl = &hl_ioctls_control[nr - HL_COMMAND_START];
 	} else {
+		char task_comm[TASK_COMM_LEN];
+
 		dev_dbg_ratelimited(hdev->dev_ctrl,
 				"invalid ioctl: pid=%d, comm=\"%s\", cmd=%#010x, nr=%#04x\n",
-				task_pid_nr(current), current->comm, cmd, nr);
+				task_pid_nr(current), get_task_comm(task_comm, current), cmd, nr);
 		return -ENOTTY;
 	}
 
