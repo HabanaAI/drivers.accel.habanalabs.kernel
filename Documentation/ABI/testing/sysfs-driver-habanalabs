@@ -157,7 +157,7 @@ Description:    Displays the device's module id
 
 What:           /sys/class/accel/accel<n>/device/parent_device
 Date:           Nov 2023
-KernelVersion:  6.8
+KernelVersion:  N/A
 Contact:        ttayar@habana.ai
 Description:    Displays the name of the parent device of the accel device
 
