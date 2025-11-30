@@ -18,3 +18,8 @@ HL_COMMON_FILES := common/habanalabs_drv.o common/device.o common/context.o \
 ifdef CONFIG_HL_HLDIO
 HL_COMMON_FILES += common/hldio.o
 endif
+
+# Conditionally add ODP support
+ifdef CONFIG_HL_ODP
+HL_COMMON_FILES += common/odp.o
+endif
