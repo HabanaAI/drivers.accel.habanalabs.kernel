@@ -10892,9 +10892,9 @@ C:	irc://irc.oftc.net/dri-devel
 T:	git https://github.com/HabanaAI/drivers.accel.habanalabs.kernel.git
 F:	Documentation/ABI/testing/debugfs-driver-habanalabs
 F:	Documentation/ABI/testing/sysfs-driver-habanalabs
+F:	Documentation/accel/habanalabs/
 F:	drivers/accel/habanalabs/
 F:	include/linux/habanalabs/
-F:	include/trace/events/habanalabs.h
 F:	include/uapi/drm/habanalabs_accel.h
 
 HACKRF MEDIA DRIVER
