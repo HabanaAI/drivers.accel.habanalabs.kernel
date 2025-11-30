@@ -19,7 +19,7 @@
  * page tables hops related to this context.
  * Return: 0 on success, non-zero otherwise.
  */
-static int hl_mmu_v2_ctx_init(struct hl_ctx *ctx)
+int hl_mmu_v2_ctx_init(struct hl_ctx *ctx)
 {
 	hash_init(ctx->mmu_shadow_hash);
 
@@ -36,7 +36,7 @@ static int hl_mmu_v2_ctx_init(struct hl_ctx *ctx)
  * - Free the mutex
  * - Free DRAM default page mapping hops
  */
-static void hl_mmu_v2_ctx_fini(struct hl_ctx *ctx)
+void hl_mmu_v2_ctx_fini(struct hl_ctx *ctx)
 {
 	struct hl_device *hdev = ctx->hdev;
 	struct pgt_info *pgt_info;
@@ -55,7 +55,7 @@ static void hl_mmu_v2_ctx_fini(struct hl_ctx *ctx)
 	}
 }
 
-static int hl_mmu_v2_unmap(struct hl_ctx *ctx,	u64 virt_addr, bool is_dram_addr)
+static int hl_mmu_v2_unmap(struct hl_ctx *ctx,	u64 virt_addr, u32 page_size, bool is_dram_addr)
 {
 	u64 hop_addr[MMU_ARCH_6_HOPS] = { 0 }, hop_pte_addr[MMU_ARCH_6_HOPS] = { 0 }, curr_pte,
 							scrambled_virt_addr;
@@ -242,7 +242,7 @@ static void hl_mmu_v2_swap_in(struct hl_ctx *ctx)
 
 }
 
-static int hl_mmu_v2_get_tlb_info(struct hl_ctx *ctx, u64 virt_addr, struct hl_mmu_hop_info *hops)
+int hl_mmu_v2_get_tlb_info(struct hl_ctx *ctx, u64 virt_addr, struct hl_mmu_hop_info *hops)
 {
 	struct asic_fixed_properties *prop = &ctx->hdev->asic_prop;
 	struct hl_device *hdev = ctx->hdev;
@@ -329,8 +329,8 @@ void hl_mmu_v2_set_funcs(struct hl_device *hdev, struct hl_mmu_funcs *mmu)
 	mmu->fini = hl_mmu_dr_fini;
 	mmu->ctx_init = hl_mmu_v2_ctx_init;
 	mmu->ctx_fini = hl_mmu_v2_ctx_fini;
-	mmu->map = hl_mmu_v2_map;
-	mmu->unmap = hl_mmu_v2_unmap;
+	mmu->map_page = hl_mmu_v2_map;
+	mmu->unmap_page = hl_mmu_v2_unmap;
 	mmu->flush = hl_mmu_dr_flush;
 	mmu->swap_out = hl_mmu_v2_swap_out;
 	mmu->swap_in = hl_mmu_v2_swap_in;
