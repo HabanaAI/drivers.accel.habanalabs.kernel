@@ -866,12 +866,75 @@ static inline bool hl_ewr_enabled(struct hl_device *hdev)
 				CPU_BOOT_DEV_STS1_EARLY_WRITE_RESP_SET);
 }
 
-int hl_ewr_set(struct hl_device *hdev, bool on)
+static void flush_pending_writes(struct hl_device *hdev, bool fse_flush)
 {
+	struct asic_fixed_properties *prop = &hdev->asic_prop;
+
+	/* start by flushing all the pending writes in the PCIe path to our device */
+	if (prop->pci_hbw_flush_reg)
+		RREG32(prop->pci_hbw_flush_reg);
+
+	if (fse_flush && prop->hbw_flush_reg_fse)
+		WREG32(prop->hbw_flush_reg_fse, 0x1);
+}
+
+static int hl_ewr_set_locked(struct hl_device *hdev, bool on)
+{
+	int ret;
+
 	if (!hl_ewr_enabled(hdev))
 		return 0;
 
-	return hl_fw_ewr_set(hdev, on);
+	hl_dbg_ratelimited(hdev, "%s EWR\n", on ? "Enable" : "Disable");
+
+	flush_pending_writes(hdev, true);
+	ret = hl_fw_ewr_set(hdev, on);
+	if (ret)
+		hl_warn(hdev, "Failed to %s ewr\n", on ? "enable" : "disable");
+
+	return ret;
+}
+
+static void kref_ewr_disable_locked(struct kref *ref)
+{
+	struct hl_device *hdev = container_of(ref, struct hl_device, ewr_refcount);
+
+	if (hl_ewr_set_locked(hdev, false))
+		hl_warn(hdev, "Failed to disable ewr\n");
+}
+
+void hl_ewr_get(struct hl_device *hdev)
+{
+	/*
+	 * Prevent race condition during dma-buf attachment.
+	 * A race condition exists when a dma-buf is attached to another device.
+	 * The attaching driver (which could be an instance of this driver or a different one)
+	 * may call this routine concurrently.
+	 * Without protection, the check-and-set sequence that invokes 'hl_ewr' configuration is not
+	 * atomic. If a second attachment operation occurs while the first one is configuring EWR,
+	 * the second operation might bypass the configuration step and return to the caller
+	 * prematurely. This can lead to DMA operations being initiated while the EWR configuration
+	 * is still incomplete.
+	 */
+	mutex_lock(&hdev->ewr_lock);
+
+	if (kref_read(&hdev->ewr_refcount) == 0) {
+		/* first get, initialize and enable functionality */
+		kref_init(&hdev->ewr_refcount);
+		hl_ewr_set_locked(hdev, true);
+	} else {
+		/* already active, just increment the count */
+		kref_get(&hdev->ewr_refcount);
+	}
+
+	mutex_unlock(&hdev->ewr_lock);
+}
+
+void hl_ewr_put(struct hl_device *hdev)
+{
+	/* Prevent race between last put and a preceding first get */
+	if (kref_put_mutex(&hdev->ewr_refcount, kref_ewr_disable_locked, &hdev->ewr_lock))
+		mutex_unlock(&hdev->ewr_lock);
 }
 
 /*
@@ -943,16 +1006,10 @@ int hl_device_open(struct drm_device *ddev, struct drm_file *file_priv)
 		goto out_err;
 	}
 
-	rc = hl_ewr_set(hdev, true);
-	if (rc) {
-		hl_err(hdev, "Failed to enable ewr %d\n", rc);
-		goto out_err;
-	}
-
 	rc = hl_ctx_create(hdev, hpriv);
 	if (rc) {
 		hl_err(hdev, "Failed to create context %d\n", rc);
-		goto out_err_ewr;
+		goto out_err;
 	}
 
 	list_add(&hpriv->dev_node, &hdev->fpriv_list);
@@ -973,8 +1030,6 @@ int hl_device_open(struct drm_device *ddev, struct drm_file *file_priv)
 
 	return 0;
 
-out_err_ewr:
-	hl_ewr_set(hdev, false);
 out_err:
 	mutex_unlock(&hdev->fpriv_list_lock);
 	hl_mem_mgr_fini(&hpriv->mem_mgr, NULL);

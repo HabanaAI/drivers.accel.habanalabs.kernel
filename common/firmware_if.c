@@ -897,6 +897,21 @@ static int fw_read_errors(struct hl_device *hdev, u32 boot_err0_reg,
 	return 0;
 }
 
+static int fw_update_sts1_reg(struct hl_device *hdev, u32 sts1_reg_addr)
+{
+	struct asic_fixed_properties *prop = &hdev->asic_prop;
+	u32 reg_val;
+
+	reg_val = RREG32(sts1_reg_addr);
+	if (reg_val & CPU_BOOT_DEV_STS1_ENABLED) {
+		prop->fw_cpu_boot_dev_sts1_valid = true;
+		prop->fw_preboot_cpu_boot_dev_sts1 = reg_val;
+		return 0;
+	}
+
+	return -EOPNOTSUPP;
+}
+
 int hl_fw_cpucp_info_get(struct hl_device *hdev,
 				u32 sts_boot_dev_sts0_reg,
 				u32 sts_boot_dev_sts1_reg, u32 boot_err0_reg,
@@ -968,8 +983,7 @@ int hl_fw_cpucp_info_get(struct hl_device *hdev,
 			hdev->event_queue.check_eqe_index = true;
 	}
 
-	if (prop->fw_cpu_boot_dev_sts1_valid)
-		prop->fw_app_cpu_boot_dev_sts1 = RREG32(sts_boot_dev_sts1_reg);
+	fw_update_sts1_reg(hdev, sts_boot_dev_sts1_reg);
 
 out:
 	hl_cpu_accessible_dma_pool_free(hdev, sizeof(struct cpucp_info), cpucp_info_cpu_addr);
@@ -1691,11 +1705,7 @@ static int hl_fw_read_preboot_caps(struct hl_device *hdev)
 		prop->fw_preboot_cpu_boot_dev_sts0 = reg_val;
 	}
 
-	reg_val = RREG32(pre_fw_load->sts_boot_dev_sts1_reg);
-	if (reg_val & CPU_BOOT_DEV_STS1_ENABLED) {
-		prop->fw_cpu_boot_dev_sts1_valid = true;
-		prop->fw_preboot_cpu_boot_dev_sts1 = reg_val;
-	}
+	fw_update_sts1_reg(hdev, pre_fw_load->sts_boot_dev_sts1_reg);
 
 	prop->dynamic_fw_load = !!(prop->fw_preboot_cpu_boot_dev_sts0 &
 						CPU_BOOT_DEV_STS0_FW_LD_COM_EN);
@@ -2629,13 +2639,11 @@ static void hl_fw_boot_fit_update_state(struct hl_device *hdev,
 					prop->fw_bootfit_cpu_boot_dev_sts0);
 	}
 
-	if (prop->fw_cpu_boot_dev_sts1_valid) {
-		prop->fw_bootfit_cpu_boot_dev_sts1 =
-				RREG32(cpu_boot_dev_sts1_reg);
 
+	/* sts1 is changed late at FW load process, recheck it */
+	if (fw_update_sts1_reg(hdev, cpu_boot_dev_sts1_reg))
 		hl_dbg(hdev, "Firmware boot CPU status1 %#x\n",
 					prop->fw_bootfit_cpu_boot_dev_sts1);
-	}
 
 	hl_dbg(hdev, "Firmware boot CPU hard-reset is %s\n",
 			prop->hard_reset_done_by_fw ? "enabled" : "disabled");
@@ -2875,13 +2883,11 @@ static void hl_fw_linux_update_state(struct hl_device *hdev,
 						"enabled" : "disabled");
 	}
 
-	if (prop->fw_cpu_boot_dev_sts1_valid) {
-		prop->fw_app_cpu_boot_dev_sts1 = RREG32(cpu_boot_dev_sts1_reg);
-
+	/* sts1 is changed late at FW load process, recheck it */
+	if (fw_update_sts1_reg(hdev, cpu_boot_dev_sts1_reg))
 		hl_dbg(hdev,
 			"Firmware application CPU status1 %#x\n",
 			prop->fw_app_cpu_boot_dev_sts1);
-	}
 
 	hl_dbg(hdev, "Firmware application CPU hard-reset is %s\n",
 			prop->hard_reset_done_by_fw ? "enabled" : "disabled");

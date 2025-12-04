@@ -3887,6 +3887,7 @@ struct hl_version {
  *            user and kernel) to access the invalidation h/w at the same time.
  *            In addition, any change to the PGT, modifying the MMU hash or
  *            walking the PGT requires talking this lock.
+ * @ewr_lock: protects the ewr get operation from race between enabling the feature and using it.
  * @asic_prop: ASIC specific immutable properties.
  * @asic_funcs: ASIC specific functions.
  * @asic_specific: ASIC specific information to use only from ASIC files.
@@ -3929,6 +3930,7 @@ struct hl_version {
  * @hldio:  describes habanalabs direct storage interaction interface.
  * @fw_sw_ver: version structure for FW's SW version.
  * @cpucp_ver: version structure for CPUCP.
+ * @ewr_refcount: refcount for keeping early-write-response functionality active.
  * @irq_affinity_mask: mask of available CPU cores for user and decoder interrupt handling.
  * @stream_master_qid_arr: pointer to array with QIDs of master streams.
  * @fw_inner_major_ver: the major of current loaded preboot inner version.
@@ -4097,6 +4099,7 @@ struct hl_device {
 	struct mutex			send_cpu_message_lock;
 	struct mutex			debug_lock;
 	struct mutex			mmu_lock;
+	struct mutex			ewr_lock;
 	struct asic_fixed_properties	asic_prop;
 	const struct hl_asic_funcs	*asic_funcs;
 	void				*asic_specific;
@@ -4156,6 +4159,8 @@ struct hl_device {
 	struct hl_version		fw_sw_ver;
 
 	struct hl_version		cpucp_ver;
+
+	struct kref			ewr_refcount;
 
 	cpumask_t			irq_affinity_mask;
 
@@ -4529,7 +4534,8 @@ int hl_fuse_read(struct hl_device *hdev, u32 word, u32 *val);
 
 int hl_mmap(struct file *filp, struct vm_area_struct *vma);
 
-int hl_ewr_set(struct hl_device *hdev, bool on);
+void hl_ewr_get(struct hl_device *hdev);
+void hl_ewr_put(struct hl_device *hdev);
 
 int hl_device_open(struct drm_device *drm, struct drm_file *file_priv);
 void hl_device_release(struct drm_device *ddev, struct drm_file *file_priv);

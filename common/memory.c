@@ -2276,15 +2276,13 @@ static int hl_dmabuf_attach(struct dma_buf *dmabuf,
 				struct dma_buf_attachment *attachment)
 {
 
+	struct hl_dmabuf_priv *hl_dmabuf = dmabuf->priv;
+	struct hl_device *hdev = hl_dmabuf->ctx->hdev;
+
 #if 0 /* Disable p2pdma distance check as it will always fail inside a VM */
 
 #if defined(_HAS_PEER2PEER) && defined(CONFIG_PCI_P2PDMA) && !defined(__IMPORTER)
-	struct hl_dmabuf_priv *hl_dmabuf;
-	struct hl_device *hdev;
 	int rc;
-
-	hl_dmabuf = dmabuf->priv;
-	hdev = hl_dmabuf->ctx->hdev;
 
 	rc = pci_p2pdma_distance(hdev->pdev, attachment->dev, true);
 
@@ -2293,7 +2291,18 @@ static int hl_dmabuf_attach(struct dma_buf *dmabuf,
 #endif
 
 #endif
+	hl_ewr_get(hdev);
+
 	return 0;
+}
+
+static void hl_dmabuf_detach(struct dma_buf *dmabuf,
+			    struct dma_buf_attachment *attachment)
+{
+	struct hl_dmabuf_priv *hl_dmabuf = dmabuf->priv;
+	struct hl_device *hdev = hl_dmabuf->ctx->hdev;
+
+	hl_ewr_put(hdev);
 }
 
 static struct sg_table *hl_map_dmabuf(struct dma_buf_attachment *attachment,
@@ -2439,6 +2448,7 @@ static void hl_release_dmabuf(struct dma_buf *dmabuf)
 
 static const struct dma_buf_ops habanalabs_dmabuf_ops = {
 	.attach = hl_dmabuf_attach,
+	.detach = hl_dmabuf_detach,
 	.map_dma_buf = hl_map_dmabuf,
 	.unmap_dma_buf = hl_unmap_dmabuf,
 	.release = hl_release_dmabuf,
