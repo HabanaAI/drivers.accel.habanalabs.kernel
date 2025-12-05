@@ -93,6 +93,7 @@ static bool ignore_eeprom_errors;
 static uint gaudi3_setup_type;
 static uint serdes_type = 0xFFFF;
 static uint card_location = 8;
+static bool ewr_enable = 1;
 
 /* Parameters for bring-up/debugging */
 static bool pldm;
@@ -263,6 +264,10 @@ MODULE_PARM_DESC(serdes_type,
 module_param(card_location, uint, 0444);
 MODULE_PARM_DESC(card_location,
 	"The card location index inside the BMC, this affects the external port mask configuration ([0 - 7] - supported slot range, default 0 - disable)");
+
+module_param(ewr_enable, bool, 0444);
+MODULE_PARM_DESC(ewr_enable,
+	"Enable Early-Write-Response HW feature (0 = no, 1 = yes, default yes, Applicable to Gaudi3 devices only)");
 
 /* Bring-Up flags */
 module_param(pldm, bool, 0444);
@@ -854,9 +859,16 @@ static bool is_cpu_queue_enabled(struct hl_device *hdev)
 	return (enabled && !!(hdev->fw_communication_enable));
 }
 
+static inline bool hl_ewr_enabled(struct hl_device *hdev)
+{
+	return hdev->ewr_enable &&
+		!!(hdev->asic_prop.fw_app_cpu_boot_dev_sts1 &
+				CPU_BOOT_DEV_STS1_EARLY_WRITE_RESP_SET);
+}
+
 int hl_ewr_set(struct hl_device *hdev, bool on)
 {
-	if (!(hdev->asic_prop.fw_app_cpu_boot_dev_sts1 & CPU_BOOT_DEV_STS1_EARLY_WRITE_RESP_SET))
+	if (!hl_ewr_enabled(hdev))
 		return 0;
 
 	return hl_fw_ewr_set(hdev, on);
@@ -1446,6 +1458,7 @@ static void copy_kernel_module_params_to_device(struct hl_device *hdev)
 	hdev->gaudi3_setup_type = gaudi3_setup_type;
 	hdev->serdes_type = serdes_type;
 	hdev->card_location_override = card_location;
+	hdev->ewr_enable = ewr_enable;
 }
 
 static void copy_bfe_params_to_device(struct hl_device *hdev)
@@ -1570,6 +1583,11 @@ static void fixup_fw_components_param(struct hl_device *hdev)
 
 static void fixup_device_params_per_asic(struct hl_device *hdev, int timeout)
 {
+	u8 ewr_en = hdev->ewr_enable;
+
+	/* clear ewr for all devices */
+	hdev->ewr_enable = 0;
+
 	switch (hdev->asic_type) {
 	case ASIC_GAUDI:
 	case ASIC_GAUDI_HL2000M:
@@ -1642,6 +1660,9 @@ static void fixup_device_params_per_asic(struct hl_device *hdev, int timeout)
 			hdev->dram_enable = 0;
 		else if (!hdev->dram_enable)
 			hdev->cache_enable = 0;
+
+		/* Gaudi3 supports EWR */
+		hdev->ewr_enable = ewr_en;
 		break;
 #ifdef HL_DOWNSTREAM
 	case ASIC_GAUDI3_FPGA:
