@@ -169,4 +169,12 @@
 #define mmPID_CMD_TELEMETRY_REG_1		0
 #define mmPID_CMD_TELEMETRY_REG_1_HI		0
 
+/**
+ * A DUMMY block isn't a regular block, but in fact a block with a manually
+ * configured block response, and used by PCIE 'Fabric Serialization' feature.
+ * Although listed in SOL, it has no 'specs' record associated to it.
+ * It's configured for DIE0 only, since DIE1 PCIE/features are disabled.
+ */
+#define mmD0_PIF_DUMMY_LBW_BLK_BASE		0xC41C000ull
+
 #endif /* GAUDI3_REG_MAP_H_ */

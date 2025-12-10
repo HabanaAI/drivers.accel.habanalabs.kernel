@@ -3943,6 +3943,8 @@ int gaudi3_set_fixed_properties(struct hl_device *hdev)
 	prop->supports_memory_consumption_report = true;
 	/* TODO: remove once [SW-227103] is done */
 	prop->force_device_reset_from_fw = false;
+	/* FSE is handled by FW, any change of this register must be coordinated with FW */
+	prop->hbw_flush_reg_fse = mmD0_PIF_DUMMY_LBW_BLK_BASE;
 
 	return 0;
 
