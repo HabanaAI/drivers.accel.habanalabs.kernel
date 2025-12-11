@@ -878,7 +878,6 @@ struct hl_cn_properties {
  * @force_device_reset_from_fw: true if the device should be reset from the firmware
  * 				as part of W/A for [SW-227103]. TODO: remove once this
  * 				ticket is resolved.
- * @fse_enabled: In case FSE is supported, this bool tells if the FSE feature is enabled.
  */
 struct asic_fixed_properties {
 	struct hw_queue_properties	*hw_queues_props;
@@ -1044,7 +1043,6 @@ struct asic_fixed_properties {
 	u8				supports_driver_version_report;
 	u8				fw_sram_remap_enabled;
 	u8 				force_device_reset_from_fw;
-	u8				fse_enabled;
 };
 
 /**
@@ -4536,6 +4534,7 @@ int hl_mmap(struct file *filp, struct vm_area_struct *vma);
 
 void hl_ewr_get(struct hl_device *hdev);
 void hl_ewr_put(struct hl_device *hdev);
+void hl_flush_pending_writes(struct hl_device *hdev);
 
 int hl_device_open(struct drm_device *drm, struct drm_file *file_priv);
 void hl_device_release(struct drm_device *ddev, struct drm_file *file_priv);

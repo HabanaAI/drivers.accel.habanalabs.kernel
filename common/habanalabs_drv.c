@@ -878,6 +878,25 @@ static void flush_pending_writes(struct hl_device *hdev, bool fse_flush)
 		WREG32(prop->hbw_flush_reg_fse, 0x1);
 }
 
+/*
+ * hl_flush_pending_writes - Flush all pending writes in the path to the device and
+ * in the device itself.
+ *
+ * @hdev: pointer to hl-device structure.
+ *
+ * Called to enforce a memory barrier when EWR is active, guaranteeing that all preceding
+ * write operations have been fully committed before subsequent instructions are issued.
+ */
+void hl_flush_pending_writes(struct hl_device *hdev)
+{
+	if (!hl_ewr_enabled(hdev))
+		return flush_pending_writes(hdev, false);
+
+	mutex_lock(&hdev->ewr_lock);
+	flush_pending_writes(hdev, !!(kref_read(&hdev->ewr_refcount)));
+	mutex_unlock(&hdev->ewr_lock);
+}
+
 static int hl_ewr_set_locked(struct hl_device *hdev, bool on)
 {
 	int ret;

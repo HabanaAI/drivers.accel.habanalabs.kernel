@@ -2580,37 +2580,9 @@ static int cs_ioctl_engines(struct hl_fpriv *hpriv, u64 engines_arr_user_addr,
 	return rc;
 }
 
-static int cs_ioctl_flush_hbw_writes_fse(struct hl_fpriv *hpriv)
-{
-	struct hl_device *hdev = hpriv->hdev;
-	struct asic_fixed_properties *prop = &hdev->asic_prop;
-
-	if (!prop->hbw_flush_reg_fse) {
-		hl_dbg(hdev, "Fabric Serialization Enhancement is not supported\n");
-		return -EOPNOTSUPP;
-	}
-
-	if (!prop->fse_enabled) {
-		hl_dbg(hdev, "Fabric Serialization Enhancement is not enabled\n");
-		return -EINVAL;
-	}
-
-	WREG32(prop->hbw_flush_reg_fse, 0x1);
-
-	return 0;
-}
-
 static int cs_ioctl_flush_pci_hbw_writes(struct hl_fpriv *hpriv)
 {
-	struct hl_device *hdev = hpriv->hdev;
-	struct asic_fixed_properties *prop = &hdev->asic_prop;
-
-	if (!prop->pci_hbw_flush_reg) {
-		hl_dbg(hdev, "HBW flush is not supported\n");
-		return -EOPNOTSUPP;
-	}
-
-	RREG32(prop->pci_hbw_flush_reg);
+	hl_flush_pending_writes(hpriv->hdev);
 
 	return 0;
 }
@@ -2676,11 +2648,9 @@ int hl_cs_ioctl(struct drm_device *ddev, void *data, struct drm_file *file_priv)
 		rc = cs_ioctl_engines(hpriv, args->in.engines,
 				args->in.num_engines, args->in.engine_command);
 		break;
+	case CS_TYPE_FLUSH_HBW_WRITES_FSE:
 	case CS_TYPE_FLUSH_PCI_HBW_WRITES:
 		rc = cs_ioctl_flush_pci_hbw_writes(hpriv);
-		break;
-	case CS_TYPE_FLUSH_HBW_WRITES_FSE:
-		rc = cs_ioctl_flush_hbw_writes_fse(hpriv);
 		break;
 	default:
 		rc = cs_ioctl_default(hpriv, chunks, num_chunks, &cs_seq,
