@@ -2955,7 +2955,7 @@ int gaudi2_set_fixed_properties(struct hl_device *hdev)
 
 	prop->dma_mask = 64;
 
-	prop->pci_hbw_flush_reg = mmPCIE_WRAP_SPECIAL_GLBL_SPARE_0;
+	prop->pci_hbw_flush_reg = mmHW_STATE;
 
 	/* Fuse properties */
 	prop->fuse_read_reg = mmPSOC_EFUSE_READ_CTRL;
