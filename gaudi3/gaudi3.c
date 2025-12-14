@@ -3881,7 +3881,7 @@ int gaudi3_set_fixed_properties(struct hl_device *hdev)
 	prop->supports_odp = true;
 	prop->support_dynamic_resereved_fw_size = true;
 
-	prop->pci_hbw_flush_reg = mmD0_PCIE_WRAP_SPECIAL_BASE + mmPCIE_WRAP_SPECIAL_GLBL_SPARE_0;
+	prop->pci_hbw_flush_reg = mmHW_STATE;
 	prop->hard_reset_sleep_ms = GAUDI3_RESET_TIMEOUT_MSEC;
 	prop->soft_reset_sleep_ms = GAUDI3_RESET_TIMEOUT_MSEC;
 	prop->reset_poll_timeout_us = GAUDI3_RESET_POLL_TIMEOUT_USEC;
