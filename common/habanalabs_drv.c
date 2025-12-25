@@ -897,19 +897,19 @@ void hl_flush_pending_writes(struct hl_device *hdev)
 	mutex_unlock(&hdev->ewr_lock);
 }
 
-static int hl_ewr_set_locked(struct hl_device *hdev, bool on)
+static int hl_ewr_set_locked(struct hl_device *hdev, bool enable)
 {
 	int ret;
 
 	if (!hl_ewr_enabled(hdev))
 		return 0;
 
-	hl_dbg_ratelimited(hdev, "%s EWR\n", on ? "Enable" : "Disable");
+	hl_dbg_ratelimited(hdev, "%s EWR\n", enable ? "Enable" : "Disable");
 
 	flush_pending_writes(hdev, false);
-	ret = hl_fw_ewr_set(hdev, on);
+	ret = hl_fw_ewr_set(hdev, enable);
 	if (ret)
-		hl_warn(hdev, "Failed to %s ewr\n", on ? "enable" : "disable");
+		hl_warn(hdev, "Failed to %s ewr\n", enable ? "enable" : "disable");
 
 	return ret;
 }

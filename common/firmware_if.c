@@ -1426,7 +1426,7 @@ out:
 	return rc;
 }
 
-int hl_fw_ewr_set(struct hl_device *hdev, bool on)
+int hl_fw_ewr_set(struct hl_device *hdev, bool enable)
 {
 	struct cpucp_packet pkt;
 	int rc;
@@ -1434,13 +1434,13 @@ int hl_fw_ewr_set(struct hl_device *hdev, bool on)
 	memset(&pkt, 0, sizeof(pkt));
 
 	pkt.ctl = cpu_to_le32(CPUCP_PACKET_EARLY_WRITE_RESP_SET << CPUCP_PKT_CTL_OPCODE_SHIFT);
-	pkt.value = cpu_to_le64(on);
+	pkt.value = cpu_to_le64(enable);
 
 	rc = hdev->asic_funcs->send_cpu_message(hdev, (u32 *)&pkt, sizeof(pkt),
 						HL_CPUCP_INFO_TIMEOUT_USEC, NULL);
 	if (rc)
 		hl_err(hdev,
-		       "Failed to set ewr to '%s' (%d)", on ? "on" : "off", rc);
+		       "Failed to set ewr to '%s' (%d)", enable ? "enabled" : "disabled", rc);
 
 	return rc;
 }
