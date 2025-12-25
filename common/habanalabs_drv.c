@@ -906,7 +906,8 @@ static int hl_ewr_set_locked(struct hl_device *hdev, bool enable)
 
 	hl_dbg_ratelimited(hdev, "%s EWR\n", enable ? "Enable" : "Disable");
 
-	flush_pending_writes(hdev, false);
+	/* Issue FSE flush only if EWR is currently active */
+	flush_pending_writes(hdev, !enable);
 	ret = hl_fw_ewr_set(hdev, enable);
 	if (ret)
 		hl_warn(hdev, "Failed to %s ewr\n", enable ? "enable" : "disable");
