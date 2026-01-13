@@ -953,8 +953,9 @@ void hl_ewr_get(struct hl_device *hdev)
 void hl_ewr_put(struct hl_device *hdev)
 {
 	/* Prevent race between last put and a preceding first get */
-	if (kref_put_mutex(&hdev->ewr_refcount, kref_ewr_disable_locked, &hdev->ewr_lock))
-		mutex_unlock(&hdev->ewr_lock);
+	mutex_lock(&hdev->ewr_lock);
+	kref_put(&hdev->ewr_refcount, kref_ewr_disable_locked);
+	mutex_unlock(&hdev->ewr_lock);
 }
 
 /*
