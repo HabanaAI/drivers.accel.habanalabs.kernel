@@ -221,6 +221,7 @@ int hl_ctx_init(struct hl_device *hdev, struct hl_ctx *ctx, bool is_kernel_ctx)
 	if (!ctx->cs_pending)
 		return -ENOMEM;
 
+	spin_lock_init(&ctx->outcome_store.db_lock);
 	INIT_LIST_HEAD(&ctx->outcome_store.used_list);
 	INIT_LIST_HEAD(&ctx->outcome_store.free_list);
 	hash_init(ctx->outcome_store.outcome_map);
