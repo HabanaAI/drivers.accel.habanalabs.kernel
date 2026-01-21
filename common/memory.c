@@ -489,6 +489,7 @@ static int alloc_device_memory(struct hl_ctx *ctx, struct hl_mem_in *args,
 {
 	struct hl_device *hdev = ctx->hdev;
 	struct hl_vm *vm = &hdev->vm;
+	struct asic_fixed_properties *prop = &hdev->asic_prop;
 	struct hl_vm_phys_pg_pack *phys_pg_pack;
 	u64 paddr = 0, total_size, num_pgs, i;
 	u32 num_curr_pgs, page_size;
@@ -505,8 +506,13 @@ static int alloc_device_memory(struct hl_ctx *ctx, struct hl_mem_in *args,
 	total_size = num_pgs * page_size;
 
 	if (!total_size) {
-		hl_err(hdev, "Cannot allocate 0 bytes\n");
+		hl_err_ratelimited(hdev, "Cannot allocate 0 bytes\n");
 		return -EINVAL;
+	}
+
+	if (total_size > prop->dram_size) {
+		hl_err_ratelimited(hdev, "Cannot satisfy allocation of %lld bytes\n", total_size);
+		return -ENOMEM;
 	}
 
 	contiguous = args->flags & HL_MEM_CONTIGUOUS;
@@ -539,7 +545,7 @@ static int alloc_device_memory(struct hl_ctx *ctx, struct hl_mem_in *args,
 	phys_pg_pack->flags = args->flags;
 	phys_pg_pack->contiguous = contiguous;
 
-	phys_pg_pack->pages = kvmalloc_array(num_pgs, sizeof(u64), GFP_KERNEL);
+	phys_pg_pack->pages = kvmalloc_array(num_pgs, sizeof(u64), GFP_KERNEL | __GFP_NOWARN);
 	if (ZERO_OR_NULL_PTR(phys_pg_pack->pages)) {
 		rc = -ENOMEM;
 		goto pages_arr_err;
@@ -1380,7 +1386,7 @@ static int init_phys_pg_pack_from_userptr(struct hl_ctx *ctx,
 	}
 
 	phys_pg_pack->pages = kvmalloc_array(total_npages, sizeof(u64),
-						GFP_KERNEL);
+						GFP_KERNEL | __GFP_NOWARN);
 	if (ZERO_OR_NULL_PTR(phys_pg_pack->pages)) {
 		rc = -ENOMEM;
 		goto page_pack_arr_mem_err;
@@ -2994,8 +3000,8 @@ static int get_user_memory(struct hl_device *hdev, u64 addr, u64 size,
 		return -EFAULT;
 	}
 
-	userptr->pages = kvmalloc_array(npages, sizeof(struct page *), GFP_KERNEL);
-	if (!userptr->pages)
+	userptr->pages = kvmalloc_array(npages, sizeof(struct page *), GFP_KERNEL | __GFP_NOWARN);
+	if (ZERO_OR_NULL_PTR(userptr->pages))
 		return -ENOMEM;
 
 
