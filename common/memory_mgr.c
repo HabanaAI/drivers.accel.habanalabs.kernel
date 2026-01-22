@@ -28,7 +28,10 @@ struct hl_mmap_mem_buf *hl_mmap_mem_buf_get(struct hl_mem_mgr *mmg, u64 handle)
 		hl_dbg(mmg->hdev, "Buff get failed, no match to handle %#llx\n", handle);
 		return NULL;
 	}
-	kref_get(&buf->refcount);
+	if (!kref_get_unless_zero(&buf->refcount)) {
+		hl_dbg(mmg->hdev, "Buff for handle %#llx, already freed\n", handle);
+		buf = NULL;
+	}
 	spin_unlock(&mmg->lock);
 	return buf;
 }
@@ -141,7 +144,12 @@ int hl_mmap_mem_buf_put_handle(struct hl_mem_mgr *mmg, u64 handle)
  * @gfp: gfp flags to use for the memory allocations
  * @args: additional args passed to behavior->alloc
  *
- * Allocate and register a new memory buffer inside the give memory manager.
+ * Allocates and registers a new memory buffer within the specified memory manager.
+ * Upon successful creation, it automatically increments the buffer's reference count
+ * to ensure it remains valid while the caller is using it. Consequently, the callers are
+ * responsible for calling hl_mmap_mem_buf_put() to release the reference once the buffer
+ * is no longer accessed by them.
+ *
  * Return the pointer to the new buffer on success or NULL on failure.
  */
 struct hl_mmap_mem_buf *
@@ -152,38 +160,43 @@ hl_mmap_mem_buf_alloc(struct hl_mem_mgr *mmg,
 	struct hl_mmap_mem_buf *buf;
 	int rc;
 
+	/* perform as much buffer setup as possible before locking */
 	buf = kzalloc(sizeof(*buf), gfp);
 	if (!buf)
 		return NULL;
 
-	spin_lock(&mmg->lock);
-	rc = idr_alloc(&mmg->handles, buf, 1, 0, GFP_ATOMIC);
-	spin_unlock(&mmg->lock);
-	if (rc < 0) {
-		hl_err(mmg->hdev,
-			"%s: Failed to allocate IDR for a new buffer, rc=%d\n",
-			behavior->topic, rc);
-		goto free_buf;
-	}
-
 	buf->mmg = mmg;
 	buf->behavior = behavior;
-	buf->handle = (((u64)rc | buf->behavior->mem_id) << PAGE_SHIFT);
 	kref_init(&buf->refcount);
 
 	rc = buf->behavior->alloc(buf, gfp, args);
 	if (rc) {
 		hl_err(mmg->hdev, "%s: Failure in buffer alloc callback %d\n",
 			behavior->topic, rc);
-		goto remove_idr;
+		goto free_buf;
 	}
+
+	spin_lock(&mmg->lock);
+	rc = idr_alloc(&mmg->handles, buf, 1, 0, GFP_ATOMIC);
+	if (rc < 0) {
+		spin_unlock(&mmg->lock);
+		hl_err(mmg->hdev,
+			"%s: Failed to allocate IDR for a new buffer, rc=%d\n",
+			behavior->topic, rc);
+		goto free_buf_behavior;
+	}
+
+	/* prevent deleting the buf while being passed to the caller */
+	kref_get(&buf->refcount);
+	buf->handle = (((u64)rc | buf->behavior->mem_id) << PAGE_SHIFT);
+	spin_unlock(&mmg->lock);
 
 	return buf;
 
-remove_idr:
-	spin_lock(&mmg->lock);
-	idr_remove(&mmg->handles, lower_32_bits(buf->handle >> PAGE_SHIFT));
-	spin_unlock(&mmg->lock);
+free_buf_behavior:
+	if (buf->behavior->release)
+		buf->behavior->release(buf);
+
 free_buf:
 	kfree(buf);
 	return NULL;

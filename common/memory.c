@@ -2800,6 +2800,8 @@ static int allocate_timestamps_buffers(struct hl_fpriv *hpriv, struct hl_mem_in 
 		return -ENOMEM;
 
 	*handle = buf->handle;
+	/* decrement the refcount incremented by hl_mmap_mem_buf_alloc */
+	hl_mmap_mem_buf_put(buf);
 
 	return 0;
 }

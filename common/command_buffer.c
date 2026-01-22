@@ -296,6 +296,8 @@ int hl_cb_create(struct hl_device *hdev, struct hl_mem_mgr *mmg,
 		return -ENOMEM;
 
 	*handle = buf->handle;
+	/* decrement the refcount incremented by hl_mmap_mem_buf_alloc */
+	hl_mmap_mem_buf_put(buf);
 
 	return 0;
 }
