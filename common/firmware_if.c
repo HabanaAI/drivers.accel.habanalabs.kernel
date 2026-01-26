@@ -1850,8 +1850,8 @@ static int hl_fw_static_read_preboot_status(struct hl_device *hdev)
 
 /**
  * hl_fw_verify_preboot_boot_status -	verify that preboot has finished it's boot, and now we are
- * 					in management FW, as when preboot finishes its boot process
- *					process it sets the status to CPU_BOOT_STATUS_SRAM_AVAIL
+ *					in management FW. When preboot finishes its boot process
+ *					it sets the status to CPU_BOOT_STATUS_RUNTIME_FW_RDY
  *					indicating the end of the boot process.
  *					this is part of a W/A for cases where host server
  *					does not send reboot to device, causing a corner case
@@ -1875,12 +1875,12 @@ int hl_fw_verify_preboot_boot_status(struct hl_device *hdev)
 	cpu_boot_status_reg = hdev->fw_loader.pre_fw_load.cpu_boot_status_reg;
 	cpu_boot_status = RREG32(cpu_boot_status_reg);
 
-	/* CPU_BOOT_STATUS_SRAM_AVAIL is the current indication that preboot
+	/* CPU_BOOT_STATUS_RUNTIME_FW_RDY is the current indication that preboot
 	 * stage was completed. In this case the device was already initialized
 	 * and preboot is not in boot process anymore.
 	 * TODO: change stage status once [SW-227106] is done.
 	 */
-	if (cpu_boot_status == CPU_BOOT_STATUS_SRAM_AVAIL) {
+	if (cpu_boot_status == CPU_BOOT_STATUS_RUNTIME_FW_RDY) {
 		hl_dbg(hdev,"preboot process already done");
 		return -EIO;
 	}
@@ -2749,10 +2749,10 @@ static int hl_fw_dynamic_wait_for_boot_fit_active(struct hl_device *hdev,
 
 	/*
 	 * Make sure CPU boot-loader is running
-	 * Note that the CPU_BOOT_STATUS_SRAM_AVAIL is generally set by Linux
+	 * Note that the CPU_BOOT_STATUS_RUNTIME_FW_RDY is generally set by Linux
 	 * yet there is a debug scenario in which we loading uboot (without Linux)
 	 * which at later stage is relocated to DRAM. In this case we expect
-	 * uboot to set the CPU_BOOT_STATUS_SRAM_AVAIL and so we add it to the
+	 * uboot to set the CPU_BOOT_STATUS_RUNTIME_FW_RDY and so we add it to the
 	 * poll flags
 	 */
 	rc = hl_poll_timeout(
@@ -2760,7 +2760,7 @@ static int hl_fw_dynamic_wait_for_boot_fit_active(struct hl_device *hdev,
 		le32_to_cpu(dyn_loader->comm_desc.cpu_dyn_regs.cpu_boot_status),
 		status,
 		(status == CPU_BOOT_STATUS_READY_TO_BOOT) ||
-		(status == CPU_BOOT_STATUS_SRAM_AVAIL),
+		(status == CPU_BOOT_STATUS_RUNTIME_FW_RDY),
 		hdev->fw_poll_interval_usec,
 		dyn_loader->wait_for_bl_timeout);
 	if (rc) {
@@ -2812,7 +2812,7 @@ static int hl_fw_dynamic_wait_for_sram_available(struct hl_device *hdev,
 		hdev,
 		le32_to_cpu(dyn_loader->comm_desc.cpu_dyn_regs.cpu_boot_status),
 		status,
-		(status == CPU_BOOT_STATUS_SRAM_AVAIL),
+		(status == CPU_BOOT_STATUS_RUNTIME_FW_RDY),
 		hdev->fw_poll_interval_usec,
 		fw_loader->cpu_timeout);
 	if (rc) {
@@ -3261,10 +3261,10 @@ static int hl_fw_static_init_cpu(struct hl_device *hdev,
 
 	/*
 	 * Make sure CPU boot-loader is running
-	 * Note that the CPU_BOOT_STATUS_SRAM_AVAIL is generally set by Linux
+	 * Note that the CPU_BOOT_STATUS_RUNTIME_FW_RDY is generally set by Linux
 	 * yet there is a debug scenario in which we loading uboot (without Linux)
 	 * which at later stage is relocated to DRAM. In this case we expect
-	 * uboot to set the CPU_BOOT_STATUS_SRAM_AVAIL and so we add it to the
+	 * uboot to set the CPU_BOOT_STATUS_RUNTIME_FW_RDY and so we add it to the
 	 * poll flags
 	 */
 	rc = hl_poll_timeout(
@@ -3274,7 +3274,7 @@ static int hl_fw_static_init_cpu(struct hl_device *hdev,
 		(status == CPU_BOOT_STATUS_DRAM_RDY) ||
 		(status == CPU_BOOT_STATUS_NIC_FW_RDY) ||
 		(status == CPU_BOOT_STATUS_READY_TO_BOOT) ||
-		(status == CPU_BOOT_STATUS_SRAM_AVAIL),
+		(status == CPU_BOOT_STATUS_RUNTIME_FW_RDY),
 		hdev->fw_poll_interval_usec,
 		cpu_timeout);
 
@@ -3306,7 +3306,7 @@ static int hl_fw_static_init_cpu(struct hl_device *hdev,
 		goto out;
 	}
 
-	if (status == CPU_BOOT_STATUS_SRAM_AVAIL) {
+	if (status == CPU_BOOT_STATUS_RUNTIME_FW_RDY) {
 		rc = 0;
 		goto out;
 	}
@@ -3390,7 +3390,7 @@ static int hl_fw_static_init_cpu(struct hl_device *hdev,
 		hdev,
 		cpu_boot_status_reg,
 		status,
-		(status == CPU_BOOT_STATUS_SRAM_AVAIL),
+		(status == CPU_BOOT_STATUS_RUNTIME_FW_RDY),
 		hdev->fw_poll_interval_usec,
 		cpu_timeout);
 
