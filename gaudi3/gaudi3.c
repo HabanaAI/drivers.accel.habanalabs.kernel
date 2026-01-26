@@ -8556,7 +8556,7 @@ void gaudi3_send_hard_reset_cmd(struct hl_device *hdev)
 
 	/* boot-fit stage case */
 	if (!preboot_only && gaudi3 && (gaudi3->hw_cap_initialized & HW_CAP_CPU) &&
-			(cpu_boot_status == CPU_BOOT_STATUS_SRAM_AVAIL)) {
+			(cpu_boot_status == CPU_BOOT_STATUS_RUNTIME_FW_RDY)) {
 		WREG32(mmD0_PARC_INT_GEN_BASE + mmINTR_GEN_MSG2WIRE_SW, 0x1);
 		msleep(GAUDI3_CPU_RESET_WAIT_MSEC);
 	}
