@@ -2239,7 +2239,7 @@ void gaudi_init_scrambler_sram(struct hl_device *hdev)
 			status,
 			(status == CPU_BOOT_STATUS_NIC_FW_RDY) ||
 			(status == CPU_BOOT_STATUS_READY_TO_BOOT) ||
-			(status == CPU_BOOT_STATUS_SRAM_AVAIL),
+			(status == CPU_BOOT_STATUS_RUNTIME_FW_RDY),
 			10000,
 			GAUDI_NIC_FW_TIMEOUT_USEC);
 
@@ -2248,7 +2248,7 @@ void gaudi_init_scrambler_sram(struct hl_device *hdev)
 				"Failed to detect u-boot has finished loading NIC F/W (status = %d). Maybe running old F/W?\n",
 				status);
 
-		if (status != CPU_BOOT_STATUS_SRAM_AVAIL)
+		if (status != CPU_BOOT_STATUS_RUNTIME_FW_RDY)
 			ssleep(1);
 
 		if (!hdev->bootfit_relocatable) {
