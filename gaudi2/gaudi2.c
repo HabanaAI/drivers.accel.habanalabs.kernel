@@ -7019,7 +7019,7 @@ static void gaudi2_send_hard_reset_cmd(struct hl_device *hdev)
 	cpu_boot_status = RREG32(mmPSOC_GLOBAL_CONF_CPU_BOOT_STATUS);
 
 	if (gaudi2 && (gaudi2->hw_cap_initialized & HW_CAP_CPU) &&
-			(cpu_boot_status == CPU_BOOT_STATUS_SRAM_AVAIL))
+			(cpu_boot_status == CPU_BOOT_STATUS_RUNTIME_FW_RDY))
 		cpu_initialized = true;
 
 	/*

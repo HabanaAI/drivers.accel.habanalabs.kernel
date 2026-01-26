@@ -3028,10 +3028,10 @@ int gaudi2_init_scrambler_sram(struct hl_device *hdev)
 
 		/*
 		 * Make sure CPU boot-loader is running
-		 * Note that the CPU_BOOT_STATUS_SRAM_AVAIL is generally set by Linux
+		 * Note that the CPU_BOOT_STATUS_RUNTIME_FW_RDY is generally set by Linux
 		 * yet there is a debug scenario in which we loading uboot (without Linux)
 		 * which at later stage is relocated to DRAM. In this case we expect
-		 * uboot to set the CPU_BOOT_STATUS_SRAM_AVAIL and so we add it to the
+		 * uboot to set the CPU_BOOT_STATUS_RUNTIME_FW_RDY and so we add it to the
 		 * poll flags
 		 */
 		rc = hl_poll_timeout(
@@ -3039,7 +3039,7 @@ int gaudi2_init_scrambler_sram(struct hl_device *hdev)
 			mmPSOC_GLOBAL_CONF_CPU_BOOT_STATUS,
 			status,
 			(status == CPU_BOOT_STATUS_READY_TO_BOOT) ||
-			(status == CPU_BOOT_STATUS_SRAM_AVAIL),
+			(status == CPU_BOOT_STATUS_RUNTIME_FW_RDY),
 			10000,
 			GAUDI2_NIC_FW_TIMEOUT_USEC);
 
@@ -3052,15 +3052,16 @@ int gaudi2_init_scrambler_sram(struct hl_device *hdev)
 		if (hdev->bootfit_relocatable) {
 			/*
 			 * here we make sure that SRAM is available before
-			 * scrambling it. poll is made with the same timeout as
-			 * in this debug scenario boot performance are of no
-			 * importance
+			 * scrambling it. SRAM availability is indicated
+			 * CPU_BOOT_STATUS_SRAM_AVAIL/CPU_BOOT_STATUS_RUNTIME_FW_RDY.
+			 * poll is made with the same timeout as in this debug scenario
+			 * boot performance are of no importance
 			 */
 			rc = hl_poll_timeout(
 				hdev,
 				mmPSOC_GLOBAL_CONF_CPU_BOOT_STATUS,
 				status,
-				(status == CPU_BOOT_STATUS_SRAM_AVAIL),
+				(status == CPU_BOOT_STATUS_RUNTIME_FW_RDY),
 				10000,
 				GAUDI2_NIC_FW_TIMEOUT_USEC);
 
