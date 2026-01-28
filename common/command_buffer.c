@@ -432,8 +432,13 @@ struct hl_cb *hl_cb_get(struct hl_mem_mgr *mmg, u64 handle)
 	buf = hl_mmap_mem_buf_get(mmg, handle);
 	if (!buf)
 		return NULL;
-	return buf->private;
 
+	/* verify this is a CB */
+	if (buf->behavior && (buf->behavior->mem_id == cb_behavior.mem_id))
+		return buf->private;
+
+	hl_mmap_mem_buf_put(buf);
+	return NULL;
 }
 
 void hl_cb_put(struct hl_cb *cb)

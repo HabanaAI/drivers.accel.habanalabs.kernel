@@ -3390,6 +3390,12 @@ static int _hl_interrupt_ts_reg_ioctl(struct hl_device *hdev, struct hl_ctx *ctx
 		goto put_cq_cb;
 	}
 
+	/* verify this is a TS buffer */
+	if (!data->buf->behavior || data->buf->behavior->mem_id != HL_MMAP_TYPE_TS_BUFF) {
+		rc = -EINVAL;
+		goto put_ts_buff;
+	}
+
 	spin_lock_irqsave(&data->interrupt->ts_list_lock, flags);
 
 	/* get ts buffer record */
