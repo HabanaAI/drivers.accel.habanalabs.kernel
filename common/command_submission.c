@@ -1183,8 +1183,14 @@ static void cs_completion(struct work_struct *work)
 	struct hl_device *hdev = cs->ctx->hdev;
 	struct hl_cs_job *job, *tmp;
 
+	/* make sure that hl_complete_job does not free the CS while we use it */
+	if (!cs_get_unless_zero(cs))
+		return;
+
 	list_for_each_entry_safe(job, tmp, &cs->job_list, cs_node)
 		hl_complete_job(hdev, job);
+
+	cs_put(cs);
 }
 
 u32 hl_get_active_cs_num(struct hl_device *hdev)
