@@ -11373,7 +11373,10 @@ static int gaudi3_mmu_cache_range_maint(struct hl_device *hdev, bool is_hard,
 			(gaudi3->hw_cap_initialized & HW_CAP_PMMU) &&
 			!is_prefetch) {
 		maint_data.start_addr = va;
-		maint_data.end_addr = maint_data.start_addr + size - 1;
+		if (size == 0 ||
+		    check_add_overflow(maint_data.start_addr, size - 1, &maint_data.end_addr))
+			return -EINVAL;
+
 		gaudi3_set_pmmu_cq_mode_params(&cq_mode_params, &maint_data, timeout_usec);
 		cq_mode_params.job_str = "PMMU range invalidation";
 		return gaudi3_trigger_job_and_wait_for_cq_completion(hdev, &cq_mode_params);
@@ -11390,8 +11393,13 @@ static int gaudi3_mmu_cache_range_maint(struct hl_device *hdev, bool is_hard,
 		 * note that there are no alignment requirements on the small regions.
 		 */
 		maint_data.start_addr = va;
-		maint_data.end_addr = maint_data.start_addr + RANGE_INV_MAX_MEM_SIZE - 1;
-		last_va = maint_data.start_addr + size;
+		if (check_add_overflow(maint_data.start_addr, (u64)RANGE_INV_MAX_MEM_SIZE - 1,
+				       &maint_data.end_addr))
+			return -EINVAL;
+
+		if (check_add_overflow(maint_data.start_addr, size, &last_va))
+			return -EINVAL;
+
 		while (maint_data.end_addr < last_va) {
 			rc = gaudi3_trigger_job_and_wait_for_cq_completion(hdev, &cq_mode_params);
 			if (rc)
