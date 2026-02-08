@@ -2795,11 +2795,13 @@ static int allocate_timestamps_buffers(struct hl_fpriv *hpriv, struct hl_mem_in 
 		return -EINVAL;
 	}
 
-	buf = hl_mmap_mem_buf_alloc(mmg, &hl_ts_behavior, GFP_KERNEL, &args->num_of_elements);
+	buf = hl_mmap_mem_buf_alloc_get(mmg, &hl_ts_behavior, GFP_KERNEL, &args->num_of_elements);
 	if (!buf)
 		return -ENOMEM;
 
 	*handle = buf->handle;
+	/* decrement the refcount incremented by hl_mmap_mem_buf_alloc_get */
+	hl_mmap_mem_buf_put(buf);
 
 	return 0;
 }

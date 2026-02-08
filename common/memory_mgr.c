@@ -176,7 +176,7 @@ free_buf:
 
 
 /**
- * hl_mmap_mem_buf_alloc - allocate a new mappable buffer
+ * hl_mmap_mem_buf_alloc_get - allocate a new mappable buffer and increments its recount
  *
  * @mmg: parent unified memory manager
  * @behavior: behavior object describing this buffer polymorphic behavior
@@ -184,12 +184,16 @@ free_buf:
  * @args: additional args passed to behavior->alloc
  *
  * Allocate and register a new memory buffer inside the give memory manager.
+ * Upon successful creation, it also increment the buffer's reference count in order
+ * to ensure it remains valid while the caller is using it. Consequently, the callers are
+ * responsible for calling hl_mmap_mem_buf_put() to release the reference once the buffer
+ * is no longer accessed by them.
  * Return the pointer to the new buffer on success or NULL on failure.
  */
 struct hl_mmap_mem_buf *
-hl_mmap_mem_buf_alloc(struct hl_mem_mgr *mmg,
-		      struct hl_mmap_mem_buf_behavior *behavior, gfp_t gfp,
-		      void *args)
+hl_mmap_mem_buf_alloc_get(struct hl_mem_mgr *mmg,
+			  struct hl_mmap_mem_buf_behavior *behavior, gfp_t gfp,
+			  void *args)
 {
 	struct hl_mmap_mem_buf *buf;
 	int rc;
@@ -200,16 +204,22 @@ hl_mmap_mem_buf_alloc(struct hl_mem_mgr *mmg,
 
 	spin_lock(&mmg->lock);
 	rc = idr_alloc(&mmg->handles, buf, 1, 0, GFP_ATOMIC);
-	spin_unlock(&mmg->lock);
 	if (rc < 0) {
+		spin_unlock(&mmg->lock);
 		hl_err(mmg->hdev,
 			"%s: Failed to allocate IDR for a new buffer, rc=%d\n",
 			behavior->topic, rc);
 		goto destroy_buf;
 	}
 
+	/*
+	 * Now, that the buffer is registered, we need to prevent another caller from releasing it
+	 * under the feet of the calling function.
+	 */
+	kref_get(&buf->refcount);
 	buf->handle = (((u64)rc | buf->behavior->mem_id) << PAGE_SHIFT);
 
+	spin_unlock(&mmg->lock);
 	return buf;
 
 destroy_buf:

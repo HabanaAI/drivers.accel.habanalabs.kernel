@@ -289,13 +289,15 @@ int hl_cb_create(struct hl_device *hdev, struct hl_mem_mgr *mmg,
 		return -EINVAL;
 	}
 
-	buf = hl_mmap_mem_buf_alloc(
+	buf = hl_mmap_mem_buf_alloc_get(
 		mmg, &cb_behavior,
 		ctx_id == HL_KERNEL_ASID_ID ? GFP_ATOMIC : GFP_KERNEL, &args);
 	if (!buf)
 		return -ENOMEM;
 
 	*handle = buf->handle;
+	/* decrement the refcount incremented by hl_mmap_mem_buf_alloc_get */
+	hl_mmap_mem_buf_put(buf);
 
 	return 0;
 }

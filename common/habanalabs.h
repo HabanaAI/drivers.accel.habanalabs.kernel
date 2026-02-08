@@ -4912,9 +4912,9 @@ struct hl_mmap_mem_buf *hl_mmap_mem_buf_get(struct hl_mem_mgr *mmg,
 int hl_mmap_mem_buf_put_handle(struct hl_mem_mgr *mmg, u64 handle);
 int hl_mmap_mem_buf_put(struct hl_mmap_mem_buf *buf);
 struct hl_mmap_mem_buf *
-hl_mmap_mem_buf_alloc(struct hl_mem_mgr *mmg,
-		      struct hl_mmap_mem_buf_behavior *behavior, gfp_t gfp,
-		      void *args);
+hl_mmap_mem_buf_alloc_get(struct hl_mem_mgr *mmg,
+			  struct hl_mmap_mem_buf_behavior *behavior, gfp_t gfp,
+			  void *args);
 
 bool hl_is_odp_supported(struct hl_device *hdev);
 void hl_odp_page_fault_read_ahead_size(struct hl_odp_region_ctx *rg, u64 va,
