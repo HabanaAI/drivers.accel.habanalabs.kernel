@@ -134,6 +134,48 @@ int hl_mmap_mem_buf_put_handle(struct hl_mem_mgr *mmg, u64 handle)
 }
 
 /**
+ * hl_mmap_mem_buf_create - create and initialize a new mappable buffer
+ *
+ * @mmg: parent unified memory manager
+ * @behavior: behavior object describing this buffer polymorphic behavior
+ * @gfp: gfp flags to use for the memory allocations
+ * @args: additional args passed to behavior->alloc
+ *
+ * Create and initialize a new memory buffer inside the give memory manager.
+ * Return the pointer to the new buffer on success or NULL on failure.
+ */
+static struct hl_mmap_mem_buf *
+hl_mmap_mem_buf_create(struct hl_mem_mgr *mmg,
+		       struct hl_mmap_mem_buf_behavior *behavior, gfp_t gfp,
+		       void *args)
+{
+	struct hl_mmap_mem_buf *buf;
+	int rc;
+
+	buf = kzalloc(sizeof(*buf), gfp);
+	if (!buf)
+		return NULL;
+
+	buf->mmg = mmg;
+	buf->behavior = behavior;
+	kref_init(&buf->refcount);
+
+	rc = buf->behavior->alloc(buf, gfp, args);
+	if (rc) {
+		hl_err(mmg->hdev, "%s: Failure in buffer alloc callback %d\n",
+			behavior->topic, rc);
+		goto free_buf;
+	}
+
+	return buf;
+
+free_buf:
+	kfree(buf);
+	return NULL;
+}
+
+
+/**
  * hl_mmap_mem_buf_alloc - allocate a new mappable buffer
  *
  * @mmg: parent unified memory manager
@@ -152,7 +194,7 @@ hl_mmap_mem_buf_alloc(struct hl_mem_mgr *mmg,
 	struct hl_mmap_mem_buf *buf;
 	int rc;
 
-	buf = kzalloc(sizeof(*buf), gfp);
+	buf = hl_mmap_mem_buf_create(mmg, behavior, gfp, args);
 	if (!buf)
 		return NULL;
 
@@ -163,29 +205,15 @@ hl_mmap_mem_buf_alloc(struct hl_mem_mgr *mmg,
 		hl_err(mmg->hdev,
 			"%s: Failed to allocate IDR for a new buffer, rc=%d\n",
 			behavior->topic, rc);
-		goto free_buf;
+		goto destroy_buf;
 	}
 
-	buf->mmg = mmg;
-	buf->behavior = behavior;
 	buf->handle = (((u64)rc | buf->behavior->mem_id) << PAGE_SHIFT);
-	kref_init(&buf->refcount);
-
-	rc = buf->behavior->alloc(buf, gfp, args);
-	if (rc) {
-		hl_err(mmg->hdev, "%s: Failure in buffer alloc callback %d\n",
-			behavior->topic, rc);
-		goto remove_idr;
-	}
 
 	return buf;
 
-remove_idr:
-	spin_lock(&mmg->lock);
-	idr_remove(&mmg->handles, lower_32_bits(buf->handle >> PAGE_SHIFT));
-	spin_unlock(&mmg->lock);
-free_buf:
-	kfree(buf);
+destroy_buf:
+	hl_mmap_mem_buf_destroy(buf);
 	return NULL;
 }
 
