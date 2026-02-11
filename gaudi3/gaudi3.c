@@ -85,6 +85,7 @@
 #include <linux/hwmon.h>
 #include <linux/iommu.h>
 #include <linux/vmalloc.h>
+#include <linux/sizes.h>
 
 MODULE_FIRMWARE(GAUDI3_BOOT_FIT_FILE);
 
@@ -140,6 +141,17 @@ MODULE_FIRMWARE(GAUDI3_BOOT_FIT_FILE);
 
 /* we can invalidate at most 256MB at once */
 #define RANGE_INV_MAX_MEM_SIZE	(256 * 1024 * 1024)
+
+/*
+ * Gaudi3 cache parameters are:
+ *    Cache size = 96 MB
+ *    Line size = 256 Bytes
+ *    Associativity = 12-way
+ *    Tag = 8-bit
+ * Therefore the maximum cacheable address range it can contain is 512GiB.
+ * See H9 PRM for Habana User Space SW Control Path.
+ */
+#define GAUDI3_CACHE_MAX_CACHEABLE_RANGE	SZ_512G
 
 #define LBW_TO_FULL_DEV_VA_OFFSET	0x0300007FE0000000ull
 
@@ -11305,7 +11317,8 @@ static void gaudi3_set_pmmu_cq_mode_params(struct gaudi3_cq_mode_params *cq_mode
 	cq_mode_params->cq_id = GAUDI3_RESERVED_CQ_PMMU_INV_CMPL;
 }
 
-int gaudi3_mmu_invalidate_cache(struct hl_device *hdev, bool is_hard, u32 flags)
+static int
+gaudi3_mmu_invalidate_cache_by_asid(struct hl_device *hdev, bool is_hard, u32 flags, u8 asid)
 {
 	struct gaudi3_device *gaudi3 = hdev->asic_specific;
 	struct gaudi3_cq_mode_params cq_mode_params = { NULL };
@@ -11322,7 +11335,7 @@ int gaudi3_mmu_invalidate_cache(struct hl_device *hdev, bool is_hard, u32 flags)
 
 	maint_data.range_maint = false;
 	maint_data.maint_type = GAUDI3_CACHE_MAINT_INV;
-	maint_data.asid = HL_KERNEL_ASID_ID;
+	maint_data.asid = asid;
 
 	if ((flags & VM_TYPE_USERPTR) && (gaudi3->hw_cap_initialized & HW_CAP_PMMU)) {
 		gaudi3_set_pmmu_cq_mode_params(&cq_mode_params, &maint_data, timeout_usec);
@@ -11338,6 +11351,11 @@ int gaudi3_mmu_invalidate_cache(struct hl_device *hdev, bool is_hard, u32 flags)
 	return gaudi3_trigger_job_and_wait_for_cq_completion(hdev, &cq_mode_params);
 }
 
+int gaudi3_mmu_invalidate_cache(struct hl_device *hdev, bool is_hard, u32 flags)
+{
+	return gaudi3_mmu_invalidate_cache_by_asid(hdev, is_hard, flags, HL_KERNEL_ASID_ID);
+}
+
 static int gaudi3_mmu_cache_range_maint(struct hl_device *hdev, bool is_hard,
 				u32 flags, u32 asid, u64 va, u64 size, bool is_prefetch)
 {
@@ -11350,8 +11368,11 @@ static int gaudi3_mmu_cache_range_maint(struct hl_device *hdev, bool is_hard,
 	if (hdev->reset_info.hard_reset_pending)
 		return 0;
 
-	if (!gaudi3)
+	if (!gaudi3 || (asid > U8_MAX))
 		return -EINVAL;
+
+	if (size == 0)
+		return 0;
 
 #ifdef HL_DOWNSTREAM
 	if (hdev->pldm)
@@ -11373,14 +11394,32 @@ static int gaudi3_mmu_cache_range_maint(struct hl_device *hdev, bool is_hard,
 			(gaudi3->hw_cap_initialized & HW_CAP_PMMU) &&
 			!is_prefetch) {
 		maint_data.start_addr = va;
-		if (size == 0 ||
-		    check_add_overflow(maint_data.start_addr, size - 1, &maint_data.end_addr))
+		if (check_add_overflow(maint_data.start_addr, size - 1, &maint_data.end_addr))
 			return -EINVAL;
 
 		gaudi3_set_pmmu_cq_mode_params(&cq_mode_params, &maint_data, timeout_usec);
 		cq_mode_params.job_str = "PMMU range invalidation";
 		return gaudi3_trigger_job_and_wait_for_cq_completion(hdev, &cq_mode_params);
 	} else if ((flags & VM_TYPE_PHYS_PACK) && (gaudi3->hw_cap_initialized & HW_CAP_HMMU_MASK)) {
+		/*
+		 * Cache invalidation and prefetch are done in chunks of 256M Bytes, if userspace
+		 * provides an excessively large size (e.g. UINT64_MAX), the number of iterations
+		 * becomes unbounded, causing the invalidation loop to run for a very long time
+		 * and potentially rendering the device unresponsive (DoS risk).
+		 * To prevent this, limit the range to the maximum cacheable address space,
+		 * which is 512GB. This results in at most 2048 (512GB / 256MB) invalidation or
+		 * prefetch iterations, which is considered acceptable.
+		 * Invalidation requests exceeding this limit fall back to full cache invalidation.
+		 */
+		if (maint_data.maint_type == GAUDI3_CACHE_MAINT_INV) {
+			if (size > GAUDI3_CACHE_MAX_CACHEABLE_RANGE)
+				return gaudi3_mmu_invalidate_cache_by_asid(hdev,
+									   is_hard, flags, asid);
+		} else {
+			if (size > GAUDI3_CACHE_MAX_CACHEABLE_RANGE)
+				size = GAUDI3_CACHE_MAX_CACHEABLE_RANGE;
+		}
+
 		/* currently we are executing only a single job (JOB 0) */
 		gaudi3_set_hmmu_cq_mode_params(hdev, &cq_mode_params, &maint_data, timeout_usec, 0);
 		cq_mode_params.job_str = "HMMU range invalidation";
@@ -11393,27 +11432,22 @@ static int gaudi3_mmu_cache_range_maint(struct hl_device *hdev, bool is_hard,
 		 * note that there are no alignment requirements on the small regions.
 		 */
 		maint_data.start_addr = va;
-		if (check_add_overflow(maint_data.start_addr, (u64)RANGE_INV_MAX_MEM_SIZE - 1,
-				       &maint_data.end_addr))
-			return -EINVAL;
-
+		/* Compute end of requested range (exclusive) */
 		if (check_add_overflow(maint_data.start_addr, size, &last_va))
 			return -EINVAL;
 
-		while (maint_data.end_addr < last_va) {
-			rc = gaudi3_trigger_job_and_wait_for_cq_completion(hdev, &cq_mode_params);
-			if (rc)
-				return rc;
-			maint_data.start_addr += RANGE_INV_MAX_MEM_SIZE;
-			maint_data.end_addr += RANGE_INV_MAX_MEM_SIZE;
-		}
+		while (maint_data.start_addr < last_va) {
+			u64 remaining = last_va - maint_data.start_addr;
+			u64 this_chunk = min_t(u64, remaining, (u64)RANGE_INV_MAX_MEM_SIZE);
 
-		/* should invalidate the residual range (the mod 256M) */
-		if (maint_data.start_addr < last_va) {
-			maint_data.end_addr = last_va - 1;
+			/* since chunk <= remaining, start + this_chunk cannot overflow */
+			maint_data.end_addr = maint_data.start_addr + this_chunk - 1;
+
 			rc = gaudi3_trigger_job_and_wait_for_cq_completion(hdev, &cq_mode_params);
 			if (rc)
 				return rc;
+
+			maint_data.start_addr += this_chunk;
 		}
 	}
 
