@@ -34,6 +34,8 @@ MODULE_PARM_DESC(importer_driver, "Importer driver (0 = no, 1 = yes, default no)
 #if defined(_HAS_IB_UMEM_DMABUF_GET) && defined(__IMPORTER)
 
 struct hl_importer_mr {
+	struct list_head		release_node;	/* used during teardown */
+	struct kref			refcount;
 	struct hl_importer_device	*idev;
 	struct ib_umem			*umem;
 	struct pci_dev			*pdev;
@@ -183,6 +185,8 @@ alloc_cacheable_mr(struct hl_importer_device *idev, struct ib_umem *umem,
 
 	mr->umem = umem;
 	mr->idev = idev;
+	kref_init(&mr->refcount);
+	INIT_LIST_HEAD(&mr->release_node);
 
 	return mr;
 }
@@ -210,6 +214,44 @@ static void hl_importer_dereg_mr(struct hl_importer_device *idev,
 	iounmap(mr->kptr);
 	pci_dev_put(mr->pdev);
 	kfree(mr);
+}
+
+static void hl_importer_mr_release(struct kref *ref)
+{
+	struct hl_importer_mr *mr = container_of(ref, struct hl_importer_mr, refcount);
+
+	hl_importer_dereg_mr(mr->idev, mr);
+}
+
+static int hl_importer_mr_get(struct hl_importer_mr *mr)
+{
+	return kref_get_unless_zero(&mr->refcount);
+}
+
+static void hl_importer_mr_put(struct hl_importer_mr *mr)
+{
+	kref_put(&mr->refcount, hl_importer_mr_release);
+}
+
+static struct hl_importer_mr *
+hl_importer_mr_find_and_get(struct hl_importer_device *idev,
+			    struct hl_importer_mr_mgr *mr_mgr, u64 mr_handle)
+{
+	struct hl_importer_mr *mr;
+
+	spin_lock(&mr_mgr->lock);
+
+	mr = idr_find(&mr_mgr->handles, mr_handle);
+	if (!mr || !hl_importer_mr_get(mr)) {
+		spin_unlock(&mr_mgr->lock);
+		dev_err(idev->dev,
+			"No mr match for handle 0x%llx\n", mr_handle);
+		return ERR_PTR(-EINVAL);
+	}
+
+	spin_unlock(&mr_mgr->lock);
+
+	return mr;
 }
 
 static void hl_importer_dmabuf_invalidate_cb(struct dma_buf_attachment *attach)
@@ -267,7 +309,7 @@ hl_importer_reg_user_mr_dmabuf(struct hl_importer_device *idev, u64 offset,
 	return mr;
 
 err_dereg_mr:
-	hl_importer_dereg_mr(idev, mr);
+	hl_importer_mr_put(mr);
 	return ERR_PTR(rc);
 }
 
@@ -286,9 +328,20 @@ static int hl_importer_reg_dmabuf_mr_ioctl(struct hl_importer_device *idev,
 	if (IS_ERR(new_mr))
 		return PTR_ERR(new_mr);
 
+	/*
+	 * IDR alloc with GFP_KERNEL flag may sleep, this is invalid in atomic context
+	 * one solution is to use idr_preload to pre-allocate memory and disable preemption,
+	 * call idr_alloc to use the preallocated memory inside the lock, exit the lock and
+	 * reenable preemption.
+	 */
+	idr_preload(GFP_KERNEL);
 	spin_lock(&mr_mgr->lock);
-	rc = idr_alloc(&mr_mgr->handles, new_mr, 1, 0, GFP_KERNEL);
+	rc = idr_alloc(&mr_mgr->handles, new_mr, 1, 0, GFP_NOWAIT);
+	if (rc >= 0)
+		(void)hl_importer_mr_get(new_mr);
+
 	spin_unlock(&mr_mgr->lock);
+	idr_preload_end();
 
 	if (rc < 0) {
 		dev_err(idev->dev, "Failed to allocate IDR for a new MR\n");
@@ -299,11 +352,13 @@ static int hl_importer_reg_dmabuf_mr_ioctl(struct hl_importer_device *idev,
 
 	memset(&args->out, 0, sizeof(args->out));
 	args->out.mr_handle = new_mr->id;
+	hl_importer_mr_put(new_mr);
 
 	return 0;
 
 dereg_mr:
-	hl_importer_dereg_mr(idev, new_mr);
+	/* release the MR using put */
+	hl_importer_mr_put(new_mr);
 
 	return rc;
 }
@@ -331,7 +386,7 @@ static int hl_importer_dereg_mr_ioctl(struct hl_importer_device *idev,
 
 	spin_unlock(&mr_mgr->lock);
 
-	hl_importer_dereg_mr(idev, mr);
+	hl_importer_mr_put(mr);
 
 	return 0;
 }
@@ -404,25 +459,17 @@ static int hl_importer_write_to_mr_ioctl(struct hl_importer_device *idev,
 	struct hl_importer_mr_mgr *mr_mgr = &idev->mr_mgr;
 	struct hl_importer_write_to_mr_args *args = data;
 	struct hl_importer_mr *mr;
+	int rc;
 
-	spin_lock(&mr_mgr->lock);
+	mr = hl_importer_mr_find_and_get(idev, mr_mgr, args->mr_handle);
+	if (IS_ERR(mr))
+		return PTR_ERR(mr);
 
-	mr = idr_find(&mr_mgr->handles, args->mr_handle);
-
-	if (!mr) {
-		spin_unlock(&mr_mgr->lock);
-		dev_err(idev->dev,
-			"MR write failed, no match to handle 0x%llx\n",
-			args->mr_handle);
-		return -EINVAL;
-	}
-
-	/* TODO: option to add kref */
-
-	spin_unlock(&mr_mgr->lock);
-
-	return hl_importer_access_mr(idev, mr, args->userptr, args->offset,
+	rc = hl_importer_access_mr(idev, mr, args->userptr, args->offset,
 					args->size, true);
+	hl_importer_mr_put(mr);
+
+	return rc;
 }
 
 static int hl_importer_read_from_mr_ioctl(struct hl_importer_device *idev,
@@ -431,25 +478,17 @@ static int hl_importer_read_from_mr_ioctl(struct hl_importer_device *idev,
 	struct hl_importer_mr_mgr *mr_mgr = &idev->mr_mgr;
 	struct hl_importer_read_from_mr_args *args = data;
 	struct hl_importer_mr *mr;
+	int rc;
 
-	spin_lock(&mr_mgr->lock);
+	mr = hl_importer_mr_find_and_get(idev, mr_mgr, args->mr_handle);
+	if (IS_ERR(mr))
+		return PTR_ERR(mr);
 
-	mr = idr_find(&mr_mgr->handles, args->mr_handle);
-
-	if (!mr) {
-		spin_unlock(&mr_mgr->lock);
-		dev_err(idev->dev,
-			"MR read failed, no match to handle 0x%llx\n",
-			args->mr_handle);
-		return -EINVAL;
-	}
-
-	/* TODO: option to add kref */
-
-	spin_unlock(&mr_mgr->lock);
-
-	return hl_importer_access_mr(idev, mr, args->userptr, args->offset,
+	rc = hl_importer_access_mr(idev, mr, args->userptr, args->offset,
 					args->size, false);
+	hl_importer_mr_put(mr);
+
+	return rc;
 }
 
 static int hl_importer_open(struct inode *inode, struct file *filp)
@@ -468,16 +507,29 @@ static int hl_importer_open(struct inode *inode, struct file *filp)
 static int hl_importer_release(struct inode *inode, struct file *filp)
 {
 	struct hl_importer_device *idev = filp->private_data;
+	struct hl_importer_mr_mgr *mr_mgr = &idev->mr_mgr;
 	struct hl_importer_mr *mr;
 	struct idr *idp;
+	LIST_HEAD(mr_list);
 	u32 id;
 
 	idp = &idev->mr_mgr.handles;
 
-	idr_for_each_entry(idp, mr, id)
-		hl_importer_dereg_mr(idev, mr);
+	spin_lock(&mr_mgr->lock);
+	idr_for_each_entry(idp, mr, id) {
+		idr_remove(&mr_mgr->handles, id);
+		list_add(&mr->release_node, &mr_list);
+	}
 
-	idr_destroy(&idev->mr_mgr.handles);
+	idr_destroy(&mr_mgr->handles);
+	spin_unlock(&mr_mgr->lock);
+
+	/* release the MRs outside the spin_lock */
+	while (!list_empty(&mr_list)) {
+		mr = list_first_entry(&mr_list, struct hl_importer_mr, release_node);
+		list_del(&mr->release_node);
+		hl_importer_mr_put(mr);
+	}
 
 	return 0;
 }
