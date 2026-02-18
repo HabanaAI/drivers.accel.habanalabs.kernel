@@ -1613,13 +1613,30 @@ static int debug_dio_ioctl(struct drm_file *file_priv, struct hl_debug_args *arg
 	return rc;
 }
 
+static bool hl_debug_op_requires_debug(u32 op)
+{
+	switch (op) {
+	case HL_DEBUG_OP_ETR:
+	case HL_DEBUG_OP_ETF:
+	case HL_DEBUG_OP_STM:
+	case HL_DEBUG_OP_FUNNEL:
+	case HL_DEBUG_OP_BMON:
+	case HL_DEBUG_OP_SPMU:
+	case HL_DEBUG_OP_TIMESTAMP:
+	case HL_DEBUG_OP_FETCH_TRACE:
+	case HL_DEBUG_OP_READBLOCK:
+		return true;
+	default:
+		return false;
+	}
+}
+
 int hl_debug_ioctl(struct drm_device *ddev, void *data, struct drm_file *file_priv)
 {
 	struct hl_fpriv *hpriv = file_priv->driver_priv;
 	struct hl_device *hdev = hpriv->hdev;
 	struct hl_debug_args *args = data;
 	enum hl_device_status status;
-
 	int rc = 0;
 
 	if (!hl_device_operational(hdev, &status)) {
@@ -1627,6 +1644,12 @@ int hl_debug_ioctl(struct drm_device *ddev, void *data, struct drm_file *file_pr
 			"Device is %s. Can't execute DEBUG IOCTL\n",
 			hdev->status[status]);
 		return -EBUSY;
+	}
+
+	if (hl_debug_op_requires_debug(args->op) && !hdev->in_debug) {
+		hl_err_ratelimited(hdev,
+				"Rejecting debug request because device not in debug mode\n");
+		return -EPERM;
 	}
 
 	switch (args->op) {
@@ -1638,11 +1661,6 @@ int hl_debug_ioctl(struct drm_device *ddev, void *data, struct drm_file *file_pr
 	case HL_DEBUG_OP_SPMU:
 	case HL_DEBUG_OP_TIMESTAMP:
 	case HL_DEBUG_OP_FETCH_TRACE:
-		if (!hdev->in_debug) {
-			hl_err_ratelimited(hdev,
-				"Rejecting debug configuration request because device not in debug mode\n");
-			return -EFAULT;
-		}
 		args->input_size = min(args->input_size, hl_debug_struct_size[args->op]);
 		args->output_size = min_t(u32, args->output_size, PAGE_SIZE);
 		rc = debug_coresight(hdev, hpriv->ctx, args);
@@ -1657,7 +1675,7 @@ int hl_debug_ioctl(struct drm_device *ddev, void *data, struct drm_file *file_pr
 		if (hdev->pdev) {
 			hl_err_ratelimited(hdev,
 				"Rejecting memory access debug request, because device not in simulator mode\n");
-			return -EFAULT;
+			return -EPERM;
 		}
 		rc = sim_mem_access_debug_handler(hdev, args);
 		break;
@@ -1665,7 +1683,6 @@ int hl_debug_ioctl(struct drm_device *ddev, void *data, struct drm_file *file_pr
 	case HL_DEBUG_OP_SCHED_SUBMIT_BUF:
 		rc = debug_sched_ioctl(hdev, hpriv->ctx, args);
 		break;
-
 	case HL_DEBUG_OP_READBLOCK:
 		rc = debug_read_dev_mem_block(hpriv, args);
 		break;
