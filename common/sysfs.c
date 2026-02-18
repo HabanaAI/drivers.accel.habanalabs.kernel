@@ -9,6 +9,7 @@
 #include "habanalabs.h"
 #include "habanalabs_compat_accel.h"
 
+#include <linux/capability.h>
 #include <linux/pci.h>
 #include <linux/types.h>
 
@@ -239,6 +240,9 @@ static ssize_t hard_reset_store(struct device *dev,
 	struct hl_device *hdev = dev_get_drvdata(dev);
 	long value;
 	int rc;
+
+	if (!capable(CAP_SYS_ADMIN))
+		return -EPERM;
 
 	rc = kstrtoul(buf, 0, &value);
 
