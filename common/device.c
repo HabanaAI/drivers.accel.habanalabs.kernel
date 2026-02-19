@@ -92,12 +92,55 @@ static u64 hl_set_dram_bar(struct hl_device *hdev, u64 addr, struct pci_mem_regi
 	return old_base;
 }
 
+/**
+ * hl_access_type_to_size - Returns the byte size of a debugfs access type
+ * @acc_type: The access type (DEBUGFS_READ8, DEBUGFS_WRITE32, etc.)
+ *
+ * Return: Number of bytes for the given access type, or 0 if invalid.
+ */
+static inline size_t hl_access_type_to_size(enum debugfs_access_type acc_type)
+{
+	switch (acc_type) {
+	case DEBUGFS_READ8:
+	case DEBUGFS_WRITE8:
+		return 1;
+	case DEBUGFS_READ32:
+	case DEBUGFS_WRITE32:
+		return 4;
+	case DEBUGFS_READ64:
+	case DEBUGFS_WRITE64:
+		return 8;
+	default:
+		return 0;
+	}
+}
+
 int hl_access_sram_dram_region(struct hl_device *hdev, u64 addr, u64 *val,
 	enum debugfs_access_type acc_type, enum pci_region region_type, bool set_dram_bar)
 {
 	struct pci_mem_region *region = &hdev->pci_mem_region[region_type];
 	u64 old_base = 0, rc, bar_region_base = region->region_base;
 	void __iomem *acc_addr;
+	size_t access_size;
+
+	access_size = hl_access_type_to_size(acc_type);
+	if (!access_size)
+		return -EINVAL;
+
+	/* Reject unaligned MMIO accesses */
+	if (access_size > 1 && !IS_ALIGNED(addr, access_size)) {
+		hl_err(hdev, "Unaligned %zu-byte MMIO access: addr=0x%llx\n",
+				access_size, addr);
+		return -EINVAL;
+	}
+
+	if (!hl_mem_area_inside_range(addr, access_size, region->region_base,
+			region->region_base + region->region_size)) {
+		hl_err(hdev, "OOB access to %s region: addr=0x%llx size=%zu\n",
+				region_type == PCI_REGION_DRAM ? "DRAM" : "SRAM",
+				addr, access_size);
+		return -EINVAL;
+	}
 
 	if (set_dram_bar) {
 		old_base = hl_set_dram_bar(hdev, addr, region, &bar_region_base);
