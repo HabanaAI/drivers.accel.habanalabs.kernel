@@ -15258,8 +15258,10 @@ static u64 gaudi3_read_pte(struct hl_device *hdev, u64 addr)
 		return U64_MAX;
 
 	rc = hdev->asic_funcs->access_dev_mem(hdev, PCI_REGION_DRAM, addr, &val, DEBUGFS_READ64);
-	if (rc)
+	if (rc) {
 		hl_err(hdev, "failed to read pte\n");
+		return U64_MAX;
+	}
 
 	return val;
 }
