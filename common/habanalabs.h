@@ -1113,16 +1113,20 @@ struct hl_ts_buff {
 
 struct hl_mmap_mem_buf;
 
+#define HL_MAX_TS_BUFF_PER_FILE		512
+
 /**
  * struct hl_mem_mgr - describes unified memory manager for mappable memory chunks.
  * @dev: back pointer to the owning hl_device
  * @lock: protects handles
  * @handles: an idr holding all active handles to the memory buffers in the system.
+ * @ts_buff_cnt: Number of allocated timestamp buffers for this file.
  */
 struct hl_mem_mgr {
 	struct hl_device *hdev;
 	spinlock_t lock;
 	struct idr handles;
+	atomic_t ts_buff_cnt;
 };
 
 /**

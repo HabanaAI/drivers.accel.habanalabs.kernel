@@ -349,6 +349,7 @@ void hl_mem_mgr_init(struct hl_device *hdev, struct hl_mem_mgr *mmg)
 	mmg->hdev = hdev;
 	spin_lock_init(&mmg->lock);
 	idr_init(&mmg->handles);
+	atomic_set(&mmg->ts_buff_cnt, 0);
 }
 
 static void hl_mem_mgr_fini_stats_reset(struct hl_mem_mgr_fini_stats *stats)

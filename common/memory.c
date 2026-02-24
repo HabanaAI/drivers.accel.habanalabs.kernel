@@ -2708,6 +2708,8 @@ static void ts_buff_release(struct hl_mmap_mem_buf *buf)
 	vfree(ts_buff->kernel_buff_address);
 	vfree(ts_buff->user_buff_address);
 	kfree(ts_buff);
+
+	atomic_dec(&buf->mmg->ts_buff_cnt);
 }
 
 static int hl_ts_mmap(struct hl_mmap_mem_buf *buf, struct vm_area_struct *vma, void *args)
@@ -2751,6 +2753,8 @@ static int hl_ts_alloc_buf(struct hl_mmap_mem_buf *buf, gfp_t gfp, void *args)
 
 	buf->private = ts_buff;
 
+	atomic_inc(&buf->mmg->ts_buff_cnt);
+
 	return 0;
 
 free_user_buff:
@@ -2786,6 +2790,12 @@ static int allocate_timestamps_buffers(struct hl_fpriv *hpriv, struct hl_mem_in 
 {
 	struct hl_mem_mgr *mmg = &hpriv->mem_mgr;
 	struct hl_mmap_mem_buf *buf;
+
+	if (atomic_read(&mmg->ts_buff_cnt) >= HL_MAX_TS_BUFF_PER_FILE) {
+		hl_err(mmg->hdev, "Exceeded Max allowed timestamp buffers per user(%u)\n",
+		       HL_MAX_TS_BUFF_PER_FILE);
+		return -ENOMEM;
+	}
 
 	if (!args->num_of_elements || args->num_of_elements > TS_MAX_ELEMENTS_NUM) {
 		hl_err(mmg->hdev,
