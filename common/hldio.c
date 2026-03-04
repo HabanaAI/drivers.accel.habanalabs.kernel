@@ -9,7 +9,10 @@
 #include <generated/uapi/linux/version.h>
 #include <linux/pci-p2pdma.h>
 #include <linux/blkdev.h>
+#include <linux/overflow.h>
 #include <linux/vmalloc.h>
+
+#define HL_DIO_MAX_BVEC_PAGES	min_t(u64, (u64)INT_MAX, (u64)(SIZE_MAX / sizeof(struct bio_vec)))
 
 /*
  * This file is for NVME POC, So no aim to make it perfect, It just should work!
@@ -174,18 +177,50 @@ static void hl_dio_set_io_enabled(struct hl_device *hdev, bool enabled)
 
 static bool hl_dio_validate_io(struct hl_device *hdev, struct hl_direct_io *io)
 {
+	u64 end;
+	u64 npages;
+
+	if (!io->len_bytes) {
+		hl_dbg(hdev, "IO length must be non-zero\n");
+		return false;
+	}
+
+	npages = io->len_bytes >> PAGE_SHIFT;
+
 	if ((u64)io->device_va & ~PAGE_MASK) {
-		hl_dbg(hdev, "Device address must be 4K aligned\n");
+		hl_dbg(hdev, "Device address must be page aligned\n");
 		return false;
 	}
 
 	if (io->len_bytes & ~PAGE_MASK) {
-		hl_dbg(hdev, "IO length must be 4K aligned\n");
+		hl_dbg(hdev, "IO length must be page aligned\n");
 		return false;
 	}
 
 	if (io->off_bytes & ~PAGE_MASK) {
-		hl_dbg(hdev, "IO offset must be 4K aligned\n");
+		hl_dbg(hdev, "IO offset must be page aligned\n");
+		return false;
+	}
+
+	if (io->off_bytes > LLONG_MAX) {
+		hl_dbg(hdev, "IO offset %#llx exceeds loff_t range\n", io->off_bytes);
+		return false;
+	}
+
+	if (check_add_overflow(io->off_bytes, io->len_bytes, &end)) {
+		hl_dbg(hdev, "IO range start=%#llx len=%#llx overflows u64\n",
+		       io->off_bytes, io->len_bytes);
+		return false;
+	}
+
+	if (end > LLONG_MAX) {
+		hl_dbg(hdev, "IO range end %#llx exceeds loff_t range\n", end);
+		return false;
+	}
+
+	if (npages > HL_DIO_MAX_BVEC_PAGES) {
+		hl_dbg(hdev, "IO length %#llx exceeds max supported %#llx\n",
+		       io->len_bytes, HL_DIO_MAX_BVEC_PAGES << PAGE_SHIFT);
 		return false;
 	}
 
@@ -240,8 +275,10 @@ static ssize_t hl_direct_io(struct hl_device *hdev, struct hl_direct_io *io)
 	 * closest one.
 	 */
 	io->bv = vzalloc(npages * sizeof(struct bio_vec));
-	if (!io->bv)
-		return -ENOMEM;
+	if (!io->bv) {
+		rc = -ENOMEM;
+		goto cleanup;
+	}
 
 	for (i = 0, device_va = io->device_va; i < npages ; ++i, device_va += PAGE_SIZE) {
 		io->bv[i].bv_page = hl_dio_va2page(hdev, io->f.ctx, device_va);
@@ -255,7 +292,7 @@ static ssize_t hl_direct_io(struct hl_device *hdev, struct hl_direct_io *io)
 		io->bv[i].bv_len = PAGE_SIZE;
 	}
 
-	iov_iter_bvec(&io->iter, io->type, io->bv, 1, io->len_bytes);
+	iov_iter_bvec(&io->iter, io->type, io->bv, npages, io->len_bytes);
 	rc = io->f.filp->f_op->read_iter(&io->kio, &io->iter);
 
 cleanup:
