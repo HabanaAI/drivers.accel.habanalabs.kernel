@@ -1625,6 +1625,7 @@ static bool hl_debug_op_requires_debug(u32 op)
 	case HL_DEBUG_OP_TIMESTAMP:
 	case HL_DEBUG_OP_FETCH_TRACE:
 	case HL_DEBUG_OP_READBLOCK:
+	case HL_DEBUG_OP_SCHED_SUBMIT_BUF:
 		return true;
 	default:
 		return false;
