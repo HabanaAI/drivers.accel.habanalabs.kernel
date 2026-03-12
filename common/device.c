@@ -1714,15 +1714,12 @@ const char *hl_get_default_card_name(struct hl_device *hdev)
 
 int hl_device_set_debug_mode(struct hl_device *hdev, struct hl_ctx *ctx, bool enable)
 {
-	int rc = 0;
-
 	mutex_lock(&hdev->debug_lock);
 
 	if (!enable) {
 		if (!hdev->in_debug) {
-			hl_err(hdev,
-				"Failed to disable debug mode because device was not in debug mode\n");
-			rc = -EFAULT;
+			hl_dbg(hdev,
+				"Cannot disable debug mode because device was not in debug mode\n");
 			goto out;
 		}
 
@@ -1735,9 +1732,8 @@ int hl_device_set_debug_mode(struct hl_device *hdev, struct hl_ctx *ctx, bool en
 	}
 
 	if (hdev->in_debug) {
-		hl_err(hdev,
-			"Failed to enable debug mode because device is already in debug mode\n");
-		rc = -EFAULT;
+		hl_dbg(hdev,
+			"Cannot enable debug mode because device is already in debug mode\n");
 		goto out;
 	}
 
@@ -1746,7 +1742,7 @@ int hl_device_set_debug_mode(struct hl_device *hdev, struct hl_ctx *ctx, bool en
 out:
 	mutex_unlock(&hdev->debug_lock);
 
-	return rc;
+	return 0;
 }
 
 static void take_release_locks(struct hl_device *hdev)
