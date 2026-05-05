@@ -624,7 +624,9 @@ static const struct drm_driver hl_driver = {
 	.patchlevel = HL_DRIVER_PATCHLEVEL,
 	.name = HL_NAME,
 	.desc = HL_DRIVER_DESC,
+#ifdef _HAS_DRM_DRIVER_DATE
 	.date = HL_DRIVER_DATE,
+#endif
 
 	.fops = &hl_fops,
 	.open = hl_device_open,
