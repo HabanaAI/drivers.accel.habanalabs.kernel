@@ -499,7 +499,7 @@ out:
 }
 
 static ssize_t eeprom_read_handler(struct file *filp, struct kobject *kobj,
-			struct bin_attribute *attr, char *buf, loff_t offset,
+			compat_bin_attribute *attr, char *buf, loff_t offset,
 			size_t max_size)
 {
 	struct device *dev = kobj_to_dev(kobj);
@@ -605,7 +605,7 @@ static struct attribute *hl_dev_attrs[] = {
 	NULL,
 };
 
-static struct bin_attribute *hl_dev_bin_attrs[] = {
+static compat_bin_attribute_p hl_dev_bin_attrs[] = {
 	&bin_attr_eeprom,
 	NULL
 };
