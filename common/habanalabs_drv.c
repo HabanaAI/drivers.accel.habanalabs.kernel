@@ -1074,15 +1074,7 @@ int hl_device_open_ctrl(struct inode *inode, struct file *filp)
 	struct hl_fpriv *hpriv;
 	int rc;
 
-	mutex_lock(&hl_devs_idr_lock);
-	hdev = idr_find(&hl_devs_idr, iminor(inode));
-	mutex_unlock(&hl_devs_idr_lock);
-
-	if (!hdev) {
-		pr_err("Couldn't find device %d:%d\n",
-			imajor(inode), iminor(inode));
-		return -ENXIO;
-	}
+	hdev = container_of(inode->i_cdev, struct hl_device, cdev_ctrl);
 
 	hpriv = kzalloc(sizeof(*hpriv), GFP_KERNEL);
 	if (!hpriv)
