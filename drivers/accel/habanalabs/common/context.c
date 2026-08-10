@@ -69,7 +69,7 @@ static void hl_encaps_sig_mgr_fini(struct hl_device *hdev, struct hl_encaps_sign
 	 * released as part of CS roll-back.
 	 */
 	if (!idr_is_empty(idp)) {
-		dev_warn(hdev->dev,
+		hl_warn(hdev,
 			"device released while some encaps signals handles are still allocated\n");
 		idr_for_each_entry(idp, handle, id)
 			kref_put(&handle->refcount, hl_encaps_release_handle_and_put_sob);
@@ -102,7 +102,9 @@ static void hl_ctx_fini(struct hl_ctx *ctx)
 	kfree(ctx->cs_pending);
 
 	if (ctx->asid != HL_KERNEL_ASID_ID) {
-		dev_dbg(hdev->dev, "closing user context, asid=%u\n", ctx->asid);
+		struct timespec64 ts;
+
+		hl_dbg(hdev, "closing user context, asid=%u\n", ctx->asid);
 
 		/* The engines are stopped as there is no executing CS, but the
 		 * Coresight might be still working by accessing addresses
@@ -119,9 +121,12 @@ static void hl_ctx_fini(struct hl_ctx *ctx)
 		hl_vm_ctx_fini(ctx);
 		hl_asid_free(hdev, ctx->asid);
 		hl_encaps_sig_mgr_fini(hdev, &ctx->sig_mgr);
+		ktime_get_ts64(&ts);
+		hl_report_memory_consumption_to_fw(hdev, atomic64_read(&hdev->dram_used_mem),
+						   ts.tv_sec);
 		mutex_destroy(&ctx->ts_reg_lock);
 	} else {
-		dev_dbg(hdev->dev, "closing kernel context\n");
+		hl_dbg(hdev, "closing kernel context\n");
 		hdev->asic_funcs->ctx_fini(ctx);
 		hl_vm_ctx_fini(ctx);
 		hl_mmu_ctx_fini(ctx);
@@ -166,7 +171,7 @@ int hl_ctx_create(struct hl_device *hdev, struct hl_fpriv *hpriv)
 	mutex_unlock(&ctx_mgr->lock);
 
 	if (rc < 0) {
-		dev_err(hdev->dev, "Failed to allocate IDR for a new CTX\n");
+		hl_err(hdev, "Failed to allocate IDR for a new CTX\n");
 		goto free_ctx;
 	}
 
@@ -216,6 +221,7 @@ int hl_ctx_init(struct hl_device *hdev, struct hl_ctx *ctx, bool is_kernel_ctx)
 	if (!ctx->cs_pending)
 		return -ENOMEM;
 
+	spin_lock_init(&ctx->outcome_store.db_lock);
 	INIT_LIST_HEAD(&ctx->outcome_store.used_list);
 	INIT_LIST_HEAD(&ctx->outcome_store.free_list);
 	hash_init(ctx->outcome_store.outcome_map);
@@ -229,41 +235,41 @@ int hl_ctx_init(struct hl_device *hdev, struct hl_ctx *ctx, bool is_kernel_ctx)
 		ctx->asid = HL_KERNEL_ASID_ID; /* Kernel driver gets ASID 0 */
 		rc = hl_vm_ctx_init(ctx);
 		if (rc) {
-			dev_err(hdev->dev, "Failed to init mem ctx module\n");
+			hl_err(hdev, "Failed to init mem ctx module\n");
 			rc = -ENOMEM;
 			goto err_hw_block_mem_fini;
 		}
 
 		rc = hdev->asic_funcs->ctx_init(ctx);
 		if (rc) {
-			dev_err(hdev->dev, "ctx_init failed\n");
+			hl_err(hdev, "ctx_init failed\n");
 			goto err_vm_ctx_fini;
 		}
 	} else {
 		ctx->asid = hl_asid_alloc(hdev);
 		if (!ctx->asid) {
-			dev_err(hdev->dev, "No free ASID, failed to create context\n");
+			hl_err(hdev, "No free ASID, failed to create context\n");
 			rc = -ENOMEM;
 			goto err_hw_block_mem_fini;
 		}
 
 		rc = hl_vm_ctx_init(ctx);
 		if (rc) {
-			dev_err(hdev->dev, "Failed to init mem ctx module\n");
+			hl_err(hdev, "Failed to init mem ctx module\n");
 			rc = -ENOMEM;
 			goto err_asid_free;
 		}
 
 		rc = hl_cb_va_pool_init(ctx);
 		if (rc) {
-			dev_err(hdev->dev,
+			hl_err(hdev,
 				"Failed to init VA pool for mapped CB\n");
 			goto err_vm_ctx_fini;
 		}
 
 		rc = hdev->asic_funcs->ctx_init(ctx);
 		if (rc) {
-			dev_err(hdev->dev, "ctx_init failed\n");
+			hl_err(hdev, "ctx_init failed\n");
 			goto err_cb_va_pool_fini;
 		}
 
@@ -271,7 +277,7 @@ int hl_ctx_init(struct hl_device *hdev, struct hl_ctx *ctx, bool is_kernel_ctx)
 
 		mutex_init(&ctx->ts_reg_lock);
 
-		dev_dbg(hdev->dev, "create user context, comm=\"%s\", asid=%u\n",
+		hl_dbg(hdev, "create user context, comm=\"%s\", asid=%u\n",
 			get_task_comm(task_comm, current), ctx->asid);
 	}
 
@@ -395,7 +401,7 @@ int hl_ctx_get_fences(struct hl_ctx *ctx, u64 *seq_arr,
 		*fence = hl_ctx_get_fence_locked(ctx, seq);
 
 		if (IS_ERR(*fence)) {
-			dev_err(ctx->hdev->dev,
+			hl_err(ctx->hdev,
 				"Failed to get fence for CS with seq 0x%llx\n",
 					seq);
 			rc = PTR_ERR(*fence);

@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: GPL-2.0
 
 /*
- * Copyright 2016-2022 HabanaLabs, Ltd.
+ * Copyright 2016-2024 HabanaLabs, Ltd.
+ * Copyright (C) 2024-2025, Intel Corporation.
  * All Rights Reserved.
  */
 
@@ -13,9 +14,12 @@
 #include <linux/uaccess.h>
 #include <linux/slab.h>
 #include <linux/vmalloc.h>
+
+#ifdef _HAS_PEER2PEER
 #include <linux/pci-p2pdma.h>
 #include <linux/dma-resv.h>
 #include <linux/scatterlist.h>
+#endif
 
 MODULE_IMPORT_NS("DMA_BUF");
 
@@ -26,7 +30,389 @@ MODULE_IMPORT_NS("DMA_BUF");
 
 #define MEM_HANDLE_INVALID	ULONG_MAX
 
+#if KERNEL_VERSION(6, 2, 0) <= LINUX_VERSION_CODE
 #define GUP_FLAGS  (FOLL_WRITE | FOLL_LONGTERM)
+#else
+#define GUP_FLAGS  (FOLL_FORCE | FOLL_WRITE | FOLL_LONGTERM)
+#endif
+
+/* DO NOT UPSTREAM - START */
+#ifdef _HAS_PEER2PEER
+
+static u64 get_va_block(struct hl_device *hdev,
+				struct hl_va_range *va_range,
+				u64 size, u64 hint_addr, u32 va_block_align,
+				enum hl_va_range_type range_type,
+				u32 flags);
+
+static int map_phys_pg_pack(struct hl_ctx *ctx, u64 vaddr,
+				struct hl_vm_phys_pg_pack *phys_pg_pack);
+
+static void free_phys_pg_pack(struct hl_device *hdev,
+				struct hl_vm_phys_pg_pack *phys_pg_pack);
+
+static int add_va_block(struct hl_device *hdev,
+		struct hl_va_range *va_range, u64 start, u64 end);
+
+static int init_phys_pg_pack_from_userptr(struct hl_ctx *ctx,
+				struct hl_userptr *userptr,
+				struct hl_vm_phys_pg_pack **pphys_pg_pack,
+				bool force_regular_page);
+
+struct hl_umem_dmabuf {
+	struct hl_ctx *ctx;
+	struct hl_userptr userptr;
+	struct dma_buf_attachment *attach;
+	struct sg_table *sgt;
+};
+
+static int umem_dmabuf_map_pages(struct hl_umem_dmabuf *umem_dmabuf)
+{
+	struct hl_userptr *userptr = &umem_dmabuf->userptr;
+	struct hl_device *hdev = umem_dmabuf->ctx->hdev;
+	struct scatterlist *sg;
+	unsigned int nmap = 0;
+	struct sg_table *sgt;
+#ifdef _HAS_DMA_RESV_WAIT_TIMEOUT
+	long rc;
+#endif
+	int i;
+
+	dma_resv_assert_held(umem_dmabuf->attach->dmabuf->resv);
+
+	if (umem_dmabuf->sgt)
+		goto wait_fence;
+
+	sgt = dma_buf_map_attachment(umem_dmabuf->attach, DMA_BIDIRECTIONAL);
+	if (IS_ERR(sgt))
+		return PTR_ERR(sgt);
+
+	/* modify the sg list in-place to add the device's dma offset */
+
+	for_each_sgtable_dma_sg(sgt, sg, i) {
+		sg_dma_address(sg) +=
+			hdev->asic_prop.device_dma_offset_for_host_access;
+		nmap++;
+	}
+
+	userptr->sgt->sgl = sgt->sgl;
+	userptr->sgt->nents = nmap;
+	umem_dmabuf->sgt = sgt;
+
+wait_fence:
+#ifdef _HAS_DMA_RESV_WAIT_TIMEOUT
+	/*
+	 * Although the sg list is valid now, the content of the pages
+	 * may be not up-to-date. Wait for the exporter to finish
+	 * the migration.
+	 */
+#ifdef _HAS_DMA_RESV_USAGE_KERNEL
+	rc = dma_resv_wait_timeout(umem_dmabuf->attach->dmabuf->resv, DMA_RESV_USAGE_KERNEL,
+					false, MAX_SCHEDULE_TIMEOUT);
+#else
+	rc = dma_resv_wait_timeout(umem_dmabuf->attach->dmabuf->resv, true, false,
+					MAX_SCHEDULE_TIMEOUT);
+#endif
+	if (rc < 0)
+		return rc;
+	if (rc == 0)
+		return -ETIMEDOUT;
+#endif
+	return 0;
+}
+
+static void umem_dmabuf_unmap_pages(struct hl_umem_dmabuf *umem_dmabuf)
+{
+	struct hl_device *hdev = umem_dmabuf->ctx->hdev;
+	struct scatterlist *sg;
+	int i;
+
+	dma_resv_assert_held(umem_dmabuf->attach->dmabuf->resv);
+
+	if (!umem_dmabuf->sgt)
+		return;
+
+	/* restore the original sg list */
+	for_each_sgtable_dma_sg(umem_dmabuf->sgt, sg, i) {
+		sg_dma_address(sg) -=
+			hdev->asic_prop.device_dma_offset_for_host_access;
+	}
+
+	dma_buf_unmap_attachment(umem_dmabuf->attach, umem_dmabuf->sgt,
+				 DMA_BIDIRECTIONAL);
+
+	umem_dmabuf->sgt = NULL;
+}
+
+static struct hl_umem_dmabuf *umem_dmabuf_get(struct hl_ctx *ctx,
+					u64 length, int fd,
+					const struct dma_buf_attach_ops *ops)
+{
+	struct hl_umem_dmabuf *ret = ERR_PTR(-EINVAL);
+	struct hl_umem_dmabuf *umem_dmabuf;
+	struct hl_userptr *userptr;
+	struct dma_buf *dmabuf;
+	unsigned long end;
+
+	if (check_add_overflow(0ul, (unsigned long) length, &end))
+		return ret;
+
+	if (unlikely(!ops || !ops->move_notify))
+		return ret;
+
+	dmabuf = dma_buf_get(fd);
+	if (IS_ERR(dmabuf))
+		return ERR_CAST(dmabuf);
+
+	if (dmabuf->size < end)
+		goto out_release_dmabuf;
+
+	umem_dmabuf = kzalloc(sizeof(*umem_dmabuf), GFP_KERNEL);
+	if (!umem_dmabuf) {
+		ret = ERR_PTR(-ENOMEM);
+		goto out_release_dmabuf;
+	}
+
+	umem_dmabuf->ctx = ctx;
+	userptr = &umem_dmabuf->userptr;
+	userptr->size = length;
+	userptr->is_dmabuf = true;
+	userptr->vm_type = VM_TYPE_USERPTR;
+
+	userptr->sgt = kzalloc(sizeof(*userptr->sgt), GFP_KERNEL);
+	if (!userptr->sgt) {
+		ret = ERR_PTR(-ENOMEM);
+		goto out_free_umem;
+	}
+
+	umem_dmabuf->attach = dma_buf_dynamic_attach(
+					dmabuf,
+					&ctx->hdev->pdev->dev,
+					ops,
+					umem_dmabuf);
+	if (IS_ERR(umem_dmabuf->attach)) {
+		ret = ERR_CAST(umem_dmabuf->attach);
+		goto out_free_userptr_sgt;
+	}
+
+	return umem_dmabuf;
+
+out_free_userptr_sgt:
+	kfree(userptr->sgt);
+
+out_free_umem:
+	kfree(umem_dmabuf);
+
+out_release_dmabuf:
+	dma_buf_put(dmabuf);
+	return ret;
+}
+
+static void umem_dmabuf_release(struct hl_device *hdev,
+				struct hl_userptr *userptr)
+{
+	struct hl_umem_dmabuf *umem_dmabuf =
+			container_of(userptr, struct hl_umem_dmabuf, userptr);
+	struct dma_buf *dmabuf = umem_dmabuf->attach->dmabuf;
+
+	dma_resv_lock(dmabuf->resv, NULL);
+	umem_dmabuf_unmap_pages(umem_dmabuf);
+	dma_resv_unlock(dmabuf->resv);
+
+	dma_buf_detach(dmabuf, umem_dmabuf->attach);
+	dma_buf_put(dmabuf);
+	kfree(userptr->sgt);
+	kfree(umem_dmabuf);
+}
+
+static void hl_dmabuf_invalidate_cb(struct dma_buf_attachment *attach)
+{
+	struct hl_umem_dmabuf *umem_dmabuf = attach->importer_priv;
+	struct hl_device *hdev = umem_dmabuf->ctx->hdev;
+
+	dma_resv_assert_held(umem_dmabuf->attach->dmabuf->resv);
+
+	if (!umem_dmabuf->sgt)
+		return;
+
+	hl_warn(hdev, "Got unexpected move notify request!\n");
+}
+
+static struct dma_buf_attach_ops hl_dmabuf_attach_ops = {
+	.allow_peer2peer = 1,
+	.move_notify = hl_dmabuf_invalidate_cb
+};
+
+static struct hl_umem_dmabuf *to_hl_umem_dmabuf(struct hl_userptr *userptr)
+{
+	return container_of(userptr, struct hl_umem_dmabuf, userptr);
+}
+
+static int init_dmabuf_userptr(struct hl_userptr *userptr)
+{
+	struct hl_umem_dmabuf *umem_dmabuf = to_hl_umem_dmabuf(userptr);
+	struct scatterlist *sg;
+	int ret, i;
+
+	dma_resv_lock(umem_dmabuf->attach->dmabuf->resv, NULL);
+	ret = umem_dmabuf_map_pages(umem_dmabuf);
+	if (ret) {
+		dma_resv_unlock(umem_dmabuf->attach->dmabuf->resv);
+		return ret;
+	}
+
+	dma_resv_unlock(umem_dmabuf->attach->dmabuf->resv);
+
+	for_each_sgtable_dma_sg(umem_dmabuf->sgt, sg, i) {
+		hl_dbg(umem_dmabuf->ctx->hdev,
+			"sgt node %d: address 0x%llx, length 0x%x\n",
+			i, sg_dma_address(sg), sg_dma_len(sg));
+		if (!sg_dma_len(sg)) {
+			hl_err(umem_dmabuf->ctx->hdev,
+				"length of scatterlist node %d is 0\n", i);
+			return -EINVAL;
+		}
+	}
+
+	return 0;
+}
+
+int map_device_va_from_dmabuf_fd(struct hl_ctx *ctx, struct hl_mem_in *args,
+				u64 *device_addr)
+{
+	struct hl_vm_phys_pg_pack *phys_pg_pack;
+	struct hl_umem_dmabuf *umem_dmabuf;
+	struct hl_device *hdev = ctx->hdev;
+	struct hl_vm_hash_node *hnode;
+	struct hl_va_range *va_range;
+	struct hl_userptr *userptr;
+	u32 page_size;
+	u64 ret_vaddr;
+	int rc, fd;
+
+	page_size = hdev->asic_prop.pmmu.page_size;
+	fd = args->reg_dmabuf_fd.fd;
+	va_range = ctx->va_range[HL_VA_RANGE_TYPE_HOST];
+
+	/* Assume failure */
+	*device_addr = 0;
+
+	umem_dmabuf = umem_dmabuf_get(ctx, args->reg_dmabuf_fd.length, fd,
+					&hl_dmabuf_attach_ops);
+	if (IS_ERR(umem_dmabuf)) {
+		hl_err(hdev, "Failed to get dmabuf %ld\n",
+			PTR_ERR(umem_dmabuf));
+		return PTR_ERR(umem_dmabuf);
+	}
+
+	userptr = &umem_dmabuf->userptr;
+	ret_vaddr = get_va_block(hdev, va_range, userptr->size, 0,
+				page_size, HL_VA_RANGE_TYPE_HOST, 0);
+	if (!ret_vaddr) {
+		hl_err(hdev, "no available va block for dmabuf fd %d\n",
+			fd);
+		rc = -ENOMEM;
+		goto release_umem_dmabuf;
+	}
+
+	userptr->addr = ret_vaddr;
+
+	rc = init_dmabuf_userptr(&umem_dmabuf->userptr);
+	if (rc) {
+		hl_err(hdev, "Failed to init userptr %d\n", rc);
+		goto init_dmabuf_err;
+	}
+
+	rc = init_phys_pg_pack_from_userptr(ctx, userptr, &phys_pg_pack, true);
+	if (rc) {
+		hl_err(hdev,
+			"unable to init page pack for dmabuf fd %d\n",
+			rc);
+		goto init_phys_pack_err;
+	}
+
+	hnode = kzalloc(sizeof(*hnode), GFP_KERNEL);
+	if (!hnode) {
+		rc = -ENOMEM;
+		goto hnode_err;
+	}
+
+	mutex_lock(&hdev->mmu_lock);
+
+	rc = map_phys_pg_pack(ctx, ret_vaddr, phys_pg_pack);
+	if (rc) {
+		mutex_unlock(&hdev->mmu_lock);
+		hl_err(hdev, "mapping page pack failed for dmabuf fd %d\n",
+			fd);
+		goto map_err;
+	}
+
+	rc = hdev->asic_funcs->mmu_invalidate_cache_range(hdev, false,
+						userptr->vm_type | MMU_OP_SKIP_LOW_CACHE_INV,
+						ctx->asid,
+						ret_vaddr,
+						phys_pg_pack->total_size);
+
+	mutex_unlock(&hdev->mmu_lock);
+
+	if (rc) {
+		hl_err(hdev,
+			"mapping dmabuf fd %d failed due to MMU cache invalidation\n",
+			fd);
+		goto map_err;
+	}
+
+	ret_vaddr += phys_pg_pack->offset;
+
+	hnode->ptr = (void *) userptr;
+	hnode->vaddr = ret_vaddr;
+
+	mutex_lock(&ctx->mem_hash_lock);
+	hash_add(ctx->mem_hash, &hnode->node, ret_vaddr);
+	mutex_unlock(&ctx->mem_hash_lock);
+
+	*device_addr = ret_vaddr;
+
+	free_phys_pg_pack(hdev, phys_pg_pack);
+
+	return 0;
+
+map_err:
+	kfree(hnode);
+
+hnode_err:
+	atomic_dec(&phys_pg_pack->mapping_cnt);
+	free_phys_pg_pack(hdev, phys_pg_pack);
+
+init_phys_pack_err:
+init_dmabuf_err:
+	if (add_va_block(hdev, va_range, ret_vaddr,
+			ret_vaddr + userptr->size - 1))
+		hl_warn(hdev,
+			"release va block failed for dmabuf fd %d, vaddr: 0x%llx\n",
+			fd, ret_vaddr);
+
+release_umem_dmabuf:
+	umem_dmabuf_release(hdev, userptr);
+	return rc;
+}
+#else
+int map_device_va_from_dmabuf_fd(struct hl_ctx *ctx, struct hl_mem_in *args,
+				u64 *device_addr)
+{
+	hl_err(ctx->hdev,
+		"registering dmabuf fd not supported in this kernel\n");
+	return -EPERM;
+}
+
+static void umem_dmabuf_release(struct hl_device *hdev,
+				struct hl_userptr *userptr)
+{
+	hl_err(hdev,
+		"bug in driver, dmabuf is disabled but driver tried to release it\n");
+}
+#endif
+/* DO NOT UPSTREAM - END */
 
 static int allocate_timestamps_buffers(struct hl_fpriv *hpriv,
 			struct hl_mem_in *args, u64 *handle);
@@ -47,12 +433,12 @@ static int set_alloc_page_size(struct hl_device *hdev, struct hl_mem_in *args, u
 		psize = args->alloc.page_size;
 
 		if (!is_power_of_2(psize)) {
-			dev_err(hdev->dev, "user page size (%#llx) is not power of 2\n", psize);
+			hl_err(hdev, "user page size (%#llx) is not power of 2\n", psize);
 			return -EINVAL;
 		}
 
 		if (!(psize & hdev->hmmu_info.prop->supported_pages_mask)) {
-			dev_err(hdev->dev, "user page size (%#llx) is not supported (%#llx)\n",
+			hl_err(hdev, "user page size (%#llx) is not supported (%#llx)\n",
 					psize, hdev->hmmu_info.prop->supported_pages_mask);
 			return -EINVAL;
 		}
@@ -103,6 +489,7 @@ static int alloc_device_memory(struct hl_ctx *ctx, struct hl_mem_in *args,
 {
 	struct hl_device *hdev = ctx->hdev;
 	struct hl_vm *vm = &hdev->vm;
+	struct asic_fixed_properties *prop = &hdev->asic_prop;
 	struct hl_vm_phys_pg_pack *phys_pg_pack;
 	u64 paddr = 0, total_size, num_pgs, i;
 	u32 num_curr_pgs, page_size;
@@ -119,8 +506,13 @@ static int alloc_device_memory(struct hl_ctx *ctx, struct hl_mem_in *args,
 	total_size = num_pgs * page_size;
 
 	if (!total_size) {
-		dev_err(hdev->dev, "Cannot allocate 0 bytes\n");
+		hl_err_ratelimited(hdev, "Cannot allocate 0 bytes\n");
 		return -EINVAL;
+	}
+
+	if (total_size > prop->dram_size) {
+		hl_err_ratelimited(hdev, "Cannot satisfy allocation of %lld bytes\n", total_size);
+		return -ENOMEM;
 	}
 
 	contiguous = args->flags & HL_MEM_CONTIGUOUS;
@@ -132,7 +524,7 @@ static int alloc_device_memory(struct hl_ctx *ctx, struct hl_mem_in *args,
 		else
 			paddr = gen_pool_alloc(vm->dram_pg_pool, total_size);
 		if (!paddr) {
-			dev_err(hdev->dev,
+			hl_err(hdev,
 				"Cannot allocate %llu contiguous pages with total size of %llu\n",
 				num_pgs, total_size);
 			return -ENOMEM;
@@ -153,7 +545,7 @@ static int alloc_device_memory(struct hl_ctx *ctx, struct hl_mem_in *args,
 	phys_pg_pack->flags = args->flags;
 	phys_pg_pack->contiguous = contiguous;
 
-	phys_pg_pack->pages = kvmalloc_array(num_pgs, sizeof(u64), GFP_KERNEL);
+	phys_pg_pack->pages = kvmalloc_array(num_pgs, sizeof(u64), GFP_KERNEL | __GFP_NOWARN);
 	if (ZERO_OR_NULL_PTR(phys_pg_pack->pages)) {
 		rc = -ENOMEM;
 		goto pages_arr_err;
@@ -174,7 +566,7 @@ static int alloc_device_memory(struct hl_ctx *ctx, struct hl_mem_in *args,
 									page_size);
 
 			if (!phys_pg_pack->pages[i]) {
-				dev_err(hdev->dev,
+				hl_err(hdev,
 					"Cannot allocate device memory (out of memory)\n");
 				rc = -ENOMEM;
 				goto page_err;
@@ -190,7 +582,7 @@ static int alloc_device_memory(struct hl_ctx *ctx, struct hl_mem_in *args,
 	spin_unlock(&vm->idr_lock);
 
 	if (handle < 0) {
-		dev_err(hdev->dev, "Failed to get handle for page\n");
+		hl_err(hdev, "Failed to get handle for page\n");
 		rc = -EFAULT;
 		goto idr_err;
 	}
@@ -250,7 +642,7 @@ static int hl_vmalloc_to_sg_table(struct hl_device *hdev, u64 addr, u64 size, u3
 	 * vmalloc allocation is by default page aligned.
 	 */
 	if (!is_vmalloc_addr((void *) addr) || !is_vmalloc_addr((void *) (addr + size))) {
-		dev_err(hdev->dev, "Invalid vmalloc address range, start 0x%llx size %llu\n",
+		hl_err(hdev, "Invalid vmalloc address range, start 0x%llx size %llu\n",
 			addr, size);
 		return -EINVAL;
 	}
@@ -262,7 +654,7 @@ static int hl_vmalloc_to_sg_table(struct hl_device *hdev, u64 addr, u64 size, u3
 	for (i = 0 ; i < npages ; i++) {
 		page = vmalloc_to_page((void *) addr);
 		if (!page) {
-			dev_err(hdev->dev, "Failed to get physical page for va 0x%llx\n", addr);
+			hl_err(hdev, "Failed to get physical page for va 0x%llx\n", addr);
 			rc = -EFAULT;
 			goto free_pages;
 		}
@@ -273,7 +665,7 @@ static int hl_vmalloc_to_sg_table(struct hl_device *hdev, u64 addr, u64 size, u3
 
 	rc = sg_alloc_table_from_pages(sgt, pages, npages, offset, size, GFP_KERNEL);
 	if (rc < 0) {
-		dev_err(hdev->dev, "Failed to create SG table from pages\n");
+		hl_err(hdev, "Failed to create SG table from pages\n");
 		goto free_pages;
 	}
 
@@ -327,7 +719,7 @@ static int dma_map_host_va(struct hl_device *hdev, u64 addr,
 
 	rc = hl_dma_map_sgtable(hdev, userptr->sgt, DMA_BIDIRECTIONAL);
 	if (rc) {
-		dev_err(hdev->dev, "failed to map sgt with DMA region\n");
+		hl_err(hdev, "failed to map sgt with DMA region\n");
 		goto dma_map_err;
 	}
 
@@ -442,13 +834,13 @@ static int free_device_memory(struct hl_ctx *ctx, struct hl_mem_in *args)
 	phys_pg_pack = idr_find(&vm->phys_pg_pack_handles, handle);
 	if (!phys_pg_pack) {
 		spin_unlock(&vm->idr_lock);
-		dev_err(hdev->dev, "free device memory failed, no match for handle %u\n", handle);
+		hl_err(hdev, "free device memory failed, no match for handle %u\n", handle);
 		return -EINVAL;
 	}
 
 	if (atomic_read(&phys_pg_pack->mapping_cnt) > 0) {
 		spin_unlock(&vm->idr_lock);
-		dev_err(hdev->dev, "handle %u is mapped, cannot free\n", handle);
+		hl_err(hdev, "handle %u is mapped, cannot free\n", handle);
 		return -EINVAL;
 	}
 
@@ -503,10 +895,10 @@ static void print_va_list_locked(struct hl_device *hdev,
 #if HL_MMU_DEBUG
 	struct hl_vm_va_block *va_block;
 
-	dev_dbg(hdev->dev, "print va list:\n");
+	hl_dbg(hdev, "print va list:\n");
 
 	list_for_each_entry(va_block, va_list, node)
-		dev_dbg(hdev->dev,
+		hl_dbg(hdev,
 			"va block, start: 0x%llx, end: 0x%llx, size: %llu\n",
 			va_block->start, va_block->end, va_block->size);
 #endif
@@ -572,7 +964,7 @@ static int add_va_block_locked(struct hl_device *hdev,
 		/* TODO: remove upon matureness */
 		if (hl_mem_area_crosses_range(start, size, va_block->start,
 				va_block->end)) {
-			dev_err(hdev->dev,
+			hl_err(hdev,
 				"block crossing ranges at start 0x%llx, end 0x%llx\n",
 				va_block->start, va_block->end);
 			return -EINVAL;
@@ -708,13 +1100,13 @@ static u64 get_va_block(struct hl_device *hdev,
 
 		if (force_hint) {
 			/* Hint must be respected, so here we just fail */
-			dev_err(hdev->dev,
+			hl_err(hdev,
 				"Hint address 0x%llx is not page aligned - cannot be respected\n",
 				hint_addr);
 			return 0;
 		}
 
-		dev_dbg(hdev->dev,
+		hl_dbg(hdev,
 			"Hint address 0x%llx will be ignored because it is not aligned\n",
 			hint_addr);
 		hint_addr = 0;
@@ -766,7 +1158,7 @@ static u64 get_va_block(struct hl_device *hdev,
 	}
 
 	if (!new_va_block) {
-		dev_err(hdev->dev, "no available va block for size %llu\n",
+		hl_err(hdev, "no available va block for size %llu\n",
 								size);
 		goto out;
 	}
@@ -775,7 +1167,7 @@ static u64 get_va_block(struct hl_device *hdev,
 		/* Hint address must be respected. If we are here - this means
 		 * we could not respect it.
 		 */
-		dev_err(hdev->dev,
+		hl_err(hdev,
 			"Hint address 0x%llx could not be respected\n",
 			hint_addr);
 		reserved_valid_start = 0;
@@ -886,7 +1278,7 @@ int hl_unreserve_va_block(struct hl_device *hdev, struct hl_ctx *ctx,
 
 	rc = hl_get_va_range_type(ctx, start_addr, size, &type);
 	if (rc) {
-		dev_err(hdev->dev,
+		hl_err(hdev,
 			"cannot find va_range for va %#llx size %llu",
 			start_addr, size);
 		return rc;
@@ -895,7 +1287,7 @@ int hl_unreserve_va_block(struct hl_device *hdev, struct hl_ctx *ctx,
 	rc = add_va_block(hdev, ctx->va_range[type], start_addr,
 						start_addr + size - 1);
 	if (rc)
-		dev_warn(hdev->dev,
+		hl_warn(hdev,
 			"add va block failed for vaddr: 0x%llx\n", start_addr);
 
 	return rc;
@@ -943,7 +1335,7 @@ static int init_phys_pg_pack_from_userptr(struct hl_ctx *ctx,
 	phys_pg_pack->asid = ctx->asid;
 	atomic_set(&phys_pg_pack->mapping_cnt, 1);
 
-	is_huge_page_opt = (phys_pg_pack->is_odp || force_regular_page ? false : true);
+	is_huge_page_opt = !(phys_pg_pack->is_odp || force_regular_page);
 
 	if (phys_pg_pack->is_odp) {
 		/*
@@ -994,7 +1386,7 @@ static int init_phys_pg_pack_from_userptr(struct hl_ctx *ctx,
 	}
 
 	phys_pg_pack->pages = kvmalloc_array(total_npages, sizeof(u64),
-						GFP_KERNEL);
+						GFP_KERNEL | __GFP_NOWARN);
 	if (ZERO_OR_NULL_PTR(phys_pg_pack->pages)) {
 		rc = -ENOMEM;
 		goto page_pack_arr_mem_err;
@@ -1060,7 +1452,7 @@ static int map_phys_pg_pack(struct hl_ctx *ctx, u64 vaddr,
 		rc = hl_mmu_map_page(ctx, next_vaddr, paddr, page_size,
 				(i + 1) == phys_pg_pack->npages);
 		if (rc) {
-			dev_err(hdev->dev,
+			hl_err(hdev,
 				"map failed (%d) for handle %u, npages: %llu, mapped: %llu\n",
 				rc, phys_pg_pack->handle, phys_pg_pack->npages,
 				mapped_pg_cnt);
@@ -1080,7 +1472,7 @@ err:
 	for (i = 0 ; i < mapped_pg_cnt ; i++) {
 		if (hl_mmu_unmap_page(ctx, next_vaddr, page_size,
 					(i + 1) == mapped_pg_cnt))
-			dev_warn_ratelimited(hdev->dev,
+			hl_warn_ratelimited(hdev,
 				"failed to unmap handle %u, va: 0x%llx, pa: 0x%llx, page size: %u\n",
 					phys_pg_pack->handle, next_vaddr,
 					phys_pg_pack->pages[i], page_size);
@@ -1126,7 +1518,7 @@ static void unmap_phys_pg_pack(struct hl_ctx *ctx, u64 vaddr,
 	for (i = 0 ; i < phys_pg_pack->npages ; i++, next_vaddr += page_size) {
 		if (hl_mmu_unmap_page(ctx, next_vaddr, page_size,
 				       (i + 1) == phys_pg_pack->npages))
-			dev_warn_ratelimited(hdev->dev,
+			hl_warn_ratelimited(hdev,
 			"unmap failed for vaddr: 0x%llx\n", next_vaddr);
 
 		/*
@@ -1176,7 +1568,7 @@ int map_device_va(struct hl_ctx *ctx, struct hl_mem_in *args, u64 *device_addr)
 	do_prefetch = hdev->supports_mmu_prefetch && (args->flags & HL_MEM_PREFETCH);
 
 	if (is_odp && !hl_is_odp_supported(hdev)) {
-		dev_err(hdev->dev, "ODP is not supported\n");
+		hl_err(hdev, "ODP is not supported\n");
 		return -EOPNOTSUPP;
 	}
 
@@ -1188,15 +1580,17 @@ int map_device_va(struct hl_ctx *ctx, struct hl_mem_in *args, u64 *device_addr)
 			size = args->map_host.mem_size;
 		u32 page_size = hdev->asic_prop.pmmu.page_size,
 			huge_page_size = hdev->asic_prop.pmmu_huge.page_size;
+		bool force_regular_pg = is_hint_crossing_range(HL_VA_RANGE_TYPE_HOST,
+							       args->map_host.hint_addr, size,
+							       &hdev->asic_prop);
 
 		rc = dma_map_host_va(hdev, addr, false, is_odp, size, &userptr);
 		if (rc)
 			return rc;
 
-		rc = init_phys_pg_pack_from_userptr(ctx, userptr,
-				&phys_pg_pack, false);
+		rc = init_phys_pg_pack_from_userptr(ctx, userptr, &phys_pg_pack, force_regular_pg);
 		if (rc) {
-			dev_err(hdev->dev,
+			hl_err(hdev,
 				"unable to init page pack for vaddr 0x%llx\n",
 				addr);
 			goto init_page_pack_err;
@@ -1234,7 +1628,7 @@ int map_device_va(struct hl_ctx *ctx, struct hl_mem_in *args, u64 *device_addr)
 		phys_pg_pack = idr_find(&vm->phys_pg_pack_handles, handle);
 		if (!phys_pg_pack) {
 			spin_unlock(&vm->idr_lock);
-			dev_err(hdev->dev,
+			hl_err(hdev,
 				"no match for handle %u\n", handle);
 			return -EINVAL;
 		}
@@ -1268,7 +1662,7 @@ int map_device_va(struct hl_ctx *ctx, struct hl_mem_in *args, u64 *device_addr)
 	 */
 	if (!is_userptr && !(phys_pg_pack->flags & HL_MEM_SHARED) &&
 			phys_pg_pack->asid != ctx->asid) {
-		dev_err(hdev->dev,
+		hl_err(hdev,
 			"Failed to map memory, handle %u is not shared\n",
 			handle);
 		rc = -EPERM;
@@ -1284,13 +1678,13 @@ int map_device_va(struct hl_ctx *ctx, struct hl_mem_in *args, u64 *device_addr)
 	if (hint_addr && phys_pg_pack->offset) {
 		if (args->flags & HL_MEM_FORCE_HINT) {
 			/* Fail if hint must be respected but it can't be */
-			dev_err(hdev->dev,
+			hl_err(hdev,
 				"Hint address 0x%llx cannot be respected because source memory is not aligned 0x%x\n",
 				hint_addr, phys_pg_pack->offset);
 			rc = -EINVAL;
 			goto va_block_err;
 		}
-		dev_dbg(hdev->dev,
+		hl_dbg(hdev,
 			"Hint address 0x%llx will be ignored because source memory is not aligned 0x%x\n",
 			hint_addr, phys_pg_pack->offset);
 	}
@@ -1299,7 +1693,7 @@ int map_device_va(struct hl_ctx *ctx, struct hl_mem_in *args, u64 *device_addr)
 					hint_addr, va_block_align,
 					va_range_type, args->flags);
 	if (!ret_vaddr) {
-		dev_err(hdev->dev, "no available va block for handle %u\n",
+		hl_err(hdev, "no available va block for handle %u\n",
 				handle);
 		rc = -ENOMEM;
 		goto va_block_err;
@@ -1310,7 +1704,7 @@ int map_device_va(struct hl_ctx *ctx, struct hl_mem_in *args, u64 *device_addr)
 
 		rc = map_phys_pg_pack(ctx, ret_vaddr, phys_pg_pack);
 		if (rc) {
-			dev_err(hdev->dev, "mapping page pack failed (%d) for handle %u\n",
+			hl_err(hdev, "mapping page pack failed (%d) for handle %u\n",
 					rc, handle);
 			mutex_unlock(&hdev->mmu_lock);
 			goto map_err;
@@ -1358,7 +1752,7 @@ int map_device_va(struct hl_ctx *ctx, struct hl_mem_in *args, u64 *device_addr)
 map_err:
 	if (add_va_block(hdev, va_range, ret_vaddr,
 				ret_vaddr + phys_pg_pack->total_size - 1))
-		dev_warn(hdev->dev,
+		hl_warn(hdev,
 			"release va block failed for handle 0x%x, vaddr: 0x%llx\n",
 				handle, ret_vaddr);
 
@@ -1418,13 +1812,13 @@ int unmap_device_va(struct hl_ctx *ctx, struct hl_mem_in *args, bool ctx_free)
 	hnode = get_vm_hash_node_locked(ctx, vaddr);
 	if (!hnode) {
 		mutex_unlock(&ctx->mem_hash_lock);
-		dev_err(hdev->dev, "unmap failed, no mem hnode for vaddr 0x%llx\n", vaddr);
+		hl_err(hdev, "unmap failed, no mem hnode for vaddr 0x%llx\n", vaddr);
 		return -EINVAL;
 	}
 
 	if (hnode->export_cnt) {
 		mutex_unlock(&ctx->mem_hash_lock);
-		dev_err(hdev->dev, "failed to unmap %#llx, memory is exported\n", vaddr);
+		hl_err(hdev, "failed to unmap %#llx, memory is exported\n", vaddr);
 		return -EINVAL;
 	}
 
@@ -1434,13 +1828,19 @@ int unmap_device_va(struct hl_ctx *ctx, struct hl_mem_in *args, bool ctx_free)
 	vm_type = hnode->ptr;
 
 	if (*vm_type == VM_TYPE_USERPTR) {
+		bool regular_pg_map, force_regular_pg;
+
 		is_userptr = true;
 		userptr = hnode->ptr;
 
-		rc = init_phys_pg_pack_from_userptr(ctx, userptr, &phys_pg_pack,
-			(userptr->is_kernel_addr) ? true : false);
+		regular_pg_map = is_hint_crossing_range(HL_VA_RANGE_TYPE_HOST, vaddr, userptr->size,
+							&hdev->asic_prop);
+
+		force_regular_pg = userptr->is_dmabuf || userptr->is_kernel_addr || regular_pg_map;
+
+		rc = init_phys_pg_pack_from_userptr(ctx, userptr, &phys_pg_pack, force_regular_pg);
 		if (rc) {
-			dev_err(hdev->dev,
+			hl_err(hdev,
 				"unable to init page pack for vaddr 0x%llx\n",
 				vaddr);
 			goto vm_type_err;
@@ -1456,7 +1856,7 @@ int unmap_device_va(struct hl_ctx *ctx, struct hl_mem_in *args, bool ctx_free)
 		va_range = ctx->va_range[HL_VA_RANGE_TYPE_DRAM];
 		phys_pg_pack = hnode->ptr;
 	} else {
-		dev_warn(hdev->dev,
+		hl_warn(hdev,
 			"unmap failed, unknown vm desc for vaddr 0x%llx\n",
 				vaddr);
 		rc = -EFAULT;
@@ -1464,7 +1864,7 @@ int unmap_device_va(struct hl_ctx *ctx, struct hl_mem_in *args, bool ctx_free)
 	}
 
 	if (atomic_read(&phys_pg_pack->mapping_cnt) == 0) {
-		dev_err(hdev->dev, "vaddr 0x%llx is not mapped\n", vaddr);
+		hl_err(hdev, "vaddr 0x%llx is not mapped\n", vaddr);
 		rc = -EINVAL;
 		goto mapping_cnt_err;
 	}
@@ -1507,7 +1907,7 @@ int unmap_device_va(struct hl_ctx *ctx, struct hl_mem_in *args, bool ctx_free)
 		tmp_rc = add_va_block(hdev, va_range, vaddr,
 					vaddr + phys_pg_pack->total_size - 1);
 		if (tmp_rc) {
-			dev_warn(hdev->dev,
+			hl_warn(hdev,
 					"add va block failed for vaddr: 0x%llx\n",
 					vaddr);
 			if (!rc)
@@ -1520,7 +1920,11 @@ int unmap_device_va(struct hl_ctx *ctx, struct hl_mem_in *args, bool ctx_free)
 
 	if (is_userptr) {
 		free_phys_pg_pack(hdev, phys_pg_pack);
-		dma_unmap_host_va(hdev, userptr);
+
+		if (userptr->is_dmabuf)
+			umem_dmabuf_release(hdev, userptr);
+		else
+			dma_unmap_host_va(hdev, userptr);
 	}
 
 	return rc;
@@ -1613,7 +2017,7 @@ int hl_hw_block_mmap(struct hl_fpriv *hpriv, struct vm_area_struct *vma)
 	block_size = vma->vm_end - vma->vm_start;
 
 	if (!access_ok((void __user *) (uintptr_t) vma->vm_start, block_size)) {
-		dev_err(hdev->dev,
+		hl_err(hdev,
 			"user pointer is invalid - 0x%lx\n",
 			vma->vm_start);
 
@@ -1657,10 +2061,19 @@ static int set_dma_sg(struct scatterlist *sg, u64 bar_address, u64 chunk_size,
 #ifndef __IMPORTER
 	int rc;
 #endif
+#ifdef _HAS_DMA_MAP_RESOURCE_WITH_DMA_ATTRS
+	DEFINE_DMA_ATTRS(attrs);
+
+	dma_set_attr(DMA_ATTR_SKIP_CPU_SYNC, &attrs);
+#endif
 
 #ifndef __IMPORTER
 	addr = dma_map_resource(dev, bar_address, chunk_size, dir,
+#ifndef _HAS_DMA_MAP_RESOURCE_WITH_DMA_ATTRS
 				DMA_ATTR_SKIP_CPU_SYNC);
+#else
+				&attrs);
+#endif
 	rc = dma_mapping_error(dev, addr);
 	if (rc)
 		return rc;
@@ -1687,15 +2100,25 @@ static struct sg_table *alloc_sgt_from_device_pages(struct hl_device *hdev, u64 
 	struct sg_table *sgt;
 	bool next_sg_entry;
 	int rc;
+#ifdef _HAS_DMA_MAP_RESOURCE_WITH_DMA_ATTRS
+	DEFINE_DMA_ATTRS(attrs);
+
+	dma_set_attr(DMA_ATTR_SKIP_CPU_SYNC, &attrs);
+#endif
 
 	/* Align max segment size to PAGE_SIZE to fit the minimal IOMMU mapping granularity */
 	dma_max_seg_size = ALIGN_DOWN(dma_get_max_seg_size(dev), PAGE_SIZE);
 	if (dma_max_seg_size < PAGE_SIZE) {
-		dev_err_ratelimited(hdev->dev,
+		hl_err_ratelimited(hdev,
 				"dma_max_seg_size %llu can't be smaller than PAGE_SIZE\n",
 				dma_max_seg_size);
 		return ERR_PTR(-EINVAL);
 	}
+
+#if KERNEL_VERSION(6, 2, 0) > LINUX_VERSION_CODE
+	/* Limit chunk size to overcome an overflow issue in the ib block iterator in old kernels */
+	dma_max_seg_size = min_t(u64, dma_max_seg_size, SZ_1G);
+#endif
 
 	sgt = kzalloc(sizeof(*sgt), GFP_KERNEL);
 	if (!sgt)
@@ -1809,7 +2232,7 @@ static struct sg_table *alloc_sgt_from_device_pages(struct hl_device *hdev, u64 
 
 	/* There should be nothing left to export exactly after looping over all SG elements */
 	if (left_size_to_export) {
-		dev_err(hdev->dev,
+		hl_err(hdev,
 			"left size to export %#llx after initializing %u SG elements\n",
 			left_size_to_export, sgt->nents);
 		rc = -ENOMEM;
@@ -1823,10 +2246,10 @@ static struct sg_table *alloc_sgt_from_device_pages(struct hl_device *hdev, u64 
 	 */
 	sgt->orig_nents = 0;
 
-	dev_dbg(hdev->dev, "prepared SG table with %u entries for importer %s\n",
+	hl_dbg(hdev, "prepared SG table with %u entries for importer %s\n",
 		nents, dev_name(dev));
 	for_each_sgtable_dma_sg(sgt, sg, i)
-		dev_dbg(hdev->dev,
+		hl_dbg(hdev,
 			"SG entry %d: address %#llx, length %#x\n",
 			i, sg_dma_address(sg), sg_dma_len(sg));
 
@@ -1838,7 +2261,11 @@ err_unmap:
 			continue;
 
 		dma_unmap_resource(dev, sg_dma_address(sg), sg_dma_len(sg), dir,
+#ifndef _HAS_DMA_MAP_RESOURCE_WITH_DMA_ATTRS
 					DMA_ATTR_SKIP_CPU_SYNC);
+#else
+					&attrs);
+#endif
 	}
 
 	sg_free_table(sgt);
@@ -1849,9 +2276,39 @@ err_free_sgt:
 }
 
 static int hl_dmabuf_attach(struct dma_buf *dmabuf,
+#ifdef _HAS_DMA_BUF_OP_ATTACH_WITH_DEV
+				struct device *dev,
+#endif
 				struct dma_buf_attachment *attachment)
 {
+
+	struct hl_dmabuf_priv *hl_dmabuf = dmabuf->priv;
+	struct hl_device *hdev = hl_dmabuf->ctx->hdev;
+
+#if 0 /* Disable p2pdma distance check as it will always fail inside a VM */
+
+#if defined(_HAS_PEER2PEER) && defined(CONFIG_PCI_P2PDMA) && !defined(__IMPORTER)
+	int rc;
+
+	rc = pci_p2pdma_distance(hdev->pdev, attachment->dev, true);
+
+	if (rc < 0)
+		attachment->peer2peer = false;
+#endif
+
+#endif
+	hl_ewr_get(hdev);
+
 	return 0;
+}
+
+static void hl_dmabuf_detach(struct dma_buf *dmabuf,
+			    struct dma_buf_attachment *attachment)
+{
+	struct hl_dmabuf_priv *hl_dmabuf = dmabuf->priv;
+	struct hl_device *hdev = hl_dmabuf->ctx->hdev;
+
+	hl_ewr_put(hdev);
 }
 
 static struct sg_table *hl_map_dmabuf(struct dma_buf_attachment *attachment,
@@ -1867,9 +2324,9 @@ static struct sg_table *hl_map_dmabuf(struct dma_buf_attachment *attachment,
 	hl_dmabuf = dma_buf->priv;
 	hdev = hl_dmabuf->ctx->hdev;
 
-#if defined(CONFIG_PCI_P2PDMA) && !defined(__IMPORTER)
+#if defined(_HAS_PEER2PEER) && defined(CONFIG_PCI_P2PDMA) && !defined(__IMPORTER)
 	if (!attachment->peer2peer) {
-		dev_dbg(hdev->dev, "Failed to map dmabuf because p2p is disabled\n");
+		hl_dbg(hdev, "Failed to map dmabuf because p2p is disabled\n");
 		return ERR_PTR(-EPERM);
 	}
 #endif
@@ -1891,7 +2348,7 @@ static struct sg_table *hl_map_dmabuf(struct dma_buf_attachment *attachment,
 	sgt = alloc_sgt_from_device_pages(hdev, pages, npages, page_size, exported_size, offset,
 						attachment->dev, dir);
 	if (IS_ERR(sgt))
-		dev_err(hdev->dev, "failed (%ld) to initialize sgt for dmabuf\n", PTR_ERR(sgt));
+		hl_err(hdev, "failed (%ld) to initialize sgt for dmabuf\n", PTR_ERR(sgt));
 
 	return sgt;
 }
@@ -1902,6 +2359,11 @@ static void hl_unmap_dmabuf(struct dma_buf_attachment *attachment,
 {
 	struct scatterlist *sg;
 	int i;
+#ifdef _HAS_DMA_MAP_RESOURCE_WITH_DMA_ATTRS
+	DEFINE_DMA_ATTRS(attrs);
+
+	dma_set_attr(DMA_ATTR_SKIP_CPU_SYNC, &attrs);
+#endif
 
 	/* The memory behind the dma-buf has *always* resided on the device itself, i.e. it lives
 	 * only in the 'device' domain (after all, it maps a PCI bar address which points to the
@@ -1913,7 +2375,11 @@ static void hl_unmap_dmabuf(struct dma_buf_attachment *attachment,
 	for_each_sgtable_dma_sg(sgt, sg, i)
 		dma_unmap_resource(attachment->dev, sg_dma_address(sg),
 					sg_dma_len(sg), dir,
+#ifndef _HAS_DMA_MAP_RESOURCE_WITH_DMA_ATTRS
 					DMA_ATTR_SKIP_CPU_SYNC);
+#else
+					&attrs);
+#endif
 
 	/* Need to restore orig_nents because sg_free_table use that field */
 	sgt->orig_nents = sgt->nents;
@@ -1931,13 +2397,13 @@ static struct hl_vm_hash_node *memhash_node_export_get(struct hl_ctx *ctx, u64 a
 	hnode = get_vm_hash_node_locked(ctx, addr);
 	if (!hnode) {
 		mutex_unlock(&ctx->mem_hash_lock);
-		dev_dbg(hdev->dev, "map address %#llx not found\n", addr);
+		hl_dbg(hdev, "map address %#llx not found\n", addr);
 		return ERR_PTR(-EINVAL);
 	}
 
 	if (upper_32_bits(hnode->handle)) {
 		mutex_unlock(&ctx->mem_hash_lock);
-		dev_dbg(hdev->dev, "invalid handle %#llx for map address %#llx\n",
+		hl_dbg(hdev, "invalid handle %#llx for map address %#llx\n",
 				hnode->handle, addr);
 		return ERR_PTR(-EINVAL);
 	}
@@ -1988,6 +2454,7 @@ static void hl_release_dmabuf(struct dma_buf *dmabuf)
 
 static const struct dma_buf_ops habanalabs_dmabuf_ops = {
 	.attach = hl_dmabuf_attach,
+	.detach = hl_dmabuf_detach,
 	.map_dma_buf = hl_map_dmabuf,
 	.unmap_dma_buf = hl_unmap_dmabuf,
 	.release = hl_release_dmabuf,
@@ -2008,13 +2475,13 @@ static int export_dmabuf(struct hl_ctx *ctx,
 
 	hl_dmabuf->dmabuf = dma_buf_export(&exp_info);
 	if (IS_ERR(hl_dmabuf->dmabuf)) {
-		dev_err(hdev->dev, "failed to export dma-buf\n");
+		hl_err(hdev, "failed to export dma-buf\n");
 		return PTR_ERR(hl_dmabuf->dmabuf);
 	}
 
 	fd = dma_buf_fd(hl_dmabuf->dmabuf, flags);
 	if (fd < 0) {
-		dev_err(hdev->dev, "failed to get a file descriptor for a dma-buf, %d\n", fd);
+		hl_err(hdev, "failed to get a file descriptor for a dma-buf, %d\n", fd);
 		rc = fd;
 		goto err_dma_buf_put;
 	}
@@ -2042,21 +2509,21 @@ err_dma_buf_put:
 static int validate_export_params_common(struct hl_device *hdev, u64 addr, u64 size, u64 offset)
 {
 	if (!PAGE_ALIGNED(addr)) {
-		dev_dbg(hdev->dev,
+		hl_dbg(hdev,
 			"exported device memory address 0x%llx should be aligned to PAGE_SIZE 0x%lx\n",
 			addr, PAGE_SIZE);
 		return -EINVAL;
 	}
 
 	if (!size || !PAGE_ALIGNED(size)) {
-		dev_dbg(hdev->dev,
+		hl_dbg(hdev,
 			"exported device memory size %llu should be a multiple of PAGE_SIZE %lu\n",
 			size, PAGE_SIZE);
 		return -EINVAL;
 	}
 
 	if (!PAGE_ALIGNED(offset)) {
-		dev_dbg(hdev->dev,
+		hl_dbg(hdev,
 			"exported device memory offset %llu should be a multiple of PAGE_SIZE %lu\n",
 			offset, PAGE_SIZE);
 		return -EINVAL;
@@ -2078,7 +2545,7 @@ static int validate_export_params_no_mmu(struct hl_device *hdev, u64 device_addr
 	if (device_addr < prop->dram_user_base_address ||
 			(device_addr + size) > prop->dram_end_address ||
 			(device_addr + size) < device_addr) {
-		dev_dbg(hdev->dev,
+		hl_dbg(hdev,
 			"DRAM memory range 0x%llx (+0x%llx) is outside of DRAM boundaries\n",
 			device_addr, size);
 		return -EINVAL;
@@ -2088,7 +2555,7 @@ static int validate_export_params_no_mmu(struct hl_device *hdev, u64 device_addr
 
 	if ((bar_address + size) > (hdev->dram_pci_bar_start + prop->dram_pci_bar_size) ||
 			(bar_address + size) < bar_address) {
-		dev_dbg(hdev->dev,
+		hl_dbg(hdev,
 			"DRAM memory range 0x%llx (+0x%llx) is outside of PCI BAR boundaries\n",
 			device_addr, size);
 		return -EINVAL;
@@ -2109,7 +2576,7 @@ static int validate_export_params(struct hl_device *hdev, u64 device_addr, u64 s
 		return rc;
 
 	if ((offset + size) > phys_pg_pack->total_size) {
-		dev_dbg(hdev->dev, "offset %#llx and size %#llx exceed total map size %#llx\n",
+		hl_dbg(hdev, "offset %#llx and size %#llx exceed total map size %#llx\n",
 			offset, size, phys_pg_pack->total_size);
 		return -EINVAL;
 	}
@@ -2121,7 +2588,7 @@ static int validate_export_params(struct hl_device *hdev, u64 device_addr, u64 s
 		if ((bar_address + phys_pg_pack->page_size) >
 				(hdev->dram_pci_bar_start + prop->dram_pci_bar_size) ||
 				(bar_address + phys_pg_pack->page_size) < bar_address) {
-			dev_dbg(hdev->dev,
+			hl_dbg(hdev,
 				"DRAM memory range 0x%llx (+0x%x) is outside of PCI BAR boundaries\n",
 				phys_pg_pack->pages[i], phys_pg_pack->page_size);
 			return -EINVAL;
@@ -2141,14 +2608,14 @@ static struct hl_vm_phys_pg_pack *get_phys_pg_pack_from_hash_node(struct hl_devi
 	phys_pg_pack = idr_find(&vm->phys_pg_pack_handles, (u32) hnode->handle);
 	if (!phys_pg_pack) {
 		spin_unlock(&vm->idr_lock);
-		dev_dbg(hdev->dev, "no match for handle 0x%x\n", (u32) hnode->handle);
+		hl_dbg(hdev, "no match for handle 0x%x\n", (u32) hnode->handle);
 		return ERR_PTR(-EINVAL);
 	}
 
 	spin_unlock(&vm->idr_lock);
 
 	if (phys_pg_pack->vm_type != VM_TYPE_PHYS_PACK) {
-		dev_dbg(hdev->dev, "handle 0x%llx does not represent DRAM memory\n", hnode->handle);
+		hl_dbg(hdev, "handle 0x%llx does not represent DRAM memory\n", hnode->handle);
 		return ERR_PTR(-EINVAL);
 	}
 
@@ -2186,7 +2653,7 @@ static int export_dmabuf_from_addr(struct hl_ctx *ctx, u64 addr, u64 size, u64 o
 
 	/* offset must be 0 in devices without virtual memory support */
 	if (!prop->dram_supports_virtual_memory && offset) {
-		dev_dbg(hdev->dev, "offset is not allowed in device without virtual memory\n");
+		hl_dbg(hdev, "offset is not allowed in device without virtual memory\n");
 		return -EINVAL;
 	}
 
@@ -2241,6 +2708,8 @@ static void ts_buff_release(struct hl_mmap_mem_buf *buf)
 	vfree(ts_buff->kernel_buff_address);
 	vfree(ts_buff->user_buff_address);
 	kfree(ts_buff);
+
+	atomic_dec(&buf->mmg->ts_buff_cnt);
 }
 
 static int hl_ts_mmap(struct hl_mmap_mem_buf *buf, struct vm_area_struct *vma, void *args)
@@ -2284,6 +2753,8 @@ static int hl_ts_alloc_buf(struct hl_mmap_mem_buf *buf, gfp_t gfp, void *args)
 
 	buf->private = ts_buff;
 
+	atomic_inc(&buf->mmg->ts_buff_cnt);
+
 	return 0;
 
 free_user_buff:
@@ -2320,18 +2791,27 @@ static int allocate_timestamps_buffers(struct hl_fpriv *hpriv, struct hl_mem_in 
 	struct hl_mem_mgr *mmg = &hpriv->mem_mgr;
 	struct hl_mmap_mem_buf *buf;
 
-	if (args->num_of_elements > TS_MAX_ELEMENTS_NUM) {
-		dev_err(mmg->hdev->dev,
-			"Num of elements exceeds Max allowed number (0x%x > 0x%x)\n",
+	if (atomic_read(&mmg->ts_buff_cnt) >= HL_MAX_TS_BUFF_PER_FILE) {
+		hl_err(mmg->hdev, "Exceeded Max allowed timestamp buffers per user(%u)\n",
+		       HL_MAX_TS_BUFF_PER_FILE);
+		return -ENOMEM;
+	}
+
+	if (!args->num_of_elements || args->num_of_elements > TS_MAX_ELEMENTS_NUM) {
+		hl_err(mmg->hdev,
+			"Invalid number of timestamp buffers requested (0x%x). "
+			"Allowed maximum is 0x%x.\n",
 			args->num_of_elements, TS_MAX_ELEMENTS_NUM);
 		return -EINVAL;
 	}
 
-	buf = hl_mmap_mem_buf_alloc(mmg, &hl_ts_behavior, GFP_KERNEL, &args->num_of_elements);
+	buf = hl_mmap_mem_buf_alloc_get(mmg, &hl_ts_behavior, GFP_KERNEL, &args->num_of_elements);
 	if (!buf)
 		return -ENOMEM;
 
 	*handle = buf->handle;
+	/* decrement the refcount incremented by hl_mmap_mem_buf_alloc_get */
+	hl_mmap_mem_buf_put(buf);
 
 	return 0;
 }
@@ -2344,11 +2824,12 @@ int hl_mem_ioctl(struct drm_device *ddev, void *data, struct drm_file *file_priv
 	struct hl_device *hdev = hpriv->hdev;
 	struct hl_ctx *ctx = hpriv->ctx;
 	u64 block_handle, device_addr = 0;
+	bool report_mem_usage = false;
 	u32 handle = 0, block_size;
 	int rc, dmabuf_fd = -EBADF;
 
 	if (!hl_device_operational(hdev, &status)) {
-		dev_dbg_ratelimited(hdev->dev,
+		hl_dbg_ratelimited(hdev,
 			"Device is %s. Can't execute MEMORY IOCTL\n",
 			hdev->status[status]);
 		return -EBUSY;
@@ -2357,7 +2838,7 @@ int hl_mem_ioctl(struct drm_device *ddev, void *data, struct drm_file *file_priv
 	switch (args->in.op) {
 	case HL_MEM_OP_ALLOC:
 		if (args->in.alloc.mem_size == 0) {
-			dev_err(hdev->dev,
+			hl_err(hdev,
 				"alloc size must be larger than 0\n");
 			rc = -EINVAL;
 			goto out;
@@ -2377,15 +2858,18 @@ int hl_mem_ioctl(struct drm_device *ddev, void *data, struct drm_file *file_priv
 			atomic64_add(args->in.alloc.mem_size,
 					&hdev->dram_used_mem);
 
-			dev_dbg(hdev->dev, "DRAM alloc is not supported\n");
+			hl_dbg(hdev, "DRAM alloc is not supported\n");
 			rc = 0;
-
+			report_mem_usage = true;
 			memset(args, 0, sizeof(*args));
 			args->out.handle = 0;
 			goto out;
 		}
 
 		rc = alloc_device_memory(ctx, &args->in, &handle);
+
+		if (!rc)
+			report_mem_usage = true;
 
 		memset(args, 0, sizeof(*args));
 		args->out.handle = (__u64) handle;
@@ -2406,13 +2890,18 @@ int hl_mem_ioctl(struct drm_device *ddev, void *data, struct drm_file *file_priv
 			atomic64_sub(args->in.alloc.mem_size,
 					&hdev->dram_used_mem);
 
-			dev_dbg(hdev->dev, "DRAM alloc is not supported\n");
+			hl_dbg(hdev, "DRAM alloc is not supported\n");
 			rc = 0;
+			report_mem_usage = true;
 
 			goto out;
 		}
 
 		rc = free_device_memory(ctx, &args->in);
+
+		if (!rc)
+			report_mem_usage = true;
+
 		break;
 
 	case HL_MEM_OP_MAP:
@@ -2444,17 +2933,72 @@ int hl_mem_ioctl(struct drm_device *ddev, void *data, struct drm_file *file_priv
 		args->out.fd = dmabuf_fd;
 		break;
 
+	case HL_MEM_OP_REG_DMABUF_FD:
+		rc = map_device_va_from_dmabuf_fd(ctx, &args->in, &device_addr);
+
+		memset(args, 0, sizeof(*args));
+		args->out.device_virt_addr = device_addr;
+		break;
+
 	case HL_MEM_OP_TS_ALLOC:
 		rc = allocate_timestamps_buffers(hpriv, &args->in, &args->out.handle);
 		break;
 	default:
-		dev_err(hdev->dev, "Unknown opcode for memory IOCTL\n");
+		hl_err(hdev, "Unknown opcode for memory IOCTL\n");
 		rc = -EINVAL;
 		break;
 	}
 
 out:
+	if (report_mem_usage) {
+		struct timespec64 ts;
+
+		ktime_get_ts64(&ts);
+		hl_report_memory_consumption_to_fw(hdev, atomic64_read(&hdev->dram_used_mem),
+						   ts.tv_sec);
+	}
+
 	return rc;
+}
+
+#ifdef _HAS_USER_PAGES_DIRTY_LOCK
+static __maybe_unused int pin_user_pages_fast_split(unsigned long start, int nr_pages,
+					unsigned int gup_flags, struct page **pages)
+{
+	int rc, cur_nr_pin_pages = 0;
+
+	/* Pin pages, each time 64K pages (total of 256MB size) */
+	while (nr_pages > 0) {
+		rc = pin_user_pages_fast(start, min(nr_pages, SZ_64K), gup_flags,
+					&pages[cur_nr_pin_pages]);
+
+		/* If function returned negative number, we need to unpin the pages that were
+		 * pinned because the callee function won't do that
+		 */
+		if (rc < 0) {
+			/* Check the case where the failure was on the very first call to
+			 * pin_user_pages_fast. In that case, nothing to unpin
+			 */
+			if (cur_nr_pin_pages)
+				unpin_user_pages(pages, cur_nr_pin_pages);
+
+			cur_nr_pin_pages = rc;
+			break;
+		}
+
+		cur_nr_pin_pages += rc;
+
+		if (rc != min(nr_pages, SZ_64K))
+			break;
+
+		if (nr_pages <= SZ_64K)
+			break;
+
+		nr_pages -= SZ_64K;
+		start += SZ_64K * PAGE_SIZE;
+	}
+
+	return cur_nr_pin_pages;
 }
 
 static int get_user_memory(struct hl_device *hdev, u64 addr, u64 size,
@@ -2464,18 +3008,30 @@ static int get_user_memory(struct hl_device *hdev, u64 addr, u64 size,
 	int rc;
 
 	if (!access_ok((void __user *) (uintptr_t) addr, size)) {
-		dev_err(hdev->dev, "user pointer is invalid - 0x%llx\n", addr);
+		hl_err(hdev, "user pointer is invalid - 0x%llx\n", addr);
 		return -EFAULT;
 	}
 
-	userptr->pages = kvmalloc_array(npages, sizeof(struct page *), GFP_KERNEL);
-	if (!userptr->pages)
+	userptr->pages = kvmalloc_array(npages, sizeof(struct page *), GFP_KERNEL | __GFP_NOWARN);
+	if (ZERO_OR_NULL_PTR(userptr->pages))
 		return -ENOMEM;
 
+
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 11, 0) || \
+((LINUX_VERSION_CODE & KERNEL_VERSION(6, 11, 0)) == KERNEL_VERSION(6, 11, 0))
+	/* In kernels before 5.11 and in 6.11 that have pin_user_pages_fast(),
+	 * we can't pin many pages at the same time because of some kmalloc call
+	 * inside the pinning code path. Split the pinning to multiple calls of 256MB
+	 */
+	rc = pin_user_pages_fast_split(start, npages,
+				 FOLL_FORCE | FOLL_WRITE | FOLL_LONGTERM,
+				 userptr->pages);
+#else
 	rc = pin_user_pages_fast(start, npages, GUP_FLAGS, userptr->pages);
+#endif
 
 	if (rc != npages) {
-		dev_err(hdev->dev,
+		hl_err(hdev,
 			"Failed (%d) to pin host memory with user ptr 0x%llx, size 0x%llx, npages %d\n",
 			rc, addr, size, npages);
 		if (rc < 0)
@@ -2490,7 +3046,7 @@ static int get_user_memory(struct hl_device *hdev, u64 addr, u64 size,
 				       userptr->pages,
 				       npages, offset, size, GFP_KERNEL);
 	if (rc < 0) {
-		dev_err(hdev->dev, "failed to create SG table from pages\n");
+		hl_err(hdev, "failed to create SG table from pages\n");
 		goto put_pages;
 	}
 
@@ -2502,6 +3058,63 @@ destroy_pages:
 	kvfree(userptr->pages);
 	return rc;
 }
+
+#else
+
+static int get_user_memory(struct hl_device *hdev, u64 addr, u64 size,
+				u32 npages, u64 start, u32 offset,
+				struct hl_userptr *userptr)
+{
+	int rc;
+
+	if (!access_ok((void __user *) (uintptr_t) addr, size)) {
+		hl_err(hdev, "user pointer is invalid - 0x%llx\n", addr);
+		return -EFAULT;
+	}
+
+	userptr->vec = frame_vector_create(npages);
+	if (!userptr->vec) {
+		hl_err(hdev, "Failed to create frame vector\n");
+		return -ENOMEM;
+	}
+
+	rc = get_vaddr_frames(start, npages, FOLL_FORCE | FOLL_WRITE,
+				userptr->vec);
+
+	if (rc != npages) {
+		hl_err(hdev,
+			"Failed (%d) to pin host memory with user ptr 0x%llx, size 0x%llx, npages %d\n",
+			rc, addr, size, npages);
+		if (rc < 0)
+			goto destroy_framevec;
+		rc = -ENOMEM;
+		goto put_framevec;
+	}
+
+	rc = frame_vector_to_pages(userptr->vec);
+	if (rc < 0) {
+		hl_err(hdev, "Failed to translate frame vector to pages\n");
+		goto put_framevec;
+	}
+
+	rc = sg_alloc_table_from_pages(userptr->sgt,
+					frame_vector_pages(userptr->vec),
+					npages, offset, size, GFP_KERNEL);
+	if (rc < 0) {
+		hl_err(hdev, "failed to create SG table from pages\n");
+		goto put_framevec;
+	}
+
+	return 0;
+
+put_framevec:
+	put_vaddr_frames(userptr->vec);
+destroy_framevec:
+	frame_vector_destroy(userptr->vec);
+	return rc;
+}
+
+#endif /* _HAS_USER_PAGES_DIRTY_LOCK */
 
 /**
  * hl_pin_host_memory() - pins a chunk of host memory.
@@ -2522,7 +3135,7 @@ int hl_pin_host_memory(struct hl_device *hdev, u64 addr, u64 size,
 	int rc = 0;
 
 	if (!size) {
-		dev_err(hdev->dev, "size to pin is invalid - %llu\n", size);
+		hl_err(hdev, "size to pin is invalid - %llu\n", size);
 		return -EINVAL;
 	}
 
@@ -2532,7 +3145,7 @@ int hl_pin_host_memory(struct hl_device *hdev, u64 addr, u64 size,
 	 */
 	if (((addr + size) < addr) ||
 			PAGE_ALIGN(addr + size) < (addr + size)) {
-		dev_err(hdev->dev,
+		hl_err(hdev,
 			"user pointer 0x%llx + %llu causes integer overflow\n",
 			addr, size);
 		return -EINVAL;
@@ -2574,6 +3187,8 @@ free_sgt:
 	return rc;
 }
 
+#ifdef _HAS_USER_PAGES_DIRTY_LOCK
+
 void hl_unpin_host_memory(struct hl_device *hdev, struct hl_userptr *userptr)
 {
 	hl_debugfs_remove_userptr(hdev, userptr);
@@ -2595,6 +3210,41 @@ void hl_unpin_host_memory(struct hl_device *hdev, struct hl_userptr *userptr)
 	sg_free_table(userptr->sgt);
 	kfree(userptr->sgt);
 }
+
+#else
+
+void hl_unpin_host_memory(struct hl_device *hdev, struct hl_userptr *userptr)
+{
+	struct page **pages;
+
+	hl_debugfs_remove_userptr(hdev, userptr);
+
+	if (userptr->is_odp) {
+		hl_odp_region_ctx_destroy(userptr->odp_rg);
+	} else {
+		if (userptr->dma_mapped)
+			hl_dma_unmap_sgtable(hdev, userptr->sgt, userptr->dir);
+
+		if (!userptr->is_kernel_addr) {
+			pages = frame_vector_pages(userptr->vec);
+			if (!IS_ERR(pages)) {
+				int i;
+
+				for (i = 0; i < frame_vector_count(userptr->vec); i++)
+					set_page_dirty_lock(pages[i]);
+			}
+			put_vaddr_frames(userptr->vec);
+			frame_vector_destroy(userptr->vec);
+		}
+	}
+
+	list_del(&userptr->job_node);
+
+	sg_free_table(userptr->sgt);
+	kfree(userptr->sgt);
+}
+
+#endif /* _HAS_USER_PAGES_DIRTY_LOCK */
 
 /**
  * hl_userptr_delete_list() - clear userptr list.
@@ -2686,14 +3336,14 @@ static int va_range_init(struct hl_device *hdev, struct hl_va_range **va_ranges,
 	}
 
 	if (start >= end) {
-		dev_err(hdev->dev, "too small vm range for va list\n");
+		hl_err(hdev, "too small vm range for va list\n");
 		return -EFAULT;
 	}
 
 	rc = add_va_block(hdev, va_range, start, end);
 
 	if (rc) {
-		dev_err(hdev->dev, "Failed to init host va list\n");
+		hl_err(hdev, "Failed to init host va list\n");
 		return rc;
 	}
 
@@ -2767,7 +3417,7 @@ static int vm_ctx_init_with_ranges(struct hl_ctx *ctx,
 
 	rc = hl_mmu_ctx_init(ctx);
 	if (rc) {
-		dev_err(hdev->dev, "failed to init context %d\n", ctx->asid);
+		hl_err(hdev, "failed to init context %d\n", ctx->asid);
 		goto free_va_range;
 	}
 
@@ -2779,7 +3429,7 @@ static int vm_ctx_init_with_ranges(struct hl_ctx *ctx,
 	rc = va_range_init(hdev, ctx->va_range, HL_VA_RANGE_TYPE_HOST,
 			host_range_start, host_range_end, host_page_size);
 	if (rc) {
-		dev_err(hdev->dev, "failed to init host vm range\n");
+		hl_err(hdev, "failed to init host vm range\n");
 		goto mmu_ctx_fini;
 	}
 
@@ -2791,7 +3441,7 @@ static int vm_ctx_init_with_ranges(struct hl_ctx *ctx,
 			host_huge_range_start, host_huge_range_end,
 			host_huge_page_size);
 		if (rc) {
-			dev_err(hdev->dev,
+			hl_err(hdev,
 				"failed to init host huge vm range\n");
 			goto clear_host_va_range;
 		}
@@ -2806,7 +3456,7 @@ static int vm_ctx_init_with_ranges(struct hl_ctx *ctx,
 	rc = va_range_init(hdev, ctx->va_range, HL_VA_RANGE_TYPE_DRAM,
 			dram_range_start, dram_range_end, dram_page_size);
 	if (rc) {
-		dev_err(hdev->dev, "failed to init dram vm range\n");
+		hl_err(hdev, "failed to init dram vm range\n");
 		goto clear_host_huge_va_range;
 	}
 
@@ -2913,11 +3563,11 @@ void hl_vm_ctx_fini(struct hl_ctx *ctx)
 	 * another side effect error
 	 */
 	if (!hdev->reset_info.hard_reset_pending && !hash_empty(ctx->mem_hash))
-		dev_dbg(hdev->dev,
+		hl_dbg(hdev,
 			"user released device without removing its memory mappings\n");
 
 	hash_for_each_safe(ctx->mem_hash, i, tmp_node, hnode, node) {
-		dev_dbg(hdev->dev,
+		hl_dbg(hdev,
 			"hl_mem_hash_node of vaddr 0x%llx of asid %d is still alive\n",
 			hnode->vaddr, ctx->asid);
 		args.unmap.device_virt_addr = hnode->vaddr;
@@ -2937,7 +3587,7 @@ void hl_vm_ctx_fini(struct hl_ctx *ctx)
 	spin_lock(&vm->idr_lock);
 	idr_for_each_entry(&vm->phys_pg_pack_handles, phys_pg_list, i)
 		if (phys_pg_list->asid == ctx->asid) {
-			dev_dbg(hdev->dev,
+			hl_dbg(hdev,
 				"page list 0x%px of asid %d is still alive\n",
 				phys_pg_list, ctx->asid);
 
@@ -2991,7 +3641,7 @@ int hl_vm_init(struct hl_device *hdev)
 			gen_pool_create(__ffs(DRAM_POOL_PAGE_SIZE), -1);
 
 	if (!vm->dram_pg_pool) {
-		dev_err(hdev->dev, "Failed to create dram page pool\n");
+		hl_err(hdev, "Failed to create dram page pool\n");
 		return -ENOMEM;
 	}
 
@@ -3002,7 +3652,7 @@ int hl_vm_init(struct hl_device *hdev)
 			-1);
 
 	if (rc) {
-		dev_err(hdev->dev,
+		hl_err(hdev,
 			"Failed to add memory to dram page pool %d\n", rc);
 		goto pool_add_err;
 	}
@@ -3043,7 +3693,7 @@ void hl_vm_fini(struct hl_device *hdev)
 	 * memory should be in use. Hence the DRAM pool should be freed here.
 	 */
 	if (kref_put(&vm->dram_pg_pool_refcount, dram_pg_pool_do_release) != 1)
-		dev_warn(hdev->dev, "dram_pg_pool was not destroyed on %s\n",
+		hl_warn(hdev, "dram_pg_pool was not destroyed on %s\n",
 				__func__);
 
 	vm->init_done = false;
@@ -3074,7 +3724,7 @@ void hl_hw_block_mem_fini(struct hl_ctx *ctx)
 	struct hl_vm_hw_block_list_node *lnode, *tmp;
 
 	if (!list_empty(&ctx->hw_block_mem_list))
-		dev_crit(ctx->hdev->dev, "HW block mem list isn't empty\n");
+		hl_crit(ctx->hdev, "HW block mem list isn't empty\n");
 
 	list_for_each_entry_safe(lnode, tmp, &ctx->hw_block_mem_list, node) {
 		list_del(&lnode->node);
@@ -3108,7 +3758,7 @@ int hl_map_vmalloc_range(struct hl_ctx *ctx, u64 vmalloc_va, u64 device_va, u64 
 	 */
 	rc = dma_map_host_va(hdev, vmalloc_va, true, false, size, &userptr);
 	if (rc) {
-		dev_err(hdev->dev, "DMA mapping failed, vaddr 0x%llx\n", vmalloc_va);
+		hl_err(hdev, "DMA mapping failed, vaddr 0x%llx\n", vmalloc_va);
 		return rc;
 	}
 
@@ -3120,14 +3770,14 @@ int hl_map_vmalloc_range(struct hl_ctx *ctx, u64 vmalloc_va, u64 device_va, u64 
 	 */
 	rc = init_phys_pg_pack_from_userptr(ctx, userptr, &phys_pg_pack, true);
 	if (rc) {
-		dev_err(hdev->dev, "Unable to init page pack, vaddr 0x%llx\n", vmalloc_va);
+		hl_err(hdev, "Unable to init page pack, vaddr 0x%llx\n", vmalloc_va);
 		goto err_dma_unmap;
 	}
 
 	/* Validate kernel host VA and device VA are aligned to pmmu page size. */
 	if (device_va & (phys_pg_pack->page_size - 1) ||
 		vmalloc_va & (phys_pg_pack->page_size - 1)) {
-		dev_err(hdev->dev,
+		hl_err(hdev,
 			"Unaligned mapping, host VA 0x%llx, device VA 0x%llx, page size 0x%x",
 			vmalloc_va, device_va, phys_pg_pack->page_size);
 		rc = -EINVAL;
@@ -3140,7 +3790,7 @@ int hl_map_vmalloc_range(struct hl_ctx *ctx, u64 vmalloc_va, u64 device_va, u64 
 	rc = map_phys_pg_pack(ctx, device_va, phys_pg_pack);
 	if (rc) {
 		mutex_unlock(&hdev->mmu_lock);
-		dev_err(hdev->dev, "Mapping page pack failed, vaddr 0x%llx, device VA 0x%llx\n",
+		hl_err(hdev, "Mapping page pack failed, vaddr 0x%llx, device VA 0x%llx\n",
 			vmalloc_va, device_va);
 		goto err_free_page_pack;
 	}

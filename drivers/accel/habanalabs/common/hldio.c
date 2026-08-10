@@ -6,37 +6,39 @@
  */
 
 #include "habanalabs.h"
-#include "hldio.h"
 #include <generated/uapi/linux/version.h>
 #include <linux/pci-p2pdma.h>
 #include <linux/blkdev.h>
+#include <linux/overflow.h>
 #include <linux/vmalloc.h>
 
+#define HL_DIO_MAX_BVEC_PAGES	min_t(u64, (u64)INT_MAX, (u64)(SIZE_MAX / sizeof(struct bio_vec)))
+
 /*
- * NVMe Direct I/O implementation for habanalabs driver
+ * This file is for NVME POC, So no aim to make it perfect, It just should work!
  *
- * This implementation has been reworked to address previous limitations:
- * - Async I/O infrastructure now in place (callback properly implemented)
- * - Memory allocation strategy optimized for I/O path
- * - File handle registration capability to reduce per-I/O overhead
- *
- * System requirements and assumptions:
- * 1. No IOMMU support (technically can work with IOMMU, but limited usefulness)
- * 2. READ operations only (WRITE support can be added if needed)
- * 3. Sparse files are not supported
- * 4. Requires kernel version >= 6.9
- * 5. All operations require 4K page alignment (addresses, lengths, offsets)
- * 6. Requires CONFIG_PCI_P2PDMA enabled in kernel configuration
- * 7. For optimal performance, ensure NVMe devices and accelerator cards share
- *    the same PCI bridge to minimize P2P DMA latency
+ * MY ASSUMPTIONS
+ * ==============
+ * 1. No IOMMU (well, technically it can work with IOMMU, but it is *almost useless).
+ * 2. Only READ operations (can extend in the future).
+ * 3. No sparse files (can overcome this in the future).
+ * 4. Kernel version >= 6.9
+ * 5. Requiring page alignment is OK (I don't see a solution to this one right,
+ *    now, how do we read partial pages?)
+ * 6. Kernel compiled with CONFIG_PCI_P2PDMA. This requires a CUSTOM kernel.
+ *    Theoretically I have a slight idea on how this could be solvable, but it
+ *    is probably inacceptable for the upstream. Also may not work in the end.
+ * 7. Either make sure our cards and disks are under the same PCI bridge, or
+ *    compile a custom kernel to hack around this.
  */
 
-#define IO_STABILIZE_TIMEOUT 10000000 /* 10 seconds in microseconds */
+#define IO_STABILIZE_TIMEOUT 10000000
 
 /*
- * This struct contains all the useful data extracted from the file handle
- * provided by the user. File handle registration can be done once with a
- * dedicated IOCTL (e.g., HL_REGISTER_HANDLE) to avoid per-I/O overhead.
+ * This struct contains all the useful data I could milk out of the file handle
+ * provided by the user.
+ * @TODO: right now it is retrieved on each IO, but can be done once with some
+ * dedicated IOCTL, call it for example HL_REGISTER_HANDLE.
  */
 struct hl_dio_fd {
 	/* Back pointer in case we need it in async completion */
@@ -59,11 +61,6 @@ struct hl_direct_io {
 	u32 type;
 };
 
-bool hl_device_supports_nvme(struct hl_device *hdev)
-{
-	return hdev->asic_prop.supports_nvme;
-}
-
 static int hl_dio_fd_register(struct hl_ctx *ctx, int fd, struct hl_dio_fd *f)
 {
 	struct hl_device *hdev = ctx->hdev;
@@ -71,7 +68,6 @@ static int hl_dio_fd_register(struct hl_ctx *ctx, int fd, struct hl_dio_fd *f)
 	struct super_block *sb;
 	struct inode *inode;
 	struct gendisk *gd;
-	struct device *disk_dev;
 	int rc;
 
 	f->filp = fget(fd);
@@ -81,13 +77,13 @@ static int hl_dio_fd_register(struct hl_ctx *ctx, int fd, struct hl_dio_fd *f)
 	}
 
 	if (!(f->filp->f_flags & O_DIRECT)) {
-		dev_err(hdev->dev, "file is not in the direct mode\n");
+		hl_err(hdev, "File is not in the direct mode\n");
 		rc = -EINVAL;
 		goto fput;
 	}
 
 	if (!f->filp->f_op->read_iter) {
-		dev_err(hdev->dev, "read iter is not supported, need to fall back to legacy\n");
+		hl_err(hdev, "Read iter is not supported, need to fall back to legacy\n");
 		rc = -EINVAL;
 		goto fput;
 	}
@@ -98,21 +94,20 @@ static int hl_dio_fd_register(struct hl_ctx *ctx, int fd, struct hl_dio_fd *f)
 	gd = bd->bd_disk;
 
 	if (inode->i_blocks << sb->s_blocksize_bits < i_size_read(inode)) {
-		dev_err(hdev->dev, "sparse files are not currently supported\n");
+		hl_err(hdev, "Sparse files are not currently supported\n");
 		rc = -EINVAL;
 		goto fput;
 	}
 
-	if (!bd || !gd) {
-		dev_err(hdev->dev, "invalid block device\n");
-		rc = -ENODEV;
+	if (sb->s_magic != EXT4_SUPER_MAGIC) {
+		hl_err(hdev, "Only ext4 filesystem is supported\n");
+		rc = -EINVAL;
 		goto fput;
 	}
-	/* Get the underlying device from the block device */
-	disk_dev = disk_to_dev(gd);
-	if (!dma_pci_p2pdma_supported(disk_dev)) {
-		dev_err(hdev->dev, "device does not support PCI P2P DMA\n");
-		rc = -EOPNOTSUPP;
+
+	if (strncmp("nvme", gd->disk_name, 4)) {
+		hl_err(hdev, "The physical disk is not an NVME disk\n");
+		rc = -EINVAL;
 		goto fput;
 	}
 
@@ -182,18 +177,50 @@ static void hl_dio_set_io_enabled(struct hl_device *hdev, bool enabled)
 
 static bool hl_dio_validate_io(struct hl_device *hdev, struct hl_direct_io *io)
 {
+	u64 end;
+	u64 npages;
+
+	if (!io->len_bytes) {
+		hl_dbg(hdev, "IO length must be non-zero\n");
+		return false;
+	}
+
+	npages = io->len_bytes >> PAGE_SHIFT;
+
 	if ((u64)io->device_va & ~PAGE_MASK) {
-		dev_dbg(hdev->dev, "device address must be 4K aligned\n");
+		hl_dbg(hdev, "Device address must be page aligned\n");
 		return false;
 	}
 
 	if (io->len_bytes & ~PAGE_MASK) {
-		dev_dbg(hdev->dev, "IO length must be 4K aligned\n");
+		hl_dbg(hdev, "IO length must be page aligned\n");
 		return false;
 	}
 
 	if (io->off_bytes & ~PAGE_MASK) {
-		dev_dbg(hdev->dev, "IO offset must be 4K aligned\n");
+		hl_dbg(hdev, "IO offset must be page aligned\n");
+		return false;
+	}
+
+	if (io->off_bytes > LLONG_MAX) {
+		hl_dbg(hdev, "IO offset %#llx exceeds loff_t range\n", io->off_bytes);
+		return false;
+	}
+
+	if (check_add_overflow(io->off_bytes, io->len_bytes, &end)) {
+		hl_dbg(hdev, "IO range start=%#llx len=%#llx overflows u64\n",
+		       io->off_bytes, io->len_bytes);
+		return false;
+	}
+
+	if (end > LLONG_MAX) {
+		hl_dbg(hdev, "IO range end %#llx exceeds loff_t range\n", end);
+		return false;
+	}
+
+	if (npages > HL_DIO_MAX_BVEC_PAGES) {
+		hl_dbg(hdev, "IO length %#llx exceeds max supported %#llx\n",
+		       io->len_bytes, HL_DIO_MAX_BVEC_PAGES << PAGE_SHIFT);
 		return false;
 	}
 
@@ -208,8 +235,8 @@ static struct page *hl_dio_va2page(struct hl_device *hdev, struct hl_ctx *ctx, u
 
 	rc = hl_mmu_va_to_pa(ctx, device_va, &device_pa);
 	if (rc) {
-		dev_err(hdev->dev, "device virtual address translation error: %#llx (%d)",
-				device_va, rc);
+		hl_err(hdev, "Device virtual address translation error: %#llx (%d)",
+					device_va, rc);
 		return NULL;
 	}
 
@@ -233,7 +260,7 @@ static ssize_t hl_direct_io(struct hl_device *hdev, struct hl_direct_io *io)
 		return -EINVAL;
 
 	if (!hl_dio_get_iopath(io->f.ctx)) {
-		dev_info(hdev->dev, "can't schedule a new IO, IO is disabled\n");
+		hl_info(hdev, "Can't schedule a new IO, IO is disabled\n");
 		return -ESHUTDOWN;
 	}
 
@@ -242,19 +269,21 @@ static ssize_t hl_direct_io(struct hl_device *hdev, struct hl_direct_io *io)
 
 	npages = (io->len_bytes >> PAGE_SHIFT);
 
-	/*
-	 * Allocate bio_vec array. This uses vzalloc to handle large I/O
-	 * operations. For performance-critical paths, consider using a
-	 * pre-allocated pool (e.g., genpool with multiple size classes).
+	/* @TODO: this can be implemented smarter, vmalloc in iopath is not
+	 * ideal. Maybe some variation of genpool. Number of pages may differ
+	 * greatly, so maybe even use pools of different sizes and chose the
+	 * closest one.
 	 */
 	io->bv = vzalloc(npages * sizeof(struct bio_vec));
-	if (!io->bv)
-		return -ENOMEM;
+	if (!io->bv) {
+		rc = -ENOMEM;
+		goto cleanup;
+	}
 
 	for (i = 0, device_va = io->device_va; i < npages ; ++i, device_va += PAGE_SIZE) {
 		io->bv[i].bv_page = hl_dio_va2page(hdev, io->f.ctx, device_va);
 		if (!io->bv[i].bv_page) {
-			dev_err(hdev->dev, "error getting page struct for device va %#llx",
+			hl_err(hdev, "Error getting page struct for device va %#llx",
 					device_va);
 			rc = -EFAULT;
 			goto cleanup;
@@ -263,31 +292,28 @@ static ssize_t hl_direct_io(struct hl_device *hdev, struct hl_direct_io *io)
 		io->bv[i].bv_len = PAGE_SIZE;
 	}
 
-	iov_iter_bvec(&io->iter, io->type, io->bv, 1, io->len_bytes);
-	if (io->f.filp->f_op && io->f.filp->f_op->read_iter)
-		rc = io->f.filp->f_op->read_iter(&io->kio, &io->iter);
-	else
-		rc = -EINVAL;
+	iov_iter_bvec(&io->iter, io->type, io->bv, npages, io->len_bytes);
+	rc = io->f.filp->f_op->read_iter(&io->kio, &io->iter);
 
 cleanup:
-	vfree(io->bv);
+	vfree(io->bv); /* @TODO: skip this label in async IO */
 	hl_dio_put_iopath(io->f.ctx);
 
-	dev_dbg(hdev->dev, "IO ended with %ld\n", rc);
+	hl_dbg(hdev, "IO ended with %ld\n", rc);
 
 	return rc;
 }
 
 /*
- * Completion callback for asynchronous I/O operations.
- * Set kio->ki_complete to this function to enable async I/O.
- * Note: On recent kernels (6.9+), the ret2 parameter is not used.
+ * @TODO: This function can be used as a callback for io completion under
+ * kio->ki_complete in order to implement async IO.
+ * Note that on more recent kernels there is no ret2.
  */
-__maybe_unused static void hl_direct_io_complete(struct kiocb *kio, long ret)
+__maybe_unused static void hl_direct_io_complete(struct kiocb *kio, long ret, long ret2)
 {
 	struct hl_direct_io *io = container_of(kio, struct hl_direct_io, kio);
 
-	dev_dbg(io->f.ctx->hdev->dev, "IO completed with %ld\n", ret);
+	hl_dbg(io->f.ctx->hdev, "IO completed with %ld\n", ret);
 
 	/* Do something to copy result to user / notify completion */
 
@@ -299,15 +325,15 @@ __maybe_unused static void hl_direct_io_complete(struct kiocb *kio, long ret)
 /*
  * DMA disk to ASIC, wait for results. Must be invoked from the user context
  */
-int hl_dio_ssd2hl(struct hl_device *hdev, struct hl_ctx *ctx, int fd,
-		  u64 device_va, off_t off_bytes, size_t len_bytes,
-		  size_t *len_read)
+int hl_dio_ssd2hl(struct hl_device *hdev, struct hl_ctx *ctx, int fd, u64 device_va,
+		off_t off_bytes, size_t len_bytes, size_t *len_read)
 {
 	struct hl_direct_io *io;
 	ssize_t rc;
 
-	dev_dbg(hdev->dev, "SSD2HL fd=%d va=%#llx len=%#lx\n", fd, device_va, len_bytes);
+	hl_dbg(hdev, "SSD2HL fd=%d va=%#llx len=%#lx\n", fd, device_va, len_bytes);
 
+	/* TODO: This allocation should be done from a genpool */
 	io = kzalloc(sizeof(*io), GFP_KERNEL);
 	if (!io) {
 		rc = -ENOMEM;
@@ -347,7 +373,7 @@ static void hl_p2p_region_fini(struct hl_device *hdev, struct hl_p2p_region *p2p
 	}
 
 	if (p2pr->p2pmem) {
-		dev_dbg(hdev->dev, "freeing P2P mem from %p, size=%#llx\n",
+		hl_dbg(hdev, "Freeing P2P mem from %px, size=%#llx\n",
 				p2pr->p2pmem, p2pr->size);
 		pci_free_p2pmem(hdev->pdev, p2pr->p2pmem, p2pr->size);
 		p2pr->p2pmem = NULL;
@@ -374,14 +400,14 @@ int hl_p2p_region_init(struct hl_device *hdev, struct hl_p2p_region *p2pr)
 	/* Start by publishing our p2p memory */
 	rc = pci_p2pdma_add_resource(hdev->pdev, p2pr->bar, p2pr->size, p2pr->bar_offset);
 	if (rc) {
-		dev_err(hdev->dev, "error adding p2p resource: %d\n", rc);
+		hl_err(hdev, "Error adding p2p resource: %d\n", rc);
 		goto err;
 	}
 
 	/* Alloc all p2p mem */
 	p2pr->p2pmem = pci_alloc_p2pmem(hdev->pdev, p2pr->size);
 	if (!p2pr->p2pmem) {
-		dev_err(hdev->dev, "error allocating p2p memory\n");
+		hl_err(hdev, "Error allocating p2p memory\n");
 		rc = -ENOMEM;
 		goto err;
 	}
@@ -406,9 +432,10 @@ err:
 	return rc;
 }
 
+/* Placeholder for now */
 int hl_dio_start(struct hl_device *hdev)
 {
-	dev_dbg(hdev->dev, "initializing HLDIO\n");
+	hl_dbg(hdev, "Initializing HLDIO\n");
 
 	/* Initialize the IO counter and enable IO */
 	hdev->hldio.inflight_ios = alloc_percpu(s64);
@@ -420,9 +447,10 @@ int hl_dio_start(struct hl_device *hdev)
 	return 0;
 }
 
+/* Placeholder for now */
 void hl_dio_stop(struct hl_device *hdev)
 {
-	dev_dbg(hdev->dev, "deinitializing HLDIO\n");
+	hl_dbg(hdev, "Deinitializing HLDIO\n");
 
 	if (hdev->hldio.io_enabled) {
 		/* Wait for all the IO to finish */

@@ -59,7 +59,7 @@ static int hl_get_pb_block(struct hl_device *hdev, u32 mm_reg_addr,
 			return i;
 	}
 
-	dev_err(hdev->dev, "No protection domain was found for 0x%x\n",
+	hl_err(hdev, "No protection domain was found for 0x%x\n",
 			mm_reg_addr);
 	return -EDOM;
 }
@@ -76,7 +76,7 @@ static int hl_unset_pb_in_block(struct hl_device *hdev, u32 reg_offset,
 				struct hl_block_glbl_sec *sgs_entry)
 {
 	if ((reg_offset >= HL_BLOCK_SIZE) || (reg_offset & 0x3)) {
-		dev_err(hdev->dev,
+		hl_err(hdev,
 			"Register offset(%d) is out of range(%d) or invalid\n",
 			reg_offset, HL_BLOCK_SIZE);
 		return -EINVAL;
@@ -715,12 +715,12 @@ static int hl_init_pb_block(struct hl_device *hdev,
 		pb_reg_addr = block_base_addr + (b_idx * 4) + prot_lvl_reg_offset;
 		if (auto_pb_cfg->data_map & BIT(b_idx)) {
 			if (!auto_pb_cfg->data) {
-				dev_err(hdev->dev, "No data for config %d", blk_idx);
+				hl_err(hdev, "No data for config %d", blk_idx);
 				return -EINVAL;
 			}
 
 			if (d_idx >= auto_pb_cfg->data_size) {
-				dev_err(hdev->dev, "Invalid data index %d for config %d",
+				hl_err(hdev, "Invalid data index %d for config %d",
 						d_idx, blk_idx);
 				return -EINVAL;
 			}
@@ -767,7 +767,7 @@ static int hl_read_glbl_errors(struct hl_device *hdev,
 
 	for (i = 0 ; i <= prop->glbl_err_max_cause_num ; i++) {
 		if (cause_val & BIT(i))
-			dev_err_ratelimited(hdev->dev,
+			hl_err_ratelimited(hdev,
 					"%s, addr %#llx\n",
 					hl_glbl_error_cause[i],
 					prop->cfg_base_address + block_base +
@@ -787,12 +787,12 @@ void hl_check_for_glbl_errors_from_fw(struct hl_device *hdev, struct hl_eq_glbl_
 	int i;
 
 	if (!glbl_err_data) {
-		dev_err_ratelimited(hdev->dev, "Need to set the pointer to global err data!\n");
+		hl_err_ratelimited(hdev, "Need to set the pointer to global err data!\n");
 		return;
 	}
 
 	if (glbl_err_data->num_valid_entries > GLBL_ERR_MAX) {
-		dev_err_ratelimited(hdev->dev,
+		hl_err_ratelimited(hdev,
 				"Invalid number of entries in global err data (%u)\n",
 				glbl_err_data->num_valid_entries);
 		return;
@@ -804,13 +804,13 @@ void hl_check_for_glbl_errors_from_fw(struct hl_device *hdev, struct hl_eq_glbl_
 		addr = le32_to_cpu(info[i].addr);
 
 		if (!cause) {
-			dev_err_ratelimited(hdev->dev, "No error cause in entry %u\n", i);
+			hl_err_ratelimited(hdev, "No error cause in entry %u\n", i);
 			continue;
 		}
 
 		for (i = 0 ; i <= prop->glbl_err_max_cause_num ; ++i) {
 			if (cause & BIT(i))
-				dev_err_ratelimited(hdev->dev,
+				hl_err_ratelimited(hdev,
 						"%s, addr %#llx\n",
 						hl_glbl_error_cause[i],
 						((u64)upper_32_bits(prop->cfg_base_address) << 32) +
@@ -838,7 +838,7 @@ void hl_check_for_glbl_errors(struct hl_device *hdev)
 
 	rc = hl_iterate_special_blocks(hdev, &glbl_err_iter);
 	if (rc)
-		dev_err_ratelimited(hdev->dev,
+		hl_err_ratelimited(hdev,
 			"Could not iterate special blocks, glbl error check failed\n");
 }
 
@@ -851,7 +851,7 @@ static inline void fetch_glbl_priv_registers(struct hl_device *hdev,
 		reg_offset = block_base_offset + (i * 4) + HL_GLBL_PRIV_REG_OFFSET;
 		glbl_priv_data[i] = RREG32(reg_offset);
 
-		dev_dbg(hdev->dev, "read from addr 0x%x, data:0x%x\n",
+		hl_dbg(hdev, "read from addr 0x%x, data:0x%x\n",
 				reg_offset, glbl_priv_data[i]);
 	}
 }
@@ -886,7 +886,7 @@ bool hl_fetch_glbl_priv_data(struct hl_device *hdev, u64 addr, u32 *glbl_priv_da
 									block_base_offset;
 
 					if (block_base_addr == addr) {
-						dev_dbg(hdev->dev, "addr 0x%llx found in PB iter\n",
+						hl_dbg(hdev, "addr 0x%llx found in PB iter\n",
 									addr);
 
 						fetch_glbl_priv_registers(hdev, block_base_offset,
@@ -967,10 +967,10 @@ int hl_init_pb_security(struct hl_device *hdev, bool prot_lvl_priv)
 	struct iterate_special_ctx pb_iter;
 	int rc;
 
-	if (prot_lvl_priv || !hdev->security_enable)
+	if ((prot_lvl_priv && !hdev->priv_security_enable) || !hdev->security_enable)
 		return 0;
 
-	dev_dbg(hdev->dev, "Configure automated %s protection bits\n",
+	hl_dbg(hdev, "Configure automated %s protection bits\n",
 			prot_lvl_priv ? "privileged" : "secured");
 
 	prop->pb_blocks_cfg.prot_lvl_priv = prot_lvl_priv;
@@ -981,7 +981,7 @@ int hl_init_pb_security(struct hl_device *hdev, bool prot_lvl_priv)
 
 	rc = hl_iterate_special_blocks(hdev, &pb_iter);
 	if (rc)
-		dev_err(hdev->dev, "Failed iterating in %s PB config\n",
+		hl_err(hdev, "Failed iterating in %s PB config\n",
 				prot_lvl_priv ? "PRIV" : "SEC");
 
 	return rc;

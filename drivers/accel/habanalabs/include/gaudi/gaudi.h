@@ -54,8 +54,24 @@
 
 #define NIC_NUMBER_OF_ENGINES	(NIC_NUMBER_OF_MACROS * 2)
 
+#define NIC_MAX_NUMBER_OF_PORTS	(NIC_NUMBER_OF_ENGINES * 2)
+
+#define NIC_SEND_WQE_SIZE	32
+
+#define NIC_RECV_WQE_SIZE	8
+
+#define NIC_MAC_NUM_OF_LANES	4
+
+#define NIC_MAC_LANES_START	0
+
+#define NIC_PHY_TX_TAPS_NUM	5
+
 #define NUMBER_OF_IF		8
 
 #define DEVICE_CACHE_LINE_SIZE	128
+
+#define SPMU_MAX_COUNTERS	6
+
+#define NIC_HW_MAX_QP_NUM	(1 << 15) /* 32K (per nic) */
 
 #endif /* GAUDI_H */

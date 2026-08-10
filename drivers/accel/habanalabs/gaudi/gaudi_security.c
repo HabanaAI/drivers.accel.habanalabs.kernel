@@ -13046,6 +13046,9 @@ static void gaudi_init_range_registers_hbw(struct hl_device *hdev)
  */
 void gaudi_init_security(struct hl_device *hdev)
 {
+	if (!hdev->security_enable)
+		return;
+
 	/* Due to H/W errata GAUDI0500, need to override default security
 	 * property configuration of MME SBAB and ACC to be non-privileged and
 	 * non-secured

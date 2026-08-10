@@ -120,6 +120,28 @@
 
 #define NIC_MAX_NUMBER_OF_PORTS		(NIC_NUMBER_OF_ENGINES * 2)
 
+#define NIC_MAX_FIFO_RINGS		32
+
+#define NIC_MAC_NUM_OF_LANES		4
+
+#define NIC_MAC_LANES_START		0
+
+#define NIC_NUMBER_OF_EQS		1
+
 #define DEVICE_CACHE_LINE_SIZE		128
+
+#define NIC_SEND_WQE_SIZE		32
+#define NIC_SEND_WQE_SIZE_MULTI_STRIDE	64
+
+#define NIC_RECV_WQE_SIZE		16
+
+#define DB_FIFO_ELEMENT_SIZE		8
+
+/* 4 entries of 32 bit each i.e. 16 bytes */
+#define NIC_RAW_EQE_SIZE		16
+
+#define NIC_MAX_CCQS_NUM		1
+
+#define NIC_HW_MAX_QP_NUM		(1 << 24) /* 16M (per nic) */
 
 #endif /* GAUDI2_H */

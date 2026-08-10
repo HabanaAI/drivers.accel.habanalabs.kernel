@@ -25,7 +25,7 @@ struct hl_mmap_mem_buf *hl_mmap_mem_buf_get(struct hl_mem_mgr *mmg, u64 handle)
 	buf = idr_find(&mmg->handles, lower_32_bits(handle >> PAGE_SHIFT));
 	if (!buf) {
 		spin_unlock(&mmg->lock);
-		dev_dbg(mmg->hdev->dev, "Buff get failed, no match to handle %#llx\n", handle);
+		hl_dbg(mmg->hdev, "Buff get failed, no match to handle %#llx\n", handle);
 		return NULL;
 	}
 	kref_get(&buf->refcount);
@@ -118,7 +118,7 @@ int hl_mmap_mem_buf_put_handle(struct hl_mem_mgr *mmg, u64 handle)
 	buf = idr_find(&mmg->handles, lower_32_bits(handle >> PAGE_SHIFT));
 	if (!buf) {
 		spin_unlock(&mmg->lock);
-		dev_dbg(mmg->hdev->dev,
+		hl_dbg(mmg->hdev,
 			 "Buff put failed, no match to handle %#llx\n", handle);
 		return -EINVAL;
 	}
@@ -134,20 +134,20 @@ int hl_mmap_mem_buf_put_handle(struct hl_mem_mgr *mmg, u64 handle)
 }
 
 /**
- * hl_mmap_mem_buf_alloc - allocate a new mappable buffer
+ * hl_mmap_mem_buf_create - create and initialize a new mappable buffer
  *
  * @mmg: parent unified memory manager
  * @behavior: behavior object describing this buffer polymorphic behavior
  * @gfp: gfp flags to use for the memory allocations
  * @args: additional args passed to behavior->alloc
  *
- * Allocate and register a new memory buffer inside the give memory manager.
+ * Create and initialize a new memory buffer inside the give memory manager.
  * Return the pointer to the new buffer on success or NULL on failure.
  */
-struct hl_mmap_mem_buf *
-hl_mmap_mem_buf_alloc(struct hl_mem_mgr *mmg,
-		      struct hl_mmap_mem_buf_behavior *behavior, gfp_t gfp,
-		      void *args)
+static struct hl_mmap_mem_buf *
+hl_mmap_mem_buf_create(struct hl_mem_mgr *mmg,
+		       struct hl_mmap_mem_buf_behavior *behavior, gfp_t gfp,
+		       void *args)
 {
 	struct hl_mmap_mem_buf *buf;
 	int rc;
@@ -156,36 +156,74 @@ hl_mmap_mem_buf_alloc(struct hl_mem_mgr *mmg,
 	if (!buf)
 		return NULL;
 
-	spin_lock(&mmg->lock);
-	rc = idr_alloc(&mmg->handles, buf, 1, 0, GFP_ATOMIC);
-	spin_unlock(&mmg->lock);
-	if (rc < 0) {
-		dev_err(mmg->hdev->dev,
-			"%s: Failed to allocate IDR for a new buffer, rc=%d\n",
-			behavior->topic, rc);
-		goto free_buf;
-	}
-
 	buf->mmg = mmg;
 	buf->behavior = behavior;
-	buf->handle = (((u64)rc | buf->behavior->mem_id) << PAGE_SHIFT);
 	kref_init(&buf->refcount);
 
 	rc = buf->behavior->alloc(buf, gfp, args);
 	if (rc) {
-		dev_err(mmg->hdev->dev, "%s: Failure in buffer alloc callback %d\n",
+		hl_err(mmg->hdev, "%s: Failure in buffer alloc callback %d\n",
 			behavior->topic, rc);
-		goto remove_idr;
+		goto free_buf;
 	}
 
 	return buf;
 
-remove_idr:
-	spin_lock(&mmg->lock);
-	idr_remove(&mmg->handles, lower_32_bits(buf->handle >> PAGE_SHIFT));
-	spin_unlock(&mmg->lock);
 free_buf:
 	kfree(buf);
+	return NULL;
+}
+
+
+/**
+ * hl_mmap_mem_buf_alloc_get - allocate a new mappable buffer and increments its recount
+ *
+ * @mmg: parent unified memory manager
+ * @behavior: behavior object describing this buffer polymorphic behavior
+ * @gfp: gfp flags to use for the memory allocations
+ * @args: additional args passed to behavior->alloc
+ *
+ * Allocate and register a new memory buffer inside the give memory manager.
+ * Upon successful creation, it also increment the buffer's reference count in order
+ * to ensure it remains valid while the caller is using it. Consequently, the callers are
+ * responsible for calling hl_mmap_mem_buf_put() to release the reference once the buffer
+ * is no longer accessed by them.
+ * Return the pointer to the new buffer on success or NULL on failure.
+ */
+struct hl_mmap_mem_buf *
+hl_mmap_mem_buf_alloc_get(struct hl_mem_mgr *mmg,
+			  struct hl_mmap_mem_buf_behavior *behavior, gfp_t gfp,
+			  void *args)
+{
+	struct hl_mmap_mem_buf *buf;
+	int rc;
+
+	buf = hl_mmap_mem_buf_create(mmg, behavior, gfp, args);
+	if (!buf)
+		return NULL;
+
+	spin_lock(&mmg->lock);
+	rc = idr_alloc(&mmg->handles, buf, 1, 0, GFP_ATOMIC);
+	if (rc < 0) {
+		spin_unlock(&mmg->lock);
+		hl_err(mmg->hdev,
+			"%s: Failed to allocate IDR for a new buffer, rc=%d\n",
+			behavior->topic, rc);
+		goto destroy_buf;
+	}
+
+	/*
+	 * Now, that the buffer is registered, we need to prevent another caller from releasing it
+	 * under the feet of the calling function.
+	 */
+	kref_get(&buf->refcount);
+	buf->handle = (((u64)rc | buf->behavior->mem_id) << PAGE_SHIFT);
+
+	spin_unlock(&mmg->lock);
+	return buf;
+
+destroy_buf:
+	hl_mmap_mem_buf_destroy(buf);
 	return NULL;
 }
 
@@ -244,7 +282,7 @@ int hl_mem_mgr_mmap(struct hl_mem_mgr *mmg, struct vm_area_struct *vma, void *ar
 	/* Reference was taken here */
 	buf = hl_mmap_mem_buf_get(mmg, handle);
 	if (!buf) {
-		dev_err(mmg->hdev->dev,
+		hl_err(mmg->hdev,
 			"Memory mmap failed, no match to handle %#llx\n", handle);
 		return -EINVAL;
 	}
@@ -252,7 +290,7 @@ int hl_mem_mgr_mmap(struct hl_mem_mgr *mmg, struct vm_area_struct *vma, void *ar
 	/* Validation check */
 	user_mem_size = vma->vm_end - vma->vm_start;
 	if (user_mem_size != ALIGN(buf->mappable_size, PAGE_SIZE)) {
-		dev_err(mmg->hdev->dev,
+		hl_err(mmg->hdev,
 			"%s: Memory mmap failed, mmap VM size 0x%llx != 0x%llx allocated physical mem size\n",
 			buf->behavior->topic, user_mem_size, buf->mappable_size);
 		rc = -EINVAL;
@@ -261,7 +299,7 @@ int hl_mem_mgr_mmap(struct hl_mem_mgr *mmg, struct vm_area_struct *vma, void *ar
 
 	if (!access_ok((void __user *)(uintptr_t)vma->vm_start,
 		       user_mem_size)) {
-		dev_err(mmg->hdev->dev, "%s: User pointer is invalid - 0x%lx\n",
+		hl_err(mmg->hdev, "%s: User pointer is invalid - 0x%lx\n",
 			buf->behavior->topic, vma->vm_start);
 
 		rc = -EINVAL;
@@ -269,7 +307,7 @@ int hl_mem_mgr_mmap(struct hl_mem_mgr *mmg, struct vm_area_struct *vma, void *ar
 	}
 
 	if (atomic_cmpxchg(&buf->mmap, 0, 1)) {
-		dev_err(mmg->hdev->dev,
+		hl_err(mmg->hdev,
 			"%s, Memory mmap failed, already mapped to user\n",
 			buf->behavior->topic);
 		rc = -EINVAL;
@@ -311,6 +349,7 @@ void hl_mem_mgr_init(struct hl_device *hdev, struct hl_mem_mgr *mmg)
 	mmg->hdev = hdev;
 	spin_lock_init(&mmg->lock);
 	idr_init(&mmg->handles);
+	atomic_set(&mmg->ts_buff_cnt, 0);
 }
 
 static void hl_mem_mgr_fini_stats_reset(struct hl_mem_mgr_fini_stats *stats)
@@ -363,7 +402,7 @@ void hl_mem_mgr_fini(struct hl_mem_mgr *mmg, struct hl_mem_mgr_fini_stats *stats
 		topic = buf->behavior->topic;
 		mem_id = buf->behavior->mem_id;
 		if (hl_mmap_mem_buf_put(buf) != 1) {
-			dev_err(mmg->hdev->dev,
+			hl_err(mmg->hdev,
 				"%s: Buff handle %u for CTX is still alive\n",
 				topic, id);
 			hl_mem_mgr_fini_stats_inc(mem_id, stats);
@@ -381,7 +420,7 @@ void hl_mem_mgr_fini(struct hl_mem_mgr *mmg, struct hl_mem_mgr_fini_stats *stats
 void hl_mem_mgr_idr_destroy(struct hl_mem_mgr *mmg)
 {
 	if (!idr_is_empty(&mmg->handles))
-		dev_crit(mmg->hdev->dev, "memory manager IDR is destroyed while it is not empty\n");
+		hl_crit(mmg->hdev, "memory manager IDR is destroyed while it is not empty\n");
 
 	idr_destroy(&mmg->handles);
 }

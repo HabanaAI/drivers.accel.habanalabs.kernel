@@ -2800,7 +2800,7 @@ static void gaudi2_write_lbw_range_register(struct hl_device *hdev, u64 base, vo
 		break;
 
 	default:
-		dev_err(hdev->dev, "Invalid LBW RR type %u\n", rr_cfg->type);
+		hl_err(hdev, "Invalid LBW RR type %u\n", rr_cfg->type);
 		return;
 	}
 
@@ -2834,7 +2834,7 @@ void gaudi2_write_rr_to_all_lbw_rtrs(struct hl_device *hdev, u8 rr_type, u32 rr_
 	if ((rr_type == RR_TYPE_SHORT || rr_type == RR_TYPE_SHORT_PRIV) &&
 								rr_index >= NUM_SHORT_LBW_RR) {
 
-		dev_err(hdev->dev, "invalid short LBW %s range register index: %u",
+		hl_err(hdev, "invalid short LBW %s range register index: %u",
 			rr_type == RR_TYPE_SHORT ? "secure" : "privileged", rr_index);
 		return;
 	}
@@ -2842,7 +2842,7 @@ void gaudi2_write_rr_to_all_lbw_rtrs(struct hl_device *hdev, u8 rr_type, u32 rr_
 	if ((rr_type == RR_TYPE_LONG || rr_type == RR_TYPE_LONG_PRIV) &&
 								rr_index >= NUM_LONG_LBW_RR) {
 
-		dev_err(hdev->dev, "invalid long LBW %s range register index: %u",
+		hl_err(hdev, "invalid long LBW %s range register index: %u",
 			rr_type == RR_TYPE_LONG ? "secure" : "privileged", rr_index);
 		return;
 	}
@@ -3022,7 +3022,7 @@ static void gaudi2_write_hbw_range_register(struct hl_device *hdev, u64 base, vo
 		break;
 
 	default:
-		dev_err(hdev->dev, "Invalid HBW RR type %u\n", rr_cfg->type);
+		hl_err(hdev, "Invalid HBW RR type %u\n", rr_cfg->type);
 		return;
 	}
 
@@ -3062,7 +3062,7 @@ static void gaudi2_write_hbw_rr_to_all_mstr_if(struct hl_device *hdev, u8 rr_typ
 	if ((rr_type == RR_TYPE_SHORT || rr_type == RR_TYPE_SHORT_PRIV) &&
 								rr_index >= NUM_SHORT_HBW_RR) {
 
-		dev_err(hdev->dev, "invalid short HBW %s range register index: %u",
+		hl_err(hdev, "invalid short HBW %s range register index: %u",
 			rr_type == RR_TYPE_SHORT ? "secure" : "privileged", rr_index);
 		return;
 	}
@@ -3070,7 +3070,7 @@ static void gaudi2_write_hbw_rr_to_all_mstr_if(struct hl_device *hdev, u8 rr_typ
 	if ((rr_type == RR_TYPE_LONG || rr_type == RR_TYPE_LONG_PRIV) &&
 								rr_index >= NUM_LONG_HBW_RR) {
 
-		dev_err(hdev->dev, "invalid long HBW %s range register index: %u",
+		hl_err(hdev, "invalid long HBW %s range register index: %u",
 			rr_type == RR_TYPE_LONG ? "secure" : "privileged", rr_index);
 		return;
 	}
@@ -3151,7 +3151,7 @@ static void gaudi2_write_mmu_range_register(struct hl_device *hdev, u64 base,
 		break;
 
 	default:
-		dev_err(hdev->dev, "Invalid MMU RR type %u\n", rr_cfg->type);
+		hl_err(hdev, "Invalid MMU RR type %u\n", rr_cfg->type);
 		return;
 	}
 
@@ -3223,7 +3223,7 @@ static int gaudi2_init_protection_bits(struct hl_device *hdev)
 {
 	u32 *user_regs_array = NULL, user_regs_array_size = 0, engine_core_intr_reg;
 	struct asic_fixed_properties *prop = &hdev->asic_prop;
-	u32 instance_offset;
+	u32 instance_offset, mme_mask;
 	int rc = 0;
 	u8 i;
 
@@ -3308,6 +3308,9 @@ static int gaudi2_init_protection_bits(struct hl_device *hdev)
 	instance_offset = mmDCORE0_MME_SBTE1_BASE - mmDCORE0_MME_SBTE0_BASE;
 
 	for (i = 0 ; i < NUM_OF_DCORES * NUM_OF_MME_PER_DCORE ; i++) {
+		if (!(hdev->mme_mask & BIT(i)))
+			continue;
+
 		/* MME SBTE */
 		rc |= hl_init_pb_single_dcore(hdev, (DCORE_OFFSET * i), 5,
 				instance_offset, gaudi2_pb_dcr0_mme_sbte,
@@ -3328,6 +3331,9 @@ static int gaudi2_init_protection_bits(struct hl_device *hdev)
 	 * configure stubbed MME's ARC/QMAN
 	 */
 	for (i = 0 ; i < NUM_OF_DCORES * NUM_OF_MME_PER_DCORE ; i++) {
+		if (!is_mme_qman_accessible(hdev, i))
+			continue;
+
 		/* MME QM */
 		rc |= hl_init_pb_single_dcore(hdev, (DCORE_OFFSET * i),
 				HL_PB_SINGLE_INSTANCE, HL_PB_NA,
@@ -3345,14 +3351,23 @@ static int gaudi2_init_protection_bits(struct hl_device *hdev)
 			ARRAY_SIZE(gaudi2_pb_dcr0_mme_arc_unsecured_regs));
 	}
 
-	/* MME QM ARC ACP ENG */
+	/*
+	 * MME QM ARC ACP ENG
+	 *
+	 * if config_qman_arc_for_stub_mme set to true we should configure all
+	 * MMEs QMANs whether they are enabled or not
+	 */
+	mme_mask = hdev->config_qman_arc_for_stub_mme ?
+			(BIT(NUM_OF_DCORES * NUM_OF_MME_PER_DCORE) - 1) :
+			hdev->mme_mask;
+
 	rc |= hl_init_pb_ranges_with_mask(hdev, NUM_OF_DCORES, DCORE_OFFSET,
 			HL_PB_SINGLE_INSTANCE, HL_PB_NA,
 			gaudi2_pb_mme_qm_arc_acp_eng,
 			ARRAY_SIZE(gaudi2_pb_mme_qm_arc_acp_eng),
 			gaudi2_pb_mme_qm_arc_acp_eng_unsecured_regs,
 			ARRAY_SIZE(gaudi2_pb_mme_qm_arc_acp_eng_unsecured_regs),
-			(BIT(NUM_OF_DCORES * NUM_OF_MME_PER_DCORE) - 1));
+			mme_mask);
 
 	/* TPC */
 	rc |= gaudi2_init_pb_tpc(hdev);
@@ -3401,7 +3416,7 @@ static int gaudi2_init_protection_bits(struct hl_device *hdev)
 		user_regs_array = &engine_core_intr_reg;
 		user_regs_array_size = 1;
 	} else {
-		dev_err(hdev->dev,
+		hl_err(hdev,
 			"Engine cores register for interrupts (%#x) is not a PSOC scratchpad register\n",
 			engine_core_intr_reg);
 	}
@@ -3494,7 +3509,7 @@ static int gaudi2_init_protection_bits(struct hl_device *hdev)
 	rc |= hl_init_pb_with_mask(hdev, NIC_NUMBER_OF_MACROS, NIC_OFFSET,
 			HL_PB_SINGLE_INSTANCE, HL_PB_NA,
 			gaudi2_pb_nic0, ARRAY_SIZE(gaudi2_pb_nic0),
-			NULL, HL_PB_NA, hdev->nic_ports_mask);
+			NULL, HL_PB_NA, hdev->cn.ports_mask);
 
 	/* NIC QM and QPC */
 	rc |= hl_init_pb_with_mask(hdev, NIC_NUMBER_OF_MACROS, NIC_OFFSET,
@@ -3502,7 +3517,7 @@ static int gaudi2_init_protection_bits(struct hl_device *hdev)
 			gaudi2_pb_nic0_qm_qpc, ARRAY_SIZE(gaudi2_pb_nic0_qm_qpc),
 			gaudi2_pb_nic0_qm_qpc_unsecured_regs,
 			ARRAY_SIZE(gaudi2_pb_nic0_qm_qpc_unsecured_regs),
-			hdev->nic_ports_mask);
+			hdev->cn.ports_mask);
 
 	/* NIC QM ARC */
 	rc |= hl_init_pb_ranges_with_mask(hdev, NIC_NUMBER_OF_MACROS,
@@ -3511,7 +3526,7 @@ static int gaudi2_init_protection_bits(struct hl_device *hdev)
 			ARRAY_SIZE(gaudi2_pb_nic0_qm_arc_aux0),
 			gaudi2_pb_nic0_qm_arc_aux0_unsecured_regs,
 			ARRAY_SIZE(gaudi2_pb_nic0_qm_arc_aux0_unsecured_regs),
-			hdev->nic_ports_mask);
+			hdev->cn.ports_mask);
 
 	/* NIC UMR */
 	rc |= hl_init_pb_ranges_with_mask(hdev, NIC_NUMBER_OF_MACROS,
@@ -3520,7 +3535,7 @@ static int gaudi2_init_protection_bits(struct hl_device *hdev)
 			ARRAY_SIZE(gaudi2_pb_nic0_umr),
 			gaudi2_pb_nic0_umr_unsecured_regs,
 			ARRAY_SIZE(gaudi2_pb_nic0_umr_unsecured_regs),
-			hdev->nic_ports_mask);
+			hdev->cn.ports_mask);
 
 	/* Rotators */
 	instance_offset = mmROT1_BASE - mmROT0_BASE;
@@ -3529,7 +3544,7 @@ static int gaudi2_init_protection_bits(struct hl_device *hdev)
 			ARRAY_SIZE(gaudi2_pb_rot0),
 			gaudi2_pb_rot0_unsecured_regs,
 			ARRAY_SIZE(gaudi2_pb_rot0_unsecured_regs),
-			(BIT(NUM_OF_ROT) - 1));
+			hdev->rotator_mask);
 
 	/* Rotators ARCS */
 	rc |= hl_init_pb_ranges_with_mask(hdev, HL_PB_SHARED,
@@ -3537,7 +3552,7 @@ static int gaudi2_init_protection_bits(struct hl_device *hdev)
 			gaudi2_pb_rot0_arc, ARRAY_SIZE(gaudi2_pb_rot0_arc),
 			gaudi2_pb_rot0_arc_unsecured_regs,
 			ARRAY_SIZE(gaudi2_pb_rot0_arc_unsecured_regs),
-			(BIT(NUM_OF_ROT) - 1));
+			hdev->rotator_mask);
 
 	rc |= gaudi2_init_pb_sm_objs(hdev);
 
@@ -3555,6 +3570,9 @@ static int gaudi2_init_protection_bits(struct hl_device *hdev)
 int gaudi2_init_security(struct hl_device *hdev)
 {
 	int rc;
+
+	if (!hdev->security_enable)
+		return 0;
 
 	rc = gaudi2_init_protection_bits(hdev);
 	if (rc)
@@ -3676,6 +3694,9 @@ void gaudi2_ack_protection_bits_errors(struct hl_device *hdev)
 	instance_offset = mmDCORE0_MME_SBTE1_BASE - mmDCORE0_MME_SBTE0_BASE;
 
 	for (i = 0 ; i < NUM_OF_DCORES * NUM_OF_MME_PER_DCORE ; i++) {
+		if (!(hdev->mme_mask & BIT(i)))
+			continue;
+
 		/* MME SBTE */
 		hl_ack_pb_single_dcore(hdev, (DCORE_OFFSET * i), 5,
 				instance_offset, gaudi2_pb_dcr0_mme_sbte,
@@ -3693,6 +3714,9 @@ void gaudi2_ack_protection_bits_errors(struct hl_device *hdev)
 	 * configure stubbed MME's ARC/QMAN
 	 */
 	for (i = 0 ; i < NUM_OF_DCORES * NUM_OF_MME_PER_DCORE ; i++) {
+		if (!is_mme_qman_accessible(hdev, i))
+			continue;
+
 		/* MME QM */
 		hl_ack_pb_single_dcore(hdev, (DCORE_OFFSET * i),
 				HL_PB_SINGLE_INSTANCE, HL_PB_NA,
@@ -3711,7 +3735,7 @@ void gaudi2_ack_protection_bits_errors(struct hl_device *hdev)
 			HL_PB_SINGLE_INSTANCE, HL_PB_NA,
 			gaudi2_pb_mme_qm_arc_acp_eng,
 			ARRAY_SIZE(gaudi2_pb_mme_qm_arc_acp_eng),
-			(BIT(NUM_OF_DCORES * NUM_OF_MME_PER_DCORE) - 1));
+			hdev->mme_mask);
 
 	/* TPC */
 	gaudi2_ack_pb_tpc(hdev);
@@ -3800,31 +3824,31 @@ void gaudi2_ack_protection_bits_errors(struct hl_device *hdev)
 
 	/* NIC */
 	hl_ack_pb_with_mask(hdev, NIC_NUMBER_OF_MACROS, NIC_OFFSET, HL_PB_SINGLE_INSTANCE, HL_PB_NA,
-			gaudi2_pb_nic0, ARRAY_SIZE(gaudi2_pb_nic0), hdev->nic_ports_mask);
+			gaudi2_pb_nic0, ARRAY_SIZE(gaudi2_pb_nic0), hdev->cn.ports_mask);
 
 	/* NIC QM and QPC */
 	hl_ack_pb_with_mask(hdev, NIC_NUMBER_OF_MACROS, NIC_OFFSET, NIC_NUMBER_OF_QM_PER_MACRO,
 			NIC_QM_OFFSET, gaudi2_pb_nic0_qm_qpc, ARRAY_SIZE(gaudi2_pb_nic0_qm_qpc),
-			hdev->nic_ports_mask);
+			hdev->cn.ports_mask);
 
 	/* NIC QM ARC */
 	hl_ack_pb_with_mask(hdev, NIC_NUMBER_OF_MACROS, NIC_OFFSET, NIC_NUMBER_OF_QM_PER_MACRO,
 			NIC_QM_OFFSET, gaudi2_pb_nic0_qm_arc_aux0,
-			ARRAY_SIZE(gaudi2_pb_nic0_qm_arc_aux0), hdev->nic_ports_mask);
+			ARRAY_SIZE(gaudi2_pb_nic0_qm_arc_aux0), hdev->cn.ports_mask);
 
 	/* NIC UMR */
 	hl_ack_pb_with_mask(hdev, NIC_NUMBER_OF_MACROS, NIC_OFFSET, NIC_NUMBER_OF_QM_PER_MACRO,
 			NIC_QM_OFFSET, gaudi2_pb_nic0_umr, ARRAY_SIZE(gaudi2_pb_nic0_umr),
-			hdev->nic_ports_mask);
+			hdev->cn.ports_mask);
 
 	/* Rotators */
 	instance_offset = mmROT1_BASE - mmROT0_BASE;
 	hl_ack_pb_with_mask(hdev, HL_PB_SHARED, HL_PB_NA, NUM_OF_ROT, instance_offset,
-			gaudi2_pb_rot0, ARRAY_SIZE(gaudi2_pb_rot0), (BIT(NUM_OF_ROT) - 1));
+			gaudi2_pb_rot0, ARRAY_SIZE(gaudi2_pb_rot0), hdev->rotator_mask);
 
 	/* Rotators ARCS */
 	hl_ack_pb_with_mask(hdev, HL_PB_SHARED, HL_PB_NA, NUM_OF_ROT, instance_offset,
-			gaudi2_pb_rot0_arc, ARRAY_SIZE(gaudi2_pb_rot0_arc), (BIT(NUM_OF_ROT) - 1));
+			gaudi2_pb_rot0_arc, ARRAY_SIZE(gaudi2_pb_rot0_arc), hdev->rotator_mask);
 }
 
 /*
@@ -3867,7 +3891,7 @@ void gaudi2_pb_print_security_errors(struct hl_device *hdev, u32 block_addr, u32
 	if (cause & SPECIAL_GLBL_ERR_CAUSE_EXT_UNMAPPED_WR)
 		mcause[i++] = "APB_EXT_UNMAPPED_WR";
 
-	dev_err_ratelimited(hdev->dev, error_format, block_addr, offended_addr,
+	hl_err_ratelimited(hdev, error_format, block_addr, offended_addr,
 			cause, mcause[0], mcause[1], mcause[2], mcause[3],
 			mcause[4], mcause[5], mcause[6], mcause[7]);
 }

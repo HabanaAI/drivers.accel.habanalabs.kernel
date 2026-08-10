@@ -1,0 +1,49 @@
+/* SPDX-License-Identifier: GPL-2.0
+ *
+ * Copyright 2016-2020 HabanaLabs, Ltd.
+ * All Rights Reserved.
+ *
+ */
+
+/************************************
+ ** This is an auto-generated file **
+ **       DO NOT EDIT BELOW        **
+ ************************************/
+
+#ifndef ASIC_REG_DCORE1_XBAR_IF_PLL_ASIF_SLV_REGS_H_
+#define ASIC_REG_DCORE1_XBAR_IF_PLL_ASIF_SLV_REGS_H_
+
+/*
+ *****************************************
+ *   DCORE1_XBAR_IF_PLL_ASIF_SLV
+ *   (Prototype: ASIF_SLV)
+ *****************************************
+ */
+
+#define mmDCORE1_XBAR_IF_PLL_ASIF_SLV_ASIF_SLV_STATUS 0x4D53360
+
+#define mmDCORE1_XBAR_IF_PLL_ASIF_SLV_ASIF_SLV_CFG 0x4D53364
+
+#define mmDCORE1_XBAR_IF_PLL_ASIF_SLV_ASIF_SLV_ERROR 0x4D53368
+
+#define mmDCORE1_XBAR_IF_PLL_ASIF_SLV_ASIF_SLV_INTR_MASK 0x4D5336C
+
+#define mmDCORE1_XBAR_IF_PLL_ASIF_SLV_ASIF_CORE_CFG 0x4D53370
+
+#define mmDCORE1_XBAR_IF_PLL_ASIF_SLV_ASIF_CORE_DBG_CNT 0x4D53374
+
+#define mmDCORE1_XBAR_IF_PLL_ASIF_SLV_ASIF_CORE_DBG_CNT_CLR 0x4D53378
+
+#define mmDCORE1_XBAR_IF_PLL_ASIF_SLV_ASIF_CORE_TIMEOUT_CFG 0x4D5337C
+
+#define mmDCORE1_XBAR_IF_PLL_ASIF_SLV_ASIF_ERR_INTR_CAUSE 0x4D53380
+
+#define mmDCORE1_XBAR_IF_PLL_ASIF_SLV_ASIF_ERR_INTR_CLEAR 0x4D53384
+
+#define mmDCORE1_XBAR_IF_PLL_ASIF_SLV_ASIF_ERR_INTR_MASK 0x4D53388
+
+#define mmDCORE1_XBAR_IF_PLL_ASIF_SLV_ASIF_SLV_DBG_0 0x4D53390
+
+#define mmDCORE1_XBAR_IF_PLL_ASIF_SLV_ASIF_SLV_DBG_1 0x4D53394
+
+#endif /* ASIC_REG_DCORE1_XBAR_IF_PLL_ASIF_SLV_REGS_H_ */

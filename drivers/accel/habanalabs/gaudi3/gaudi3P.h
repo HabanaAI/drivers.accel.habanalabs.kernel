@@ -1,6 +1,7 @@
 /* SPDX-License-Identifier: GPL-2.0
  *
- * Copyright 2021-2022 HabanaLabs, Ltd.
+ * Copyright 2021-2024 HabanaLabs, Ltd.
+ * Copyright (C) 2024-2025, Intel Corporation.
  * All Rights Reserved.
  *
  */
@@ -8,6 +9,8 @@
 #ifndef GAUDI3P_H_
 #define GAUDI3P_H_
 
+#include <linux/net/intel/cn_aux.h>
+#include <linux/net/intel/gaudi3_aux.h>
 #include <uapi/drm/habanalabs_accel.h>
 #include "../common/habanalabs.h"
 #include <linux/habanalabs/hl_boot_if.h>
@@ -17,8 +20,6 @@
 #include "../include/gaudi3/arc/gaudi3_arc_common_packets.h"
 
 #define GAUDI3_CPU_TIMEOUT_USEC		30000000	/* 30s */
-
-#define GAUDI3_DEFAULT_CARD_NAME	"GAUDI3"
 
 #define HW_CAP_PDMA_MASK		GENMASK(23, 0)
 
@@ -160,6 +161,14 @@
  */
 #define REG_OFF_TO_LBW_OFF(reg_off)	lower_32_bits((reg_off) + CFG_BAR_BASE - LBW_BASE)
 
+#define NIC_NUM_OF_DIES			MAX_NUM_OF_DIES
+#define NIC_NUMBER_OF_MACROS		(NIC_NUM_MACROS_PER_DIE * NIC_NUM_OF_DIES)
+#define NIC_NUMBER_OF_ENGINES		NIC_NUMBER_OF_MACROS
+#define NIC_MAX_NUM_OF_LANES		(NIC_MAX_NUM_OF_MACROS * NIC_MAC_LANES)
+#define NIC_PORTS_PER_MACRO		(NIC_MAC_LANES / hdev->cn.lanes_per_port)
+#define NIC_NUM_PORTS_PER_DIE		(NIC_NUM_MACROS_PER_DIE * NIC_PORTS_PER_MACRO)
+#define NIC_NUMBER_OF_PORTS		(NIC_NUM_PORTS_PER_DIE * NIC_NUM_OF_DIES)
+
 #define LBW_DUP_PUSH_BLOCK_SIZE		512
 #define LBW_DUP_NUMBER_OF_GROUPS	14
 #define LBW_DUP_NUMBER_OF_64_BIT_GROUPS 12
@@ -202,7 +211,8 @@
 #define VA_HBM_SPACE_END	0x0202000000000000ull
 
 #define ETR_BUF_PER_DIE	2
-#define ETR_BUF_SIZE		0x02000000				/* 32MB */
+/* TODO: revert size to be 64MB (SW-100513) */
+#define ETR_BUF_SIZE		0x02000000				/* 32MB. TODO: 64MB */
 #define ETR_BUF_ORDER		(ilog2(ETR_BUF_SIZE))
 #define ETR_BUF_HALF_BUF	(ETR_BUF_SIZE >> 1)
 
@@ -308,21 +318,17 @@ enum gaudi3_cache_maint_type {
 	GAUDI3_CACHE_MAINT_PF,
 };
 
-struct gaudi3_etr_ac_config {
-	u64 ac_off;
-	u64 etr_off;
-};
-
 #define GAUDI3_MIN_ETR_BUFS	16
 #define GAUDI3_MAX_ETR_BUFS	32
 
 extern const u32 gaudi3_arc_blocks_bases[NUM_ACTIVE_ARCS];
 extern const u32 gaudi3_pdma_grp_blocks_bases[NUM_OF_PDMA_GRP];
+extern const u64 gaudi3_etr_base[GAUDI3_NUM_ETR];
 
 /* User interrupt count is aligned with HW CQ count.
  * We have 64 CQ's per hdcore.
  */
-#define GAUDI3_NUM_USER_INTERRUPTS 256
+#define GAUDI3_NUM_USER_INTERRUPTS 64
 
 /* PLDM interrupts: CPU/PSOC interrupt aggregators and QM SW interrupts */
 #define CPU_INTR_AGGR_NUM_OF_HDCORE_AGGR	4
@@ -346,26 +352,51 @@ enum gaudi3_irq_num {
 	GAUDI3_IRQ_NUM_EVENT_QUEUE = 0,
 	GAUDI3_IRQ_NUM_PAGE_FAULT_0,
 	GAUDI3_IRQ_NUM_PAGE_FAULT_1,
+	/* Interrupts 3-18 */
 	GAUDI3_IRQ_NUM_DEC_NRM_FIRST,
 	GAUDI3_IRQ_NUM_DEC_NRM_LAST = GAUDI3_IRQ_NUM_DEC_NRM_FIRST + NUMBER_OF_DEC - 1,
+	/* Interrupts 19-42 */
 	GAUDI3_IRQ_NUM_NIC_PORT_FIRST,
 	GAUDI3_IRQ_NUM_NIC_PORT_LAST = GAUDI3_IRQ_NUM_NIC_PORT_FIRST + NIC_MAX_NUM_OF_PORTS - 1,
+	/* Interrupts 43-46 */
 	GAUDI3_IRQ_NUM_ETR_FIRST,
 	GAUDI3_IRQ_NUM_ETR_LAST = GAUDI3_IRQ_NUM_ETR_FIRST + GAUDI3_NUM_ETR - 1,
+	/* Interrupt 47 */
+	GAUDI3_IRQ_NUM_TPC_ASSERT,
+	/* Interrupt 48 */
+	GAUDI3_IRQ_NUM_EQ_ERROR,
+	/* Interrupts 49-112 */
 	GAUDI3_IRQ_NUM_USER_FIRST,
 	GAUDI3_IRQ_NUM_USER_LAST = GAUDI3_IRQ_NUM_USER_FIRST + GAUDI3_NUM_USER_INTERRUPTS - 1,
+	/* Interrupts 113-126 */
+	GAUDI3_IRQ_NUM_RESERVED_FIRST,
+	GAUDI3_IRQ_NUM_RESERVED_LAST = 126,
+	GAUDI3_IRQ_NUM_UNEXPECTED_ERROR = 127,
+#ifdef HL_DOWNSTREAM
+	/* PLDM interrupts are only available on platforms supporting more than 128 MSIx vectors */
 	GAUDI3_PLDM_AGGR_IRQ_FIRST,
 	GAUDI3_PLDM_AGGR_IRQ_LAST = GAUDI3_PLDM_AGGR_IRQ_FIRST + INTR_AGGR_NUM_OF_MSIX_VECTORS - 1,
 	GAUDI3_PLDM_QM_SW_IRQ_FIRST,
 	GAUDI3_PLDM_QM_SW_IRQ_LAST = GAUDI3_PLDM_QM_SW_IRQ_FIRST + GAUDI3_NUM_OF_SW_QM_INTR - 1,
-	GAUDI3_IRQ_NUM_EQ_ERROR,
-	GAUDI3_IRQ_NUM_RESERVED_FIRST,
-	GAUDI3_IRQ_NUM_RESERVED_LAST = (GAUDI3_MSIX_ENTRIES - 2),
-	GAUDI3_IRQ_NUM_UNEXPECTED_ERROR = RESERVED_MSIX_UNEXPECTED_USER_ERROR_INTERRUPT,
-	GAUDI3_IRQ_NUM_LAST = (GAUDI3_MSIX_ENTRIES - 1)
+#endif /* HL_DOWNSTREAM */
 };
 
-static_assert(GAUDI3_IRQ_NUM_USER_FIRST > GAUDI3_IRQ_NUM_DEC_NRM_LAST);
+static_assert(GAUDI3_IRQ_NUM_DEC_NRM_FIRST == 3);
+static_assert(GAUDI3_IRQ_NUM_NIC_PORT_FIRST == 19);
+static_assert(GAUDI3_IRQ_NUM_ETR_FIRST == 43);
+static_assert(GAUDI3_IRQ_NUM_TPC_ASSERT == 47);
+static_assert(GAUDI3_IRQ_NUM_EQ_ERROR == 48);
+static_assert(GAUDI3_IRQ_NUM_USER_FIRST == 49);
+static_assert(GAUDI3_IRQ_NUM_RESERVED_FIRST == 113);
+static_assert(GAUDI3_IRQ_NUM_UNEXPECTED_ERROR == RESERVED_MSIX_UNEXPECTED_USER_ERROR_INTERRUPT);
+
+/*
+ * The maximum number of MSI-X interrupts supported by the device.
+ * For PLDM, we need more than 128 interrupts used in production, so we might
+ * as well allocate the entire range.
+ * The limitation of 128 interrupts comes from VMware ESXi.
+ */
+#define GAUDI3_PLDM_MSIX_ENTRIES		1024
 
 /* This value cannot change due to errata H9-5304 */
 #define GAUDI3_PAGE_FAULT_QUEUE_SIZE		0x2000	/* 8KB */
@@ -464,6 +495,8 @@ struct gaudi3_eq_work {
  * @cpucp_info_get: get information on device from CPU-CP
  * @mapped_blocks: Array that holds the base address and size of all blocks
  *                 the user can map.
+ * @cn_aux_ops: functions for core <-> accel drivers communication.
+ * @cn_aux_data: data to be used by the core driver.
  * @page_fault_queue: page fault queue, (since PMMU1 is disabled, only one is needed)
  * @pgf_q_entries: buffer that holds current page fault queue entries to be handled
  * @hbm_cfg: HBM subsystem settings
@@ -513,6 +546,8 @@ struct gaudi3_eq_work {
 struct gaudi3_device {
 	int (*cpucp_info_get)(struct hl_device *hdev);
 	struct user_mapped_block		mapped_blocks[NUM_USER_MAPPED_BLOCKS];
+	struct gaudi3_cn_aux_ops		cn_aux_ops;
+	struct gaudi3_cn_aux_data		cn_aux_data;
 	struct hl_page_fault_queue		page_fault_queue;
 	struct gaudi3_page_fault_queue_entry	pgf_q_entries[GAUDI3_PAGE_FAULT_QUEUE_SIZE];
 	struct gaudi3_hbm			hbm_cfg;
@@ -665,6 +700,8 @@ struct rtr_ctrl_rr_config {
 	struct rr_type_config *hbw_config_array;
 };
 
+extern struct hl_cn_funcs gaudi3_cn_funcs;
+
 /* Gaudi3 declarations for simulator */
 int gaudi3_cpucp_info_get(struct hl_device *hdev);
 int gaudi3_scrub_device_dram(struct hl_device *hdev, u64 val);
@@ -775,6 +812,7 @@ void gaudi3_iterate_mmes(struct hl_device *hdev, struct iterate_module_ctx *ctx)
 void gaudi3_iterate_mmes_v3_mstr_ifs(struct hl_device *hdev, struct iterate_module_ctx *ctx);
 void gaudi3_iterate_rotators(struct hl_device *hdev, struct iterate_module_ctx *ctx);
 void gaudi3_iterate_decoders(struct hl_device *hdev, struct iterate_module_ctx *ctx);
+void gaudi3_iterate_nics(struct hl_device *hdev, struct iterate_module_ctx *ctx);
 void gaudi3_iterate_rtr_ctrls(struct hl_device *hdev, struct iterate_module_ctx *ctx);
 void gaudi3_iterate_cache_slices(struct hl_device *hdev, struct iterate_module_ctx *ctx);
 void gaudi3_iterate_rrtrs(struct hl_device *hdev, struct iterate_module_ctx *ctx);
@@ -789,6 +827,16 @@ void gaudi3_fw_security_emulation_fini(struct hl_device *hdev, bool asic_dirty);
 void gaudi3_clear_hw_cap(struct hl_device *hdev, bool hard_reset);
 int gaudi3_hw_fini(struct hl_device *hdev, bool hard_reset, bool fw_reset);
 
+void gaudi3_cn_quiescence(struct hl_device *hdev);
+void gaudi3_cn_compute_reset_prepare(struct hl_device *hdev);
+void gaudi3_cn_compute_reset_late_init(struct hl_device *hdev);
+
+void gaudi3_cn_spmu_get_stats_names(struct hl_device *hdev, u32 port, char ***names, u32 *n_stats);
+void gaudi3_cn_spmu_get_stats_event_types(struct hl_device *hdev, u32 port, u32 **event_types,
+						u32 *n_stats);
+int gaudi3_cn_spmu_config(struct hl_device *hdev, u32 port, u32 num_event_types, u32 event_types[],
+				bool enable);
+int gaudi3_cn_spmu_sample(struct hl_device *hdev, u32 port, u32 num_out_data, u64 out_data[]);
 int gaudi3_scheduler_submit_buf(struct hl_device *hdev, u32 cpu_id, u32 queue_id, void *buf,
 					u32 len);
 bool gaudi3_is_valid_dram_page_size(u32 page_size);
@@ -801,6 +849,8 @@ int gaudi3_init_cpu_queues(struct hl_device *hdev, u32 cpu_timeout);
 int gaudi3_test_cpu_queue(struct hl_device *hdev);
 void gaudi3_send_hard_reset_cmd(struct hl_device *hdev);
 int gaudi3_handle_eqe(struct hl_device *hdev, struct hl_eq_dynamic_entry *eq_dynamic_entry);
+bool gaudi3_cn_is_macro_enabled(struct hl_device *hdev, int macro_idx);
+u32 gaudi3_cn_get_first_port(struct hl_device *hdev, int macro_idx);
 int gaudi3_alloc_irq_vectors(struct hl_device *hdev, unsigned int min_vecs,
 			unsigned int max_vecs, unsigned int flags);
 void gaudi3_free_irq_vectors(struct hl_device *hdev);
@@ -813,10 +863,15 @@ void gaudi3_set_dram_binning_masks(struct hl_device *hdev);
 int gaudi3_test_qmans_msgs_alloc(struct hl_device *hdev);
 void gaudi3_test_qmans_msgs_free(struct hl_device *hdev);
 void gaudi3_eq_handler(struct work_struct *work);
+int gaudi3_cs_parser(struct hl_device *hdev, struct hl_cs_parser *parser);
 
 /* Functions exported for bring-up support */
+int gaudi3_pre_hw_init(struct hl_device *hdev);
+int gaudi3_init_plls(struct hl_device *hdev);
 void gaudi3_print_sol_config_version(struct hl_device *hdev);
 void gaudi3_iterate_mcs(struct hl_device *hdev, struct iterate_module_ctx *ctx);
+int gaudi3_init_hbm(struct hl_device *hdev);
+void gaudi3_init_scrambler(struct hl_device *hdev);
 void gaudi3_init_regulators(struct hl_device *hdev);
 void gaudi3_init_qos(struct hl_device *hdev);
 void gaudi3_init_cache(struct hl_device *hdev);
@@ -824,12 +879,29 @@ void gaudi3_init_n2r_credits(struct hl_device *hdev);
 void gaudi3_init_r2c_credits(struct hl_device *hdev);
 void gaudi3_init_mc(struct hl_device *hdev);
 void gaudi3_init_axiovrd(struct hl_device *hdev);
+int gaudi3_set_cache_mode(struct hl_device *hdev);
+void gaudi3_disable_nic_interrupts_cpu_if(struct hl_device *hdev);
+void gaudi3_init_arc(struct hl_device *hdev, u32 cpu_id);
+void gaudi3_reset_arc(struct hl_device *hdev, u32 cpu_id);
+void gaudi3_hw_init_fw_config(struct hl_device *hdev);
+void gaudi3_fabric_serialization_init_fw_config(struct hl_device *hdev);
+void gaudi3_fabric_serialization_fini_fw_config(struct hl_device *hdev);
+void gaudi3_execute_reset_no_fw(struct hl_device *hdev, bool hard_reset);
+void gaudi3_pldm_enable_interrupts(struct hl_device *hdev);
+void gaudi3_pldm_disable_interrupts(struct hl_device *hdev);
+irqreturn_t hl_pldm_irq_handler(int irq, void *arg);
 void gaudi3_pdma_print_debug_info(struct hl_device *hdev, u32 ch_idx);
+void gaudi3_halt_engines_fw_config(struct hl_device *hdev);
+void gaudi3_set_isolation(struct hl_device *hdev, bool isolate_engines, bool isolate_hbm);
+void gaudi3_cn_ecos_override(struct hl_device *hdev);
+bool gaudi3_get_bfe_status(struct hbl_aux_dev *aux_dev, u8 bfe);
 int gaudi3_init_security_privileged(struct hl_device *hdev);
 void gaudi3_rtr_ctrl_config_rr(struct hl_device *hdev, int block, int inst, u32 offset,
 				struct iterate_module_ctx *ctx);
+int gaudi3_pldm_pll_info_get(struct hl_device *hdev, u32 pll_index, u16 *pll_freq_arr);
 void gaudi3_iterate_dtlbs(struct hl_device *hdev, struct iterate_module_ctx *ctx);
 void gaudi3_iterate_nrtr_dtlbs(struct hl_device *hdev, struct iterate_module_ctx *ctx);
+void gaudi3_init_pa_range_registers(struct hl_device *hdev);
 
 /* Functions exported for FPGA support */
 int gaudi3_early_fini(struct hl_device *hdev);
@@ -860,5 +932,14 @@ int gaudi3_set_engines(struct hl_device *hdev, u32 *engine_ids,
 int gaudi3_irq_vector(struct hl_device *hdev, unsigned int nr);
 int gaudi3_get_eeprom_data(struct hl_device *hdev, void *data, size_t max_size);
 void gaudi3_get_msi_info(__le32 *table);
+u8 gaudi3_is_irq_enabled(struct hl_device *hdev);
+
+/* Bringup functions (w/o F/W support) */
+u32 gaudi3_handle_axi_drain(struct hl_device *hdev, bool *pci_link_error);
+void gaudi3_cn_macros_fw_config(struct hl_device *hdev);
+void gaudi3_cn_restore_dynamic_cfg_soft_reset_fw(struct hl_device *hdev);
+void gaudi3_dtlb_nrtr_eco_fixup(struct hl_device *hdev);
+void gaudi3_ac_start_no_fw(struct hl_device *hdev, u32 etr_idx, u32 buf_size);
+void gaudi3_ac_stop_no_fw(struct hl_device *hdev, u32 etr_idx);
 
 #endif /* GAUDI3P_H_ */

@@ -190,7 +190,9 @@ enum {
  * Message codes of SCAL for firmware usage
  * Updated by SCAL into SCHED_SCAL_STATUS register
  */
-#define SCAL_INIT_COMPLETED		0x00010000
+enum {
+	SCAL_INIT_COMPLETED = 0x00010000
+};
 
 /**
  * \enum    qman_engine_type_t
@@ -240,25 +242,53 @@ enum scheduler_type_t {
 	SCHED_TYPE_SCALE_OUT_SEND = 3,
 	SCHED_TYPE_SCALE_UP_RECV = 4,
 	SCHED_TYPE_SCALE_UP_SEND = 5,
-	SCHED_TYPE_COUNT = 6,
+	SCHED_TYPE_CME = 6,
+	SCHED_TYPE_COUNT = 7,
 	SCHED_TYPE_SIZE = 0xF
 };
 
 /**
- * \enum    scheduler_type_t
+ * \enum    fence_id_t
  * \brief   Fence IDs used by Engines FW
  * \details Engine Firmware uses following two fences
  *	    for sync scheme and back to back execution
  */
 enum {
 	SYNC_SCHEME_FENCE_ID = 0,
-	B2B_FENCE_ID = 1
+	EXT_SIGNAL_FENCE_ID = SYNC_SCHEME_FENCE_ID,
+	B2B_FENCE_ID = 1,
+	QMAN_SYNC_FENCE_ID = 1,
+	GC_USED_FENCE_ID = 2,
+	MCID_ROLLOVER_FENCE_ID = 3
 };
+
+/**
+ * \enum    mcid_wr64_base_ids_t
+ * \brief   QMAN WR64 base registers used by firmware
+ * \details Various QMAN WR64 base registers used by firmware for
+ *          MCID patching
+ */
+enum mcid_wr64_base_ids_t {
+	DEGRADE_MCID_WR64_BASE_ID_0 = 28,
+	DEGRADE_MCID_WR64_BASE_ID_1 = 29,
+	DISCARD_MCID_WR64_BASE_ID_0 = 30,
+	DISCARD_MCID_WR64_BASE_ID_1 = 31
+};
+
+/**
+ * Max number of MMEs
+ */
+#define GAUDI3_MAX_MME_COUNT		8
 
 /**
  * Total number of engine groups supported by firmware
  */
 #define QMAN_ENGINE_GROUP_TYPE_COUNT		16
+
+/**
+ * Total number of Dcores
+ */
+#define SCHED_ARC_MAX_DCORE				4
 
 /**
  * Total number of HDcores
@@ -283,7 +313,7 @@ enum {
 /**
  * Total number of Fence counters per scheduler instance
  */
-#define SCHED_ARC_GLOBAL_FENCE_COUNTERS_COUNT	32
+#define SCHED_ARC_GLOBAL_FENCE_COUNTERS_COUNT	64
 
 /**
  * Size of the DCCM CCB buffer in bytes. All the commands in the CCB
@@ -312,6 +342,11 @@ enum sched_cmpt_sync_scheme_bitmap {
  * Long DBG SOB Monitor count per engine, needs a long monitor
  */
 #define SCHED_CMPT_ENG_SYNC_SCHEME_DBG_MON_COUNT	4
+
+/**<
+ * Long EXT SIGNAL SOB Monitor count per engine, needs a long monitor
+ */
+#define SCHED_CMPT_ENG_EXT_SIG_MON_COUNT	4
 
 /**<
  * B2B Monitor count per engine

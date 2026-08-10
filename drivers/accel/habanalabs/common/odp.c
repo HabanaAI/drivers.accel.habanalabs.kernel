@@ -1,13 +1,23 @@
 // SPDX-License-Identifier: GPL-2.0
 
 /*
- * Copyright 2022 HabanaLabs, Ltd.
+ * Copyright 2022-2024 HabanaLabs, Ltd.
+ * Copyright (C) 2024-2025, Intel Corporation.
  * All Rights Reserved.
  */
 
 #include <generated/uapi/linux/version.h>
 
 #include "habanalabs.h"
+
+/*
+ * Due to several major redesigns of the mmu interval notifier and HMM in
+ * recent kernel releases, it was decided to begin support from kernel 5.5
+ * with mmu_interval_read_begin interface defined.
+ */
+#if KERNEL_VERSION(5, 5, 0) <= LINUX_VERSION_CODE && \
+	defined(_HAS_MMU_INTERVAL_READ_BEGIN) && \
+	defined(_HAS_HMM_RANGE_INTERVAL_NOTIFIER)
 
 #include <linux/mmu_notifier.h>
 #include <linux/hmm.h>
@@ -19,6 +29,24 @@
 
 static_assert(RA_SIMPLE_FORWARD > 0);
 static_assert(RA_SIMPLE_BACKWARD >= 0);
+
+#ifdef _HAS_MMU_RANGE_FLAGS
+/* Note: older kernel */
+static const uint64_t hmm_range_flags[HMM_PFN_FLAG_MAX] = {
+	(1 << 0), /* HMM_PFN_VALID */
+	(1 << 1), /* HMM_PFN_WRITE */
+#ifdef _HAS_HMM_PFN_DEVICE_PRIVATE
+	(1 << 2) /* HMM_PFN_DEVICE_PRIVATE */
+#endif
+};
+static const uint64_t hmm_range_values[HMM_PFN_VALUE_MAX] = {
+	0xfffffffffffffffeULL, /* HMM_PFN_ERROR */
+	0, /* HMM_PFN_NONE */
+	0xfffffffffffffffcULL /* HMM_PFN_SPECIAL */
+};
+#define HMM_PFN_REQ_FAULT hmm_range_flags[HMM_PFN_VALID]
+#define HMM_PFN_REQ_WRITE hmm_range_flags[HMM_PFN_WRITE]
+#endif
 
 /**
  * struct hl_odp_region_ctx - odp context descriptor
@@ -63,7 +91,7 @@ bool hl_is_odp_supported(struct hl_device *hdev)
 void hl_odp_page_fault_read_ahead_size(struct hl_odp_region_ctx *rg, u64 va,
 				       u64 *ra_start_va, u32 *ra_npages)
 {
-	u32 start_page, region_npages, npages;
+	u64 start_page, region_npages, npages;
 
 	start_page = (va - round_down(rg->device_vaddr, PAGE_SIZE)) >> PAGE_SHIFT;
 	region_npages =
@@ -120,8 +148,8 @@ struct hl_odp_region_ctx *hl_odp_region_ctx_find(struct hl_ctx *ctx, u64 vaddr)
 	int i;
 
 	/*
-	 * Note: An interval tree could be used for more efficient search
-	 * instead of iterating all possible regions.
+	 * TODO: [SW-220012] Rather than iterating all possible regions, it is better to
+	 * maintain an interval tree for efficient search.
 	 */
 
 	mutex_lock(&ctx->mem_hash_lock);
@@ -137,6 +165,12 @@ struct hl_odp_region_ctx *hl_odp_region_ctx_find(struct hl_ctx *ctx, u64 vaddr)
 				PAGE_SIZE);
 		if (vaddr >= start && vaddr < end) {
 			mutex_unlock(&ctx->mem_hash_lock);
+			/*
+			 * if odp_rg is null here, it means that vaddr was mapped without odp
+			 * support. So we are not suppose to get a page fault and search for
+			 * the odp range
+			 */
+			WARN_ON_ONCE(!userptr->odp_rg);
 			return userptr->odp_rg;
 		}
 	}
@@ -177,7 +211,7 @@ struct hl_odp_region_ctx *hl_odp_region_ctx_create(struct hl_device *hdev,
 					  addr, size, &odp_notifier_ops);
 
 	if (unlikely(rc)) {
-		dev_err(hdev->dev,
+		hl_err(hdev,
 			"Error trying to setup interval notifier for region %#llx of size %#llx: %d",
 			addr, size, rc);
 		goto free_rg;
@@ -202,8 +236,8 @@ out:
  */
 void hl_odp_region_ctx_destroy(struct hl_odp_region_ctx *rg)
 {
-	struct hl_device *hdev = rg->ctx->hdev;
 	struct hl_ctx *ctx = rg->ctx;
+	struct hl_device *hdev;
 	dma_addr_t dma_addr;
 	void *entry;
 	u64 device_addr;
@@ -212,19 +246,25 @@ void hl_odp_region_ctx_destroy(struct hl_odp_region_ctx *rg)
 
 	mmu_interval_notifier_remove(&rg->notifier);
 
+	if (!ctx)
+		goto no_ctx_yet;
+
+	hdev = ctx->hdev;
 
 	xa_for_each(&rg->pt, va_pfn, entry) {
+
 		device_addr = (va_pfn << PAGE_SHIFT);
 		dma_addr = xa_to_value(entry);
 		rc = hl_mmu_unmap_page(ctx, device_addr, PAGE_SIZE, true);
 		if (rc)
-			dev_err(hdev->dev,
+			hl_err(hdev,
 				"Error while unmapping %#llx (device_addr=%#llx): %d",
 				dma_addr, device_addr, rc);
 		hl_dma_unmap_page(hdev, dma_addr, PAGE_SIZE, rg->userptr->dir);
 		xa_erase(&rg->pt, va_pfn);
 	}
 
+no_ctx_yet:
 	xa_destroy(&rg->pt);
 	kfree(rg);
 }
@@ -241,7 +281,7 @@ void hl_odp_region_ctx_destroy(struct hl_odp_region_ctx *rg)
  * PMMU with the new page addresses.
  */
 static int odp_mmu_update_page_in_locked(struct hl_odp_region_ctx *rg,
-				  unsigned long *pfns, u32 start_page,
+				  unsigned long *pfns, u64 start_page,
 				  u64 npages)
 {
 	struct hl_device *hdev = rg->ctx->hdev;
@@ -254,9 +294,8 @@ static int odp_mmu_update_page_in_locked(struct hl_odp_region_ctx *rg,
 
 	addr = round_down(rg->userptr->addr, PAGE_SIZE) +
 	       start_page * PAGE_SIZE;
-	start_device_addr = device_addr =
-		round_down(rg->device_vaddr, PAGE_SIZE) +
-		start_page * PAGE_SIZE;
+	start_device_addr = round_down(rg->device_vaddr, PAGE_SIZE) + start_page * PAGE_SIZE;
+	device_addr = start_device_addr;
 
 	for (i = 0; i < npages;
 	     ++i, device_addr += PAGE_SIZE, addr += PAGE_SIZE) {
@@ -316,22 +355,36 @@ rollback:
  * odp_resolve_pfns - normalize and remove hmm flags from pfns
  *
  * @range: target hmm_range struct
+ * @hdev: habanalabs device pointer
  *
  * Resolve the pfns represented by given hmm range
  */
-static void odp_resolve_pfns(struct hmm_range *range)
+static int odp_resolve_pfns(struct hmm_range *range, struct hl_device *hdev)
 {
 	struct page *page;
 	u32 npages = (range->end - range->start) >> PAGE_SHIFT;
 	unsigned long *pfns;
 	int i;
 
+#ifdef _HAS_HMM_RANGE_HMM_PFNS
+	/* Note: upstream kernel */
 	pfns = (unsigned long *)range->hmm_pfns;
+#else
+	/* Note: older kernel */
+	pfns = (unsigned long *)range->pfns;
+#endif
 
 	for (i = 0; i < npages; ++i) {
+		if (!(pfns[i] & HMM_PFN_VALID))
+			return -EFAULT;
 		page = hmm_pfn_to_page(pfns[i]);
-		pfns[i] = page ? page_to_pfn(page) : 0;
+		if (unlikely(!page)) {
+			hl_err(hdev, "Invalid page for PFN %lx\n", pfns[i]);
+			return -EFAULT;
+		}
+		pfns[i] = page_to_pfn(page);
 	}
+	return 0;
 }
 
 /**
@@ -368,7 +421,7 @@ static bool odp_mmu_update_page_out_locked(struct hl_odp_region_ctx *rg, u64 sta
 		device_addr = (va_pfn << PAGE_SHIFT);
 		rc = hl_mmu_unmap_page(ctx, device_addr, PAGE_SIZE, true);
 		if (rc) {
-			dev_err(hdev->dev,
+			hl_err(hdev,
 				"Error while unmapping %#llx (device_addr=%#llx): %d",
 				dma_addr, device_addr, rc);
 			return false;
@@ -411,7 +464,7 @@ int hl_odp_page_in(struct hl_odp_region_ctx *rg, u64 start_va, u64 npages)
 	struct hmm_range range;
 	unsigned long *pfns;
 	u64 start, end;
-	u32 start_page;
+	u64 start_page;
 	int rc, retries = MAX_PAGE_IN_RETRIES;
 
 	pfns = kvmalloc_array(npages, sizeof(*pfns), GFP_KERNEL);
@@ -425,7 +478,20 @@ int hl_odp_page_in(struct hl_odp_region_ctx *rg, u64 start_va, u64 npages)
 		start_page * PAGE_SIZE;
 	end = start + npages * PAGE_SIZE;
 
+#ifdef _HAS_MMU_RANGE_FLAGS
+	/* Note: older kernel */
+	range.flags = hmm_range_flags;
+	range.values = hmm_range_values;
+	range.pfn_shift = PAGE_SHIFT;
+#endif
+
+#ifdef _HAS_HMM_RANGE_HMM_PFNS
+	/* Note: upstream kernel */
 	range.hmm_pfns = pfns;
+#else
+	/* Note: older kernel */
+	range.pfns = (u64 *)pfns;
+#endif
 
 	range.default_flags = HMM_PFN_REQ_FAULT;
 	if (rg->userptr->dir == DMA_BIDIRECTIONAL ||
@@ -442,9 +508,13 @@ int hl_odp_page_in(struct hl_odp_region_ctx *rg, u64 start_va, u64 npages)
 again:
 	range.notifier_seq = mmu_interval_read_begin(&rg->notifier);
 	mmap_read_lock(rg->notifier.mm);
-
+#ifdef _HAS_HMM_RANGE_FAULT_FLAGS
+	/* Note: older kernel */
+	rc = hmm_range_fault(&range, 0);
+#else
+	/* Note: upstream kernel */
 	rc = hmm_range_fault(&range);
-
+#endif
 	if (unlikely(rc < 0)) {
 		mmap_read_unlock(rg->notifier.mm);
 		if (rc == -EBUSY) {
@@ -453,7 +523,7 @@ again:
 			else
 				goto again;
 		}
-		kfree(pfns);
+		kvfree(pfns);
 		return rc;
 	}
 	mmap_read_unlock(rg->notifier.mm);
@@ -463,17 +533,20 @@ again:
 	if (mmu_interval_read_retry(&rg->notifier, range.notifier_seq)) {
 		mutex_unlock(&hdev->mmu_lock);
 		if (!retries--) {
-			kfree(pfns);
+			kvfree(pfns);
 			return -ETIMEDOUT;
 		}
 		goto again;
 	}
 
-	odp_resolve_pfns(&range);
+	rc = odp_resolve_pfns(&range, hdev);
+	if (rc)
+		goto free_pfns;
 
 	rc = odp_mmu_update_page_in_locked(rg, pfns, start_page, npages);
 
-	kfree(pfns);
+free_pfns:
+	kvfree(pfns);
 
 	mutex_unlock(&hdev->mmu_lock);
 
@@ -521,3 +594,41 @@ static bool odp_invalidate_handler(struct mmu_interval_notifier *notifier,
 	mutex_unlock(&hdev->mmu_lock);
 	return res;
 }
+
+#else
+
+bool hl_is_odp_supported(struct hl_device *hdev)
+{
+	return false;
+}
+
+void hl_odp_page_fault_read_ahead_size(struct hl_odp_region_ctx *rg, u64 va,
+				       u64 *ra_start_va, u32 *ra_npages)
+{
+}
+void hl_odp_set_region_va_data(struct hl_odp_region_ctx *rg, struct hl_ctx *ctx,
+			       u64 device_vaddr)
+{
+}
+struct hl_odp_region_ctx *hl_odp_region_ctx_find(struct hl_ctx *ctx, u64 vaddr)
+{
+	return NULL;
+}
+struct hl_odp_region_ctx *hl_odp_region_ctx_create(struct hl_device *hdev,
+						   struct hl_userptr *userptr)
+{
+	return NULL;
+}
+void hl_odp_region_ctx_destroy(struct hl_odp_region_ctx *rg)
+{
+}
+int hl_odp_page_in(struct hl_odp_region_ctx *rg, u64 start, u64 npages)
+{
+	return 0;
+}
+
+#endif /*
+	* KERNEL_VERSION(5, 5, 0) <= LINUX_VERSION_CODE &&
+	* defined(_HAS_MMU_INTERVAL_READ_BEGIN) &&
+	* defined(_HAS_HMM_RANGE_INTERVAL_NOTIFIER)
+	*/

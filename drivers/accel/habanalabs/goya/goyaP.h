@@ -161,6 +161,7 @@ struct goya_work_freq {
 struct goya_device {
 	/* TODO: remove hw_queues_lock after moving to scheduler code */
 	spinlock_t	hw_queues_lock;
+	struct mutex	hw_queues_lock_mutex;
 	struct goya_work_freq	*goya_work;
 
 	u64		mme_clk;
@@ -177,6 +178,9 @@ struct goya_device {
 	enum hl_pm_mng_profile		pm_mng_profile;
 };
 
+int goya_scrub_device_dram(struct hl_device *hdev, u64 val);
+int goya_set_dram_properties(struct hl_device *hdev);
+int goya_set_binning_masks(struct hl_device *hdev);
 int goya_set_fixed_properties(struct hl_device *hdev);
 int goya_mmu_init(struct hl_device *hdev);
 void goya_init_dma_qmans(struct hl_device *hdev);
@@ -188,6 +192,7 @@ void goya_ack_protection_bits_errors(struct hl_device *hdev);
 int goya_late_init(struct hl_device *hdev);
 void goya_late_fini(struct hl_device *hdev);
 
+void goya_set_pci_memory_regions(struct hl_device *hdev);
 void goya_ring_doorbell(struct hl_device *hdev, u32 hw_queue_id, u32 pi);
 void goya_pqe_write(struct hl_device *hdev, __le64 *pqe, struct hl_bd *bd);
 void goya_update_eq_ci(struct hl_device *hdev, u32 val);
@@ -247,5 +252,59 @@ void goya_mmu_remove_device_cpu_mappings(struct hl_device *hdev);
 u32 goya_get_queue_id_for_cq(struct hl_device *hdev, u32 cq_idx);
 u64 goya_get_device_time(struct hl_device *hdev, u32 die_index);
 int goya_set_frequency(struct hl_device *hdev, enum hl_pll_frequency freq);
+
+/* Functions exported because of simulator */
+int goya_cn_init(struct hl_device *hdev);
+void goya_cn_fini(struct hl_device *hdev);
+int goya_cn_control(struct hl_device *hdev, u32 op, void *input, void *output,
+			struct hl_ctx *ctx);
+int goya_ctx_init(struct hl_ctx *ctx);
+void goya_ctx_fini(struct hl_ctx *ctx);
+int goya_pre_schedule_cs(struct hl_cs *cs);
+int goya_collective_wait_init_cs(struct hl_cs *cs);
+int goya_collective_wait_create_jobs(struct hl_device *hdev,
+		struct hl_ctx *ctx, struct hl_cs *cs, u32 wait_queue_id,
+		u32 collective_engine_id, u32 encaps_signal_offset);
+int goya_get_hw_block_id(struct hl_device *hdev, u64 block_addr,
+				u32 *block_size, u32 *block_id);
+int goya_block_mmap(struct hl_device *hdev, struct vm_area_struct *vma,
+			u32 block_id, u32 block_size);
+void goya_fw_security_emulation_init(struct hl_device *hdev);
+void goya_fw_security_emulation_fini(struct hl_device *hdev, bool asic_dirty);
+
+int goya_mmu_invalidate_cache(struct hl_device *hdev, bool is_hard, u32 flags);
+int goya_mmu_invalidate_cache_range(struct hl_device *hdev, bool is_hard,
+					u32 flags, u32 asid, u64 va, u64 size);
+
+u32 goya_gen_signal_cb(struct hl_device *hdev, void *data, u16 sob_id,
+		u32 size, bool eb);
+u32 goya_gen_wait_cb(struct hl_device *hdev,
+		struct hl_gen_wait_properties *prop);
+u32 goya_get_sob_addr(struct hl_device *hdev, u32 sob_id);
+u32 *goya_get_stream_master_qid_arr(void);
+int goya_get_monitor_dump(struct hl_device *hdev, void *data);
+void goya_reset_sob(struct hl_device *hdev, void *data);
+void goya_reset_sob_group(struct hl_device *hdev, u16 sob_group);
+void goya_enable_events_from_fw(struct hl_device *hdev);
+int goya_ack_mmu_page_fault_or_access_error(struct hl_device *hdev,
+							u64 mmu_cap_mask);
+int goya_debugfs_read_dma(struct hl_device *hdev, u64 addr, u32 size,
+				void *blob_addr);
+int goya_map_pll_idx_to_fw_idx(u32 pll_idx);
+int goya_stop_external_queues(struct hl_device *hdev);
+int goya_stop_internal_queues(struct hl_device *hdev);
+void goya_dma_stall(struct hl_device *hdev);
+void goya_tpc_stall(struct hl_device *hdev);
+void goya_mme_stall(struct hl_device *hdev);
+void goya_disable_external_queues(struct hl_device *hdev);
+void goya_disable_internal_queues(struct hl_device *hdev);
+void goya_state_dump_init(struct hl_device *hdev);
+void goya_set_freq_to_low_job(struct work_struct *work);
+void goya_set_priv_assertions(struct hl_device *hdev, bool enable);
+
+/* Bringup functions */
+void goya_init_pll(struct hl_device *hdev);
+void goya_init_ddr_ch0(struct hl_device *hdev);
+void goya_init_ddr_ch1(struct hl_device *hdev);
 
 #endif /* GOYAP_H_ */

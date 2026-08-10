@@ -216,7 +216,7 @@ static int goya_coresight_timeout(struct hl_device *hdev, u64 addr,
 		timeout_usec);
 
 	if (rc) {
-		dev_err(hdev->dev,
+		hl_err(hdev,
 			"Timeout while waiting for coresight, addr: 0x%llx, position: %d, up: %d\n",
 				addr, position, up);
 		return -EFAULT;
@@ -234,7 +234,7 @@ static int goya_config_stm(struct hl_device *hdev,
 	int rc;
 
 	if (params->reg_idx >= ARRAY_SIZE(debug_stm_regs)) {
-		dev_err(hdev->dev, "Invalid register index in STM\n");
+		hl_err(hdev, "Invalid register index in STM\n");
 		return -EINVAL;
 	}
 
@@ -286,7 +286,7 @@ static int goya_config_stm(struct hl_device *hdev,
 
 		rc = goya_coresight_timeout(hdev, base_reg + 0xE80, 23, false);
 		if (rc) {
-			dev_err(hdev->dev,
+			hl_err(hdev,
 				"Failed to disable STM on timeout, error %d\n",
 				rc);
 			return rc;
@@ -307,7 +307,7 @@ static int goya_config_etf(struct hl_device *hdev,
 	int rc;
 
 	if (params->reg_idx >= ARRAY_SIZE(debug_etf_regs)) {
-		dev_err(hdev->dev, "Invalid register index in ETF\n");
+		hl_err(hdev, "Invalid register index in ETF\n");
 		return -EINVAL;
 	}
 
@@ -328,7 +328,7 @@ static int goya_config_etf(struct hl_device *hdev,
 
 	rc = goya_coresight_timeout(hdev, base_reg + 0x304, 6, false);
 	if (rc) {
-		dev_err(hdev->dev,
+		hl_err(hdev,
 			"Failed to %s ETF on timeout, error %d\n",
 				params->enable ? "enable" : "disable", rc);
 		return rc;
@@ -336,7 +336,7 @@ static int goya_config_etf(struct hl_device *hdev,
 
 	rc = goya_coresight_timeout(hdev, base_reg + 0xC, 2, true);
 	if (rc) {
-		dev_err(hdev->dev,
+		hl_err(hdev,
 			"Failed to %s ETF on timeout, error %d\n",
 				params->enable ? "enable" : "disable", rc);
 		return rc;
@@ -371,7 +371,7 @@ static int goya_etr_validate_address(struct hl_device *hdev, u64 addr,
 	u64 range_start, range_end;
 
 	if (addr > (addr + size)) {
-		dev_err(hdev->dev,
+		hl_err(hdev,
 			"ETR buffer size %llu overflow\n", size);
 		return false;
 	}
@@ -404,14 +404,14 @@ static int goya_config_etr(struct hl_device *hdev,
 
 	rc = goya_coresight_timeout(hdev, mmPSOC_ETR_FFCR, 6, false);
 	if (rc) {
-		dev_err(hdev->dev, "Failed to %s ETR on timeout, error %d\n",
+		hl_err(hdev, "Failed to %s ETR on timeout, error %d\n",
 				params->enable ? "enable" : "disable", rc);
 		return rc;
 	}
 
 	rc = goya_coresight_timeout(hdev, mmPSOC_ETR_STS, 2, true);
 	if (rc) {
-		dev_err(hdev->dev, "Failed to %s ETR on timeout, error %d\n",
+		hl_err(hdev, "Failed to %s ETR on timeout, error %d\n",
 				params->enable ? "enable" : "disable", rc);
 		return rc;
 	}
@@ -425,14 +425,14 @@ static int goya_config_etr(struct hl_device *hdev,
 			return -EINVAL;
 
 		if (input->buffer_size == 0) {
-			dev_err(hdev->dev,
+			hl_err(hdev,
 				"ETR buffer size should be bigger than 0\n");
 			return -EINVAL;
 		}
 
 		if (!goya_etr_validate_address(hdev,
 				input->buffer_address, input->buffer_size)) {
-			dev_err(hdev->dev, "buffer address is not valid\n");
+			hl_err(hdev, "buffer address is not valid\n");
 			return -EINVAL;
 		}
 
@@ -487,7 +487,7 @@ static int goya_config_funnel(struct hl_device *hdev,
 	u64 base_reg;
 
 	if (params->reg_idx >= ARRAY_SIZE(debug_funnel_regs)) {
-		dev_err(hdev->dev, "Invalid register index in FUNNEL\n");
+		hl_err(hdev, "Invalid register index in FUNNEL\n");
 		return -EINVAL;
 	}
 
@@ -508,7 +508,7 @@ static int goya_config_bmon(struct hl_device *hdev,
 	u32 pcie_base = 0;
 
 	if (params->reg_idx >= ARRAY_SIZE(debug_bmon_regs)) {
-		dev_err(hdev->dev, "Invalid register index in BMON\n");
+		hl_err(hdev, "Invalid register index in BMON\n");
 		return -EINVAL;
 	}
 
@@ -584,7 +584,7 @@ static int goya_config_spmu(struct hl_device *hdev,
 	int i;
 
 	if (params->reg_idx >= ARRAY_SIZE(debug_spmu_regs)) {
-		dev_err(hdev->dev, "Invalid register index in SPMU\n");
+		hl_err(hdev, "Invalid register index in SPMU\n");
 		return -EINVAL;
 	}
 
@@ -597,13 +597,13 @@ static int goya_config_spmu(struct hl_device *hdev,
 			return -EINVAL;
 
 		if (input->event_types_num < 3) {
-			dev_err(hdev->dev,
+			hl_err(hdev,
 				"not enough event types values for SPMU enable\n");
 			return -EINVAL;
 		}
 
 		if (input->event_types_num > SPMU_MAX_COUNTERS) {
-			dev_err(hdev->dev,
+			hl_err(hdev,
 				"too many event types values for SPMU enable\n");
 			return -EINVAL;
 		}
@@ -628,13 +628,13 @@ static int goya_config_spmu(struct hl_device *hdev,
 			return -EINVAL;
 
 		if (output_arr_len < 3) {
-			dev_err(hdev->dev,
+			hl_err(hdev,
 				"not enough values for SPMU disable\n");
 			return -EINVAL;
 		}
 
 		if (events_num > SPMU_MAX_COUNTERS) {
-			dev_err(hdev->dev,
+			hl_err(hdev,
 				"too many events values for SPMU disable\n");
 			return -EINVAL;
 		}
@@ -685,7 +685,7 @@ int goya_debug_coresight(struct hl_device *hdev, struct hl_ctx *ctx, void *data)
 		break;
 
 	default:
-		dev_err(hdev->dev, "Unknown coresight id %d\n", params->op);
+		hl_err(hdev, "Unknown coresight id %d\n", params->op);
 		return -EINVAL;
 	}
 
@@ -704,10 +704,10 @@ void goya_halt_coresight(struct hl_device *hdev, struct hl_ctx *ctx)
 		params.reg_idx = i;
 		rc = goya_config_etf(hdev, &params);
 		if (rc)
-			dev_err(hdev->dev, "halt ETF failed, %d/%d\n", rc, i);
+			hl_err(hdev, "halt ETF failed, %d/%d\n", rc, i);
 	}
 
 	rc = goya_config_etr(hdev, &params);
 	if (rc)
-		dev_err(hdev->dev, "halt ETR failed, %d\n", rc);
+		hl_err(hdev, "halt ETR failed, %d\n", rc);
 }

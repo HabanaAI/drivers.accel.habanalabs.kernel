@@ -22,7 +22,7 @@ static int cb_map_mem(struct hl_ctx *ctx, struct hl_cb *cb)
 	int rc;
 
 	if (!hdev->supports_cb_mapping) {
-		dev_err_ratelimited(hdev->dev,
+		hl_err_ratelimited(hdev,
 				"Mapping a CB to the device's MMU is not supported\n");
 		return -EINVAL;
 	}
@@ -34,7 +34,7 @@ static int cb_map_mem(struct hl_ctx *ctx, struct hl_cb *cb)
 
 	cb->virtual_addr = (u64) gen_pool_alloc(ctx->cb_va_pool, cb->roundup_size);
 	if (!cb->virtual_addr) {
-		dev_err(hdev->dev, "Failed to allocate device virtual address for CB\n");
+		hl_err(hdev, "Failed to allocate device virtual address for CB\n");
 		return -ENOMEM;
 	}
 
@@ -42,7 +42,7 @@ static int cb_map_mem(struct hl_ctx *ctx, struct hl_cb *cb)
 
 	rc = hl_mmu_map_contiguous(ctx, cb->virtual_addr, cb->bus_address, cb->roundup_size);
 	if (rc) {
-		dev_err(hdev->dev, "Failed to map VA %#llx to CB\n", cb->virtual_addr);
+		hl_err(hdev, "Failed to map VA %#llx to CB\n", cb->virtual_addr);
 		goto err_va_pool_free;
 	}
 
@@ -144,7 +144,7 @@ static struct hl_cb *hl_cb_alloc(struct hl_device *hdev, u32 cb_size,
 	}
 
 	if (!p) {
-		dev_err(hdev->dev,
+		hl_err(hdev,
 			"failed to allocate %d of dma memory for CB\n",
 			cb_size);
 		kfree(cb);
@@ -203,7 +203,7 @@ static int hl_cb_mmap_mem_alloc(struct hl_mmap_mem_buf *buf, gfp_t gfp, void *ar
 				alloc_new_cb = false;
 			} else {
 				spin_unlock(&cb_args->hdev->cb_pool_lock);
-				dev_dbg(cb_args->hdev->dev, "CB pool is empty\n");
+				hl_dbg(cb_args->hdev, "CB pool is empty\n");
 			}
 		}
 	}
@@ -224,7 +224,7 @@ static int hl_cb_mmap_mem_alloc(struct hl_mmap_mem_buf *buf, gfp_t gfp, void *ar
 
 	if (cb_args->map_cb) {
 		if (ctx_id == HL_KERNEL_ASID_ID) {
-			dev_err(cb_args->hdev->dev,
+			hl_err(cb_args->hdev,
 				"CB mapping is not supported for kernel context\n");
 			rc = -EINVAL;
 			goto release_cb;
@@ -278,24 +278,26 @@ int hl_cb_create(struct hl_device *hdev, struct hl_mem_mgr *mmg,
 	int ctx_id = ctx->asid;
 
 	if ((hdev->disabled) || (hdev->reset_info.in_reset && (ctx_id != HL_KERNEL_ASID_ID))) {
-		dev_warn_ratelimited(hdev->dev,
+		hl_warn_ratelimited(hdev,
 			"Device is disabled or in reset. Can't create new CBs\n");
 		return -EBUSY;
 	}
 
 	if (cb_size > SZ_2M) {
-		dev_err(hdev->dev, "CB size %d must be less than %d\n",
+		hl_err(hdev, "CB size %d must be less than %d\n",
 			cb_size, SZ_2M);
 		return -EINVAL;
 	}
 
-	buf = hl_mmap_mem_buf_alloc(
+	buf = hl_mmap_mem_buf_alloc_get(
 		mmg, &cb_behavior,
 		ctx_id == HL_KERNEL_ASID_ID ? GFP_ATOMIC : GFP_KERNEL, &args);
 	if (!buf)
 		return -ENOMEM;
 
 	*handle = buf->handle;
+	/* decrement the refcount incremented by hl_mmap_mem_buf_alloc_get */
+	hl_mmap_mem_buf_put(buf);
 
 	return 0;
 }
@@ -307,7 +309,7 @@ int hl_cb_destroy(struct hl_mem_mgr *mmg, u64 cb_handle)
 
 	cb = hl_cb_get(mmg, cb_handle);
 	if (!cb) {
-		dev_dbg(mmg->hdev->dev, "CB destroy failed, no CB was found for handle %#llx\n",
+		hl_dbg(mmg->hdev, "CB destroy failed, no CB was found for handle %#llx\n",
 			cb_handle);
 		return -EINVAL;
 	}
@@ -316,7 +318,7 @@ int hl_cb_destroy(struct hl_mem_mgr *mmg, u64 cb_handle)
 	rc = atomic_cmpxchg(&cb->is_handle_destroyed, 0, 1);
 	hl_cb_put(cb);
 	if (rc) {
-		dev_dbg(mmg->hdev->dev, "CB destroy failed, handle %#llx was already destroyed\n",
+		hl_dbg(mmg->hdev, "CB destroy failed, handle %#llx was already destroyed\n",
 			cb_handle);
 		return -EINVAL;
 	}
@@ -326,7 +328,7 @@ int hl_cb_destroy(struct hl_mem_mgr *mmg, u64 cb_handle)
 		return rc; /* Invalid handle */
 
 	if (rc == 0)
-		dev_dbg(mmg->hdev->dev, "CB 0x%llx is destroyed while still in use\n", cb_handle);
+		hl_dbg(mmg->hdev, "CB 0x%llx is destroyed while still in use\n", cb_handle);
 
 	return 0;
 }
@@ -339,7 +341,7 @@ static int hl_cb_info(struct hl_mem_mgr *mmg,
 
 	cb = hl_cb_get(mmg, handle);
 	if (!cb) {
-		dev_err(mmg->hdev->dev,
+		hl_err(mmg->hdev,
 			"CB info failed, no match to handle 0x%llx\n", handle);
 		return -EINVAL;
 	}
@@ -348,7 +350,7 @@ static int hl_cb_info(struct hl_mem_mgr *mmg,
 		if (cb->is_mmu_mapped) {
 			*device_va = cb->virtual_addr;
 		} else {
-			dev_err(mmg->hdev->dev, "CB is not mapped to the device's MMU\n");
+			hl_err(mmg->hdev, "CB is not mapped to the device's MMU\n");
 			rc = -EINVAL;
 			goto out;
 		}
@@ -372,7 +374,7 @@ int hl_cb_ioctl(struct drm_device *ddev, void *data, struct drm_file *file_priv)
 	int rc;
 
 	if (!hl_device_operational(hdev, &status)) {
-		dev_dbg_ratelimited(hdev->dev,
+		hl_dbg_ratelimited(hdev,
 			"Device is %s. Can't execute CB IOCTL\n",
 			hdev->status[status]);
 		return -EBUSY;
@@ -381,7 +383,7 @@ int hl_cb_ioctl(struct drm_device *ddev, void *data, struct drm_file *file_priv)
 	switch (args->in.op) {
 	case HL_CB_OP_CREATE:
 		if (args->in.cb_size > HL_MAX_CB_SIZE) {
-			dev_err(hdev->dev,
+			hl_err(hdev,
 				"User requested CB size %d must be less than %d\n",
 				args->in.cb_size, HL_MAX_CB_SIZE);
 			rc = -EINVAL;
@@ -432,8 +434,13 @@ struct hl_cb *hl_cb_get(struct hl_mem_mgr *mmg, u64 handle)
 	buf = hl_mmap_mem_buf_get(mmg, handle);
 	if (!buf)
 		return NULL;
-	return buf->private;
 
+	/* verify this is a CB */
+	if (buf->behavior && (buf->behavior->mem_id == cb_behavior.mem_id))
+		return buf->private;
+
+	hl_mmap_mem_buf_put(buf);
+	return NULL;
 }
 
 void hl_cb_put(struct hl_cb *cb)
@@ -451,7 +458,7 @@ struct hl_cb *hl_cb_kernel_create(struct hl_device *hdev, u32 cb_size,
 	rc = hl_cb_create(hdev, &hdev->kernel_mem_mgr, hdev->kernel_ctx, cb_size,
 				internal_cb, false, &cb_handle);
 	if (rc) {
-		dev_err(hdev->dev,
+		hl_err(hdev,
 			"Failed to allocate CB for the kernel driver %d\n", rc);
 		return NULL;
 	}
@@ -459,7 +466,7 @@ struct hl_cb *hl_cb_kernel_create(struct hl_device *hdev, u32 cb_size,
 	cb = hl_cb_get(&hdev->kernel_mem_mgr, cb_handle);
 	/* hl_cb_get should never fail here */
 	if (!cb) {
-		dev_crit(hdev->dev, "Kernel CB handle invalid 0x%x\n",
+		hl_crit(hdev, "Kernel CB handle invalid 0x%x\n",
 				(u32) cb_handle);
 		goto destroy_cb;
 	}
@@ -518,7 +525,7 @@ int hl_cb_va_pool_init(struct hl_ctx *ctx)
 
 	ctx->cb_va_pool = gen_pool_create(__ffs(prop->pmmu.page_size), -1);
 	if (!ctx->cb_va_pool) {
-		dev_err(hdev->dev,
+		hl_err(hdev,
 			"Failed to create VA gen pool for CB mapping\n");
 		return -ENOMEM;
 	}
@@ -531,7 +538,7 @@ int hl_cb_va_pool_init(struct hl_ctx *ctx)
 	}
 	rc = gen_pool_add(ctx->cb_va_pool, ctx->cb_va_pool_base, CB_VA_POOL_SIZE, -1);
 	if (rc) {
-		dev_err(hdev->dev,
+		hl_err(hdev,
 			"Failed to add memory to VA gen pool for CB mapping\n");
 		goto err_unreserve_va_block;
 	}

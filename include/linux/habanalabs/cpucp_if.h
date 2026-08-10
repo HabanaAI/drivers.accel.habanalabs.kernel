@@ -1,6 +1,7 @@
 /* SPDX-License-Identifier: GPL-2.0
  *
  * Copyright 2020-2023 HabanaLabs, Ltd.
+ * Copyright (C) 2023-2025, Intel Corporation.
  * All Rights Reserved.
  *
  */
@@ -50,6 +51,10 @@ enum eq_event_id {
 	EQ_EVENT_THERMAL_EVT_START,
 	EQ_EVENT_THERMAL_EVT_END,
 	EQ_EVENT_PVT_ALARM_EVT,
+	EQ_EVENT_BIS_VIOLATION,
+	EQ_EVENT_VR_OC_VIOLATION,
+	EQ_EVENT_MULTI_SERR,
+	EQ_EVENT_FW_RESET,
 };
 
 /*
@@ -290,9 +295,61 @@ struct hl_eq_razwi_mstr_if_block_data {
 };
 
 /**
+ * struct hl_eq_xresp_reg_data - XRESP register information
+ * @hi_reg: 32 bit MSB register value
+ * @lo_reg: 32 bit LSB register value
+ * @id: XRESP captured ID
+ * @misc: XRESP user and response information
+ * @pad: padding
+ */
+struct hl_eq_xresp_reg_data {
+	__le32 hi_reg;
+	__le32 lo_reg;
+	__le32 id;
+	__le16 misc;
+	__u8 pad[2];
+};
+
+/**
+ * struct hl_eq_razwi_xresp_block_data - MSTR IF XRESP block information
+ * @aw: Write XRESP information
+ * @ar: Read XRESP information
+ */
+struct hl_eq_razwi_xresp_block_data {
+	struct hl_eq_xresp_reg_data aw;
+	struct hl_eq_xresp_reg_data ar;
+};
+
+/**
+ * struct hl_eq_razwi_xresp_block_info - MSTR IF XRESP block LBW and HBW info
+ * @size: Size of "struct hl_eq_razwi_xresp_block_info"
+ * @pad: Padding
+ * @lbw_data: LBW AW and AR data
+ * @hbw_data: HBW AW and AR data
+ *
+ * This structure adds more MSTR_IF XRESP info on top of
+ * "struct hl_eq_razwi_xresp_data" which is part of
+ * "struct hl_eq_razwi_mstr_if_data". Read the cause values
+ * from "struct hl_eq_razwi_xresp_data" and data from
+ * "struct hl_eq_razwi_xresp_block_info".
+ */
+struct hl_eq_razwi_xresp_block_info {
+	__le16 size;
+	__u8 pad[6];
+	struct hl_eq_razwi_xresp_block_data lbw_data;
+	struct hl_eq_razwi_xresp_block_data hbw_data;
+};
+
+/**
  * struct hl_eq_razwi_xresp_data - MSTR IF XRESP information
  * @lbw: LBW cause information
  * @hbw: HBW cause information
+ *
+ * The structure "struct hl_eq_razwi_xresp_block_info" extends
+ * "struct hl_eq_razwi_xresp_data" where this structure provide
+ * cause information of MSTR IF xresp block for LBW and HBW and
+ * "struct hl_eq_razwi_xresp_block_info" provides data
+ * information.
  */
 struct hl_eq_razwi_xresp_data {
 	struct hl_eq_intr_cause lbw;
@@ -331,6 +388,7 @@ struct hl_eq_razwi_rtr_data {
  * @rtr_data: RTR RAZWI LBW and HBW information
  * @mstr_if_data: MSTR IF RAZWI information
  * @glbl_err_data: Global error information
+ * @xresp_data: MSTR IF XRESP LBW and HBW data
  *
  * This data structure will be used as part of hl_eq_dynamic_entry
  * data structure.
@@ -340,6 +398,7 @@ struct hl_eq_razwi_with_intr_cause_data {
 	struct hl_eq_razwi_rtr_data rtr_data;
 	struct hl_eq_razwi_mstr_if_data mstr_if_data;
 	struct hl_eq_glbl_err glbl_err_data;
+	struct hl_eq_razwi_xresp_block_info xresp_data;
 };
 
 struct hl_eq_razwi_lbw_info_regs {
@@ -920,6 +979,7 @@ struct hl_eq_pcie_sei_data {
 	struct hl_eq_razwi_rtr_data rtr_data;
 	struct hl_eq_razwi_mstr_if_data mstr_if_data[PCIE_MSTR_IF_MAX];
 	struct hl_eq_glbl_err glbl_err_data;
+	struct hl_eq_razwi_xresp_block_info xresp_data[PCIE_MSTR_IF_MAX];
 };
 
 enum hl_cs_dbg_mme_sub_type {
@@ -999,13 +1059,17 @@ enum hl_nic_spi_type {
 /**
  * struct hl_eq_nic_spi_data - NIC SPI event information
  * @spi_type: enum hl_nic_spi_type
- * @pad: padding bytes
+ * @pad0: padding byte
+ * @sw_err_rxb_drop_cnt: 16-bit counter for packets dropped due to no available buffers
+ * @pad1: additional padding bytes
  * @hl_eq_nic_sw_err_data: sw error cause information
  * @spmu_bmon_data: bmon cause information
  */
 struct hl_eq_nic_spi_data {
 	__u8 spi_type;
-	__u8 pad[7];
+	__u8 pad0;
+	__le16 sw_err_rxb_drop_cnt;
+	__u8 pad1[4];
 	union {
 		struct hl_eq_nic_sw_err_data sw_err_data;
 		struct hl_eq_spmu_bmon spmu_bmon_data;
@@ -1115,6 +1179,7 @@ struct hl_eq_qm_sei_data {
  * @rtr_data: RTR RAZWI LBW and HBW information
  * @mstr_if_data: MSTR IF RAZWI information
  * @glbl_err_data: Global error information
+ * @xresp_data: MSTR IF XRESP LBW and HBW data
  *
  * For any SEI event related to TPC, FW will forward
  * hl_eq_tpc_sei_data data structure to LKD. LKD should
@@ -1127,6 +1192,7 @@ struct hl_eq_tpc_sei_data {
 	struct hl_eq_razwi_rtr_data rtr_data;
 	struct hl_eq_razwi_mstr_if_data mstr_if_data;
 	struct hl_eq_glbl_err glbl_err_data;
+	struct hl_eq_razwi_xresp_block_info xresp_data;
 };
 
 #define HL_EQ_ROT_CTX_ID_MAX	28
@@ -1176,6 +1242,7 @@ struct hl_eq_rot_spi_data {
  * @rtr_data: RTR RAZWI LBW and HBW information
  * @mstr_if_data: MSTR IF RAZWI information
  * @glbl_err_data: Global error information
+ * @xresp_data: MSTR IF XRESP LBW and HBW data
  *
  * For any SEI event related to rotator, FW will forward
  * hl_eq_rot_sei_data data structure to LKD. Refer QM data
@@ -1187,6 +1254,7 @@ struct hl_eq_rot_sei_data {
 	struct hl_eq_razwi_rtr_data rtr_data;
 	struct hl_eq_razwi_mstr_if_data mstr_if_data;
 	struct hl_eq_glbl_err glbl_err_data;
+	struct hl_eq_razwi_xresp_block_info xresp_data;
 };
 
 enum hl_eq_mme_acc_ctx_id {
@@ -1323,6 +1391,7 @@ struct hl_eq_mme_ctrl_data {
  * @acc_data: MME ACC event information
  * @control_data: MME CTRL event information
  * @glbl_err_data: Global error information
+ * @xresp_data: MSTR IF XRESP LBW and HBW data
  *
  * For any SEI event related to MME, FW will forward
  * hl_eq_mme_sei_data data structure to LKD. LKD should
@@ -1337,6 +1406,7 @@ struct hl_eq_mme_sei_data {
 		struct hl_eq_mme_ctrl_data control_data;
 	};
 	struct hl_eq_glbl_err glbl_err_data;
+	struct hl_eq_razwi_xresp_block_info xresp_data;
 };
 
 /**
@@ -1430,6 +1500,7 @@ struct hl_eq_stlb_lbw_data {
  * @rtr_data: RTR RAZWI LBW and HBW information
  * @mstr_if_data: MSTR IF RAZWI information
  * @glbl_err_data: Global error information
+ * @xresp_data: MSTR IF XRESP LBW and HBW data
  *
  * For any SEI event related to STLB, FW will forward
  * hl_eq_stlb_sei_data data structure to LKD. LKD should
@@ -1445,6 +1516,7 @@ struct hl_eq_stlb_sei_data {
 	struct hl_eq_razwi_rtr_data rtr_data;
 	struct hl_eq_razwi_mstr_if_data mstr_if_data;
 	struct hl_eq_glbl_err glbl_err_data;
+	struct hl_eq_razwi_xresp_block_info xresp_data;
 };
 
 /**
@@ -1542,6 +1614,7 @@ struct hl_eq_edma_chn_data {
  * @rtr_data: RTR RAZWI LBW and HBW information
  * @mstr_if_data: MSTR IF RAZWI information
  * @glbl_err_data: Global error information
+ * @xresp_data: MSTR IF XRESP LBW and HBW data
  *
  * For any SEI event related to EDMA, FW will forward
  * hl_eq_edma_sei_data data structure to LKD. LKD should
@@ -1554,6 +1627,7 @@ struct hl_eq_edma_sei_data {
 	struct hl_eq_razwi_rtr_data rtr_data[SEDMA_ID_MAX];
 	struct hl_eq_razwi_mstr_if_data mstr_if_data[SEDMA_ID_MAX];
 	struct hl_eq_glbl_err glbl_err_data;
+	struct hl_eq_razwi_xresp_block_info xresp_data[SEDMA_ID_MAX];
 };
 
 enum hl_eq_arcfarm_mstr_if {
@@ -1571,6 +1645,7 @@ enum hl_eq_arcfarm_mstr_if {
  * @rtr_data: RTR RAZWI LBW and HBW information
  * @mstr_if_data: MSTR IF RAZWI information
  * @glbl_err_data: Global error information
+ * @xresp_data: MSTR IF XRESP LBW and HBW data
  *
  * For any SEI event related to ARC FARM, FW will forward
  * hl_eq_arcfarm_sei_data data structure to LKD. If internal cause
@@ -1584,6 +1659,7 @@ struct hl_eq_arcfarm_sei_data {
 	struct hl_eq_razwi_rtr_data rtr_data;
 	struct hl_eq_razwi_mstr_if_data mstr_if_data[ARCFARM_MSTR_IF_MAX];
 	struct hl_eq_glbl_err glbl_err_data;
+	struct hl_eq_razwi_xresp_block_info xresp_data[ARCFARM_MSTR_IF_MAX];
 };
 
 enum hl_eq_nic_mstr_if {
@@ -1603,6 +1679,7 @@ enum hl_eq_nic_mstr_if {
  * @rtr_data: RTR RAZWI LBW and HBW information
  * @mstr_if_data: MSTR IF RAZWI information
  * @glbl_err_data: Global error information
+ * @xresp_data: MSTR IF XRESP LBW and HBW data
  */
 struct hl_eq_nic_sei_data {
 	struct hl_eq_intr_cause rxb_core_cause;
@@ -1614,6 +1691,7 @@ struct hl_eq_nic_sei_data {
 	struct hl_eq_razwi_rtr_data rtr_data;
 	struct hl_eq_razwi_mstr_if_data mstr_if_data[NIC_MSTR_IF_MAX];
 	struct hl_eq_glbl_err glbl_err_data;
+	struct hl_eq_razwi_xresp_block_info xresp_data[NIC_MSTR_IF_MAX];
 };
 
 enum hl_eq_spdma_chn {
@@ -1672,10 +1750,12 @@ struct hl_eq_spdma_data {
  * struct hl_eq_pdma_sei_data - PDMA SEI event information
  * @spdma_data: SPDMA0 and 1 event information
  * @glbl_err_data: Global error information
+ * @xresp_data: MSTR IF XRESP LBW and HBW data
  */
 struct hl_eq_pdma_sei_data {
 	struct hl_eq_spdma_data spdma_data[SPDMA_ID_MAX];
 	struct hl_eq_glbl_err glbl_err_data;
+	struct hl_eq_razwi_xresp_block_info xresp_data[SPDMA_ID_MAX][SPDMA_MSTR_IF_MAX];
 };
 
 /**
@@ -1687,6 +1767,7 @@ struct hl_eq_pdma_sei_data {
  * @rtr_data: RTR RAZWI LBW and HBW information
  * @mstr_if_data: MSTR IF RAZWI information
  * @glbl_err_data: Global error information
+ * @xresp_data: MSTR IF XRESP LBW and HBW data
  */
 struct hl_eq_nch_sei_data {
 	struct hl_eq_intr_cause xresp_lbw;
@@ -1696,6 +1777,7 @@ struct hl_eq_nch_sei_data {
 	struct hl_eq_razwi_rtr_data rtr_data;
 	struct hl_eq_razwi_mstr_if_data mstr_if_data;
 	struct hl_eq_glbl_err glbl_err_data;
+	struct hl_eq_razwi_xresp_block_info xresp_data;
 };
 
 enum hl_eq_cpu_mstr_if {
@@ -1709,6 +1791,7 @@ struct hl_eq_cpu_sei_data {
 	struct hl_eq_razwi_rtr_data rtr_data;
 	struct hl_eq_razwi_mstr_if_data mstr_if_data[CPU_MSTR_IF_MAX];
 	struct hl_eq_glbl_err glbl_err_data;
+	struct hl_eq_razwi_xresp_block_info xresp_data[CPU_MSTR_IF_MAX];
 };
 
 enum hl_eq_parc_mstr_if {
@@ -1724,6 +1807,7 @@ struct hl_eq_parc_sei_data {
 	struct hl_eq_razwi_rtr_data rtr_data;
 	struct hl_eq_razwi_mstr_if_data mstr_if_data[PARC_MSTR_IF_MAX];
 	struct hl_eq_glbl_err glbl_err_data;
+	struct hl_eq_razwi_xresp_block_info xresp_data[PARC_MSTR_IF_MAX];
 };
 
 enum hl_eq_psoc_mstr_if {
@@ -1740,6 +1824,7 @@ struct hl_eq_psoc_sei_data {
 	struct hl_eq_razwi_rtr_data rtr_data;
 	struct hl_eq_razwi_mstr_if_data mstr_if_data[PSOC_MSTR_IF_MAX];
 	struct hl_eq_glbl_err glbl_err_data;
+	struct hl_eq_razwi_xresp_block_info xresp_data[PSOC_MSTR_IF_MAX];
 };
 
 /**
@@ -1775,6 +1860,7 @@ struct hl_eq_sob_cq_data {
  * @rtr_data: RTR RAZWI LBW and HBW information
  * @mstr_if_data: MSTR IF RAZWI information
  * @glbl_err_data: Global error information
+ * @xresp_data: MSTR IF XRESP LBW and HBW data
  */
 struct hl_eq_sob_sei_data {
 	struct hl_eq_intr_cause intr_cause;
@@ -1782,6 +1868,7 @@ struct hl_eq_sob_sei_data {
 	struct hl_eq_razwi_rtr_data rtr_data;
 	struct hl_eq_razwi_mstr_if_data mstr_if_data;
 	struct hl_eq_glbl_err glbl_err_data;
+	struct hl_eq_razwi_xresp_block_info xresp_data;
 };
 
 enum hl_eq_pmmu_err_type {
@@ -1819,6 +1906,28 @@ struct hl_eq_cpld_reset_reason {
 	__u8 pad[7];
 };
 
+enum hl_pvt_alarm_type {
+	PVT_TS_ALARM_A,
+	PVT_TS_ALARM_B,
+	PVT_ALARM_MAX
+};
+
+/**
+ * struct hl_eq_pvt_alarm_data
+ * @hdcore: hdcore: enum hl_agg_hdcore_type
+ * @die_id: die id
+ * @alarm_type: enum hl_pvt_alarm_type
+ * @chn_bitmask: bit mask of dts channels in pvt eg: ch 0 & 1 chn_num = 0x3, ch 8 & 2 chn_num= 0x104
+ * @pad: align to 8 bytes
+ */
+struct hl_eq_pvt_alarm_data {
+	__u8 hdcore;
+	__u8 die_id;
+	__u8 alarm_type;
+	__le16 chn_bitmask;
+	__u8 pad[3];
+};
+
 struct hl_eq_entry {
 	struct hl_eq_header hdr;
 	union {
@@ -1838,28 +1947,6 @@ struct hl_eq_entry {
 		struct hl_eq_nic_intr_cause nic_intr_cause;
 		__le64 data[7];
 	};
-};
-
-enum hl_pvt_alarm_type {
-	PVT_TS_ALARM_A,
-	PVT_TS_ALARM_B,
-	PVT_ALARM_MAX
-};
-
-/**
- * struct hl_eq_pvt_alarm_data
- * @hdcore: hdcore: enum hl_agg_hdcore_type
- * @die_id: die id
- * @alarm_type: enum hl_pvt_alarm_type
- * @chn_bitmask: bit mask of dts channels in pvt eg: ch 0 & 1 chn_num = 0x3, ch 8 & 2 chn_num= 0x104
- * @pad: align to 8 bytes
- */
-struct hl_eq_pvt_alarm_data {
-	uint8_t hdcore;
-	uint8_t die_id;
-	uint8_t alarm_type;
-	uint16_t chn_bitmask;
-	uint8_t pad[3];
 };
 
 /* entry size is dynamic and maximum size is passed during boot */
@@ -2284,6 +2371,17 @@ enum pq_init_status {
  *
  * CPUCP_PACKET_SET_HOST_TIME -
  *      Host time used for UART Logging
+ *
+ * CPUCP_PACKET_MEMORY_CONSUMPTION_SET -
+ *      LKD sends FW the device's memory consumption, this information is reported to the BMC
+ *
+ * CPUCP_PACKET_DRIVER_VERSION_SET -
+ *      LKD sends FW the version of host driver(s), this information is reported to the BMC
+ *
+ * CPUCP_PACKET_EARLY_WRITE_RESP_SET -
+ *      Enable or disable EWR (early write response).
+ *      This will also enable fabric serialization and fabric serialization enhancement
+ *      to increase performance.
  */
 
 enum cpucp_packet_id {
@@ -2356,6 +2454,9 @@ enum cpucp_packet_id {
 	CPUCP_PACKET_NIC_INIT_TMR_MEM,		/* internal */
 	CPUCP_PACKET_NIC_CLR_MEM,		/* internal */
 	CPUCP_PACKET_SET_HOST_TIME,		/* internal */
+	CPUCP_PACKET_MEMORY_CONSUMPTION_SET,	/* IOCTL */
+	CPUCP_PACKET_DRIVER_VERSION_SET,	/* internal */
+	CPUCP_PACKET_EARLY_WRITE_RESP_SET,	/* internal */
 	CPUCP_PACKET_ID_MAX			/* must be last */
 };
 
@@ -2502,6 +2603,21 @@ struct cpucp_array_data_packet {
 	__le32 data[];
 };
 
+struct cpucp_memory_consumption_packet {
+	struct cpucp_packet cpucp_pkt;
+	__le64 total_mem;
+	__le64 free_mem;
+	__le64 used_mem;
+	__le64 timestamp_sec;
+};
+
+struct cpucp_driver_version_packet {
+	struct cpucp_packet cpucp_pkt;
+	__u8 lkd_ver[VERSION_MAX_LEN];
+	__u8 rdma_ver[VERSION_MAX_LEN];
+	__u8 reserved_ver[VERSION_MAX_LEN];
+};
+
 enum cpucp_led_index {
 	CPUCP_LED0_INDEX = 0,
 	CPUCP_LED1_INDEX,
@@ -2608,7 +2724,10 @@ enum cpucp_pll_type_attributes {
 enum cpucp_power_type {
 	CPUCP_POWER_INPUT = 8,
 	CPUCP_POWER_INPUT_HIGHEST = 9,
-	CPUCP_POWER_RESET_INPUT_HISTORY = 11
+	CPUCP_POWER_RESET_INPUT_HISTORY = 11,
+	CPUCP_POWER_INPUT_MAX = 13, /* align to hwmon_power_cap */
+	CPUCP_POWER_INPUT_LIMIT_MAX = 15, /* align to hwmon_power_cap_max */
+	CPUCP_POWER_INPUT_LIMIT_MIN = 16,  /* align to hwmon_power_cap_min */
 };
 
 /*
@@ -2855,10 +2974,14 @@ enum cpucp_serdes_type {
 	HLS3_SERDES_TYPE_DEPRECATED,
 	HLB325_FULL_OAM_3PORTS_SCALE_OUT_SERDES_TYPE,
 	HL338_SERDES_TYPE,
+	HL288_SERDES_TYPE,
+	GAUDI3_RACK_SERDES_TYPE,
+	GAUDI3_RACK_WHITEBOX_SERDES_TYPE,
 	MAX_NUM_SERDES_TYPE,		/* number of types */
 	UNKNOWN_SERDES_TYPE = 0xFFFF	/* serdes_type is u16 */
 };
 
+#define CPUCP_NIC_DEFAULT_LANES_NUM	48
 struct cpucp_nic_info {
 	struct cpucp_mac_addr mac_addrs[CPUCP_MAX_NICS];
 	__le64 link_mask[CPUCP_NIC_MASK_ARR_LEN];
@@ -2868,8 +2991,21 @@ struct cpucp_nic_info {
 	__u8 qsfp_eeprom[CPUCP_NIC_QSFP_EEPROM_MAX_LEN];
 	__le64 auto_neg_mask[CPUCP_NIC_MASK_ARR_LEN];
 	__le16 serdes_type; /* enum cpucp_serdes_type */
-	__le16 tx_swap_map[CPUCP_MAX_NICS];
-	__u8 reserved[6];
+	union {
+		struct {
+			__le16 tx_swap_map[CPUCP_MAX_NICS];
+			__u8 align_tx_swap_map[6];
+		};
+		struct {
+			__u8 align_serdes_type[2];
+			__u8 pre3[CPUCP_NIC_DEFAULT_LANES_NUM];
+			__u8 pre2[CPUCP_NIC_DEFAULT_LANES_NUM];
+			__u8 pre1[CPUCP_NIC_DEFAULT_LANES_NUM];
+			__u8 c0[CPUCP_NIC_DEFAULT_LANES_NUM];
+			__u8 post1[CPUCP_NIC_DEFAULT_LANES_NUM];
+			__u8 align_lane_taps[20];
+		};
+	};
 };
 
 #define PAGE_DISCARD_MAX	64
@@ -3064,20 +3200,32 @@ struct cpucp_monitor_dump {
 	struct dcore_monitor_regs_data sync_mngr_e_n;
 };
 
+/* Contains the power limit constrains return from HL_GET_POWER_LIMIT_CONSTRAINTS */
+struct cpucp_power_limit_constraints {
+	__le32 min_limit;
+	__le32 max_limit;
+};
+
 /*
  * The Type of the generic request (and other input arguments) will be fetched from user by reading
  * from "pkt_subidx" field in struct cpucp_packet.
  *
- * HL_PASSTHROUGHT_VERSIONS	- Fetch all firmware versions.
- * HL_ECC_INJECTION		- Inject ecc, for debug and non-security only
- * HL_PASSTHROUGH_PID_CMD	- Send commands to the ARCPID
- * HL_GET_ERR_COUNTERS_CMD	- Command to get error counters
+ * HL_PASSTHROUGHT_VERSIONS		- Fetch all firmware versions.
+ * HL_ECC_INJECTION			- Inject ecc, for debug and non-security only
+ * HL_PASSTHROUGH_PID_CMD		- Send commands to the ARCPID
+ * HL_GET_ERR_COUNTERS_CMD		- Command to get error counters
+ * HL_GET_P_STATE			- get performance state
+ * HL_GET_SUPPORTED_P_STATES		- get supported performance states
+ * HL_GET_POWER_LIMIT_CONSTRAINTS	- get power limit constraints
  */
 enum hl_passthrough_type {
 	HL_PASSTHROUGH_VERSIONS,
 	HL_ECC_INJECTION,
 	HL_PASSTHROUGH_PID_CMD,
 	HL_GET_ERR_COUNTERS_CMD,
+	HL_GET_P_STATE,
+	HL_GET_SUPPORTED_P_STATES,
+	HL_GET_POWER_LIMIT_CONSTRAINTS,
 };
 
 /* structure cpucp_cn_init_hw_mem_packet - used for initializing the assoicated CN(Core NIC)

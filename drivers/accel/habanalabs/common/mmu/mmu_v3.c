@@ -69,7 +69,7 @@ static int hl_mmu_v3_create_single_pte(struct hl_ctx *ctx, u64 virt_addr, u64 ph
 	}
 
 	if (curr_pte & PAGE_PRESENT_MASK) {
-		dev_err(hdev->dev, "mapping already exists for virt_addr 0x%llx\n", virt_addr);
+		hl_err(hdev, "mapping already exists for virt_addr 0x%llx\n", virt_addr);
 		rc = -EINVAL;
 		goto err;
 	}
@@ -178,7 +178,7 @@ mapped:
 	return 0;
 
 not_mapped:
-	dev_err(hdev->dev, "virt addr 0x%llx is not mapped to phys addr\n", virt_addr);
+	hl_err(hdev, "virt addr 0x%llx is not mapped to phys addr\n", virt_addr);
 
 	return rc;
 }

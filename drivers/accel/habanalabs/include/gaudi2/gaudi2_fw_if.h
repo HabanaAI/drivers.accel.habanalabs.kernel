@@ -1,6 +1,7 @@
 /* SPDX-License-Identifier: GPL-2.0
  *
- * Copyright 2019-2021 HabanaLabs, Ltd.
+ * Copyright 2019-2024 HabanaLabs, Ltd.
+ * Copyright (C) 2024-2025, Intel Corporation.
  * All Rights Reserved.
  *
  */
@@ -59,6 +60,24 @@ enum gaudi2_fw_status {
 	GAUDI2_STATUS_LAST = 0xFF
 };
 
+struct gaudi2_cold_rst_data {
+	union {
+		struct {
+			u32 recovery_flag: 1;
+			u32 validation_flag: 1;
+			u32 efuse_read_flag: 1;
+			u32 spsram_init_done : 1;
+			u32 fake_security_enable : 1;
+			u32 bist_skip_enable : 1;
+			u32 reserved1 : 3;
+			u32 wd_rst_cause_arm : 1;
+			u32 wd_rst_cause_arcpid : 1;
+			u32 reserved : 21;
+		};
+		__le32 data;
+	};
+};
+
 enum gaudi2_rst_src {
 	HL_COLD_RST = 1,
 	HL_MANUAL_RST = 2,
@@ -90,5 +109,23 @@ struct gaudi2_redundancy_ctx {
 	__u8 mme_pe_iso[GAUDI2_NUM_MME];
 	__le32 full_hbm_mode;	/* true on full (non binning hbm)*/
 } __packed;
+
+struct gaudi2_boot_if_fifo_msg {
+	union {
+		struct {
+			__u8 boot_status;		/* boot progress status value */
+			__u8 rsvd0;
+			__u8 is_status : 1;		/* new value in boot_status */
+			__u8 err_set : 1;		/* set err bits */
+			__u8 err_clr : 1;		/* clear err bits */
+			__u8 dev_sts_set : 1;	/* set dev_sts bits */
+			__u8 dev_sts_clr : 1;	/* clear dev_sts bits */
+			__u8 rsvd1 : 3;
+			__u8 rsvd2 : 7;
+			__u8 rsvd_fifo_no_ovrd : 1;	/* special rsvd bit - do not change */
+		} __packed;
+		__le32 msg_val;
+	};
+};
 
 #endif /* GAUDI2_FW_IF_H */

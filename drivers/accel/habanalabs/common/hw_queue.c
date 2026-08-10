@@ -136,7 +136,7 @@ static int ext_queue_sanity_checks(struct hl_device *hdev,
 	free_slots_cnt = queue_free_slots(q, HL_QUEUE_LENGTH);
 
 	if (free_slots_cnt < num_of_entries) {
-		dev_dbg(hdev->dev, "Queue %d doesn't have room for %d CBs\n",
+		hl_dbg(hdev, "Queue %d doesn't have room for %d CBs\n",
 			q->hw_queue_id, num_of_entries);
 		return -EAGAIN;
 	}
@@ -150,7 +150,7 @@ static int ext_queue_sanity_checks(struct hl_device *hdev,
 		 * atomic_add_unless will return 0 if counter was already 0
 		 */
 		if (atomic_add_negative(num_of_entries * -1, free_slots)) {
-			dev_dbg(hdev->dev, "No space for %d on CQ %d\n",
+			hl_dbg(hdev, "No space for %d on CQ %d\n",
 				num_of_entries, q->hw_queue_id);
 			atomic_add(num_of_entries, free_slots);
 			return -EAGAIN;
@@ -180,7 +180,7 @@ static int int_queue_sanity_checks(struct hl_device *hdev,
 	int free_slots_cnt;
 
 	if (num_of_entries > q->int_queue_len) {
-		dev_err(hdev->dev,
+		hl_err(hdev,
 			"Cannot populate queue %u with %u jobs\n",
 			q->hw_queue_id, num_of_entries);
 		return -ENOMEM;
@@ -190,7 +190,7 @@ static int int_queue_sanity_checks(struct hl_device *hdev,
 	free_slots_cnt = queue_free_slots(q, q->int_queue_len);
 
 	if (free_slots_cnt < num_of_entries) {
-		dev_dbg(hdev->dev, "Queue %d doesn't have room for %d CBs\n",
+		hl_dbg(hdev, "Queue %d doesn't have room for %d CBs\n",
 			q->hw_queue_id, num_of_entries);
 		return -EAGAIN;
 	}
@@ -217,7 +217,7 @@ static int hw_queue_sanity_checks(struct hl_device *hdev, struct hl_hw_queue *q,
 	free_slots_cnt = queue_free_slots(q, HL_QUEUE_LENGTH);
 
 	if (free_slots_cnt < num_of_entries) {
-		dev_dbg(hdev->dev, "Queue %d doesn't have room for %d CBs\n",
+		hl_dbg(hdev, "Queue %d doesn't have room for %d CBs\n",
 			q->hw_queue_id, num_of_entries);
 		return -EAGAIN;
 	}
@@ -427,7 +427,7 @@ static int init_signal_cs(struct hl_device *hdev,
 	cs_cmpl->hw_sob = hw_sob;
 	cs_cmpl->sob_val = prop->next_sob_val;
 
-	dev_dbg(hdev->dev,
+	hl_dbg(hdev,
 		"generate signal CB, sob_id: %d, sob val: %u, q_idx: %d, seq: %llu\n",
 		cs_cmpl->hw_sob->sob_id, cs_cmpl->sob_val, q_idx,
 		cs_cmpl->cs_seq);
@@ -493,7 +493,7 @@ static int init_wait_cs(struct hl_device *hdev, struct hl_cs *cs,
 		 */
 		hl_hw_queue_encaps_sig_set_sob_info(hdev, cs, job, cs_cmpl);
 
-		dev_dbg(hdev->dev, "Wait for encaps signals handle, qidx(%u), CS sequence(%llu), sob val: 0x%x, offset: %u\n",
+		hl_dbg(hdev, "Wait for encaps signals handle, qidx(%u), CS sequence(%llu), sob val: 0x%x, offset: %u\n",
 				cs->encaps_sig_hdl->q_idx,
 				cs->encaps_sig_hdl->cs_seq,
 				cs_cmpl->sob_val,
@@ -527,7 +527,7 @@ static int init_wait_cs(struct hl_device *hdev, struct hl_cs *cs,
 
 	spin_unlock(&signal_cs_cmpl->lock);
 
-	dev_dbg(hdev->dev,
+	hl_dbg(hdev,
 		"generate wait CB, sob_id: %d, sob_val: 0x%x, mon_id: %d, q_idx: %d, seq: %llu\n",
 		cs_cmpl->hw_sob->sob_id, cs_cmpl->sob_val,
 		prop->base_mon_id, q_idx, cs->sequence);
@@ -611,7 +611,7 @@ static int encaps_sig_first_staged_cs_handler
 		cs_cmpl->sob_val = encaps_sig_hdl->pre_sob_val +
 						encaps_sig_hdl->count;
 
-		dev_dbg(hdev->dev, "CS seq (%llu) added to encaps signal handler id (%u), count(%u), qidx(%u), sob(%u), val(%u)\n",
+		hl_dbg(hdev, "CS seq (%llu) added to encaps signal handler id (%u), count(%u), qidx(%u), sob(%u), val(%u)\n",
 				cs->sequence, encaps_sig_hdl->id,
 				encaps_sig_hdl->count,
 				encaps_sig_hdl->q_idx,
@@ -619,7 +619,7 @@ static int encaps_sig_first_staged_cs_handler
 				cs_cmpl->sob_val);
 
 	} else {
-		dev_err(hdev->dev, "encaps handle id(%u) wasn't found!\n",
+		hl_err(hdev, "encaps handle id(%u) wasn't found!\n",
 				cs->encaps_sig_hdl_id);
 		rc = -EINVAL;
 	}
@@ -652,7 +652,7 @@ int hl_hw_queue_schedule_cs(struct hl_cs *cs)
 	if (!hl_device_operational(hdev, &status)) {
 		atomic64_inc(&cntr->device_in_reset_drop_cnt);
 		atomic64_inc(&ctx->cs_counters.device_in_reset_drop_cnt);
-		dev_err(hdev->dev,
+		hl_err(hdev,
 			"device is %s, CS rejected!\n", hdev->status[status]);
 		rc = -EPERM;
 		goto out;
@@ -679,7 +679,7 @@ int hl_hw_queue_schedule_cs(struct hl_cs *cs)
 						cs->jobs_in_queue_cnt[i]);
 				break;
 			default:
-				dev_err(hdev->dev, "Queue type %d is invalid\n",
+				hl_err(hdev, "Queue type %d is invalid\n",
 					q->queue_type);
 				rc = -EINVAL;
 				break;
@@ -709,7 +709,7 @@ int hl_hw_queue_schedule_cs(struct hl_cs *cs)
 
 	rc = hdev->asic_funcs->pre_schedule_cs(cs);
 	if (rc) {
-		dev_err(hdev->dev,
+		hl_err(hdev,
 			"Failed in pre-submission operations of CS %d.%llu\n",
 			ctx->asid, cs->sequence);
 		goto unroll_cq_resv;
@@ -732,7 +732,7 @@ int hl_hw_queue_schedule_cs(struct hl_cs *cs)
 
 		staged_cs = hl_staged_cs_find_first(hdev, cs->staged_sequence);
 		if (!staged_cs) {
-			dev_err(hdev->dev,
+			hl_err(hdev,
 				"Cannot find staged submission sequence %llu",
 				cs->staged_sequence);
 			rc = -EINVAL;
@@ -740,7 +740,7 @@ int hl_hw_queue_schedule_cs(struct hl_cs *cs)
 		}
 
 		if (is_staged_cs_last_exists(hdev, staged_cs)) {
-			dev_err(hdev->dev,
+			hl_err(hdev,
 				"Staged submission sequence %llu already submitted",
 				cs->staged_sequence);
 			rc = -EINVAL;
@@ -839,7 +839,7 @@ static int ext_and_cpu_queue_init(struct hl_device *hdev, struct hl_hw_queue *q,
 
 	q->shadow_queue = kmalloc_array(HL_QUEUE_LENGTH, sizeof(struct hl_cs_job *), GFP_KERNEL);
 	if (!q->shadow_queue) {
-		dev_err(hdev->dev,
+		hl_err(hdev,
 			"Failed to allocate shadow queue for H/W queue %d\n",
 			q->hw_queue_id);
 		rc = -ENOMEM;
@@ -869,7 +869,7 @@ static int int_queue_init(struct hl_device *hdev, struct hl_hw_queue *q)
 	p = hdev->asic_funcs->get_int_queue_base(hdev, q->hw_queue_id,
 					&q->bus_address, &q->int_queue_len);
 	if (!p) {
-		dev_err(hdev->dev,
+		hl_err(hdev,
 			"Failed to get base address for internal queue %d\n",
 			q->hw_queue_id);
 		return -EFAULT;
@@ -1017,7 +1017,7 @@ static int queue_init(struct hl_device *hdev, struct hl_hw_queue *q,
 		q->valid = 0;
 		return 0;
 	default:
-		dev_crit(hdev->dev, "wrong queue type %d during init\n",
+		hl_crit(hdev, "wrong queue type %d during init\n",
 			q->queue_type);
 		rc = -EINVAL;
 		break;
@@ -1086,7 +1086,7 @@ int hl_hw_queues_create(struct hl_device *hdev)
 				sizeof(*hdev->kernel_queues), GFP_KERNEL);
 
 	if (!hdev->kernel_queues) {
-		dev_err(hdev->dev, "Not enough memory for H/W queues\n");
+		hl_err(hdev, "Not enough memory for H/W queues\n");
 		return -ENOMEM;
 	}
 
@@ -1102,7 +1102,7 @@ int hl_hw_queues_create(struct hl_device *hdev)
 
 		rc = queue_init(hdev, q, i);
 		if (rc) {
-			dev_err(hdev->dev,
+			hl_err(hdev,
 				"failed to initialize queue %d\n", i);
 			goto release_queues;
 		}

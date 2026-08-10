@@ -1,10 +1,12 @@
 // SPDX-License-Identifier: GPL-2.0
 
 /*
- * Copyright 2021-2022 HabanaLabs, Ltd.
+ * Copyright 2021-2024 HabanaLabs, Ltd.
+ * Copyright (C) 2024-2025, Intel Corporation.
  * All Rights Reserved.
  */
 #include "gaudi3_coresight_regs.h"
+#include "gaudi3_cn.h"
 #include <uapi/drm/habanalabs_accel.h>
 
 #define CORESIGHT_TIMEOUT_USEC		100000		/* 100 ms */
@@ -28,6 +30,8 @@ static u32 gaudi3_spmu_stats_event_types[] = {
 };
 
 static_assert(ARRAY_SIZE(gaudi3_spmu_stats_names) == ARRAY_SIZE(gaudi3_spmu_stats_event_types));
+
+static size_t gaudi3_spmu_stats_len = ARRAY_SIZE(gaudi3_spmu_stats_names);
 
 /* START OF AUTO_GENERATED_PART */
 
@@ -2274,6 +2278,23 @@ enum gaudi3_coresight_hbm_id {
 	CS_DBG_HBM_ID_30,
 	CS_DBG_HBM_ID_31,
 	CS_DBG_HBM_ID_SIZE
+};
+
+
+enum gaudi3_coresight_nic_id {
+	CS_DBG_NIC_ID_0,
+	CS_DBG_NIC_ID_1,
+	CS_DBG_NIC_ID_2,
+	CS_DBG_NIC_ID_3,
+	CS_DBG_NIC_ID_4,
+	CS_DBG_NIC_ID_5,
+	CS_DBG_NIC_ID_6,
+	CS_DBG_NIC_ID_7,
+	CS_DBG_NIC_ID_8,
+	CS_DBG_NIC_ID_9,
+	CS_DBG_NIC_ID_10,
+	CS_DBG_NIC_ID_11,
+	CS_DBG_NIC_ID_SIZE
 };
 
 
@@ -5019,7 +5040,7 @@ static struct component_config_offsets gaudi3_mme_qman_coresight_cfg_table[8] = 
 
 static struct component_config_offsets gaudi3_pmmu_coresight_cfg_table[2] = {
 	[CS_DBG_PMMU_ID_0] = {
-		.funnel_id = GAUDI3_FUNNEL_D0_PMMU,
+		.funnel_id = COMPONENT_ID_INVALID,
 		.etf_id = GAUDI3_ETF_D0_PMMU_CS_DBG_BLOCK,
 		.stm_id = GAUDI3_STM_D0_PMMU_CS_DBG_BLOCK,
 		.spmu_id = GAUDI3_SPMU_D0_PMMU_CS_DBG_BLOCK,
@@ -5033,7 +5054,7 @@ static struct component_config_offsets gaudi3_pmmu_coresight_cfg_table[2] = {
 		}
 	},
 	[CS_DBG_PMMU_ID_1] = {
-		.funnel_id = GAUDI3_FUNNEL_D1_PMMU,
+		.funnel_id = COMPONENT_ID_INVALID,
 		.etf_id = GAUDI3_ETF_D1_PMMU_CS_DBG_BLOCK,
 		.stm_id = GAUDI3_STM_D1_PMMU_CS_DBG_BLOCK,
 		.spmu_id = GAUDI3_SPMU_D1_PMMU_CS_DBG_BLOCK,
@@ -5307,6 +5328,213 @@ static struct component_config_offsets gaudi3_hbm_coresight_cfg_table[32] = {
 	},
 };
 
+static struct component_config_offsets gaudi3_nic_coresight_cfg_table[12] = {
+	[CS_DBG_NIC_ID_0] = {
+		.funnel_id = COMPONENT_ID_INVALID,
+		.etf_id = GAUDI3_ETF_D0_NIC0_CS_DBG,
+		.stm_id = GAUDI3_STM_D0_NIC0_CS_DBG,
+		.spmu_id = GAUDI3_SPMU_D0_NIC0_CS_DBG,
+		.bmon_count = 8,
+		.bmon_ids = {
+			GAUDI3_BMON_D0_NIC0_CS_DBG_0,
+			GAUDI3_BMON_D0_NIC0_CS_DBG_1,
+			GAUDI3_BMON_D0_NIC0_CS_DBG_2,
+			GAUDI3_BMON_D0_NIC0_CS_DBG_3,
+			GAUDI3_BMON_D0_NIC0_CS_DBG_4,
+			GAUDI3_BMON_D0_NIC0_CS_DBG_5,
+			GAUDI3_BMON_D0_NIC0_CS_DBG_6,
+			GAUDI3_BMON_D0_NIC0_CS_DBG_7,
+		}
+	},
+	[CS_DBG_NIC_ID_1] = {
+		.funnel_id = COMPONENT_ID_INVALID,
+		.etf_id = GAUDI3_ETF_D0_NIC1_CS_DBG,
+		.stm_id = GAUDI3_STM_D0_NIC1_CS_DBG,
+		.spmu_id = GAUDI3_SPMU_D0_NIC1_CS_DBG,
+		.bmon_count = 8,
+		.bmon_ids = {
+			GAUDI3_BMON_D0_NIC1_CS_DBG_0,
+			GAUDI3_BMON_D0_NIC1_CS_DBG_1,
+			GAUDI3_BMON_D0_NIC1_CS_DBG_2,
+			GAUDI3_BMON_D0_NIC1_CS_DBG_3,
+			GAUDI3_BMON_D0_NIC1_CS_DBG_4,
+			GAUDI3_BMON_D0_NIC1_CS_DBG_5,
+			GAUDI3_BMON_D0_NIC1_CS_DBG_6,
+			GAUDI3_BMON_D0_NIC1_CS_DBG_7,
+		}
+	},
+	[CS_DBG_NIC_ID_2] = {
+		.funnel_id = COMPONENT_ID_INVALID,
+		.etf_id = GAUDI3_ETF_D0_NIC2_CS_DBG,
+		.stm_id = GAUDI3_STM_D0_NIC2_CS_DBG,
+		.spmu_id = GAUDI3_SPMU_D0_NIC2_CS_DBG,
+		.bmon_count = 8,
+		.bmon_ids = {
+			GAUDI3_BMON_D0_NIC2_CS_DBG_0,
+			GAUDI3_BMON_D0_NIC2_CS_DBG_1,
+			GAUDI3_BMON_D0_NIC2_CS_DBG_2,
+			GAUDI3_BMON_D0_NIC2_CS_DBG_3,
+			GAUDI3_BMON_D0_NIC2_CS_DBG_4,
+			GAUDI3_BMON_D0_NIC2_CS_DBG_5,
+			GAUDI3_BMON_D0_NIC2_CS_DBG_6,
+			GAUDI3_BMON_D0_NIC2_CS_DBG_7,
+		}
+	},
+	[CS_DBG_NIC_ID_3] = {
+		.funnel_id = COMPONENT_ID_INVALID,
+		.etf_id = GAUDI3_ETF_D0_NIC3_CS_DBG,
+		.stm_id = GAUDI3_STM_D0_NIC3_CS_DBG,
+		.spmu_id = GAUDI3_SPMU_D0_NIC3_CS_DBG,
+		.bmon_count = 8,
+		.bmon_ids = {
+			GAUDI3_BMON_D0_NIC3_CS_DBG_0,
+			GAUDI3_BMON_D0_NIC3_CS_DBG_1,
+			GAUDI3_BMON_D0_NIC3_CS_DBG_2,
+			GAUDI3_BMON_D0_NIC3_CS_DBG_3,
+			GAUDI3_BMON_D0_NIC3_CS_DBG_4,
+			GAUDI3_BMON_D0_NIC3_CS_DBG_5,
+			GAUDI3_BMON_D0_NIC3_CS_DBG_6,
+			GAUDI3_BMON_D0_NIC3_CS_DBG_7,
+		}
+	},
+	[CS_DBG_NIC_ID_4] = {
+		.funnel_id = COMPONENT_ID_INVALID,
+		.etf_id = GAUDI3_ETF_D0_NIC4_CS_DBG,
+		.stm_id = GAUDI3_STM_D0_NIC4_CS_DBG,
+		.spmu_id = GAUDI3_SPMU_D0_NIC4_CS_DBG,
+		.bmon_count = 8,
+		.bmon_ids = {
+			GAUDI3_BMON_D0_NIC4_CS_DBG_0,
+			GAUDI3_BMON_D0_NIC4_CS_DBG_1,
+			GAUDI3_BMON_D0_NIC4_CS_DBG_2,
+			GAUDI3_BMON_D0_NIC4_CS_DBG_3,
+			GAUDI3_BMON_D0_NIC4_CS_DBG_4,
+			GAUDI3_BMON_D0_NIC4_CS_DBG_5,
+			GAUDI3_BMON_D0_NIC4_CS_DBG_6,
+			GAUDI3_BMON_D0_NIC4_CS_DBG_7,
+		}
+	},
+	[CS_DBG_NIC_ID_5] = {
+		.funnel_id = COMPONENT_ID_INVALID,
+		.etf_id = GAUDI3_ETF_D0_NIC5_CS_DBG,
+		.stm_id = GAUDI3_STM_D0_NIC5_CS_DBG,
+		.spmu_id = GAUDI3_SPMU_D0_NIC5_CS_DBG,
+		.bmon_count = 8,
+		.bmon_ids = {
+			GAUDI3_BMON_D0_NIC5_CS_DBG_0,
+			GAUDI3_BMON_D0_NIC5_CS_DBG_1,
+			GAUDI3_BMON_D0_NIC5_CS_DBG_2,
+			GAUDI3_BMON_D0_NIC5_CS_DBG_3,
+			GAUDI3_BMON_D0_NIC5_CS_DBG_4,
+			GAUDI3_BMON_D0_NIC5_CS_DBG_5,
+			GAUDI3_BMON_D0_NIC5_CS_DBG_6,
+			GAUDI3_BMON_D0_NIC5_CS_DBG_7,
+		}
+	},
+	[CS_DBG_NIC_ID_6] = {
+		.funnel_id = COMPONENT_ID_INVALID,
+		.etf_id = GAUDI3_ETF_D1_NIC0_CS_DBG,
+		.stm_id = GAUDI3_STM_D1_NIC0_CS_DBG,
+		.spmu_id = GAUDI3_SPMU_D1_NIC0_CS_DBG,
+		.bmon_count = 8,
+		.bmon_ids = {
+			GAUDI3_BMON_D1_NIC0_CS_DBG_0,
+			GAUDI3_BMON_D1_NIC0_CS_DBG_1,
+			GAUDI3_BMON_D1_NIC0_CS_DBG_2,
+			GAUDI3_BMON_D1_NIC0_CS_DBG_3,
+			GAUDI3_BMON_D1_NIC0_CS_DBG_4,
+			GAUDI3_BMON_D1_NIC0_CS_DBG_5,
+			GAUDI3_BMON_D1_NIC0_CS_DBG_6,
+			GAUDI3_BMON_D1_NIC0_CS_DBG_7,
+		}
+	},
+	[CS_DBG_NIC_ID_7] = {
+		.funnel_id = COMPONENT_ID_INVALID,
+		.etf_id = GAUDI3_ETF_D1_NIC1_CS_DBG,
+		.stm_id = GAUDI3_STM_D1_NIC1_CS_DBG,
+		.spmu_id = GAUDI3_SPMU_D1_NIC1_CS_DBG,
+		.bmon_count = 8,
+		.bmon_ids = {
+			GAUDI3_BMON_D1_NIC1_CS_DBG_0,
+			GAUDI3_BMON_D1_NIC1_CS_DBG_1,
+			GAUDI3_BMON_D1_NIC1_CS_DBG_2,
+			GAUDI3_BMON_D1_NIC1_CS_DBG_3,
+			GAUDI3_BMON_D1_NIC1_CS_DBG_4,
+			GAUDI3_BMON_D1_NIC1_CS_DBG_5,
+			GAUDI3_BMON_D1_NIC1_CS_DBG_6,
+			GAUDI3_BMON_D1_NIC1_CS_DBG_7,
+		}
+	},
+	[CS_DBG_NIC_ID_8] = {
+		.funnel_id = COMPONENT_ID_INVALID,
+		.etf_id = GAUDI3_ETF_D1_NIC2_CS_DBG,
+		.stm_id = GAUDI3_STM_D1_NIC2_CS_DBG,
+		.spmu_id = GAUDI3_SPMU_D1_NIC2_CS_DBG,
+		.bmon_count = 8,
+		.bmon_ids = {
+			GAUDI3_BMON_D1_NIC2_CS_DBG_0,
+			GAUDI3_BMON_D1_NIC2_CS_DBG_1,
+			GAUDI3_BMON_D1_NIC2_CS_DBG_2,
+			GAUDI3_BMON_D1_NIC2_CS_DBG_3,
+			GAUDI3_BMON_D1_NIC2_CS_DBG_4,
+			GAUDI3_BMON_D1_NIC2_CS_DBG_5,
+			GAUDI3_BMON_D1_NIC2_CS_DBG_6,
+			GAUDI3_BMON_D1_NIC2_CS_DBG_7,
+		}
+	},
+	[CS_DBG_NIC_ID_9] = {
+		.funnel_id = COMPONENT_ID_INVALID,
+		.etf_id = GAUDI3_ETF_D1_NIC3_CS_DBG,
+		.stm_id = GAUDI3_STM_D1_NIC3_CS_DBG,
+		.spmu_id = GAUDI3_SPMU_D1_NIC3_CS_DBG,
+		.bmon_count = 8,
+		.bmon_ids = {
+			GAUDI3_BMON_D1_NIC3_CS_DBG_0,
+			GAUDI3_BMON_D1_NIC3_CS_DBG_1,
+			GAUDI3_BMON_D1_NIC3_CS_DBG_2,
+			GAUDI3_BMON_D1_NIC3_CS_DBG_3,
+			GAUDI3_BMON_D1_NIC3_CS_DBG_4,
+			GAUDI3_BMON_D1_NIC3_CS_DBG_5,
+			GAUDI3_BMON_D1_NIC3_CS_DBG_6,
+			GAUDI3_BMON_D1_NIC3_CS_DBG_7,
+		}
+	},
+	[CS_DBG_NIC_ID_10] = {
+		.funnel_id = COMPONENT_ID_INVALID,
+		.etf_id = GAUDI3_ETF_D1_NIC4_CS_DBG,
+		.stm_id = GAUDI3_STM_D1_NIC4_CS_DBG,
+		.spmu_id = GAUDI3_SPMU_D1_NIC4_CS_DBG,
+		.bmon_count = 8,
+		.bmon_ids = {
+			GAUDI3_BMON_D1_NIC4_CS_DBG_0,
+			GAUDI3_BMON_D1_NIC4_CS_DBG_1,
+			GAUDI3_BMON_D1_NIC4_CS_DBG_2,
+			GAUDI3_BMON_D1_NIC4_CS_DBG_3,
+			GAUDI3_BMON_D1_NIC4_CS_DBG_4,
+			GAUDI3_BMON_D1_NIC4_CS_DBG_5,
+			GAUDI3_BMON_D1_NIC4_CS_DBG_6,
+			GAUDI3_BMON_D1_NIC4_CS_DBG_7,
+		}
+	},
+	[CS_DBG_NIC_ID_11] = {
+		.funnel_id = COMPONENT_ID_INVALID,
+		.etf_id = GAUDI3_ETF_D1_NIC5_CS_DBG,
+		.stm_id = GAUDI3_STM_D1_NIC5_CS_DBG,
+		.spmu_id = GAUDI3_SPMU_D1_NIC5_CS_DBG,
+		.bmon_count = 8,
+		.bmon_ids = {
+			GAUDI3_BMON_D1_NIC5_CS_DBG_0,
+			GAUDI3_BMON_D1_NIC5_CS_DBG_1,
+			GAUDI3_BMON_D1_NIC5_CS_DBG_2,
+			GAUDI3_BMON_D1_NIC5_CS_DBG_3,
+			GAUDI3_BMON_D1_NIC5_CS_DBG_4,
+			GAUDI3_BMON_D1_NIC5_CS_DBG_5,
+			GAUDI3_BMON_D1_NIC5_CS_DBG_6,
+			GAUDI3_BMON_D1_NIC5_CS_DBG_7,
+		}
+	},
+};
+
 static struct component_config_offsets gaudi3_spdma_coresight_cfg_table[4] = {
 	[CS_DBG_SPDMA_ID_0] = {
 		.funnel_id = GAUDI3_FUNNEL_D0_SPDMA0,
@@ -5395,7 +5623,7 @@ static int gaudi3_coresight_timeout(struct hl_device *hdev, u64 addr,
 		timeout_usec);
 
 	if (rc)
-		dev_err(hdev->dev,
+		hl_err(hdev,
 			"Timeout while waiting for coresight, addr: 0x%llx, position: %d, up: %d\n",
 			addr, position, up);
 
@@ -5413,7 +5641,7 @@ static int gaudi3_unlock_coresight_unit(struct hl_device *hdev,
 					1, 0);
 
 	if (rc)
-		dev_err(hdev->dev,
+		hl_err(hdev,
 			"Failed to unlock register base addr: 0x%llx , position: 1, up: 0\n",
 			base_reg);
 
@@ -5428,7 +5656,7 @@ static int gaudi3_config_stm(struct hl_device *hdev, struct hl_debug_params *par
 	int rc;
 
 	if (params->reg_idx >= ARRAY_SIZE(debug_stm_regs)) {
-		dev_err(hdev->dev, "Invalid register index in %s - %d\n",
+		hl_err(hdev, "Invalid register index in %s - %d\n",
 			__func__, params->reg_idx);
 		return -EINVAL;
 	}
@@ -5489,7 +5717,7 @@ static int gaudi3_config_stm(struct hl_device *hdev, struct hl_debug_params *par
 
 		rc = gaudi3_coresight_timeout(hdev, base_reg + mmSTM_STMTCSR, 23, false);
 		if (rc) {
-			dev_err(hdev->dev, "Failed to disable STM on timeout, error %d\n", rc);
+			hl_err(hdev, "Failed to disable STM on timeout, error %d\n", rc);
 			return rc;
 		}
 
@@ -5507,7 +5735,7 @@ static int gaudi3_config_etf(struct hl_device *hdev, struct hl_debug_params *par
 	int rc;
 
 	if (params->reg_idx >= ARRAY_SIZE(debug_etf_regs)) {
-		dev_err(hdev->dev, "Invalid register index in %s - %d\n",
+		hl_err(hdev, "Invalid register index in %s - %d\n",
 			__func__, params->reg_idx);
 		return -EINVAL;
 	}
@@ -5537,14 +5765,14 @@ static int gaudi3_config_etf(struct hl_device *hdev, struct hl_debug_params *par
 
 	rc = gaudi3_coresight_timeout(hdev, base_reg + mmETF_1KB_FFCR, 6, false);
 	if (rc) {
-		dev_err(hdev->dev, "Failed to %s ETF on timeout, error %d\n",
+		hl_err(hdev, "Failed to %s ETF on timeout, error %d\n",
 			params->enable ? "enable" : "disable", rc);
 		return rc;
 	}
 
 	rc = gaudi3_coresight_timeout(hdev, base_reg + mmETF_1KB_STS, 2, true);
 	if (rc) {
-		dev_err(hdev->dev, "Failed to %s ETF on timeout, error %d\n",
+		hl_err(hdev, "Failed to %s ETF on timeout, error %d\n",
 			params->enable ? "enable" : "disable", rc);
 		return rc;
 	}
@@ -5584,7 +5812,7 @@ static int gaudi3_etr_validate_address(struct hl_device *hdev, u64 addr, u64 siz
 	struct gaudi3_device *gaudi3 = hdev->asic_specific;
 
 	if (addr > (addr + size)) {
-		dev_err(hdev->dev, "ETR buffer size %llu overflow\n", size);
+		hl_err(hdev, "ETR buffer size %llu overflow\n", size);
 		return false;
 	}
 
@@ -5616,7 +5844,7 @@ static int gaudi3_etr_validate_address(struct hl_device *hdev, u64 addr, u64 siz
 		return true;
 
 	if (!(gaudi3->hw_cap_initialized & HW_CAP_PMMU))
-		dev_err(hdev->dev, "ETR buffer should be in SRAM/DRAM\n");
+		hl_err(hdev, "ETR buffer should be in SRAM/DRAM\n");
 
 	return false;
 }
@@ -5628,40 +5856,52 @@ static int gaudi3_is_ac_started(struct hl_device *hdev, u32 etr_idx)
 	return store->etr_tracer[etr_idx].ac_started;
 }
 
-static void gaudi3_ac_start(struct hl_device *hdev, u32 etr_idx, u32 buf_size)
+static void gaudi3_ac_send(struct hl_device *hdev, u32 etr_idx,
+			   enum ac_operation_types op, u32 buf_size)
 {
-	struct hl_etr_buf_store *store = &hdev->etr_buf_store;
 	struct cpucp_packet pkt;
 	int rc;
 
 	memset(&pkt, 0, sizeof(pkt));
 
 	pkt.ctl = cpu_to_le32(CPUCP_PACKET_AC_CONTROL << CPUCP_PKT_CTL_OPCODE_SHIFT);
-	pkt.index = etr_idx;
-	pkt.pkt_subidx = AC_OP_START;
+	pkt.index = cpu_to_le32(etr_idx);
+	pkt.pkt_subidx = cpu_to_le32(op);
 	pkt.value = cpu_to_le64(buf_size);
 	rc = hdev->asic_funcs->send_cpu_message(hdev, (u32 *) &pkt, sizeof(pkt), 0, NULL);
 	if (rc && rc != -EAGAIN)
-		dev_err(hdev->dev, "failed to send AC start msg (err = %d)\n", rc);
+		hl_err(hdev, "failed to send AC msg %d (err = %d)\n", (int)op, rc);
+}
 
+static void gaudi3_ac_start(struct hl_device *hdev, u32 etr_idx, u32 buf_size)
+{
+	struct hl_etr_buf_store *store = &hdev->etr_buf_store;
+
+#ifdef HL_DOWNSTREAM
+	if (!(hdev->fw_components & FW_TYPE_BOOT_CPU)) {
+		gaudi3_ac_start_no_fw(hdev, etr_idx, buf_size);
+		store->etr_tracer[etr_idx].ac_started = 1;
+		return;
+	}
+#endif /* HL_DOWNSTREAM */
+
+	gaudi3_ac_send(hdev, etr_idx, AC_OP_START, buf_size);
 	store->etr_tracer[etr_idx].ac_started = 1;
 }
 
 static void gaudi3_ac_stop(struct hl_device *hdev, u32 etr_idx)
 {
 	struct hl_etr_buf_store *store = &hdev->etr_buf_store;
-	struct cpucp_packet pkt;
-	int rc;
 
-	memset(&pkt, 0, sizeof(pkt));
+#ifdef HL_DOWNSTREAM
+	if (!(hdev->fw_components & FW_TYPE_BOOT_CPU)) {
+		gaudi3_ac_stop_no_fw(hdev, etr_idx);
+		store->etr_tracer[etr_idx].ac_started = 0;
+		return;
+	}
+#endif /* HL_DOWNSTREAM */
 
-	pkt.ctl = cpu_to_le32(CPUCP_PACKET_AC_CONTROL << CPUCP_PKT_CTL_OPCODE_SHIFT);
-	pkt.index = etr_idx;
-	pkt.pkt_subidx = AC_OP_STOP;
-	rc = hdev->asic_funcs->send_cpu_message(hdev, (u32 *) &pkt, sizeof(pkt), 0, NULL);
-	if (rc && rc != -EAGAIN)
-		dev_err(hdev->dev, "failed to send AC stop msg (err = %d)\n", rc);
-
+	gaudi3_ac_send(hdev, etr_idx, AC_OP_STOP, 0);
 	store->etr_tracer[etr_idx].ac_started = 0;
 }
 
@@ -5713,7 +5953,7 @@ static int gaudi3_config_etr(struct hl_device *hdev, struct hl_ctx *ctx,
 		master_if_hbw_base_reg = mmD1_NCH_MSTR_IF_AXUSER_HBW_BASE;
 		break;
 	default:
-		dev_err(hdev->dev, "%s - Invalid buffer Index %d", __func__, etr_idx);
+		hl_err(hdev, "%s - Invalid buffer Index %d", __func__, etr_idx);
 		return -EINVAL;
 	}
 
@@ -5735,14 +5975,14 @@ static int gaudi3_config_etr(struct hl_device *hdev, struct hl_ctx *ctx,
 
 	rc = gaudi3_coresight_timeout(hdev, base_reg + mmETR_FFCR, 6, false);
 	if (rc) {
-		dev_err(hdev->dev, "Failed to %s ETR on timeout, error %d\n",
+		hl_err(hdev, "Failed to %s ETR on timeout, error %d\n",
 				params->enable ? "enable" : "disable", rc);
 		return rc;
 	}
 
 	rc = gaudi3_coresight_timeout(hdev, base_reg + mmETR_STS, 2, true);
 	if (rc) {
-		dev_err(hdev->dev, "Failed to %s ETR on timeout, error %d\n",
+		hl_err(hdev, "Failed to %s ETR on timeout, error %d\n",
 				params->enable ? "enable" : "disable", rc);
 		return rc;
 	}
@@ -5760,7 +6000,7 @@ static int gaudi3_config_etr(struct hl_device *hdev, struct hl_ctx *ctx,
 		}
 
 		if (!gaudi3_etr_validate_address(hdev, input->buffer_address, input->buffer_size)) {
-			dev_err(hdev->dev, "ETR buffer address is invalid\n");
+			hl_err(hdev, "ETR buffer address is invalid\n");
 			return -EINVAL;
 		}
 
@@ -5880,13 +6120,12 @@ static int gaudi3_fetch_trace(struct hl_device *hdev, struct hl_debug_params *pa
 		*output = store->etr_tracer[etr_idx].ac_started ? HL_DEBUG_FETCH_STATUS_EMPTY :
 				HL_DEBUG_FETCH_STATUS_STOPPED;
 		return 0;
+	} else { /* Return value < 0 (-ERESTARTSYS) if interrupted */
+		hl_err_ratelimited(hdev,
+			"user process got signal while waiting for a buffer fetched from ETR ID %d\n",
+			etr_idx);
+		return -EINTR;
 	}
-
-	/* Return value < 0 (-ERESTARTSYS) if interrupted */
-	dev_err_ratelimited(hdev->dev,
-		"user process got signal while waiting for a buffer fetched from ETR ID %d\n",
-		etr_idx);
-	return -EINTR;
 
 	*output = HL_DEBUG_FETCH_STATUS_OK;
 
@@ -5894,7 +6133,7 @@ static int gaudi3_fetch_trace(struct hl_device *hdev, struct hl_debug_params *pa
 		copy_to_user((void __user *)(uintptr_t)input->buffer_address,
 			     buf->data_host_va, buf->used_size);
 	if (left_to_copy) {
-		dev_err(hdev->dev,
+		hl_err(hdev,
 			"copy to user failed - %ld bytes not copied out of %lld\n",
 			left_to_copy, buf->used_size);
 		rc = -EFAULT;
@@ -5905,7 +6144,7 @@ static int gaudi3_fetch_trace(struct hl_device *hdev, struct hl_debug_params *pa
 		copy_to_user((void __user *)(uintptr_t)input->copied_size_addr,
 			     &buf->used_size, sizeof(u64));
 	if (left_to_copy) {
-		dev_err(hdev->dev,
+		hl_err(hdev,
 			"copy to user (size) failed - %ld bytes not copied out of %ld\n",
 			left_to_copy, sizeof(u64));
 		rc = -EFAULT;
@@ -5921,7 +6160,7 @@ static int gaudi3_fetch_trace(struct hl_device *hdev, struct hl_debug_params *pa
 		copy_to_user((void __user *)(uintptr_t)input->buffer_index_address,
 			     &buf->idx, sizeof(u64));
 	if (left_to_copy) {
-		dev_err(hdev->dev,
+		hl_err(hdev,
 			"copy to user (index) failed - %ld bytes not copied out of %ld\n",
 			left_to_copy, sizeof(u64));
 		rc = -EFAULT;
@@ -5943,7 +6182,7 @@ static int gaudi3_config_funnel(struct hl_device *hdev, struct hl_debug_params *
 	u32 val;
 
 	if (params->reg_idx >= ARRAY_SIZE(debug_funnel_regs)) {
-		dev_err(hdev->dev, "Invalid register index in %s - %d\n",
+		hl_err(hdev, "Invalid register index in %s - %d\n",
 			__func__, params->reg_idx);
 		return -EINVAL;
 	}
@@ -5973,7 +6212,7 @@ static int gaudi3_config_bmon(struct hl_device *hdev, struct hl_debug_params *pa
 	u64 base_reg;
 
 	if (params->reg_idx >= ARRAY_SIZE(debug_bmon_regs)) {
-		dev_err(hdev->dev, "Invalid register index in %s - %d\n",
+		hl_err(hdev, "Invalid register index in %s - %d\n",
 			__func__, params->reg_idx);
 		return -EINVAL;
 	}
@@ -6068,6 +6307,11 @@ static int gaudi3_config_bmon(struct hl_device *hdev, struct hl_debug_params *pa
 	return 0;
 }
 
+static bool gaudi3_reg_is_nic_spmu(enum gaudi3_debug_spmu_regs_index reg_idx)
+{
+	return reg_idx >= GAUDI3_SPMU_D0_NIC0_CS_DBG && reg_idx <= GAUDI3_SPMU_D1_NIC5_CS_DBG;
+}
+
 static int gaudi3_config_spmu(struct hl_device *hdev, struct hl_debug_params *params)
 {
 	struct hl_debug_params_spmu *input = params->input;
@@ -6078,7 +6322,7 @@ static int gaudi3_config_spmu(struct hl_device *hdev, struct hl_debug_params *pa
 	int i;
 
 	if (params->reg_idx >= ARRAY_SIZE(debug_spmu_regs)) {
-		dev_err(hdev->dev, "Invalid register index in %s - %d\n",
+		hl_err(hdev, "Invalid register index in %s - %d\n",
 			__func__, params->reg_idx);
 		return -EINVAL;
 	}
@@ -6098,12 +6342,16 @@ static int gaudi3_config_spmu(struct hl_device *hdev, struct hl_debug_params *pa
 			return -EINVAL;
 
 		if (input->event_types_num > SPMU_MAX_COUNTERS) {
-			dev_err(hdev->dev, "too many event types values for SPMU enable\n");
+			hl_err(hdev, "too many event types values for SPMU enable\n");
 			return -EINVAL;
 		}
 
 		WREG32(base_reg + mmCS_DBG_TPC_EML_EML_SPMU_PMCR_EL0, 0x41013046);
 		WREG32(base_reg + mmCS_DBG_TPC_EML_EML_SPMU_PMCR_EL0, 0x41013040);
+
+		/* sleep is required for previous write(s) to complete for NIC SPMU */
+		if (hdev->pldm && gaudi3_reg_is_nic_spmu(params->reg_idx))
+			msleep(2000);
 
 		/* Flush reset value to SPMU registers prior configuring otherwise configuration
 		 * might timeout.
@@ -6143,7 +6391,7 @@ static int gaudi3_config_spmu(struct hl_device *hdev, struct hl_debug_params *pa
 		if (output && output_arr_len > 2) {
 
 			if (events_num > SPMU_MAX_COUNTERS) {
-				dev_err(hdev->dev, "too many events values for SPMU disable\n");
+				hl_err(hdev, "too many events values for SPMU disable\n");
 				return -EINVAL;
 			}
 
@@ -6204,7 +6452,7 @@ int gaudi3_debug_coresight(struct hl_device *hdev, struct hl_ctx *ctx, void *dat
 		/* Do nothing as this opcode is deprecated */
 		break;
 	default:
-		dev_err(hdev->dev, "Unknown coresight id %d\n", params->op);
+		hl_err(hdev, "Unknown coresight id %d\n", params->op);
 		return -EINVAL;
 	}
 
@@ -6226,14 +6474,14 @@ void gaudi3_halt_coresight(struct hl_device *hdev, struct hl_ctx *ctx)
 		params.reg_idx = i;
 		rc = gaudi3_config_etf(hdev, &params);
 		if (rc)
-			dev_err(hdev->dev, "halt ETF failed, %d/%d\n", rc, i);
+			hl_err(hdev, "halt ETF failed, %d/%d\n", rc, i);
 	}
 
 	/* close all etrs (GAUDI3_NUM_ETR) */
 	for (input.pad = 0 ; input.pad < GAUDI3_NUM_ETR ; input.pad++) {
 		rc = gaudi3_config_etr(hdev, ctx, &params);
 		if (rc)
-			dev_err(hdev->dev, "halt ETR(%d) failed, %d\n", input.pad, rc);
+			hl_err(hdev, "halt ETR(%d) failed, %d\n", input.pad, rc);
 	}
 }
 
@@ -6260,7 +6508,7 @@ static int gaudi3_coresight_set_disabled_components(struct hl_device *hdev,
 		u64 component_mask = 1ULL << component_idx;
 
 		if (component_idx >= unit_count) {
-			dev_err(hdev->dev, "index is out of range index(%u) >= units_count(%u)\n",
+			hl_err(hdev, "index is out of range index(%u) >= units_count(%u)\n",
 				component_idx, unit_count);
 			return -EINVAL;
 		}
@@ -6333,7 +6581,7 @@ int gaudi3_coresight_init(struct hl_device *hdev)
 		ret = gaudi3_coresight_set_disabled_components(hdev, die_index, half_size,
 						enabled_mask, gaudi3_stlb_coresight_cfg_table);
 		if (ret) {
-			dev_err(hdev->dev, "Failed to set disabled cs_dbg units for STLB coresight\n");
+			hl_err(hdev, "Failed to set disabled cs_dbg units for STLB coresight\n");
 			return ret;
 		}
 
@@ -6343,17 +6591,17 @@ int gaudi3_coresight_init(struct hl_device *hdev)
 		ret = gaudi3_coresight_set_disabled_components(hdev, die_index, half_size,
 					enabled_mask, gaudi3_spdma_coresight_cfg_table);
 		if (ret) {
-			dev_err(hdev->dev, "Failed to set disabled cs_dbg units for SPDMA coresight\n");
+			hl_err(hdev, "Failed to set disabled cs_dbg units for SPDMA coresight\n");
 			return ret;
 		}
 
 		/* Set PMMU disable components */
 		half_size = CS_DBG_PMMU_ID_SIZE >> 1;
-		enabled_mask = GENMASK_ULL(half_size - 1, 0);
+		enabled_mask = die_index ? 0x0 : GENMASK_ULL(half_size - 1, 0);
 		ret = gaudi3_coresight_set_disabled_components(hdev, die_index, half_size,
 					enabled_mask, gaudi3_pmmu_coresight_cfg_table);
 		if (ret) {
-			dev_err(hdev->dev, "Failed to set disabled cs_dbg units for PMMU coresight\n");
+			hl_err(hdev, "Failed to set disabled cs_dbg units for PMMU coresight\n");
 			return ret;
 		}
 
@@ -6363,7 +6611,7 @@ int gaudi3_coresight_init(struct hl_device *hdev)
 		ret = gaudi3_coresight_set_disabled_components(hdev, die_index, half_size,
 					enabled_mask, gaudi3_cs_coresight_cfg_table);
 		if (ret) {
-			dev_err(hdev->dev, "Failed to set disabled cs_dbg units for Cache Slice coresight\n");
+			hl_err(hdev, "Failed to set disabled cs_dbg units for Cache Slice coresight\n");
 			return ret;
 		}
 
@@ -6373,7 +6621,7 @@ int gaudi3_coresight_init(struct hl_device *hdev)
 		ret = gaudi3_coresight_set_disabled_components(hdev, die_index, half_size,
 					enabled_mask, gaudi3_cpu_coresight_cfg_table);
 		if (ret) {
-			dev_err(hdev->dev, "Failed to set disabled cs_dbg units for CPU coresight\n");
+			hl_err(hdev, "Failed to set disabled cs_dbg units for CPU coresight\n");
 			return ret;
 		}
 
@@ -6383,7 +6631,36 @@ int gaudi3_coresight_init(struct hl_device *hdev)
 		ret = gaudi3_coresight_set_disabled_components(hdev, die_index, half_size,
 					enabled_mask, gaudi3_psoc_coresight_cfg_table);
 		if (ret) {
-			dev_err(hdev->dev, "Failed to set disabled cs_dbg units for PSOC coresight\n");
+			hl_err(hdev, "Failed to set disabled cs_dbg units for PSOC coresight\n");
+			return ret;
+		}
+
+		/* Set NIC disable components */
+
+		half_size = CS_DBG_NIC_ID_SIZE >> 1;
+		enabled_mask = hdev->cn.ports_mask;
+
+		/*
+		 * if PORT_LANES_2 - we have 2 bits in port mask per nic
+		 */
+		if (hdev->cn.lanes_per_port == PORT_LANES_2) {
+			enabled_mask = 0x0;
+			tmp_mask_index = 0;
+
+			while (hdev->cn.ports_mask >> (tmp_mask_index << 1)) {
+				if ((hdev->cn.ports_mask >> (tmp_mask_index << 1)) & 0x3)
+					enabled_mask |= 1ULL << tmp_mask_index;
+				tmp_mask_index += 1;
+			}
+		}
+
+		enabled_mask = enabled_mask >> (die_index * half_size);
+		enabled_mask &= GENMASK_ULL(half_size - 1, 0);
+
+		ret = gaudi3_coresight_set_disabled_components(hdev, die_index, half_size,
+					enabled_mask, gaudi3_nic_coresight_cfg_table);
+		if (ret) {
+			hl_err(hdev, "Failed to set disabled cs_dbg units for NIC coresight\n");
 			return ret;
 		}
 
@@ -6403,7 +6680,7 @@ int gaudi3_coresight_init(struct hl_device *hdev)
 		ret = gaudi3_coresight_set_disabled_components(hdev, die_index, half_size,
 					enabled_mask,	gaudi3_mme_sbte_coresight_cfg_table);
 		if (ret) {
-			dev_err(hdev->dev, "Failed to set disabled cs_dbg units for SBTE coresight\n");
+			hl_err(hdev, "Failed to set disabled cs_dbg units for SBTE coresight\n");
 			return ret;
 		}
 
@@ -6415,7 +6692,7 @@ int gaudi3_coresight_init(struct hl_device *hdev)
 		ret = gaudi3_coresight_set_disabled_components(hdev, die_index, half_size,
 					enabled_mask, gaudi3_mme_qman_coresight_cfg_table);
 		if (ret) {
-			dev_err(hdev->dev, "Failed to set disabled cs_dbg units for mme_qman coresight\n");
+			hl_err(hdev, "Failed to set disabled cs_dbg units for mme_qman coresight\n");
 			return ret;
 		}
 
@@ -6425,7 +6702,7 @@ int gaudi3_coresight_init(struct hl_device *hdev)
 		ret = gaudi3_coresight_set_disabled_components(hdev, die_index, half_size,
 					enabled_mask, gaudi3_pcie_coresight_cfg_table);
 		if (ret) {
-			dev_err(hdev->dev, "Failed to set disabled cs_dbg units for pcie coresight\n");
+			hl_err(hdev, "Failed to set disabled cs_dbg units for pcie coresight\n");
 			return ret;
 		}
 
@@ -6436,7 +6713,7 @@ int gaudi3_coresight_init(struct hl_device *hdev)
 		ret = gaudi3_coresight_set_disabled_components(hdev, die_index, half_size,
 					enabled_mask, gaudi3_sm_coresight_cfg_table);
 		if (ret) {
-			dev_err(hdev->dev, "Failed to set disabled cs_dbg units for sm coresight\n");
+			hl_err(hdev, "Failed to set disabled cs_dbg units for sm coresight\n");
 			return ret;
 		}
 
@@ -6448,7 +6725,7 @@ int gaudi3_coresight_init(struct hl_device *hdev)
 		ret = gaudi3_coresight_set_disabled_components(hdev, die_index, half_size,
 					enabled_mask, gaudi3_d2d_mac_coresight_cfg_table);
 		if (ret) {
-			dev_err(hdev->dev, "Failed to set disabled cs_dbg units for d2d_mac coresight\n");
+			hl_err(hdev, "Failed to set disabled cs_dbg units for d2d_mac coresight\n");
 			return ret;
 		}
 
@@ -6460,7 +6737,7 @@ int gaudi3_coresight_init(struct hl_device *hdev)
 		ret = gaudi3_coresight_set_disabled_components(hdev, die_index, half_size,
 					enabled_mask, gaudi3_rot_coresight_cfg_table);
 		if (ret) {
-			dev_err(hdev->dev, "Failed to set disabled cs_dbg units for rot coresight\n");
+			hl_err(hdev, "Failed to set disabled cs_dbg units for rot coresight\n");
 			return ret;
 		}
 
@@ -6471,7 +6748,7 @@ int gaudi3_coresight_init(struct hl_device *hdev)
 		ret = gaudi3_coresight_set_disabled_components(hdev, die_index, half_size,
 					enabled_mask, gaudi3_parc_arc_coresight_cfg_table);
 		if (ret) {
-			dev_err(hdev->dev, "Failed to set disabled cs_dbg units for parc_arc coresight\n");
+			hl_err(hdev, "Failed to set disabled cs_dbg units for parc_arc coresight\n");
 			return ret;
 		}
 
@@ -6482,7 +6759,7 @@ int gaudi3_coresight_init(struct hl_device *hdev)
 		ret = gaudi3_coresight_set_disabled_components(hdev, die_index, half_size,
 					enabled_mask, gaudi3_arc_farm_coresight_cfg_table);
 		if (ret) {
-			dev_err(hdev->dev, "Failed to set disabled cs_dbg units for arc_farm coresight\n");
+			hl_err(hdev, "Failed to set disabled cs_dbg units for arc_farm coresight\n");
 			return ret;
 		}
 
@@ -6494,7 +6771,7 @@ int gaudi3_coresight_init(struct hl_device *hdev)
 		ret = gaudi3_coresight_set_disabled_components(hdev, die_index, half_size,
 					enabled_mask, gaudi3_tpc_coresight_cfg_table);
 		if (ret) {
-			dev_err(hdev->dev, "Failed to set disabled cs_dbg units for tpc coresight\n");
+			hl_err(hdev, "Failed to set disabled cs_dbg units for tpc coresight\n");
 			return ret;
 		}
 
@@ -6506,7 +6783,7 @@ int gaudi3_coresight_init(struct hl_device *hdev)
 		ret = gaudi3_coresight_set_disabled_components(hdev, die_index, half_size,
 					enabled_mask, gaudi3_vdec_coresight_cfg_table);
 		if (ret) {
-			dev_err(hdev->dev, "Failed to set disabled cs_dbg units for decoder coresight\n");
+			hl_err(hdev, "Failed to set disabled cs_dbg units for decoder coresight\n");
 			return ret;
 		}
 
@@ -6525,7 +6802,7 @@ int gaudi3_coresight_init(struct hl_device *hdev)
 		ret = gaudi3_coresight_set_disabled_components(hdev, die_index, half_size,
 					enabled_mask, gaudi3_hbm_coresight_cfg_table);
 		if (ret) {
-			dev_err(hdev->dev, "Failed to set disabled cs_dbg units for hbm mc1 coresight\n");
+			hl_err(hdev, "Failed to set disabled cs_dbg units for hbm mc1 coresight\n");
 			return ret;
 		}
 
@@ -6538,7 +6815,7 @@ int gaudi3_coresight_init(struct hl_device *hdev)
 		ret = gaudi3_coresight_set_disabled_components(hdev, die_index, half_size,
 					enabled_mask, gaudi3_sedma_coresight_cfg_table);
 		if (ret) {
-			dev_err(hdev->dev, "Failed to set disabled cs_dbg units for edma coresight\n");
+			hl_err(hdev, "Failed to set disabled cs_dbg units for edma coresight\n");
 			return ret;
 		}
 	}
@@ -6546,3 +6823,132 @@ int gaudi3_coresight_init(struct hl_device *hdev)
 	return 0;
 }
 
+static int gaudi3_sample_spmu(struct hl_device *hdev, struct hl_debug_params *params)
+{
+	u32 output_arr_len;
+	u32 events_num;
+	u64 base_reg;
+	u64 *output;
+	int i;
+
+	if (params->reg_idx >= ARRAY_SIZE(debug_spmu_regs)) {
+		hl_err(hdev, "Invalid register index in SPMU\n");
+		return -EINVAL;
+	}
+
+	base_reg = debug_spmu_regs[params->reg_idx];
+
+	/* in case base reg is 0x0 we ignore this configuration */
+	if (!base_reg)
+		return 0;
+
+	output = params->output;
+	output_arr_len = params->output_size / sizeof(u64);
+	events_num = output_arr_len;
+
+	if (output_arr_len < 1) {
+		hl_err(hdev, "not enough values for SPMU sample\n");
+		return -EINVAL;
+	}
+
+	if (events_num > SPMU_MAX_COUNTERS) {
+		hl_err(hdev, "too many events values for SPMU sample\n");
+		return -EINVAL;
+	}
+
+	/* capture */
+	WREG32(base_reg + mmCS_DBG_TPC_EML_EML_SPMU_PMSCR, 1);
+
+	/* read the shadow registers */
+	for (i = 0 ; i < events_num ; i++)
+		output[i] = RREG32(base_reg + mmCS_DBG_TPC_EML_EML_SPMU_PMEVCNTR0_EL0 + i * 8);
+
+	return 0;
+}
+
+void gaudi3_cn_spmu_get_stats_names(struct hl_device *hdev, u32 port, char ***names, u32 *n_stats)
+{
+	if (!hdev->supports_coresight) {
+		*n_stats = 0;
+		return;
+	}
+
+	*n_stats = gaudi3_spmu_stats_len;
+	*names = gaudi3_spmu_stats_names;
+}
+
+void gaudi3_cn_spmu_get_stats_event_types(struct hl_device *hdev, u32 port, u32 **event_types,
+						u32 *n_stats)
+{
+	if (!hdev->supports_coresight) {
+		*n_stats = 0;
+		return;
+	}
+
+	*n_stats = gaudi3_spmu_stats_len;
+	*event_types = gaudi3_spmu_stats_event_types;
+}
+
+int gaudi3_cn_spmu_config(struct hl_device *hdev, u32 port, u32 num_event_types, u32 event_types[],
+				bool enable)
+{
+	struct hl_debug_params_spmu spmu;
+	struct hl_debug_params params;
+	u64 event_counters[SPMU_DATA_LEN];
+	int i;
+
+	if (!hdev->supports_coresight)
+		return 0;
+
+	/* For odd ports in 200G mode, if SPMU is already configured for even port, then return,
+	 * since SPMU base regs are per macro.
+	 */
+	if (hdev->cn.lanes_per_port == PORT_LANES_2 && (port & 1) &&
+	    (hdev->cn.ports_mask & BIT(port - 1)))
+		return 0;
+
+	/* validate nic port */
+	if  (!gaudi3_reg_is_nic_spmu(GAUDI3_SPMU_D0_NIC0_CS_DBG + NIC_PORT_TO_MACRO(port))) {
+		hl_err(hdev, "Invalid nic port %u\n", port);
+		return -EINVAL;
+	}
+
+	memset(&params, 0, sizeof(struct hl_debug_params));
+	params.op = HL_DEBUG_OP_SPMU;
+	params.input = &spmu;
+	params.enable = enable;
+	params.output_size = sizeof(event_counters);
+	params.output = event_counters;
+	params.reg_idx = GAUDI3_SPMU_D0_NIC0_CS_DBG + NIC_PORT_TO_MACRO(port);
+
+	memset(&spmu, 0, sizeof(struct hl_debug_params_spmu));
+	spmu.event_types_num = num_event_types;
+	spmu.trc_ctrl_host_val = 0x5 | (0x8 << 16);
+	spmu.pmtrc_val = 0x100400;
+
+	for (i = 0 ; i < spmu.event_types_num ; i++)
+		spmu.event_types[i] = event_types[i];
+
+	return gaudi3_config_spmu(hdev, &params);
+}
+
+int gaudi3_cn_spmu_sample(struct hl_device *hdev, u32 port, u32 num_out_data, u64 out_data[])
+{
+	struct hl_debug_params params;
+
+	if (!hdev->supports_coresight)
+		return 0;
+
+	/* validate nic port */
+	if  (!gaudi3_reg_is_nic_spmu(GAUDI3_SPMU_D0_NIC0_CS_DBG + NIC_PORT_TO_MACRO(port))) {
+		hl_err(hdev, "Invalid nic port %u\n", port);
+		return -EINVAL;
+	}
+
+	memset(&params, 0, sizeof(struct hl_debug_params));
+	params.output = out_data;
+	params.output_size = num_out_data * sizeof(u64);
+	params.reg_idx = GAUDI3_SPMU_D0_NIC0_CS_DBG + NIC_PORT_TO_MACRO(port);
+
+	return gaudi3_sample_spmu(hdev, &params);
+}

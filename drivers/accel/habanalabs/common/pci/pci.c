@@ -10,6 +10,8 @@
 
 #include <linux/pci.h>
 
+#include <trace/events/habanalabs.h>
+
 #define PCI_DEVICE_ID_IBM_PHB4		0x04C1
 
 #define HL_PLDM_PCI_ELBI_TIMEOUT_MSEC	(HL_PCI_ELBI_TIMEOUT_MSEC * 300)
@@ -37,7 +39,7 @@ int hl_pci_bars_map(struct hl_device *hdev, const char * const name[3],
 
 	rc = pci_request_regions(pdev, HL_NAME);
 	if (rc) {
-		dev_err(hdev->dev, "Cannot obtain PCI resources\n");
+		hl_err(hdev, "Cannot obtain PCI resources\n");
 		return rc;
 	}
 
@@ -47,7 +49,7 @@ int hl_pci_bars_map(struct hl_device *hdev, const char * const name[3],
 				pci_ioremap_wc_bar(pdev, bar) :
 				pci_ioremap_bar(pdev, bar);
 		if (!hdev->pcie_bar[bar]) {
-			dev_err(hdev->dev, "pci_ioremap%s_bar failed for %s\n",
+			hl_err(hdev, "pci_ioremap%s_bar failed for %s\n",
 					is_wc[i] ? "_wc" : "", name[i]);
 			rc = -ENODEV;
 			goto err;
@@ -122,20 +124,23 @@ int hl_pci_elbi_read(struct hl_device *hdev, u64 addr, u32 *data)
 	if ((val & PCI_CONFIG_ELBI_STS_MASK) == PCI_CONFIG_ELBI_STS_DONE) {
 		pci_read_config_dword(pdev, mmPCI_CONFIG_ELBI_DATA, data);
 
+		if (unlikely(trace_habanalabs_elbi_read_enabled() && hdev->debug_rreg))
+			trace_habanalabs_elbi_read(HL_PARENT_DEV(hdev), (u32) addr, val);
+
 		return 0;
 	}
 
 	if (val & PCI_CONFIG_ELBI_STS_ERR) {
-		dev_err(hdev->dev, "Error reading from ELBI\n");
+		hl_err(hdev, "Error reading from ELBI\n");
 		return -EIO;
 	}
 
 	if (!(val & PCI_CONFIG_ELBI_STS_MASK)) {
-		dev_err(hdev->dev, "ELBI read didn't finish in time\n");
+		hl_err(hdev, "ELBI read didn't finish in time\n");
 		return -EIO;
 	}
 
-	dev_err(hdev->dev, "ELBI read has undefined bits in status\n");
+	hl_err(hdev, "ELBI read has undefined bits in status\n");
 	return -EIO;
 }
 
@@ -181,18 +186,21 @@ int hl_pci_elbi_write(struct hl_device *hdev, u64 addr, u32 data)
 		usleep_range(300, 500);
 	}
 
-	if ((val & PCI_CONFIG_ELBI_STS_MASK) == PCI_CONFIG_ELBI_STS_DONE)
+	if ((val & PCI_CONFIG_ELBI_STS_MASK) == PCI_CONFIG_ELBI_STS_DONE) {
+		if (unlikely(trace_habanalabs_elbi_write_enabled() && hdev->debug_wreg))
+			trace_habanalabs_elbi_write(HL_PARENT_DEV(hdev), (u32) addr, val);
 		return 0;
+	}
 
 	if (val & PCI_CONFIG_ELBI_STS_ERR)
 		return -EIO;
 
 	if (!(val & PCI_CONFIG_ELBI_STS_MASK)) {
-		dev_err(hdev->dev, "ELBI write didn't finish in time\n");
+		hl_err(hdev, "ELBI write didn't finish in time\n");
 		return -EIO;
 	}
 
-	dev_err(hdev->dev, "ELBI write has undefined bits in status\n");
+	hl_err(hdev, "ELBI write has undefined bits in status\n");
 	return -EIO;
 }
 
@@ -305,7 +313,7 @@ int hl_pci_set_inbound_region(struct hl_device *hdev, u8 region,
 	hl_pci_elbi_write(hdev, prop->pcie_aux_dbi_reg_addr, 0);
 
 	if (rc)
-		dev_err(hdev->dev, "failed to map bar %u to 0x%08llx\n",
+		hl_err(hdev, "failed to map bar %u to 0x%08llx\n",
 				pci_region->bar, pci_region->addr);
 
 	return rc;
@@ -382,6 +390,43 @@ enum pci_region hl_get_pci_memory_region(struct hl_device *hdev, u64 addr)
 	return PCI_REGION_NUMBER;
 }
 
+#ifndef _HAS_PCI_CONFIGURE_EXTENDED_TAGS
+static int hl_pci_configure_extended_tags(struct pci_dev *pdev)
+{
+        u32 cap;
+        u16 ctl;
+        int rc;
+
+        rc = pcie_capability_read_dword(pdev, PCI_EXP_DEVCAP, &cap);
+        if (rc) {
+                pci_err(pdev,
+                        "Failed to read PCIe device capabilities register\n");
+                return rc;
+        }
+
+        if (!(cap & PCI_EXP_DEVCAP_EXT_TAG))
+                return 0;
+
+        rc = pcie_capability_read_word(pdev, PCI_EXP_DEVCTL, &ctl);
+        if (rc) {
+                pci_err(pdev, "Failed to read PCIe device control register\n");
+                return rc;
+        }
+
+        if (ctl & PCI_EXP_DEVCTL_EXT_TAG)
+                return 0;
+
+        pci_info(pdev, "Enabling PCIe extended tags\n");
+        rc = pcie_capability_set_word(pdev, PCI_EXP_DEVCTL,
+                                        PCI_EXP_DEVCTL_EXT_TAG);
+        if (rc)
+                pci_err(pdev,
+                        "Failed to write to PCIe device control register\n");
+
+        return rc;
+}
+#endif /*  _HAS_PCI_CONFIGURE_EXTENDED_TAGS */
+
 /**
  * hl_pci_init() - PCI initialization code.
  * @hdev: Pointer to hl_device structure.
@@ -401,7 +446,7 @@ int hl_pci_init(struct hl_device *hdev)
 
 	rc = pci_enable_device_mem(pdev);
 	if (rc) {
-		dev_err(hdev->dev, "can't enable PCI device\n");
+		hl_err(hdev, "can't enable PCI device\n");
 		return rc;
 	}
 
@@ -409,13 +454,13 @@ int hl_pci_init(struct hl_device *hdev)
 
 	rc = hdev->asic_funcs->pci_bars_map(hdev);
 	if (rc) {
-		dev_err(hdev->dev, "Failed to map PCI BAR addresses\n");
+		hl_err(hdev, "Failed to map PCI BAR addresses\n");
 		goto disable_device;
 	}
 
 	rc = hdev->asic_funcs->init_iatu(hdev);
 	if (rc) {
-		dev_err(hdev->dev, "PCI controller was not initialized successfully\n");
+		hl_err(hdev, "PCI controller was not initialized successfully\n");
 		goto unmap_pci_bars;
 	}
 
@@ -427,9 +472,17 @@ int hl_pci_init(struct hl_device *hdev)
 			usleep_range(2000, 3000);
 	}
 
+#ifndef _HAS_PCI_CONFIGURE_EXTENDED_TAGS
+	rc = hl_pci_configure_extended_tags(pdev);
+	if (rc) {
+		hl_err(hdev, "Failed to configure PCIe extended tags\n");
+		goto unmap_pci_bars;
+	}
+#endif
+
 	rc = dma_set_mask_and_coherent(&pdev->dev, DMA_BIT_MASK(prop->dma_mask));
 	if (rc) {
-		dev_err(hdev->dev,
+		hl_err(hdev,
 			"Failed to set dma mask to %d bits, error %d\n",
 			prop->dma_mask, rc);
 		goto unmap_pci_bars;

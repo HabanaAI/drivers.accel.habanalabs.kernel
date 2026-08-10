@@ -7,8 +7,8 @@
 
 #include "habanalabs.h"
 #include "../include/hw_ip/mmu/mmu_general.h"
-
 #include "habanalabs_compat_accel.h"
+
 #include <linux/pci.h>
 #include <linux/uaccess.h>
 #include <linux/vmalloc.h>
@@ -29,7 +29,7 @@ static int hl_debugfs_i2c_read(struct hl_device *hdev, u8 i2c_bus, u8 i2c_addr,
 		return -EBUSY;
 
 	if (i2c_len > I2C_MAX_TRANSACTION_LEN) {
-		dev_err(hdev->dev, "I2C transaction length %u, exceeds maximum of %u\n",
+		hl_err(hdev, "I2C transaction length %u, exceeds maximum of %u\n",
 				i2c_len, I2C_MAX_TRANSACTION_LEN);
 		return -EINVAL;
 	}
@@ -45,7 +45,7 @@ static int hl_debugfs_i2c_read(struct hl_device *hdev, u8 i2c_bus, u8 i2c_addr,
 
 	rc = hdev->asic_funcs->send_cpu_message(hdev, (u32 *) &pkt, sizeof(pkt), 0, val);
 	if (rc && rc != -EAGAIN)
-		dev_err(hdev->dev, "Failed to read from I2C, error %d\n", rc);
+		hl_err(hdev, "Failed to read from I2C, error %d\n", rc);
 
 	return rc;
 }
@@ -60,7 +60,7 @@ static int hl_debugfs_i2c_write(struct hl_device *hdev, u8 i2c_bus, u8 i2c_addr,
 		return -EBUSY;
 
 	if (i2c_len > I2C_MAX_TRANSACTION_LEN) {
-		dev_err(hdev->dev, "I2C transaction length %u, exceeds maximum of %u\n",
+		hl_err(hdev, "I2C transaction length %u, exceeds maximum of %u\n",
 				i2c_len, I2C_MAX_TRANSACTION_LEN);
 		return -EINVAL;
 	}
@@ -77,7 +77,7 @@ static int hl_debugfs_i2c_write(struct hl_device *hdev, u8 i2c_bus, u8 i2c_addr,
 
 	rc = hdev->asic_funcs->send_cpu_message(hdev, (u32 *) &pkt, sizeof(pkt), 0, NULL);
 	if (rc && rc != -EAGAIN)
-		dev_err(hdev->dev, "Failed to write to I2C, error %d\n", rc);
+		hl_err(hdev, "Failed to write to I2C, error %d\n", rc);
 
 	return rc;
 }
@@ -99,7 +99,7 @@ static void hl_debugfs_led_set(struct hl_device *hdev, u8 led, u8 state)
 
 	rc = hdev->asic_funcs->send_cpu_message(hdev, (u32 *) &pkt, sizeof(pkt), 0, NULL);
 	if (rc && rc != -EAGAIN)
-		dev_err(hdev->dev, "Failed to set LED %d, error %d\n", led, rc);
+		hl_err(hdev, "Failed to set LED %d, error %d\n", led, rc);
 }
 
 static int command_buffers_show(struct seq_file *s, void *data)
@@ -433,12 +433,12 @@ static int mmu_show(struct seq_file *s, void *data)
 		ctx = hl_get_compute_ctx(hdev);
 
 	if (!ctx) {
-		dev_err(hdev->dev, "no ctx available\n");
+		hl_err(hdev, "no ctx available\n");
 		return 0;
 	}
 
 	if (hl_mmu_get_tlb_info(ctx, virt_addr, &hops_info)) {
-		dev_err(hdev->dev, "virt addr 0x%llx is not mapped to phys addr\n",
+		hl_err(hdev, "virt addr 0x%llx is not mapped to phys addr\n",
 				virt_addr);
 		goto put_ctx;
 	}
@@ -508,7 +508,7 @@ static ssize_t mmu_asid_va_write(struct file *file, const char __user *buf,
 	return count;
 
 err:
-	dev_err(hdev->dev, "usage: echo <asid> <0xaddr> > mmu\n");
+	hl_err(hdev, "usage: echo <asid> <0xaddr> > mmu\n");
 
 	return -EINVAL;
 }
@@ -521,7 +521,7 @@ static int mmu_ack_error(struct seq_file *s, void *data)
 	int rc;
 
 	if (!dev_entry->mmu_cap_mask) {
-		dev_err(hdev->dev, "mmu_cap_mask is not set\n");
+		hl_err(hdev, "mmu_cap_mask is not set\n");
 		goto err;
 	}
 
@@ -562,7 +562,7 @@ static ssize_t mmu_ack_error_value_write(struct file *file,
 
 	return count;
 err:
-	dev_err(hdev->dev, "usage: echo <0xmmu_cap_mask > > mmu_error\n");
+	hl_err(hdev, "usage: echo <0xmmu_cap_mask > > mmu_error\n");
 
 	return -EINVAL;
 }
@@ -575,7 +575,7 @@ static int engines_show(struct seq_file *s, void *data)
 	struct engines_data eng_data;
 
 	if (hdev->reset_info.in_reset) {
-		dev_warn_ratelimited(hdev->dev,
+		hl_warn_ratelimited(hdev,
 				"Can't check device idle during reset\n");
 		return 0;
 	}
@@ -589,7 +589,7 @@ static int engines_show(struct seq_file *s, void *data)
 	hdev->asic_funcs->is_device_idle(hdev, NULL, 0, &eng_data);
 
 	if (eng_data.actual_size > eng_data.allocated_buf_size) {
-		dev_err(hdev->dev,
+		hl_err(hdev,
 				"Engines data size (%d Bytes) is bigger than allocated size (%u Bytes)\n",
 				eng_data.actual_size, eng_data.allocated_buf_size);
 		vfree(eng_data.buf);
@@ -612,14 +612,14 @@ static ssize_t hl_memory_scrub(struct file *f, const char __user *buf,
 	int rc;
 
 	if (!hl_device_operational(hdev, NULL)) {
-		dev_warn_ratelimited(hdev->dev, "Can't scrub memory, device is not operational\n");
+		hl_warn_ratelimited(hdev, "Can't scrub memory, device is not operational\n");
 		return -EIO;
 	}
 
 	mutex_lock(&hdev->fpriv_list_lock);
 	if (hdev->is_compute_ctx_active) {
 		mutex_unlock(&hdev->fpriv_list_lock);
-		dev_err(hdev->dev, "can't scrub dram, context exist\n");
+		hl_err(hdev, "can't scrub dram, context exist\n");
 		return -EBUSY;
 	}
 	hdev->is_in_dram_scrub = true;
@@ -694,7 +694,7 @@ int hl_device_va_to_pa(struct hl_device *hdev, u64 virt_addr, u32 size, u64 *phy
 	ctx = hl_get_compute_ctx(hdev);
 
 	if (!ctx) {
-		dev_err(hdev->dev, "no ctx available\n");
+		hl_err(hdev, "no ctx available\n");
 		return -EINVAL;
 	}
 
@@ -721,7 +721,7 @@ int hl_device_va_to_pa(struct hl_device *hdev, u64 virt_addr, u32 size, u64 *phy
 	mutex_unlock(&ctx->mem_hash_lock);
 
 	if (!valid) {
-		dev_err(hdev->dev,
+		hl_err(hdev,
 			"virt addr 0x%llx is not mapped\n",
 			virt_addr);
 		rc = -EINVAL;
@@ -730,7 +730,7 @@ int hl_device_va_to_pa(struct hl_device *hdev, u64 virt_addr, u32 size, u64 *phy
 
 	rc = hl_mmu_va_to_pa(ctx, virt_addr, phys_addr);
 	if (rc) {
-		dev_err(hdev->dev,
+		hl_err(hdev,
 			"virt addr 0x%llx is not mapped to phys addr\n",
 			virt_addr);
 		rc = -EINVAL;
@@ -783,7 +783,7 @@ static void hl_access_host_mem(struct hl_device *hdev, u64 addr, u64 *val,
 		*(u64 *) phys_to_virt(addr - offset) = *val;
 		break;
 	default:
-		dev_err(hdev->dev, "hostmem access-type %d id not supported\n", acc_type);
+		hl_err(hdev, "hostmem access-type %d id not supported\n", acc_type);
 		break;
 	}
 }
@@ -808,12 +808,12 @@ static void dump_cfg_access_entry(struct hl_device *hdev,
 		access_type = "WRITE64 to";
 		break;
 	default:
-		dev_err(hdev->dev, "Invalid DEBUGFS access type (%u)\n", entry->debugfs_type);
+		hl_err(hdev, "Invalid DEBUGFS access type (%u)\n", entry->debugfs_type);
 		return;
 	}
 
 	time64_to_tm(entry->seconds_since_epoch, 0, &tm);
-	dev_info(hdev->dev,
+	hl_info(hdev,
 		"%ld-%02d-%02d %02d:%02d:%02d (UTC): %s %#llx\n", tm.tm_year + 1900, tm.tm_mon + 1,
 		tm.tm_mday, tm.tm_hour, tm.tm_min, tm.tm_sec, access_type, entry->addr);
 }
@@ -834,7 +834,7 @@ void hl_debugfs_cfg_access_history_dump(struct hl_device *hdev)
 		&& accesses_list[i].valid) {
 
 		if (first_loop) {
-			dev_info(hdev->dev,
+			hl_info(hdev,
 				"Config region access requests from debugfs - history dump (new to old):\n");
 			first_loop = false;
 		}
@@ -887,7 +887,7 @@ static int hl_access_mem(struct hl_device *hdev, u64 addr, u64 *val,
 	check_if_cfg_access_and_log(hdev, addr, acc_size, acc_type);
 	rc = hl_access_dev_mem_by_region(hdev, addr, val, acc_type, &found);
 	if (rc) {
-		dev_err(hdev->dev,
+		hl_err(hdev,
 			"Failed reading addr %#llx from dev mem (%d)\n",
 			addr, rc);
 		return rc;
@@ -910,7 +910,7 @@ static int hl_access_mem(struct hl_device *hdev, u64 addr, u64 *val,
 
 	return 0;
 err:
-	dev_err(hdev->dev, "invalid addr %#llx\n", addr);
+	hl_err(hdev, "invalid addr %#llx\n", addr);
 	return rc;
 }
 
@@ -925,7 +925,7 @@ static ssize_t hl_data_read32(struct file *f, char __user *buf,
 	u32 val;
 
 	if (hdev->reset_info.in_reset) {
-		dev_warn_ratelimited(hdev->dev, "Can't read during reset\n");
+		hl_warn_ratelimited(hdev, "Can't read during reset\n");
 		return 0;
 	}
 
@@ -953,7 +953,7 @@ static ssize_t hl_data_write32(struct file *f, const char __user *buf,
 	ssize_t rc;
 
 	if (hdev->reset_info.in_reset) {
-		dev_warn_ratelimited(hdev->dev, "Can't write during reset\n");
+		hl_warn_ratelimited(hdev, "Can't write during reset\n");
 		return 0;
 	}
 
@@ -980,7 +980,7 @@ static ssize_t hl_data_read64(struct file *f, char __user *buf,
 	u64 val;
 
 	if (hdev->reset_info.in_reset) {
-		dev_warn_ratelimited(hdev->dev, "Can't read during reset\n");
+		hl_warn_ratelimited(hdev, "Can't read during reset\n");
 		return 0;
 	}
 
@@ -1006,7 +1006,7 @@ static ssize_t hl_data_write64(struct file *f, const char __user *buf,
 	ssize_t rc;
 
 	if (hdev->reset_info.in_reset) {
-		dev_warn_ratelimited(hdev->dev, "Can't write during reset\n");
+		hl_warn_ratelimited(hdev, "Can't write during reset\n");
 		return 0;
 	}
 
@@ -1031,7 +1031,7 @@ static ssize_t hl_dma_size_write(struct file *f, const char __user *buf,
 	u32 size;
 
 	if (hdev->reset_info.in_reset) {
-		dev_warn_ratelimited(hdev->dev, "Can't DMA during reset\n");
+		hl_warn_ratelimited(hdev, "Can't DMA during reset\n");
 		return 0;
 	}
 	rc = kstrtouint_from_user(buf, count, 16, &size);
@@ -1039,18 +1039,18 @@ static ssize_t hl_dma_size_write(struct file *f, const char __user *buf,
 		return rc;
 
 	if (!size) {
-		dev_err(hdev->dev, "DMA read failed. size can't be 0\n");
+		hl_err(hdev, "DMA read failed. size can't be 0\n");
 		return -EINVAL;
 	}
 
 	if (size > SZ_128M) {
-		dev_err(hdev->dev,
+		hl_err(hdev,
 			"DMA read failed. size can't be larger than 128MB\n");
 		return -EINVAL;
 	}
 
 	if (!hl_is_device_internal_memory_va(hdev, addr, size)) {
-		dev_err(hdev->dev,
+		hl_err(hdev,
 			"DMA read failed. Invalid 0x%010llx + 0x%08x\n",
 			addr, size);
 		return -EINVAL;
@@ -1067,7 +1067,7 @@ static ssize_t hl_dma_size_write(struct file *f, const char __user *buf,
 	rc = hdev->asic_funcs->debugfs_read_dma(hdev, addr, size,
 						entry->data_dma_blob_desc.data);
 	if (rc) {
-		dev_err(hdev->dev, "Failed to DMA from 0x%010llx\n", addr);
+		hl_err(hdev, "Failed to DMA from 0x%010llx\n", addr);
 		vfree(entry->data_dma_blob_desc.data);
 		entry->data_dma_blob_desc.data = NULL;
 		return -EIO;
@@ -1087,7 +1087,7 @@ static ssize_t hl_monitor_dump_trigger(struct file *f, const char __user *buf,
 	ssize_t rc;
 
 	if (hdev->reset_info.in_reset) {
-		dev_warn_ratelimited(hdev->dev, "Can't dump monitors during reset\n");
+		hl_warn_ratelimited(hdev, "Can't dump monitors during reset\n");
 		return 0;
 	}
 	rc = kstrtouint_from_user(buf, count, 10, &trig);
@@ -1095,7 +1095,7 @@ static ssize_t hl_monitor_dump_trigger(struct file *f, const char __user *buf,
 		return rc;
 
 	if (trig != 1) {
-		dev_err(hdev->dev, "Must write 1 to trigger monitor dump\n");
+		hl_err(hdev, "Must write 1 to trigger monitor dump\n");
 		return -EINVAL;
 	}
 
@@ -1111,7 +1111,7 @@ static ssize_t hl_monitor_dump_trigger(struct file *f, const char __user *buf,
 
 	rc = hdev->asic_funcs->get_monitor_dump(hdev, entry->mon_dump_blob_desc.data);
 	if (rc) {
-		dev_err(hdev->dev, "Failed to dump monitors\n");
+		hl_err(hdev, "Failed to dump monitors\n");
 		vfree(entry->mon_dump_blob_desc.data);
 		entry->mon_dump_blob_desc.data = NULL;
 		return -EIO;
@@ -1169,7 +1169,7 @@ static ssize_t hl_set_power_state(struct file *f, const char __user *buf,
 		pci_disable_device(hdev->pdev);
 		pci_set_power_state(hdev->pdev, PCI_D3hot);
 	} else {
-		dev_dbg(hdev->dev, "invalid power state value %u\n", value);
+		hl_dbg(hdev, "invalid power state value %u\n", value);
 		return -EINVAL;
 	}
 
@@ -1191,7 +1191,7 @@ static ssize_t hl_i2c_data_read(struct file *f, char __user *buf,
 	rc = hl_debugfs_i2c_read(hdev, entry->i2c_bus, entry->i2c_addr,
 			entry->i2c_reg, entry->i2c_len, &val);
 	if (rc) {
-		dev_err(hdev->dev,
+		hl_err(hdev,
 			"Failed to read from I2C bus %d, addr %d, reg %d, len %d\n",
 			entry->i2c_bus, entry->i2c_addr, entry->i2c_reg, entry->i2c_len);
 		return rc;
@@ -1219,7 +1219,7 @@ static ssize_t hl_i2c_data_write(struct file *f, const char __user *buf,
 	rc = hl_debugfs_i2c_write(hdev, entry->i2c_bus, entry->i2c_addr,
 			entry->i2c_reg, entry->i2c_len, value);
 	if (rc) {
-		dev_err(hdev->dev,
+		hl_err(hdev,
 			"Failed to write %#02llx to I2C bus %d, addr %d, reg %d, len %d\n",
 			value, entry->i2c_bus, entry->i2c_addr, entry->i2c_reg, entry->i2c_len);
 		return rc;
@@ -1317,7 +1317,7 @@ static ssize_t hl_device_write(struct file *f, const char __user *buf,
 	} else if (strncmp("cpu_timeout", data, strlen("cpu_timeout")) == 0) {
 		hdev->device_cpu_disabled = true;
 	} else {
-		dev_err(hdev->dev,
+		hl_err(hdev,
 			"Valid values: disable, enable, suspend, resume, cpu_timeout\n");
 		count = -EINVAL;
 	}
@@ -1370,7 +1370,7 @@ static ssize_t hl_stop_on_err_write(struct file *f, const char __user *buf,
 		return -EOPNOTSUPP;
 
 	if (hdev->reset_info.in_reset) {
-		dev_warn_ratelimited(hdev->dev,
+		hl_warn_ratelimited(hdev,
 				"Can't change stop on error during reset\n");
 		return 0;
 	}
@@ -1430,7 +1430,7 @@ static ssize_t hl_state_dump_write(struct file *f, const char __user *buf,
 		return rc;
 
 	if (size <= 0 || size >= ARRAY_SIZE(entry->state_dump)) {
-		dev_err(hdev->dev, "Invalid number of dumps to skip\n");
+		hl_err(hdev, "Invalid number of dumps to skip\n");
 		return -EINVAL;
 	}
 
@@ -1511,7 +1511,7 @@ static ssize_t hl_fw_security_write(struct file *f, const char __user *buf, size
 	int rc;
 
 	if (!hl_device_operational(hdev, NULL)) {
-		dev_warn_ratelimited(hdev->dev,
+		hl_warn_ratelimited(hdev,
 				"Can't set F/W security while device is not operational\n");
 		return -EBUSY;
 	}
@@ -1526,7 +1526,7 @@ static ssize_t hl_fw_security_write(struct file *f, const char __user *buf, size
 	rc = hdev->asic_funcs->send_cpu_message(hdev, (u32 *) &pkt, sizeof(pkt), 0, NULL);
 	if (rc) {
 		if (rc != -EAGAIN)
-			dev_err(hdev->dev, "Failed to set F/W security, error %d\n", rc);
+			hl_err(hdev, "Failed to set F/W security, error %d\n", rc);
 		return rc;
 	}
 
@@ -1542,7 +1542,7 @@ static ssize_t hl_fw_binning_set(struct file *f, const char __user *buf, size_t 
 
 	rc = hl_fw_send_binning_info(hdev);
 	if (rc) {
-		dev_err(hdev->dev, "Failed to send binning info, error %d\n", rc);
+		hl_err(hdev, "Failed to send binning info, error %d\n", rc);
 		return rc;
 	}
 
@@ -1563,7 +1563,7 @@ static ssize_t hl_psoc_wdog_disable(struct file *f, const char __user *buf, size
 
 	rc = hl_fw_send_psoc_wd_disable_msg(hdev, value);
 	if (rc) {
-		dev_err(hdev->dev, "Failed to set PSOC watchdog, error %d\n", rc);
+		hl_err(hdev, "Failed to set PSOC watchdog, error %d\n", rc);
 		return rc;
 	}
 
@@ -1722,27 +1722,27 @@ static const struct file_operations hl_debugfs_fops = {
 static void add_secured_nodes(struct hl_dbg_device_entry *dev_entry, struct dentry *root)
 {
 	debugfs_create_u8("i2c_bus",
-				0644,
+				0640,
 				root,
 				&dev_entry->i2c_bus);
 
 	debugfs_create_u8("i2c_addr",
-				0644,
+				0640,
 				root,
 				&dev_entry->i2c_addr);
 
 	debugfs_create_u8("i2c_reg",
-				0644,
+				0640,
 				root,
 				&dev_entry->i2c_reg);
 
 	debugfs_create_u8("i2c_len",
-				0644,
+				0640,
 				root,
 				&dev_entry->i2c_len);
 
 	debugfs_create_file("i2c_data",
-				0644,
+				0640,
 				root,
 				dev_entry,
 				&hl_i2c_data_fops);
@@ -1774,7 +1774,7 @@ static void add_files_to_device(struct hl_device *hdev, struct hl_dbg_device_ent
 	int i;
 
 	debugfs_create_x64("memory_scrub_val",
-				0644,
+				0640,
 				root,
 				&hdev->memory_scrub_val);
 
@@ -1785,42 +1785,42 @@ static void add_files_to_device(struct hl_device *hdev, struct hl_dbg_device_ent
 				&hl_mem_scrub_fops);
 
 	debugfs_create_x64("addr",
-				0644,
+				0640,
 				root,
 				&dev_entry->addr);
 
 	debugfs_create_file("data32",
-				0644,
+				0640,
 				root,
 				dev_entry,
 				&hl_data32b_fops);
 
 	debugfs_create_file("data64",
-				0644,
+				0640,
 				root,
 				dev_entry,
 				&hl_data64b_fops);
 
 	debugfs_create_file("set_power_state",
-				0644,
+				0640,
 				root,
 				dev_entry,
 				&hl_power_fops);
 
 	debugfs_create_file("device",
-				0644,
+				0640,
 				root,
 				dev_entry,
 				&hl_device_fops);
 
 	debugfs_create_file("clk_gate",
-				0644,
+				0640,
 				root,
 				dev_entry,
 				&hl_clk_gate_fops);
 
 	debugfs_create_file("stop_on_err",
-				0644,
+				0640,
 				root,
 				dev_entry,
 				&hl_stop_on_err_fops);
@@ -1860,18 +1860,18 @@ static void add_files_to_device(struct hl_device *hdev, struct hl_dbg_device_ent
 				&dev_entry->mon_dump_blob_desc);
 
 	debugfs_create_x8("skip_reset_on_timeout",
-				0644,
+				0640,
 				root,
 				&hdev->reset_info.skip_reset_on_timeout);
 
 	debugfs_create_file("state_dump",
-				0644,
+				0600,
 				root,
 				dev_entry,
 				&hl_state_dump_fops);
 
 	debugfs_create_file("timeout_locked",
-				0644,
+				0640,
 				root,
 				dev_entry,
 				&hl_timeout_locked_fops);
@@ -1889,7 +1889,7 @@ static void add_files_to_device(struct hl_device *hdev, struct hl_dbg_device_ent
 				&hl_fw_binning_set_fops);
 
 	debugfs_create_u32("device_release_watchdog_timeout",
-				0644,
+				0640,
 				root,
 				&hdev->device_release_watchdog_timeout_sec);
 
@@ -1906,7 +1906,8 @@ static void add_files_to_device(struct hl_device *hdev, struct hl_dbg_device_ent
 
 	for (i = 0, entry = dev_entry->entry_arr ; i < count ; i++, entry++) {
 		debugfs_create_file(hl_debugfs_list[i].name,
-					0644,
+					/* sensitive user info should be accessed by owner only */
+					hl_debugfs_list[i].write ? 0600 : 0400,
 					root,
 					entry,
 					&hl_debugfs_fops);
@@ -1968,7 +1969,9 @@ void hl_debugfs_device_fini(struct hl_device *hdev)
 void hl_debugfs_add_device(struct hl_device *hdev)
 {
 	struct hl_dbg_device_entry *dev_entry = &hdev->hl_debugfs;
+#ifndef _HAS_DEBUGFS_ROOT_IN_DRM_DEVICE
 	char name[64];
+#endif
 
 	dev_entry->root = hdev->drm.accel->debugfs_root;
 
@@ -1977,9 +1980,11 @@ void hl_debugfs_add_device(struct hl_device *hdev)
 	if (!hdev->asic_prop.fw_security_enabled)
 		add_secured_nodes(dev_entry, dev_entry->root);
 
+#ifndef _HAS_DEBUGFS_ROOT_IN_DRM_DEVICE
 	sprintf(name, "%d", hdev->cdev_idx);
 	dev_entry->accel_symlink =
 		debugfs_create_symlink(HL_PARENT_DEV_NAME(hdev), dev_entry->root->d_parent, name);
+#endif
 }
 #else
 void hl_debugfs_add_device(struct hl_device *hdev)
@@ -1996,12 +2001,14 @@ void hl_debugfs_add_device(struct hl_device *hdev)
 #endif /* IS_ENABLED(CONFIG_DRM_ACCEL) */
 
 #if IS_ENABLED(CONFIG_DRM_ACCEL)
+#ifndef _HAS_DEBUGFS_ROOT_IN_DRM_DEVICE
 void hl_debugfs_remove_device(struct hl_device *hdev)
 {
 	struct hl_dbg_device_entry *entry = &hdev->hl_debugfs;
 
 	debugfs_remove(entry->accel_symlink);
 }
+#endif /* _HAS_DEBUGFS_ROOT_IN_DRM_DEVICE */
 #else
 void hl_debugfs_remove_device(struct hl_device *hdev)
 {

@@ -1,6 +1,6 @@
 /* SPDX-License-Identifier: GPL-2.0
  *
- * Copyright 2020-2023 HabanaLabs, Ltd.
+ * Copyright 2020 HabanaLabs, Ltd.
  * All Rights Reserved.
  *
  */
@@ -134,6 +134,7 @@
 #include "dcore0_mme_ctrl_lo_arch_tensor_b_regs.h"
 #include "dcore0_mme_ctrl_lo_arch_tensor_cout_regs.h"
 #include "pcie_wrap_special_regs.h"
+#include "sft0_hbw_rtr_if0_mstr_if_rr_shrd_hbw_regs.h"
 
 #include "pdma0_qm_masks.h"
 #include "pdma0_core_masks.h"
@@ -164,6 +165,9 @@
 
 #define mmGIC_DISTRIBUTOR__5_GICD_SETSPI_NSR	0x4800040
 
+#define mmPSOC_EFUSE_READ_CTRL			0x4C4A000
+#define mmPSOC_EFUSE_DATA_0			0x4C4A080
+
 #define mmDCORE0_TPC0_EML_CFG_DBG_CNT		0x40000
 
 #define SM_OBJS_PROT_BITS_OFFS			0x14000
@@ -187,6 +191,7 @@
 #define TPC_CFG_STALL_ON_ERR_OFFSET	(mmDCORE0_TPC0_CFG_STALL_ON_ERR - mmDCORE0_TPC0_CFG_BASE)
 #define TPC_CFG_TPC_INTR_MASK_OFFSET	(mmDCORE0_TPC0_CFG_TPC_INTR_MASK - mmDCORE0_TPC0_CFG_BASE)
 #define TPC_CFG_MSS_CONFIG_OFFSET	(mmDCORE0_TPC0_CFG_MSS_CONFIG - mmDCORE0_TPC0_CFG_BASE)
+#define TPC_CFG_TPC_ID_OFFSET		(mmDCORE0_TPC0_CFG_TPC_ID - mmDCORE0_TPC0_CFG_BASE)
 #define TPC_EML_CFG_DBG_CNT_OFFSET	(mmDCORE0_TPC0_EML_CFG_DBG_CNT - mmDCORE0_TPC0_EML_CFG_BASE)
 
 #define EDMA_CORE_CFG_STALL_OFFSET	(mmDCORE0_EDMA0_CORE_CFG_1 - mmDCORE0_EDMA0_CORE_BASE)
@@ -313,6 +318,7 @@
 #define STLB_RANGE_INV_START_MSB_OFFSET	STLB_OFFSET(mmDCORE0_HMMU0_STLB_RANGE_INV_START_MSB)
 #define STLB_RANGE_INV_END_LSB_OFFSET	STLB_OFFSET(mmDCORE0_HMMU0_STLB_RANGE_INV_END_LSB)
 #define STLB_RANGE_INV_END_MSB_OFFSET	STLB_OFFSET(mmDCORE0_HMMU0_STLB_RANGE_INV_END_MSB)
+#define STLB_MEM_READ_ARPROT_OFFSET	STLB_OFFSET(mmDCORE0_HMMU0_STLB_MEM_READ_ARPROT)
 
 #define STLB_LL_LOOKUP_MASK_63_32_OFFSET	\
 			STLB_OFFSET(mmDCORE0_HMMU0_STLB_LINK_LIST_LOOKUP_MASK_63_32)
@@ -435,6 +441,8 @@
 #define SFT_DCORE_OFFSET (mmSFT1_HBW_RTR_IF0_RTR_CTRL_BASE - mmSFT0_HBW_RTR_IF0_RTR_CTRL_BASE)
 #define SFT_IF_OFFSET (mmSFT0_HBW_RTR_IF1_RTR_CTRL_BASE - mmSFT0_HBW_RTR_IF0_RTR_CTRL_BASE)
 
+#define SFT_PRIV_PCIE_EN_OFFSET (mmSFT0_HBW_RTR_IF0_MSTR_IF_RR_SHRD_HBW_PRIV_PCIE_EN - \
+						mmSFT0_HBW_RTR_IF0_MSTR_IF_RR_SHRD_HBW_BASE)
 #define BRDG_CTRL_NRM_MSIX_LBW_AWADDR	\
 	(mmDCORE0_VDEC0_BRDG_CTRL_NRM_MSIX_LBW_AWADDR - mmDCORE0_VDEC0_BRDG_CTRL_BASE)
 
@@ -557,12 +565,85 @@
 
 #define ARC_FARM_OFFSET (mmARC_FARM_ARC1_AUX_BASE - mmARC_FARM_ARC0_AUX_BASE)
 
+/* Not upstreamed */
+
+#include "nic0_qm0_axuser_nonsecured_regs.h"
+#include "nic0_txe0_regs.h"
+#include "nic0_txs0_regs.h"
+#include "nic0_txs1_regs.h"
+#include "nic0_rxe0_regs.h"
+#include "nic0_rxe1_regs.h"
 #include "nic0_qpc0_regs.h"
+#include "nic0_qpc1_regs.h"
+#include "nic0_tmr_regs.h"
 #include "nic0_qm0_regs.h"
+#include "nic1_qm0_regs.h"
 #include "nic0_qm_arc_aux0_regs.h"
+#include "nic0_phy_regs.h"
 #include "nic0_qm0_cgm_regs.h"
+#include "nic0_qm1_cgm_regs.h"
 #include "nic0_umr0_0_completion_queue_ci_1_regs.h"
 #include "nic0_umr0_0_unsecure_doorbell0_regs.h"
+
+#include "psoc_cpu_pll_ctrl_regs.h"
+#include "dcore0_hbm_pll_asif_slv_regs.h"
+#include "dcore0_pci_pll_asif_slv_regs.h"
+#include "dcore0_tpc_pll_asif_slv_regs.h"
+#include "dcore0_xbar_dma_pll_asif_slv_regs.h"
+#include "dcore0_xbar_if_pll_asif_slv_regs.h"
+#include "dcore0_xbar_mesh_pll_asif_slv_regs.h"
+#include "dcore0_xbar_mmu_pll_asif_slv_regs.h"
+#include "dcore1_hbm_pll_asif_slv_regs.h"
+#include "dcore1_nic_pll_asif_slv_regs.h"
+#include "dcore1_tpc_pll_asif_slv_regs.h"
+#include "dcore1_xbar_dma_pll_asif_slv_regs.h"
+#include "dcore1_xbar_hbm_pll_asif_slv_regs.h"
+#include "dcore1_xbar_if_pll_asif_slv_regs.h"
+#include "dcore1_xbar_mesh_pll_asif_slv_regs.h"
+#include "dcore1_xbar_mmu_pll_asif_slv_regs.h"
+#include "dcore2_hbm_pll_asif_slv_regs.h"
+#include "dcore2_tpc_pll_asif_slv_regs.h"
+#include "dcore2_xbar_bank_pll_asif_slv_regs.h"
+#include "dcore2_xbar_dma_pll_asif_slv_regs.h"
+#include "dcore2_xbar_hbm_pll_asif_slv_regs.h"
+#include "dcore2_xbar_if_pll_asif_slv_regs.h"
+#include "dcore2_xbar_mmu_pll_asif_slv_regs.h"
+#include "dcore3_hbm_pll_asif_slv_regs.h"
+#include "dcore3_nic_pll_asif_slv_regs.h"
+#include "dcore3_tpc_pll_asif_slv_regs.h"
+#include "dcore3_xbar_bank_pll_asif_slv_regs.h"
+#include "dcore3_xbar_dma_pll_asif_slv_regs.h"
+#include "dcore3_xbar_if_pll_asif_slv_regs.h"
+#include "dcore3_xbar_mmu_pll_asif_slv_regs.h"
+#include "pmmu_mme_pll_asif_slv_regs.h"
+#include "pmmu_vid_pll_asif_slv_regs.h"
+#include "psoc_cpu_pll_asif_slv_regs.h"
+#include "psoc_mme_pll_asif_slv_regs.h"
+#include "psoc_vid_pll_asif_slv_regs.h"
+
+#include "hbm0_mc0_regs.h"
+#include "hbm0_mc1_regs.h"
+#include "hbm1_mc0_regs.h"
+#include "hbm_phy_chan_chan0_aword_regs.h"
+#include "hbm_phy_chan_chan0_dword0_regs.h"
+#include "hbm_phy_chan_chan0_dword1_regs.h"
+#include "hbm_phy_chan_chan1_dword0_regs.h"
+#include "hbm_phy_initeng_regs.h"
+#include "hbm_phy_master_regs.h"
+#include "hbm0_mc0bist0_regs.h"
+#include "hbm0_mc0bist0_special_regs.h"
+
+#include "nic0_phy_masks.h"
+#include "nic0_rxe0_masks.h"
+#include "nic0_txe0_masks.h"
+#include "nic0_qpc0_masks.h"
+
+#include "hbm0_mc0_masks.h"
+#include "hbm_phy_chan_chan0_aword_masks.h"
+#include "hbm_phy_chan_chan0_dword0_masks.h"
+#include "hbm_phy_master_masks.h"
+#include "hbm_phy_initeng_masks.h"
+#include "hbm0_mc0bist0_special_masks.h"
 
 #define NIC_OFFSET		(mmNIC1_MSTR_IF_RR_SHRD_HBW_BASE - mmNIC0_MSTR_IF_RR_SHRD_HBW_BASE)
 

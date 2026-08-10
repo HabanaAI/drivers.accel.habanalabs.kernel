@@ -8,7 +8,7 @@
 #ifndef GAUDI3_MASKS_H_
 #define GAUDI3_MASKS_H_
 
-#include "../include/gaudi3/asic_reg/gaudi3_regs.h"
+#include "../include/gaudi3/gaudi3_regs.h"
 
 #define PLL_DIV_CFG_FBDIV_MASK		GENMASK(11, 0)
 #define PLL_DIV_CFG_POSTDIV1_MASK	GENMASK(18, 16)

@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: GPL-2.0
 
 /*
- * Copyright 2016-2021 HabanaLabs, Ltd.
+ * Copyright 2016-2024 HabanaLabs, Ltd.
+ * Copyright (C) 2024-2025, Intel Corporation.
  * All Rights Reserved.
  *
  */
@@ -12,16 +13,27 @@
 #include "version.h"
 #include "../include/hw_ip/pci/pci_general.h"
 #include "habanalabs_compat_accel.h"
+
 #include <linux/pci.h>
+#ifdef _HAS_PCI_ENABLE_PCIE_ERROR_REPORTING
 #include <linux/aer.h>
+#endif
 #include <linux/module.h>
 #include <linux/kthread.h>
 #include <linux/vmalloc.h>
+#ifdef _HAS_SCHED_CLOCK_H
 #include <linux/sched/clock.h>
+#endif
 
+#ifdef _HAS_DRM_ACCEL_H
 #include <drm/drm_accel.h>
+#endif
 #include <drm/drm_drv.h>
 #include <drm/drm_ioctl.h>
+
+#define CREATE_TRACE_POINTS
+#include <trace/events/habanalabs.h>
+#include <linux/trace_events.h>
 
 #define HL_DRIVER_AUTHOR	"HabanaLabs Kernel Driver Team"
 
@@ -36,6 +48,7 @@ MODULE_AUTHOR(HL_DRIVER_AUTHOR);
 MODULE_DESCRIPTION(HL_DRIVER_DESC);
 MODULE_LICENSE("GPL v2");
 MODULE_VERSION(HL_MODULE_VERSION);
+MODULE_IMPORT_NS("HBL_COMPAT");
 
 static int hl_major;
 static struct class *hl_class;
@@ -63,6 +76,25 @@ static bool reset_on_lockup = true;
 static bool memory_scrub;
 static ulong boot_error_status_mask = ULONG_MAX;
 
+/* Parameters that don't need bringup_flags_enable but are not upstreamed */
+static bool low_freq;
+static uint card_type = cpucp_card_type_pmc;
+static uint nic_ports_mask = GENMASK(23, 0);
+static uint nic_ports_ext_mask = GENMASK(23, 0);
+static uint nic_auto_neg_mask = GENMASK(23, 0);
+static bool ignore_fw_nic_info;
+static uint nic_lanes_per_port = PORT_LANES_2;
+static uint skip_iatu_for_unsecured_device;
+static bool reset_upon_device_release = true;
+static uint gaudi2_setup_type;
+static ulong enable_events_tracing;
+static char *tracefs_mnt = "/sys/kernel/debug/tracing";
+static bool ignore_eeprom_errors;
+static uint gaudi3_setup_type;
+static uint serdes_type = 0xFFFF;
+static uint card_location = 8;
+static bool ewr_enable = 1;
+
 /* Parameters for bring-up/debugging */
 static bool pldm;
 static bool bringup_flags_enable;
@@ -80,6 +112,7 @@ static bool bfe_config_pll;
 static ulong bfe_fw_components = FW_TYPE_ALL_TYPES;
 static bool bfe_fw_communication_enable = true;
 static bool bfe_heartbeat = true;
+static uint bfe_axi_drain = AXI_DRAIN_SKIP;
 static bool bfe_security_enable = true;
 static bool bfe_sram_scrambler_enable = true;
 static bool bfe_dram_scrambler_enable = true;
@@ -87,6 +120,7 @@ static bool bfe_hbm_ecc_enable = true;
 static bool bfe_compatibility_mode;
 static bool bfe_hard_reset_on_fw_events = true;
 static bool bfe_bmc_enable = true;
+static uint bfe_nic_load_fw;
 static bool bfe_rl_enable = true;
 static uint bfe_sram_binning;
 static ulong bfe_tpc_binning = 0x1000000; /* 25th tpc is binned by default */
@@ -104,6 +138,7 @@ static bool bfe_scrub_arc_dccm;
 static bool bfe_skip_cluster_config = true;
 static bool bfe_fw_cfg_skip;
 static bool bfe_bmu_enable = true;
+static bool bfe_nic_eth_on_internal;
 static bool bfe_config_qman_arc_for_stub_mme;
 static bool bfe_skip_nic_phy_init;
 /*
@@ -127,11 +162,24 @@ static bool bfe_enable_intr_aggr;
 static bool bfe_halt_eng_upon_fw_events;
 static ulong bfe_hmmu_supported_pages_mask;
 static ulong bfe_hmmu_default_page_size;
+static bool bfe_priv_security_enable;
 static uint bfe_mme_row_repair_l;
 static uint bfe_mme_row_repair_h;
+static bool bfe_pci_rev_id;
+static bool bfe_ptw_bypass_enable = true;
 static uint bfe_rotator_binning;
 static bool bfe_hbm_compression_enable;
+static bool bfe_nic_enable_h9_rx_drop_eco;
 static bool bfe_enable_h9_cache_eta_eco = true;
+static bool bfe_nic_enable_h9_qp_doorbells_eco = true;
+static bool bfe_nic_enable_h9_cc_msg_drops_eco = true;
+static bool bfe_nic_enable_h9_remote_pi_update_eco = true;
+static bool bfe_nic_enable_h9_rxb_mem_deadlock_eco = true;
+static bool bfe_nic_enable_h9_single_qp_perf_fix_eco = true;
+static bool bfe_nic_enable_h9_sal_override_eco = true;
+static bool bfe_nic_enable_h9_sack_deadlock_eco = true;
+static bool bfe_nic_enable_h9_txe_buff_alloc_eco = true;
+static bool bfe_nic_enable_h9_phy_mac_hang_eco = true;
 static bool bfe_heartbeat_reset_enable = true;
 static bool bfe_glbl_errors_read_enable = true;
 
@@ -152,6 +200,74 @@ MODULE_PARM_DESC(memory_scrub,
 module_param(boot_error_status_mask, ulong, 0444);
 MODULE_PARM_DESC(boot_error_status_mask,
 	"Mask of the error status during device CPU boot (If bitX is cleared then error X is masked. Default all 1's)");
+
+/* flags not upstreamed */
+module_param(low_freq, bool, 0444);
+MODULE_PARM_DESC(low_freq,
+	"Enable low PLL frequency mode (0 = no, 1 = yes, default no)");
+
+module_param(card_type, uint, 0444);
+MODULE_PARM_DESC(card_type,
+	"Card type (0 = PCI, 1 = PMC, default PMC)");
+
+module_param(nic_ports_mask, uint, 0444);
+MODULE_PARM_DESC(nic_ports_mask,
+	"NIC ports mask, 1 bit per NIC port (0 = none, default all ports enabled)");
+
+module_param(nic_ports_ext_mask, uint, 0444);
+MODULE_PARM_DESC(nic_ports_ext_mask,
+	"NIC ports external mask, 1 bit per NIC port (0 = none, default all ports are external)");
+
+module_param(nic_auto_neg_mask, uint, 0444);
+MODULE_PARM_DESC(nic_auto_neg_mask,
+	"NIC Autoneg mask, 1 bit per NIC port (0 = none, default enable Autoneg on all ports)");
+
+module_param(ignore_fw_nic_info, bool, 0444);
+MODULE_PARM_DESC(ignore_fw_nic_info,
+	"Ignore NIC info from FW (0 = no, 1 = yes, default no)");
+
+module_param(nic_lanes_per_port, uint, 0444);
+MODULE_PARM_DESC(nic_lanes_per_port,
+	"Number of lanes per NIC port (default 2)");
+
+module_param(skip_iatu_for_unsecured_device, uint, 0444);
+MODULE_PARM_DESC(skip_iatu_for_unsecured_device,
+	"Skip the initialization of iATU for unsecured device and assume the F/W has done it (0 = no, 1 = yes, default no)");
+
+module_param(reset_upon_device_release, bool, 0444);
+MODULE_PARM_DESC(reset_upon_device_release,
+	"Enable reset upon device release, relevant for GAUDI2 and later (0 = no, 1 = yes, default yes)");
+
+module_param(gaudi2_setup_type, uint, 0444);
+MODULE_PARM_DESC(gaudi2_setup_type,
+	"The type of setup according to which the gaudi2 PHY should be configured (0 - HLS2, 1 - HL225-S with external loopbacks, 2 - HL325-S with external loopbacks, 3 - HLS3, 4 - HL288, default 0)");
+
+module_param(enable_events_tracing, ulong, 0444);
+MODULE_PARM_DESC(enable_events_tracing,
+	"Bitmask for enable various events tracing indication (values in HL_TRACE_*_MASK definitions, default 0)");
+
+module_param(tracefs_mnt, charp, 0444);
+MODULE_PARM_DESC(tracefs_mnt, "string representing full path to tracefs mount point. default /sys/kernel/debug/tracing");
+
+module_param(ignore_eeprom_errors, bool, 0444);
+MODULE_PARM_DESC(ignore_eeprom_errors,
+	"Ignore eeprom errors (0 - disabled, 1 - enabled, default 0)");
+
+module_param(gaudi3_setup_type, uint, 0444);
+MODULE_PARM_DESC(gaudi3_setup_type,
+	"The type of setup according to which the gaudi3 PHY should be configured (0 - HLS3, 1 - HL325-S with external loopbacks, default 0)");
+
+module_param(serdes_type, uint, 0444);
+MODULE_PARM_DESC(serdes_type,
+	"The type of SerDes according to which the external port mask is configured ([0-0xFFFF] - for supported values description refer cpucp_if.h, default 0xFFFF - unknown type)");
+
+module_param(card_location, uint, 0444);
+MODULE_PARM_DESC(card_location,
+	"The card location index inside the BMC, this affects the external port mask configuration ([0 - 7] - supported slot range, default 0 - disable)");
+
+module_param(ewr_enable, bool, 0444);
+MODULE_PARM_DESC(ewr_enable,
+	"Enable Early-Write-Response HW feature (0 = no, 1 = yes, default yes, Applicable to Gaudi3 devices only)");
 
 /* Bring-Up flags */
 module_param(pldm, bool, 0444);
@@ -218,6 +334,10 @@ module_param(bfe_heartbeat, bool, 0444);
 MODULE_PARM_DESC(bfe_heartbeat,
 	"Enable device CPU heartbeat check (0 = no, 1 = yes, default yes)");
 
+module_param(bfe_axi_drain, uint, 0444);
+MODULE_PARM_DESC(bfe_axi_drain,
+	"Enable/Skip AXI drain (values in enum hl_axi_drain_mode, default AXI_DRAIN_SKIP)");
+
 module_param(bfe_security_enable, bool, 0444);
 MODULE_PARM_DESC(bfe_security_enable,
 	"Enable security (0 = no, 1 = yes, default yes)");
@@ -245,6 +365,10 @@ MODULE_PARM_DESC(bfe_hard_reset_on_fw_events,
 module_param(bfe_bmc_enable, bool, 0444);
 MODULE_PARM_DESC(bfe_bmc_enable,
 	"BMC enable (0 = no, 1 = yes, default yes)");
+
+module_param(bfe_nic_load_fw, uint, 0444);
+MODULE_PARM_DESC(bfe_nic_load_fw,
+	"Load NIC PHY F/W (0 = no, 1 = yes, 2 = decide whether to load the FW or not depending on the existing conditions, default no)");
 
 module_param(bfe_rl_enable, bool, 0444);
 MODULE_PARM_DESC(bfe_rl_enable,
@@ -297,6 +421,10 @@ MODULE_PARM_DESC(bfe_hbm_pll_freq,
 module_param(bfe_half_nominal_pll_mode, bool, 0444);
 MODULE_PARM_DESC(bfe_half_nominal_pll_mode,
 	"Configures the MSS pll in half of nominal mode (0 = no, 1 = yes, default no)");
+
+module_param(bfe_nic_eth_on_internal, bool, 0444);
+MODULE_PARM_DESC(bfe_nic_eth_on_internal,
+	"Enable Ethernet capabilities on internal NIC ports (0 = no, 1 = yes, default no)");
 
 module_param(bfe_scrub_arc_dccm, bool, 0444);
 MODULE_PARM_DESC(bfe_scrub_arc_dccm,
@@ -356,11 +484,22 @@ module_param(bfe_hmmu_default_page_size, ulong, 0444);
 MODULE_PARM_DESC(bfe_hmmu_default_page_size,
 	"Set default HMMU page size (must be value supported by HMMU, 0 mean use defined default, default 0)");
 
+module_param(bfe_priv_security_enable, bool, 0444);
+MODULE_PARM_DESC(bfe_priv_security_enable,
+	"Enable privileged PB security & assert upon invalid access. Relevant only for GaudiX devices (0 = no, 1 = yes, default no)");
+
 module_param(bfe_mme_row_repair_l, uint, 0444);
 MODULE_PARM_DESC(bfe_mme_row_repair_l, "MME row repair mask lower 32 bits, default 0");
 
 module_param(bfe_mme_row_repair_h, uint, 0444);
 MODULE_PARM_DESC(bfe_mme_row_repair_h, "MME row repair mask higher 32 bits, default 0");
+
+module_param(bfe_pci_rev_id, bool, 0444);
+MODULE_PARM_DESC(bfe_pci_rev_id, "Override PCI revision ID (0 = do not override, 1 = override, default no)");
+
+module_param(bfe_ptw_bypass_enable, bool, 0444);
+MODULE_PARM_DESC(bfe_ptw_bypass_enable,
+	"Flag to enable or disable PTW bypass support (0 - disabled, 1 - enabled, default 1)");
 
 module_param(bfe_rotator_binning, uint, 0444);
 MODULE_PARM_DESC(bfe_rotator_binning,
@@ -370,9 +509,49 @@ module_param(bfe_hbm_compression_enable, bool, 0444);
 MODULE_PARM_DESC(bfe_hbm_compression_enable,
 	"Enable HBM compression, relevant for Gaudi3 or later (0 = no, 1 = yes, default no)");
 
+module_param(bfe_nic_enable_h9_rx_drop_eco, bool, 0444);
+MODULE_PARM_DESC(bfe_nic_enable_h9_rx_drop_eco,
+	"Enable H9-5384 ECO, which avoids packet drops in RXB (0 - disabled, 1 - enabled, default 1)");
+
 module_param(bfe_enable_h9_cache_eta_eco, bool, 0444);
 MODULE_PARM_DESC(bfe_enable_h9_cache_eta_eco,
 	"Enable H9 Cache ETA ECO (0 - disabled, 1 - enabled, default 1)");
+
+module_param(bfe_nic_enable_h9_qp_doorbells_eco, bool, 0444);
+MODULE_PARM_DESC(bfe_nic_enable_h9_qp_doorbells_eco,
+	"Enable H9-4960 ECO, fixes unexpectedly doorbells for QPs with no work in QPC (0 - disabled, 1 - enabled, default 1)");
+
+module_param(bfe_nic_enable_h9_cc_msg_drops_eco, bool, 0444);
+MODULE_PARM_DESC(bfe_nic_enable_h9_cc_msg_drops_eco,
+	"Enable H9-5456 ECO, fixes message drops in CC mode when SACK enabled (0 - disabled, 1 - enabled, default 1)");
+
+module_param(bfe_nic_enable_h9_remote_pi_update_eco, bool, 0444);
+MODULE_PARM_DESC(bfe_nic_enable_h9_remote_pi_update_eco,
+	"Enable H9-5490 ECO, fixes remote PI wrong update on wraparound (0 - disabled, 1 - enabled, default 1)");
+
+module_param(bfe_nic_enable_h9_rxb_mem_deadlock_eco, bool, 0444);
+MODULE_PARM_DESC(bfe_nic_enable_h9_rxb_mem_read_deadlock_eco,
+	"Enable H9-5454 ECO, fixes RXB memory read deadlock (0 - disabled, 1 - enabled, default 1)");
+
+module_param(bfe_nic_enable_h9_single_qp_perf_fix_eco, bool, 0444);
+MODULE_PARM_DESC(bfe_nic_enable_h9_single_qp_perf_fix_eco,
+	"Enable H9-5216 ECO, fixes single QP performance (0 - disabled, 1 - enabled, default 1)");
+
+module_param(bfe_nic_enable_h9_sal_override_eco, bool, 0444);
+MODULE_PARM_DESC(bfe_nic_enable_h9_sal_override_eco,
+	"Enable H9-5499 ECO, fixes SAL override issue (0 - disabled, 1 - enabled, default 1)");
+
+module_param(bfe_nic_enable_h9_sack_deadlock_eco, bool, 0444);
+MODULE_PARM_DESC(bfe_nic_enable_h9_sack_deadlock_eco,
+	"Enable H9-5457 ECO, fixes SACK deadlock (0 - disabled, 1 - enabled, default 1)");
+
+module_param(bfe_nic_enable_h9_txe_buff_alloc_eco, bool, 0444);
+MODULE_PARM_DESC(bfe_nic_enable_h9_txe_buff_alloc_eco,
+	"Enable H9-5471 ECO, fixes TXE buff allocation issue (0 - disabled, 1 - enabled, default 1)");
+
+module_param(bfe_nic_enable_h9_phy_mac_hang_eco, bool, 0444);
+MODULE_PARM_DESC(bfe_nic_enable_h9_phy_mac_hang_eco,
+	"Enable H9-5194 ECO, fixes PHY-MAC hang issue (0 - disabled, 1 - enabled, default 1)");
 
 module_param(bfe_heartbeat_reset_enable, bool, 0444);
 MODULE_PARM_DESC(bfe_heartbeat_reset_enable,
@@ -391,6 +570,7 @@ MODULE_PARM_DESC(bfe_glbl_errors_read_enable,
 #define PCI_IDS_GAUDI_HL2000M_SEC	0x1011
 
 #define PCI_IDS_GAUDI2			0x1020
+#define PCI_IDS_GAUDI2_HL_288		0x1021
 
 #define PCI_IDS_GAUDI3			0x1060
 #define PCI_IDS_GAUDI3_HL_338		0x1063
@@ -404,6 +584,7 @@ static const struct pci_device_id ids[] = {
 	{ PCI_DEVICE(PCI_VENDOR_ID_HABANALABS, PCI_IDS_GAUDI_HL2000M), },
 	{ PCI_DEVICE(PCI_VENDOR_ID_HABANALABS, PCI_IDS_GAUDI_HL2000M_SEC), },
 	{ PCI_DEVICE(PCI_VENDOR_ID_HABANALABS, PCI_IDS_GAUDI2), },
+	{ PCI_DEVICE(PCI_VENDOR_ID_HABANALABS, PCI_IDS_GAUDI2_HL_288), },
 	{ PCI_DEVICE(PCI_VENDOR_ID_HABANALABS, PCI_IDS_GAUDI3), },
 	{ PCI_DEVICE(PCI_VENDOR_ID_HABANALABS, PCI_IDS_GAUDI3_HL_338), },
 	{ PCI_DEVICE(PCI_VENDOR_ID_HABANALABS, PCI_IDS_GAUDI3_FPGA), },
@@ -411,7 +592,6 @@ static const struct pci_device_id ids[] = {
 };
 MODULE_DEVICE_TABLE(pci, ids);
 
-#if IS_ENABLED(CONFIG_DRM_ACCEL)
 static const struct drm_ioctl_desc hl_drm_ioctls[] = {
 	DRM_IOCTL_DEF_DRV(HL_INFO, hl_info_ioctl, 0),
 	DRM_IOCTL_DEF_DRV(HL_CB, hl_cb_ioctl, 0),
@@ -419,6 +599,7 @@ static const struct drm_ioctl_desc hl_drm_ioctls[] = {
 	DRM_IOCTL_DEF_DRV(HL_WAIT_CS, hl_wait_ioctl, 0),
 	DRM_IOCTL_DEF_DRV(HL_MEMORY, hl_mem_ioctl, 0),
 	DRM_IOCTL_DEF_DRV(HL_DEBUG, hl_debug_ioctl, 0),
+	DRM_IOCTL_DEF_DRV(HL_NIC, hl_nic_ioctl, 0)
 };
 
 static const struct file_operations hl_fops = {
@@ -428,7 +609,10 @@ static const struct file_operations hl_fops = {
 	.unlocked_ioctl = drm_ioctl,
 	.compat_ioctl = drm_compat_ioctl,
 	.llseek = noop_llseek,
-	.mmap = hl_mmap
+	.mmap = hl_mmap,
+//	#ifdef FOP_UNSIGNED_OFFSET
+	.fop_flags = FOP_UNSIGNED_OFFSET
+//	#endif
 };
 
 static const struct drm_driver hl_driver = {
@@ -439,6 +623,9 @@ static const struct drm_driver hl_driver = {
 	.patchlevel = HL_DRIVER_PATCHLEVEL,
 	.name = HL_NAME,
 	.desc = HL_DRIVER_DESC,
+#ifdef _HAS_DRM_DRIVER_DATE
+	.date = HL_DRIVER_DATE,
+#endif
 
 	.fops = &hl_fops,
 	.open = hl_device_open,
@@ -451,16 +638,18 @@ bool hl_check_fd(struct file *filp)
 {
 	return (filp->f_op == &hl_fops);
 }
-#endif /* IS_ENABLED(CONFIG_DRM_ACCEL) */
 
 static void set_pci_revision_id(struct hl_device *hdev, enum hl_asic_type asic_type)
 {
 	struct pci_dev *pdev = hdev->pdev;
 
-	if (pdev) {
+	if (hdev->pci_rev_id_override) {
+		hdev->pci_revision_id = hdev->pci_rev_id_override;
+	} else if (pdev) {
 		hdev->pci_revision_id = pdev->revision;
 	} else {
 		switch (asic_type) {
+#ifdef HL_DOWNSTREAM
 		case ASIC_GAUDI2B_SIM:
 		case ASIC_GAUDI2B_SIM_ARC:
 			hdev->pci_revision_id = REV_ID_B;
@@ -471,8 +660,25 @@ static void set_pci_revision_id(struct hl_device *hdev, enum hl_asic_type asic_t
 			break;
 		case ASIC_GAUDI2D_SIM:
 		case ASIC_GAUDI2D_SIM_ARC:
+		case ASIC_GAUDI2D_HL_288_SIM:
+		case ASIC_GAUDI2D_HL_288_SIM_ARC:
+		case ASIC_GAUDI3D_SIM:
+		case ASIC_GAUDI3D_SIM_ARC:
+		case ASIC_GAUDI3D_HL_338_SIM:
+		case ASIC_GAUDI3D_HL_338_SIM_ARC:
 			hdev->pci_revision_id = REV_ID_D;
 			break;
+		case ASIC_GAUDI2E_SIM:
+		case ASIC_GAUDI2E_SIM_ARC:
+		case ASIC_GAUDI2E_HL_288_SIM:
+		case ASIC_GAUDI2E_HL_288_SIM_ARC:
+		case ASIC_GAUDI3E_SIM:
+		case ASIC_GAUDI3E_SIM_ARC:
+		case ASIC_GAUDI3E_HL_338_SIM:
+		case ASIC_GAUDI3E_HL_338_SIM_ARC:
+			hdev->pci_revision_id = REV_ID_E;
+			break;
+#endif /* HL_DOWNSTREAM */
 		default:
 			hdev->pci_revision_id = REV_ID_A;
 		}
@@ -522,19 +728,57 @@ static enum hl_asic_type get_asic_type(struct hl_device *hdev)
 		case REV_ID_D:
 			asic_type = ASIC_GAUDI2D;
 			break;
+		case REV_ID_E:
+			asic_type = ASIC_GAUDI2E;
+			break;
+		default:
+			break;
+		}
+		break;
+	case PCI_IDS_GAUDI2_HL_288:
+		switch (hdev->pci_revision_id) {
+		case REV_ID_A:
+			asic_type = ASIC_GAUDI2_HL_288;
+			break;
+		case REV_ID_D:
+			asic_type = ASIC_GAUDI2D_HL_288;
+			break;
+		case REV_ID_E:
+			asic_type = ASIC_GAUDI2E_HL_288;
+			break;
 		default:
 			break;
 		}
 		break;
 	case PCI_IDS_GAUDI3:
-		asic_type = ASIC_GAUDI3;
+		switch (hdev->pci_revision_id) {
+		case REV_ID_D:
+			asic_type = ASIC_GAUDI3D;
+			break;
+		case REV_ID_E:
+			asic_type = ASIC_GAUDI3E;
+			break;
+		default:
+			asic_type = ASIC_GAUDI3;
+		}
 		break;
 	case PCI_IDS_GAUDI3_HL_338:
-		asic_type = ASIC_GAUDI3_HL_338;
+	switch (hdev->pci_revision_id) {
+		case REV_ID_D:
+			asic_type = ASIC_GAUDI3D_HL_338;
+			break;
+		case REV_ID_E:
+			asic_type = ASIC_GAUDI3E_HL_338;
+			break;
+		default:
+			asic_type = ASIC_GAUDI3_HL_338;
+		}
 		break;
+#ifdef HL_DOWNSTREAM
 	case PCI_IDS_GAUDI3_FPGA:
 		asic_type = ASIC_GAUDI3_FPGA;
 		break;
+#endif /* HL_DOWNSTREAM */
 	default:
 		break;
 	}
@@ -559,24 +803,52 @@ static bool is_cpu_queue_enabled(struct hl_device *hdev)
 
 	switch (hdev->asic_type) {
 	case ASIC_GAUDI3:
-	case ASIC_GAUDI3_FPGA:
+	case ASIC_GAUDI3D:
+	case ASIC_GAUDI3E:
 	case ASIC_GAUDI3_HL_338:
+	case ASIC_GAUDI3D_HL_338:
+	case ASIC_GAUDI3E_HL_338:
+#ifdef HL_DOWNSTREAM
+	case ASIC_GAUDI3_FPGA:
 	case ASIC_GAUDI3_SIM:
+	case ASIC_GAUDI3D_SIM:
+	case ASIC_GAUDI3E_SIM:
 	case ASIC_GAUDI3_SIM_ARC:
+	case ASIC_GAUDI3D_SIM_ARC:
+	case ASIC_GAUDI3E_SIM_ARC:
 	case ASIC_GAUDI3_HL_338_SIM:
+	case ASIC_GAUDI3D_HL_338_SIM:
+	case ASIC_GAUDI3E_HL_338_SIM:
 	case ASIC_GAUDI3_HL_338_SIM_ARC:
+	case ASIC_GAUDI3D_HL_338_SIM_ARC:
+	case ASIC_GAUDI3E_HL_338_SIM_ARC:
+#endif /* HL_DOWNSTREAM */
 	case ASIC_GAUDI2:
 	case ASIC_GAUDI2B:
 	case ASIC_GAUDI2C:
 	case ASIC_GAUDI2D:
+	case ASIC_GAUDI2E:
+	case ASIC_GAUDI2_HL_288:
+	case ASIC_GAUDI2D_HL_288:
+	case ASIC_GAUDI2E_HL_288:
+#ifdef HL_DOWNSTREAM
 	case ASIC_GAUDI2_SIM:
 	case ASIC_GAUDI2B_SIM:
 	case ASIC_GAUDI2C_SIM:
 	case ASIC_GAUDI2D_SIM:
+	case ASIC_GAUDI2E_SIM:
 	case ASIC_GAUDI2_SIM_ARC:
 	case ASIC_GAUDI2B_SIM_ARC:
 	case ASIC_GAUDI2C_SIM_ARC:
 	case ASIC_GAUDI2D_SIM_ARC:
+	case ASIC_GAUDI2E_SIM_ARC:
+	case ASIC_GAUDI2_HL_288_SIM:
+	case ASIC_GAUDI2D_HL_288_SIM:
+	case ASIC_GAUDI2E_HL_288_SIM:
+	case ASIC_GAUDI2_HL_288_SIM_ARC:
+	case ASIC_GAUDI2D_HL_288_SIM_ARC:
+	case ASIC_GAUDI2E_HL_288_SIM_ARC:
+#endif /* HL_DOWNSTREAM */
 		enabled = !!(hdev->fw_components & FW_TYPE_BOOT_CPU);
 		break;
 	default:
@@ -585,6 +857,105 @@ static bool is_cpu_queue_enabled(struct hl_device *hdev)
 	}
 
 	return (enabled && !!(hdev->fw_communication_enable));
+}
+
+static inline bool hl_ewr_enabled(struct hl_device *hdev)
+{
+	return hdev->ewr_enable &&
+		!!(hdev->asic_prop.fw_app_cpu_boot_dev_sts1 &
+				CPU_BOOT_DEV_STS1_EARLY_WRITE_RESP_SET);
+}
+
+static void flush_pending_writes(struct hl_device *hdev, bool fse_flush)
+{
+	struct asic_fixed_properties *prop = &hdev->asic_prop;
+
+	/* start by flushing all the pending writes in the PCIe path to our device */
+	if (prop->pci_hbw_flush_reg)
+		RREG32(prop->pci_hbw_flush_reg);
+
+	if (fse_flush && prop->hbw_flush_reg_fse)
+		WREG32(prop->hbw_flush_reg_fse, 0x1);
+}
+
+/*
+ * hl_flush_pending_writes - Flush all pending writes in the path to the device and
+ * in the device itself.
+ *
+ * @hdev: pointer to hl-device structure.
+ *
+ * Called to enforce a memory barrier when EWR is active, guaranteeing that all preceding
+ * write operations have been fully committed before subsequent instructions are issued.
+ */
+void hl_flush_pending_writes(struct hl_device *hdev)
+{
+	if (!hl_ewr_enabled(hdev))
+		return flush_pending_writes(hdev, false);
+
+	mutex_lock(&hdev->ewr_lock);
+	flush_pending_writes(hdev, !!(kref_read(&hdev->ewr_refcount)));
+	mutex_unlock(&hdev->ewr_lock);
+}
+
+static int hl_ewr_set_locked(struct hl_device *hdev, bool enable)
+{
+	int ret;
+
+	if (!hl_ewr_enabled(hdev))
+		return 0;
+
+	hl_dbg_ratelimited(hdev, "%s EWR\n", enable ? "Enable" : "Disable");
+
+	/* Issue FSE flush only if EWR is currently active */
+	flush_pending_writes(hdev, !enable);
+	ret = hl_fw_ewr_set(hdev, enable);
+	if (ret)
+		hl_warn(hdev, "Failed to %s ewr\n", enable ? "enable" : "disable");
+
+	return ret;
+}
+
+static void kref_ewr_disable_locked(struct kref *ref)
+{
+	struct hl_device *hdev = container_of(ref, struct hl_device, ewr_refcount);
+
+	if (hl_ewr_set_locked(hdev, false))
+		hl_warn(hdev, "Failed to disable ewr\n");
+}
+
+void hl_ewr_get(struct hl_device *hdev)
+{
+	/*
+	 * Prevent race condition during dma-buf attachment.
+	 * A race condition exists when a dma-buf is attached to another device.
+	 * The attaching driver (which could be an instance of this driver or a different one)
+	 * may call this routine concurrently.
+	 * Without protection, the check-and-set sequence that invokes 'hl_ewr' configuration is not
+	 * atomic. If a second attachment operation occurs while the first one is configuring EWR,
+	 * the second operation might bypass the configuration step and return to the caller
+	 * prematurely. This can lead to DMA operations being initiated while the EWR configuration
+	 * is still incomplete.
+	 */
+	mutex_lock(&hdev->ewr_lock);
+
+	if (kref_read(&hdev->ewr_refcount) == 0) {
+		/* first get, initialize and enable functionality */
+		kref_init(&hdev->ewr_refcount);
+		hl_ewr_set_locked(hdev, true);
+	} else {
+		/* already active, just increment the count */
+		kref_get(&hdev->ewr_refcount);
+	}
+
+	mutex_unlock(&hdev->ewr_lock);
+}
+
+void hl_ewr_put(struct hl_device *hdev)
+{
+	/* Prevent race between last put and a preceding first get */
+	mutex_lock(&hdev->ewr_lock);
+	kref_put(&hdev->ewr_refcount, kref_ewr_disable_locked);
+	mutex_unlock(&hdev->ewr_lock);
 }
 
 /*
@@ -619,7 +990,7 @@ int hl_device_open(struct drm_device *ddev, struct drm_file *file_priv)
 	mutex_lock(&hdev->fpriv_list_lock);
 
 	if (!hl_device_operational(hdev, &status)) {
-		dev_dbg_ratelimited(hdev->dev,
+		hl_dbg_ratelimited(hdev,
 			"Can't open %s because it is %s\n",
 			dev_name(hdev->dev), hdev->status[status]);
 
@@ -633,7 +1004,7 @@ int hl_device_open(struct drm_device *ddev, struct drm_file *file_priv)
 	}
 
 	if (hdev->is_in_dram_scrub) {
-		dev_dbg_ratelimited(hdev->dev,
+		hl_dbg_ratelimited(hdev,
 			"Can't open %s during dram scrub\n",
 			dev_name(hdev->dev));
 		rc = -EAGAIN;
@@ -641,7 +1012,7 @@ int hl_device_open(struct drm_device *ddev, struct drm_file *file_priv)
 	}
 
 	if (hdev->compute_ctx_in_release) {
-		dev_dbg_ratelimited(hdev->dev,
+		hl_dbg_ratelimited(hdev,
 			"Can't open %s because another user is still releasing it\n",
 			dev_name(hdev->dev));
 		rc = -EAGAIN;
@@ -649,7 +1020,7 @@ int hl_device_open(struct drm_device *ddev, struct drm_file *file_priv)
 	}
 
 	if (hdev->is_compute_ctx_active) {
-		dev_dbg_ratelimited(hdev->dev,
+		hl_dbg_ratelimited(hdev,
 			"Can't open %s because another user is working on it\n",
 			dev_name(hdev->dev));
 		rc = -EBUSY;
@@ -658,7 +1029,7 @@ int hl_device_open(struct drm_device *ddev, struct drm_file *file_priv)
 
 	rc = hl_ctx_create(hdev, hpriv);
 	if (rc) {
-		dev_err(hdev->dev, "Failed to create context %d\n", rc);
+		hl_err(hdev, "Failed to create context %d\n", rc);
 		goto out_err;
 	}
 
@@ -701,15 +1072,7 @@ int hl_device_open_ctrl(struct inode *inode, struct file *filp)
 	struct hl_fpriv *hpriv;
 	int rc;
 
-	mutex_lock(&hl_devs_idr_lock);
-	hdev = idr_find(&hl_devs_idr, iminor(inode));
-	mutex_unlock(&hl_devs_idr_lock);
-
-	if (!hdev) {
-		pr_err("Couldn't find device %d:%d\n",
-			imajor(inode), iminor(inode));
-		return -ENXIO;
-	}
+	hdev = container_of(inode->i_cdev, struct hl_device, cdev_ctrl);
 
 	hpriv = kzalloc(sizeof(*hpriv), GFP_KERNEL);
 	if (!hpriv)
@@ -728,7 +1091,7 @@ int hl_device_open_ctrl(struct inode *inode, struct file *filp)
 	mutex_lock(&hdev->fpriv_ctrl_list_lock);
 
 	if (!hl_ctrl_device_operational(hdev, NULL)) {
-		dev_dbg_ratelimited(hdev->dev_ctrl,
+		hl_dbg_ratelimited(hdev,
 			"Can't open %s because it is disabled\n",
 			dev_name(hdev->dev_ctrl));
 		rc = -EPERM;
@@ -750,16 +1113,116 @@ out_err:
 	return rc;
 }
 
+static u32 get_dev_nic_ports_mask(struct hl_device *hdev)
+{
+	enum hl_asic_type asic_type = hdev->asic_type;
+	u32 mask;
+
+	switch (asic_type) {
+	case ASIC_GAUDI3:
+#ifdef HL_DOWNSTREAM
+	case ASIC_GAUDI3_SIM:
+	case ASIC_GAUDI3_SIM_ARC:
+#endif /* HL_DOWNSTREAM */
+	/* HL338 supports all ports in SA mode, therefore enable the wider case, as the ports will
+	 * be masked later on
+	 */
+	case ASIC_GAUDI3_HL_338:
+	case ASIC_GAUDI3D:
+	case ASIC_GAUDI3E:
+#ifdef HL_DOWNSTREAM
+	case ASIC_GAUDI3D_SIM:
+	case ASIC_GAUDI3E_SIM:
+	case ASIC_GAUDI3D_SIM_ARC:
+	case ASIC_GAUDI3E_SIM_ARC:
+#endif /* HL_DOWNSTREAM */
+	case ASIC_GAUDI3D_HL_338:
+	case ASIC_GAUDI3E_HL_338:
+		mask = (nic_lanes_per_port == PORT_LANES_4) ? 0xFFF : 0xFFFFFF;
+		break;
+#ifdef HL_DOWNSTREAM
+	case ASIC_GAUDI3_HL_338_SIM:
+	case ASIC_GAUDI3_HL_338_SIM_ARC:
+	case ASIC_GAUDI3D_HL_338_SIM:
+	case ASIC_GAUDI3E_HL_338_SIM:
+	case ASIC_GAUDI3D_HL_338_SIM_ARC:
+	case ASIC_GAUDI3E_HL_338_SIM_ARC:
+		mask = (nic_lanes_per_port == PORT_LANES_4) ? 0xFFE : 0xFFFFFC;
+		break;
+	case ASIC_GAUDI2_SIM:
+	case ASIC_GAUDI2_SIM_ARC:
+#endif /* HL_DOWNSTREAM */
+	case ASIC_GAUDI2:
+	case ASIC_GAUDI2_HL_288:
+#ifdef HL_DOWNSTREAM
+	case ASIC_GAUDI2B_SIM:
+	case ASIC_GAUDI2B_SIM_ARC:
+#endif /* HL_DOWNSTREAM */
+	case ASIC_GAUDI2B:
+#ifdef HL_DOWNSTREAM
+	case ASIC_GAUDI2C_SIM:
+	case ASIC_GAUDI2C_SIM_ARC:
+#endif /* HL_DOWNSTREAM */
+	case ASIC_GAUDI2C:
+#ifdef HL_DOWNSTREAM
+	case ASIC_GAUDI2D_SIM:
+	case ASIC_GAUDI2D_SIM_ARC:
+	case ASIC_GAUDI2E_SIM:
+	case ASIC_GAUDI2E_SIM_ARC:
+#endif /* HL_DOWNSTREAM */
+	case ASIC_GAUDI2D:
+	case ASIC_GAUDI2E:
+	case ASIC_GAUDI2D_HL_288:
+	case ASIC_GAUDI2E_HL_288:
+#ifdef HL_DOWNSTREAM
+	case ASIC_GAUDI2_HL_288_SIM:
+	case ASIC_GAUDI2D_HL_288_SIM:
+	case ASIC_GAUDI2E_HL_288_SIM:
+	case ASIC_GAUDI2_HL_288_SIM_ARC:
+	case ASIC_GAUDI2D_HL_288_SIM_ARC:
+	case ASIC_GAUDI2E_HL_288_SIM_ARC:
+#endif /* HL_DOWNSTREAM */
+		/* 24 ports are supported */
+		mask = 0xFFFFFF;
+		break;
+
+	case ASIC_GAUDI:
+	case ASIC_GAUDI_SEC:
+#ifdef HL_DOWNSTREAM
+	case ASIC_GAUDI_SIM:
+#endif /* HL_DOWNSTREAM */
+	case ASIC_GAUDI_HL2000M:
+	case ASIC_GAUDI_HL2000M_SEC:
+#ifdef HL_DOWNSTREAM
+	case ASIC_GAUDI_HL2000M_SIM:
+#endif /* HL_DOWNSTREAM */
+		/* 10 ports are supported */
+		mask = 0x3FF;
+		break;
+	default:
+		mask = 0;
+	}
+
+	return mask;
+}
+
 static void set_driver_behavior_per_device(struct hl_device *hdev)
 {
 	if (hdev->bringup_flags_enable)
 		return;
 
+	hdev->cn.skip_phy_init = 0;
+
 	switch (hdev->asic_type) {
+#ifdef HL_DOWNSTREAM
 	case ASIC_GAUDI2_SIM:
+	case ASIC_GAUDI2_HL_288_SIM:
 	case ASIC_GAUDI2B_SIM:
 	case ASIC_GAUDI2C_SIM:
 	case ASIC_GAUDI2D_SIM:
+	case ASIC_GAUDI2D_HL_288_SIM:
+	case ASIC_GAUDI2E_SIM:
+	case ASIC_GAUDI2E_HL_288_SIM:
 		hdev->dram_enable = 1;
 		hdev->fw_components = 0;
 		hdev->security_enable = 1;
@@ -774,18 +1237,24 @@ static void set_driver_behavior_per_device(struct hl_device *hdev)
 		hdev->tpc_binning = 0x1000000;
 		hdev->decoder_binning = 0x200;
 		hdev->scrub_arc_dccm = 0;
+		hdev->axi_drain = AXI_DRAIN_SKIP;
 		hdev->fw_communication_enable = 1;
 		hdev->sched_arc_mask = 0x3F;
 		hdev->rotator_mask = 0x3;
+		hdev->priv_security_enable = 1;
 		hdev->cache_enable = 0;
 		hdev->rotator_binning = 0;
 		hdev->hbm_compression_enable = 0;
 		break;
 
 	case ASIC_GAUDI2_SIM_ARC:
+	case ASIC_GAUDI2_HL_288_SIM_ARC:
 	case ASIC_GAUDI2B_SIM_ARC:
 	case ASIC_GAUDI2C_SIM_ARC:
 	case ASIC_GAUDI2D_SIM_ARC:
+	case ASIC_GAUDI2D_HL_288_SIM_ARC:
+	case ASIC_GAUDI2E_SIM_ARC:
+	case ASIC_GAUDI2E_HL_288_SIM_ARC:
 		hdev->dram_enable = 1;
 		hdev->fw_components = 0;
 		hdev->security_enable = 1;
@@ -800,18 +1269,24 @@ static void set_driver_behavior_per_device(struct hl_device *hdev)
 		hdev->tpc_binning = 0x1000000;
 		hdev->decoder_binning = 0x200;
 		hdev->scrub_arc_dccm = 1;
+		hdev->axi_drain = AXI_DRAIN_SKIP;
 		hdev->fw_communication_enable = 1;
 		hdev->sched_arc_mask = 0x3F;
 		hdev->rotator_mask = 0x3;
+		hdev->priv_security_enable = 1;
 		hdev->cache_enable = 0;
 		hdev->rotator_binning = 0;
 		hdev->hbm_compression_enable = 0;
 		break;
-
+#endif /* HL_DOWNSTREAM */
 	case ASIC_GAUDI2:
 	case ASIC_GAUDI2B:
 	case ASIC_GAUDI2C:
 	case ASIC_GAUDI2D:
+	case ASIC_GAUDI2E:
+	case ASIC_GAUDI2_HL_288:
+	case ASIC_GAUDI2D_HL_288:
+	case ASIC_GAUDI2E_HL_288:
 		hdev->dram_enable = 1;
 		hdev->fw_components = FW_TYPE_ALL_TYPES;
 		hdev->security_enable = 1;
@@ -826,16 +1301,22 @@ static void set_driver_behavior_per_device(struct hl_device *hdev)
 		hdev->tpc_binning = 0x1000000;
 		hdev->decoder_binning = 0x200;
 		hdev->scrub_arc_dccm = 1;
+		hdev->axi_drain = AXI_DRAIN_SKIP;
 		hdev->fw_communication_enable = 1;
 		hdev->sched_arc_mask = 0x3F;
 		hdev->rotator_mask = 0x3;
+		hdev->priv_security_enable = 0;
 		hdev->cache_enable = 0;
 		hdev->rotator_binning = 0;
 		hdev->hbm_compression_enable = 0;
 		break;
 
 	case ASIC_GAUDI3:
+	case ASIC_GAUDI3D:
+	case ASIC_GAUDI3E:
 	case ASIC_GAUDI3_HL_338:
+	case ASIC_GAUDI3D_HL_338:
+	case ASIC_GAUDI3E_HL_338:
 		hdev->dram_enable = 1;
 		hdev->fw_components = FW_TYPE_BOOT_CPU | FW_TYPE_PREBOOT_CPU;
 		hdev->security_enable = 1;
@@ -850,16 +1331,23 @@ static void set_driver_behavior_per_device(struct hl_device *hdev)
 		hdev->tpc_binning = 0x0;
 		hdev->decoder_binning = 0x0;
 		hdev->scrub_arc_dccm = 1;
+		hdev->axi_drain = AXI_DRAIN_SKIP;
 		hdev->fw_communication_enable = 1;
 		hdev->sched_arc_mask = 0xFFFF;
 		hdev->rotator_mask = 0xFF;
+		hdev->priv_security_enable = 0;
 		hdev->cache_enable = 1;
+		hdev->ptw_bypass_enable = 1;
 		hdev->rotator_binning = 0;
 		hdev->hbm_compression_enable = 0;
 		break;
-
+#ifdef HL_DOWNSTREAM
 	case ASIC_GAUDI3_SIM:
+	case ASIC_GAUDI3D_SIM:
+	case ASIC_GAUDI3E_SIM:
 	case ASIC_GAUDI3_HL_338_SIM:
+	case ASIC_GAUDI3D_HL_338_SIM:
+	case ASIC_GAUDI3E_HL_338_SIM:
 		hdev->dram_enable = 1;
 		hdev->fw_components = 0;
 		hdev->security_enable = 1;
@@ -874,16 +1362,22 @@ static void set_driver_behavior_per_device(struct hl_device *hdev)
 		hdev->tpc_binning = 0x0;
 		hdev->decoder_binning = 0x0;
 		hdev->scrub_arc_dccm = 1;
+		hdev->axi_drain = AXI_DRAIN_SKIP;
 		hdev->fw_communication_enable = 0;
 		hdev->sched_arc_mask = 0xFFFF;
 		hdev->rotator_mask = 0xFF;
+		hdev->priv_security_enable = 1;
 		hdev->cache_enable = 1;
 		hdev->rotator_binning = 0;
 		hdev->hbm_compression_enable = 1;
 		break;
 
 	case ASIC_GAUDI3_SIM_ARC:
+	case ASIC_GAUDI3D_SIM_ARC:
+	case ASIC_GAUDI3E_SIM_ARC:
 	case ASIC_GAUDI3_HL_338_SIM_ARC:
+	case ASIC_GAUDI3D_HL_338_SIM_ARC:
+	case ASIC_GAUDI3E_HL_338_SIM_ARC:
 		hdev->dram_enable = 1;
 		hdev->fw_components = FW_TYPE_BOOT_CPU | FW_TYPE_PREBOOT_CPU;
 		hdev->security_enable = 1;
@@ -898,14 +1392,15 @@ static void set_driver_behavior_per_device(struct hl_device *hdev)
 		hdev->tpc_binning = 0x0;
 		hdev->decoder_binning = 0x0;
 		hdev->scrub_arc_dccm = 1;
+		hdev->axi_drain = AXI_DRAIN_SKIP;
 		hdev->fw_communication_enable = 1;
 		hdev->sched_arc_mask = 0xFFFF;
 		hdev->rotator_mask = 0xFF;
+		hdev->priv_security_enable = 1;
 		hdev->cache_enable = 1;
 		hdev->rotator_binning = 0;
 		hdev->hbm_compression_enable = 1;
 		break;
-
 	case ASIC_GAUDI3_FPGA:
 		hdev->dram_enable = 1;
 		hdev->fw_components = FW_TYPE_BOOT_CPU | FW_TYPE_PREBOOT_CPU;
@@ -921,13 +1416,16 @@ static void set_driver_behavior_per_device(struct hl_device *hdev)
 		hdev->tpc_binning = 0x0;
 		hdev->decoder_binning = 0x0;
 		hdev->scrub_arc_dccm = 0;
+		hdev->axi_drain = AXI_DRAIN_SKIP;
 		hdev->fw_communication_enable = 1;
 		hdev->sched_arc_mask = 0;
 		hdev->rotator_mask = 0x0;
+		hdev->priv_security_enable = 0;
 		hdev->cache_enable = 0;
 		hdev->rotator_binning = 0;
 		hdev->hbm_compression_enable = 1;
 		break;
+#endif /* HL_DOWNSTREAM */
 
 	default:
 		hdev->dram_enable = 1;
@@ -944,9 +1442,11 @@ static void set_driver_behavior_per_device(struct hl_device *hdev)
 		hdev->tpc_binning = 0x0;
 		hdev->decoder_binning = 0x0;
 		hdev->scrub_arc_dccm = 0;
+		hdev->axi_drain = AXI_DRAIN_ENABLED;
 		hdev->fw_communication_enable = 1;
 		hdev->sched_arc_mask = 0;
 		hdev->rotator_mask = 0x3;
+		hdev->priv_security_enable = 1;
 		hdev->cache_enable = 0;
 		hdev->rotator_binning = 0;
 		hdev->hbm_compression_enable = 0;
@@ -965,6 +1465,7 @@ static void set_driver_behavior_per_device(struct hl_device *hdev)
 
 	hdev->reset_pcilink = 0;
 	hdev->config_pll = 0;
+	hdev->cn.load_fw = 0;
 	hdev->sram_binning = 0;
 	hdev->compatibility_mode = 0;
 	hdev->force_driver_clock_gating = 0;
@@ -976,13 +1477,25 @@ static void set_driver_behavior_per_device(struct hl_device *hdev)
 	hdev->skip_cluster_config = 1;
 	hdev->fw_cfg_skip = 0;
 	hdev->bmu_enable = 1;
+	hdev->cn.eth_on_internal = 0;
 	hdev->config_qman_arc_for_stub_mme = 0;
 	hdev->odp_enabled = 1;
+	hdev->pci_rev_id_override = 0;
 	hdev->debug_wreg = 1;
 	hdev->debug_rreg = 1;
 	hdev->enable_h9_cache_eta_eco = 0;
 
 	/* ECOs should be enabled by default */
+	hdev->nic_enable_h9_rx_drop_eco = 0;
+	hdev->nic_enable_h9_qp_doorbells_eco = 1;
+	hdev->nic_enable_h9_cc_msg_drops_eco = 1;
+	hdev->nic_enable_h9_remote_pi_update_eco = 1;
+	hdev->nic_enable_h9_rxb_mem_deadlock_eco = 1;
+	hdev->nic_enable_h9_single_qp_perf_fix_eco = 1;
+	hdev->nic_enable_h9_sal_override_eco = 1;
+	hdev->nic_enable_h9_sack_deadlock_eco = 1;
+	hdev->nic_enable_h9_txe_buff_alloc_eco = 1;
+	hdev->nic_enable_h9_phy_mac_hang_eco = 1;
 	hdev->enable_h9_cache_eta_eco = 1;
 
 	hdev->glbl_errors_read_enable = 1;
@@ -999,9 +1512,21 @@ static void copy_kernel_module_params_to_device(struct hl_device *hdev)
 #if !IS_ENABLED(CONFIG_DRM_ACCEL)
 	hdev->aclass = hl_accel_get_class();
 #endif
+	hdev->low_freq = low_freq;
+	hdev->card_type = card_type;
 	hdev->memory_scrub = memory_scrub;
 	hdev->reset_on_lockup = reset_on_lockup;
+	hdev->ignore_fw_nic_info = ignore_fw_nic_info;
+	hdev->cn.lanes_per_port = nic_lanes_per_port;
 	hdev->boot_error_status_mask = boot_error_status_mask;
+	hdev->reset_upon_device_release = reset_upon_device_release;
+	hdev->skip_iatu_for_unsecured_device = skip_iatu_for_unsecured_device;
+	hdev->gaudi2_setup_type = gaudi2_setup_type;
+	hdev->ignore_eeprom_errors = ignore_eeprom_errors;
+	hdev->gaudi3_setup_type = gaudi3_setup_type;
+	hdev->serdes_type = serdes_type;
+	hdev->card_location_override = card_location;
+	hdev->ewr_enable = ewr_enable;
 }
 
 static void copy_bfe_params_to_device(struct hl_device *hdev)
@@ -1028,6 +1553,7 @@ static void copy_bfe_params_to_device(struct hl_device *hdev)
 	hdev->edma_mask = bfe_edma_mask;
 	hdev->sched_arc_mask = bfe_sched_arc_mask;
 	hdev->dram_enable = bfe_dram_enable;
+	hdev->axi_drain = bfe_axi_drain;
 	hdev->security_enable = bfe_security_enable;
 	hdev->sram_scrambler_enable = bfe_sram_scrambler_enable;
 	hdev->dram_scrambler_enable = bfe_dram_scrambler_enable;
@@ -1037,6 +1563,7 @@ static void copy_bfe_params_to_device(struct hl_device *hdev)
 	hdev->reset_if_device_not_idle = bfe_reset_if_device_not_idle;
 	hdev->half_nominal_pll_mode = bfe_half_nominal_pll_mode;
 	hdev->bmc_enable = bfe_bmc_enable;
+	hdev->cn.load_fw = bfe_nic_load_fw;
 	hdev->mmu_huge_page_opt = bfe_gaudi_huge_page_optimization;
 	hdev->rl_enable = bfe_rl_enable;
 	hdev->reset_pcilink = bfe_reset_pcilink;
@@ -1055,7 +1582,9 @@ static void copy_bfe_params_to_device(struct hl_device *hdev)
 	hdev->skip_cluster_config = bfe_skip_cluster_config;
 	hdev->fw_cfg_skip = bfe_fw_cfg_skip;
 	hdev->bmu_enable = bfe_bmu_enable;
+	hdev->cn.eth_on_internal = bfe_nic_eth_on_internal;
 	hdev->config_qman_arc_for_stub_mme = bfe_config_qman_arc_for_stub_mme;
+	hdev->cn.skip_phy_init = bfe_skip_nic_phy_init;
 	hdev->debug_rreg = bfe_debug_rreg;
 	hdev->debug_wreg = bfe_debug_wreg;
 	hdev->odp_enabled = bfe_enable_odp;
@@ -1064,9 +1593,22 @@ static void copy_bfe_params_to_device(struct hl_device *hdev)
 	hdev->halt_eng_upon_fw_events = bfe_halt_eng_upon_fw_events;
 	hdev->hmmu_supported_pages_mask = bfe_hmmu_supported_pages_mask;
 	hdev->hmmu_default_page_size = bfe_hmmu_default_page_size;
+	hdev->priv_security_enable = bfe_priv_security_enable;
+	hdev->pci_rev_id_override = bfe_pci_rev_id;
+	hdev->ptw_bypass_enable = bfe_ptw_bypass_enable;
 	hdev->rotator_binning = bfe_rotator_binning;
 	hdev->hbm_compression_enable = bfe_hbm_compression_enable;
+	hdev->nic_enable_h9_rx_drop_eco = bfe_nic_enable_h9_rx_drop_eco;
 	hdev->enable_h9_cache_eta_eco = bfe_enable_h9_cache_eta_eco;
+	hdev->nic_enable_h9_qp_doorbells_eco = bfe_nic_enable_h9_qp_doorbells_eco;
+	hdev->nic_enable_h9_cc_msg_drops_eco = bfe_nic_enable_h9_cc_msg_drops_eco;
+	hdev->nic_enable_h9_remote_pi_update_eco = bfe_nic_enable_h9_remote_pi_update_eco;
+	hdev->nic_enable_h9_rxb_mem_deadlock_eco = bfe_nic_enable_h9_rxb_mem_deadlock_eco;
+	hdev->nic_enable_h9_single_qp_perf_fix_eco = bfe_nic_enable_h9_single_qp_perf_fix_eco;
+	hdev->nic_enable_h9_sal_override_eco = bfe_nic_enable_h9_sal_override_eco;
+	hdev->nic_enable_h9_sack_deadlock_eco = bfe_nic_enable_h9_sack_deadlock_eco;
+	hdev->nic_enable_h9_txe_buff_alloc_eco = bfe_nic_enable_h9_txe_buff_alloc_eco;
+	hdev->nic_enable_h9_phy_mac_hang_eco = bfe_nic_enable_h9_phy_mac_hang_eco;
 	hdev->heartbeat_reset_enable = bfe_heartbeat_reset_enable;
 	hdev->glbl_errors_read_enable = bfe_glbl_errors_read_enable;
 
@@ -1083,6 +1625,7 @@ static void copy_bfe_params_to_device(struct hl_device *hdev)
 	dbg_conf->rot_mask = cpu_to_le32(bfe_rotator_binning);
 }
 
+#ifdef HL_DOWNSTREAM
 static void fixup_fw_components_param(struct hl_device *hdev)
 {
 	switch (hdev->asic_type) {
@@ -1093,7 +1636,10 @@ static void fixup_fw_components_param(struct hl_device *hdev)
 	case ASIC_GAUDI2B_SIM:
 	case ASIC_GAUDI2C_SIM:
 	case ASIC_GAUDI2D_SIM:
+	case ASIC_GAUDI2E_SIM:
 	case ASIC_GAUDI3_SIM:
+	case ASIC_GAUDI3D_SIM:
+	case ASIC_GAUDI3E_SIM:
 		/* Enforce running without F/W for non SIM_ARC simulators */
 		hdev->fw_components = FW_TYPE_NONE;
 		break;
@@ -1101,42 +1647,80 @@ static void fixup_fw_components_param(struct hl_device *hdev)
 		break;
 	}
 }
+#endif /* HL_DOWNSTREAM */
 
 static void fixup_device_params_per_asic(struct hl_device *hdev, int timeout)
 {
+	u8 ewr_en = hdev->ewr_enable;
+
+	/* clear ewr for all devices */
+	hdev->ewr_enable = 0;
+
 	switch (hdev->asic_type) {
 	case ASIC_GAUDI:
 	case ASIC_GAUDI_HL2000M:
 	case ASIC_GAUDI_SEC:
 	case ASIC_GAUDI_HL2000M_SEC:
+#ifdef HL_DOWNSTREAM
 	case ASIC_GAUDI_SIM:
 	case ASIC_GAUDI_HL2000M_SIM:
+#endif /* HL_DOWNSTREAM */
 		/* If user didn't request a different timeout than the default one, we have
 		 * a different default timeout for Gaudi
 		 */
 		if (timeout == HL_DEFAULT_TIMEOUT_LOCKED)
 			hdev->timeout_jiffies = msecs_to_jiffies(GAUDI_DEFAULT_TIMEOUT_LOCKED *
 										MSEC_PER_SEC);
-		break;
 
+		hdev->reset_upon_device_release = false;
+		break;
+#ifdef HL_DOWNSTREAM
 	case ASIC_GAUDI2_SIM:
+	case ASIC_GAUDI2_HL_288_SIM:
 	case ASIC_GAUDI2B_SIM:
 	case ASIC_GAUDI2C_SIM:
 	case ASIC_GAUDI2D_SIM:
+	case ASIC_GAUDI2D_HL_288_SIM:
+	case ASIC_GAUDI2E_SIM:
+	case ASIC_GAUDI2E_HL_288_SIM:
 	case ASIC_GAUDI2_SIM_ARC:
+	case ASIC_GAUDI2_HL_288_SIM_ARC:
 	case ASIC_GAUDI2B_SIM_ARC:
 	case ASIC_GAUDI2C_SIM_ARC:
 	case ASIC_GAUDI2D_SIM_ARC:
+	case ASIC_GAUDI2D_HL_288_SIM_ARC:
+	case ASIC_GAUDI2E_SIM_ARC:
+	case ASIC_GAUDI2E_HL_288_SIM_ARC:
+#endif /* HL_DOWNSTREAM */
 	case ASIC_GAUDI2:
 	case ASIC_GAUDI2B:
 	case ASIC_GAUDI2C:
 	case ASIC_GAUDI2D:
+	case ASIC_GAUDI2E:
+	case ASIC_GAUDI2_HL_288:
+	case ASIC_GAUDI2D_HL_288:
+	case ASIC_GAUDI2E_HL_288:
+		break;
+#ifdef HL_DOWNSTREAM
 	case ASIC_GAUDI3_SIM:
 	case ASIC_GAUDI3_SIM_ARC:
-	case ASIC_GAUDI3:
+	case ASIC_GAUDI3D_SIM:
+	case ASIC_GAUDI3E_SIM:
+	case ASIC_GAUDI3D_SIM_ARC:
+	case ASIC_GAUDI3E_SIM_ARC:
 	case ASIC_GAUDI3_HL_338_SIM:
+	case ASIC_GAUDI3D_HL_338_SIM:
+	case ASIC_GAUDI3E_HL_338_SIM:
 	case ASIC_GAUDI3_HL_338_SIM_ARC:
+	case ASIC_GAUDI3D_HL_338_SIM_ARC:
+	case ASIC_GAUDI3E_HL_338_SIM_ARC:
+#endif /* HL_DOWNSTREAM */
+	case ASIC_GAUDI3:
+	case ASIC_GAUDI3D:
+	case ASIC_GAUDI3E:
 	case ASIC_GAUDI3_HL_338:
+	case ASIC_GAUDI3D_HL_338:
+	case ASIC_GAUDI3E_HL_338:
 		/* DRAM cannot be used if SRAM is enabled
 		 * Cache cannot be used if DRAM is disabled
 		 */
@@ -1144,18 +1728,24 @@ static void fixup_device_params_per_asic(struct hl_device *hdev, int timeout)
 			hdev->dram_enable = 0;
 		else if (!hdev->dram_enable)
 			hdev->cache_enable = 0;
-		break;
 
+		/* Gaudi3 supports EWR */
+		hdev->ewr_enable = ewr_en;
+		break;
+#ifdef HL_DOWNSTREAM
 	case ASIC_GAUDI3_FPGA:
 		hdev->mmu_disable = true;
 		break;
+#endif /* HL_DOWNSTREAM */
 	default:
+		hdev->reset_upon_device_release = false;
 		break;
 	}
 }
 
 static int fixup_device_params(struct hl_device *hdev)
 {
+	u32 dev_nic_ports_mask;
 	int tmp_timeout;
 
 	tmp_timeout = timeout_locked;
@@ -1195,7 +1785,9 @@ static int fixup_device_params(struct hl_device *hdev)
 		hdev->hbm_ecc_enable = 0;
 	}
 
+#ifdef HL_DOWNSTREAM
 	fixup_fw_components_param(hdev);
+#endif /* HL_DOWNSTREAM */
 
 	if (!(hdev->fw_components & FW_TYPE_PREBOOT_CPU) &&
 			(hdev->fw_components & ~FW_TYPE_PREBOOT_CPU)) {
@@ -1208,7 +1800,21 @@ static int fixup_device_params(struct hl_device *hdev)
 	/* If CPU queues not enabled, no way to do heartbeat */
 	if (!hdev->cpu_queues_enable)
 		hdev->heartbeat = 0;
+
+	/* Adjust NIC ports parameters according to the device in-hand */
+	dev_nic_ports_mask = get_dev_nic_ports_mask(hdev);
+
+	hdev->cn.ports_mask = nic_ports_mask & dev_nic_ports_mask;
+	/* ports ext and autoneg masks are subsets of device ports_pask */
+	hdev->cn.ports_ext_mask = nic_ports_ext_mask & hdev->cn.ports_mask;
+	hdev->cn.auto_neg_mask = nic_auto_neg_mask & hdev->cn.ports_mask;
+
 	fixup_device_params_per_asic(hdev, tmp_timeout);
+
+	if (hdev->cn.lanes_per_port != PORT_LANES_4 && hdev->cn.lanes_per_port != PORT_LANES_2) {
+		pr_err("%d lanes per NIC port is invalid\n", hdev->cn.lanes_per_port);
+		return -EINVAL;
+	}
 
 	return 0;
 }
@@ -1369,7 +1975,7 @@ int create_hdev(struct hl_device **dev, struct pci_dev *pdev, struct device *par
 	if (hdev->pdev) {
 		hdev->asic_type = get_asic_type(hdev);
 		if (hdev->asic_type == ASIC_INVALID) {
-			dev_err(&pdev->dev, "Unsupported ASIC\n");
+			hl_err(hdev, "Unsupported ASIC\n");
 			rc = -ENODEV;
 			goto out_err;
 		}
@@ -1488,10 +2094,14 @@ static int hl_pci_probe(struct pci_dev *pdev, const struct pci_device_id *id)
 	 */
 	INIT_WORK(&hdev->work_pci, pci_remove_device);
 
+#ifdef _HAS_PCI_ENABLE_PCIE_ERROR_REPORTING
+	pci_enable_pcie_error_reporting(pdev);
+#endif
+
 	rc = hl_device_init(hdev);
 	if (rc) {
-		dev_err(&pdev->dev,
-			"Fatal error during habanalabs device init\n");
+		hl_err(hdev,
+		       "Fatal error during habanalabs device init\n");
 		rc = -ENODEV;
 		goto disable_device;
 	}
@@ -1499,6 +2109,9 @@ static int hl_pci_probe(struct pci_dev *pdev, const struct pci_device_id *id)
 	return 0;
 
 disable_device:
+#ifdef _HAS_PCI_ENABLE_PCIE_ERROR_REPORTING
+	pci_disable_pcie_error_reporting(pdev);
+#endif
 	pci_set_drvdata(pdev, NULL);
 	destroy_hdev(hdev);
 
@@ -1521,6 +2134,9 @@ static void hl_pci_remove(struct pci_dev *pdev)
 		return;
 
 	hl_device_fini(hdev);
+#ifdef _HAS_PCI_ENABLE_PCIE_ERROR_REPORTING
+	pci_disable_pcie_error_reporting(pdev);
+#endif
 	pci_set_drvdata(pdev, NULL);
 	destroy_hdev(hdev);
 }
@@ -1542,16 +2158,16 @@ hl_pci_err_detected(struct pci_dev *pdev, pci_channel_state_t state)
 
 	switch (state) {
 	case pci_channel_io_normal:
-		dev_warn(hdev->dev, "PCI normal state error detected\n");
+		hl_warn(hdev, "PCI normal state error detected\n");
 		return PCI_ERS_RESULT_CAN_RECOVER;
 
 	case pci_channel_io_frozen:
-		dev_warn(hdev->dev, "PCI frozen state error detected\n");
+		hl_warn(hdev, "PCI frozen state error detected\n");
 		result = PCI_ERS_RESULT_NEED_RESET;
 		break;
 
 	case pci_channel_io_perm_failure:
-		dev_warn(hdev->dev, "PCI failure state error detected\n");
+		hl_warn(hdev, "PCI failure state error detected\n");
 		result = PCI_ERS_RESULT_DISCONNECT;
 		break;
 
@@ -1574,7 +2190,7 @@ static void hl_pci_err_resume(struct pci_dev *pdev)
 {
 	struct hl_device *hdev = pci_get_drvdata(pdev);
 
-	dev_warn(hdev->dev, "Resuming device after PCI slot reset\n");
+	hl_warn(hdev, "Resuming device after PCI slot reset\n");
 	hl_device_resume(hdev);
 }
 
@@ -1589,7 +2205,7 @@ static pci_ers_result_t hl_pci_err_slot_reset(struct pci_dev *pdev)
 {
 	struct hl_device *hdev = pci_get_drvdata(pdev);
 
-	dev_warn(hdev->dev, "PCI slot reset detected\n");
+	hl_warn(hdev, "PCI slot reset detected\n");
 
 	return PCI_ERS_RESULT_RECOVERED;
 }
@@ -1605,6 +2221,10 @@ static void hl_pci_reset_prepare(struct pci_dev *pdev)
 		return;
 
 	hdev->disabled = true;
+
+	/* Stop the NIC to avoid any new accesses to the H/W */
+	hl_cn_hard_reset_prepare(hdev);
+	hl_cn_stop(hdev);
 }
 
 static void hl_pci_reset_done(struct pci_dev *pdev)
@@ -1652,7 +2272,9 @@ static struct pci_driver hl_pci_driver = {
 	.driver = {
 		.name = HL_NAME,
 		.pm = &hl_pm_ops,
+#if KERNEL_VERSION(4, 9, 0) <= LINUX_VERSION_CODE
 		.probe_type = PROBE_PREFER_ASYNCHRONOUS,
+#endif
 	},
 	.err_handler = &hl_pci_err_handler,
 };
@@ -1709,6 +2331,59 @@ void hl_pci_force_remove_device(struct hl_device *hdev)
 	complete(&hl_pci_mon.comp);
 }
 
+#define HL_TRACE_EVENTS_DIR	"events/habanalabs"
+
+static char *hl_events[HL_TRACE_NUM_EVENTS] __initdata = {
+	[HL_TRACE_MMU_MAP] = "habanalabs_mmu_map",
+	[HL_TRACE_MMU_UNMAP] = "habanalabs_mmu_unmap",
+	[HL_TRACE_DMA_ALLOC] = "habanalabs_dma_alloc",
+	[HL_TRACE_DMA_FREE] = "habanalabs_dma_free",
+	[HL_TRACE_COMMS_PROT_CMD] = "habanalabs_comms_protocol_cmd",
+	[HL_TRACE_COMMS_SEND_CMD] = "habanalabs_comms_send_cmd",
+	[HL_TRACE_COMMS_WAIT_STAT] = "habanalabs_comms_wait_status",
+	[HL_TRACE_COMMS_WAIT_STAT_DONE] = "habanalabs_comms_wait_status_done",
+	[HL_TRACE_RREG32] = "habanalabs_rreg32",
+	[HL_TRACE_WREG32] = "habanalabs_wreg32",
+	[HL_TRACE_ELBI_READ] = "habanalabs_elbi_read",
+	[HL_TRACE_ELBI_WRITE] = "habanalabs_elbi_write",
+	[HL_TRACE_DMA_MAP_PAGE] = "habanalabs_dma_map_page",
+	[HL_TRACE_DMA_UNMAP_PAGE] = "habanalabs_dma_unmap_page",
+};
+
+static void hl_trace_print_sync_timestamp(void)
+{
+	u64 ts_nsec, ts_sec;
+
+	ts_nsec = sched_clock();
+	ts_sec = ts_nsec / 1000000000;
+	ts_nsec %= 1000000000;
+
+	pr_info("habanalabs: sync trace timestamp %llu.%llu\n", ts_sec, ts_nsec);
+}
+
+static void __init hl_enable_trace_events(void)
+{
+	int event_id;
+	long rc;
+
+	if (!enable_events_tracing)
+		return;
+
+	hl_trace_print_sync_timestamp();
+
+	for (event_id = 0; event_id < HL_TRACE_NUM_EVENTS; event_id++) {
+		if (!(enable_events_tracing & BIT_ULL(event_id)))
+			continue;
+
+		rc = trace_set_clr_event("habanalabs", hl_events[event_id], true);
+		if (rc) {
+			pr_err("event tracing enabling for event %s failed with rc = %ld",
+			       hl_events[event_id], rc);
+			return;
+		}
+	}
+}
+
 /*
  * hl_init - Initialize the habanalabs kernel driver
  */
@@ -1731,20 +2406,35 @@ static int __init hl_init(void)
 	if (IS_ERR(hl_class)) {
 		pr_err("failed to allocate class\n");
 		rc = PTR_ERR(hl_class);
-		goto remove_major;
+		goto err_class_create;
 	}
+
+	hl_enable_trace_events();
 
 	rc = hl_accel_init();
 	if (rc)
-		goto destroy_class;
+		goto err_accel_init;
+
+#ifdef HL_DOWNSTREAM
+	/* SIMULATOR CODE */
+	rc = hl_sim_init(hl_class, hl_major, &hl_devs_idr, &hl_devs_idr_lock);
+	if (rc < 0) {
+		pr_err("fatal error during simulator mode device init\n");
+		goto err_sim_init;
+	} else if (rc > 0) {
+		pr_info("driver loaded in simulator only mode\n");
+		return 0;
+	}
+	/* END OF SIMULATOR CODE */
 
 	/* IMPORTER CODE */
 	rc = hl_importer_init();
 	if (rc) {
 		pr_err("fatal error during importer driver init\n");
-		goto remove_accel;
+		goto err_importer_init;
 	}
 	/* END OF IMPORTER CODE */
+#endif /* HL_DOWNSTREAM */
 
 	init_completion(&hl_pci_mon.comp);
 
@@ -1752,34 +2442,40 @@ static int __init hl_init(void)
 	if (IS_ERR(hl_pci_mon.thread)) {
 		pr_err("failed to create pci monitor\n");
 		rc = PTR_ERR(hl_pci_mon.thread);
-		goto remove_importer;
+		goto err_pci_mon_run;
 	}
 
 	rc = pci_register_driver(&hl_pci_driver);
 	if (rc) {
 		pr_err("failed to register pci device\n");
-		goto remove_pci_mon;
+		goto err_register_driver;
 	}
 
 	pr_debug("driver loaded\n");
 
 	return 0;
 
-remove_pci_mon:
+err_register_driver:
 	hl_pci_mon.in_teardown = true;
 	/* Set the teardown flag before waking up the waiting thread */
 	mb();
 	complete_all(&hl_pci_mon.comp);
 	kthread_stop(hl_pci_mon.thread);
+err_pci_mon_run:
+#ifdef HL_DOWNSTREAM
 /* IMPORTER CODE */
-remove_importer:
 	hl_importer_exit();
+err_importer_init:
 /* END OF IMPORTER CODE */
-remove_accel:
+/* SIMULATOR CODE */
+	hl_sim_fini();
+err_sim_init:
+/* END OF SIMULATOR CODE */
+#endif /* HL_DOWNSTREAM */
 	hl_accel_exit();
-destroy_class:
+err_accel_init:
 	class_destroy(hl_class);
-remove_major:
+err_class_create:
 	unregister_chrdev_region(MKDEV(hl_major, 0), HL_MAX_MINORS);
 	return rc;
 }
@@ -1789,6 +2485,13 @@ remove_major:
  */
 static void __exit hl_exit(void)
 {
+#ifdef HL_DOWNSTREAM
+	/* SIMULATOR CODE */
+	if (hl_sim_fini())
+		goto skip_pci;
+	/* END OF SIMULATOR CODE */
+#endif /* HL_DOWNSTREAM */
+
 	hl_pci_mon.in_teardown = true;
 	/* Set the teardown flag before waking up the waiting thread */
 	mb();
@@ -1797,11 +2500,19 @@ static void __exit hl_exit(void)
 
 	pci_unregister_driver(&hl_pci_driver);
 
+#ifdef HL_DOWNSTREAM
 	/* IMPORTER CODE */
 	hl_importer_exit();
 	/* END OF IMPORTER CODE */
-
+/* SIMULATOR CODE */
+skip_pci:
+/* END OF SIMULATOR CODE */
+#endif /* HL_DOWNSTREAM */
 	hl_accel_exit();
+
+	/* wait for trace events to be processed by user app */
+	if (enable_events_tracing)
+		ssleep(5);
 
 	class_destroy(hl_class);
 	unregister_chrdev_region(MKDEV(hl_major, 0), HL_MAX_MINORS);

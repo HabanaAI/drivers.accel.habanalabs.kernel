@@ -1,6 +1,7 @@
 /* SPDX-License-Identifier: GPL-2.0
  *
- * Copyright 2022 HabanaLabs, Ltd.
+ * Copyright 2022-2024 HabanaLabs, Ltd.
+ * Copyright (C) 2024-2025, Intel Corporation.
  * All Rights Reserved.
  */
 
@@ -477,7 +478,7 @@
 		 0xfc0fc, 0xfc0fc, 0xff0fffff, 0x701, 0xf000000 }
 
 #define GAUDI3_SEC_PROTBITS_DATA128 { \
-		 0xfc0fc, 0xf000000 }
+		 0xff0, 0xfc0fc, 0xf000000 }
 
 #define GAUDI3_SEC_PROTBITS_DATA129 { \
 		 0xfc000000, 0xfc0, 0x1fffff, 0x7fff, 0x1fffff, 0xf000000 }
@@ -561,7 +562,7 @@
 		0xf000000 }
 
 #define GAUDI3_SEC_PROTBITS_DATA153 { \
-		 0x3f, 0x1, 0xdfffffff, 0x3fffff, 0xfffffffc, 0x3f, 0xf000000 }
+		 0x3f, 0x1, 0xdffff7ff, 0x3fffff, 0xfffffffc, 0x3f, 0xf000000 }
 
 #define GAUDI3_SEC_PROTBITS_DATA154 { \
 		 0x3f, 0x3f, 0x3f, 0x3f, 0xf000000 }
@@ -662,8 +663,7 @@
 		0xf000000 }
 
 #define GAUDI3_SEC_PROTBITS_DATA183 { \
-		 0xfff30000, 0xfc000000, 0xfc0, 0x1fffff, 0x7fff, 0x1fffff, \
-		0xf000000 }
+		 0xfc000000, 0xfc0, 0x1fffff, 0x7fff, 0x1fffff, 0xf000000 }
 
 #define GAUDI3_SEC_PROTBITS_DATA184 { \
 		 0xffff, 0x55555557, 0x55555555, 0x3ff00, 0x7ffff17, 0x1ff, \
@@ -1636,7 +1636,7 @@ static const uint32_t gaudi3_sec_protbits_data186[] = GAUDI3_SEC_PROTBITS_DATA18
 	}, \
 	{{ GAUDI3_BLOCK_TYPE_NIC, 0xfd027000, 2, 6, 0, 0x400000, 0x80000, 0x0 }, \
 	  .prot_map = 0x80000000, \
-	  .data_map = 0x40400000, \
+	  .data_map = 0x40404000, \
 	  .data = gaudi3_sec_protbits_data128, \
 	  .data_size = ARRAY_SIZE(gaudi3_sec_protbits_data128) \
 	}, \
@@ -1966,7 +1966,7 @@ static const uint32_t gaudi3_sec_protbits_data186[] = GAUDI3_SEC_PROTBITS_DATA18
 	}, \
 	{{ GAUDI3_BLOCK_TYPE_SYNC_MNGR, 0xfe3a1000, 8, 0, 0, 0x400000, 0x0, 0x0 }, \
 	  .prot_map = 0x80000000, \
-	  .data_map = 0x5c000e00, \
+	  .data_map = 0x5c000c00, \
 	  .data = gaudi3_sec_protbits_data183, \
 	  .data_size = ARRAY_SIZE(gaudi3_sec_protbits_data183) \
 	}, \

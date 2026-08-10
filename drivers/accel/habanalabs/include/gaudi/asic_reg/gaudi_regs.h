@@ -64,6 +64,7 @@
 #include "dma_if_e_s_regs.h"
 #include "dma_if_w_n_regs.h"
 #include "dma_if_w_s_regs.h"
+#include "sif_rtr_0_regs.h"
 #include "nif_rtr_ctrl_0_regs.h"
 #include "nif_rtr_ctrl_1_regs.h"
 #include "nif_rtr_ctrl_2_regs.h"
@@ -81,14 +82,17 @@
 #include "sif_rtr_ctrl_6_regs.h"
 #include "sif_rtr_ctrl_7_regs.h"
 #include "psoc_etr_regs.h"
-#include "psoc_cpu_pll_regs.h"
+#include "pcie_wrap_regs.h"
 
+#include "cpu_if_masks.h"
 #include "dma0_qm_masks.h"
 #include "mme0_qm_masks.h"
 #include "tpc0_qm_masks.h"
 #include "dma0_core_masks.h"
 #include "tpc0_cfg_masks.h"
 #include "psoc_global_conf_masks.h"
+#include "psoc_etr_masks.h"
+#include "pcie_wrap_masks.h"
 
 #include "nic0_qm0_regs.h"
 #include "nic1_qm0_regs.h"
@@ -100,8 +104,43 @@
 #include "nic2_qm1_regs.h"
 #include "nic3_qm1_regs.h"
 #include "nic4_qm1_regs.h"
+#include "nic0_txs0_regs.h"
+#include "nic0_txe0_regs.h"
+#include "nic0_qpc0_regs.h"
+#include "nic0_qpc1_regs.h"
+#include "nic0_rxe0_regs.h"
+#include "nic0_rxb_regs.h"
+#include "nic0_tmr_regs.h"
+#include "nic0_stat_regs.h"
+#include "nic0_txb_regs.h"
+#include "nic0_phy_regs.h"
 
 #include "nic0_qm0_masks.h"
+#include "nic0_rxe0_masks.h"
+#include "nic0_qpc0_masks.h"
+#include "nic0_txs0_masks.h"
+#include "nic0_txe0_masks.h"
+#include "nic0_tmr_masks.h"
+
+#include "psoc_cpu_pll_regs.h"
+#include "psoc_mme_pll_regs.h"
+#include "psoc_pci_pll_regs.h"
+#include "psoc_tpc_pll_regs.h"
+#include "psoc_hbm_pll_regs.h"
+#include "dma_w_pll_regs.h"
+#include "if_w_pll_regs.h"
+#include "if_e_pll_regs.h"
+#include "dma_e_pll_regs.h"
+#include "mesh_w_pll_regs.h"
+#include "sram_w_pll_regs.h"
+#include "mesh_e_pll_regs.h"
+#include "sram_e_pll_regs.h"
+#include "nic0_pll_regs.h"
+#include "nic1_pll_regs.h"
+#include "nic2_hbm_pll_regs.h"
+#include "nic2_mme_pll_regs.h"
+#include "nic2_tpc_pll_regs.h"
+#include "cpu_ca53_cfg_regs.h"
 
 #define GAUDI_ECC_MEM_SEL_OFFSET		0xF18
 #define GAUDI_ECC_ADDRESS_OFFSET		0xF1C
@@ -119,8 +158,10 @@
 #define mmSYNC_MNGR_W_S_SYNC_MNGR_OBJS_MON_ARM_0                     0x495800
 #define mmSYNC_MNGR_W_S_SYNC_MNGR_OBJS_MON_STATUS_0                  0x496000
 #define mmSYNC_MNGR_E_S_SYNC_MNGR_OBJS_SOB_OBJ_0                     0x4B2000
+#define mmSYNC_MNGR_E_S_SYNC_MNGR_OBJS_MON_PAY_ADDRL_0               0x4B4000
 #define mmSYNC_MNGR_E_S_SYNC_MNGR_OBJS_MON_STATUS_0                  0x4B6000
 #define mmSYNC_MNGR_W_N_SYNC_MNGR_OBJS_SOB_OBJ_0                     0x4D2000
+#define mmSYNC_MNGR_W_N_SYNC_MNGR_OBJS_MON_PAY_ADDRL_0               0x4D4000
 #define mmSYNC_MNGR_W_N_SYNC_MNGR_OBJS_MON_STATUS_0                  0x4D6000
 #define mmSYNC_MNGR_E_N_SYNC_MNGR_OBJS_SOB_OBJ_0                     0x4F2000
 #define mmSYNC_MNGR_E_N_SYNC_MNGR_OBJS_SOB_OBJ_1                     0x4F2004
@@ -309,17 +350,5 @@
 #define mmPCIE_AUX_DBI                                               0xC07490
 
 #define mmPCIE_CORE_MSI_REQ                                          0xC04100
-
-#define mmPSOC_PCI_PLL_NR                                            0xC72100
-#define mmSRAM_W_PLL_NR                                              0x4C8100
-#define mmPSOC_HBM_PLL_NR                                            0xC74100
-#define mmNIC0_PLL_NR                                                0xCF9100
-#define mmDMA_W_PLL_NR                                               0x487100
-#define mmMESH_W_PLL_NR                                              0x4C7100
-#define mmPSOC_MME_PLL_NR                                            0xC71100
-#define mmPSOC_TPC_PLL_NR                                            0xC73100
-#define mmIF_W_PLL_NR                                                0x488100
-
-#define mmPCIE_WRAP_RR_ELBI_RD_SEC_REG_CTRL                          0xC01208
 
 #endif /* ASIC_REG_GAUDI_REGS_H_ */

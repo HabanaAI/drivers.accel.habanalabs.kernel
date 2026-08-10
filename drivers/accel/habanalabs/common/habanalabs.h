@@ -1,6 +1,7 @@
 /* SPDX-License-Identifier: GPL-2.0
  *
- * Copyright 2016-2023 HabanaLabs, Ltd.
+ * Copyright 2016-2024 HabanaLabs, Ltd.
+ * Copyright (C) 2024-2025, Intel Corporation.
  * All Rights Reserved.
  *
  */
@@ -8,6 +9,7 @@
 #ifndef HABANALABSP_H_
 #define HABANALABSP_H_
 
+#include "../include/compat.h" /* Must be first */
 #include <linux/habanalabs/cpucp_if.h>
 #include "../include/common/qman_if.h"
 #include "../include/hw_ip/mmu/mmu_general.h"
@@ -27,18 +29,34 @@
 #include <linux/rwsem.h>
 #include <linux/eventfd.h>
 #include <linux/platform_device.h>
+#include "../cn/cn.h"
 
-
+#ifdef _HAS_BITFIELD_H
 #include <linux/bitfield.h>
+#endif
+
+#ifdef _HAS_GEN_POOL_CHUNK_WITH_ATOMIC_LONG
 #include <linux/genalloc.h>
+#endif
+#ifdef _HAS_SCHED_SIGNAL_H
 #include <linux/sched/signal.h>
+#endif
+#ifdef _HAS_IO_64_NONATOMIC_LO_HI_H
 #include <linux/io-64-nonatomic-lo-hi.h>
+#endif
+#ifdef _HAS_CORESIGHT_H
 #include <linux/coresight.h>
+#endif
 
 #include <drm/drm_device.h>
 #include <drm/drm_file.h>
 
+//#include "compat.h"
 #include "security.h"
+
+#if (KERNEL_VERSION(6, 2, 0) <= LINUX_VERSION_CODE) && !IS_ENABLED(CONFIG_DRM_ACCEL)
+#error "habanalabs requires CONFIG_DRM_ACCEL to be enabled"
+#endif
 
 #define HL_NAME				"habanalabs"
 
@@ -409,6 +427,18 @@ static_assert(HL_TRACE_NUM_EVENTS < 64);
 #define HL_TRACE_ALL_EVENTS_MASK		(BIT_ULL(HL_TRACE_NUM_EVENTS) - 1)
 
 /**
+ * enum hl_axi_drain_mode - axi drain operation mode
+ * @AXI_DRAIN_DISABLED: Disable axi-drain
+ * @AXI_DRAIN_ENABLED: Enable axi-drain
+ * @AXI_DRAIN_SKIP: Skip axi-drain configuration
+ */
+enum hl_axi_drain_mode {
+	AXI_DRAIN_DISABLED = 0,
+	AXI_DRAIN_ENABLED = 1,
+	AXI_DRAIN_SKIP = 2,
+};
+
+/**
  * enum hl_queue_type - Supported QUEUE types.
  * @QUEUE_TYPE_NA: queue is not available.
  * @QUEUE_TYPE_EXT: external queue which is a DMA channel that may access the
@@ -437,6 +467,7 @@ enum hl_cs_type {
 	CS_TYPE_ENGINE_CORE,
 	CS_TYPE_ENGINES,
 	CS_TYPE_FLUSH_PCI_HBW_WRITES,
+	CS_TYPE_FLUSH_HBW_WRITES_FSE,
 };
 
 /*
@@ -621,6 +652,19 @@ struct hl_mem_block_info {
 	u32 num_mem_blocks;
 };
 
+/**
+ * struct hl_cn_properties - ASIC specific properties.
+ * @cpucp_info: received various information from CPU-CP regarding the NIC
+ *              H/W, e.g. MAC addresses.
+ * @status_packet_size: size of the status packet we are going to send to F/W.
+ * @max_num_of_ports: maximum number of ports supported by ASIC.
+ */
+struct hl_cn_properties {
+	struct hbl_cn_cpucp_info cpucp_info;
+	u32 status_packet_size;
+	u8 max_num_of_ports;
+};
+
 /*
  * struct asic_fixed_properties - ASIC specific immutable properties.
  * @hw_queues_props: H/W queues properties.
@@ -628,6 +672,7 @@ struct hl_mem_block_info {
  * @skip_special_blocks_cfg: special blocks skip configs.
  * @skip_pb_blocks_cfg: protection bits blocks skip configs.
  * @pb_blocks_cfg: holds privileged/secured PB blocks configs.
+ * @cn_props: CN driver properties.
  * @cpucp_info: received various information from CPU-CP regarding the H/W, e.g.
  *		available sensors.
  * @uboot_ver: F/W U-boot version.
@@ -664,6 +709,7 @@ struct hl_mem_block_info {
  * @dram_hints_align_mask: dram va hint addresses alignment mask which is used
  *                  for hints validity check.
  * @cfg_base_address: config space base address.
+ * @lbw_base_address: low BW base address.
  * @mmu_cache_mng_addr: address of the MMU cache.
  * @mmu_cache_mng_size: size of the MMU cache.
  * @device_dma_offset_for_host_access: the offset to add to host DMA addresses
@@ -692,7 +738,9 @@ struct hl_mem_block_info {
  * @mmu_pte_size: PTE size in MMU page tables.
  * @dram_page_size: The DRAM physical page size.
  * @cfg_size: configuration space size on SRAM.
- * @sram_size: total size of SRAM.
+ * @sram_size: total size of SRAM used by FW.
+ * @sram_total_size: the total size of SRAM.
+ * @sram_die_size: die SRAM size.
  * @max_asid: maximum number of open contexts (ASIDs).
  * @num_of_events: number of possible internal H/W IRQs.
  * @psoc_pci_pll_nr: PCI PLL NR value.
@@ -748,8 +796,10 @@ struct hl_mem_block_info {
  * @max_num_of_engines: maximum number of all engines in the ASIC.
  * @num_of_special_blocks: special_blocks array size.
  * @glbl_err_max_cause_num: global err max cause number.
- * @hbw_flush_reg: register to read to generate HBW flush. value of 0 means HBW flush is
+ * @pci_hbw_flush_reg: register to read to generate HBW flush. value of 0 means HBW flush is
  *                 not supported.
+ * @hbw_flush_reg_fse: register to *write* to generate HBW flush. value of 0 means FSE
+ *                 (Fabric Serialization Enhancement) HBW flush is not supported.
  * @hard_reset_sleep_ms: sleep time in ms for hard reset
  * @soft_reset_sleep_ms: sleep time in mms for soft reset
  * @reset_poll_timeout_us: timeout in us for poll reset indication
@@ -823,6 +873,12 @@ struct hl_mem_block_info {
  * @pcie_cfg_bar_id: The PCIe configuration BAR index.
  * @num_phys_nics: Total number of available NICs in the HW.
  * @supports_nvme: indicates whether the asic supports nvme.
+ * @supports_memory_consumption_report: true if device supports memory consumption reporting via FW
+ * @supports_driver_version_report: true if device supports driver version reporting via FW
+ * @fw_sram_remap_enabled: true if the fw has enabled the sram remap.
+ * @force_device_reset_from_fw: true if the device should be reset from the firmware
+ * 				as part of W/A for [SW-227103]. TODO: remove once this
+ * 				ticket is resolved.
  */
 struct asic_fixed_properties {
 	struct hw_queue_properties	*hw_queues_props;
@@ -830,6 +886,7 @@ struct asic_fixed_properties {
 	struct hl_skip_blocks_cfg	skip_special_blocks_cfg;
 	struct hl_skip_blocks_cfg	skip_pb_blocks_cfg;
 	struct hl_special_blocks_cfg	pb_blocks_cfg;
+	struct hl_cn_properties		cn_props;
 	struct cpucp_info		cpucp_info;
 	char				uboot_ver[VERSION_MAX_LEN];
 	char				preboot_ver[VERSION_MAX_LEN];
@@ -862,6 +919,7 @@ struct asic_fixed_properties {
 	u64				mme_binning_mask;
 	u64				dram_hints_align_mask;
 	u64				cfg_base_address;
+	u64				lbw_base_address;
 	u64				mmu_cache_mng_addr;
 	u64				mmu_cache_mng_size;
 	u64				device_dma_offset_for_host_access;
@@ -886,6 +944,8 @@ struct asic_fixed_properties {
 	u32				dram_page_size;
 	u32				cfg_size;
 	u32				sram_size;
+	u32				sram_total_size;
+	u32				sram_die_size;
 	u32				max_asid;
 	u32				num_of_events;
 	u32				psoc_pci_pll_nr;
@@ -922,7 +982,8 @@ struct asic_fixed_properties {
 	u32				max_num_of_engines;
 	u32				num_of_special_blocks;
 	u32				glbl_err_max_cause_num;
-	u32				hbw_flush_reg;
+	u32				pci_hbw_flush_reg;
+	u32				hbw_flush_reg_fse;
 	u32				hard_reset_sleep_ms;
 	u32				soft_reset_sleep_ms;
 	u32				reset_poll_timeout_us;
@@ -979,6 +1040,10 @@ struct asic_fixed_properties {
 	u8				pcie_cfg_bar_id;
 	u8				num_phys_nics;
 	u8				supports_nvme;
+	u8				supports_memory_consumption_report;
+	u8				supports_driver_version_report;
+	u8				fw_sram_remap_enabled;
+	u8 				force_device_reset_from_fw;
 };
 
 /**
@@ -1049,16 +1114,20 @@ struct hl_ts_buff {
 
 struct hl_mmap_mem_buf;
 
+#define HL_MAX_TS_BUFF_PER_FILE		512
+
 /**
  * struct hl_mem_mgr - describes unified memory manager for mappable memory chunks.
  * @dev: back pointer to the owning hl_device
  * @lock: protects handles
  * @handles: an idr holding all active handles to the memory buffers in the system.
+ * @ts_buff_cnt: Number of allocated timestamp buffers for this file.
  */
 struct hl_mem_mgr {
 	struct hl_device *hdev;
 	spinlock_t lock;
 	struct idr handles;
+	atomic_t ts_buff_cnt;
 };
 
 /**
@@ -1443,14 +1512,30 @@ struct hl_dec {
  * @ASIC_GAUDI2B_SIM: Gaudi2B device simulator.
  * @ASIC_GAUDI2C_SIM: Gaudi2C device simulator.
  * @ASIC_GAUDI2D_SIM: Gaudi2D device simulator.
+ * @ASIC_GAUDI2E_SIM: Gaudi2E device simulator.
+ * @ASIC_GAUDI2_HL_288_SIM: Gaudi2 HL-288 device simulator.
+ * @ASIC_GAUDI2D_HL_288_SIM: Gaudi2D HL-288 device simulator.
+ * @ASIC_GAUDI2E_HL_288_SIM: Gaudi2E HL-288 device simulator.
  * @ASIC_GAUDI2_SIM_ARC: Gaudi2 device simulator with arc support.
  * @ASIC_GAUDI2B_SIM_ARC: Gaudi2B device simulator with arc support.
  * @ASIC_GAUDI2C_SIM_ARC: Gaudi2C device simulator with arc support.
  * @ASIC_GAUDI2D_SIM_ARC: Gaudi2D device simulator with arc support.
+ * @ASIC_GAUDI2E_SIM_ARC: Gaudi2E device simulator with arc support.
+ * @ASIC_GAUDI2_HL_288_SIM_ARC: Gaudi2 HL-288 device simulator with arc support.
+ * @ASIC_GAUDI2D_HL_288_SIM_ARC: Gaudi2D HL-288 device simulator with arc support.
+ * @ASIC_GAUDI2E_HL_288_SIM_ARC: Gaudi2E HL-288 device simulator with arc support.
+ * @ASIC_GAUDI3D_SIM: Gaudi3D device simulator.
+ * @ASIC_GAUDI3E_SIM: Gaudi3E device simulator.
  * @ASIC_GAUDI3_SIM: Gaudi3 device simulator.
  * @ASIC_GAUDI3_SIM_ARC: Gaudi3 device simulator with arc support.
+ * @ASIC_GAUDI3D_SIM_ARC: Gaudi3D device simulator with arc support.
+ * @ASIC_GAUDI3E_SIM_ARC: Gaudi3E device simulator with arc support.
  * @ASIC_GAUDI3_HL_338_SIM: Gaudi3 HL-338 device simulator.
+ * @ASIC_GAUDI3D_HL_338_SIM: Gaudi3D HL-338 device simulator.
+ * @ASIC_GAUDI3E_HL_338_SIM: Gaudi3E HL-338 device simulator.
  * @ASIC_GAUDI3_HL_338_SIM_ARC: Gaudi3 HL-338 device simulator with arc support.
+ * @ASIC_GAUDI3D_HL_338_SIM_ARC: Gaudi3D HL-338 device simulator with arc support.
+ * @ASIC_GAUDI3E_HL_338_SIM_ARC: Gaudi3E HL-338 device simulator with arc support.
  * @ASIC_LAST_SIM: last ASIC type simulator.
  * @ASIC_GOYA: Goya device (HL-1000).
  * @ASIC_GAUDI: Gaudi device (HL-2000).
@@ -1461,12 +1546,21 @@ struct hl_dec {
  * @ASIC_GAUDI2B: Gaudi2B device.
  * @ASIC_GAUDI2C: Gaudi2C device.
  * @ASIC_GAUDI2D: Gaudi2D device.
+ * @ASIC_GAUDI2E: Gaudi2E device.
+ * @ASIC_GAUDI2_HL_288: Gaudi2 HL-288 device.
+ * @ASIC_GAUDI2D_HL_288: Gaudi2D HL-288 device.
+ * @ASIC_GAUDI2E_HL_288: Gaudi2E HL-288 device.
  * @ASIC_GAUDI3: Gaudi3 device.
+ * @ASIC_GAUDI3D: Gaudi3D device.
+ * @ASIC_GAUDI3E: Gaudi3E device.
  * @ASIC_GAUDI3_FPGA: Gaudi3 device FPGA.
  * @ASIC_GAUDI3_HL_338: Gaudi3 HL-338 device.
+ * @ASIC_GAUDI3D_HL_338: Gaudi3D HL-338 device.
+ * @ASIC_GAUDI3E_HL_338: Gaudi3E HL-338 device.
  */
 enum hl_asic_type {
 	ASIC_INVALID,
+#ifdef HL_DOWNSTREAM
 	ASIC_GOYA_SIM,
 	ASIC_GAUDI_SIM,
 	ASIC_GAUDI_HL2000M_SIM,
@@ -1474,15 +1568,32 @@ enum hl_asic_type {
 	ASIC_GAUDI2B_SIM,
 	ASIC_GAUDI2C_SIM,
 	ASIC_GAUDI2D_SIM,
+	ASIC_GAUDI2E_SIM,
+	ASIC_GAUDI2_HL_288_SIM,
+	ASIC_GAUDI2D_HL_288_SIM,
+	ASIC_GAUDI2E_HL_288_SIM,
 	ASIC_GAUDI2_SIM_ARC,
 	ASIC_GAUDI2B_SIM_ARC,
 	ASIC_GAUDI2C_SIM_ARC,
 	ASIC_GAUDI2D_SIM_ARC,
+	ASIC_GAUDI2E_SIM_ARC,
+	ASIC_GAUDI2_HL_288_SIM_ARC,
+	ASIC_GAUDI2D_HL_288_SIM_ARC,
+	ASIC_GAUDI2E_HL_288_SIM_ARC,
+	ASIC_GAUDI3D_SIM,
+	ASIC_GAUDI3E_SIM,
 	ASIC_GAUDI3_SIM,
 	ASIC_GAUDI3_SIM_ARC,
+	ASIC_GAUDI3D_SIM_ARC,
+	ASIC_GAUDI3E_SIM_ARC,
 	ASIC_GAUDI3_HL_338_SIM,
+	ASIC_GAUDI3D_HL_338_SIM,
+	ASIC_GAUDI3E_HL_338_SIM,
 	ASIC_GAUDI3_HL_338_SIM_ARC,
+	ASIC_GAUDI3D_HL_338_SIM_ARC,
+	ASIC_GAUDI3E_HL_338_SIM_ARC,
 	ASIC_LAST_SIM,
+#endif /* HL_DOWNSTREAM */
 	ASIC_GOYA,
 	ASIC_GAUDI,
 	ASIC_GAUDI_SEC,
@@ -1492,9 +1603,19 @@ enum hl_asic_type {
 	ASIC_GAUDI2B,
 	ASIC_GAUDI2C,
 	ASIC_GAUDI2D,
+	ASIC_GAUDI2E,
+	ASIC_GAUDI2_HL_288,
+	ASIC_GAUDI2D_HL_288,
+	ASIC_GAUDI2E_HL_288,
 	ASIC_GAUDI3,
+	ASIC_GAUDI3D,
+	ASIC_GAUDI3E,
+#ifdef HL_DOWNSTREAM
 	ASIC_GAUDI3_FPGA,
+#endif /* HL_DOWNSTREAM */
 	ASIC_GAUDI3_HL_338,
+	ASIC_GAUDI3D_HL_338,
+	ASIC_GAUDI3E_HL_338,
 };
 
 struct hl_cs_parser;
@@ -1774,7 +1895,6 @@ struct engines_data {
  * @compute_reset_late_init: perform certain actions needed after a compute reset
  * @hw_queues_lock: acquire H/W queues lock.
  * @hw_queues_unlock: release H/W queues lock.
- * @get_pci_id: retrieve PCI ID.
  * @get_eeprom_data: retrieve EEPROM data from F/W.
  * @get_monitor_dump: retrieve monitor registers dump from F/W.
  * @send_cpu_message: send message to F/W. If the message is timedout, the
@@ -1800,8 +1920,6 @@ struct engines_data {
  * @get_queue_id_for_cq: Get the H/W queue id related to the given CQ index.
  * @load_firmware_to_device: load the firmware to the device's memory
  * @load_boot_fit_to_device: load boot fit to device's memory
- * @get_signal_cb_size: Get signal CB size.
- * @get_wait_cb_size: Get wait CB size.
  * @gen_signal_cb: Generate a signal CB.
  * @gen_wait_cb: Generate a wait CB.
  * @reset_sob: Reset a SOB.
@@ -1851,6 +1969,8 @@ struct engines_data {
  * @set_dram_properties: set DRAM related properties.
  * @set_priv_assertions: enable/disable privilege assertions.
  * @set_binning_masks: set binning/enable masks for all relevant components.
+ * @is_irq_enabled: return true if IRQs are enabled, false otherwise.
+ * @cn_funcs: ASIC specific CN functions.
  */
 struct hl_asic_funcs {
 	int (*early_init)(struct hl_device *hdev);
@@ -1927,7 +2047,6 @@ struct hl_asic_funcs {
 	int (*compute_reset_late_init)(struct hl_device *hdev);
 	void (*hw_queues_lock)(struct hl_device *hdev);
 	void (*hw_queues_unlock)(struct hl_device *hdev);
-	u32 (*get_pci_id)(struct hl_device *hdev);
 	int (*get_eeprom_data)(struct hl_device *hdev, void *data, size_t max_size);
 	int (*get_monitor_dump)(struct hl_device *hdev, void *data);
 	int (*send_cpu_message)(struct hl_device *hdev, u32 *msg,
@@ -1948,8 +2067,6 @@ struct hl_asic_funcs {
 	u32 (*get_queue_id_for_cq)(struct hl_device *hdev, u32 cq_idx);
 	int (*load_firmware_to_device)(struct hl_device *hdev);
 	int (*load_boot_fit_to_device)(struct hl_device *hdev);
-	u32 (*get_signal_cb_size)(struct hl_device *hdev);
-	u32 (*get_wait_cb_size)(struct hl_device *hdev);
 	u32 (*gen_signal_cb)(struct hl_device *hdev, void *data, u16 sob_id,
 			u32 size, bool eb);
 	u32 (*gen_wait_cb)(struct hl_device *hdev,
@@ -1978,7 +2095,9 @@ struct hl_asic_funcs {
 	int (*map_pll_idx_to_fw_idx)(u32 pll_idx);
 	void (*init_firmware_preload_params)(struct hl_device *hdev);
 	void (*init_firmware_loader)(struct hl_device *hdev);
+#ifdef HL_DOWNSTREAM
 	void (*init_cpu_scrambler_dram)(struct hl_device *hdev);
+#endif /* HL_DOWNSTREAM */
 	void (*state_dump_init)(struct hl_device *hdev);
 	u32 (*get_sob_addr)(struct hl_device *hdev, u32 sob_id);
 	void (*set_pci_memory_regions)(struct hl_device *hdev);
@@ -2009,6 +2128,8 @@ struct hl_asic_funcs {
 	int (*set_dram_properties)(struct hl_device *hdev);
 	void (*set_priv_assertions)(struct hl_device *hdev, bool enable);
 	int (*set_binning_masks)(struct hl_device *hdev);
+	u8 (*is_irq_enabled)(struct hl_device *hdev);
+	struct hl_cn_funcs *cn_funcs;
 };
 
 
@@ -2017,6 +2138,11 @@ struct hl_asic_funcs {
  */
 
 #define HL_KERNEL_ASID_ID	0
+
+/* The user VM handle and the comp handle must have different values to allow data transfer */
+#define HL_COMP_HANDLE	0
+#define HL_KERNEL_VM_HANDLE	1
+#define HL_USER_VM_HANDLE	2
 
 /**
  * enum hl_va_range_type - virtual address range type.
@@ -2237,12 +2363,17 @@ struct hl_odp_region_ctx;
  * @dma_mapped: true if the SG was mapped to DMA addresses, false otherwise.
  * @is_kernel_addr: if addr is kernel virtual address.
  * @is_odp: if addr is odp region address.
+ * @is_dmabuf: true if the VA maps a dma-buf object, false otherwise.
  */
 struct hl_userptr {
 	enum vm_type			vm_type; /* must be first */
 	struct list_head		job_node;
+#ifdef _HAS_USER_PAGES_DIRTY_LOCK
 	struct page			**pages;
 	unsigned int			npages;
+#else
+	struct frame_vector		*vec;
+#endif
 	struct hl_odp_region_ctx	*odp_rg;
 	struct sg_table			*sgt;
 	enum dma_data_direction		dir;
@@ -2253,6 +2384,9 @@ struct hl_userptr {
 	u8				dma_mapped;
 	u8				is_kernel_addr;
 	u8				is_odp;
+
+	/* DO NOT UPSTREAM */
+	u8				is_dmabuf;
 };
 
 /**
@@ -3659,8 +3793,6 @@ struct eq_heartbeat_debug_info {
 	u32 cpu_queue_id;
 };
 
-#ifndef CONFIG_HL_HLDIO
-/* Stub structs when HLDIO is disabled - just enough to compile */
 struct hl_p2p_region {
 	struct page **p2ppages;
 	void *p2pmem;
@@ -3671,7 +3803,7 @@ struct hl_p2p_region {
 };
 
 /**
- * struct hl_dio - describes habanalabs direct storage interraction interface
+ * struct hl_dio - describes habanalabs direct storage interaction interface
  * @p2prs: array of p2p regions
  * @inflight_ios: percpu counter for inflight ios
  * @np2prs: number of elements in p2prs
@@ -3683,10 +3815,20 @@ struct hl_dio {
 	u8 np2prs;
 	u8 io_enabled;
 };
-#else
-/* When HLDIO is enabled, get the full definitions from hldio.h */
-#include "hldio.h"
-#endif /* CONFIG_HL_HLDIO *//**
+
+/**
+ * struct hl_version - describes general habana component version
+ * @major: component's major number
+ * @minor: component's minor number
+ * @subminor: component's subminor number
+ */
+struct hl_version {
+	u32 major;
+	u32 minor;
+	u32 subminor;
+};
+
+/**
  * struct hl_device - habanalabs device structure.
  * @pdev: pointer to PCI device, can be NULL in case of simulator device.
  * @pcie_bar_phys: array of available PCIe bars physical addresses.
@@ -3748,9 +3890,11 @@ struct hl_dio {
  *            user and kernel) to access the invalidation h/w at the same time.
  *            In addition, any change to the PGT, modifying the MMU hash or
  *            walking the PGT requires talking this lock.
+ * @ewr_lock: protects the ewr get operation from race between enabling the feature and using it.
  * @asic_prop: ASIC specific immutable properties.
  * @asic_funcs: ASIC specific functions.
  * @asic_specific: ASIC specific information to use only from ASIC files.
+ * @cn: CN common structure.
  * @vm: virtual memory manager for MMU.
  * @hwmon_dev: H/W monitor device.
  * @hl_chip_info: ASIC's sensors information.
@@ -3786,14 +3930,14 @@ struct hl_dio {
  * @etr_buf_store: datastructure holding the descriptors of all the full etr
  *                 buffers in the system, ready to be fetched by the user
  * @heartbeat_debug_info: counters used to debug heartbeat failures.
- * @hldio:  describes habanalabs direct storage interraction interface.
+ * @hldio:  describes habanalabs direct storage interaction interface.
+ * @fw_sw_ver: version structure for FW's SW version.
+ * @cpucp_ver: version structure for CPUCP.
+ * @ewr_refcount: refcount for keeping early-write-response functionality active.
  * @irq_affinity_mask: mask of available CPU cores for user and decoder interrupt handling.
  * @stream_master_qid_arr: pointer to array with QIDs of master streams.
  * @fw_inner_major_ver: the major of current loaded preboot inner version.
  * @fw_inner_minor_ver: the minor of current loaded preboot inner version.
- * @fw_sw_major_ver: the major of current loaded preboot SW version.
- * @fw_sw_minor_ver: the minor of current loaded preboot SW version.
- * @fw_sw_sub_minor_ver: the sub-minor of current loaded preboot SW version.
  * @dram_used_mem: current DRAM memory consumption.
  * @memory_scrub_val: the value to which the dram will be scrubbed to using cb scrub_device_dram
  * @timeout_jiffies: device CS timeout value.
@@ -3821,6 +3965,8 @@ struct hl_dio {
  *                drams are binned-out
  * @tpc_binning: contains mask of tpc engines that is received from the f/w which indicates which
  *               tpc engines are binned-out
+ * @soft_reset_stall_timestamp: timestamp for stalling any soft reset requests after polling the
+ *                              device status
  * @dmabuf_export_cnt: number of dma-buf exporting.
  * @mapped_resource_cnt: number of mapped resources.
  * @card_type: Various ASICs have several card types. This indicates the card
@@ -3887,7 +4033,8 @@ struct hl_dio {
  * @pci_revision_id: PCI revision ID
  * @support_preboot_binning: true if we support read binning info from preboot.
  * @eq_heartbeat_received: indication that eq heartbeat event has received from FW.
- * @nic_ports_mask: Controls which NIC ports are enabled. Used only for testing.
+ * @supports_default_cs: true if driver command submission is supported, false for ARC submission.
+ * @ewr_enable: True if user wants to enable the Early-Write-Response HW functionality.
  * @fw_components: Controls which f/w components to load to the device. There are multiple f/w
  *                 stages and sometimes we want to stop at a certain stage. Used only for testing.
  * @mmu_disable: Disable the device MMU(s). Used only for testing.
@@ -3955,9 +4102,11 @@ struct hl_device {
 	struct mutex			send_cpu_message_lock;
 	struct mutex			debug_lock;
 	struct mutex			mmu_lock;
+	struct mutex			ewr_lock;
 	struct asic_fixed_properties	asic_prop;
 	const struct hl_asic_funcs	*asic_funcs;
 	void				*asic_specific;
+	struct hl_cn			cn;
 	struct hl_vm			vm;
 	struct device			*hwmon_dev;
 	struct hwmon_chip_info		*hl_chip_info;
@@ -4010,14 +4159,17 @@ struct hl_device {
 
 	struct hl_dio			hldio;
 
+	struct hl_version		fw_sw_ver;
+
+	struct hl_version		cpucp_ver;
+
+	struct kref			ewr_refcount;
+
 	cpumask_t			irq_affinity_mask;
 
 	u32				*stream_master_qid_arr;
 	u32				fw_inner_major_ver;
 	u32				fw_inner_minor_ver;
-	u32				fw_sw_major_ver;
-	u32				fw_sw_minor_ver;
-	u32				fw_sw_sub_minor_ver;
 	atomic64_t			dram_used_mem;
 	u64				memory_scrub_val;
 	u64				timeout_jiffies;
@@ -4032,6 +4184,7 @@ struct hl_device {
 	u64				fw_comms_poll_interval_usec;
 	u64				dram_binning;
 	u64				tpc_binning;
+	ktime_t				soft_reset_stall_timestamp;
 	atomic_t			dmabuf_export_cnt;
 	atomic_t			mapped_resource_cnt;
 	enum cpucp_card_types		card_type;
@@ -4086,9 +4239,10 @@ struct hl_device {
 	u8				pci_revision_id;
 	u8				support_preboot_binning;
 	u8				eq_heartbeat_received;
+	u8				supports_default_cs;
+	u8				ewr_enable;
 
 	/* Parameters for bring-up to be upstreamed */
-	u64				nic_ports_mask;
 	u64				fw_components;
 	u8				mmu_disable;
 	u8				cpu_queues_enable;
@@ -4110,11 +4264,13 @@ struct hl_device {
 	u32				mme_mask;
 	u32				edma_mask;
 	u32				usr_hbm_pll_freq;
+	u32				serdes_type;
 	u8				mmu_huge_page_opt;
 	u8				reset_pcilink;
 	u8				config_pll;
 	u8				fw_communication_enable;
 	u8				dram_enable;
+	u8				axi_drain;
 	u8				security_enable;
 	u8				sram_scrambler_enable;
 	u8				dram_scrambler_enable;
@@ -4126,6 +4282,7 @@ struct hl_device {
 	u8				force_driver_clock_gating;
 	u8				pll_async_if_enable;
 	u8				bootfit_relocatable;
+	u8				ignore_fw_nic_info;
 	u8				reset_if_device_not_idle;
 	u8				half_nominal_pll_mode;
 	u8				scrub_arc_dccm;
@@ -4135,6 +4292,7 @@ struct hl_device {
 	u8				config_qman_arc_for_stub_mme;
 	u8				debug_rreg;
 	u8				debug_wreg;
+	u8				gaudi2_setup_type;
 	u8				clock_gating_enabled;
 	u8				odp_enabled;
 	u8				cache_enable;
@@ -4142,11 +4300,26 @@ struct hl_device {
 	u8				halt_eng_upon_fw_events;
 	u8				supports_custom_fw_binning;
 	u8				supports_fw_cfg_skip;
+	u8				priv_security_enable;
+	u8				pci_rev_id_override;
+	u8				ptw_bypass_enable;
 	u8				ignore_eeprom_errors;
 	u8				hbm_compression_enable;
+	u8				nic_enable_h9_rx_drop_eco;
 	u8				enable_h9_cache_eta_eco;
+	u8				nic_enable_h9_qp_doorbells_eco;
+	u8				nic_enable_h9_cc_msg_drops_eco;
+	u8				nic_enable_h9_remote_pi_update_eco;
+	u8				nic_enable_h9_rxb_mem_deadlock_eco;
+	u8				nic_enable_h9_single_qp_perf_fix_eco;
+	u8				nic_enable_h9_sal_override_eco;
+	u8				nic_enable_h9_sack_deadlock_eco;
+	u8				nic_enable_h9_txe_buff_alloc_eco;
+	u8				nic_enable_h9_phy_mac_hang_eco;
 	u8				heartbeat_reset_enable;
 	u8				glbl_errors_read_enable;
+	u8				gaudi3_setup_type;
+	u8				card_location_override;
 };
 
 #define HL_PARENT_DEV(hdev) \
@@ -4159,6 +4332,32 @@ struct hl_device {
 	((hdev)->pdev ? dev_name(&(hdev)->pdev->dev) : \
 			((hdev)->sdev ? dev_name((hdev)->sdev) : \
 					"NA-DEVICE"))
+
+/* device logging functions */
+#define hl_info(hdev, fmt, ...) \
+	dev_info(HL_PARENT_DEV(hdev), fmt, ##__VA_ARGS__)
+#define hl_dbg(hdev, fmt, ...) \
+	dev_dbg(HL_PARENT_DEV(hdev), fmt, ##__VA_ARGS__)
+#define hl_warn(hdev, fmt, ...) \
+	dev_warn(HL_PARENT_DEV(hdev), fmt, ##__VA_ARGS__)
+#define hl_err(hdev, fmt, ...) \
+	dev_err(HL_PARENT_DEV(hdev), fmt, ##__VA_ARGS__)
+#define hl_crit(hdev, fmt, ...) \
+	dev_crit(HL_PARENT_DEV(hdev), fmt, ##__VA_ARGS__)
+#define hl_notice(hdev, fmt, ...) \
+	dev_notice(HL_PARENT_DEV(hdev), fmt, ##__VA_ARGS__)
+#define hl_info_ratelimited(hdev, fmt, ...) \
+	dev_info_ratelimited(HL_PARENT_DEV(hdev), fmt, ##__VA_ARGS__)
+#define hl_dbg_ratelimited(hdev, fmt, ...) \
+	dev_dbg_ratelimited(HL_PARENT_DEV(hdev), fmt, ##__VA_ARGS__)
+#define hl_warn_ratelimited(hdev, fmt, ...) \
+	dev_warn_ratelimited(HL_PARENT_DEV(hdev), fmt, ##__VA_ARGS__)
+#define hl_err_ratelimited(hdev, fmt, ...) \
+	dev_err_ratelimited(HL_PARENT_DEV(hdev), fmt, ##__VA_ARGS__)
+#define hl_crit_ratelimited(hdev, fmt, ...) \
+	dev_crit_ratelimited(HL_PARENT_DEV(hdev), fmt, ##__VA_ARGS__)
+#define hl_notice_ratelimited(hdev, fmt, ...) \
+	dev_notice_ratelimited(HL_PARENT_DEV(hdev), fmt, ##__VA_ARGS__)
 
 /**
  * struct hl_cs_irq_info - IRQ info structure for CS completion interrupt.
@@ -4288,13 +4487,16 @@ static inline struct hl_device *to_hl_device(struct drm_device *ddev)
  * @range_start_address: The start address of the valid range.
  * @range_end_address: The end address of the valid range.
  *
- * Return: true if the area overlaps part or all of the valid range,
- *		false otherwise.
+ * Return: true if the area overlaps part or all of the valid range, false otherwise
+ *	   and also if the range is not initialized or the input address is null.
  */
 static inline bool hl_mem_area_crosses_range(u64 address, u32 size,
 				u64 range_start_address, u64 range_end_address)
 {
 	u64 end_address = address + size - 1;
+
+	if (!address || range_start_address == range_end_address)
+		return false;
 
 	return ((address <= range_end_address) && (range_start_address <= end_address));
 }
@@ -4334,6 +4536,10 @@ int hl_access_dev_mem(struct hl_device *hdev, enum pci_region region_type,
 int hl_fuse_read(struct hl_device *hdev, u32 word, u32 *val);
 
 int hl_mmap(struct file *filp, struct vm_area_struct *vma);
+
+void hl_ewr_get(struct hl_device *hdev);
+void hl_ewr_put(struct hl_device *hdev);
+void hl_flush_pending_writes(struct hl_device *hdev);
 
 int hl_device_open(struct drm_device *drm, struct drm_file *file_priv);
 void hl_device_release(struct drm_device *ddev, struct drm_file *file_priv);
@@ -4410,6 +4616,8 @@ void hl_hpriv_get(struct hl_fpriv *hpriv);
 int hl_hpriv_put(struct hl_fpriv *hpriv);
 int hl_device_utilization(struct hl_device *hdev, u32 *utilization);
 
+const char *hl_get_default_card_name(struct hl_device *hdev);
+
 int hl_build_hwmon_channel_info(struct hl_device *hdev,
 		struct cpucp_sensor *sensors_arr);
 
@@ -4458,6 +4666,7 @@ void goya_set_asic_funcs(struct hl_device *hdev);
 void gaudi_set_asic_funcs(struct hl_device *hdev);
 void gaudi2_set_asic_funcs(struct hl_device *hdev);
 void gaudi3_set_asic_funcs(struct hl_device *hdev);
+void gaudi3_fpga_set_asic_funcs(struct hl_device *hdev);
 
 int hl_vm_ctx_init(struct hl_ctx *ctx);
 void hl_vm_ctx_fini(struct hl_ctx *ctx);
@@ -4566,7 +4775,7 @@ bool hl_mmu_v3_is_hop2_page_code(u32 code);
 int hl_mmu_v2_ctx_init(struct hl_ctx *ctx);
 void hl_mmu_v2_ctx_fini(struct hl_ctx *ctx);
 int hl_mmu_v2_get_tlb_info(struct hl_ctx *ctx, u64 virt_addr, struct hl_mmu_hop_info *hops);
-int hl_fw_version_cmp(struct hl_device *hdev, u32 major, u32 minor, u32 subminor);
+int hl_version_cmp(struct hl_version *tested_version, u32 major, u32 minor, u32 subminor);
 int hl_mmu_map_page_by_multiple_ptes(struct hl_ctx *ctx, u64 virt_addr, u64 phys_addr,
 					u32 page_size, bool is_dram_addr);
 int hl_mmu_unmap_page_by_multiple_ptes(struct hl_ctx *ctx, u64 virt_addr, u32 page_size,
@@ -4609,6 +4818,7 @@ void hl_fw_ask_hard_reset_without_linux(struct hl_device *hdev);
 void hl_fw_ask_halt_machine_without_linux(struct hl_device *hdev);
 int hl_fw_init_cpu(struct hl_device *hdev);
 int hl_fw_wait_preboot_ready(struct hl_device *hdev);
+int hl_fw_verify_preboot_boot_status(struct hl_device *hdev);
 int hl_fw_read_preboot_status(struct hl_device *hdev);
 int hl_fw_dynamic_send_protocol_cmd(struct hl_device *hdev,
 				struct fw_load_mgr *fw_loader,
@@ -4617,6 +4827,7 @@ int hl_fw_dynamic_send_protocol_cmd(struct hl_device *hdev,
 int hl_fw_dram_replaced_row_get(struct hl_device *hdev,
 				struct cpucp_hbm_row_info *info);
 int hl_fw_dram_pending_row_get(struct hl_device *hdev, u32 *pend_rows_num);
+int hl_fw_ewr_set(struct hl_device *hdev, bool enable);
 int hl_fw_cpucp_engine_core_asid_set(struct hl_device *hdev, u32 asid);
 int hl_fw_send_device_activity(struct hl_device *hdev, bool open);
 int hl_fw_send_soft_reset(struct hl_device *hdev);
@@ -4660,8 +4871,11 @@ void hl_sysfs_add_dev_vrm_attr(struct hl_device *hdev, struct attribute_group *d
 int hl_fw_send_binning_info(struct hl_device *hdev);
 int hl_fw_send_generic_request(struct hl_device *hdev, enum hl_passthrough_type sub_opcode,
 						dma_addr_t buff, u32 *size);
-void hl_fw_set_host_date_and_time(struct hl_device *hdev);
-
+int hl_fw_set_host_date_and_time(struct hl_device *hdev);
+int hl_report_memory_consumption_to_fw(struct hl_device *hdev, u64 used_mem, u64 timestamp_sec);
+int hl_fw_send_memory_consumption(struct hl_device *hdev, u64 total_mem, u64 free_mem, u64 used_mem,
+				  u64 timestamp_sec);
+int hl_fw_send_driver_version(struct hl_device *hdev);
 void hw_sob_get(struct hl_hw_sob *hw_sob);
 void hw_sob_put(struct hl_hw_sob *hw_sob);
 void hl_encaps_release_handle_and_put_ctx(struct kref *ref);
@@ -4703,11 +4917,10 @@ struct hl_mmap_mem_buf *hl_mmap_mem_buf_get(struct hl_mem_mgr *mmg,
 int hl_mmap_mem_buf_put_handle(struct hl_mem_mgr *mmg, u64 handle);
 int hl_mmap_mem_buf_put(struct hl_mmap_mem_buf *buf);
 struct hl_mmap_mem_buf *
-hl_mmap_mem_buf_alloc(struct hl_mem_mgr *mmg,
-		      struct hl_mmap_mem_buf_behavior *behavior, gfp_t gfp,
-		      void *args);
+hl_mmap_mem_buf_alloc_get(struct hl_mem_mgr *mmg,
+			  struct hl_mmap_mem_buf_behavior *behavior, gfp_t gfp,
+			  void *args);
 
-#ifdef CONFIG_HL_ODP
 bool hl_is_odp_supported(struct hl_device *hdev);
 void hl_odp_page_fault_read_ahead_size(struct hl_odp_region_ctx *rg, u64 va,
 				       u64 *ra_start_va, u32 *ra_npages);
@@ -4718,22 +4931,6 @@ struct hl_odp_region_ctx *hl_odp_region_ctx_create(struct hl_device *hdev,
 						struct hl_userptr *userptr);
 void hl_odp_region_ctx_destroy(struct hl_odp_region_ctx *rg);
 int hl_odp_page_in(struct hl_odp_region_ctx *rg, u64 start, u64 npages);
-#else
-static inline bool hl_is_odp_supported(struct hl_device *hdev) { return false; }
-static inline void hl_odp_page_fault_read_ahead_size(struct hl_odp_region_ctx *rg, u64 va,
-						      u64 *ra_start_va, u32 *ra_npages) { }
-static inline void hl_odp_set_region_va_data(struct hl_odp_region_ctx *rg, struct hl_ctx *ctx,
-					      u64 device_vaddr) { }
-static inline struct hl_odp_region_ctx *hl_odp_region_ctx_find(struct hl_ctx *ctx, u64 vaddr)
-{ return NULL; }
-static inline struct hl_odp_region_ctx *hl_odp_region_ctx_create(struct hl_device *hdev,
-							struct hl_userptr *userptr)
-{ return NULL; }
-static inline void hl_odp_region_ctx_destroy(struct hl_odp_region_ctx *rg) { }
-static inline int hl_odp_page_in(struct hl_odp_region_ctx *rg, u64 start, u64 npages)
-{ return -EOPNOTSUPP; }
-#endif /* CONFIG_HL_ODP */
-
 __printf(2, 3) void hl_engine_data_sprintf(struct engines_data *e, const char *fmt, ...);
 void hl_capture_razwi(struct hl_device *hdev, u64 addr, u16 *engine_id, u16 num_of_engines,
 			u8 flags);
@@ -4752,16 +4949,28 @@ int hl_get_hw_block_handle(struct hl_device *hdev, u64 address,
 				u64 *handle, u32 *size);
 int map_device_va(struct hl_ctx *ctx, struct hl_mem_in *args, u64 *device_addr);
 int unmap_device_va(struct hl_ctx *ctx, struct hl_mem_in *args, bool ctx_free);
+int map_device_va_from_dmabuf_fd(struct hl_ctx *ctx, struct hl_mem_in *args,
+				u64 *device_addr);
 void hl_eq_heartbeat_event_handle(struct hl_device *hdev);
 void hl_handle_clk_change_event(struct hl_device *hdev, u16 event_type, u64 *event_mask);
 void hl_eq_cpld_shutdown_event_handle(struct hl_device *hdev, u16 event_id, u64 *event_mask);
+
+int hl_dio_start(struct hl_device *hdev);
+void hl_dio_stop(struct hl_device *hdev);
+int hl_dio_ssd2hl(struct hl_device *hdev, struct hl_ctx *ctx, int fd,
+		 u64 device_va, off_t off_bytes, size_t len_bytes,
+		 size_t *len_read);
+int hl_p2p_region_init(struct hl_device *hdev, struct hl_p2p_region *p2pr);
+void hl_p2p_region_fini_all(struct hl_device *hdev);
 
 #ifdef CONFIG_DEBUG_FS
 
 int hl_debugfs_device_init(struct hl_device *hdev);
 void hl_debugfs_device_fini(struct hl_device *hdev);
 void hl_debugfs_add_device(struct hl_device *hdev);
+#if !IS_ENABLED(CONFIG_DRM_ACCEL) || !defined(_HAS_DEBUGFS_ROOT_IN_DRM_DEVICE)
 void hl_debugfs_remove_device(struct hl_device *hdev);
+#endif
 void hl_debugfs_add_file(struct hl_fpriv *hpriv);
 void hl_debugfs_remove_file(struct hl_fpriv *hpriv);
 void hl_debugfs_add_cb(struct hl_cb *cb);
@@ -4794,9 +5003,11 @@ static inline void hl_debugfs_add_device(struct hl_device *hdev)
 {
 }
 
+#if !IS_ENABLED(CONFIG_DRM_ACCEL) || !defined(_HAS_DEBUGFS_ROOT_IN_DRM_DEVICE)
 static inline void hl_debugfs_remove_device(struct hl_device *hdev)
 {
 }
+#endif
 
 static inline void hl_debugfs_add_file(struct hl_fpriv *hpriv)
 {
@@ -4925,12 +5136,183 @@ int hl_cs_ioctl(struct drm_device *ddev, void *data, struct drm_file *file_priv)
 int hl_wait_ioctl(struct drm_device *ddev, void *data, struct drm_file *file_priv);
 int hl_mem_ioctl(struct drm_device *ddev, void *data, struct drm_file *file_priv);
 int hl_debug_ioctl(struct drm_device *ddev, void *data, struct drm_file *file_priv);
+int hl_nic_ioctl(struct drm_device *ddev, void *data, struct drm_file *file_priv);
+
+#ifdef HL_DOWNSTREAM
+/* SIMULATOR CODE */
+#include <linux/kfifo.h>
+#include <linux/poll.h>
+
+struct hl_vm_user_pages {
+	struct task_struct	*tsk;
+	struct mm_struct	*owner_mm;
+	struct page		**pages;
+	void			*vaddr;
+	long			nr_pages;
+};
+
+struct hl_sim_irq {
+	unsigned int irq0;
+	unsigned int size;
+};
+
+struct hl_simulator_device {
+	struct delayed_work	work_create;
+	struct cdev		cdev;
+	struct kfifo		c2h_fifo;
+	struct kfifo		h2c_fifo;
+	spinlock_t		h2c_lock;
+	spinlock_t		c2h_lock;
+	struct mutex		*irq_mutex;
+	void			*shmem;
+	struct gen_pool		*pool;
+	struct class		*hclass;
+	struct device		*dev;
+	struct device		sdev;
+	struct hl_device	*hdev;
+	struct platform_device	*plat_dev;
+	struct hl_vm_user_pages	user_sram_dram;
+	struct hl_vm_user_pages	user_sram;
+	struct hl_sim_irq	sirq;
+	struct mutex		shared_block_idr_mutex;
+	struct idr		shared_block_idr;
+	wait_queue_head_t	pollq;
+	void			*sram;
+	void			*dram;
+	void			*dram_vmalloc_address;
+	char			name[32];
+	u64			dram_user_provided_ptr;
+	u64			sram_user_provided_ptr;
+	u64			sram_size;
+	u64			sram_user_address;
+	u64			dram_size;
+	u64			dram_user_address;
+	u64			dram_off_in_user_sram_dram;
+	enum hl_asic_type	asic_type;
+	atomic_t		h2c_seq;
+	int			reg_err_cnt;
+	u32			virt_dev_type;
+	u32			major;
+	u32			rw_reg_timeout;
+	u16			id;
+	u8			open;
+	u8			reset;
+	u8			single_msi_mode;
+};
+
+int hl_sim_dma_map_sgtable(struct hl_device *hdev, struct sg_table *sgt,
+				enum dma_data_direction dir);
+void hl_sim_dma_unmap_sgtable(struct hl_device *hdev, struct sg_table *sgt,
+				enum dma_data_direction dir);
+int hl_sim_access_dev_mem(struct hl_device *hdev, struct hl_simulator_device *edev,
+		enum pci_region region_type, u64 addr, u64 *val,
+		enum debugfs_access_type acc_type);
+
+void goya_sim_set_asic_funcs(struct hl_device *hdev);
+void gaudi_sim_set_asic_funcs(struct hl_device *hdev);
+void gaudi2_sim_set_asic_funcs(struct hl_device *hdev);
+void gaudi3_sim_set_asic_funcs(struct hl_device *hdev);
+
+struct simulator_start_args {
+	struct class *hclass;
+	u64 dram_user_pointer;
+	u64 sram_user_pointer;
+	u64 sram_dram_user_pointer;
+	u32 dram_size_in_mb;
+	u32 sram_size_in_mb;
+	u32 major;
+	u32 minor;
+	u32 virt_dev_type;
+	u8 single_msi_mode;
+};
+
+struct simulator_shared_mem_block {
+	u64 *pfn_arr;
+	u32 num_pages;
+};
+
+struct simulator_memory_args;
+int hl_sim_create_shared_block(struct hl_simulator_device *edev,
+				struct simulator_memory_args *args);
+int hl_sim_release_shared_block(struct hl_simulator_device *edev,
+				struct simulator_memory_args *args);
+int hl_sim_alloc_irq_vectors(struct hl_simulator_device *edev, unsigned int min_vecs,
+			unsigned int max_vecs, unsigned int flags);
+void hl_sim_free_irq_vectors(struct hl_simulator_device *edev);
+int hl_sim_irq_vector(struct hl_simulator_device *edev, unsigned int nr);
+int hl_sim_send_irq(struct hl_simulator_device *edev, unsigned int irq);
+void hl_sim_free_shared_block(struct simulator_shared_mem_block *shared_block,
+					bool refcount);
+
+int goya_simulator_start(struct simulator_start_args *args);
+void goya_simulator_stop(u32 minor);
+
+int gaudi_simulator_start(struct simulator_start_args *args);
+void gaudi_simulator_stop(u32 minor);
+
+int gaudi2_simulator_start(struct simulator_start_args *args);
+void gaudi2_simulator_stop(u32 minor);
+
+int gaudi3_simulator_start(struct simulator_start_args *args);
+void gaudi3_simulator_stop(u32 minor);
+
+int hl_sim_init(struct class *hclass, u32 major, struct idr *hl_devs_idr,
+		struct mutex *hl_devs_idr_lock);
+int hl_sim_fini(void);
+void hl_sim_remove(u32 minor);
+
+int hl_sim_create_hdev(struct hl_simulator_device *edev);
+void hl_sim_destroy_hdev(struct hl_device *hdev);
+
+int sim_mem_access_debug_handler(struct hl_device *hdev, void *info);
+u32 hl_sim_rreg(struct hl_device *hdev, u64 reg_addr,
+		struct hl_simulator_device *edev);
+void hl_sim_wreg(struct hl_device *hdev, u64 reg_addr,
+		struct hl_simulator_device *edev, u32 val);
+void hl_sim_notify_reset(struct hl_device *hdev,
+			struct hl_simulator_device *edev);
+void hl_sim_set_priv_assertions(struct hl_simulator_device *edev, bool enable);
+void hl_sim_notify_simulator_close(struct hl_device *hdev);
+
+void hl_sim_vunmap_user_pages(struct hl_vm_user_pages *user_pages);
+int hl_sim_vmap_user_pages(u64 user_pointer, u64 size_in_bytes,
+			   struct hl_vm_user_pages *out_user_pages,
+			   bool locked);
+int hl_sim_read_dram(struct hl_simulator_device *edev, void *dst, u64 offset,
+		     u64 size);
+int hl_sim_write_dram(struct hl_simulator_device *edev, u64 offset,
+		      const void *src, u64 size);
+
+ssize_t hl_sim_write_c2h_fifo(struct hl_simulator_device *edev, struct file *filp,
+				const char __user *buffer, size_t len);
+ssize_t hl_sim_read_h2c_fifo(struct hl_simulator_device *edev, struct file *filp,
+				char __user *buffer, size_t len);
+void sim_devices_init(struct hl_simulator_device *sdev, struct class *hclass,
+			int minor, const struct file_operations *fops, char *name);
+__poll_t hl_sim_poll(struct hl_simulator_device *edev, struct file *filp,
+				struct poll_table_struct *wait);
+/* END OF SIMULATOR CODE */
 
 /* IMPORTER CODE */
 int hl_importer_init(void);
 int hl_importer_exit(void);
 /* END OF IMPORTER CODE */
+#endif /* HL_DOWNSTREAM */
 
 bool hl_check_fd(struct file *file);
+
+static inline u32 hl_get_module_id(const struct hl_device *hdev)
+{
+	u32 card_location = le32_to_cpu(hdev->asic_prop.cpucp_info.card_location);
+
+	switch (hdev->serdes_type) {
+	case GAUDI3_RACK_SERDES_TYPE:
+		return card_location % 16;
+	case GAUDI3_RACK_WHITEBOX_SERDES_TYPE:
+		return card_location % 4;
+	default:
+		return card_location;
+	}
+}
 
 #endif /* HABANALABSP_H_ */

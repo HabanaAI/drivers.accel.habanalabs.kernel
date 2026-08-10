@@ -1,12 +1,14 @@
 // SPDX-License-Identifier: GPL-2.0
 
 /*
- * Copyright 2022 HabanaLabs, Ltd.
+ * Copyright 2022-2024 HabanaLabs, Ltd.
+ * Copyright (C) 2024-2025, Intel Corporation.
  * All Rights Reserved.
  */
 
 #include "gaudi3P.h"
-#include "../include/gaudi3/asic_reg/gaudi3_regs.h"
+#include "gaudi3_cn.h"
+#include "../include/gaudi3/gaudi3_regs.h"
 
 #define RR_LBW_SEC_SHORT_NUM_RANGES		14
 #define RR_LBW_SEC_NUM_RANGES			4
@@ -286,8 +288,11 @@ static void gaudi3_init_lbw_hbw_range_registers(struct hl_device *hdev)
  */
 static inline void gaudi3_init_range_registers(struct hl_device *hdev)
 {
-	dev_dbg(hdev->dev, "Configure RRs\n");
+	hl_dbg(hdev, "Configure RRs\n");
 	gaudi3_init_lbw_hbw_range_registers(hdev);
+#ifdef HL_DOWNSTREAM
+	gaudi3_init_pa_range_registers(hdev);
+#endif /* HL_DOWNSTREAM */
 }
 
 static const u32 gaudi3_pb_kdma[] = {
@@ -461,7 +466,7 @@ static int gaudi3_init_protection_bits(struct hl_device *hdev)
 	struct asic_fixed_properties *prop = &hdev->asic_prop;
 	int rc = 0;
 
-	dev_dbg(hdev->dev, "Configure protection bits\n");
+	hl_dbg(hdev, "Configure protection bits\n");
 
 	/* KDMA (D1_SPDMA1_CH5_A) */
 	rc |= hl_init_pb(hdev, HL_PB_SHARED, HL_PB_NA,
@@ -527,7 +532,7 @@ int gaudi3_init_security(struct hl_device *hdev)
 
 	rc = hl_init_pb_security(hdev, false);
 	if (rc) {
-		dev_err(hdev->dev, "Configuring Secured PBs failed!\n");
+		hl_err(hdev, "Configuring Secured PBs failed!\n");
 		return rc;
 	}
 

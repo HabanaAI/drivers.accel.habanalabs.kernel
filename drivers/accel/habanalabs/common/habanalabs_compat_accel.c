@@ -22,7 +22,11 @@ static struct class *accel_class;
 static int accel_major;
 
 #if !IS_ENABLED(CONFIG_DRM_ACCEL)
+#ifdef _HAS_DEVNODE_WITH_CONST_DEVICE
 static char *accel_devnode(const struct device *dev, umode_t *mode)
+#else
+static char *accel_devnode(struct device *dev, umode_t *mode)
+#endif
 {
 	return kasprintf(GFP_KERNEL, "accel/%s", dev_name(dev));
 }
@@ -180,12 +184,17 @@ int hl_accel_debug_ioctl(struct hl_fpriv *hpriv, void *data)
 	return hl_debug_ioctl(&hpriv->hdev->drm, data, hpriv->file_priv);
 }
 
+int hl_accel_nic_ioctl(struct hl_fpriv *hpriv, void *data)
+{
+	return hl_nic_ioctl(&hpriv->hdev->drm, data, hpriv->file_priv);
+}
+
 static int accel_device_create_combined_group(struct device *dev,
-					struct attribute_group *combined_group,
-					const struct attribute_group **groups)
+						struct attribute_group *combined_group,
+						const struct attribute_group **groups)
 {
 	u32 i, j, num_attrs = 0, num_bin_attrs = 0, attrs_idx = 0, bin_attrs_idx = 0;
-	const struct bin_attribute **bin_attrs;
+	struct bin_attribute **bin_attrs;
 	struct attribute **attrs;
 
 	for (i = 0 ; groups[i] ; ++i) {

@@ -4,7 +4,7 @@
  * All Rights Reserved.
  *
  */
-
+ 
 #ifndef ASIC_REG_GOYA_REGS_H_
 #define ASIC_REG_GOYA_REGS_H_
 
@@ -25,6 +25,10 @@
 #include "ic_pll_regs.h"
 #include "mc_pll_regs.h"
 #include "tpc_pll_regs.h"
+#include "ddr_misc_ch0_regs.h"
+#include "ddr_mc_ch0_regs.h"
+#include "ddr_misc_ch1_regs.h"
+#include "ddr_mc_ch1_regs.h"
 #include "dma_qm_0_regs.h"
 #include "dma_qm_1_regs.h"
 #include "dma_qm_2_regs.h"
@@ -95,6 +99,8 @@
 #include "tpc0_cmdq_masks.h"
 #include "mme_qm_masks.h"
 #include "mme_cmdq_masks.h"
+#include "ddr_misc_ch0_masks.h"
+#include "ddr_misc_ch1_masks.h"
 #include "tpc0_cfg_masks.h"
 #include "tpc0_eml_cfg_masks.h"
 #include "mme1_rtr_masks.h"

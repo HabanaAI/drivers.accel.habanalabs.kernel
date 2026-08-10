@@ -1,12 +1,15 @@
 // SPDX-License-Identifier: GPL-2.0
 
 /*
- * Copyright 2016-2022 HabanaLabs, Ltd.
+ * Copyright 2016-2024 HabanaLabs, Ltd.
+ * Copyright (C) 2024-2025, Intel Corporation.
  * All Rights Reserved.
  */
 
 #include "habanalabs.h"
 #include "habanalabs_compat_accel.h"
+
+#include <linux/capability.h>
 #include <linux/pci.h>
 #include <linux/types.h>
 
@@ -218,11 +221,11 @@ static ssize_t soft_reset_store(struct device *dev,
 	}
 
 	if (!hdev->asic_prop.allow_inference_soft_reset) {
-		dev_err(hdev->dev, "Device does not support inference soft-reset\n");
+		hl_err_ratelimited(hdev, "Device does not support inference soft-reset\n");
 		goto out;
 	}
 
-	dev_warn(hdev->dev, "Inference Soft-Reset requested through sysfs\n");
+	hl_warn(hdev, "Inference Soft-Reset requested through sysfs\n");
 
 	hl_device_reset(hdev, 0);
 
@@ -238,6 +241,9 @@ static ssize_t hard_reset_store(struct device *dev,
 	long value;
 	int rc;
 
+	if (!capable(CAP_SYS_ADMIN))
+		return -EPERM;
+
 	rc = kstrtoul(buf, 0, &value);
 
 	if (rc) {
@@ -245,7 +251,7 @@ static ssize_t hard_reset_store(struct device *dev,
 		goto out;
 	}
 
-	dev_warn(hdev->dev, "Hard-Reset requested through sysfs\n");
+	hl_warn(hdev, "Hard-Reset requested through sysfs\n");
 
 	hl_device_reset(hdev, HL_DRV_RESET_HARD);
 
@@ -268,6 +274,7 @@ static ssize_t device_type_show(struct device *dev,
 	char *str;
 
 	switch (hdev->asic_type) {
+#ifdef HL_DOWNSTREAM
 	case ASIC_GOYA_SIM:
 		str = "GOYA Simulator";
 		break;
@@ -293,14 +300,50 @@ static ssize_t device_type_show(struct device *dev,
 	case ASIC_GAUDI2D_SIM_ARC:
 		str = "GAUDI2D Simulator";
 		break;
+	case ASIC_GAUDI2E_SIM:
+	case ASIC_GAUDI2E_SIM_ARC:
+			str = "GAUDI2E Simulator";
+			break;
+	case ASIC_GAUDI2_HL_288_SIM:
+	case ASIC_GAUDI2_HL_288_SIM_ARC:
+		str = "GAUDI2 HL-288 Simulator";
+		break;
+	case ASIC_GAUDI2D_HL_288_SIM:
+	case ASIC_GAUDI2D_HL_288_SIM_ARC:
+		str = "GAUDI2D HL-288 Simulator";
+		break;
+	case ASIC_GAUDI2E_HL_288_SIM:
+	case ASIC_GAUDI2E_HL_288_SIM_ARC:
+		str = "GAUDI2E HL-288 Simulator";
+		break;
 	case ASIC_GAUDI3_SIM:
 	case ASIC_GAUDI3_SIM_ARC:
 		str = "GAUDI3 Simulator";
+		break;
+	case ASIC_GAUDI3D_SIM:
+	case ASIC_GAUDI3D_SIM_ARC:
+		str = "GAUDI3D Simulator";
+		break;
+	case ASIC_GAUDI3E_SIM:
+	case ASIC_GAUDI3E_SIM_ARC:
+		str = "GAUDI3E Simulator";
 		break;
 	case ASIC_GAUDI3_HL_338_SIM:
 	case ASIC_GAUDI3_HL_338_SIM_ARC:
 		str = "GAUDI3 HL-338 Simulator";
 		break;
+	case ASIC_GAUDI3D_HL_338_SIM:
+	case ASIC_GAUDI3D_HL_338_SIM_ARC:
+		str = "GAUDI3D HL-338 Simulator";
+		break;
+	case ASIC_GAUDI3E_HL_338_SIM:
+	case ASIC_GAUDI3E_HL_338_SIM_ARC:
+		str = "GAUDI3E HL-338 Simulator";
+		break;
+	case ASIC_GAUDI3_FPGA:
+		str = "GAUDI3 FPGA";
+		break;
+#endif /* HL_DOWNSTREAM */
 	case ASIC_GOYA:
 		str = "GOYA";
 		break;
@@ -328,17 +371,38 @@ static ssize_t device_type_show(struct device *dev,
 	case ASIC_GAUDI2D:
 		str = "GAUDI2D";
 		break;
+	case ASIC_GAUDI2E:
+		str = "GAUDI2E";
+		break;
+	case ASIC_GAUDI2_HL_288:
+		str = "GAUDI2 HL-288";
+		break;
+	case ASIC_GAUDI2D_HL_288:
+		str = "GAUDI2D HL-288";
+		break;
+	case ASIC_GAUDI2E_HL_288:
+		str = "GAUDI2E HL-288";
+		break;
 	case ASIC_GAUDI3:
 		str = "GAUDI3";
 		break;
-	case ASIC_GAUDI3_FPGA:
-		str = "GAUDI3 FPGA";
+	case ASIC_GAUDI3D:
+		str = "GAUDI3D";
+		break;
+	case ASIC_GAUDI3E:
+		str = "GAUDI3E";
 		break;
 	case ASIC_GAUDI3_HL_338:
 		str = "GAUDI3 HL-338";
 		break;
+	case ASIC_GAUDI3D_HL_338:
+		str = "GAUDI3D HL-338";
+		break;
+	case ASIC_GAUDI3E_HL_338:
+		str = "GAUDI3E HL-338";
+		break;
 	default:
-		dev_err(hdev->dev, "Unrecognized ASIC type %d\n",
+		hl_err(hdev, "Unrecognized ASIC type %d\n",
 				hdev->asic_type);
 		return -EINVAL;
 	}
@@ -435,7 +499,7 @@ out:
 }
 
 static ssize_t eeprom_read_handler(struct file *filp, struct kobject *kobj,
-			const struct bin_attribute *attr, char *buf, loff_t offset,
+			compat_bin_attribute *attr, char *buf, loff_t offset,
 			size_t max_size)
 {
 	struct device *dev = kobj_to_dev(kobj);
@@ -478,7 +542,7 @@ static ssize_t module_id_show(struct device *dev,
 {
 	struct hl_device *hdev = dev_get_drvdata(dev);
 
-	return sprintf(buf, "%u\n", le32_to_cpu(hdev->asic_prop.cpucp_info.card_location));
+	return sprintf(buf, "%u\n", hl_get_module_id(hdev));
 }
 
 static ssize_t parent_device_show(struct device *dev, struct device_attribute *attr, char *buf)
@@ -511,7 +575,7 @@ static DEVICE_ATTR_RO(security_enabled);
 static DEVICE_ATTR_RO(module_id);
 static DEVICE_ATTR_RO(parent_device);
 
-static const struct bin_attribute bin_attr_eeprom = {
+static struct bin_attribute bin_attr_eeprom = {
 	.attr = {.name = "eeprom", .mode = (0444)},
 	.size = PAGE_SIZE,
 	.read = eeprom_read_handler
@@ -541,7 +605,7 @@ static struct attribute *hl_dev_attrs[] = {
 	NULL,
 };
 
-static const struct bin_attribute *const hl_dev_bin_attrs[] = {
+static compat_bin_attribute_p hl_dev_bin_attrs[] = {
 	&bin_attr_eeprom,
 	NULL
 };
@@ -597,7 +661,7 @@ int hl_sysfs_init(struct hl_device *hdev)
 
 	rc = device_add_groups(hdev->dev, hl_dev_attr_groups);
 	if (rc) {
-		dev_err(hdev->dev,
+		hl_err(hdev,
 			"Failed to add groups to device, error %d\n", rc);
 		return rc;
 	}
@@ -607,7 +671,7 @@ int hl_sysfs_init(struct hl_device *hdev)
 
 	rc = device_add_groups(hdev->dev, hl_dev_inference_attr_groups);
 	if (rc) {
-		dev_err(hdev->dev,
+		hl_err(hdev,
 			"Failed to add groups to device, error %d\n", rc);
 		goto remove_groups;
 	}
@@ -629,7 +693,7 @@ int hl_sysfs_init(struct hl_device *hdev)
 
 	rc = hl_accel_device_add_groups(hdev->dev, hl_dev_attr_groups);
 	if (rc) {
-		dev_err(hdev->dev, "Failed to add groups to device, error %d\n", rc);
+		hl_err(hdev, "Failed to add groups to device, error %d\n", rc);
 		return rc;
 	}
 
@@ -638,7 +702,7 @@ int hl_sysfs_init(struct hl_device *hdev)
 
 	rc = hl_accel_device_add_groups(hdev->dev, hl_dev_inference_attr_groups);
 	if (rc) {
-		dev_err(hdev->dev, "Failed to add groups to device, error %d\n", rc);
+		hl_err(hdev, "Failed to add groups to device, error %d\n", rc);
 		goto remove_groups;
 	}
 

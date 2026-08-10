@@ -12,14 +12,10 @@ HL_COMMON_FILES := common/habanalabs_drv.o common/device.o common/context.o \
 		common/sysfs.o common/hwmon.o common/memory.o \
 		common/command_submission.o common/firmware_if.o \
 		common/security.o common/state_dump.o \
-		common/memory_mgr.o common/decoder.o
+		common/odp.o common/memory_mgr.o common/decoder.o \
+		common/hldio.o
 
-# Conditionally add HLDIO support
-ifdef CONFIG_HL_HLDIO
-HL_COMMON_FILES += common/hldio.o
+ifeq ($(HL_DOWNSTREAM),y)
+    HL_COMMON_FILES += common/simulator.o
 endif
 
-# Conditionally add ODP support
-ifdef CONFIG_HL_ODP
-HL_COMMON_FILES += common/odp.o
-endif

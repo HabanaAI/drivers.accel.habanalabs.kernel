@@ -8,7 +8,7 @@
 #define GAUDI3_CORESIGHT_REGS_DRV_H_
 
 #include "../common/habanalabs.h"
-#include "../include/gaudi3/asic_reg/gaudi3_regs.h"
+#include "../include/gaudi3/gaudi3_regs.h"
 #include "../include/gaudi3/gaudi3_coresight.h"
 #include "gaudi3_masks.h"
 #include "gaudi3P.h"

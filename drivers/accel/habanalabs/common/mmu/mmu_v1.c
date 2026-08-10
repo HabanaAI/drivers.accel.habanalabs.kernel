@@ -51,7 +51,7 @@ static int dram_default_mapping_init(struct hl_ctx *ctx)
 
 	hop1_addr = hl_mmu_dr_alloc_hop(ctx);
 	if (hop1_addr == ULLONG_MAX) {
-		dev_err(hdev->dev, "failed to alloc hop 1\n");
+		hl_err(hdev, "failed to alloc hop 1\n");
 		rc = -ENOMEM;
 		goto hop1_err;
 	}
@@ -60,7 +60,7 @@ static int dram_default_mapping_init(struct hl_ctx *ctx)
 
 	hop2_addr = hl_mmu_dr_alloc_hop(ctx);
 	if (hop2_addr == ULLONG_MAX) {
-		dev_err(hdev->dev, "failed to alloc hop 2\n");
+		hl_err(hdev, "failed to alloc hop 2\n");
 		rc = -ENOMEM;
 		goto hop2_err;
 	}
@@ -70,7 +70,7 @@ static int dram_default_mapping_init(struct hl_ctx *ctx)
 	for (i = 0 ; i < num_of_hop3 ; i++) {
 		ctx->dram_default_hops[i] = hl_mmu_dr_alloc_hop(ctx);
 		if (ctx->dram_default_hops[i] == ULLONG_MAX) {
-			dev_err(hdev->dev, "failed to alloc hop 3, i: %d\n", i);
+			hl_err(hdev, "failed to alloc hop 3, i: %d\n", i);
 			rc = -ENOMEM;
 			goto hop3_err;
 		}
@@ -205,11 +205,11 @@ static void hl_mmu_v1_ctx_fini(struct hl_ctx *ctx)
 	dram_default_mapping_fini(ctx);
 
 	if (!hash_empty(ctx->mmu_shadow_hash))
-		dev_err(hdev->dev, "ctx %d is freed while it has pgts in use\n",
+		hl_err(hdev, "ctx %d is freed while it has pgts in use\n",
 			ctx->asid);
 
 	hash_for_each_safe(ctx->mmu_shadow_hash, i, tmp, pgt_info, node) {
-		dev_err_ratelimited(hdev->dev,
+		hl_err_ratelimited(hdev,
 			"pgt_info of addr 0x%llx of asid %d was not destroyed, num_ptes: %d\n",
 			pgt_info->phys_addr, ctx->asid, pgt_info->num_of_ptes);
 		hl_mmu_dr_free_pgt_node(ctx, pgt_info);
@@ -247,7 +247,7 @@ static int hl_mmu_v1_unmap(struct hl_ctx *ctx,
 	is_huge = curr_pte & mmu_prop->last_mask;
 
 	if (is_dram_addr && !is_huge) {
-		dev_err(hdev->dev, "DRAM unmapping should use huge pages only\n");
+		hl_err(hdev, "DRAM unmapping should use huge pages only\n");
 		return -EFAULT;
 	}
 
@@ -268,14 +268,14 @@ static int hl_mmu_v1_unmap(struct hl_ctx *ctx,
 				HOP_PHYS_ADDR_MASK) | mmu_prop->last_mask |
 					PAGE_PRESENT_MASK;
 		if (curr_pte == default_pte) {
-			dev_err(hdev->dev,
+			hl_err(hdev,
 				"DRAM: hop3 PTE points to zero page, can't unmap, va: 0x%llx\n",
 					virt_addr);
 			goto not_mapped;
 		}
 
 		if (!(curr_pte & PAGE_PRESENT_MASK)) {
-			dev_err(hdev->dev,
+			hl_err(hdev,
 				"DRAM: hop3 PTE is cleared! can't unmap, va: 0x%llx\n",
 					virt_addr);
 			goto not_mapped;
@@ -314,7 +314,7 @@ mapped:
 	return 0;
 
 not_mapped:
-	dev_err(hdev->dev, "virt addr 0x%llx is not mapped to phys addr\n",
+	hl_err(hdev, "virt addr 0x%llx is not mapped to phys addr\n",
 		virt_addr);
 
 	return -EINVAL;
@@ -371,7 +371,7 @@ static int hl_mmu_v1_map(struct hl_ctx *ctx, u64 virt_addr, u64 phys_addr,
 						PAGE_PRESENT_MASK;
 
 		if (curr_pte != default_pte) {
-			dev_err(hdev->dev,
+			hl_err(hdev,
 				"DRAM: mapping already exists for virt_addr 0x%llx\n",
 					virt_addr);
 			rc = -EINVAL;
@@ -380,18 +380,18 @@ static int hl_mmu_v1_map(struct hl_ctx *ctx, u64 virt_addr, u64 phys_addr,
 
 		for (hop_idx = MMU_HOP1; hop_idx < num_hops; hop_idx++) {
 			if (hop_new[hop_idx]) {
-				dev_err(hdev->dev, "DRAM mapping should not allocate more hops\n");
+				hl_err(hdev, "DRAM mapping should not allocate more hops\n");
 				rc = -EFAULT;
 				goto err;
 			}
 		}
 	} else if (curr_pte & PAGE_PRESENT_MASK) {
-		dev_err(hdev->dev,
+		hl_err(hdev,
 			"mapping already exists for virt_addr 0x%llx\n",
 				virt_addr);
 
 		for (hop_idx = MMU_HOP0; hop_idx < num_hops; hop_idx++)
-			dev_dbg(hdev->dev, "hop%d pte: 0x%llx (0x%llx)\n", hop_idx,
+			hl_dbg(hdev, "hop%d pte: 0x%llx (0x%llx)\n", hop_idx,
 					*(u64 *) (uintptr_t) hop_pte_addr[hop_idx],
 					hop_pte_addr[hop_idx]);
 

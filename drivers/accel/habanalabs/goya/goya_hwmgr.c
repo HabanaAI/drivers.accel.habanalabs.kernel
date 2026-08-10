@@ -31,7 +31,7 @@ void goya_set_pll_profile(struct hl_device *hdev, enum hl_pll_frequency freq)
 		hl_fw_set_frequency(hdev, HL_GOYA_IC_PLL, goya->ic_clk);
 		break;
 	default:
-		dev_err(hdev->dev, "unknown frequency setting\n");
+		hl_err(hdev, "unknown frequency setting\n");
 	}
 }
 
@@ -49,7 +49,7 @@ static ssize_t mme_clk_show(struct device *dev, struct device_attribute *attr,
 	if (value < 0)
 		return value;
 
-	return sysfs_emit(buf, "%lu\n", value);
+	return sprintf(buf, "%lu\n", value);
 }
 
 static ssize_t mme_clk_store(struct device *dev, struct device_attribute *attr,
@@ -98,7 +98,7 @@ static ssize_t tpc_clk_show(struct device *dev, struct device_attribute *attr,
 	if (value < 0)
 		return value;
 
-	return sysfs_emit(buf, "%lu\n", value);
+	return sprintf(buf, "%lu\n", value);
 }
 
 static ssize_t tpc_clk_store(struct device *dev, struct device_attribute *attr,
@@ -147,7 +147,7 @@ static ssize_t ic_clk_show(struct device *dev, struct device_attribute *attr,
 	if (value < 0)
 		return value;
 
-	return sysfs_emit(buf, "%lu\n", value);
+	return sprintf(buf, "%lu\n", value);
 }
 
 static ssize_t ic_clk_store(struct device *dev, struct device_attribute *attr,
@@ -196,7 +196,7 @@ static ssize_t mme_clk_curr_show(struct device *dev,
 	if (value < 0)
 		return value;
 
-	return sysfs_emit(buf, "%lu\n", value);
+	return sprintf(buf, "%lu\n", value);
 }
 
 static ssize_t tpc_clk_curr_show(struct device *dev,
@@ -213,7 +213,7 @@ static ssize_t tpc_clk_curr_show(struct device *dev,
 	if (value < 0)
 		return value;
 
-	return sysfs_emit(buf, "%lu\n", value);
+	return sprintf(buf, "%lu\n", value);
 }
 
 static ssize_t ic_clk_curr_show(struct device *dev,
@@ -230,7 +230,7 @@ static ssize_t ic_clk_curr_show(struct device *dev,
 	if (value < 0)
 		return value;
 
-	return sysfs_emit(buf, "%lu\n", value);
+	return sprintf(buf, "%lu\n", value);
 }
 
 static ssize_t pm_mng_profile_show(struct device *dev,
@@ -242,7 +242,7 @@ static ssize_t pm_mng_profile_show(struct device *dev,
 	if (!hl_device_operational(hdev, NULL))
 		return -ENODEV;
 
-	return sysfs_emit(buf, "%s\n",
+	return sprintf(buf, "%s\n",
 			(goya->pm_mng_profile == PM_AUTO) ? "auto" :
 			(goya->pm_mng_profile == PM_MANUAL) ? "manual" :
 			"unknown");
@@ -262,7 +262,7 @@ static ssize_t pm_mng_profile_store(struct device *dev,
 	mutex_lock(&hdev->fpriv_list_lock);
 
 	if (hdev->is_compute_ctx_active) {
-		dev_err(hdev->dev,
+		hl_err(hdev,
 			"Can't change PM profile while compute context is opened on the device\n");
 		count = -EPERM;
 		goto unlock_mutex;
@@ -295,7 +295,7 @@ static ssize_t pm_mng_profile_store(struct device *dev,
 			return count;
 		}
 	} else {
-		dev_err(hdev->dev, "value should be auto or manual\n");
+		hl_err(hdev, "value should be auto or manual\n");
 		count = -EINVAL;
 	}
 
@@ -313,7 +313,7 @@ static ssize_t high_pll_show(struct device *dev, struct device_attribute *attr,
 	if (!hl_device_operational(hdev, NULL))
 		return -ENODEV;
 
-	return sysfs_emit(buf, "%u\n", hdev->high_pll);
+	return sprintf(buf, "%u\n", hdev->high_pll);
 }
 
 static ssize_t high_pll_store(struct device *dev, struct device_attribute *attr,
@@ -369,7 +369,7 @@ static ssize_t infineon_ver_show(struct device *dev, struct device_attribute *at
 
 	cpucp_info = &hdev->asic_prop.cpucp_info;
 
-	return sysfs_emit(buf, "%#04x\n", le32_to_cpu(cpucp_info->infineon_version));
+	return sprintf(buf, "%#04x\n", le32_to_cpu(cpucp_info->infineon_version));
 }
 
 static DEVICE_ATTR_RO(infineon_ver);
