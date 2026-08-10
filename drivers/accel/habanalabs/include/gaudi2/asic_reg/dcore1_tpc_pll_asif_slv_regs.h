@@ -1,0 +1,49 @@
+/* SPDX-License-Identifier: GPL-2.0
+ *
+ * Copyright 2016-2020 HabanaLabs, Ltd.
+ * All Rights Reserved.
+ *
+ */
+
+/************************************
+ ** This is an auto-generated file **
+ **       DO NOT EDIT BELOW        **
+ ************************************/
+
+#ifndef ASIC_REG_DCORE1_TPC_PLL_ASIF_SLV_REGS_H_
+#define ASIC_REG_DCORE1_TPC_PLL_ASIF_SLV_REGS_H_
+
+/*
+ *****************************************
+ *   DCORE1_TPC_PLL_ASIF_SLV
+ *   (Prototype: ASIF_SLV)
+ *****************************************
+ */
+
+#define mmDCORE1_TPC_PLL_ASIF_SLV_ASIF_SLV_STATUS 0x4F52360
+
+#define mmDCORE1_TPC_PLL_ASIF_SLV_ASIF_SLV_CFG 0x4F52364
+
+#define mmDCORE1_TPC_PLL_ASIF_SLV_ASIF_SLV_ERROR 0x4F52368
+
+#define mmDCORE1_TPC_PLL_ASIF_SLV_ASIF_SLV_INTR_MASK 0x4F5236C
+
+#define mmDCORE1_TPC_PLL_ASIF_SLV_ASIF_CORE_CFG 0x4F52370
+
+#define mmDCORE1_TPC_PLL_ASIF_SLV_ASIF_CORE_DBG_CNT 0x4F52374
+
+#define mmDCORE1_TPC_PLL_ASIF_SLV_ASIF_CORE_DBG_CNT_CLR 0x4F52378
+
+#define mmDCORE1_TPC_PLL_ASIF_SLV_ASIF_CORE_TIMEOUT_CFG 0x4F5237C
+
+#define mmDCORE1_TPC_PLL_ASIF_SLV_ASIF_ERR_INTR_CAUSE 0x4F52380
+
+#define mmDCORE1_TPC_PLL_ASIF_SLV_ASIF_ERR_INTR_CLEAR 0x4F52384
+
+#define mmDCORE1_TPC_PLL_ASIF_SLV_ASIF_ERR_INTR_MASK 0x4F52388
+
+#define mmDCORE1_TPC_PLL_ASIF_SLV_ASIF_SLV_DBG_0 0x4F52390
+
+#define mmDCORE1_TPC_PLL_ASIF_SLV_ASIF_SLV_DBG_1 0x4F52394
+
+#endif /* ASIC_REG_DCORE1_TPC_PLL_ASIF_SLV_REGS_H_ */

@@ -1,0 +1,679 @@
+/* SPDX-License-Identifier: GPL-2.0
+ *
+ * Copyright 2016-2021 HabanaLabs, Ltd.
+ * All Rights Reserved.
+ *
+ */
+
+/************************************
+ ** This is an auto-generated file **
+ **       DO NOT EDIT BELOW        **
+ ************************************/
+
+#ifndef ASIC_REG_VSI_DEC_REGS_H_
+#define ASIC_REG_VSI_DEC_REGS_H_
+
+/*
+ *****************************************
+ *   VSI_DEC
+ *   (Prototype: VSI_DEC)
+ *****************************************
+ */
+
+#define mmVSI_DEC_SWREG0 0x0
+
+#define mmVSI_DEC_SWREG1 0x4
+
+#define mmVSI_DEC_SWREG2 0x8
+
+#define mmVSI_DEC_SWREG3 0xC
+
+#define mmVSI_DEC_SWREG4 0x10
+
+#define mmVSI_DEC_SWREG5 0x14
+
+#define mmVSI_DEC_SWREG6 0x18
+
+#define mmVSI_DEC_SWREG7 0x1C
+
+#define mmVSI_DEC_SWREG8 0x20
+
+#define mmVSI_DEC_SWREG9 0x24
+
+#define mmVSI_DEC_SWREG10 0x28
+
+#define mmVSI_DEC_SWREG11 0x2C
+
+#define mmVSI_DEC_SWREG12 0x30
+
+#define mmVSI_DEC_SWREG13 0x34
+
+#define mmVSI_DEC_SWREG14 0x38
+
+#define mmVSI_DEC_SWREG15 0x3C
+
+#define mmVSI_DEC_SWREG16 0x40
+
+#define mmVSI_DEC_SWREG17 0x44
+
+#define mmVSI_DEC_SWREG18 0x48
+
+#define mmVSI_DEC_SWREG19 0x4C
+
+#define mmVSI_DEC_SWREG20 0x50
+
+#define mmVSI_DEC_SWREG21 0x54
+
+#define mmVSI_DEC_SWREG22 0x58
+
+#define mmVSI_DEC_SWREG23 0x5C
+
+#define mmVSI_DEC_SWREG24 0x60
+
+#define mmVSI_DEC_SWREG25 0x64
+
+#define mmVSI_DEC_SWREG26 0x68
+
+#define mmVSI_DEC_SWREG27 0x6C
+
+#define mmVSI_DEC_SWREG28 0x70
+
+#define mmVSI_DEC_SWREG29 0x74
+
+#define mmVSI_DEC_SWREG30 0x78
+
+#define mmVSI_DEC_SWREG31 0x7C
+
+#define mmVSI_DEC_SWREG32 0x80
+
+#define mmVSI_DEC_SWREG33 0x84
+
+#define mmVSI_DEC_SWREG34 0x88
+
+#define mmVSI_DEC_SWREG35 0x8C
+
+#define mmVSI_DEC_SWREG36 0x90
+
+#define mmVSI_DEC_SWREG37 0x94
+
+#define mmVSI_DEC_SWREG38 0x98
+
+#define mmVSI_DEC_SWREG39 0x9C
+
+#define mmVSI_DEC_SWREG40 0xA0
+
+#define mmVSI_DEC_SWREG41 0xA4
+
+#define mmVSI_DEC_SWREG42 0xA8
+
+#define mmVSI_DEC_SWREG43 0xAC
+
+#define mmVSI_DEC_SWREG44 0xB0
+
+#define mmVSI_DEC_SWREG45 0xB4
+
+#define mmVSI_DEC_SWREG46 0xB8
+
+#define mmVSI_DEC_SWREG47 0xBC
+
+#define mmVSI_DEC_SWREG48 0xC0
+
+#define mmVSI_DEC_SWREG49 0xC4
+
+#define mmVSI_DEC_SWREG50 0xC8
+
+#define mmVSI_DEC_SWREG54 0xD8
+
+#define mmVSI_DEC_SWREG55 0xDC
+
+#define mmVSI_DEC_SWREG56 0xE0
+
+#define mmVSI_DEC_SWREG57 0xE4
+
+#define mmVSI_DEC_SWREG58 0xE8
+
+#define mmVSI_DEC_SWREG59 0xEC
+
+#define mmVSI_DEC_SWREG60 0xF0
+
+#define mmVSI_DEC_SWREG61 0xF4
+
+#define mmVSI_DEC_SWREG62 0xF8
+
+#define mmVSI_DEC_SWREG63 0xFC
+
+#define mmVSI_DEC_SWREG64 0x100
+
+#define mmVSI_DEC_SWREG65 0x104
+
+#define mmVSI_DEC_SWREG66 0x108
+
+#define mmVSI_DEC_SWREG67 0x10C
+
+#define mmVSI_DEC_SWREG68 0x110
+
+#define mmVSI_DEC_SWREG69 0x114
+
+#define mmVSI_DEC_SWREG70 0x118
+
+#define mmVSI_DEC_SWREG71 0x11C
+
+#define mmVSI_DEC_SWREG72 0x120
+
+#define mmVSI_DEC_SWREG73 0x124
+
+#define mmVSI_DEC_SWREG74 0x128
+
+#define mmVSI_DEC_SWREG75 0x12C
+
+#define mmVSI_DEC_SWREG76 0x130
+
+#define mmVSI_DEC_SWREG77 0x134
+
+#define mmVSI_DEC_SWREG78 0x138
+
+#define mmVSI_DEC_SWREG79 0x13C
+
+#define mmVSI_DEC_SWREG80 0x140
+
+#define mmVSI_DEC_SWREG81 0x144
+
+#define mmVSI_DEC_SWREG82 0x148
+
+#define mmVSI_DEC_SWREG83 0x14C
+
+#define mmVSI_DEC_SWREG84 0x150
+
+#define mmVSI_DEC_SWREG85 0x154
+
+#define mmVSI_DEC_SWREG86 0x158
+
+#define mmVSI_DEC_SWREG87 0x15C
+
+#define mmVSI_DEC_SWREG88 0x160
+
+#define mmVSI_DEC_SWREG89 0x164
+
+#define mmVSI_DEC_SWREG90 0x168
+
+#define mmVSI_DEC_SWREG91 0x16C
+
+#define mmVSI_DEC_SWREG92 0x170
+
+#define mmVSI_DEC_SWREG93 0x174
+
+#define mmVSI_DEC_SWREG94 0x178
+
+#define mmVSI_DEC_SWREG95 0x17C
+
+#define mmVSI_DEC_SWREG96 0x180
+
+#define mmVSI_DEC_SWREG97 0x184
+
+#define mmVSI_DEC_SWREG98 0x188
+
+#define mmVSI_DEC_SWREG99 0x18C
+
+#define mmVSI_DEC_SWREG100 0x190
+
+#define mmVSI_DEC_SWREG101 0x194
+
+#define mmVSI_DEC_SWREG102 0x198
+
+#define mmVSI_DEC_SWREG103 0x19C
+
+#define mmVSI_DEC_SWREG104 0x1A0
+
+#define mmVSI_DEC_SWREG105 0x1A4
+
+#define mmVSI_DEC_SWREG106 0x1A8
+
+#define mmVSI_DEC_SWREG107 0x1AC
+
+#define mmVSI_DEC_SWREG108 0x1B0
+
+#define mmVSI_DEC_SWREG109 0x1B4
+
+#define mmVSI_DEC_SWREG110 0x1B8
+
+#define mmVSI_DEC_SWREG111 0x1BC
+
+#define mmVSI_DEC_SWREG112 0x1C0
+
+#define mmVSI_DEC_SWREG113 0x1C4
+
+#define mmVSI_DEC_SWREG114 0x1C8
+
+#define mmVSI_DEC_SWREG115 0x1CC
+
+#define mmVSI_DEC_SWREG116 0x1D0
+
+#define mmVSI_DEC_SWREG117 0x1D4
+
+#define mmVSI_DEC_SWREG118 0x1D8
+
+#define mmVSI_DEC_SWREG119 0x1DC
+
+#define mmVSI_DEC_SWREG120 0x1E0
+
+#define mmVSI_DEC_SWREG121 0x1E4
+
+#define mmVSI_DEC_SWREG122 0x1E8
+
+#define mmVSI_DEC_SWREG123 0x1EC
+
+#define mmVSI_DEC_SWREG124 0x1F0
+
+#define mmVSI_DEC_SWREG125 0x1F4
+
+#define mmVSI_DEC_SWREG126 0x1F8
+
+#define mmVSI_DEC_SWREG127 0x1FC
+
+#define mmVSI_DEC_SWREG128 0x200
+
+#define mmVSI_DEC_SWREG129 0x204
+
+#define mmVSI_DEC_SWREG130 0x208
+
+#define mmVSI_DEC_SWREG131 0x20C
+
+#define mmVSI_DEC_SWREG132 0x210
+
+#define mmVSI_DEC_SWREG133 0x214
+
+#define mmVSI_DEC_SWREG134 0x218
+
+#define mmVSI_DEC_SWREG135 0x21C
+
+#define mmVSI_DEC_SWREG136 0x220
+
+#define mmVSI_DEC_SWREG137 0x224
+
+#define mmVSI_DEC_SWREG138 0x228
+
+#define mmVSI_DEC_SWREG139 0x22C
+
+#define mmVSI_DEC_SWREG140 0x230
+
+#define mmVSI_DEC_SWREG141 0x234
+
+#define mmVSI_DEC_SWREG142 0x238
+
+#define mmVSI_DEC_SWREG143 0x23C
+
+#define mmVSI_DEC_SWREG144 0x240
+
+#define mmVSI_DEC_SWREG145 0x244
+
+#define mmVSI_DEC_SWREG146 0x248
+
+#define mmVSI_DEC_SWREG147 0x24C
+
+#define mmVSI_DEC_SWREG148 0x250
+
+#define mmVSI_DEC_SWREG149 0x254
+
+#define mmVSI_DEC_SWREG150 0x258
+
+#define mmVSI_DEC_SWREG151 0x25C
+
+#define mmVSI_DEC_SWREG152 0x260
+
+#define mmVSI_DEC_SWREG153 0x264
+
+#define mmVSI_DEC_SWREG154 0x268
+
+#define mmVSI_DEC_SWREG155 0x26C
+
+#define mmVSI_DEC_SWREG156 0x270
+
+#define mmVSI_DEC_SWREG157 0x274
+
+#define mmVSI_DEC_SWREG158 0x278
+
+#define mmVSI_DEC_SWREG159 0x27C
+
+#define mmVSI_DEC_SWREG160 0x280
+
+#define mmVSI_DEC_SWREG161 0x284
+
+#define mmVSI_DEC_SWREG162 0x288
+
+#define mmVSI_DEC_SWREG163 0x28C
+
+#define mmVSI_DEC_SWREG164 0x290
+
+#define mmVSI_DEC_SWREG165 0x294
+
+#define mmVSI_DEC_SWREG166 0x298
+
+#define mmVSI_DEC_SWREG167 0x29C
+
+#define mmVSI_DEC_SWREG168 0x2A0
+
+#define mmVSI_DEC_SWREG169 0x2A4
+
+#define mmVSI_DEC_SWREG170 0x2A8
+
+#define mmVSI_DEC_SWREG171 0x2AC
+
+#define mmVSI_DEC_SWREG172 0x2B0
+
+#define mmVSI_DEC_SWREG173 0x2B4
+
+#define mmVSI_DEC_SWREG174 0x2B8
+
+#define mmVSI_DEC_SWREG175 0x2BC
+
+#define mmVSI_DEC_SWREG176 0x2C0
+
+#define mmVSI_DEC_SWREG177 0x2C4
+
+#define mmVSI_DEC_SWREG178 0x2C8
+
+#define mmVSI_DEC_SWREG179 0x2CC
+
+#define mmVSI_DEC_SWREG180 0x2D0
+
+#define mmVSI_DEC_SWREG181 0x2D4
+
+#define mmVSI_DEC_SWREG182 0x2D8
+
+#define mmVSI_DEC_SWREG183 0x2DC
+
+#define mmVSI_DEC_SWREG184 0x2E0
+
+#define mmVSI_DEC_SWREG189 0x2F4
+
+#define mmVSI_DEC_SWREG190 0x2F8
+
+#define mmVSI_DEC_SWREG191 0x2FC
+
+#define mmVSI_DEC_SWREG192 0x300
+
+#define mmVSI_DEC_SWREG193 0x304
+
+#define mmVSI_DEC_SWREG194 0x308
+
+#define mmVSI_DEC_SWREG195 0x30C
+
+#define mmVSI_DEC_SWREG196 0x310
+
+#define mmVSI_DEC_SWREG197 0x314
+
+#define mmVSI_DEC_SWREG198 0x318
+
+#define mmVSI_DEC_SWREG199 0x31C
+
+#define mmVSI_DEC_SWREG200 0x320
+
+#define mmVSI_DEC_SWREG201 0x324
+
+#define mmVSI_DEC_SWREG202 0x328
+
+#define mmVSI_DEC_SWREG203 0x32C
+
+#define mmVSI_DEC_SWREG204 0x330
+
+#define mmVSI_DEC_SWREG205 0x334
+
+#define mmVSI_DEC_SWREG206 0x338
+
+#define mmVSI_DEC_SWREG207 0x33C
+
+#define mmVSI_DEC_SWREG208 0x340
+
+#define mmVSI_DEC_SWREG209 0x344
+
+#define mmVSI_DEC_SWREG210 0x348
+
+#define mmVSI_DEC_SWREG211 0x34C
+
+#define mmVSI_DEC_SWREG212 0x350
+
+#define mmVSI_DEC_SWREG213 0x354
+
+#define mmVSI_DEC_SWREG214 0x358
+
+#define mmVSI_DEC_SWREG215 0x35C
+
+#define mmVSI_DEC_SWREG216 0x360
+
+#define mmVSI_DEC_SWREG217 0x364
+
+#define mmVSI_DEC_SWREG218 0x368
+
+#define mmVSI_DEC_SWREG219 0x36C
+
+#define mmVSI_DEC_SWREG220 0x370
+
+#define mmVSI_DEC_SWREG221 0x374
+
+#define mmVSI_DEC_SWREG222 0x378
+
+#define mmVSI_DEC_SWREG223 0x37C
+
+#define mmVSI_DEC_SWREG224 0x380
+
+#define mmVSI_DEC_SWREG225 0x384
+
+#define mmVSI_DEC_SWREG226 0x388
+
+#define mmVSI_DEC_SWREG227 0x38C
+
+#define mmVSI_DEC_SWREG228 0x390
+
+#define mmVSI_DEC_SWREG229 0x394
+
+#define mmVSI_DEC_SWREG230 0x398
+
+#define mmVSI_DEC_SWREG231 0x39C
+
+#define mmVSI_DEC_SWREG232 0x3A0
+
+#define mmVSI_DEC_SWREG233 0x3A4
+
+#define mmVSI_DEC_SWREG234 0x3A8
+
+#define mmVSI_DEC_SWREG235 0x3AC
+
+#define mmVSI_DEC_SWREG236 0x3B0
+
+#define mmVSI_DEC_SWREG237 0x3B4
+
+#define mmVSI_DEC_SWREG238 0x3B8
+
+#define mmVSI_DEC_SWREG239 0x3BC
+
+#define mmVSI_DEC_SWREG240 0x3C0
+
+#define mmVSI_DEC_SWREG241 0x3C4
+
+#define mmVSI_DEC_SWREG242 0x3C8
+
+#define mmVSI_DEC_SWREG243 0x3CC
+
+#define mmVSI_DEC_SWREG244 0x3D0
+
+#define mmVSI_DEC_SWREG245 0x3D4
+
+#define mmVSI_DEC_SWREG246 0x3D8
+
+#define mmVSI_DEC_SWREG247 0x3DC
+
+#define mmVSI_DEC_SWREG248 0x3E0
+
+#define mmVSI_DEC_SWREG249 0x3E4
+
+#define mmVSI_DEC_SWREG250 0x3E8
+
+#define mmVSI_DEC_SWREG251 0x3EC
+
+#define mmVSI_DEC_SWREG252 0x3F0
+
+#define mmVSI_DEC_SWREG253 0x3F4
+
+#define mmVSI_DEC_SWREG254 0x3F8
+
+#define mmVSI_DEC_SWREG255 0x3FC
+
+#define mmVSI_DEC_SWREG256 0x400
+
+#define mmVSI_DEC_SWREG258 0x408
+
+#define mmVSI_DEC_SWREG259 0x40C
+
+#define mmVSI_DEC_SWREG260 0x410
+
+#define mmVSI_DEC_SWREG261 0x414
+
+#define mmVSI_DEC_SWREG265 0x424
+
+#define mmVSI_DEC_SWREG266 0x428
+
+#define mmVSI_DEC_SWREG299 0x4AC
+
+#define mmVSI_DEC_SWREG300 0x4B0
+
+#define mmVSI_DEC_SWREG301 0x4B4
+
+#define mmVSI_DEC_SWREG302 0x4B8
+
+#define mmVSI_DEC_SWREG303 0x4BC
+
+#define mmVSI_DEC_SWREG304 0x4C0
+
+#define mmVSI_DEC_SWREG305 0x4C4
+
+#define mmVSI_DEC_SWREG306 0x4C8
+
+#define mmVSI_DEC_SWREG307 0x4CC
+
+#define mmVSI_DEC_SWREG308 0x4D0
+
+#define mmVSI_DEC_SWREG309 0x4D4
+
+#define mmVSI_DEC_SWREG313 0x4E4
+
+#define mmVSI_DEC_SWREG314 0x4E8
+
+#define mmVSI_DEC_SWREG315 0x4EC
+
+#define mmVSI_DEC_SWREG316 0x4F0
+
+#define mmVSI_DEC_SWREG317 0x4F4
+
+#define mmVSI_DEC_SWREG318 0x4F8
+
+#define mmVSI_DEC_SWREG319 0x4FC
+
+#define mmVSI_DEC_SWREG320 0x500
+
+#define mmVSI_DEC_SWREG321 0x504
+
+#define mmVSI_DEC_SWREG322 0x508
+
+#define mmVSI_DEC_SWREG323 0x50C
+
+#define mmVSI_DEC_SWREG324 0x510
+
+#define mmVSI_DEC_SWREG325 0x514
+
+#define mmVSI_DEC_SWREG326 0x518
+
+#define mmVSI_DEC_SWREG327 0x51C
+
+#define mmVSI_DEC_SWREG328 0x520
+
+#define mmVSI_DEC_SWREG329 0x524
+
+#define mmVSI_DEC_SWREG330 0x528
+
+#define mmVSI_DEC_SWREG331 0x52C
+
+#define mmVSI_DEC_SWREG332 0x530
+
+#define mmVSI_DEC_SWREG333 0x534
+
+#define mmVSI_DEC_SWREG334 0x538
+
+#define mmVSI_DEC_SWREG335 0x53C
+
+#define mmVSI_DEC_SWREG336 0x540
+
+#define mmVSI_DEC_SWREG337 0x544
+
+#define mmVSI_DEC_SWREG338 0x548
+
+#define mmVSI_DEC_SWREG339 0x54C
+
+#define mmVSI_DEC_SWREG340 0x550
+
+#define mmVSI_DEC_SWREG341 0x554
+
+#define mmVSI_DEC_SWREG342 0x558
+
+#define mmVSI_DEC_SWREG343 0x55C
+
+#define mmVSI_DEC_SWREG344 0x560
+
+#define mmVSI_DEC_SWREG345 0x564
+
+#define mmVSI_DEC_SWREG346 0x568
+
+#define mmVSI_DEC_SWREG347 0x56C
+
+#define mmVSI_DEC_SWREG348 0x570
+
+#define mmVSI_DEC_SWREG349 0x574
+
+#define mmVSI_DEC_SWREG350 0x578
+
+#define mmVSI_DEC_SWREG351 0x57C
+
+#define mmVSI_DEC_SWREG352 0x580
+
+#define mmVSI_DEC_SWREG353 0x584
+
+#define mmVSI_DEC_SWREG354 0x588
+
+#define mmVSI_DEC_SWREG355 0x58C
+
+#define mmVSI_DEC_SWREG356 0x590
+
+#define mmVSI_DEC_SWREG357 0x594
+
+#define mmVSI_DEC_SWREG358 0x598
+
+#define mmVSI_DEC_SWREG410 0x668
+
+#define mmVSI_DEC_SWREG411 0x66C
+
+#define mmVSI_DEC_SWREG412 0x670
+
+#define mmVSI_DEC_SWREG413 0x674
+
+#define mmVSI_DEC_SWREG414 0x678
+
+#define mmVSI_DEC_SWREG437 0x6D4
+
+#define mmVSI_DEC_SWREG438 0x6D8
+
+#define mmVSI_DEC_SWREG439 0x6DC
+
+#define mmVSI_DEC_SWREG440 0x6E0
+
+#define mmVSI_DEC_SWREG441 0x6E4
+
+#define mmVSI_DEC_SWREG442 0x6E8
+
+#define mmVSI_DEC_SWREG443 0x6EC
+
+#define mmVSI_DEC_SWREG444 0x6F0
+
+#define mmVSI_DEC_SWREG445 0x6F4
+
+#define mmVSI_DEC_SWREG446 0x6F8
+
+#endif /* ASIC_REG_VSI_DEC_REGS_H_ */

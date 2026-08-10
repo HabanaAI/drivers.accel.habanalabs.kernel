@@ -1,0 +1,169 @@
+/* SPDX-License-Identifier: GPL-2.0
+ *
+ * Copyright 2016-2021 HabanaLabs, Ltd.
+ * All Rights Reserved.
+ *
+ */
+
+/************************************
+ ** This is an auto-generated file **
+ **       DO NOT EDIT BELOW        **
+ ************************************/
+
+#ifndef ASIC_REG_ROTATOR_REGS_H_
+#define ASIC_REG_ROTATOR_REGS_H_
+
+/*
+ *****************************************
+ *   ROTATOR
+ *   (Prototype: ROTATOR)
+ *****************************************
+ */
+
+#define mmROTATOR_CPL_MSG_AXI 0x0
+
+#define mmROTATOR_AWPROT_0_CPL_MSG 0x4
+
+#define mmROTATOR_AWPROT_1_CPL_MSG 0x8
+
+#define mmROTATOR_AWPROT_2_CPL_MSG 0xC
+
+#define mmROTATOR_CPL_MSG_THRESHOLD 0x10
+
+#define mmROTATOR_RSB_CFG 0x40
+
+#define mmROTATOR_ARPROT_0_RSB 0x44
+
+#define mmROTATOR_ARPROT_1_RSB 0x48
+
+#define mmROTATOR_ARPROT_2_RSB 0x4C
+
+#define mmROTATOR_ARPROT_0_MRSB 0x50
+
+#define mmROTATOR_ARPROT_1_MRSB 0x54
+
+#define mmROTATOR_ARPROT_2_MRSB 0x58
+
+#define mmROTATOR_ARPROT_0_GRSB 0x5C
+
+#define mmROTATOR_ARPROT_1_GRSB 0x60
+
+#define mmROTATOR_ARPROT_2_GRSB 0x64
+
+#define mmROTATOR_DISABLE_PAD_CALC 0x68
+
+#define mmROTATOR_RSB_CAM_MAX_SIZE 0x6C
+
+#define mmROTATOR_RSB_MAX_OS 0x70
+
+#define mmROTATOR_RSB_RL 0x74
+
+#define mmROTATOR_MRSB_RL 0x78
+
+#define mmROTATOR_GRSB_RL 0x7C
+
+#define mmROTATOR_RSB_INFLIGHTS 0x80
+
+#define mmROTATOR_RSB_OCCUPANCY 0x84
+
+#define mmROTATOR_RSB_OCCUPANCY_DATA 0x88
+
+#define mmROTATOR_MRSB_OCCUPANCY_DATA 0x8C
+
+#define mmROTATOR_GRSB_OCCUPANCY_DATA 0x90
+
+#define mmROTATOR_RSB_OCCUPANCY_MD 0x94
+
+#define mmROTATOR_MRSB_OCCUPANCY_MD 0x98
+
+#define mmROTATOR_GRSB_OCCUPANCY_MD 0x9C
+
+#define mmROTATOR_RSB_INFO 0xA0
+
+#define mmROTATOR_WBC_CTRL 0xC0
+
+#define mmROTATOR_WCH_AGG_CFG 0xC4
+
+#define mmROTATOR_AWPROT_0_WCH_ROT 0xC8
+
+#define mmROTATOR_AWPROT_1_WCH_ROT 0xCC
+
+#define mmROTATOR_AWPROT_2_WCH_ROT 0xD0
+
+#define mmROTATOR_AWPROT_0_WCH_RSL 0xD4
+
+#define mmROTATOR_AWPROT_1_WCH_RSL 0xD8
+
+#define mmROTATOR_AWPROT_2_WCH_RSL 0xDC
+
+#define mmROTATOR_WBC_MAX_OUTSTANDING 0xE0
+
+#define mmROTATOR_WBC_RL 0xE4
+
+#define mmROTATOR_WBC_RL_RST_TOKEN 0xE8
+
+#define mmROTATOR_WBC_INFLIGHTS 0xEC
+
+#define mmROTATOR_WBC_INFO 0xF0
+
+#define mmROTATOR_WBC_MON 0xF4
+
+#define mmROTATOR_CLK_EN 0x140
+
+#define mmROTATOR_QMAN_CFG 0x144
+
+#define mmROTATOR_ERR_CFG 0x148
+
+#define mmROTATOR_MSS_HALT 0x14C
+
+#define mmROTATOR_MSS_STS 0x150
+
+#define mmROTATOR_MSS_SEI_CLEAR 0x154
+
+#define mmROTATOR_MSS_SEI_MASK 0x158
+
+#define mmROTATOR_MSS_SEI_CAUSE 0x15C
+
+#define mmROTATOR_MSS_SPI_CLEAR 0x160
+
+#define mmROTATOR_MSS_SPI_MASK 0x164
+
+#define mmROTATOR_MSS_SPI_CAUSE 0x168
+
+#define mmROTATOR_DBG_CONTEXT_ID_CONTROL 0x16C
+
+#define mmROTATOR_RSB_ERR_STATUS 0x170
+
+#define mmROTATOR_GRSB_MRSB_ERR_CONTEXT_ID 0x174
+
+#define mmROTATOR_RSB_ERR_CONTEXT_ID 0x178
+
+#define mmROTATOR_WCH_ERR_STATUS 0x17C
+
+#define mmROTATOR_WCH_ERR_CONTEXT_ID 0x180
+
+#define mmROTATOR_IP_NUM_ERR_STATUS 0x184
+
+#define mmROTATOR_RINTERP_MINTERP_NUM_ERR_CONTEXT_ID 0x188
+
+#define mmROTATOR_COORD_NUM_ERR_CONTEXT_ID 0x18C
+
+#define mmROTATOR_MSS_ROT_APB_AXI2APB_CFG 0x190
+
+#define mmROTATOR_CORE_CFG 0x1C0
+
+#define mmROTATOR_ROT_MAX_OS 0x1C4
+
+#define mmROTATOR_MESH_MAX_OS 0x1C8
+
+#define mmROTATOR_GRAD_MAX_OS 0x1CC
+
+#define mmROTATOR_CFG_RS_TRC 0x1D0
+
+#define mmROTATOR_RSB_LL_THRESHOLD 0x1D4
+
+#define mmROTATOR_NUM_CONV_CFG 0x1D8
+
+#define mmROTATOR_PLRU 0x1DC
+
+#endif /* ASIC_REG_ROTATOR_REGS_H_ */
