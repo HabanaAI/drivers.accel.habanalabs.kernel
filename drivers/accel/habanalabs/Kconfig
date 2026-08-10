@@ -28,3 +28,35 @@ config DRM_ACCEL_HABANALABS
 
 	  To compile this driver as a module, choose M here: the
 	  module will be called habanalabs.
+
+config HL_HLDIO
+	bool "Enable HabanaLabs NVMe Direct I/O support"
+	depends on DRM_ACCEL_HABANALABS
+	depends on PCI_P2PDMA
+	depends on ZONE_DEVICE
+	default y
+	help
+	  Enables NVMe Direct I/O support for HabanaLabs AI accelerators.
+	  This feature allows direct data transfer between NVMe SSDs and
+	  device memory using peer-to-peer DMA, bypassing system memory.
+
+	  Requires PCI peer-to-peer DMA support (PCI_P2PDMA) and zone device
+	  support (ZONE_DEVICE).
+
+	  If unsure, say Y.
+
+config HL_ODP
+	bool "Enable HabanaLabs On-Demand Paging support"
+	depends on DRM_ACCEL_HABANALABS
+	depends on MMU
+	select HMM_MIRROR
+	default y
+	help
+	  Enables On-Demand Paging (ODP) support for HabanaLabs AI accelerators.
+	  This feature uses the kernel's Heterogeneous Memory Management (HMM)
+	  subsystem to provide on-demand paging of device memory, allowing
+	  transparent migration of pages between system and device memory.
+
+	  Requires HMM_MIRROR support in the kernel.
+
+	  If unsure, say Y.

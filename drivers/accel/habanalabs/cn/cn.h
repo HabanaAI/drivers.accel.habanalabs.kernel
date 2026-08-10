@@ -9,7 +9,7 @@
 #ifndef CN_H_
 #define CN_H_
 
-#include "compat.h"
+//#include "compat.h"
 
 #include <uapi/drm/habanalabs_accel.h>
 #include <linux/net/intel/cn_aux.h>

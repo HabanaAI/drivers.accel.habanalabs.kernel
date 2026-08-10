@@ -1359,8 +1359,10 @@ hl_sim_copy_user_remote(struct hl_vm_user_pages *user_pages, u64 usr_addr,
 					&locked);
 #endif /* _HAS_GET_USER_PAGES_REMOTE_WITH_TASK_PTR */
 #else /* _HAS_GET_USER_PAGES_REMOTE */
-	nr_pages_pinned = get_user_pages(user_pages->tsk, owner_mm, start_page_addr,
-					 nr_pages, true, false, pages, NULL);
+	nr_pages_pinned = get_user_pages(start_page_addr, nr_pages,
+					 FOLL_WRITE, pages);
+//	nr_pages_pinned = get_user_pages(user_pages->tsk, owner_mm, start_page_addr,
+//					 nr_pages, true, false, pages, NULL);
 #endif /* _HAS_GET_USER_PAGES_REMOTE */
 	if (locked)
 		mmap_read_unlock(owner_mm);

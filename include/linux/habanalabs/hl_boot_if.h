@@ -228,9 +228,10 @@ enum cpu_boot_dev_sts {
 	CPU_BOOT_DEV_STS_MAP_HWMON_EN = 26,
 	CPU_BOOT_DEV_STS_NIC_MEM_CLEAR_EN = 27,
 	CPU_BOOT_DEV_STS_MMU_PGTBL_DRAM_EN = 28,
-	CPU_BOOT_DEV_STS_BMU_REMAP_DEPRECATED = 29, /* deprecated */
+	CPU_BOOT_DEV_STS_SRAM_REMAP_EN = 29,
 	CPU_BOOT_DEV_STS_BMU_REMAP_EN = 30,
 	CPU_BOOT_DEV_STS_ENABLED = 31,
+	CPU_BOOT_DEV_STS_EARLY_WRITE_RESP_SET_EN = 32,
 	CPU_BOOT_DEV_STS_SCND_EN = 63,
 	CPU_BOOT_DEV_STS_LAST = 64 /* we have 2 registers of 32 bits */
 };
@@ -330,7 +331,7 @@ enum cpu_boot_dev_sts {
  *					Initialized in: linux
  *
  * CPU_BOOT_DEV_STS0_GIC_PRIVILEGED_EN	GIC access permission only from
- *					privileged entity. FW sets this status
+ *					previleged entity. FW sets this status
  *					bit for host. If this bit is set then
  *					GIC can not be accessed from host.
  *					Initialized in: linux
@@ -377,9 +378,12 @@ enum cpu_boot_dev_sts {
  *					F/W initializes security settings for MMU
  *					page tables to reside in DRAM.
  *					Initialized in: zephyr-mgmt
+ * CPU_BOOT_DEV_STS0_SRAM_REMAP_EN
+ *					Compatibility bit that indicates the SRAM is mapped to the
+ *					base address of BAR4
  *
  * CPU_BOOT_DEV_STS0_BMU_REMAP_EN
- *					BMU is remapped for runtime FW operation. Different BMU
+ *					BMU is remapped for runtime FW operation. different BMU
  *					mapping is used for boot phase, and runtime phase.
  *
  * CPU_BOOT_DEV_STS0_ENABLED		Device status register enabled.
@@ -389,6 +393,20 @@ enum cpu_boot_dev_sts {
  *					bits are not garbage, but actual
  *					statuses.
  *					Initialized in: preboot
+ *
+ * CPU_BOOT_DEV_STS1_EARLY_WRITE_RESP_SET
+ *					Compatibility bit that indicates the cpucp packet
+ *					for early write response, fabric serialization
+ *					and fabric serialization enhancement is supported
+ *					Initialized in: arcmgmt
+ *
+ * CPU_BOOT_DEV_STS1_ENABLED		Device status register enabled.
+ *					This is a main indication that the
+ *					running FW populates the device status
+ *					register. Meaning the device status
+ *					bits are not garbage, but actual
+ *					statuses.
+ *					Initialized in: arcmgmt
  *
  */
 #define CPU_BOOT_DEV_STS0_SECURITY_EN		(1 << CPU_BOOT_DEV_STS_SECURITY_EN)
@@ -420,16 +438,23 @@ enum cpu_boot_dev_sts {
 #define CPU_BOOT_DEV_STS0_MAP_HWMON_EN		(1 << CPU_BOOT_DEV_STS_MAP_HWMON_EN)
 #define CPU_BOOT_DEV_STS0_NIC_MEM_CLEAR_EN	(1 << CPU_BOOT_DEV_STS_NIC_MEM_CLEAR_EN)
 #define CPU_BOOT_DEV_STS0_MMU_PGTBL_DRAM_EN	(1 << CPU_BOOT_DEV_STS_MMU_PGTBL_DRAM_EN)
-#define CPU_BOOT_DEV_STS0_BMU_REMAP_DEPRECATED	(1 << CPU_BOOT_DEV_STS_BMU_REMAP_DEPRECATED)
+#define CPU_BOOT_DEV_STS0_SRAM_REMAP_EN		(1 << CPU_BOOT_DEV_STS_SRAM_REMAP_EN)
 #define CPU_BOOT_DEV_STS0_BMU_REMAP_EN		(1 << CPU_BOOT_DEV_STS_BMU_REMAP_EN)
 #define CPU_BOOT_DEV_STS0_ENABLED		(1 << CPU_BOOT_DEV_STS_ENABLED)
-#define CPU_BOOT_DEV_STS1_ENABLED		(1 << CPU_BOOT_DEV_STS_ENABLED)
+/* Status registers are 32 bits.
+ * We need to modulo the status value
+ * for statuses that are in sts1
+ */
+#define STS1_BIT(s) (1 << ((s) % 32))
+#define CPU_BOOT_DEV_STS1_EARLY_WRITE_RESP_SET	STS1_BIT(CPU_BOOT_DEV_STS_EARLY_WRITE_RESP_SET_EN)
+#define CPU_BOOT_DEV_STS1_ENABLED		STS1_BIT(CPU_BOOT_DEV_STS_SCND_EN)
 
 enum cpu_boot_status {
 	CPU_BOOT_STATUS_NA = 0,		/* Default value after reset of chip */
 	CPU_BOOT_STATUS_IN_WFE = 1,
 	CPU_BOOT_STATUS_DRAM_RDY = 2,
-	CPU_BOOT_STATUS_SRAM_AVAIL = 3,
+	CPU_BOOT_STATUS_SRAM_AVAIL = 3, /* deprecated */
+	CPU_BOOT_STATUS_RUNTIME_FW_RDY = 3,
 	CPU_BOOT_STATUS_IN_BTL = 4,	/* BTL is H/W FSM */
 	CPU_BOOT_STATUS_IN_PREBOOT = 5,
 	CPU_BOOT_STATUS_IN_SPL,		/* deprecated - not reported */
@@ -580,16 +605,6 @@ struct lkd_fw_binning_info {
 	__le32 reserved1[8];
 };
 
-/* TODO: remove this struct after the code is updated to use message */
-/* this is the comms descriptor header - meta data */
-struct comms_desc_header {
-	__le32 magic;		/* magic for validation */
-	__le32 crc32;		/* CRC32 of the descriptor w/o header */
-	__le16 size;		/* size of the descriptor w/o header */
-	__u8 version;	/* descriptor version */
-	__u8 reserved[5];	/* pad to 64 bit */
-};
-
 /* this is the comms message header - meta data */
 struct comms_msg_header {
 	__le32 magic;		/* magic for validation */
@@ -620,7 +635,7 @@ struct lkd_fw_ascii_msg {
 
 /* this is the main FW descriptor - consider ABI when changing */
 struct lkd_fw_comms_desc {
-	struct comms_desc_header header;
+	struct comms_msg_header header;
 	struct cpu_dyn_regs cpu_dyn_regs;
 	char fuse_ver[VERSION_MAX_LEN];
 	char cur_fw_ver[VERSION_MAX_LEN];
@@ -630,13 +645,19 @@ struct lkd_fw_comms_desc {
 	struct lkd_fw_binning_info binning_info;
 	struct lkd_fw_ascii_msg ascii_msg[LKD_FW_ASCII_MSG_MAX];
 	__le32 rsvd_mem_size_mb; /* reserved memory size [MB] for FW/SVE */
-	char reserved1[4];
+	__u8 module_type;
+	char reserved1[3];
 };
 
 enum comms_reset_cause {
 	HL_RESET_CAUSE_UNKNOWN = 0,
 	HL_RESET_CAUSE_HEARTBEAT = 1,
 	HL_RESET_CAUSE_TDR = 2,
+};
+
+enum comms_module_type {
+	MODULE_TYPE_MEZZ = 0,
+	MODULE_TYPE_PCI = 1,
 };
 
 /* each 6 bits represents a redundant column */
@@ -662,7 +683,8 @@ struct lkd_fw_comms_msg {
 			struct lkd_fw_ascii_msg ascii_msg[LKD_FW_ASCII_MSG_MAX];
 			/* reserved memory size [MB] for FW/SVE */
 			__le32 rsvd_mem_size_mb;
-			char reserved1[4];
+			__u8 module_type;
+			char reserved1[3];
 		};
 		struct {
 			__u8 reset_cause;
@@ -823,10 +845,30 @@ struct comms_status {
 	};
 };
 
+#define PLDM_VER_MAX_LEN	64
+#define PLDM_DATE_MAX_LEN	8
+#define PLDM_STAMP_MAX_LEX	4
+#define PLDM_COMP_MAX_LEX	5
+#define PLDM_RESEREVED_LEN	(VERSION_MAX_LEN - PLDM_VER_MAX_LEN - PLDM_DATE_MAX_LEN - \
+					PLDM_STAMP_MAX_LEX - PLDM_COMP_MAX_LEX)
+
+struct pldm_comp_ver {
+	__u8 ver[PLDM_VER_MAX_LEN];
+	__u8 date[PLDM_DATE_MAX_LEN];
+	__u8 res[PLDM_RESEREVED_LEN];
+	__u8 comp_index;
+	__le16 comp_class;
+	__le16 comp_ident;
+	__le32 stamp;
+};
+
 #define NAME_MAX_LEN	32 /* bytes */
 struct hl_module_data {
 	__u8 name[NAME_MAX_LEN];
-	__u8 version[VERSION_MAX_LEN];
+	union {
+		__u8 version[VERSION_MAX_LEN];
+		struct pldm_comp_ver pldm;
+	};
 };
 
 /**

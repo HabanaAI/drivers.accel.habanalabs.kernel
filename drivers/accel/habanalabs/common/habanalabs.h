@@ -9,6 +9,7 @@
 #ifndef HABANALABSP_H_
 #define HABANALABSP_H_
 
+#include "../include/compat.h" /* Must be first */
 #include <linux/habanalabs/cpucp_if.h>
 #include "../include/common/qman_if.h"
 #include "../include/hw_ip/mmu/mmu_general.h"
@@ -28,12 +29,12 @@
 #include <linux/rwsem.h>
 #include <linux/eventfd.h>
 #include <linux/platform_device.h>
-
 #include "../cn/cn.h"
 
 #ifdef _HAS_BITFIELD_H
 #include <linux/bitfield.h>
 #endif
+
 #ifdef _HAS_GEN_POOL_CHUNK_WITH_ATOMIC_LONG
 #include <linux/genalloc.h>
 #endif
@@ -50,7 +51,7 @@
 #include <drm/drm_device.h>
 #include <drm/drm_file.h>
 
-#include "compat.h"
+//#include "compat.h"
 #include "security.h"
 
 #if (KERNEL_VERSION(6, 2, 0) <= LINUX_VERSION_CODE) && !IS_ENABLED(CONFIG_DRM_ACCEL)

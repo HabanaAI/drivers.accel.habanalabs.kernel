@@ -3,6 +3,8 @@
 # Makefile for HabanaLabs AI accelerators driver
 #
 
+HL_DOWNSTREAM ?= y
+
 CONFIG_DRM_ACCEL_HABANALABS := m
 
 obj-$(CONFIG_DRM_ACCEL_HABANALABS) := habanalabs.o
@@ -27,8 +29,22 @@ habanalabs-y += $(HL_GOYA_FILES)
 
 habanalabs-$(CONFIG_DEBUG_FS) += common/debugfs.o
 
-habanalabs-y += common/habanalabs_compat_accel.o
 habanalabs-$(HL_DOWNSTREAM) += common/importer_drv.o common/simulator.o
 
 ccflags-y += -I$(src)
 ccflags-$(HL_GENERATE_USED_MACROS) += -fplugin=$(src)/../../../scripts/sanitize_headers/usedmacros.so
+
+#include $(src)/common/Makefile.compat
+
+ccflags-y += $(HL_CFLAGS) -Werror -Wmaybe-uninitialized
+ifeq ($(HL_DOWNSTREAM),y)
+    ccflags-y += -DHL_DOWNSTREAM
+endif
+
+habanalabs-y += common/importer_drv.o common/habanalabs_compat_accel.o
+
+LINUXINCLUDE := -I$(src)/../../../include -I$(src) $(LINUXINCLUDE)
+
+ifdef OFED_PATH
+KBUILD_EXTRA_SYMBOLS := $(OFED_PATH)/Module.symvers
+endif

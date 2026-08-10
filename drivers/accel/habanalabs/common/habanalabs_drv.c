@@ -592,7 +592,6 @@ static const struct pci_device_id ids[] = {
 };
 MODULE_DEVICE_TABLE(pci, ids);
 
-#if IS_ENABLED(CONFIG_DRM_ACCEL)
 static const struct drm_ioctl_desc hl_drm_ioctls[] = {
 	DRM_IOCTL_DEF_DRV(HL_INFO, hl_info_ioctl, 0),
 	DRM_IOCTL_DEF_DRV(HL_CB, hl_cb_ioctl, 0),
@@ -611,9 +610,9 @@ static const struct file_operations hl_fops = {
 	.compat_ioctl = drm_compat_ioctl,
 	.llseek = noop_llseek,
 	.mmap = hl_mmap,
-	#ifdef FOP_UNSIGNED_OFFSET
+//	#ifdef FOP_UNSIGNED_OFFSET
 	.fop_flags = FOP_UNSIGNED_OFFSET
-	#endif
+//	#endif
 };
 
 static const struct drm_driver hl_driver = {
@@ -639,7 +638,6 @@ bool hl_check_fd(struct file *filp)
 {
 	return (filp->f_op == &hl_fops);
 }
-#endif /* IS_ENABLED(CONFIG_DRM_ACCEL) */
 
 static void set_pci_revision_id(struct hl_device *hdev, enum hl_asic_type asic_type)
 {

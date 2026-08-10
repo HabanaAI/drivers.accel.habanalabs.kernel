@@ -390,6 +390,43 @@ enum pci_region hl_get_pci_memory_region(struct hl_device *hdev, u64 addr)
 	return PCI_REGION_NUMBER;
 }
 
+#ifndef _HAS_PCI_CONFIGURE_EXTENDED_TAGS
+static int hl_pci_configure_extended_tags(struct pci_dev *pdev)
+{
+        u32 cap;
+        u16 ctl;
+        int rc;
+
+        rc = pcie_capability_read_dword(pdev, PCI_EXP_DEVCAP, &cap);
+        if (rc) {
+                pci_err(pdev,
+                        "Failed to read PCIe device capabilities register\n");
+                return rc;
+        }
+
+        if (!(cap & PCI_EXP_DEVCAP_EXT_TAG))
+                return 0;
+
+        rc = pcie_capability_read_word(pdev, PCI_EXP_DEVCTL, &ctl);
+        if (rc) {
+                pci_err(pdev, "Failed to read PCIe device control register\n");
+                return rc;
+        }
+
+        if (ctl & PCI_EXP_DEVCTL_EXT_TAG)
+                return 0;
+
+        pci_info(pdev, "Enabling PCIe extended tags\n");
+        rc = pcie_capability_set_word(pdev, PCI_EXP_DEVCTL,
+                                        PCI_EXP_DEVCTL_EXT_TAG);
+        if (rc)
+                pci_err(pdev,
+                        "Failed to write to PCIe device control register\n");
+
+        return rc;
+}
+#endif /*  _HAS_PCI_CONFIGURE_EXTENDED_TAGS */
+
 /**
  * hl_pci_init() - PCI initialization code.
  * @hdev: Pointer to hl_device structure.

@@ -1,6 +1,7 @@
 /* SPDX-License-Identifier: GPL-2.0 WITH Linux-syscall-note
  *
  * Copyright 2016-2023 HabanaLabs, Ltd.
+ * Copyright (C) 2023-2025, Intel Corporation.
  * All Rights Reserved.
  *
  */
@@ -1120,6 +1121,13 @@ enum hl_device_status {
  * @HL_SERVER_GAUDI3_HL338: HL338, 4 OAMs, 22 ports are enabled
  *                          18 internal (6 per card)
  *                          4 external
+ * @HL_SERVER_GAUDI2_HL288: HL288, 4 OAMs, 22 ports are enabled
+ *                          18 internal (6 per card)
+ *                          4 external
+ * @HL_SERVER_GAUDI3_RACK: GAUDI3_RACK, 24 ports are enabled
+ *                         24 external
+ * @HL_SERVER_GAUDI3_RACK_WHITEBOX: GAUDI3_RACK_WHITEBOX, 24 ports are enabled
+ *                         24 external
  */
 enum hl_server_type {
 	HL_SERVER_TYPE_UNKNOWN = 0,
@@ -1136,6 +1144,9 @@ enum hl_server_type {
 	HL_SERVER_GAUDI3_HLS3_FULL_OAM_6PORTS_SCALE_OUT = 11,
 	HL_SERVER_GAUDI3_HLS3_SINGLEPORT_OAM_FULLSCALE_OUT = 12,
 	HL_SERVER_GAUDI3_HL338 = 13,
+	HL_SERVER_GAUDI2_HL288 = 14,
+	HL_SERVER_GAUDI3_RACK = 15,
+	HL_SERVER_GAUDI3_RACK_WHITEBOX = 16,
 };
 
 /*
@@ -1238,6 +1249,10 @@ enum hl_server_type {
  *                          May return 0 even though no new data is available, in that case
  *                          timestamp will be 0.
  * HL_INFO_USER_ENGINE_ERR_EVENT - Retrieve the last engine id that reported an error.
+ * HL_INFO_MEMORY_CONSUMPTION - Set the current user's memory consumption at a certain timestamp
+ * HL_INFO_CONFIG_DRM_ACCEL_ENABLED - Returns whether the driver was built with
+ *                                    CONFIG_DRM_ACCEL enabled (or not).
+ *
  * HL_INFO_MODULE_PARAMS - Retrieve the device's actual values of module
  *                         parameters.
  */
@@ -1281,6 +1296,8 @@ enum hl_server_type {
 #define HL_INFO_USER_ENGINE_ERR_EVENT		38
 #define HL_INFO_TIME_SYNC_PER_DIE		39
 #define HL_INFO_DEV_SIGNED			40
+#define HL_INFO_MEMORY_CONSUMPTION		41
+#define HL_INFO_CONFIG_DRM_ACCEL_ENABLED	42
 #define HL_INFO_MODULE_PARAMS			255
 
 #define HL_INFO_VERSION_MAX_LEN			128
@@ -1416,9 +1433,11 @@ struct hl_info_hw_idle {
 	__u64 busy_engines_mask_ext[HL_BUSY_ENGINES_MASK_EXT_SIZE];
 };
 
+#define HL_SOFT_RESET_STALL_AFTER_POLLING_MS	30
+
 struct hl_info_device_status {
 	__u32 status;
-	__u32 pad;
+	__u32 soft_reset_stall;
 };
 
 struct hl_info_device_utilization {
@@ -1584,6 +1603,7 @@ struct hl_info_module_params {
 	__u32 cpu_queues_enable;
 	__u32 fw_loading;
 	__u32 heartbeat;
+	__u32 axi_drain;
 	__u32 security_enable;
 	__u32 sram_scrambler_enable;
 	__u32 dram_scrambler_enable;
@@ -1596,6 +1616,7 @@ struct hl_info_module_params {
 	__u32 dram_page_scrub;
 	__u32 clock_gating_ext;
 	__u32 fw_loading_ext;
+	__u32 nic_lanes_per_port;
 };
 
 /**
@@ -1849,6 +1870,16 @@ struct hl_info_signed {
 	__u16 dev_info_len;
 	__u8 dev_info[SEC_DEV_INFO_BUF_SZ];
 	__u8 pad[2];
+};
+
+/*
+ * struct hl_info_memory_consumption - device memory consumption information
+ * @used_mem: used memory size in bytes
+ * @timestamp_sec: timestamp in seconds
+ */
+struct hl_info_memory_consumption {
+	__u64 used_mem;
+	__u64 timestamp_sec;
 };
 
 /**
@@ -2135,6 +2166,14 @@ struct hl_cs_chunk {
  * Use it to control engines modes.
  */
 #define HL_CS_FLAGS_ENGINES_COMMAND		0x10000
+
+/*
+ * The flush HBW writes is merged into the existing CS ioctls.
+ * Used to flush all HBW writes, using *write* register (Fabric Serialization Enhancement)
+ * This is a blocking operation and for this reason the user shall not use
+ * the return sequence number (which will be invalid anyway)
+ */
+#define HL_CS_FLAGS_FLUSH_HBW_WRITES_FSE	0x20000
 
 #define HL_CS_STATUS_SUCCESS		0
 
@@ -2659,7 +2698,7 @@ struct hl_debug_params_fetch_trace {
 	/* Source ETR ID */
 	__u32 etr_id;
 
-	/* Timeout in milliseconds to wait for available buffer */
+	/* Timeout in miliseconds to wait for available buffer */
 	__u32 timeout_ms;
 };
 
@@ -2924,8 +2963,7 @@ struct hl_nic_alloc_conn_out {
  *                    Note that the advanced flag must be enabled in case it's being set.
  * @compression_en: Enable compression
  * @remote_key: Remote-key to be used to generate on outgoing packets
- * @sack_en: (Gaudi3 and above) Enable Selective Acknowledgment (SACK)
- * @coll_lag_size: (Fs1 and above) The collective LAG size (i.e. number of ports in this LAG)
+ * @sack_en: (Gaudi3 and above) Enable Selective Acknowlegment (SACK)
  */
 struct hl_nic_req_conn_ctx_in {
 	__u32 reserved;
@@ -2957,8 +2995,7 @@ struct hl_nic_req_conn_ctx_in {
 	__u8 compression_en;
 	__u32 remote_key;
 	__u8 sack_en;
-	__u8 coll_lag_size;
-	__u8 pad[6];
+	__u8 pad[7];
 };
 
 /**
